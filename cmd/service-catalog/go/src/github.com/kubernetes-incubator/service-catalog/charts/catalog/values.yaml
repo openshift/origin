@@ -1,9 +1,12 @@
 # Default values for Service Catalog
 # determines whether the API server should be registered with the kube-aggregator
 useAggregator: false
+## If true, create & use RBAC resources
+##
+rbacEnable: true
 apiserver:
   # apiserver image to use
-  image: quay.io/kubernetes-service-catalog/apiserver:v0.1.0-rc1
+  image: quay.io/kubernetes-service-catalog/apiserver:v0.1.0-rc2
   # imagePullPolicy for the apiserver; valid values are "IfNotPresent",
   # "Never", and "Always"
   imagePullPolicy: Always
@@ -68,7 +71,7 @@ apiserver:
   serviceAccount: service-catalog-apiserver
 controllerManager:
   # controller-manager image to use
-  image: quay.io/kubernetes-service-catalog/controller-manager:v0.1.0-rc1
+  image: quay.io/kubernetes-service-catalog/controller-manager:v0.1.0-rc2
   # imagePullPolicy for the controller-manager; valid values are
   # "IfNotPresent", "Never", and "Always"
   imagePullPolicy: Always

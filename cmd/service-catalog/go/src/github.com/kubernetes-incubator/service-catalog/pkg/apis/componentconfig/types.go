@@ -23,7 +23,7 @@ package componentconfig
 import (
 	"time"
 
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"github.com/kubernetes-incubator/service-catalog/pkg/kubernetes/pkg/apis/componentconfig"
 )
 
 // ControllerManagerConfiguration encapsulates configuration for the

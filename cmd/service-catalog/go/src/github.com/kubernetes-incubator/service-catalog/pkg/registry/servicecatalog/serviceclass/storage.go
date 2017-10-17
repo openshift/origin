@@ -92,6 +92,8 @@ func toSelectableFields(serviceClass *servicecatalog.ClusterServiceClass) fields
 	// amount of allocations needed to create the fields.Set. If you add any
 	// field here or the number of object-meta related fields changes, this should
 	// be adjusted.
+	// You also need to modify
+	// pkg/apis/servicecatalog/v1beta1/conversion[_test].go
 	scSpecificFieldsSet := make(fields.Set, 3)
 	scSpecificFieldsSet["spec.clusterServiceBrokerName"] = serviceClass.Spec.ClusterServiceBrokerName
 	scSpecificFieldsSet["spec.externalName"] = serviceClass.Spec.ExternalName

@@ -32,7 +32,7 @@ _somewhere_ in a simple way:
     cluster as the consumer or a different cluster, or even creating a new
     tenant in a multi-tenant SaaS system.  The point is that the
     consumer doesn't have to be aware of or care at all about the details.
-3.  The user requests a _credential_ to use the service instance in their application
+3.  The user requests a _binding_ to use the service instance in their application
 
     Credentials are delivered to users in normal Kubernetes secrets and
     contain information necessary to connect to and authenticate to the
@@ -58,13 +58,6 @@ We are currently working toward a beta-quality release to be used in conjunction
 Kubernetes 1.8. See the
 [milestones list](https://github.com/kubernetes-incubator/service-catalog/milestones?direction=desc&sort=due_date&state=open) 
 for information about the issues and PRs in current and future milestones.
-
-**NOTE**: Some fields in our API may still be considered **ALPHA** after the
-API graduates to **BETA**.  These fields are prefixed with `alpha` in
-JSON/YAML.  Alpha fields are provided for use at your own risk, may not work
-correctly, may be subject to change or removal at any time, and will not have
-data migration provided for them when they graduate past alpha.  When an alpha
-field graduates past alpha, the `alpha` prefix will be removed.
 
 The project [roadmap](https://github.com/kubernetes-incubator/service-catalog/wiki/Roadmap)
 contains information about our high-level goals for future milestones.

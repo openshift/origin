@@ -506,3 +506,39 @@ func TestFakeAppGUIDRequiredError(t *testing.T) {
 		}
 	}
 }
+
+func TestNewFakeClient(t *testing.T) {
+	newfakeClient := fake.NewFakeClient(fake.FakeClientConfiguration{
+		BindReaction: &fake.BindReaction{
+			Response: bindResponse(),
+		},
+	})
+
+	testfakeclient := fake.FakeClient{BindReaction: &fake.BindReaction{
+		Response: bindResponse(),
+	},
+	}
+
+	response, err := newfakeClient.Bind(&v2.BindRequest{})
+	response2, err2 := testfakeclient.Bind(&v2.BindRequest{})
+
+	//for _, tc := range cases {
+	//		fakeClient := fake.NewFakeClient(tc.config)
+
+	if !reflect.DeepEqual(response, response2) {
+		t.Errorf("%v: unexpected response; expected %+v, got %+v", response, response2)
+	}
+
+	if !reflect.DeepEqual(err, err2) {
+		t.Errorf("%v: unexpected error; expected %+v, got %+v", err, err2)
+	}
+
+	actions := newfakeClient.Actions()
+	if e, a := 1, len(actions); e != a {
+		t.Errorf("%v: unexpected actions; expected %v, got %v; actions = %+v", e, a, actions)
+	}
+	if e, a := fake.Bind, actions[0].Type; e != a {
+		t.Errorf("%v: unexpected action type; expected %v, got %v", e, a)
+	}
+
+}

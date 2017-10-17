@@ -40,8 +40,9 @@ func successUpdateInstanceResponseAsync() *UpdateInstanceResponse {
 func TestUpdateInstanceInstance(t *testing.T) {
 	cases := []struct {
 		name                string
+		version             APIVersion
 		enableAlpha         bool
-		originatingIdentity *AlphaOriginatingIdentity
+		originatingIdentity *OriginatingIdentity
 		request             *UpdateInstanceRequest
 		httpChecks          httpChecks
 		httpReaction        httpReaction
@@ -102,6 +103,14 @@ func TestUpdateInstanceInstance(t *testing.T) {
 			expectedErrMessage: "http error",
 		},
 		{
+			name: "202 with no async support",
+			httpReaction: httpReaction{
+				status: http.StatusAccepted,
+				body:   successAsyncUpdateInstanceResponseBody,
+			},
+			expectedErrMessage: "Status: 202; ErrorMessage: <nil>; Description: <nil>; ResponseError: <nil>",
+		},
+		{
 			name: "200 with malformed response",
 			httpReaction: httpReaction{
 				status: http.StatusOK,
@@ -123,11 +132,11 @@ func TestUpdateInstanceInstance(t *testing.T) {
 				status: http.StatusInternalServerError,
 				body:   conventionalFailureResponseBody,
 			},
-			expectedErr: testHttpStatusCodeError(),
+			expectedErr: testHTTPStatusCodeError(),
 		},
 		{
 			name:                "originating identity included",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue}},
 			httpReaction: httpReaction{
@@ -138,7 +147,7 @@ func TestUpdateInstanceInstance(t *testing.T) {
 		},
 		{
 			name:                "originating identity excluded",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: nil,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -148,8 +157,8 @@ func TestUpdateInstanceInstance(t *testing.T) {
 			expectedResponse: successUpdateInstanceResponse(),
 		},
 		{
-			name:                "originating identity not sent unless alpha enabled",
-			enableAlpha:         false,
+			name:                "originating identity not sent unless API version >= 2.13",
+			version:             Version2_12(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -172,11 +181,14 @@ func TestUpdateInstanceInstance(t *testing.T) {
 		}
 
 		if tc.httpChecks.body == "" {
-			tc.httpChecks.body = "{}"
+			tc.httpChecks.body = "{\"service_id\":\"test-service-id\",\"plan_id\":\"test-plan-id\"}"
 		}
 
-		version := Version2_11()
-		klient := newTestClient(t, tc.name, version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
+		if tc.version.label == "" {
+			tc.version = Version2_11()
+		}
+
+		klient := newTestClient(t, tc.name, tc.version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
 
 		response, err := klient.UpdateInstance(tc.request)
 
@@ -200,6 +212,16 @@ func TestValidateUpdateInstanceRequest(t *testing.T) {
 			request: func() *UpdateInstanceRequest {
 				r := defaultUpdateInstanceRequest()
 				r.InstanceID = ""
+				return r
+			}(),
+			valid: false,
+		},
+		{
+			name: "missing service ID",
+			request: func() *UpdateInstanceRequest {
+				r := defaultUpdateInstanceRequest()
+				r.InstanceID = "instanceID"
+				r.ServiceID = ""
 				return r
 			}(),
 			valid: false,

@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/pmorie/go-open-service-broker-client.svg?branch=master)](https://travis-ci.org/pmorie/go-open-service-broker-client)
 [![Coverage Status](https://coveralls.io/repos/github/pmorie/go-open-service-broker-client/badge.svg)](https://coveralls.io/github/pmorie/go-open-service-broker-client)
+[![Go Report Card](https://goreportcard.com/badge/github.com/pmorie/go-open-service-broker-client)](https://goreportcard.com/report/github.com/pmorie/go-open-service-broker-client)
+[![Godoc documentation](https://img.shields.io/badge/godoc-documentation-blue.svg)](https://godoc.org/github.com/pmorie/go-open-service-broker-client)
 
 A golang client for communicating with service brokers implementing the
 [Open Service Broker API](https://github.com/openservicebrokerapi/servicebroker).
@@ -36,6 +38,7 @@ func GetBrokerCatalog(URL string) (*osb.CatalogResponse, error) {
 This client library supports the following versions of the
 [Open Service Broker API](https://github.com/openservicebrokerapi/servicebroker):
 
+- [v2.13](https://github.com/openservicebrokerapi/servicebroker/tree/v2.13)
 - [v2.12](https://github.com/openservicebrokerapi/servicebroker/tree/v2.12)
 - [v2.11](https://github.com/openservicebrokerapi/servicebroker/tree/v2.11)
 

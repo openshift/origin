@@ -95,8 +95,8 @@ func validateServiceBindingStatus(status *sc.ServiceBindingStatus, fldPath *fiel
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("operationStartTime"), "operationStartTime must not be present when currentOperation is not present"))
 		}
 	} else {
-		if status.OperationStartTime == nil {
-			allErrs = append(allErrs, field.Required(fldPath.Child("operationStartTime"), "operationStartTime is required when currentOperation is present"))
+		if status.OperationStartTime == nil && !status.OrphanMitigationInProgress {
+			allErrs = append(allErrs, field.Required(fldPath.Child("operationStartTime"), "operationStartTime is required when currentOperation is present and no orphan mitigation in progress"))
 		}
 		// Do not allow the binding to be ready if there is an on-going operation
 		for i, c := range status.Conditions {

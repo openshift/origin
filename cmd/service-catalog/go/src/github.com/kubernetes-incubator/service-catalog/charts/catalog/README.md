@@ -40,7 +40,7 @@ chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `apiserver.image` | apiserver image to use | `quay.io/kubernetes-service-catalog/apiserver:v0.1.0-rc1` |
+| `apiserver.image` | apiserver image to use | `quay.io/kubernetes-service-catalog/apiserver:v0.1.0-rc2` |
 | `apiserver.imagePullPolicy` | `imagePullPolicy` for the apiserver | `Always` |
 | `apiserver.tls.cert` | Base64-encoded x509 certificate | A self-signed certificate |
 | `apiserver.tls.key` | Base64-encoded private key | The private key for the certificate above |
@@ -53,12 +53,13 @@ chart and their default values.
 | `apiserver.storage.etcd.servers` | If storage type is `etcd`: etcd URL(s); override this if NOT using embedded etcd | `http://localhost:2379` |
 | `apiserver.verbosity` | Log level; valid values are in the range 0 - 10 | `10` |
 | `apiserver.auth.enabled` | Enable authentication and authorization | `false` |
-| `controllerManager.image` | controller-manager image to use | `quay.io/kubernetes-service-catalog/controller-manager:v0.1.0-rc1` |
+| `controllerManager.image` | controller-manager image to use | `quay.io/kubernetes-service-catalog/controller-manager:v0.1.0-rc2` |
 | `controllerManager.imagePullPolicy` | `imagePullPolicy` for the controller-manager | `Always` |
 | `controllerManager.verbosity` | Log level; valid values are in the range 0 - 10 | `10` |
 | `controllerManager.resyncInterval` | How often the controller should resync informers; duration format (`20m`, `1h`, etc) | `5m` |
 | `controllerManager.brokerRelistInterval` | How often the controller should relist the catalogs of ready brokers; duration format (`20m`, `1h`, etc) | `24h` |
 | `useAggregator` | whether or not to set up the controller-manager to go through the main Kubernetes API server's API aggregator (requires setting `apiserver.tls.ca` to work) | `false` |
+| `rbacEnable` | If true, create & use RBAC resources | `true` |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.
