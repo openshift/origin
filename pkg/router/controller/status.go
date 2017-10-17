@@ -19,6 +19,8 @@ import (
 	"github.com/openshift/origin/pkg/router"
 )
 
+const timestampRefreshPeriod = time.Hour
+
 // RejectionRecorder is an object capable of recording why a route was rejected
 type RejectionRecorder interface {
 	RecordRouteRejection(route *routeapi.Route, reason, message string)
@@ -64,10 +66,11 @@ var nowFn = getRfc3339Timestamp
 // findOrCreateIngress loops through the router status ingress array looking for an entry
 // that matches name. If there is no entry in the array, it creates one and appends it
 // to the array. If there are multiple entries with that name, the first one is
-// returned and later ones are removed. Changed is returned as true if any part of the
-// array is altered.
+// returned and later ones are removed. If the an entry's timestamp is too early, it will
+// also be discarded. Changed is returned as true if any part of the array is altered.
 func findOrCreateIngress(route *routeapi.Route, name, hostName string) (_ *routeapi.RouteIngress, changed bool) {
 	position := -1
+	threshold := time.Now().Add(-timestampRefreshPeriod)
 	updated := make([]routeapi.RouteIngress, 0, len(route.Status.Ingress))
 	for i := range route.Status.Ingress {
 		existing := &route.Status.Ingress[i]
@@ -76,6 +79,10 @@ func findOrCreateIngress(route *routeapi.Route, name, hostName string) (_ *route
 			continue
 		}
 		if position != -1 {
+			changed = true
+			continue
+		}
+		if threshold.After(existing.Conditions[0].LastTransitionTime.Time) {
 			changed = true
 			continue
 		}
@@ -306,8 +313,7 @@ func (a *StatusAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.
 	if IsGeneratedRouteName(route.Name) {
 		// Can't record status for ingress resources
 	} else {
-		switch eventType {
-		case watch.Added, watch.Modified:
+		if eventType != watch.Deleted {
 			ok, err := a.admitRoute(a.client, route, a.routerName, a.routerCanonicalHostname)
 			if err != nil {
 				return err
