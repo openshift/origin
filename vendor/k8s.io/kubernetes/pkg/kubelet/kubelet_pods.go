@@ -382,7 +382,7 @@ func (kl *Kubelet) getServiceEnvVarMap(ns string) (map[string]string, error) {
 	}
 	services, err := kl.serviceLister.List(labels.Everything())
 	if err != nil {
-		return m, fmt.Errorf("failed to list services when setting up env vars.")
+		return m, fmt.Errorf("failed to list services when setting up env vars")
 	}
 
 	// project the services in namespace ns onto the master services
@@ -547,7 +547,7 @@ func (kl *Kubelet) makeEnvironmentVariables(pod *v1.Pod, container *v1.Container
 					return result, err
 				}
 			case envVar.ValueFrom.ResourceFieldRef != nil:
-				defaultedPod, defaultedContainer, err := kl.defaultPodLimitsForDownwardApi(pod, container)
+				defaultedPod, defaultedContainer, err := kl.defaultPodLimitsForDownwardAPI(pod, container)
 				if err != nil {
 					return result, err
 				}
@@ -670,9 +670,8 @@ func containerResourceRuntimeValue(fs *v1.ResourceFieldSelector, pod *v1.Pod, co
 	containerName := fs.ContainerName
 	if len(containerName) == 0 {
 		return resource.ExtractContainerResourceValue(fs, container)
-	} else {
-		return resource.ExtractResourceValueByContainerName(fs, pod, containerName)
 	}
+	return resource.ExtractResourceValueByContainerName(fs, pod, containerName)
 }
 
 // One of the following arguments must be non-nil: runningPod, status.
@@ -1394,7 +1393,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			continue
 		}
 		status := statuses[container.Name]
-		reason, message, ok := kl.reasonCache.Get(pod.UID, container.Name)
+		reason, ok := kl.reasonCache.Get(pod.UID, container.Name)
 		if !ok {
 			// In fact, we could also apply Waiting state here, but it is less informative,
 			// and the container will be restarted soon, so we prefer the original state here.
@@ -1409,8 +1408,8 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		}
 		status.State = v1.ContainerState{
 			Waiting: &v1.ContainerStateWaiting{
-				Reason:  reason.Error(),
-				Message: message,
+				Reason:  reason.Err.Error(),
+				Message: reason.Message,
 			},
 		}
 		statuses[container.Name] = status
@@ -1431,7 +1430,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 	return containerStatuses
 }
 
-// Returns logs of current machine.
+// ServeLogs returns logs of current machine.
 func (kl *Kubelet) ServeLogs(w http.ResponseWriter, req *http.Request) {
 	// TODO: whitelist logs we are willing to serve
 	kl.logServer.ServeHTTP(w, req)
@@ -1449,7 +1448,7 @@ func (kl *Kubelet) findContainer(podFullName string, podUID types.UID, container
 	return pod.FindContainerByName(containerName), nil
 }
 
-// Run a command in a container, returns the combined stdout, stderr as an array of bytes
+// RunInContainer runs a command in a container, returns the combined stdout, stderr as an array of bytes
 func (kl *Kubelet) RunInContainer(podFullName string, podUID types.UID, containerName string, cmd []string) ([]byte, error) {
 	container, err := kl.findContainer(podFullName, podUID, containerName)
 	if err != nil {
