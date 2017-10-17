@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 18a0b0c8dab1795ec41d4e89eab6e5ecc5e19430
+%global commit 3ff25c8cb5bd34067f115ffe6e538251e3da5def
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.156.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=18a0b0c
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.157.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3ff25c8
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.157.0%{?dist}
+Release:        0.158.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,15 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Oct 17 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.158.0
+- remove unnecessary anonymous function (deads@redhat.com)
+- UPSTREAM: 53831: Fix volume reconciler test flake (hekumar@redhat.com)
+- UPSTREAM: 48757: Fix flaky test in reconciler_test (hekumar@redhat.com)
+- Sharded router based on namespace labels should notice routes immediately
+  (rpenta@redhat.com)
+- Distinguish SCCs that AllowHostNetwork and AllowHostPorts from those that do
+  not, in the score calculation. (jpazdziora@redhat.com)
+
 * Mon Oct 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.157.0
 - 
 
