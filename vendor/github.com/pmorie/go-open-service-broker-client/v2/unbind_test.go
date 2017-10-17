@@ -24,8 +24,9 @@ func successUnbindResponse() *UnbindResponse {
 func TestUnbind(t *testing.T) {
 	cases := []struct {
 		name                string
+		version             APIVersion
 		enableAlpha         bool
-		originatingIdentity *AlphaOriginatingIdentity
+		originatingIdentity *OriginatingIdentity
 		request             *UnbindRequest
 		httpChecks          httpChecks
 		httpReaction        httpReaction
@@ -79,11 +80,11 @@ func TestUnbind(t *testing.T) {
 				status: http.StatusInternalServerError,
 				body:   conventionalFailureResponseBody,
 			},
-			expectedErr: testHttpStatusCodeError(),
+			expectedErr: testHTTPStatusCodeError(),
 		},
 		{
 			name:                "originating identity included",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue}},
 			httpReaction: httpReaction{
@@ -94,7 +95,7 @@ func TestUnbind(t *testing.T) {
 		},
 		{
 			name:                "originating identity excluded",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: nil,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -104,8 +105,8 @@ func TestUnbind(t *testing.T) {
 			expectedResponse: successUnbindResponse(),
 		},
 		{
-			name:                "originating identity not sent unless alpha enabled",
-			enableAlpha:         false,
+			name:                "originating identity not sent unless API version >= 2.13",
+			version:             Version2_12(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -133,8 +134,11 @@ func TestUnbind(t *testing.T) {
 			tc.httpChecks.params[planIDKey] = testPlanID
 		}
 
-		version := Version2_11()
-		klient := newTestClient(t, tc.name, version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
+		if tc.version.label == "" {
+			tc.version = Version2_11()
+		}
+
+		klient := newTestClient(t, tc.name, tc.version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
 
 		response, err := klient.Unbind(tc.request)
 

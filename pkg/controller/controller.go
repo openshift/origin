@@ -249,8 +249,14 @@ func worker(queue workqueue.RateLimitingInterface, resourceType string, maxRetri
 func (c *controller) getClusterServiceClassPlanAndClusterServiceBroker(instance *v1beta1.ServiceInstance) (*v1beta1.ClusterServiceClass, *v1beta1.ClusterServicePlan, string, osb.Client, error) {
 	serviceClass, err := c.serviceClassLister.Get(instance.Spec.ClusterServiceClassRef.Name)
 	if err != nil {
-		s := fmt.Sprintf("ServiceInstance \"%s/%s\" references a non-existent ClusterServiceClass %q", instance.Namespace, instance.Name, instance.Spec.ExternalClusterServiceClassName)
-		glog.Info(s)
+		s := fmt.Sprintf(
+			"References a non-existent ClusterServiceClass (K8S: %q ExternalName: %q)",
+			instance.Spec.ClusterServiceClassRef.Name, instance.Spec.ExternalClusterServiceClassName,
+		)
+		glog.Infof(
+			`ServiceInstance "%v/%v": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceInstanceCondition(
 			instance,
 			v1beta1.ServiceInstanceConditionReady,
@@ -264,8 +270,14 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBroker(instance 
 
 	servicePlan, err := c.servicePlanLister.Get(instance.Spec.ClusterServicePlanRef.Name)
 	if nil != err {
-		s := fmt.Sprintf(`ServiceInstance "%v/%v": references a non-existent ClusterServicePlan %q on ClusterServiceClass %q1`, instance.Namespace, instance.Name, instance.Spec.ExternalClusterServicePlanName, serviceClass.Spec.ExternalName)
-		glog.Warning(s)
+		s := fmt.Sprintf(
+			"References a non-existent ClusterServicePlan (K8S: %q ExternalName: %q) on ClusterServiceClass (K8S: %q ExternalName: %q)",
+			instance.Spec.ClusterServicePlanName, instance.Spec.ExternalClusterServicePlanName, serviceClass.Name, serviceClass.Spec.ExternalName,
+		)
+		glog.Warningf(
+			`ServiceInstance "%s/%s": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceInstanceCondition(
 			instance,
 			v1beta1.ServiceInstanceConditionReady,
@@ -279,8 +291,11 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBroker(instance 
 
 	broker, err := c.brokerLister.Get(serviceClass.Spec.ClusterServiceBrokerName)
 	if err != nil {
-		s := fmt.Sprintf(`ServiceInstance "%v/%v": references a non-existent broker %q`, instance.Namespace, instance.Name, serviceClass.Spec.ClusterServiceBrokerName)
-		glog.Warning(s)
+		s := fmt.Sprintf("References a non-existent broker %q", serviceClass.Spec.ClusterServiceBrokerName)
+		glog.Warningf(
+			`ServiceInstance "%s/%s": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceInstanceCondition(
 			instance,
 			v1beta1.ServiceInstanceConditionReady,
@@ -295,7 +310,10 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBroker(instance 
 	authConfig, err := getAuthCredentialsFromClusterServiceBroker(c.kubeClient, broker)
 	if err != nil {
 		s := fmt.Sprintf("Error getting broker auth credentials for broker %q: %s", broker.Name, err)
-		glog.Info(s)
+		glog.Infof(
+			`ServiceInstance "%v/%v": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceInstanceCondition(
 			instance,
 			v1beta1.ServiceInstanceConditionReady,
@@ -325,8 +343,14 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBroker(instance 
 func (c *controller) getClusterServiceClassPlanAndClusterServiceBrokerForServiceBinding(instance *v1beta1.ServiceInstance, binding *v1beta1.ServiceBinding) (*v1beta1.ClusterServiceClass, *v1beta1.ClusterServicePlan, string, osb.Client, error) {
 	serviceClass, err := c.serviceClassLister.Get(instance.Spec.ClusterServiceClassRef.Name)
 	if err != nil {
-		s := fmt.Sprintf("ServiceBinding \"%s/%s\" references a non-existent ClusterServiceClass %q", binding.Namespace, binding.Name, instance.Spec.ExternalClusterServiceClassName)
-		glog.Warning(s)
+		s := fmt.Sprintf(
+			"References a non-existent ClusterServiceClass (K8S: %q ExternalName: %q)",
+			instance.Spec.ClusterServiceClassRef.Name, instance.Spec.ExternalClusterServiceClassName,
+		)
+		glog.Warningf(
+			`ServiceBinding "%s/%s": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceBindingCondition(
 			binding,
 			v1beta1.ServiceBindingConditionReady,
@@ -340,8 +364,14 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBrokerForService
 
 	servicePlan, err := c.servicePlanLister.Get(instance.Spec.ClusterServicePlanRef.Name)
 	if nil != err {
-		s := fmt.Sprintf("ServiceInstance \"%s/%s\" references a non-existent ClusterServicePlan %q on ClusterServiceClass %q", instance.Namespace, instance.Name, instance.Spec.ExternalClusterServicePlanName, serviceClass.Spec.ExternalName)
-		glog.Warning(s)
+		s := fmt.Sprintf(
+			"References a non-existent ClusterServicePlan (K8S: %q ExternalName: %q) on ClusterServiceClass (K8S: %q ExternalName: %q)",
+			instance.Spec.ClusterServicePlanName, instance.Spec.ExternalClusterServicePlanName, serviceClass.Name, serviceClass.Spec.ExternalName,
+		)
+		glog.Warningf(
+			`ServiceBinding "%s/%s": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceBindingCondition(
 			binding,
 			v1beta1.ServiceBindingConditionReady,
@@ -355,8 +385,11 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBrokerForService
 
 	broker, err := c.brokerLister.Get(serviceClass.Spec.ClusterServiceBrokerName)
 	if err != nil {
-		s := fmt.Sprintf("ServiceBinding \"%s/%s\" references a non-existent ClusterServiceBroker %q", binding.Namespace, binding.Name, serviceClass.Spec.ClusterServiceBrokerName)
-		glog.Warning(s)
+		s := fmt.Sprintf("References a non-existent ClusterServiceBroker %q", serviceClass.Spec.ClusterServiceBrokerName)
+		glog.Warningf(
+			`ServiceBinding "%s/%s": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceBindingCondition(
 			binding,
 			v1beta1.ServiceBindingConditionReady,
@@ -371,7 +404,10 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBrokerForService
 	authConfig, err := getAuthCredentialsFromClusterServiceBroker(c.kubeClient, broker)
 	if err != nil {
 		s := fmt.Sprintf("Error getting broker auth credentials for broker %q: %s", broker.Name, err)
-		glog.Warning(s)
+		glog.Warningf(
+			`ServiceBinding "%s/%s": %s`,
+			instance.Namespace, instance.Name, s,
+		)
 		c.updateServiceBindingCondition(
 			binding,
 			v1beta1.ServiceBindingConditionReady,
@@ -518,7 +554,7 @@ func convertCatalog(in *osb.CatalogResponse) ([]*v1beta1.ClusterServiceClass, []
 
 func convertClusterServicePlans(plans []osb.Plan, serviceClassID string) ([]*v1beta1.ClusterServicePlan, error) {
 	if 0 == len(plans) {
-		return nil, fmt.Errorf("ClusterServiceClass %q must have at least one plan", serviceClassID)
+		return nil, fmt.Errorf("ClusterServiceClass (K8S: %q) must have at least one plan", serviceClassID)
 	}
 	servicePlans := make([]*v1beta1.ClusterServicePlan, len(plans))
 	for i, plan := range plans {
@@ -548,7 +584,7 @@ func convertClusterServicePlans(plans []osb.Plan, serviceClassID string) ([]*v1b
 			servicePlans[i].Spec.ExternalMetadata = &runtime.RawExtension{Raw: metadata}
 		}
 
-		if schemas := plan.AlphaParameterSchemas; schemas != nil {
+		if schemas := plan.ParameterSchemas; schemas != nil {
 			if instanceSchemas := schemas.ServiceInstances; instanceSchemas != nil {
 				if instanceCreateSchema := instanceSchemas.Create; instanceCreateSchema != nil && instanceCreateSchema.Parameters != nil {
 					schema, err := json.Marshal(instanceCreateSchema.Parameters)

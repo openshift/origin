@@ -25,13 +25,11 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimachineryv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apiserver/pkg/admission"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset"
 	servicecataloginternalversion "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset/typed/servicecatalog/internalversion"
-	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/internalversion"
-	internalversion "github.com/kubernetes-incubator/service-catalog/pkg/client/listers_generated/servicecatalog/internalversion"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	scadmission "github.com/kubernetes-incubator/service-catalog/pkg/apiserver/admission"
@@ -57,17 +55,12 @@ func Register(plugins *admission.Plugins) {
 type defaultServicePlan struct {
 	*admission.Handler
 	scClient servicecataloginternalversion.ClusterServiceClassInterface
-	spLister internalversion.ClusterServicePlanLister
+	spClient servicecataloginternalversion.ClusterServicePlanInterface
 }
 
-var _ = scadmission.WantsInternalServiceCatalogInformerFactory(&defaultServicePlan{})
 var _ = scadmission.WantsInternalServiceCatalogClientSet(&defaultServicePlan{})
 
 func (d *defaultServicePlan) Admit(a admission.Attributes) error {
-	// we need to wait for our caches to warm
-	if !d.WaitForReady() {
-		return admission.NewForbidden(a, fmt.Errorf("not yet ready to handle request"))
-	}
 
 	// We only care about service Instances
 	if a.GetResource().Group != servicecatalog.GroupName || a.GetResource().GroupResource() != servicecatalog.Resource("serviceinstances") {
@@ -80,12 +73,12 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 
 	// If the plan is specified, let it through and have the controller
 	// deal with finding the right plan, etc.
-	if instance.Spec.ExternalClusterServicePlanName != "" {
+	if instance.Spec.ExternalClusterServicePlanName != "" || instance.Spec.ClusterServicePlanName != "" {
 		return nil
 	}
 
 	// cannot find what we're trying to create an instance of
-	sc, err := d.getServiceClassByExternalName(a, instance.Spec.ExternalClusterServiceClassName)
+	sc, err := d.getClusterServiceClassByPlanReference(a, &instance.Spec.PlanReference)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return admission.NewForbidden(a, err)
@@ -103,11 +96,12 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 	// the order changes, we will need to rethink the
 	// implementation of this controller.
 
-	// implement field selector
-
-	// loop over all service plans accumulate into slice
-	plans, err := d.spLister.List(labels.Everything())
-	// TODO filter `plans` down to only those owned by `sc`.
+	plans, err := d.getClusterServicePlansByClusterServiceClassName(sc.Name)
+	if err != nil {
+		msg := fmt.Sprintf("Error listing plans for service class (K8S: %v ExternalName: %v) - retry and specify desired ClusterServicePlan", sc.Name, instance.Spec.ExternalClusterServiceClassName)
+		glog.V(4).Info(msg)
+		return admission.NewForbidden(a, errors.New(msg))
+	}
 
 	// check if there were any service plans
 	// TODO: in combination with not allowing classes with no plans, this should be impossible
@@ -126,9 +120,13 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 	// otherwise, by default, pick the only plan that exists for the service class
 
 	p := plans[0]
-	glog.V(4).Infof("Using default plan %q for Service Class %q for instance %s",
-		p.Spec.ExternalName, sc.Spec.ExternalName, instance.Name)
-	instance.Spec.ExternalClusterServicePlanName = p.Spec.ExternalName
+	glog.V(4).Infof("Using default plan %q (K8S: %q) for Service Class %q for instance %s",
+		p.Spec.ExternalName, p.Name, sc.Spec.ExternalName, instance.Name)
+	if instance.Spec.ExternalClusterServiceClassName != "" {
+		instance.Spec.ExternalClusterServicePlanName = p.Spec.ExternalName
+	} else {
+		instance.Spec.ClusterServicePlanName = p.Name
+	}
 	return nil
 }
 
@@ -144,42 +142,67 @@ func NewDefaultClusterServicePlan() (admission.Interface, error) {
 
 func (d *defaultServicePlan) SetInternalServiceCatalogClientSet(f internalclientset.Interface) {
 	d.scClient = f.Servicecatalog().ClusterServiceClasses()
-}
-
-func (d *defaultServicePlan) SetInternalServiceCatalogInformerFactory(f informers.SharedInformerFactory) {
-	spInformer := f.Servicecatalog().InternalVersion().ClusterServicePlans()
-	d.spLister = spInformer.Lister()
-
-	readyFunc := func() bool {
-		return spInformer.Informer().HasSynced()
-	}
-
-	d.SetReadyFunc(readyFunc)
+	d.spClient = f.Servicecatalog().ClusterServicePlans()
 }
 
 func (d *defaultServicePlan) Validate() error {
 	if d.scClient == nil {
 		return errors.New("missing service class interface")
 	}
-	if d.spLister == nil {
-		return errors.New("missing service plan lister")
+	if d.spClient == nil {
+		return errors.New("missing serviceplan interface")
 	}
 	return nil
 }
 
-func (d *defaultServicePlan) getServiceClassByExternalName(a admission.Attributes, scName string) (*servicecatalog.ClusterServiceClass, error) {
-	glog.V(4).Infof("Fetching serviceclass as %q", scName)
-	listOpts := apimachineryv1.ListOptions{FieldSelector: "spec.externalName==" + scName}
-	servicePlans, err := d.scClient.List(listOpts)
+func (d *defaultServicePlan) getClusterServiceClassByPlanReference(a admission.Attributes, ref *servicecatalog.PlanReference) (*servicecatalog.ClusterServiceClass, error) {
+	if ref.ExternalClusterServiceClassName != "" {
+		return d.getClusterServiceClassByExternalName(a, ref.ExternalClusterServiceClassName)
+	}
+	return d.getClusterServiceClassByK8SName(a, ref.ClusterServiceClassName)
+}
+
+func (d *defaultServicePlan) getClusterServiceClassByK8SName(a admission.Attributes, scK8SName string) (*servicecatalog.ClusterServiceClass, error) {
+	glog.V(4).Infof("Fetching serviceclass by class k8s name %q", scK8SName)
+	return d.scClient.Get(scK8SName, apimachineryv1.GetOptions{})
+}
+
+func (d *defaultServicePlan) getClusterServiceClassByExternalName(a admission.Attributes, scName string) (*servicecatalog.ClusterServiceClass, error) {
+	glog.V(4).Infof("Fetching serviceclass filtered by class external name %q", scName)
+	fieldSet := fields.Set{
+		"spec.externalName": scName,
+	}
+	fieldSelector := fields.SelectorFromSet(fieldSet).String()
+	listOpts := apimachineryv1.ListOptions{FieldSelector: fieldSelector}
+	serviceClasses, err := d.scClient.List(listOpts)
 	if err != nil {
 		glog.V(4).Infof("List failed %q", err)
 		return nil, err
 	}
-	if len(servicePlans.Items) == 1 {
-		glog.V(4).Infof("Found Single item as %+v", servicePlans.Items[0])
-		return &servicePlans.Items[0], nil
+	if len(serviceClasses.Items) == 1 {
+		glog.V(4).Infof("Found Single item as %+v", serviceClasses.Items[0])
+		return &serviceClasses.Items[0], nil
 	}
-	msg := fmt.Sprintf("Could not find a single ServiceClass with name %q", scName)
+	msg := fmt.Sprintf("Could not find a single ServiceClass with name %q, found %v", scName, len(serviceClasses.Items))
 	glog.V(4).Info(msg)
 	return nil, admission.NewNotFound(a)
+}
+
+// getClusterServicePlansByClusterServiceClassName() returns a list of
+// ServicePlans for the specified service class name
+func (d *defaultServicePlan) getClusterServicePlansByClusterServiceClassName(scName string) ([]servicecatalog.ClusterServicePlan, error) {
+	glog.V(4).Infof("Fetching ClusterServicePlans by class name %q", scName)
+	fieldSet := fields.Set{
+		"spec.clusterServiceClassRef.name": scName,
+	}
+	fieldSelector := fields.SelectorFromSet(fieldSet).String()
+	listOpts := apimachineryv1.ListOptions{FieldSelector: fieldSelector}
+	servicePlans, err := d.spClient.List(listOpts)
+	if err != nil {
+		glog.Infof("List failed %q", err)
+		return nil, err
+	}
+	glog.V(4).Infof("plans fetched by filtering classname: %+v", servicePlans.Items)
+	r := servicePlans.Items
+	return r, err
 }

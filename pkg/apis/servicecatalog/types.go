@@ -431,6 +431,14 @@ type PlanReference struct {
 	// the current name of the ClusterServicePlan, you should follow the
 	// ClusterServicePlanRef below.
 	ExternalClusterServicePlanName string
+
+	// ClusterServiceClassName is the kubernetes name of the
+	// ClusterServiceClass.
+	//
+	// Immutable.
+	ClusterServiceClassName string
+	// ClusterServicePlanName is kubernetes name of the ClusterServicePlan.
+	ClusterServicePlanName string
 }
 
 // ServiceInstanceSpec represents the desired state of an Instance.

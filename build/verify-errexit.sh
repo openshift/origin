@@ -33,7 +33,7 @@ fi
 
 # Gather the list of files that appear to be shell scripts.
 # Meaning they have some form of "#!...sh" as a line in them.
-shFiles=$(grep -rl '^#!.*sh$' $args)
+shFiles=$(grep -rl '^#!.*sh$' $args | grep -v ^pkg/kubernetes/)
 
 tmp=/tmp/out$RANDOM
 for file in ${shFiles}; do

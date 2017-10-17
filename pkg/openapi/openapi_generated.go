@@ -639,7 +639,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1.PlanReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "PlanReference defines the user specification for the desired ServicePlan and ServiceClass. Because there are multiple ways to specify the desired Class/Plan, this structure specifies the allowed ways to specify the intent.",
+					Description: "PlanReference defines the user specification for the desired ServicePlan and ServiceClass. Because there are multiple ways to specify the desired Class/Plan, this structure specifies the allowed ways to specify the intent.\n\nCurrently supported ways:\n - ExternalClusterServiceClassName and ExternalClusterServicePlanName\n - ClusterServiceClassName and ClusterServicePlanName\n\nFor both of these ways, if a ClusterServiceClass only has one plan then leaving the *ServicePlanName is optional.",
 					Properties: map[string]spec.Schema{
 						"externalClusterServiceClassName": {
 							SchemaProps: spec.SchemaProps{
@@ -651,6 +651,20 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"externalClusterServicePlanName": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ExternalClusterServicePlanName is the human-readable name of the plan as reported by the broker. Note that if the broker changes the name of the ClusterServicePlan, it will not be reflected here, and to see the current name of the ClusterServicePlan, you should follow the ClusterServicePlanRef below.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"clusterServiceClassName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterServiceClassName is the kubernetes name of the ClusterServiceClass.\n\nImmutable.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"clusterServicePlanName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterServicePlanName is kubernetes name of the ClusterServicePlan.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -1223,6 +1237,20 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"externalClusterServicePlanName": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ExternalClusterServicePlanName is the human-readable name of the plan as reported by the broker. Note that if the broker changes the name of the ClusterServicePlan, it will not be reflected here, and to see the current name of the ClusterServicePlan, you should follow the ClusterServicePlanRef below.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"clusterServiceClassName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterServiceClassName is the kubernetes name of the ClusterServiceClass.\n\nImmutable.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"clusterServicePlanName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterServicePlanName is kubernetes name of the ClusterServicePlan.",
 								Type:        []string{"string"},
 								Format:      "",
 							},

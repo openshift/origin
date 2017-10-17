@@ -68,8 +68,6 @@ import:
   - args
 - package: github.com/kubernetes/repo-infra
   version: e26fc85d14a1d3dc25569831acc06919673c545a # latest (Oct 4, 2017)
-- package: k8s.io/kubernetes
-  version: 0b9efaeb34a2fc51ff8e4d34ad9bc6375459c4a4 # kubernetes 1.8.0
 - package: k8s.io/client-go
   version: afb4606c45bae77c4dc2c15291d4d7d6d792196c # release-5.0, latest (Oct 4, 2017)
 - package: k8s.io/apimachinery
@@ -90,4 +88,4 @@ import:
 - package: code.cloudfoundry.org/lager
   version: dfcbcba2dd4a5228c43b0292d219d5c010daed3a
 - package: github.com/pmorie/go-open-service-broker-client
-  version: 962a416798366b37a20a06fdb0a09180589ca964
+  version: 530248ec023d52217c43db2f06fa03ce844c40cc

@@ -35,7 +35,6 @@ done
 CATALOG_RELEASE="catalog"
 
 K8S_KUBECONFIG="${KUBECONFIG:-"~/.kube/config"}"
-SC_KUBECONFIG="/tmp/sc-kubeconfig"
 
 function cleanup() {
   export KUBECONFIG="${K8S_KUBECONFIG}"
@@ -53,7 +52,6 @@ function cleanup() {
   echo 'Cleaning up resources...'
   {
     helm delete --purge "${CATALOG_RELEASE}" || true
-    rm -f "${SC_KUBECONFIG}"
   } &> /dev/null
 }
 
@@ -74,10 +72,8 @@ ${ROOT}/contrib/jenkins/install_catalog.sh ${ARGUMENTS} \
 make bin/e2e.test \
   || error_exit "Error when making e2e test binary."
 
-KUBECONFIG="${KUBECONFIG}" ${ROOT}/bin/e2e.test \
-    -service-catalog-config="${KUBECONFIG}" \
-    -service-catalog-context="service-catalog" \
-    -broker-image="${REGISTRY}user-broker:${VERSION}" \
+export SERVICECATALOGCONFIG="${KUBECONFIG}"
+${ROOT}/bin/e2e.test -broker-image="${REGISTRY}user-broker:${VERSION}" \
   || error_exit "Error while running e2e tests."
 
 echo "'e2e.test' completed successfully."

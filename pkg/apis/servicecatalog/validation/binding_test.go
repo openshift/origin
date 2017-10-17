@@ -412,6 +412,45 @@ func TestValidateServiceBinding(t *testing.T) {
 			create: false,
 			valid:  false,
 		},
+		{
+			name: "failed bind starting orphan mitigation",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBindingWithInProgressBind()
+				b.Status.OperationStartTime = nil
+				b.Status.OrphanMitigationInProgress = true
+				b.Status.Conditions = []servicecatalog.ServiceBindingCondition{
+					{
+						Type:   servicecatalog.ServiceBindingConditionReady,
+						Status: servicecatalog.ConditionFalse,
+					},
+					{
+						Type:   servicecatalog.ServiceBindingConditionFailed,
+						Status: servicecatalog.ConditionTrue,
+					},
+				}
+				return b
+			}(),
+			valid: true,
+		},
+		{
+			name: "in-progress orphan mitigation",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBindingWithInProgressBind()
+				b.Status.OrphanMitigationInProgress = true
+				b.Status.Conditions = []servicecatalog.ServiceBindingCondition{
+					{
+						Type:   servicecatalog.ServiceBindingConditionReady,
+						Status: servicecatalog.ConditionFalse,
+					},
+					{
+						Type:   servicecatalog.ServiceBindingConditionFailed,
+						Status: servicecatalog.ConditionTrue,
+					},
+				}
+				return b
+			}(),
+			valid: true,
+		},
 	}
 
 	for _, tc := range cases {

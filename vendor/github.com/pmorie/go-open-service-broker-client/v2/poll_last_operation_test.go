@@ -8,9 +8,10 @@ import (
 
 func defaultLastOperationRequest() *LastOperationRequest {
 	return &LastOperationRequest{
-		InstanceID: testInstanceID,
-		ServiceID:  strPtr(testServiceID),
-		PlanID:     strPtr(testPlanID),
+		InstanceID:   testInstanceID,
+		ServiceID:    strPtr(testServiceID),
+		PlanID:       strPtr(testPlanID),
+		OperationKey: &testOperation,
 	}
 }
 
@@ -46,8 +47,9 @@ const failedLastOperationResponseBody = `{"state":"failed","description":"test d
 func TestPollLastOperation(t *testing.T) {
 	cases := []struct {
 		name                string
+		version             APIVersion
 		enableAlpha         bool
-		originatingIdentity *AlphaOriginatingIdentity
+		originatingIdentity *OriginatingIdentity
 		request             *LastOperationRequest
 		httpChecks          httpChecks
 		httpReaction        httpReaction
@@ -103,12 +105,12 @@ func TestPollLastOperation(t *testing.T) {
 			expectedErrMessage: "Status: 500; ErrorMessage: <nil>; Description: <nil>; ResponseError: unexpected end of JSON input",
 		},
 		{
-			name: "500 with convential response",
+			name: "500 with conventional response",
 			httpReaction: httpReaction{
 				status: http.StatusInternalServerError,
 				body:   conventionalFailureResponseBody,
 			},
-			expectedErr: testHttpStatusCodeError(),
+			expectedErr: testHTTPStatusCodeError(),
 		},
 		{
 			name: "op succeeded",
@@ -120,7 +122,7 @@ func TestPollLastOperation(t *testing.T) {
 		},
 		{
 			name:                "originating identity included",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue}},
 			httpReaction: httpReaction{
@@ -131,7 +133,7 @@ func TestPollLastOperation(t *testing.T) {
 		},
 		{
 			name:                "originating identity excluded",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: nil,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -141,8 +143,8 @@ func TestPollLastOperation(t *testing.T) {
 			expectedResponse: successLastOperationResponse(),
 		},
 		{
-			name:                "originating identity not sent unless alpha enabled",
-			enableAlpha:         false,
+			name:                "originating identity not sent unless API version >= 2.13",
+			version:             Version2_12(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -168,10 +170,14 @@ func TestPollLastOperation(t *testing.T) {
 			tc.httpChecks.params = map[string]string{}
 			tc.httpChecks.params[serviceIDKey] = testServiceID
 			tc.httpChecks.params[planIDKey] = testPlanID
+			tc.httpChecks.params[operationKey] = "test-operation-key"
 		}
 
-		version := Version2_11()
-		klient := newTestClient(t, tc.name, version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
+		if tc.version.label == "" {
+			tc.version = Version2_11()
+		}
+
+		klient := newTestClient(t, tc.name, tc.version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
 
 		response, err := klient.PollLastOperation(tc.request)
 

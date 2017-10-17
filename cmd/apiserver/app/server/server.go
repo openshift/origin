@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/service-catalog/pkg"
+	"github.com/kubernetes-incubator/service-catalog/pkg/kubernetes/pkg/util/interrupt"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/broker/authsarcheck"
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/namespace/lifecycle"
@@ -32,7 +33,6 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apiserver/pkg/admission"
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
-	"k8s.io/kubernetes/pkg/util/interrupt"
 )
 
 const (
