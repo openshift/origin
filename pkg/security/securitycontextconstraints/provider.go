@@ -324,7 +324,7 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("privileged"), *sc.Privileged, "Privileged containers are not allowed"))
 	}
 
-	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(pod, container)...)
+	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(pod, container, sc.Capabilities)...)
 
 	if !s.scc.AllowHostNetwork && pod.Spec.SecurityContext.HostNetwork {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), pod.Spec.SecurityContext.HostNetwork, "Host network is not allowed to be used"))
