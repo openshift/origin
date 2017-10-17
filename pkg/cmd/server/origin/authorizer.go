@@ -15,6 +15,7 @@ import (
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/authorization/authorizer/browsersafe"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
@@ -56,6 +57,8 @@ func newAuthorizer(
 	subjectLocator := authorizer.NewSubjectLocator(kubeSubjectLocator)
 
 	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, clusterRoleGetter, messageMaker)
+	// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+	browserSafeAuthorizer := browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated)
 
 	graph := node.NewGraph()
 	node.AddGraphEventHandlers(graph, podInformer, pvInformer)
@@ -64,7 +67,8 @@ func newAuthorizer(
 	authorizer := authorizerunion.New(
 		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup), // authorizes system:masters to do anything, just like upstream
 		nodeAuthorizer,
-		scopeLimitedAuthorizer)
+		browserSafeAuthorizer,
+	)
 
 	return authorizer, subjectLocator
 }
