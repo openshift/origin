@@ -53,3 +53,8 @@ os::util::environment::update_path_var
 if [[ -z "${OS_TMP_ENV_SET-}" ]]; then
 	os::util::environment::setup_tmpdir_vars "$( basename "$0" ".sh" )"
 fi
+
+# Allow setting $JUNIT_REPORT to toggle output behavior
+if [[ -n "${JUNIT_REPORT:-}" ]]; then
+  export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+fi

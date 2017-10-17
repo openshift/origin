@@ -30,11 +30,6 @@ os::log::info "Config dir is:             ${SERVER_CONFIG_DIR}"
 os::log::info "Using images:              ${USE_IMAGES}"
 os::log::info "MasterIP is:               ${MASTER_ADDR}"
 
-# Allow setting $JUNIT_REPORT to toggle output behavior
-if [[ -n "${JUNIT_REPORT:-}" ]]; then
-	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-fi
-
 mkdir -p ${LOG_DIR}
 
 os::log::info "Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
