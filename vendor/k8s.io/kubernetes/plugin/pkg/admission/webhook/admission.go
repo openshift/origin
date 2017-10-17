@@ -21,6 +21,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -94,6 +97,7 @@ func NewGenericAdmissionWebhook() (*GenericAdmissionWebhook, error) {
 		negotiatedSerializer: serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{
 			Serializer: api.Codecs.LegacyCodec(admissionv1alpha1.SchemeGroupVersion),
 		}),
+		serviceResolver: defaultServiceResolver{},
 	}, nil
 }
 
@@ -105,6 +109,7 @@ type GenericAdmissionWebhook struct {
 	negotiatedSerializer runtime.NegotiatedSerializer
 	clientCert           []byte
 	clientKey            []byte
+	proxyTransport       *http.Transport
 }
 
 var (
@@ -113,8 +118,16 @@ var (
 	_ = admissioninit.WantsExternalKubeClientSet(&GenericAdmissionWebhook{})
 )
 
+func (a *GenericAdmissionWebhook) SetProxyTransport(pt *http.Transport) {
+	a.proxyTransport = pt
+}
+
+// SetServiceResolver sets a service resolver for the webhook admission plugin.
+// Passing a nil resolver does not have an effect, instead a default one will be used.
 func (a *GenericAdmissionWebhook) SetServiceResolver(sr admissioninit.ServiceResolver) {
-	a.serviceResolver = sr
+	if sr != nil {
+		a.serviceResolver = sr
+	}
 }
 
 func (a *GenericAdmissionWebhook) SetClientCert(cert, key []byte) {
@@ -168,9 +181,12 @@ func (a *GenericAdmissionWebhook) Admit(attr admission.Attributes) error {
 	for i := range hooks {
 		go func(hook *v1alpha1.ExternalAdmissionHook) {
 			defer wg.Done()
+
+			ignoreClientCallFailures := hook.FailurePolicy == nil || *hook.FailurePolicy == v1alpha1.Ignore
+
 			if err := a.callHook(ctx, hook, attr); err == nil {
 				return
-			} else if callErr, ok := err.(*ErrCallingWebhook); ok {
+			} else if callErr, ok := err.(*ErrCallingWebhook); ignoreClientCallFailures && ok {
 				glog.Warningf("Failed calling webhook %v: %v", hook.Name, callErr)
 				utilruntime.HandleError(callErr)
 				// Since we are failing open to begin with, we do not send an error down the channel
@@ -218,20 +234,27 @@ func (a *GenericAdmissionWebhook) callHook(ctx context.Context, h *v1alpha1.Exte
 	if err != nil {
 		return &ErrCallingWebhook{WebhookName: h.Name, Reason: err}
 	}
-	if err := client.Post().Context(ctx).Body(&request).Do().Into(&request); err != nil {
+
+	tokens := strings.SplitN(h.Name, "/", 2)
+	urlPath := ""
+	if len(tokens) == 2 {
+		urlPath = tokens[1]
+	}
+	response := &admissionv1alpha1.AdmissionReview{}
+	if err := client.Post().Context(ctx).AbsPath(urlPath).Body(&request).Do().Into(response); err != nil {
 		return &ErrCallingWebhook{WebhookName: h.Name, Reason: err}
 	}
 
-	if request.Status.Allowed {
+	if response.Status.Allowed {
 		return nil
 	}
 
-	if request.Status.Result == nil {
+	if response.Status.Result == nil {
 		return fmt.Errorf("admission webhook %q denied the request without explanation", h.Name)
 	}
 
 	return &apierrors.StatusError{
-		ErrStatus: *request.Status.Result,
+		ErrStatus: *response.Status.Result,
 	}
 }
 
@@ -241,20 +264,27 @@ func (a *GenericAdmissionWebhook) hookClient(h *v1alpha1.ExternalAdmissionHook) 
 		return nil, err
 	}
 
+	var dial func(network, addr string) (net.Conn, error)
+	if a.proxyTransport != nil && a.proxyTransport.Dial != nil {
+		dial = a.proxyTransport.Dial
+	}
+
 	// TODO: cache these instead of constructing one each time
 	cfg := &rest.Config{
 		Host:    u.Host,
 		APIPath: u.Path,
 		TLSClientConfig: rest.TLSClientConfig{
-			CAData:   h.ClientConfig.CABundle,
-			CertData: a.clientCert,
-			KeyData:  a.clientKey,
+			ServerName: h.ClientConfig.Service.Name + "." + h.ClientConfig.Service.Namespace + ".svc",
+			CAData:     h.ClientConfig.CABundle,
+			CertData:   a.clientCert,
+			KeyData:    a.clientKey,
 		},
 		UserAgent: "kube-apiserver-admission",
 		Timeout:   30 * time.Second,
 		ContentConfig: rest.ContentConfig{
 			NegotiatedSerializer: a.negotiatedSerializer,
 		},
+		Dial: dial,
 	}
 	return rest.UnversionedRESTClientFor(cfg)
 }
