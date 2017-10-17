@@ -285,12 +285,12 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 		"failNilSELinux": {
 			pod:           failNilSELinuxPod,
 			scc:           failSELinuxSCC,
-			expectedError: "unable to validate nil seLinuxOptions",
+			expectedError: "seLinuxOptions: Required",
 		},
 		"failInvalidSELinux": {
 			pod:           failInvalidSELinuxPod,
 			scc:           failSELinuxSCC,
-			expectedError: "does not match required level.  Found bar, wanted foo",
+			expectedError: "seLinuxOptions.level: Invalid value",
 		},
 		"failNoSeccomp": {
 			pod:           failNoSeccompAllowed,
@@ -421,7 +421,7 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		"failSELinuxSCC": {
 			pod:           failSELinuxPod,
 			scc:           failSELinuxSCC,
-			expectedError: "does not match required level",
+			expectedError: "seLinuxOptions.level: Invalid value",
 		},
 		"failPrivSCC": {
 			pod:           failPrivPod,
