@@ -7,32 +7,80 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
-// test/extended/testdata/build-pruning/default-group-build-config.yaml
-// test/extended/testdata/build-pruning/default-legacy-build-config.yaml
-// test/extended/testdata/build-pruning/errored-build-config.yaml
-// test/extended/testdata/build-pruning/failed-build-config.yaml
-// test/extended/testdata/build-pruning/imagestream.yaml
-// test/extended/testdata/build-pruning/successful-build-config.yaml
-// test/extended/testdata/build-quota/.s2i/bin/assemble
-// test/extended/testdata/build-quota/Dockerfile
-// test/extended/testdata/build-secrets/Dockerfile
-// test/extended/testdata/build-secrets/s2i-binary-dir/.s2i/bin/assemble
-// test/extended/testdata/build-secrets/s2i-binary-dir/.s2i/bin/run
-// test/extended/testdata/build-secrets/s2i-binary-dir/Gemfile
-// test/extended/testdata/build-secrets/s2i-binary-dir/config.ru
-// test/extended/testdata/build-secrets/test-docker-build.json
-// test/extended/testdata/build-secrets/test-is.json
-// test/extended/testdata/build-secrets/test-s2i-build.json
-// test/extended/testdata/build-secrets/test-secret-2.json
-// test/extended/testdata/build-secrets/test-secret.json
-// test/extended/testdata/build-timing/Dockerfile
-// test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/assemble
-// test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/run
-// test/extended/testdata/build-timing/s2i-binary-dir/Gemfile
-// test/extended/testdata/build-timing/s2i-binary-dir/config.ru
-// test/extended/testdata/build-timing/test-docker-build.json
-// test/extended/testdata/build-timing/test-is.json
-// test/extended/testdata/build-timing/test-s2i-build.json
+// test/extended/testdata/builds/build-pruning/default-group-build-config.yaml
+// test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml
+// test/extended/testdata/builds/build-pruning/errored-build-config.yaml
+// test/extended/testdata/builds/build-pruning/failed-build-config.yaml
+// test/extended/testdata/builds/build-pruning/imagestream.yaml
+// test/extended/testdata/builds/build-pruning/successful-build-config.yaml
+// test/extended/testdata/builds/build-quota/.s2i/bin/assemble
+// test/extended/testdata/builds/build-quota/Dockerfile
+// test/extended/testdata/builds/build-secrets/Dockerfile
+// test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/assemble
+// test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run
+// test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile
+// test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru
+// test/extended/testdata/builds/build-secrets/test-docker-build.json
+// test/extended/testdata/builds/build-secrets/test-is.json
+// test/extended/testdata/builds/build-secrets/test-s2i-build.json
+// test/extended/testdata/builds/build-secrets/test-secret-2.json
+// test/extended/testdata/builds/build-secrets/test-secret.json
+// test/extended/testdata/builds/build-timing/Dockerfile
+// test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/assemble
+// test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/run
+// test/extended/testdata/builds/build-timing/s2i-binary-dir/Gemfile
+// test/extended/testdata/builds/build-timing/s2i-binary-dir/config.ru
+// test/extended/testdata/builds/build-timing/test-docker-build.json
+// test/extended/testdata/builds/build-timing/test-is.json
+// test/extended/testdata/builds/build-timing/test-s2i-build.json
+// test/extended/testdata/builds/incremental-auth-build.json
+// test/extended/testdata/builds/s2i-build-root.yaml
+// test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble
+// test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml
+// test/extended/testdata/builds/statusfail-failedassemble.yaml
+// test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml
+// test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml
+// test/extended/testdata/builds/statusfail-fetchsources2i.yaml
+// test/extended/testdata/builds/statusfail-genericreason.yaml
+// test/extended/testdata/builds/statusfail-postcommithook.yaml
+// test/extended/testdata/builds/statusfail-pushtoregistry.yaml
+// test/extended/testdata/builds/sti-environment-build-app/.sti/environment
+// test/extended/testdata/builds/sti-environment-build-app/Gemfile
+// test/extended/testdata/builds/sti-environment-build-app/config.ru
+// test/extended/testdata/builds/test-auth-build.yaml
+// test/extended/testdata/builds/test-bc-with-pr-ref.yaml
+// test/extended/testdata/builds/test-build-app/Dockerfile
+// test/extended/testdata/builds/test-build-app/Gemfile
+// test/extended/testdata/builds/test-build-app/config.ru
+// test/extended/testdata/builds/test-build-podsvc.json
+// test/extended/testdata/builds/test-build-postcommit.json
+// test/extended/testdata/builds/test-build-proxy.yaml
+// test/extended/testdata/builds/test-build-revision.json
+// test/extended/testdata/builds/test-build.json
+// test/extended/testdata/builds/test-buildconfigsecretinjector.yaml
+// test/extended/testdata/builds/test-cds-dockerbuild.json
+// test/extended/testdata/builds/test-cds-sourcebuild.json
+// test/extended/testdata/builds/test-context-build.json
+// test/extended/testdata/builds/test-docker-build-pullsecret.json
+// test/extended/testdata/builds/test-docker-build-quota.json
+// test/extended/testdata/builds/test-docker-build.json
+// test/extended/testdata/builds/test-docker-no-outputname.json
+// test/extended/testdata/builds/test-env-build.json
+// test/extended/testdata/builds/test-imageresolution-custom-build.yaml
+// test/extended/testdata/builds/test-imageresolution-docker-build.yaml
+// test/extended/testdata/builds/test-imageresolution-s2i-build.yaml
+// test/extended/testdata/builds/test-imagesource-buildconfig.yaml
+// test/extended/testdata/builds/test-nosrc-build.json
+// test/extended/testdata/builds/test-s2i-build-quota.json
+// test/extended/testdata/builds/test-s2i-build.json
+// test/extended/testdata/builds/test-s2i-no-outputname.json
+// test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml
+// test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml
+// test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml
+// test/extended/testdata/builds/valuefrom/successful-sti-build-value-from-config.yaml
+// test/extended/testdata/builds/valuefrom/test-configmap.yaml
+// test/extended/testdata/builds/valuefrom/test-is.json
+// test/extended/testdata/builds/valuefrom/test-secret.yaml
 // test/extended/testdata/cluster/master-vert.yaml
 // test/extended/testdata/config-map-jenkins-slave-pods.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
@@ -88,7 +136,6 @@
 // test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml
 // test/extended/testdata/imagestream-jenkins-slave-pods.yaml
 // test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
-// test/extended/testdata/incremental-auth-build.json
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
 // test/extended/testdata/jenkins-plugin/build-job-slave.xml
 // test/extended/testdata/jenkins-plugin/build-job.xml
@@ -121,7 +168,6 @@
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
-// test/extended/testdata/s2i-build-root.yaml
 // test/extended/testdata/s2i-dropcaps/root-access-build.yaml
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser
@@ -131,61 +177,13 @@
 // test/extended/testdata/scoped-router.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
-// test/extended/testdata/statusfail-assemble/.s2i/bin/assemble
-// test/extended/testdata/statusfail-badcontextdirs2i.yaml
-// test/extended/testdata/statusfail-failedassemble.yaml
-// test/extended/testdata/statusfail-fetchbuilderimage.yaml
-// test/extended/testdata/statusfail-fetchsourcedocker.yaml
-// test/extended/testdata/statusfail-fetchsources2i.yaml
-// test/extended/testdata/statusfail-genericreason.yaml
-// test/extended/testdata/statusfail-postcommithook.yaml
-// test/extended/testdata/statusfail-pushtoregistry.yaml
-// test/extended/testdata/sti-environment-build-app/.sti/environment
-// test/extended/testdata/sti-environment-build-app/Gemfile
-// test/extended/testdata/sti-environment-build-app/config.ru
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
 // test/extended/testdata/templates/templateservicebroker_bind.yaml
-// test/extended/testdata/test-auth-build.yaml
-// test/extended/testdata/test-bc-with-pr-ref.yaml
-// test/extended/testdata/test-build-app/Dockerfile
-// test/extended/testdata/test-build-app/Gemfile
-// test/extended/testdata/test-build-app/config.ru
-// test/extended/testdata/test-build-podsvc.json
-// test/extended/testdata/test-build-postcommit.json
-// test/extended/testdata/test-build-proxy.yaml
-// test/extended/testdata/test-build-revision.json
-// test/extended/testdata/test-build.json
-// test/extended/testdata/test-buildconfigsecretinjector.yaml
-// test/extended/testdata/test-cds-dockerbuild.json
-// test/extended/testdata/test-cds-sourcebuild.json
 // test/extended/testdata/test-cli-debug.yaml
-// test/extended/testdata/test-context-build.json
-// test/extended/testdata/test-custom-build.json
-// test/extended/testdata/test-docker-build-pullsecret.json
-// test/extended/testdata/test-docker-build-quota.json
-// test/extended/testdata/test-docker-build.json
-// test/extended/testdata/test-docker-no-outputname.json
-// test/extended/testdata/test-env-build.json
 // test/extended/testdata/test-env-pod.json
 // test/extended/testdata/test-gitserver-tokenauth.yaml
 // test/extended/testdata/test-gitserver.yaml
-// test/extended/testdata/test-imageresolution-custom-build.yaml
-// test/extended/testdata/test-imageresolution-docker-build.yaml
-// test/extended/testdata/test-imageresolution-s2i-build.yaml
-// test/extended/testdata/test-imagesource-buildconfig.yaml
-// test/extended/testdata/test-nosrc-build.json
-// test/extended/testdata/test-s2i-build-quota.json
-// test/extended/testdata/test-s2i-build.json
-// test/extended/testdata/test-s2i-no-outputname.json
-// test/extended/testdata/test-secret-build.json
 // test/extended/testdata/test-secret.json
-// test/extended/testdata/valuefrom/failed-docker-build-value-from-config.yaml
-// test/extended/testdata/valuefrom/failed-sti-build-value-from-config.yaml
-// test/extended/testdata/valuefrom/successful-docker-build-value-from-config.yaml
-// test/extended/testdata/valuefrom/successful-sti-build-value-from-config.yaml
-// test/extended/testdata/valuefrom/test-configmap.yaml
-// test/extended/testdata/valuefrom/test-is.json
-// test/extended/testdata/valuefrom/test-secret.yaml
 // test/extended/testdata/weighted-router.yaml
 // test/integration/testdata/project-request-template-with-quota.yaml
 // test/integration/testdata/test-buildcli-beta2.json
@@ -503,7 +501,7 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	return a, nil
 }
 
-var _testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
+var _testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -521,22 +519,22 @@ spec:
         name: 'php:7.0'
 `)
 
-func testExtendedTestdataBuildPruningDefaultGroupBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml, nil
+func testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml, nil
 }
 
-func testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildPruningDefaultGroupBuildConfigYamlBytes()
+func testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/default-group-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/default-group-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -554,22 +552,22 @@ spec:
         name: 'php:7.0'
 `)
 
-func testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml, nil
+func testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, nil
 }
 
-func testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYamlBytes()
+func testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/default-legacy-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -594,22 +592,22 @@ spec:
         name: 'php:7.0'
 `)
 
-func testExtendedTestdataBuildPruningErroredBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildPruningErroredBuildConfigYaml, nil
+func testExtendedTestdataBuildsBuildPruningErroredBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml, nil
 }
 
-func testExtendedTestdataBuildPruningErroredBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildPruningErroredBuildConfigYamlBytes()
+func testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningErroredBuildConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/errored-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/errored-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildPruningFailedBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml = []byte(`apiVersion: v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -632,43 +630,43 @@ spec:
         name: 'php:7.0'
 `)
 
-func testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildPruningFailedBuildConfigYaml, nil
+func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml, nil
 }
 
-func testExtendedTestdataBuildPruningFailedBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes()
+func testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningFailedBuildConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/failed-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/failed-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildPruningImagestreamYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningImagestreamYaml = []byte(`apiVersion: v1
 kind: ImageStream
 metadata:
   name: myphp
 `)
 
-func testExtendedTestdataBuildPruningImagestreamYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildPruningImagestreamYaml, nil
+func testExtendedTestdataBuildsBuildPruningImagestreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningImagestreamYaml, nil
 }
 
-func testExtendedTestdataBuildPruningImagestreamYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildPruningImagestreamYamlBytes()
+func testExtendedTestdataBuildsBuildPruningImagestreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningImagestreamYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml = []byte(`apiVersion: v1
 kind: BuildConfig
 metadata:
   name: myphp
@@ -691,22 +689,22 @@ spec:
         name: 'php:7.0'
 `)
 
-func testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml, nil
+func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, nil
 }
 
-func testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes()
+func testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/successful-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-pruning/successful-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildQuotaS2iBinAssemble = []byte(`#!/bin/sh
+var _testExtendedTestdataBuildsBuildQuotaS2iBinAssemble = []byte(`#!/bin/sh
 
 
 echo -n MEMORY= && cat /sys/fs/cgroup/memory/memory.limit_in_bytes
@@ -731,22 +729,22 @@ if [ "${quota}" == "-1" ]; then
 fi
 `)
 
-func testExtendedTestdataBuildQuotaS2iBinAssembleBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildQuotaS2iBinAssemble, nil
+func testExtendedTestdataBuildsBuildQuotaS2iBinAssembleBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildQuotaS2iBinAssemble, nil
 }
 
-func testExtendedTestdataBuildQuotaS2iBinAssemble() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildQuotaS2iBinAssembleBytes()
+func testExtendedTestdataBuildsBuildQuotaS2iBinAssemble() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildQuotaS2iBinAssembleBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-quota/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-quota/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildQuotaDockerfile = []byte(`FROM centos:7
+var _testExtendedTestdataBuildsBuildQuotaDockerfile = []byte(`FROM centos:7
 USER root
 
 ADD .s2i/bin/assemble .
@@ -757,22 +755,22 @@ RUN exit 1
 
 `)
 
-func testExtendedTestdataBuildQuotaDockerfileBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildQuotaDockerfile, nil
+func testExtendedTestdataBuildsBuildQuotaDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildQuotaDockerfile, nil
 }
 
-func testExtendedTestdataBuildQuotaDockerfile() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildQuotaDockerfileBytes()
+func testExtendedTestdataBuildsBuildQuotaDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildQuotaDockerfileBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-quota/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-quota/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM centos/ruby-22-centos7
 
 USER root
 ADD ./secret-dir /secrets
@@ -787,22 +785,22 @@ RUN chmod 755 /secret_report.sh
 CMD ["/bin/sh", "-c", "/secret_report.sh"]
 `)
 
-func testExtendedTestdataBuildSecretsDockerfileBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsDockerfile, nil
+func testExtendedTestdataBuildsBuildSecretsDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsDockerfile, nil
 }
 
-func testExtendedTestdataBuildSecretsDockerfile() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsDockerfileBytes()
+func testExtendedTestdataBuildsBuildSecretsDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsDockerfileBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/bash
 
 # Copy secrets into a location they can be output during image run
 
@@ -824,22 +822,22 @@ else
     exit 2
 fi `)
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinAssembleBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinAssemble, nil
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssembleBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble, nil
 }
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinAssemble() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinAssembleBytes()
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssembleBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/s2i-binary-dir/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
 
 # Ensure none of the build config inject secrets still exist in the file system
 for s in /tmp/secret? secret?; do
@@ -855,60 +853,60 @@ for s in testsecret/* testsecret2/*; do
     echo -n "${s}=" && cat "${s}"
 done`)
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinRunBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinRun, nil
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRunBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun, nil
 }
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinRun() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinRunBytes()
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRunBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/s2i-binary-dir/.s2i/bin/run", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsS2iBinaryDirGemfile = []byte(`source "https://rubygems.org"
+var _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile = []byte(`source "https://rubygems.org"
 
 gem "rack"
 `)
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirGemfileBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsS2iBinaryDirGemfile, nil
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile, nil
 }
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirGemfile() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsS2iBinaryDirGemfileBytes()
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfileBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/s2i-binary-dir/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsS2iBinaryDirConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
+var _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
 `)
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirConfigRuBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsS2iBinaryDirConfigRu, nil
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRuBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu, nil
 }
 
-func testExtendedTestdataBuildSecretsS2iBinaryDirConfigRu() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsS2iBinaryDirConfigRuBytes()
+func testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRuBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/s2i-binary-dir/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsTestDockerBuildJson = []byte(`{
+var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
   "kind": "BuildConfig",
   "apiVersion": "v1",
   "metadata": {
@@ -960,22 +958,22 @@ var _testExtendedTestdataBuildSecretsTestDockerBuildJson = []byte(`{
   }
 }`)
 
-func testExtendedTestdataBuildSecretsTestDockerBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsTestDockerBuildJson, nil
+func testExtendedTestdataBuildsBuildSecretsTestDockerBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson, nil
 }
 
-func testExtendedTestdataBuildSecretsTestDockerBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsTestDockerBuildJsonBytes()
+func testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsTestDockerBuildJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsTestIsJson = []byte(`{
+var _testExtendedTestdataBuildsBuildSecretsTestIsJson = []byte(`{
   "kind": "ImageStream",
   "apiVersion": "v1",
   "metadata": {
@@ -984,22 +982,22 @@ var _testExtendedTestdataBuildSecretsTestIsJson = []byte(`{
 }
 `)
 
-func testExtendedTestdataBuildSecretsTestIsJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsTestIsJson, nil
+func testExtendedTestdataBuildsBuildSecretsTestIsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsTestIsJson, nil
 }
 
-func testExtendedTestdataBuildSecretsTestIsJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsTestIsJsonBytes()
+func testExtendedTestdataBuildsBuildSecretsTestIsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsTestIsJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsTestS2iBuildJson = []byte(`{
+var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
   "kind": "BuildConfig",
   "apiVersion": "v1",
   "metadata": {
@@ -1051,22 +1049,22 @@ var _testExtendedTestdataBuildSecretsTestS2iBuildJson = []byte(`{
   }
 }`)
 
-func testExtendedTestdataBuildSecretsTestS2iBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsTestS2iBuildJson, nil
+func testExtendedTestdataBuildsBuildSecretsTestS2iBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson, nil
 }
 
-func testExtendedTestdataBuildSecretsTestS2iBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsTestS2iBuildJsonBytes()
+func testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsTestS2iBuildJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsTestSecret2Json = []byte(`{
+var _testExtendedTestdataBuildsBuildSecretsTestSecret2Json = []byte(`{
     "kind": "Secret",
     "apiVersion": "v1",
     "metadata": {
@@ -1082,22 +1080,22 @@ var _testExtendedTestdataBuildSecretsTestSecret2Json = []byte(`{
 }
 `)
 
-func testExtendedTestdataBuildSecretsTestSecret2JsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsTestSecret2Json, nil
+func testExtendedTestdataBuildsBuildSecretsTestSecret2JsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsTestSecret2Json, nil
 }
 
-func testExtendedTestdataBuildSecretsTestSecret2Json() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsTestSecret2JsonBytes()
+func testExtendedTestdataBuildsBuildSecretsTestSecret2Json() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsTestSecret2JsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/test-secret-2.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/test-secret-2.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildSecretsTestSecretJson = []byte(`{
+var _testExtendedTestdataBuildsBuildSecretsTestSecretJson = []byte(`{
     "kind": "Secret",
     "apiVersion": "v1",
     "metadata": {
@@ -1113,118 +1111,118 @@ var _testExtendedTestdataBuildSecretsTestSecretJson = []byte(`{
 }
 `)
 
-func testExtendedTestdataBuildSecretsTestSecretJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildSecretsTestSecretJson, nil
+func testExtendedTestdataBuildsBuildSecretsTestSecretJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildSecretsTestSecretJson, nil
 }
 
-func testExtendedTestdataBuildSecretsTestSecretJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildSecretsTestSecretJsonBytes()
+func testExtendedTestdataBuildsBuildSecretsTestSecretJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildSecretsTestSecretJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-secrets/test-secret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-secrets/test-secret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM centos/ruby-22-centos7
 
 USER root
 `)
 
-func testExtendedTestdataBuildTimingDockerfileBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingDockerfile, nil
+func testExtendedTestdataBuildsBuildTimingDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingDockerfile, nil
 }
 
-func testExtendedTestdataBuildTimingDockerfile() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingDockerfileBytes()
+func testExtendedTestdataBuildsBuildTimingDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingDockerfileBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/bash
 
 `)
 
-func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssembleBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble, nil
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssembleBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble, nil
 }
 
-func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssembleBytes()
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssembleBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
 
 `)
 
-func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRunBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun, nil
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRunBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun, nil
 }
 
-func testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRunBytes()
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRunBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/run", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/run", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingS2iBinaryDirGemfile = []byte(`source "https://rubygems.org"
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile = []byte(`source "https://rubygems.org"
 
 gem "rack"
 `)
 
-func testExtendedTestdataBuildTimingS2iBinaryDirGemfileBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingS2iBinaryDirGemfile, nil
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile, nil
 }
 
-func testExtendedTestdataBuildTimingS2iBinaryDirGemfile() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirGemfileBytes()
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfileBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/s2i-binary-dir/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingS2iBinaryDirConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
 `)
 
-func testExtendedTestdataBuildTimingS2iBinaryDirConfigRuBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingS2iBinaryDirConfigRu, nil
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRuBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu, nil
 }
 
-func testExtendedTestdataBuildTimingS2iBinaryDirConfigRu() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingS2iBinaryDirConfigRuBytes()
+func testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRuBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/s2i-binary-dir/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/s2i-binary-dir/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingTestDockerBuildJson = []byte(`{
+var _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson = []byte(`{
   "kind": "BuildConfig",
   "apiVersion": "v1",
   "metadata": {
@@ -1265,22 +1263,22 @@ var _testExtendedTestdataBuildTimingTestDockerBuildJson = []byte(`{
 }
 `)
 
-func testExtendedTestdataBuildTimingTestDockerBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingTestDockerBuildJson, nil
+func testExtendedTestdataBuildsBuildTimingTestDockerBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson, nil
 }
 
-func testExtendedTestdataBuildTimingTestDockerBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingTestDockerBuildJsonBytes()
+func testExtendedTestdataBuildsBuildTimingTestDockerBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingTestDockerBuildJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingTestIsJson = []byte(`{
+var _testExtendedTestdataBuildsBuildTimingTestIsJson = []byte(`{
   "kind": "ImageStream",
   "apiVersion": "v1",
   "metadata": {
@@ -1289,22 +1287,22 @@ var _testExtendedTestdataBuildTimingTestIsJson = []byte(`{
 }
 `)
 
-func testExtendedTestdataBuildTimingTestIsJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingTestIsJson, nil
+func testExtendedTestdataBuildsBuildTimingTestIsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingTestIsJson, nil
 }
 
-func testExtendedTestdataBuildTimingTestIsJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingTestIsJsonBytes()
+func testExtendedTestdataBuildsBuildTimingTestIsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingTestIsJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataBuildTimingTestS2iBuildJson = []byte(`{
+var _testExtendedTestdataBuildsBuildTimingTestS2iBuildJson = []byte(`{
   "kind": "BuildConfig",
   "apiVersion": "v1",
   "metadata": {
@@ -1344,17 +1342,2895 @@ var _testExtendedTestdataBuildTimingTestS2iBuildJson = []byte(`{
 }
 `)
 
-func testExtendedTestdataBuildTimingTestS2iBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildTimingTestS2iBuildJson, nil
+func testExtendedTestdataBuildsBuildTimingTestS2iBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, nil
 }
 
-func testExtendedTestdataBuildTimingTestS2iBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildTimingTestS2iBuildJsonBytes()
+func testExtendedTestdataBuildsBuildTimingTestS2iBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsBuildTimingTestS2iBuildJsonBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "push-pull-builder",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "This defines a build which pulls from and pushes to the internal registry",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "internal-image",
+        "creationTimestamp": null
+      },
+      "spec": {}
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "initial-build",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "initial-build"
+        }
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/incremental-app.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7:latest"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "internal-image:latest"
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "internal-build",
+        "creationTimestamp": null,
+        "labels": {
+          "name": "internal-build"
+        }
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/incremental-app.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ],
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "internal-image:latest"
+            },
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "internal-image:latest"
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [],
+  "labels": {
+    "template": "application-template-stibuild"
+  }
+}`)
+
+func testExtendedTestdataBuildsIncrementalAuthBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsIncrementalAuthBuildJson, nil
+}
+
+func testExtendedTestdataBuildsIncrementalAuthBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsIncrementalAuthBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/incremental-auth-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsS2iBuildRootYaml = []byte(`---
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: s2i-build-root
+  creationTimestamp:
+  labels:
+    name: s2i-build-root
+spec:
+  source:
+    binary:
+      asFile: ''
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos
+`)
+
+func testExtendedTestdataBuildsS2iBuildRootYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsS2iBuildRootYaml, nil
+}
+
+func testExtendedTestdataBuildsS2iBuildRootYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsS2iBuildRootYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-build-root.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble = []byte(`#!/usr/bin/env bash
+
+exit 123123
+`)
+
+func testExtendedTestdataBuildsStatusfailAssembleS2iBinAssembleBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble, nil
+}
+
+func testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailAssembleS2iBinAssembleBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-badcontextdirsourcetoimage
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world"
+    contextDir: "foobar"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailFailedassembleYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-assemblescript
+spec:
+  source:
+      type: binary
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailFailedassembleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailFailedassembleYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailFailedassembleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailFailedassembleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-failedassemble.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-builderimage
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world.git"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: fail/me:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailFetchbuilderimageYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailFetchbuilderimageYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-fetchsourcedocker
+spec:
+  source:
+    git:
+      uri: "https://failure/docker/status"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailFetchsources2iYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-fetchsourcesourcetoimage
+spec:
+  source:
+    git:
+      uri: "https://failure/sourcetoimage/status"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailFetchsources2iYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailFetchsources2iYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-fetchsources2i.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailGenericreasonYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-genericfailure
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-ex"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+      scripts: "http://example.org/scripts"
+      env:
+        - name: http_proxy
+          value: "http://%"
+`)
+
+func testExtendedTestdataBuildsStatusfailGenericreasonYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailGenericreasonYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailGenericreasonYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailGenericreasonYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-genericreason.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailPostcommithookYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-postcommithook
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world.git"
+  postCommit:
+    args:
+      - failme
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+    type: Source
+`)
+
+func testExtendedTestdataBuildsStatusfailPostcommithookYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailPostcommithookYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailPostcommithookYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailPostcommithookYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-postcommithook.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStatusfailPushtoregistryYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-pushtoregistry
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world.git"
+  output:
+    to:
+      kind: DockerImage
+      name: bogus.registry/image:latest
+  strategy:
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+    type: Source
+`)
+
+func testExtendedTestdataBuildsStatusfailPushtoregistryYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStatusfailPushtoregistryYaml, nil
+}
+
+func testExtendedTestdataBuildsStatusfailPushtoregistryYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStatusfailPushtoregistryYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-pushtoregistry.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment = []byte(`TEST_ENV=success
+`)
+
+func testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironmentBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment, nil
+}
+
+func testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironmentBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/sti-environment-build-app/.sti/environment", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile = []byte(`source "https://rubygems.org"
+
+gem "rack"
+`)
+
+func testExtendedTestdataBuildsStiEnvironmentBuildAppGemfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile, nil
+}
+
+func testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStiEnvironmentBuildAppGemfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/sti-environment-build-app/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
+`)
+
+func testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRuBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu, nil
+}
+
+func testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRuBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/sti-environment-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestAuthBuildYaml = []byte(`apiVersion: v1
+kind: Template
+labels:
+  template: gitserver
+metadata:
+  name: gitserver
+parameters:
+- name: SOURCE_URL
+  required: true
+- name: SOURCE_SECRET
+  required: true
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: output
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: gitauthtest
+  spec:
+    source:
+      git:
+        uri: ${SOURCE_URL}
+      type: Git
+      sourceSecret:
+        name: ${SOURCE_SECRET}
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby:latest
+          namespace: openshift
+      type: Source
+    # this test specifically does a push, to help exercise the code that sets
+    # environment variables on build pods (i.e., by having a source secret and
+    # a push secret, multiple environment variables need to be set correctly for
+    # the build to succeed).
+    output:
+      to:
+        kind: ImageStreamTag
+        name: output:latest
+`)
+
+func testExtendedTestdataBuildsTestAuthBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestAuthBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsTestAuthBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestAuthBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-auth-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBcWithPrRefYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  creationTimestamp: null
+  name: bc-with-pr-ref
+spec:
+  resources: {}
+  source:
+    git:
+      uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
+      ref: refs/pull/1/head
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: wildfly:latest
+        namespace: openshift
+    type: Source
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataBuildsTestBcWithPrRefYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBcWithPrRefYaml, nil
+}
+
+func testExtendedTestdataBuildsTestBcWithPrRefYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBcWithPrRefYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-bc-with-pr-ref.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM centos/ruby-22-centos7
+USER default
+EXPOSE 8080
+ENV RACK_ENV production
+ENV RAILS_ENV production
+COPY . /opt/app-root/src/
+RUN scl enable rh-ruby22 "bundle install"
+CMD ["scl", "enable", "rh-ruby22", "./run.sh"]
+
+USER default
+`)
+
+func testExtendedTestdataBuildsTestBuildAppDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildAppDockerfile, nil
+}
+
+func testExtendedTestdataBuildsTestBuildAppDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildAppDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-app/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildAppGemfile = []byte(`source "https://rubygems.org"
+
+gem "rack"
+`)
+
+func testExtendedTestdataBuildsTestBuildAppGemfileBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildAppGemfile, nil
+}
+
+func testExtendedTestdataBuildsTestBuildAppGemfile() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildAppGemfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-app/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildAppConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
+`)
+
+func testExtendedTestdataBuildsTestBuildAppConfigRuBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildAppConfigRu, nil
+}
+
+func testExtendedTestdataBuildsTestBuildAppConfigRu() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildAppConfigRuBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildPodsvcJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "parameters": [
+    {
+      "name": "IMAGE_NAME",
+      "required": true
+    }
+  ],
+  "objects": [
+    {
+      "kind":"Pod",
+      "apiVersion":"v1",
+      "metadata":{
+        "name":"build-test-pod",
+        "labels":{
+          "name":"build-test-pod"
+        }
+      },
+      "spec":{
+        "containers":[
+          {
+            "name":"test",
+            "image":"${IMAGE_NAME}",
+            "readinessProbe": {
+              "httpGet": {
+                "port": 8080
+              }
+            }
+          }
+        ],
+        "dnsPolicy":"ClusterFirst"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion":"v1",
+      "metadata": {
+        "name":"build-test-svc"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "8080-tcp",
+            "protocol": "TCP",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "build-test-pod"
+        }
+      }
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsTestBuildPodsvcJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildPodsvcJson, nil
+}
+
+func testExtendedTestdataBuildsTestBuildPodsvcJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildPodsvcJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-podsvc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildPostcommitJson = []byte(`{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "busybox",
+                "creationTimestamp": null,
+                "labels": {
+                    "build": "busybox"
+                }
+            },
+            "spec": {
+                "tags": [
+                    {
+                        "name": "1",
+                        "annotations": {
+                            "openshift.io/imported-from": "busybox:1"
+                        },
+                        "from": {
+                            "kind": "DockerImage",
+                            "name": "busybox:1"
+                        },
+                        "importPolicy": {}
+                    }
+                ]
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "busybox",
+                "creationTimestamp": null,
+                "labels": {
+                    "build": "busybox"
+                }
+            },
+            "spec": {
+                "source": {
+                    "type": "Dockerfile",
+                    "dockerfile": "FROM busybox:1"
+                },
+                "strategy": {
+                    "type": "Docker",
+                    "dockerStrategy": {
+                        "from": {
+                            "kind": "ImageStreamTag",
+                            "name": "busybox:1"
+                        }
+                    }
+                }, 
+                "resources": {},
+                "postCommit": {}
+            }
+        }
+    ]
+}
+`)
+
+func testExtendedTestdataBuildsTestBuildPostcommitJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildPostcommitJson, nil
+}
+
+func testExtendedTestdataBuildsTestBuildPostcommitJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildPostcommitJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-postcommit.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildProxyYaml = []byte(`kind: List
+apiVersion: v1
+metadata: {}
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: origin-ruby-sample
+    creationTimestamp: 
+  spec: {}
+  status:
+    dockerImageRepository: ''
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: 127.0.0.1:3128
+        httpsProxy: 127.0.0.1:3128
+    strategy:
+      type: Source
+      sourceStrategy:
+        env:
+        - name: HTTPS_PROXY
+          value: 127.0.0.1:3128
+        - name: HTTP_PROXY
+          value: 127.0.0.1:3128
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-s2i-build-noproxy
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: http://gituser:password@proxy1.com
+        httpsProxy: https://gituser:password@proxy2.com
+        noProxy: github.com
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        env:
+        - name: SOME_HTTP_PROXY
+          value: https://envuser:password@proxy3.com
+        - name: SOME_HTTPS_PROXY
+          value: https://envuser:password@proxy4.com
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-docker-build-noproxy
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: http://gituser:password@proxy1.com
+        httpsProxy: https://gituser:password@proxy2.com
+        noProxy: github.com
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        env:
+        - name: SOME_HTTP_PROXY
+          value: https://envuser:password@proxy3.com
+        - name: SOME_HTTPS_PROXY
+          value: https://envuser:password@proxy4.com
+`)
+
+func testExtendedTestdataBuildsTestBuildProxyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildProxyYaml, nil
+}
+
+func testExtendedTestdataBuildsTestBuildProxyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildProxyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-proxy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsTestBuildRevisionJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildRevisionJson, nil
+}
+
+func testExtendedTestdataBuildsTestBuildRevisionJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildRevisionJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-revision.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample",
+        "creationTimestamp": null
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env": [
+              { "name": "FOO", "value": "test" },
+              { "name": "BAR", "value": "test" },
+              { "name": "BUILD_LOGLEVEL", "value": "5" }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-verbose-build",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "git://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env": [
+              { "name": "FOO", "value": "test" },
+              { "name": "BAR", "value": "test" },
+              { "name": "BUILD_LOGLEVEL", "value": "5" }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-binary",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Binary",
+          "binary": {}
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "env": [
+              { "name": "FOO", "value": "test" },
+              { "name": "BAR", "value": "test" },
+              { "name": "BUILD_LOGLEVEL", "value": "5" }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-github-archive",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Binary",
+          "binary": {},
+          "contextDir": "ruby-hello-world-master"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "env": [
+              { "name": "FOO", "value": "test" },
+              { "name": "BAR", "value": "test" },
+              { "name": "BUILD_LOGLEVEL", "value": "5" }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-binary-invalidnodeselector",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "imageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Binary",
+          "binary": {}
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "env": [
+              { "name": "FOO", "value": "test" },
+              { "name": "BAR", "value": "test" },
+              { "name": "BUILD_LOGLEVEL", "value": "5" }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {},
+        "nodeSelector": {"nodelabelkey":"nodelabelvalue"}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-docker-args",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Dockerfile",
+          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        },
+        "resources": {},
+        "postCommit": {},
+        "nodeSelector": null
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "sample-build-docker-args-preset",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          }
+        ],
+        "source": {
+          "type": "Dockerfile",
+          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            },
+            "buildArgs": [
+              { "name": "foo", "value": "default" }
+            ]
+          }
+        },
+        "resources": {},
+        "postCommit": {},
+        "nodeSelector": null
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsTestBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: Secret
+  apiVersion: v1
+  type: kubernetes.io/basic-auth
+  metadata:
+    name: secret1
+    annotations:
+      build.openshift.io/source-secret-match-uri-1: '*://*.example.com/*'
+  data:
+    username: AA==
+- kind: Secret
+  apiVersion: v1
+  type: kubernetes.io/ssh-auth
+  metadata:
+    name: secret2
+    annotations:
+      build.openshift.io/source-secret-match-uri-1: '*://*.example.com/*'
+  data:
+    ssh-privatekey: AA==
+- kind: Secret
+  apiVersion: v1
+  type: kubernetes.io/basic-auth
+  metadata:
+    name: secret3
+    annotations:
+      build.openshift.io/source-secret-match-uri-1: 'https://*.com/*'
+  data:
+    username: AA==
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: test1
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://server1.example.com/path
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStream
+          name: test
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: test2
+  spec:
+    source:
+      type: Git
+      git:
+        uri: ssh://server1.example.com/path
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStream
+          name: test
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: test3
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://test.com/path
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStream
+          name: test
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: test4
+  spec:
+    source:
+      type: Git
+      git:
+        uri: http://test.com/path
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStream
+          name: test
+`)
+
+func testExtendedTestdataBuildsTestBuildconfigsecretinjectorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml, nil
+}
+
+func testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildconfigsecretinjectorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-buildconfigsecretinjector.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
+  "kind":"BuildConfig",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"docker-build"
+  },
+  "spec":{
+    "completionDeadlineSeconds": 5,
+    "triggers":[],
+    "source":{
+      "type":"Dockerfile",
+      "dockerfile":"FROM centos:7\nRUN sleep 10m"
+    },
+    "strategy":{
+      "type":"Docker",
+      "dockerStrategy":{
+        "from":{
+          "kind":"DockerImage",
+          "name":"centos/ruby-22-centos7"
+        }
+      }
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsTestCdsDockerbuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestCdsDockerbuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestCdsDockerbuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestCdsDockerbuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-cds-dockerbuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "source-build"
+      },
+      "spec": {
+        "completionDeadlineSeconds": 5,
+        "triggers": [],
+        "source":{
+          "type":"Dockerfile",
+          "dockerfile":"FROM centos:7\nRUN sleep 10m"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsTestCdsSourcebuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestCdsSourcebuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestCdsSourcebuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestCdsSourcebuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-cds-sourcebuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dockercontext"
+      },
+      "spec": {
+        "triggers": [],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri":"https://github.com/sclorg/s2i-ruby-container"
+          },
+          "contextDir": "2.3"
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "s2icontext"
+      },
+      "spec": {
+        "triggers": [],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri":"https://github.com/sclorg/s2i-ruby-container"
+          },
+          "contextDir": "2.3/test/puma-test-app"
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "env": [
+              {
+                "name": "BUILD_LOGLEVEL",
+                "value": "5"
+              }
+            ],
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-23-centos7"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "test:latest"
+          }
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "test"
+      }
+    },    
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "frontend"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "test:latest"
+              }
+            }
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name":"frontend"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "frontend",
+                "image": "",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}`)
+
+func testExtendedTestdataBuildsTestContextBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestContextBuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestContextBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestContextBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-context-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [{
+    "kind": "ImageStream",
+    "apiVersion": "v1",
+    "metadata": {
+      "name": "image1",
+      "creationTimestamp": null
+    },
+    "spec": {},
+    "status": {
+      "dockerImageRepository": ""
+    }
+  }, {
+    "kind": "BuildConfig",
+    "apiVersion": "v1",
+    "metadata": {
+      "name": "docker-build",
+      "creationTimestamp": null,
+      "labels": {
+        "name": "docker-build"
+      }
+    },
+    "spec": {
+      "source": {
+        "dockerfile": "FROM centos:7"
+      },
+      "strategy": {
+        "type": "Docker",
+        "dockerStrategy": {
+          "from": {
+            "kind": "DockerImage",
+            "name": "centos:7"
+          }
+        }
+      },
+      "output": {
+        "to": {
+          "kind": "ImageStreamTag",
+          "name": "image1:latest"
+        }
+      }
+    }
+  }, {
+    "kind": "BuildConfig",
+    "apiVersion": "v1",
+    "metadata": {
+      "name": "docker-build-pull",
+      "creationTimestamp": null,
+      "labels": {
+        "name": "docker-build-pull"
+      }
+    },
+    "spec": {
+      "source": {
+        "dockerfile": "FROM centos:7"
+      },
+      "strategy": {
+        "type": "Docker",
+        "dockerStrategy": {
+          "from": {
+            "kind": "ImageStreamTag",
+            "name": "image1:latest"
+          },
+          "forcePull": true
+        }
+      }
+    }
+  }]
+}
+`)
+
+func testExtendedTestdataBuildsTestDockerBuildPullsecretJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerBuildPullsecretJson, nil
+}
+
+func testExtendedTestdataBuildsTestDockerBuildPullsecretJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerBuildPullsecretJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-build-pullsecret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestDockerBuildQuotaJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "docker-build-quota",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "docker-build-quota"
+    }
+  },
+  "spec": {
+    "resources": {
+      "limits": {
+        "memory": "200Mi"
+      }
+    },
+    "source": {
+      "binary": {
+        "asFile": ""
+      }          
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos:7"
+        },
+        "noCache": true
+      }
+    }
+  }
+}
+    `)
+
+func testExtendedTestdataBuildsTestDockerBuildQuotaJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerBuildQuotaJson, nil
+}
+
+func testExtendedTestdataBuildsTestDockerBuildQuotaJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerBuildQuotaJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-build-quota.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
+  "kind":"BuildConfig",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"test",
+    "labels":{
+      "name":"test"
+    }
+  },
+  "spec":{
+    "triggers":[],
+    "source":{
+      "type":"Git",
+      "git":{
+        "uri":"https://github.com/sclorg/s2i-ruby-container"
+      },
+      "contextDir":"2.3"
+    },
+    "strategy":{
+      "type":"Docker",
+      "dockerStrategy":{
+        "from":{
+          "kind":"DockerImage",
+          "name":"openshift/base-centos7"
+        }
+      }
+    },
+    "output":{
+      "to":{
+        "kind":"ImageStreamTag",
+        "name":"test:latest"
+      },
+      "imageLabels": [
+        {
+          "name": "user-specified-label",
+          "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
+        }
+      ]
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsTestDockerBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerBuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestDockerBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test-docker",
+    "labels": {
+      "name": "test-docker"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "https://github.com/openshift/ruby-hello-world"
+      }
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-22-centos7"
+        }
+      }
+    }
+  }
+}`)
+
+func testExtendedTestdataBuildsTestDockerNoOutputnameJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerNoOutputnameJson, nil
+}
+
+func testExtendedTestdataBuildsTestDockerNoOutputnameJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerNoOutputnameJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-no-outputname.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
+  "kind":"BuildConfig",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"test",
+    "labels":{
+      "name":"test"
+    }
+  },
+  "spec":{
+    "triggers":[],
+    "source":{
+      "type":"Binary"
+    },
+    "strategy":{
+      "type":"Source",
+      "sourceStrategy":{
+        "from":{
+          "kind":"DockerImage",
+          "name":"centos/ruby-22-centos7"
+        }
+      }
+    },
+    "output":{
+      "to":{
+        "kind":"ImageStreamTag",
+        "name":"test:latest"
+      }
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsTestEnvBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestEnvBuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestEnvBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestEnvBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-env-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Build
+  metadata:
+    labels:
+      build: imagecustombuild
+    name: imagecustombuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagesourceapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      customStrategy:
+        from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+`)
+
+func testExtendedTestdataBuildsTestImageresolutionCustomBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestImageresolutionCustomBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-imageresolution-custom-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Build
+  metadata:
+    labels:
+      build: imagedockerbuild
+    name: imagedockerbuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagedockerapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+`)
+
+func testExtendedTestdataBuildsTestImageresolutionDockerBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestImageresolutionDockerBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-imageresolution-docker-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Build
+  metadata:
+    labels:
+      build: imagesourcebuild
+    name: imagesourcebuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagesourceapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+`)
+
+func testExtendedTestdataBuildsTestImageresolutionS2iBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestImageresolutionS2iBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-imageresolution-s2i-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestImagesourceBuildconfigYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: inputimage
+    name: inputimage
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: inputimage:latest
+    source:
+      dockerfile: "FROM foo"
+    strategy:
+      dockerStrategy:
+        from: 
+          kind: ImageStreamTag
+          name: ruby:2.3
+          namespace: openshift
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: imagesourcebuild
+    name: imagesourcebuildconfig
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagesourceapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      sourceStrategy:
+        forcePull: true
+        from:
+          kind: ImageStreamTag
+          name: ruby:latest
+          namespace: openshift
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: imagedockerbuild
+    name: imagedockerbuildconfig
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagedockerapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      dockerStrategy:
+        forcePull: true
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: inputimage
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: imagesourceapp
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: imagedockerapp
+  spec: {}
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: imagesourceapp
+  spec:
+    replicas: 1
+    selector:
+      app: imagesourceapp
+      deploymentconfig: imagesourceapp
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: imagesourceapp
+          deploymentconfig: imagesourceapp
+      spec:
+        containers:
+        - image:
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8080
+          name: imagesourceapp
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8888
+            protocol: TCP
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - imagesourceapp
+        from:
+          kind: ImageStreamTag
+          name: imagesourceapp:latest
+      type: ImageChange
+    - type: ConfigChange
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: imagedockerapp
+  spec:
+    replicas: 1
+    selector:
+      app: imagedockerapp
+      deploymentconfig: imagedockerapp
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: imagedockerapp
+          deploymentconfig: imagedockerapp
+      spec:
+        containers:
+        - image:
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              port: 8080
+          name: imagedockerapp
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8888
+            protocol: TCP
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - imagedockerapp
+        from:
+          kind: ImageStreamTag
+          name: imagedockerapp:latest
+      type: ImageChange
+    - type: ConfigChange
+`)
+
+func testExtendedTestdataBuildsTestImagesourceBuildconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestImagesourceBuildconfigYaml, nil
+}
+
+func testExtendedTestdataBuildsTestImagesourceBuildconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestImagesourceBuildconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-imagesource-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nosrc-stream",
+        "creationTimestamp": null
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "nosrc-build",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "triggers": [
+        ],
+        "source": {
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-22-centos7"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsTestNosrcBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestNosrcBuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestNosrcBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestNosrcBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-nosrc-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "s2i-build-quota",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "s2i-build-quota"
+    }
+  },
+  "spec": {
+    "resources": {
+      "limits": {
+        "cpu": "60m",
+        "memory": "200Mi"
+      }
+    },
+    "source": {
+      "binary": {
+        "asFile": ""
+      }          
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "from": {
+          "kind":"DockerImage",
+          "name":"centos/ruby-22-centos7"
+        }
+      }
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsTestS2iBuildQuotaJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestS2iBuildQuotaJson, nil
+}
+
+func testExtendedTestdataBuildsTestS2iBuildQuotaJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestS2iBuildQuotaJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-s2i-build-quota.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri":"https://github.com/sclorg/s2i-ruby-container"
+      },
+      "contextDir": "2.3/test/puma-test-app"
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-23-centos7"
+        }
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
+      },
+      "imageLabels": [
+        {
+          "name": "user-specified-label",
+          "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
+        }
+      ]
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsTestS2iBuildJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestS2iBuildJson, nil
+}
+
+func testExtendedTestdataBuildsTestS2iBuildJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestS2iBuildJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test-sti",
+    "labels": {
+      "name": "test-sti"
+    }
+  },
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "https://github.com/openshift/ruby-hello-world"
+      }
+    },
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "5"
+          }
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-22-centos7"
+        }
+      }
+    }
+  }
+}`)
+
+func testExtendedTestdataBuildsTestS2iNoOutputnameJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestS2iNoOutputnameJson, nil
+}
+
+func testExtendedTestdataBuildsTestS2iNoOutputnameJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestS2iNoOutputnameJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-s2i-no-outputname.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml = []byte(`
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mydockertest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: '7.0'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+                fieldPath: metadata.nofield
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: nokey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: nousername
+
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mys2itest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: 7.0/test/test-app
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/php-70-centos7
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.nofield
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: nokey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: nousername
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml = []byte(`
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mydockertest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: '7.0'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+                fieldPath: metadata.name
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: mykey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: username
+        - name: FIELDREF_CLONE_ENV
+          value: $(FIELDREF_ENV)
+        - name: FIELDREF_CLONE_CLONE_ENV
+          value: $(FIELDREF_CLONE_ENV)
+        - name: UNAVAILABLE_ENV
+          value: $(SOME_OTHER_ENV)
+        - name: ESCAPED_ENV
+          value: $$(MY_ESCAPED_VALUE)
+
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mys2itest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: 7.0/test/test-app
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/php-70-centos7
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: mykey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: username
+        - name: FIELDREF_CLONE_ENV 
+          value: $(FIELDREF_ENV)
+        - name: FIELDREF_CLONE_CLONE_ENV
+          value: $(FIELDREF_CLONE_ENV)
+        - name: UNAVAILABLE_ENV
+          value: $(SOME_OTHER_ENV)
+        - name: ESCAPED_ENV
+          value: $$(MY_ESCAPED_VALUE)
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/successful-sti-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsValuefromTestConfigmapYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myconfigmap
+data:
+  mykey: myvalue
+`)
+
+func testExtendedTestdataBuildsValuefromTestConfigmapYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsValuefromTestConfigmapYaml, nil
+}
+
+func testExtendedTestdataBuildsValuefromTestConfigmapYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsValuefromTestConfigmapYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/test-configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsValuefromTestIsJson = []byte(`{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test"
+  }
+}
+`)
+
+func testExtendedTestdataBuildsValuefromTestIsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsValuefromTestIsJson, nil
+}
+
+func testExtendedTestdataBuildsValuefromTestIsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsValuefromTestIsJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsValuefromTestSecretYaml = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+data:
+  password: cGFzc3dvcmQ=
+  username: ZGV2ZWxvcGVy
+type: kubernetes.io/basic-auth
+`)
+
+func testExtendedTestdataBuildsValuefromTestSecretYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsValuefromTestSecretYaml, nil
+}
+
+func testExtendedTestdataBuildsValuefromTestSecretYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsValuefromTestSecretYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/valuefrom/test-secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -4148,135 +7024,6 @@ func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataIncrementalAuthBuildJson = []byte(`{
-  "kind": "Template",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "push-pull-builder",
-    "creationTimestamp": null,
-    "annotations": {
-      "description": "This defines a build which pulls from and pushes to the internal registry",
-      "iconClass": "icon-ruby",
-      "tags": "instant-app,ruby,mysql"
-    }
-  },
-  "objects": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "internal-image",
-        "creationTimestamp": null
-      },
-      "spec": {}
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "initial-build",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "initial-build"
-        }
-      },
-      "spec": {
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/incremental-app.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              {
-                "name": "BUILD_LOGLEVEL",
-                "value": "5"
-              }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7:latest"
-            }
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "internal-image:latest"
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "internal-build",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "internal-build"
-        }
-      },
-      "spec": {
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/incremental-app.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              {
-                "name": "BUILD_LOGLEVEL",
-                "value": "5"
-              }
-            ],
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "internal-image:latest"
-            },
-            "incremental": true
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "internal-image:latest"
-          }
-        }
-      }
-    }
-  ],
-  "parameters": [],
-  "labels": {
-    "template": "application-template-stibuild"
-  }
-}`)
-
-func testExtendedTestdataIncrementalAuthBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataIncrementalAuthBuildJson, nil
-}
-
-func testExtendedTestdataIncrementalAuthBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataIncrementalAuthBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/incremental-auth-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataJenkinsPluginBuildJobCloneXml = []byte(`<?xml version='1.0' encoding='UTF-8'?>                                                                                                                                                                                                                         
 <flow-definition plugin="workflow-job@2.8">                                                                                                                                                                                                                    
   <actions/>                                                                                                                                                                                                                                                   
@@ -6627,41 +9374,6 @@ func testExtendedTestdataRun_policySerialLatestOnlyBcYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataS2iBuildRootYaml = []byte(`---
-kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: s2i-build-root
-  creationTimestamp:
-  labels:
-    name: s2i-build-root
-spec:
-  source:
-    binary:
-      asFile: ''
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos
-`)
-
-func testExtendedTestdataS2iBuildRootYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataS2iBuildRootYaml, nil
-}
-
-func testExtendedTestdataS2iBuildRootYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataS2iBuildRootYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/s2i-build-root.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataS2iDropcapsRootAccessBuildYaml = []byte(`apiVersion: v1
 items:
 - apiVersion: v1
@@ -7147,341 +9859,6 @@ func testExtendedTestdataSignerBuildconfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataStatusfailAssembleS2iBinAssemble = []byte(`#!/usr/bin/env bash
-
-exit 123123
-`)
-
-func testExtendedTestdataStatusfailAssembleS2iBinAssembleBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailAssembleS2iBinAssemble, nil
-}
-
-func testExtendedTestdataStatusfailAssembleS2iBinAssemble() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailAssembleS2iBinAssembleBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-assemble/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailBadcontextdirs2iYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-badcontextdirsourcetoimage
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/ruby-hello-world"
-    contextDir: "foobar"
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7:latest
-`)
-
-func testExtendedTestdataStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailBadcontextdirs2iYaml, nil
-}
-
-func testExtendedTestdataStatusfailBadcontextdirs2iYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailBadcontextdirs2iYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-badcontextdirs2i.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailFailedassembleYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-assemblescript
-spec:
-  source:
-      type: binary
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7:latest
-`)
-
-func testExtendedTestdataStatusfailFailedassembleYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailFailedassembleYaml, nil
-}
-
-func testExtendedTestdataStatusfailFailedassembleYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailFailedassembleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-failedassemble.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailFetchbuilderimageYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-builderimage
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/ruby-hello-world.git"
-  strategy:
-    type: Docker
-    dockerStrategy:
-      from:
-        kind: DockerImage
-        name: fail/me:latest
-`)
-
-func testExtendedTestdataStatusfailFetchbuilderimageYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailFetchbuilderimageYaml, nil
-}
-
-func testExtendedTestdataStatusfailFetchbuilderimageYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailFetchbuilderimageYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-fetchbuilderimage.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailFetchsourcedockerYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-fetchsourcedocker
-spec:
-  source:
-    git:
-      uri: "https://failure/docker/status"
-  strategy:
-    type: Docker
-    dockerStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7:latest
-`)
-
-func testExtendedTestdataStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailFetchsourcedockerYaml, nil
-}
-
-func testExtendedTestdataStatusfailFetchsourcedockerYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailFetchsourcedockerYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-fetchsourcedocker.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailFetchsources2iYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-fetchsourcesourcetoimage
-spec:
-  source:
-    git:
-      uri: "https://failure/sourcetoimage/status"
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7:latest
-`)
-
-func testExtendedTestdataStatusfailFetchsources2iYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailFetchsources2iYaml, nil
-}
-
-func testExtendedTestdataStatusfailFetchsources2iYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailFetchsources2iYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-fetchsources2i.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailGenericreasonYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-genericfailure
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/ruby-ex"
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7:latest
-      scripts: "http://example.org/scripts"
-      env:
-        - name: http_proxy
-          value: "http://%"
-`)
-
-func testExtendedTestdataStatusfailGenericreasonYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailGenericreasonYaml, nil
-}
-
-func testExtendedTestdataStatusfailGenericreasonYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailGenericreasonYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-genericreason.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailPostcommithookYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-postcommithook
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/ruby-hello-world.git"
-  postCommit:
-    args:
-      - failme
-  strategy:
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7:latest
-    type: Source
-`)
-
-func testExtendedTestdataStatusfailPostcommithookYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailPostcommithookYaml, nil
-}
-
-func testExtendedTestdataStatusfailPostcommithookYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailPostcommithookYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-postcommithook.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStatusfailPushtoregistryYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-pushtoregistry
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/ruby-hello-world.git"
-  output:
-    to:
-      kind: DockerImage
-      name: bogus.registry/image:latest
-  strategy:
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7:latest
-    type: Source
-`)
-
-func testExtendedTestdataStatusfailPushtoregistryYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailPushtoregistryYaml, nil
-}
-
-func testExtendedTestdataStatusfailPushtoregistryYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailPushtoregistryYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-pushtoregistry.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStiEnvironmentBuildAppStiEnvironment = []byte(`TEST_ENV=success
-`)
-
-func testExtendedTestdataStiEnvironmentBuildAppStiEnvironmentBytes() ([]byte, error) {
-	return _testExtendedTestdataStiEnvironmentBuildAppStiEnvironment, nil
-}
-
-func testExtendedTestdataStiEnvironmentBuildAppStiEnvironment() (*asset, error) {
-	bytes, err := testExtendedTestdataStiEnvironmentBuildAppStiEnvironmentBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/sti-environment-build-app/.sti/environment", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStiEnvironmentBuildAppGemfile = []byte(`source "https://rubygems.org"
-
-gem "rack"
-`)
-
-func testExtendedTestdataStiEnvironmentBuildAppGemfileBytes() ([]byte, error) {
-	return _testExtendedTestdataStiEnvironmentBuildAppGemfile, nil
-}
-
-func testExtendedTestdataStiEnvironmentBuildAppGemfile() (*asset, error) {
-	bytes, err := testExtendedTestdataStiEnvironmentBuildAppGemfileBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/sti-environment-build-app/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStiEnvironmentBuildAppConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
-`)
-
-func testExtendedTestdataStiEnvironmentBuildAppConfigRuBytes() ([]byte, error) {
-	return _testExtendedTestdataStiEnvironmentBuildAppConfigRu, nil
-}
-
-func testExtendedTestdataStiEnvironmentBuildAppConfigRu() (*asset, error) {
-	bytes, err := testExtendedTestdataStiEnvironmentBuildAppConfigRuBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/sti-environment-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml = []byte(`kind: List
 apiVersion: v1
 items:
@@ -7656,993 +10033,6 @@ func testExtendedTestdataTemplatesTemplateservicebroker_bindYaml() (*asset, erro
 	return a, nil
 }
 
-var _testExtendedTestdataTestAuthBuildYaml = []byte(`apiVersion: v1
-kind: Template
-labels:
-  template: gitserver
-metadata:
-  name: gitserver
-parameters:
-- name: SOURCE_URL
-  required: true
-- name: SOURCE_SECRET
-  required: true
-objects:
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: output
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    name: gitauthtest
-  spec:
-    source:
-      git:
-        uri: ${SOURCE_URL}
-      type: Git
-      sourceSecret:
-        name: ${SOURCE_SECRET}
-    strategy:
-      sourceStrategy:
-        from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
-      type: Source
-    # this test specifically does a push, to help exercise the code that sets
-    # environment variables on build pods (i.e., by having a source secret and
-    # a push secret, multiple environment variables need to be set correctly for
-    # the build to succeed).
-    output:
-      to:
-        kind: ImageStreamTag
-        name: output:latest
-`)
-
-func testExtendedTestdataTestAuthBuildYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestAuthBuildYaml, nil
-}
-
-func testExtendedTestdataTestAuthBuildYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestAuthBuildYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-auth-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBcWithPrRefYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  creationTimestamp: null
-  name: bc-with-pr-ref
-spec:
-  resources: {}
-  source:
-    git:
-      uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
-      ref: refs/pull/1/head
-    type: Git
-  strategy:
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        name: wildfly:latest
-        namespace: openshift
-    type: Source
-status:
-  lastVersion: 0
-`)
-
-func testExtendedTestdataTestBcWithPrRefYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBcWithPrRefYaml, nil
-}
-
-func testExtendedTestdataTestBcWithPrRefYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBcWithPrRefYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-bc-with-pr-ref.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildAppDockerfile = []byte(`FROM centos/ruby-22-centos7
-USER default
-EXPOSE 8080
-ENV RACK_ENV production
-ENV RAILS_ENV production
-COPY . /opt/app-root/src/
-RUN scl enable rh-ruby22 "bundle install"
-CMD ["scl", "enable", "rh-ruby22", "./run.sh"]
-
-USER default
-`)
-
-func testExtendedTestdataTestBuildAppDockerfileBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildAppDockerfile, nil
-}
-
-func testExtendedTestdataTestBuildAppDockerfile() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildAppDockerfileBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-app/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildAppGemfile = []byte(`source "https://rubygems.org"
-
-gem "rack"
-`)
-
-func testExtendedTestdataTestBuildAppGemfileBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildAppGemfile, nil
-}
-
-func testExtendedTestdataTestBuildAppGemfile() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildAppGemfileBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-app/Gemfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildAppConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
-`)
-
-func testExtendedTestdataTestBuildAppConfigRuBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildAppConfigRu, nil
-}
-
-func testExtendedTestdataTestBuildAppConfigRu() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildAppConfigRuBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildPodsvcJson = []byte(`{
-  "kind": "Template",
-  "apiVersion": "v1",
-  "parameters": [
-    {
-      "name": "IMAGE_NAME",
-      "required": true
-    }
-  ],
-  "objects": [
-    {
-      "kind":"Pod",
-      "apiVersion":"v1",
-      "metadata":{
-        "name":"build-test-pod",
-        "labels":{
-          "name":"build-test-pod"
-        }
-      },
-      "spec":{
-        "containers":[
-          {
-            "name":"test",
-            "image":"${IMAGE_NAME}",
-            "readinessProbe": {
-              "httpGet": {
-                "port": 8080
-              }
-            }
-          }
-        ],
-        "dnsPolicy":"ClusterFirst"
-      }
-    },
-    {
-      "kind": "Service",
-      "apiVersion":"v1",
-      "metadata": {
-        "name":"build-test-svc"
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "8080-tcp",
-            "protocol": "TCP",
-            "port": 8080,
-            "targetPort": 8080
-          }
-        ],
-        "selector": {
-          "name": "build-test-pod"
-        }
-      }
-    }
-  ]
-}
-`)
-
-func testExtendedTestdataTestBuildPodsvcJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildPodsvcJson, nil
-}
-
-func testExtendedTestdataTestBuildPodsvcJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildPodsvcJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-podsvc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildPostcommitJson = []byte(`{
-    "kind": "List",
-    "apiVersion": "v1",
-    "metadata": {},
-    "items": [
-        {
-            "kind": "ImageStream",
-            "apiVersion": "v1",
-            "metadata": {
-                "name": "busybox",
-                "creationTimestamp": null,
-                "labels": {
-                    "build": "busybox"
-                }
-            },
-            "spec": {
-                "tags": [
-                    {
-                        "name": "1",
-                        "annotations": {
-                            "openshift.io/imported-from": "busybox:1"
-                        },
-                        "from": {
-                            "kind": "DockerImage",
-                            "name": "busybox:1"
-                        },
-                        "importPolicy": {}
-                    }
-                ]
-            }
-        },
-        {
-            "kind": "BuildConfig",
-            "apiVersion": "v1",
-            "metadata": {
-                "name": "busybox",
-                "creationTimestamp": null,
-                "labels": {
-                    "build": "busybox"
-                }
-            },
-            "spec": {
-                "source": {
-                    "type": "Dockerfile",
-                    "dockerfile": "FROM busybox:1"
-                },
-                "strategy": {
-                    "type": "Docker",
-                    "dockerStrategy": {
-                        "from": {
-                            "kind": "ImageStreamTag",
-                            "name": "busybox:1"
-                        }
-                    }
-                }, 
-                "resources": {},
-                "postCommit": {}
-            }
-        }
-    ]
-}
-`)
-
-func testExtendedTestdataTestBuildPostcommitJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildPostcommitJson, nil
-}
-
-func testExtendedTestdataTestBuildPostcommitJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildPostcommitJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-postcommit.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildProxyYaml = []byte(`kind: List
-apiVersion: v1
-metadata: {}
-items:
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
-    name: origin-ruby-sample
-    creationTimestamp: 
-  spec: {}
-  status:
-    dockerImageRepository: ''
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: sample-build
-    creationTimestamp: 
-  spec:
-    triggers:
-    - type: imageChange
-      imageChange: {}
-    source:
-      type: Git
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-        httpProxy: 127.0.0.1:3128
-        httpsProxy: 127.0.0.1:3128
-    strategy:
-      type: Source
-      sourceStrategy:
-        env:
-        - name: HTTPS_PROXY
-          value: 127.0.0.1:3128
-        - name: HTTP_PROXY
-          value: 127.0.0.1:3128
-        from:
-          kind: DockerImage
-          name: centos/ruby-22-centos7
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: sample-s2i-build-noproxy
-    creationTimestamp: 
-  spec:
-    triggers:
-    - type: imageChange
-      imageChange: {}
-    source:
-      type: Git
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-        httpProxy: http://gituser:password@proxy1.com
-        httpsProxy: https://gituser:password@proxy2.com
-        noProxy: github.com
-    strategy:
-      type: Source
-      sourceStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-22-centos7
-        env:
-        - name: SOME_HTTP_PROXY
-          value: https://envuser:password@proxy3.com
-        - name: SOME_HTTPS_PROXY
-          value: https://envuser:password@proxy4.com
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: sample-docker-build-noproxy
-    creationTimestamp: 
-  spec:
-    triggers:
-    - type: imageChange
-      imageChange: {}
-    source:
-      type: Git
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-        httpProxy: http://gituser:password@proxy1.com
-        httpsProxy: https://gituser:password@proxy2.com
-        noProxy: github.com
-    strategy:
-      type: Docker
-      dockerStrategy:
-        from:
-          kind: DockerImage
-          name: centos/ruby-22-centos7
-        env:
-        - name: SOME_HTTP_PROXY
-          value: https://envuser:password@proxy3.com
-        - name: SOME_HTTPS_PROXY
-          value: https://envuser:password@proxy4.com
-`)
-
-func testExtendedTestdataTestBuildProxyYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildProxyYaml, nil
-}
-
-func testExtendedTestdataTestBuildProxyYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildProxyYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-proxy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildRevisionJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
-  ]
-}
-`)
-
-func testExtendedTestdataTestBuildRevisionJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildRevisionJson, nil
-}
-
-func testExtendedTestdataTestBuildRevisionJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildRevisionJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-revision.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
-      },
-      "spec": {},
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-verbose-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-binary",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Binary",
-          "binary": {}
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-github-archive",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Binary",
-          "binary": {},
-          "contextDir": "ruby-hello-world-master"
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-binary-invalidnodeselector",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Binary",
-          "binary": {}
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {},
-        "nodeSelector": {"nodelabelkey":"nodelabelvalue"}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-docker-args",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Dockerfile",
-          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {},
-        "postCommit": {},
-        "nodeSelector": null
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-docker-args-preset",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Dockerfile",
-          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            },
-            "buildArgs": [
-              { "name": "foo", "value": "default" }
-            ]
-          }
-        },
-        "resources": {},
-        "postCommit": {},
-        "nodeSelector": null
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
-  ]
-}
-`)
-
-func testExtendedTestdataTestBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildJson, nil
-}
-
-func testExtendedTestdataTestBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestBuildconfigsecretinjectorYaml = []byte(`kind: List
-apiVersion: v1
-items:
-- kind: Secret
-  apiVersion: v1
-  type: kubernetes.io/basic-auth
-  metadata:
-    name: secret1
-    annotations:
-      build.openshift.io/source-secret-match-uri-1: '*://*.example.com/*'
-  data:
-    username: AA==
-- kind: Secret
-  apiVersion: v1
-  type: kubernetes.io/ssh-auth
-  metadata:
-    name: secret2
-    annotations:
-      build.openshift.io/source-secret-match-uri-1: '*://*.example.com/*'
-  data:
-    ssh-privatekey: AA==
-- kind: Secret
-  apiVersion: v1
-  type: kubernetes.io/basic-auth
-  metadata:
-    name: secret3
-    annotations:
-      build.openshift.io/source-secret-match-uri-1: 'https://*.com/*'
-  data:
-    username: AA==
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: test1
-  spec:
-    source:
-      type: Git
-      git:
-        uri: https://server1.example.com/path
-    strategy:
-      type: Source
-      sourceStrategy:
-        from:
-          kind: ImageStream
-          name: test
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: test2
-  spec:
-    source:
-      type: Git
-      git:
-        uri: ssh://server1.example.com/path
-    strategy:
-      type: Source
-      sourceStrategy:
-        from:
-          kind: ImageStream
-          name: test
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: test3
-  spec:
-    source:
-      type: Git
-      git:
-        uri: https://test.com/path
-    strategy:
-      type: Source
-      sourceStrategy:
-        from:
-          kind: ImageStream
-          name: test
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: test4
-  spec:
-    source:
-      type: Git
-      git:
-        uri: http://test.com/path
-    strategy:
-      type: Source
-      sourceStrategy:
-        from:
-          kind: ImageStream
-          name: test
-`)
-
-func testExtendedTestdataTestBuildconfigsecretinjectorYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildconfigsecretinjectorYaml, nil
-}
-
-func testExtendedTestdataTestBuildconfigsecretinjectorYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildconfigsecretinjectorYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-buildconfigsecretinjector.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestCdsDockerbuildJson = []byte(`{
-  "kind":"BuildConfig",
-  "apiVersion":"v1",
-  "metadata":{
-    "name":"docker-build"
-  },
-  "spec":{
-    "completionDeadlineSeconds": 5,
-    "triggers":[],
-    "source":{
-      "type":"Dockerfile",
-      "dockerfile":"FROM centos:7\nRUN sleep 10m"
-    },
-    "strategy":{
-      "type":"Docker",
-      "dockerStrategy":{
-        "from":{
-          "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
-        }
-      }
-    }
-  }
-}
-`)
-
-func testExtendedTestdataTestCdsDockerbuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestCdsDockerbuildJson, nil
-}
-
-func testExtendedTestdataTestCdsDockerbuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestCdsDockerbuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-cds-dockerbuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestCdsSourcebuildJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "origin-ruby-sample"
-      },
-      "spec": {},
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "source-build"
-      },
-      "spec": {
-        "completionDeadlineSeconds": 5,
-        "triggers": [],
-        "source":{
-          "type":"Dockerfile",
-          "dockerfile":"FROM centos:7\nRUN sleep 10m"
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-`)
-
-func testExtendedTestdataTestCdsSourcebuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestCdsSourcebuildJson, nil
-}
-
-func testExtendedTestdataTestCdsSourcebuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestCdsSourcebuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-cds-sourcebuild.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataTestCliDebugYaml = []byte(`kind: List
 apiVersion: v1
 items:
@@ -8776,531 +10166,6 @@ func testExtendedTestdataTestCliDebugYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/test-cli-debug.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestContextBuildJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "dockercontext"
-      },
-      "spec": {
-        "triggers": [],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri":"https://github.com/sclorg/s2i-ruby-container"
-          },
-          "contextDir": "2.3"
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "env": [
-              {
-                "name": "BUILD_LOGLEVEL",
-                "value": "5"
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "s2icontext"
-      },
-      "spec": {
-        "triggers": [],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri":"https://github.com/sclorg/s2i-ruby-container"
-          },
-          "contextDir": "2.3/test/puma-test-app"
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              {
-                "name": "BUILD_LOGLEVEL",
-                "value": "5"
-              }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-23-centos7"
-            }
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "test:latest"
-          }
-        }
-      }
-    },
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "test"
-      }
-    },    
-    {
-      "kind": "DeploymentConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend"
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "frontend"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "test:latest"
-              }
-            }
-          }
-        ],
-        "replicas": 1,
-        "selector": {
-          "name":"frontend"
-        },
-        "template": {
-          "metadata": {
-            "labels": {
-              "name": "frontend"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "frontend",
-                "image": "",
-                "ports": [
-                  {
-                    "containerPort": 8080,
-                    "protocol": "TCP"
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "frontend"
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "web",
-            "protocol": "TCP",
-            "port": 5432,
-            "targetPort": 8080,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "frontend"
-        },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
-    }
-  ]
-}`)
-
-func testExtendedTestdataTestContextBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestContextBuildJson, nil
-}
-
-func testExtendedTestdataTestContextBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestContextBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-context-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestCustomBuildJson = []byte(`{
-  "kind": "Build",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "testcustom",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "testcustom"
-    }
-  },
-  "spec": {
-    "source": {},
-    "strategy": {
-      "type": "Custom",
-      "customStrategy": {
-        "from": {
-          "kind": "DockerImage",
-          "name": ""
-        },
-        "exposeDockerSocket": false
-      }
-    },
-    "output": {
-      "to": {
-        "kind": "ImageStreamTag",
-        "name": "test:application"
-      }
-    },
-    "resources": {}
-  },
-  "status": {
-    "phase": ""
-  }
-}
-`)
-
-func testExtendedTestdataTestCustomBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestCustomBuildJson, nil
-}
-
-func testExtendedTestdataTestCustomBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestCustomBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-custom-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestDockerBuildPullsecretJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [{
-    "kind": "ImageStream",
-    "apiVersion": "v1",
-    "metadata": {
-      "name": "image1",
-      "creationTimestamp": null
-    },
-    "spec": {},
-    "status": {
-      "dockerImageRepository": ""
-    }
-  }, {
-    "kind": "BuildConfig",
-    "apiVersion": "v1",
-    "metadata": {
-      "name": "docker-build",
-      "creationTimestamp": null,
-      "labels": {
-        "name": "docker-build"
-      }
-    },
-    "spec": {
-      "source": {
-        "dockerfile": "FROM centos:7"
-      },
-      "strategy": {
-        "type": "Docker",
-        "dockerStrategy": {
-          "from": {
-            "kind": "DockerImage",
-            "name": "centos:7"
-          }
-        }
-      },
-      "output": {
-        "to": {
-          "kind": "ImageStreamTag",
-          "name": "image1:latest"
-        }
-      }
-    }
-  }, {
-    "kind": "BuildConfig",
-    "apiVersion": "v1",
-    "metadata": {
-      "name": "docker-build-pull",
-      "creationTimestamp": null,
-      "labels": {
-        "name": "docker-build-pull"
-      }
-    },
-    "spec": {
-      "source": {
-        "dockerfile": "FROM centos:7"
-      },
-      "strategy": {
-        "type": "Docker",
-        "dockerStrategy": {
-          "from": {
-            "kind": "ImageStreamTag",
-            "name": "image1:latest"
-          },
-          "forcePull": true
-        }
-      }
-    }
-  }]
-}
-`)
-
-func testExtendedTestdataTestDockerBuildPullsecretJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestDockerBuildPullsecretJson, nil
-}
-
-func testExtendedTestdataTestDockerBuildPullsecretJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestDockerBuildPullsecretJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-docker-build-pullsecret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestDockerBuildQuotaJson = []byte(`{
-  "kind": "BuildConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "docker-build-quota",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "docker-build-quota"
-    }
-  },
-  "spec": {
-    "resources": {
-      "limits": {
-        "memory": "200Mi"
-      }
-    },
-    "source": {
-      "binary": {
-        "asFile": ""
-      }          
-    },
-    "strategy": {
-      "type": "Docker",
-      "dockerStrategy": {
-        "from": {
-          "kind": "DockerImage",
-          "name": "centos:7"
-        },
-        "noCache": true
-      }
-    }
-  }
-}
-    `)
-
-func testExtendedTestdataTestDockerBuildQuotaJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestDockerBuildQuotaJson, nil
-}
-
-func testExtendedTestdataTestDockerBuildQuotaJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestDockerBuildQuotaJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-docker-build-quota.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestDockerBuildJson = []byte(`{
-  "kind":"BuildConfig",
-  "apiVersion":"v1",
-  "metadata":{
-    "name":"test",
-    "labels":{
-      "name":"test"
-    }
-  },
-  "spec":{
-    "triggers":[],
-    "source":{
-      "type":"Git",
-      "git":{
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
-      },
-      "contextDir":"2.3"
-    },
-    "strategy":{
-      "type":"Docker",
-      "dockerStrategy":{
-        "from":{
-          "kind":"DockerImage",
-          "name":"openshift/base-centos7"
-        }
-      }
-    },
-    "output":{
-      "to":{
-        "kind":"ImageStreamTag",
-        "name":"test:latest"
-      },
-      "imageLabels": [
-        {
-          "name": "user-specified-label",
-          "value": "arbitrary-value"
-        },
-        {
-          "name": "io.k8s.display-name",
-          "value": "overridden"
-        },
-        {
-          "name": "io.openshift.builder-version",
-          "value": "overridden2"
-        }
-      ]
-    }
-  }
-}
-`)
-
-func testExtendedTestdataTestDockerBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestDockerBuildJson, nil
-}
-
-func testExtendedTestdataTestDockerBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestDockerBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-docker-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestDockerNoOutputnameJson = []byte(`{
-  "kind": "BuildConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "test-docker",
-    "labels": {
-      "name": "test-docker"
-    }
-  },
-  "spec": {
-    "triggers": [],
-    "source": {
-      "type": "Git",
-      "git": {
-        "uri": "https://github.com/openshift/ruby-hello-world"
-      }
-    },
-    "strategy": {
-      "type": "Docker",
-      "dockerStrategy": {
-        "env": [
-          {
-            "name": "BUILD_LOGLEVEL",
-            "value": "5"
-          }
-        ],
-        "from": {
-          "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
-        }
-      }
-    }
-  }
-}`)
-
-func testExtendedTestdataTestDockerNoOutputnameJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestDockerNoOutputnameJson, nil
-}
-
-func testExtendedTestdataTestDockerNoOutputnameJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestDockerNoOutputnameJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-docker-no-outputname.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestEnvBuildJson = []byte(`{
-  "kind":"BuildConfig",
-  "apiVersion":"v1",
-  "metadata":{
-    "name":"test",
-    "labels":{
-      "name":"test"
-    }
-  },
-  "spec":{
-    "triggers":[],
-    "source":{
-      "type":"Binary"
-    },
-    "strategy":{
-      "type":"Source",
-      "sourceStrategy":{
-        "from":{
-          "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
-        }
-      }
-    },
-    "output":{
-      "to":{
-        "kind":"ImageStreamTag",
-        "name":"test:latest"
-      }
-    }
-  }
-}
-`)
-
-func testExtendedTestdataTestEnvBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestEnvBuildJson, nil
-}
-
-func testExtendedTestdataTestEnvBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestEnvBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-env-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -9770,624 +10635,6 @@ func testExtendedTestdataTestGitserverYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataTestImageresolutionCustomBuildYaml = []byte(`apiVersion: v1
-kind: List
-metadata: {}
-items:
-- apiVersion: v1
-  kind: Build
-  metadata:
-    labels:
-      build: imagecustombuild
-    name: imagecustombuild
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: imagesourceapp:latest
-    source:
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-      images:
-      - from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-        paths:
-        - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
-    strategy:
-      customStrategy:
-        from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-`)
-
-func testExtendedTestdataTestImageresolutionCustomBuildYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestImageresolutionCustomBuildYaml, nil
-}
-
-func testExtendedTestdataTestImageresolutionCustomBuildYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestImageresolutionCustomBuildYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-imageresolution-custom-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestImageresolutionDockerBuildYaml = []byte(`apiVersion: v1
-kind: List
-metadata: {}
-items:
-- apiVersion: v1
-  kind: Build
-  metadata:
-    labels:
-      build: imagedockerbuild
-    name: imagedockerbuild
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: imagedockerapp:latest
-    source:
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-      images:
-      - from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-        paths:
-        - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
-    strategy:
-      dockerStrategy:
-        from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-`)
-
-func testExtendedTestdataTestImageresolutionDockerBuildYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestImageresolutionDockerBuildYaml, nil
-}
-
-func testExtendedTestdataTestImageresolutionDockerBuildYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestImageresolutionDockerBuildYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-imageresolution-docker-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestImageresolutionS2iBuildYaml = []byte(`apiVersion: v1
-kind: List
-metadata: {}
-items:
-- apiVersion: v1
-  kind: Build
-  metadata:
-    labels:
-      build: imagesourcebuild
-    name: imagesourcebuild
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: imagesourceapp:latest
-    source:
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-      images:
-      - from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-        paths:
-        - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
-    strategy:
-      sourceStrategy:
-        from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-`)
-
-func testExtendedTestdataTestImageresolutionS2iBuildYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestImageresolutionS2iBuildYaml, nil
-}
-
-func testExtendedTestdataTestImageresolutionS2iBuildYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestImageresolutionS2iBuildYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-imageresolution-s2i-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestImagesourceBuildconfigYaml = []byte(`apiVersion: v1
-kind: List
-metadata: {}
-items:
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    labels:
-      build: inputimage
-    name: inputimage
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: inputimage:latest
-    source:
-      dockerfile: "FROM foo"
-    strategy:
-      dockerStrategy:
-        from: 
-          kind: ImageStreamTag
-          name: ruby:2.3
-          namespace: openshift
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    labels:
-      build: imagesourcebuild
-    name: imagesourcebuildconfig
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: imagesourceapp:latest
-    source:
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-      images:
-      - from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-        paths:
-        - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
-    strategy:
-      sourceStrategy:
-        forcePull: true
-        from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    labels:
-      build: imagedockerbuild
-    name: imagedockerbuildconfig
-  spec:
-    output:
-      to:
-        kind: ImageStreamTag
-        name: imagedockerapp:latest
-    source:
-      git:
-        uri: https://github.com/openshift/ruby-hello-world.git
-      images:
-      - from:
-          kind: ImageStreamTag
-          name: inputimage:latest
-        paths:
-        - destinationDir: injected/dir
-          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
-    strategy:
-      dockerStrategy:
-        forcePull: true
-
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: inputimage
-  spec: {}
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: imagesourceapp
-  spec: {}
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: imagedockerapp
-  spec: {}
-
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    name: imagesourceapp
-  spec:
-    replicas: 1
-    selector:
-      app: imagesourceapp
-      deploymentconfig: imagesourceapp
-    strategy:
-      type: Rolling
-    template:
-      metadata:
-        labels:
-          app: imagesourceapp
-          deploymentconfig: imagesourceapp
-      spec:
-        containers:
-        - image:
-          imagePullPolicy: Always
-          readinessProbe:
-            httpGet:
-              port: 8080
-          name: imagesourceapp
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          - containerPort: 8888
-            protocol: TCP
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        securityContext: {}
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - imagesourceapp
-        from:
-          kind: ImageStreamTag
-          name: imagesourceapp:latest
-      type: ImageChange
-    - type: ConfigChange
-
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    name: imagedockerapp
-  spec:
-    replicas: 1
-    selector:
-      app: imagedockerapp
-      deploymentconfig: imagedockerapp
-    strategy:
-      type: Rolling
-    template:
-      metadata:
-        labels:
-          app: imagedockerapp
-          deploymentconfig: imagedockerapp
-      spec:
-        containers:
-        - image:
-          imagePullPolicy: Always
-          readinessProbe:
-            httpGet:
-              port: 8080
-          name: imagedockerapp
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          - containerPort: 8888
-            protocol: TCP
-          terminationMessagePath: /dev/termination-log
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        securityContext: {}
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - imagedockerapp
-        from:
-          kind: ImageStreamTag
-          name: imagedockerapp:latest
-      type: ImageChange
-    - type: ConfigChange
-`)
-
-func testExtendedTestdataTestImagesourceBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestImagesourceBuildconfigYaml, nil
-}
-
-func testExtendedTestdataTestImagesourceBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestImagesourceBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-imagesource-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestNosrcBuildJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "nosrc-stream",
-        "creationTimestamp": null
-      },
-      "spec": {},
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "nosrc-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-        ],
-        "source": {
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        }
-      }
-    }
-  ]
-}
-`)
-
-func testExtendedTestdataTestNosrcBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestNosrcBuildJson, nil
-}
-
-func testExtendedTestdataTestNosrcBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestNosrcBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-nosrc-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestS2iBuildQuotaJson = []byte(`{
-  "kind": "BuildConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "s2i-build-quota",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "s2i-build-quota"
-    }
-  },
-  "spec": {
-    "resources": {
-      "limits": {
-        "cpu": "60m",
-        "memory": "200Mi"
-      }
-    },
-    "source": {
-      "binary": {
-        "asFile": ""
-      }          
-    },
-    "strategy": {
-      "type": "Source",
-      "sourceStrategy": {
-        "from": {
-          "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
-        }
-      }
-    }
-  }
-}
-`)
-
-func testExtendedTestdataTestS2iBuildQuotaJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestS2iBuildQuotaJson, nil
-}
-
-func testExtendedTestdataTestS2iBuildQuotaJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestS2iBuildQuotaJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-s2i-build-quota.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestS2iBuildJson = []byte(`{
-  "kind": "BuildConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "test",
-    "labels": {
-      "name": "test"
-    }
-  },
-  "spec": {
-    "triggers": [],
-    "source": {
-      "type": "Git",
-      "git": {
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
-      },
-      "contextDir": "2.3/test/puma-test-app"
-    },
-    "strategy": {
-      "type": "Source",
-      "sourceStrategy": {
-        "env": [
-          {
-            "name": "BUILD_LOGLEVEL",
-            "value": "5"
-          }
-        ],
-        "from": {
-          "kind": "DockerImage",
-          "name": "centos/ruby-23-centos7"
-        }
-      }
-    },
-    "output": {
-      "to": {
-        "kind": "ImageStreamTag",
-        "name": "test:latest"
-      },
-      "imageLabels": [
-        {
-          "name": "user-specified-label",
-          "value": "arbitrary-value"
-        },
-        {
-          "name": "io.k8s.display-name",
-          "value": "overridden"
-        },
-        {
-          "name": "io.openshift.builder-version",
-          "value": "overridden2"
-        }
-      ]
-    }
-  }
-}
-`)
-
-func testExtendedTestdataTestS2iBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestS2iBuildJson, nil
-}
-
-func testExtendedTestdataTestS2iBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestS2iBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestS2iNoOutputnameJson = []byte(`{
-  "kind": "BuildConfig",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "test-sti",
-    "labels": {
-      "name": "test-sti"
-    }
-  },
-  "spec": {
-    "triggers": [],
-    "source": {
-      "type": "Git",
-      "git": {
-        "uri": "https://github.com/openshift/ruby-hello-world"
-      }
-    },
-    "strategy": {
-      "type": "Source",
-      "sourceStrategy": {
-        "env": [
-          {
-            "name": "BUILD_LOGLEVEL",
-            "value": "5"
-          }
-        ],
-        "from": {
-          "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
-        }
-      }
-    }
-  }
-}`)
-
-func testExtendedTestdataTestS2iNoOutputnameJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestS2iNoOutputnameJson, nil
-}
-
-func testExtendedTestdataTestS2iNoOutputnameJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestS2iNoOutputnameJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-s2i-no-outputname.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataTestSecretBuildJson = []byte(`{
-  "kind": "Build",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "testsecretbuilder",
-    "creationTimestamp": null,
-    "labels": {
-      "name": "testsecretbuilder"
-    }
-  },
-  "spec": {
-    "source": {
-      "type": "Git",
-      "git": {
-        "uri": "https://github.com/openshift/origin",
-        "ref": "build_secret_extended"
-      },
-      "contextDir": "test/extended/testdata/custom-secret-builder"
-    },
-    "strategy": {
-      "type": "Docker"
-    },
-    "output": {
-      "to": {
-        "kind": "ImageStreamTag",
-        "name": "test:latest"
-      }
-    },
-    "resources": {}
-  },
-  "status": {
-    "phase": ""
-  }
-}`)
-
-func testExtendedTestdataTestSecretBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestSecretBuildJson, nil
-}
-
-func testExtendedTestdataTestSecretBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestSecretBuildJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/test-secret-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataTestSecretJson = []byte(`{
   "kind": "Secret",
   "apiVersion": "v1",
@@ -10412,356 +10659,6 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/test-secret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml = []byte(`
-apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: mydockertest
-  labels:
-    name: test
-spec:
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: '7.0'
-  strategy:
-    type: Docker
-    dockerStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-        - name: FIELDREF_ENV
-          valueFrom:
-            fieldRef:
-                fieldPath: metadata.nofield
-        - name: CONFIGMAPKEYREF_ENV
-          valueFrom:
-            configMapKeyRef:
-              name: myconfigmap
-              key: nokey
-        - name: SECRETKEYREF_ENV
-          valueFrom:
-            secretKeyRef:
-              name: mysecret
-              key: nousername
-
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'test:latest'
-    imageLabels:
-      - name: user-specified-label
-        value: arbitrary-value
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
-  lastVersion: 0
-`)
-
-func testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml, nil
-}
-
-func testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/failed-docker-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: mys2itest
-  labels:
-    name: test
-spec:
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: 7.0/test/test-app
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/php-70-centos7
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-        - name: FIELDREF_ENV
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.nofield
-        - name: CONFIGMAPKEYREF_ENV
-          valueFrom:
-            configMapKeyRef:
-              name: myconfigmap
-              key: nokey
-        - name: SECRETKEYREF_ENV
-          valueFrom:
-            secretKeyRef:
-              name: mysecret
-              key: nousername
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'test:latest'
-    imageLabels:
-      - name: user-specified-label
-        value: arbitrary-value
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
-  lastVersion: 0
-`)
-
-func testExtendedTestdataValuefromFailedStiBuildValueFromConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml, nil
-}
-
-func testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataValuefromFailedStiBuildValueFromConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/failed-sti-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml = []byte(`
-apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: mydockertest
-  labels:
-    name: test
-spec:
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: '7.0'
-  strategy:
-    type: Docker
-    dockerStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-        - name: FIELDREF_ENV
-          valueFrom:
-            fieldRef:
-                fieldPath: metadata.name
-        - name: CONFIGMAPKEYREF_ENV
-          valueFrom:
-            configMapKeyRef:
-              name: myconfigmap
-              key: mykey
-        - name: SECRETKEYREF_ENV
-          valueFrom:
-            secretKeyRef:
-              name: mysecret
-              key: username
-        - name: FIELDREF_CLONE_ENV
-          value: $(FIELDREF_ENV)
-        - name: FIELDREF_CLONE_CLONE_ENV
-          value: $(FIELDREF_CLONE_ENV)
-        - name: UNAVAILABLE_ENV
-          value: $(SOME_OTHER_ENV)
-        - name: ESCAPED_ENV
-          value: $$(MY_ESCAPED_VALUE)
-
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'test:latest'
-    imageLabels:
-      - name: user-specified-label
-        value: arbitrary-value
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
-  lastVersion: 0
-`)
-
-func testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml, nil
-}
-
-func testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/successful-docker-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  name: mys2itest
-  labels:
-    name: test
-spec:
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Git
-    git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: 7.0/test/test-app
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/php-70-centos7
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-        - name: FIELDREF_ENV
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: CONFIGMAPKEYREF_ENV
-          valueFrom:
-            configMapKeyRef:
-              name: myconfigmap
-              key: mykey
-        - name: SECRETKEYREF_ENV
-          valueFrom:
-            secretKeyRef:
-              name: mysecret
-              key: username
-        - name: FIELDREF_CLONE_ENV 
-          value: $(FIELDREF_ENV)
-        - name: FIELDREF_CLONE_CLONE_ENV
-          value: $(FIELDREF_CLONE_ENV)
-        - name: UNAVAILABLE_ENV
-          value: $(SOME_OTHER_ENV)
-        - name: ESCAPED_ENV
-          value: $$(MY_ESCAPED_VALUE)
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'test:latest'
-    imageLabels:
-      - name: user-specified-label
-        value: arbitrary-value
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
-  lastVersion: 0
-`)
-
-func testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml, nil
-}
-
-func testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/successful-sti-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataValuefromTestConfigmapYaml = []byte(`apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: myconfigmap
-data:
-  mykey: myvalue
-`)
-
-func testExtendedTestdataValuefromTestConfigmapYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataValuefromTestConfigmapYaml, nil
-}
-
-func testExtendedTestdataValuefromTestConfigmapYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataValuefromTestConfigmapYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/test-configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataValuefromTestIsJson = []byte(`{
-  "kind": "ImageStream",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "test"
-  }
-}
-`)
-
-func testExtendedTestdataValuefromTestIsJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataValuefromTestIsJson, nil
-}
-
-func testExtendedTestdataValuefromTestIsJson() (*asset, error) {
-	bytes, err := testExtendedTestdataValuefromTestIsJsonBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataValuefromTestSecretYaml = []byte(`apiVersion: v1
-kind: Secret
-metadata:
-  name: mysecret
-data:
-  password: cGFzc3dvcmQ=
-  username: ZGV2ZWxvcGVy
-type: kubernetes.io/basic-auth
-`)
-
-func testExtendedTestdataValuefromTestSecretYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataValuefromTestSecretYaml, nil
-}
-
-func testExtendedTestdataValuefromTestSecretYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataValuefromTestSecretYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/test-secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28352,32 +28249,80 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml": testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml": testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml": testExtendedTestdataAggregatorSampleApiserverServiceYaml,
-	"test/extended/testdata/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml,
-	"test/extended/testdata/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml,
-	"test/extended/testdata/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildPruningErroredBuildConfigYaml,
-	"test/extended/testdata/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildPruningFailedBuildConfigYaml,
-	"test/extended/testdata/build-pruning/imagestream.yaml": testExtendedTestdataBuildPruningImagestreamYaml,
-	"test/extended/testdata/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml,
-	"test/extended/testdata/build-quota/.s2i/bin/assemble": testExtendedTestdataBuildQuotaS2iBinAssemble,
-	"test/extended/testdata/build-quota/Dockerfile": testExtendedTestdataBuildQuotaDockerfile,
-	"test/extended/testdata/build-secrets/Dockerfile": testExtendedTestdataBuildSecretsDockerfile,
-	"test/extended/testdata/build-secrets/s2i-binary-dir/.s2i/bin/assemble": testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinAssemble,
-	"test/extended/testdata/build-secrets/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinRun,
-	"test/extended/testdata/build-secrets/s2i-binary-dir/Gemfile": testExtendedTestdataBuildSecretsS2iBinaryDirGemfile,
-	"test/extended/testdata/build-secrets/s2i-binary-dir/config.ru": testExtendedTestdataBuildSecretsS2iBinaryDirConfigRu,
-	"test/extended/testdata/build-secrets/test-docker-build.json": testExtendedTestdataBuildSecretsTestDockerBuildJson,
-	"test/extended/testdata/build-secrets/test-is.json": testExtendedTestdataBuildSecretsTestIsJson,
-	"test/extended/testdata/build-secrets/test-s2i-build.json": testExtendedTestdataBuildSecretsTestS2iBuildJson,
-	"test/extended/testdata/build-secrets/test-secret-2.json": testExtendedTestdataBuildSecretsTestSecret2Json,
-	"test/extended/testdata/build-secrets/test-secret.json": testExtendedTestdataBuildSecretsTestSecretJson,
-	"test/extended/testdata/build-timing/Dockerfile": testExtendedTestdataBuildTimingDockerfile,
-	"test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/assemble": testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble,
-	"test/extended/testdata/build-timing/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun,
-	"test/extended/testdata/build-timing/s2i-binary-dir/Gemfile": testExtendedTestdataBuildTimingS2iBinaryDirGemfile,
-	"test/extended/testdata/build-timing/s2i-binary-dir/config.ru": testExtendedTestdataBuildTimingS2iBinaryDirConfigRu,
-	"test/extended/testdata/build-timing/test-docker-build.json": testExtendedTestdataBuildTimingTestDockerBuildJson,
-	"test/extended/testdata/build-timing/test-is.json": testExtendedTestdataBuildTimingTestIsJson,
-	"test/extended/testdata/build-timing/test-s2i-build.json": testExtendedTestdataBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml,
+	"test/extended/testdata/builds/build-pruning/imagestream.yaml": testExtendedTestdataBuildsBuildPruningImagestreamYaml,
+	"test/extended/testdata/builds/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml,
+	"test/extended/testdata/builds/build-quota/.s2i/bin/assemble": testExtendedTestdataBuildsBuildQuotaS2iBinAssemble,
+	"test/extended/testdata/builds/build-quota/Dockerfile": testExtendedTestdataBuildsBuildQuotaDockerfile,
+	"test/extended/testdata/builds/build-secrets/Dockerfile": testExtendedTestdataBuildsBuildSecretsDockerfile,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/assemble": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/Gemfile": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile,
+	"test/extended/testdata/builds/build-secrets/s2i-binary-dir/config.ru": testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu,
+	"test/extended/testdata/builds/build-secrets/test-docker-build.json": testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson,
+	"test/extended/testdata/builds/build-secrets/test-is.json": testExtendedTestdataBuildsBuildSecretsTestIsJson,
+	"test/extended/testdata/builds/build-secrets/test-s2i-build.json": testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson,
+	"test/extended/testdata/builds/build-secrets/test-secret-2.json": testExtendedTestdataBuildsBuildSecretsTestSecret2Json,
+	"test/extended/testdata/builds/build-secrets/test-secret.json": testExtendedTestdataBuildsBuildSecretsTestSecretJson,
+	"test/extended/testdata/builds/build-timing/Dockerfile": testExtendedTestdataBuildsBuildTimingDockerfile,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/assemble": testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/.s2i/bin/run": testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/Gemfile": testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile,
+	"test/extended/testdata/builds/build-timing/s2i-binary-dir/config.ru": testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu,
+	"test/extended/testdata/builds/build-timing/test-docker-build.json": testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
+	"test/extended/testdata/builds/build-timing/test-is.json": testExtendedTestdataBuildsBuildTimingTestIsJson,
+	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
+	"test/extended/testdata/builds/s2i-build-root.yaml": testExtendedTestdataBuildsS2iBuildRootYaml,
+	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
+	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml": testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
+	"test/extended/testdata/builds/statusfail-failedassemble.yaml": testExtendedTestdataBuildsStatusfailFailedassembleYaml,
+	"test/extended/testdata/builds/statusfail-fetchbuilderimage.yaml": testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml,
+	"test/extended/testdata/builds/statusfail-fetchsourcedocker.yaml": testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml,
+	"test/extended/testdata/builds/statusfail-fetchsources2i.yaml": testExtendedTestdataBuildsStatusfailFetchsources2iYaml,
+	"test/extended/testdata/builds/statusfail-genericreason.yaml": testExtendedTestdataBuildsStatusfailGenericreasonYaml,
+	"test/extended/testdata/builds/statusfail-postcommithook.yaml": testExtendedTestdataBuildsStatusfailPostcommithookYaml,
+	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml": testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
+	"test/extended/testdata/builds/sti-environment-build-app/.sti/environment": testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment,
+	"test/extended/testdata/builds/sti-environment-build-app/Gemfile": testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile,
+	"test/extended/testdata/builds/sti-environment-build-app/config.ru": testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu,
+	"test/extended/testdata/builds/test-auth-build.yaml": testExtendedTestdataBuildsTestAuthBuildYaml,
+	"test/extended/testdata/builds/test-bc-with-pr-ref.yaml": testExtendedTestdataBuildsTestBcWithPrRefYaml,
+	"test/extended/testdata/builds/test-build-app/Dockerfile": testExtendedTestdataBuildsTestBuildAppDockerfile,
+	"test/extended/testdata/builds/test-build-app/Gemfile": testExtendedTestdataBuildsTestBuildAppGemfile,
+	"test/extended/testdata/builds/test-build-app/config.ru": testExtendedTestdataBuildsTestBuildAppConfigRu,
+	"test/extended/testdata/builds/test-build-podsvc.json": testExtendedTestdataBuildsTestBuildPodsvcJson,
+	"test/extended/testdata/builds/test-build-postcommit.json": testExtendedTestdataBuildsTestBuildPostcommitJson,
+	"test/extended/testdata/builds/test-build-proxy.yaml": testExtendedTestdataBuildsTestBuildProxyYaml,
+	"test/extended/testdata/builds/test-build-revision.json": testExtendedTestdataBuildsTestBuildRevisionJson,
+	"test/extended/testdata/builds/test-build.json": testExtendedTestdataBuildsTestBuildJson,
+	"test/extended/testdata/builds/test-buildconfigsecretinjector.yaml": testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml,
+	"test/extended/testdata/builds/test-cds-dockerbuild.json": testExtendedTestdataBuildsTestCdsDockerbuildJson,
+	"test/extended/testdata/builds/test-cds-sourcebuild.json": testExtendedTestdataBuildsTestCdsSourcebuildJson,
+	"test/extended/testdata/builds/test-context-build.json": testExtendedTestdataBuildsTestContextBuildJson,
+	"test/extended/testdata/builds/test-docker-build-pullsecret.json": testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
+	"test/extended/testdata/builds/test-docker-build-quota.json": testExtendedTestdataBuildsTestDockerBuildQuotaJson,
+	"test/extended/testdata/builds/test-docker-build.json": testExtendedTestdataBuildsTestDockerBuildJson,
+	"test/extended/testdata/builds/test-docker-no-outputname.json": testExtendedTestdataBuildsTestDockerNoOutputnameJson,
+	"test/extended/testdata/builds/test-env-build.json": testExtendedTestdataBuildsTestEnvBuildJson,
+	"test/extended/testdata/builds/test-imageresolution-custom-build.yaml": testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml,
+	"test/extended/testdata/builds/test-imageresolution-docker-build.yaml": testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml,
+	"test/extended/testdata/builds/test-imageresolution-s2i-build.yaml": testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml,
+	"test/extended/testdata/builds/test-imagesource-buildconfig.yaml": testExtendedTestdataBuildsTestImagesourceBuildconfigYaml,
+	"test/extended/testdata/builds/test-nosrc-build.json": testExtendedTestdataBuildsTestNosrcBuildJson,
+	"test/extended/testdata/builds/test-s2i-build-quota.json": testExtendedTestdataBuildsTestS2iBuildQuotaJson,
+	"test/extended/testdata/builds/test-s2i-build.json": testExtendedTestdataBuildsTestS2iBuildJson,
+	"test/extended/testdata/builds/test-s2i-no-outputname.json": testExtendedTestdataBuildsTestS2iNoOutputnameJson,
+	"test/extended/testdata/builds/valuefrom/failed-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/failed-sti-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/successful-docker-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/successful-sti-build-value-from-config.yaml": testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml,
+	"test/extended/testdata/builds/valuefrom/test-configmap.yaml": testExtendedTestdataBuildsValuefromTestConfigmapYaml,
+	"test/extended/testdata/builds/valuefrom/test-is.json": testExtendedTestdataBuildsValuefromTestIsJson,
+	"test/extended/testdata/builds/valuefrom/test-secret.yaml": testExtendedTestdataBuildsValuefromTestSecretYaml,
 	"test/extended/testdata/cluster/master-vert.yaml": testExtendedTestdataClusterMasterVertYaml,
 	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
@@ -28433,7 +28378,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
 	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
 	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
-	"test/extended/testdata/incremental-auth-build.json": testExtendedTestdataIncrementalAuthBuildJson,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
 	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
 	"test/extended/testdata/jenkins-plugin/build-job.xml": testExtendedTestdataJenkinsPluginBuildJobXml,
@@ -28466,7 +28410,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
-	"test/extended/testdata/s2i-build-root.yaml": testExtendedTestdataS2iBuildRootYaml,
 	"test/extended/testdata/s2i-dropcaps/root-access-build.yaml": testExtendedTestdataS2iDropcapsRootAccessBuildYaml,
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile": testExtendedTestdataS2iDropcapsRootableRubyDockerfile,
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser": testExtendedTestdataS2iDropcapsRootableRubyAdduser,
@@ -28476,61 +28419,13 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/scoped-router.yaml": testExtendedTestdataScopedRouterYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
-	"test/extended/testdata/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataStatusfailAssembleS2iBinAssemble,
-	"test/extended/testdata/statusfail-badcontextdirs2i.yaml": testExtendedTestdataStatusfailBadcontextdirs2iYaml,
-	"test/extended/testdata/statusfail-failedassemble.yaml": testExtendedTestdataStatusfailFailedassembleYaml,
-	"test/extended/testdata/statusfail-fetchbuilderimage.yaml": testExtendedTestdataStatusfailFetchbuilderimageYaml,
-	"test/extended/testdata/statusfail-fetchsourcedocker.yaml": testExtendedTestdataStatusfailFetchsourcedockerYaml,
-	"test/extended/testdata/statusfail-fetchsources2i.yaml": testExtendedTestdataStatusfailFetchsources2iYaml,
-	"test/extended/testdata/statusfail-genericreason.yaml": testExtendedTestdataStatusfailGenericreasonYaml,
-	"test/extended/testdata/statusfail-postcommithook.yaml": testExtendedTestdataStatusfailPostcommithookYaml,
-	"test/extended/testdata/statusfail-pushtoregistry.yaml": testExtendedTestdataStatusfailPushtoregistryYaml,
-	"test/extended/testdata/sti-environment-build-app/.sti/environment": testExtendedTestdataStiEnvironmentBuildAppStiEnvironment,
-	"test/extended/testdata/sti-environment-build-app/Gemfile": testExtendedTestdataStiEnvironmentBuildAppGemfile,
-	"test/extended/testdata/sti-environment-build-app/config.ru": testExtendedTestdataStiEnvironmentBuildAppConfigRu,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
 	"test/extended/testdata/templates/templateservicebroker_bind.yaml": testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
-	"test/extended/testdata/test-auth-build.yaml": testExtendedTestdataTestAuthBuildYaml,
-	"test/extended/testdata/test-bc-with-pr-ref.yaml": testExtendedTestdataTestBcWithPrRefYaml,
-	"test/extended/testdata/test-build-app/Dockerfile": testExtendedTestdataTestBuildAppDockerfile,
-	"test/extended/testdata/test-build-app/Gemfile": testExtendedTestdataTestBuildAppGemfile,
-	"test/extended/testdata/test-build-app/config.ru": testExtendedTestdataTestBuildAppConfigRu,
-	"test/extended/testdata/test-build-podsvc.json": testExtendedTestdataTestBuildPodsvcJson,
-	"test/extended/testdata/test-build-postcommit.json": testExtendedTestdataTestBuildPostcommitJson,
-	"test/extended/testdata/test-build-proxy.yaml": testExtendedTestdataTestBuildProxyYaml,
-	"test/extended/testdata/test-build-revision.json": testExtendedTestdataTestBuildRevisionJson,
-	"test/extended/testdata/test-build.json": testExtendedTestdataTestBuildJson,
-	"test/extended/testdata/test-buildconfigsecretinjector.yaml": testExtendedTestdataTestBuildconfigsecretinjectorYaml,
-	"test/extended/testdata/test-cds-dockerbuild.json": testExtendedTestdataTestCdsDockerbuildJson,
-	"test/extended/testdata/test-cds-sourcebuild.json": testExtendedTestdataTestCdsSourcebuildJson,
 	"test/extended/testdata/test-cli-debug.yaml": testExtendedTestdataTestCliDebugYaml,
-	"test/extended/testdata/test-context-build.json": testExtendedTestdataTestContextBuildJson,
-	"test/extended/testdata/test-custom-build.json": testExtendedTestdataTestCustomBuildJson,
-	"test/extended/testdata/test-docker-build-pullsecret.json": testExtendedTestdataTestDockerBuildPullsecretJson,
-	"test/extended/testdata/test-docker-build-quota.json": testExtendedTestdataTestDockerBuildQuotaJson,
-	"test/extended/testdata/test-docker-build.json": testExtendedTestdataTestDockerBuildJson,
-	"test/extended/testdata/test-docker-no-outputname.json": testExtendedTestdataTestDockerNoOutputnameJson,
-	"test/extended/testdata/test-env-build.json": testExtendedTestdataTestEnvBuildJson,
 	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
 	"test/extended/testdata/test-gitserver-tokenauth.yaml": testExtendedTestdataTestGitserverTokenauthYaml,
 	"test/extended/testdata/test-gitserver.yaml": testExtendedTestdataTestGitserverYaml,
-	"test/extended/testdata/test-imageresolution-custom-build.yaml": testExtendedTestdataTestImageresolutionCustomBuildYaml,
-	"test/extended/testdata/test-imageresolution-docker-build.yaml": testExtendedTestdataTestImageresolutionDockerBuildYaml,
-	"test/extended/testdata/test-imageresolution-s2i-build.yaml": testExtendedTestdataTestImageresolutionS2iBuildYaml,
-	"test/extended/testdata/test-imagesource-buildconfig.yaml": testExtendedTestdataTestImagesourceBuildconfigYaml,
-	"test/extended/testdata/test-nosrc-build.json": testExtendedTestdataTestNosrcBuildJson,
-	"test/extended/testdata/test-s2i-build-quota.json": testExtendedTestdataTestS2iBuildQuotaJson,
-	"test/extended/testdata/test-s2i-build.json": testExtendedTestdataTestS2iBuildJson,
-	"test/extended/testdata/test-s2i-no-outputname.json": testExtendedTestdataTestS2iNoOutputnameJson,
-	"test/extended/testdata/test-secret-build.json": testExtendedTestdataTestSecretBuildJson,
 	"test/extended/testdata/test-secret.json": testExtendedTestdataTestSecretJson,
-	"test/extended/testdata/valuefrom/failed-docker-build-value-from-config.yaml": testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml,
-	"test/extended/testdata/valuefrom/failed-sti-build-value-from-config.yaml": testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml,
-	"test/extended/testdata/valuefrom/successful-docker-build-value-from-config.yaml": testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml,
-	"test/extended/testdata/valuefrom/successful-sti-build-value-from-config.yaml": testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml,
-	"test/extended/testdata/valuefrom/test-configmap.yaml": testExtendedTestdataValuefromTestConfigmapYaml,
-	"test/extended/testdata/valuefrom/test-is.json": testExtendedTestdataValuefromTestIsJson,
-	"test/extended/testdata/valuefrom/test-secret.yaml": testExtendedTestdataValuefromTestSecretYaml,
 	"test/extended/testdata/weighted-router.yaml": testExtendedTestdataWeightedRouterYaml,
 	"test/integration/testdata/project-request-template-with-quota.yaml": testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
 	"test/integration/testdata/test-buildcli-beta2.json": testIntegrationTestdataTestBuildcliBeta2Json,
@@ -28719,55 +28614,119 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-sa.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverSaYaml, map[string]*bintree{}},
 					"sample-apiserver-service.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
 				}},
-				"build-pruning": &bintree{nil, map[string]*bintree{
-					"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
-					"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
-					"errored-build-config.yaml": &bintree{testExtendedTestdataBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
-					"failed-build-config.yaml": &bintree{testExtendedTestdataBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
-					"imagestream.yaml": &bintree{testExtendedTestdataBuildPruningImagestreamYaml, map[string]*bintree{}},
-					"successful-build-config.yaml": &bintree{testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
-				}},
-				"build-quota": &bintree{nil, map[string]*bintree{
-					".s2i": &bintree{nil, map[string]*bintree{
-						"bin": &bintree{nil, map[string]*bintree{
-							"assemble": &bintree{testExtendedTestdataBuildQuotaS2iBinAssemble, map[string]*bintree{}},
-						}},
+				"builds": &bintree{nil, map[string]*bintree{
+					"build-pruning": &bintree{nil, map[string]*bintree{
+						"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
+						"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
+						"errored-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
+						"failed-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
+						"imagestream.yaml": &bintree{testExtendedTestdataBuildsBuildPruningImagestreamYaml, map[string]*bintree{}},
+						"successful-build-config.yaml": &bintree{testExtendedTestdataBuildsBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
 					}},
-					"Dockerfile": &bintree{testExtendedTestdataBuildQuotaDockerfile, map[string]*bintree{}},
-				}},
-				"build-secrets": &bintree{nil, map[string]*bintree{
-					"Dockerfile": &bintree{testExtendedTestdataBuildSecretsDockerfile, map[string]*bintree{}},
-					"s2i-binary-dir": &bintree{nil, map[string]*bintree{
+					"build-quota": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
 							"bin": &bintree{nil, map[string]*bintree{
-								"assemble": &bintree{testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
-								"run": &bintree{testExtendedTestdataBuildSecretsS2iBinaryDirS2iBinRun, map[string]*bintree{}},
+								"assemble": &bintree{testExtendedTestdataBuildsBuildQuotaS2iBinAssemble, map[string]*bintree{}},
 							}},
 						}},
-						"Gemfile": &bintree{testExtendedTestdataBuildSecretsS2iBinaryDirGemfile, map[string]*bintree{}},
-						"config.ru": &bintree{testExtendedTestdataBuildSecretsS2iBinaryDirConfigRu, map[string]*bintree{}},
+						"Dockerfile": &bintree{testExtendedTestdataBuildsBuildQuotaDockerfile, map[string]*bintree{}},
 					}},
-					"test-docker-build.json": &bintree{testExtendedTestdataBuildSecretsTestDockerBuildJson, map[string]*bintree{}},
-					"test-is.json": &bintree{testExtendedTestdataBuildSecretsTestIsJson, map[string]*bintree{}},
-					"test-s2i-build.json": &bintree{testExtendedTestdataBuildSecretsTestS2iBuildJson, map[string]*bintree{}},
-					"test-secret-2.json": &bintree{testExtendedTestdataBuildSecretsTestSecret2Json, map[string]*bintree{}},
-					"test-secret.json": &bintree{testExtendedTestdataBuildSecretsTestSecretJson, map[string]*bintree{}},
-				}},
-				"build-timing": &bintree{nil, map[string]*bintree{
-					"Dockerfile": &bintree{testExtendedTestdataBuildTimingDockerfile, map[string]*bintree{}},
-					"s2i-binary-dir": &bintree{nil, map[string]*bintree{
+					"build-secrets": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsBuildSecretsDockerfile, map[string]*bintree{}},
+						"s2i-binary-dir": &bintree{nil, map[string]*bintree{
+							".s2i": &bintree{nil, map[string]*bintree{
+								"bin": &bintree{nil, map[string]*bintree{
+									"assemble": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
+									"run": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirS2iBinRun, map[string]*bintree{}},
+								}},
+							}},
+							"Gemfile": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirGemfile, map[string]*bintree{}},
+							"config.ru": &bintree{testExtendedTestdataBuildsBuildSecretsS2iBinaryDirConfigRu, map[string]*bintree{}},
+						}},
+						"test-docker-build.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson, map[string]*bintree{}},
+						"test-is.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestIsJson, map[string]*bintree{}},
+						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson, map[string]*bintree{}},
+						"test-secret-2.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestSecret2Json, map[string]*bintree{}},
+						"test-secret.json": &bintree{testExtendedTestdataBuildsBuildSecretsTestSecretJson, map[string]*bintree{}},
+					}},
+					"build-timing": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsBuildTimingDockerfile, map[string]*bintree{}},
+						"s2i-binary-dir": &bintree{nil, map[string]*bintree{
+							".s2i": &bintree{nil, map[string]*bintree{
+								"bin": &bintree{nil, map[string]*bintree{
+									"assemble": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
+									"run": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun, map[string]*bintree{}},
+								}},
+							}},
+							"Gemfile": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirGemfile, map[string]*bintree{}},
+							"config.ru": &bintree{testExtendedTestdataBuildsBuildTimingS2iBinaryDirConfigRu, map[string]*bintree{}},
+						}},
+						"test-docker-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestDockerBuildJson, map[string]*bintree{}},
+						"test-is.json": &bintree{testExtendedTestdataBuildsBuildTimingTestIsJson, map[string]*bintree{}},
+						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
+					}},
+					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
+					"s2i-build-root.yaml": &bintree{testExtendedTestdataBuildsS2iBuildRootYaml, map[string]*bintree{}},
+					"statusfail-assemble": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
 							"bin": &bintree{nil, map[string]*bintree{
-								"assemble": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirS2iBinAssemble, map[string]*bintree{}},
-								"run": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirS2iBinRun, map[string]*bintree{}},
+								"assemble": &bintree{testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble, map[string]*bintree{}},
 							}},
 						}},
-						"Gemfile": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirGemfile, map[string]*bintree{}},
-						"config.ru": &bintree{testExtendedTestdataBuildTimingS2iBinaryDirConfigRu, map[string]*bintree{}},
 					}},
-					"test-docker-build.json": &bintree{testExtendedTestdataBuildTimingTestDockerBuildJson, map[string]*bintree{}},
-					"test-is.json": &bintree{testExtendedTestdataBuildTimingTestIsJson, map[string]*bintree{}},
-					"test-s2i-build.json": &bintree{testExtendedTestdataBuildTimingTestS2iBuildJson, map[string]*bintree{}},
+					"statusfail-badcontextdirs2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml, map[string]*bintree{}},
+					"statusfail-failedassemble.yaml": &bintree{testExtendedTestdataBuildsStatusfailFailedassembleYaml, map[string]*bintree{}},
+					"statusfail-fetchbuilderimage.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
+					"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
+					"statusfail-fetchsources2i.yaml": &bintree{testExtendedTestdataBuildsStatusfailFetchsources2iYaml, map[string]*bintree{}},
+					"statusfail-genericreason.yaml": &bintree{testExtendedTestdataBuildsStatusfailGenericreasonYaml, map[string]*bintree{}},
+					"statusfail-postcommithook.yaml": &bintree{testExtendedTestdataBuildsStatusfailPostcommithookYaml, map[string]*bintree{}},
+					"statusfail-pushtoregistry.yaml": &bintree{testExtendedTestdataBuildsStatusfailPushtoregistryYaml, map[string]*bintree{}},
+					"sti-environment-build-app": &bintree{nil, map[string]*bintree{
+						".sti": &bintree{nil, map[string]*bintree{
+							"environment": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppStiEnvironment, map[string]*bintree{}},
+						}},
+						"Gemfile": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppGemfile, map[string]*bintree{}},
+						"config.ru": &bintree{testExtendedTestdataBuildsStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
+					}},
+					"test-auth-build.yaml": &bintree{testExtendedTestdataBuildsTestAuthBuildYaml, map[string]*bintree{}},
+					"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataBuildsTestBcWithPrRefYaml, map[string]*bintree{}},
+					"test-build-app": &bintree{nil, map[string]*bintree{
+						"Dockerfile": &bintree{testExtendedTestdataBuildsTestBuildAppDockerfile, map[string]*bintree{}},
+						"Gemfile": &bintree{testExtendedTestdataBuildsTestBuildAppGemfile, map[string]*bintree{}},
+						"config.ru": &bintree{testExtendedTestdataBuildsTestBuildAppConfigRu, map[string]*bintree{}},
+					}},
+					"test-build-podsvc.json": &bintree{testExtendedTestdataBuildsTestBuildPodsvcJson, map[string]*bintree{}},
+					"test-build-postcommit.json": &bintree{testExtendedTestdataBuildsTestBuildPostcommitJson, map[string]*bintree{}},
+					"test-build-proxy.yaml": &bintree{testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},
+					"test-build-revision.json": &bintree{testExtendedTestdataBuildsTestBuildRevisionJson, map[string]*bintree{}},
+					"test-build.json": &bintree{testExtendedTestdataBuildsTestBuildJson, map[string]*bintree{}},
+					"test-buildconfigsecretinjector.yaml": &bintree{testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml, map[string]*bintree{}},
+					"test-cds-dockerbuild.json": &bintree{testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
+					"test-cds-sourcebuild.json": &bintree{testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},
+					"test-context-build.json": &bintree{testExtendedTestdataBuildsTestContextBuildJson, map[string]*bintree{}},
+					"test-docker-build-pullsecret.json": &bintree{testExtendedTestdataBuildsTestDockerBuildPullsecretJson, map[string]*bintree{}},
+					"test-docker-build-quota.json": &bintree{testExtendedTestdataBuildsTestDockerBuildQuotaJson, map[string]*bintree{}},
+					"test-docker-build.json": &bintree{testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
+					"test-docker-no-outputname.json": &bintree{testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},
+					"test-env-build.json": &bintree{testExtendedTestdataBuildsTestEnvBuildJson, map[string]*bintree{}},
+					"test-imageresolution-custom-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml, map[string]*bintree{}},
+					"test-imageresolution-docker-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml, map[string]*bintree{}},
+					"test-imageresolution-s2i-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml, map[string]*bintree{}},
+					"test-imagesource-buildconfig.yaml": &bintree{testExtendedTestdataBuildsTestImagesourceBuildconfigYaml, map[string]*bintree{}},
+					"test-nosrc-build.json": &bintree{testExtendedTestdataBuildsTestNosrcBuildJson, map[string]*bintree{}},
+					"test-s2i-build-quota.json": &bintree{testExtendedTestdataBuildsTestS2iBuildQuotaJson, map[string]*bintree{}},
+					"test-s2i-build.json": &bintree{testExtendedTestdataBuildsTestS2iBuildJson, map[string]*bintree{}},
+					"test-s2i-no-outputname.json": &bintree{testExtendedTestdataBuildsTestS2iNoOutputnameJson, map[string]*bintree{}},
+					"valuefrom": &bintree{nil, map[string]*bintree{
+						"failed-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedDockerBuildValueFromConfigYaml, map[string]*bintree{}},
+						"failed-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromFailedStiBuildValueFromConfigYaml, map[string]*bintree{}},
+						"successful-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromSuccessfulDockerBuildValueFromConfigYaml, map[string]*bintree{}},
+						"successful-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataBuildsValuefromSuccessfulStiBuildValueFromConfigYaml, map[string]*bintree{}},
+						"test-configmap.yaml": &bintree{testExtendedTestdataBuildsValuefromTestConfigmapYaml, map[string]*bintree{}},
+						"test-is.json": &bintree{testExtendedTestdataBuildsValuefromTestIsJson, map[string]*bintree{}},
+						"test-secret.yaml": &bintree{testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
+					}},
 				}},
 				"cluster": &bintree{nil, map[string]*bintree{
 					"master-vert.yaml": &bintree{testExtendedTestdataClusterMasterVertYaml, map[string]*bintree{}},
@@ -28860,7 +28819,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
-				"incremental-auth-build.json": &bintree{testExtendedTestdataIncrementalAuthBuildJson, map[string]*bintree{}},
 				"jenkins-plugin": &bintree{nil, map[string]*bintree{
 					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
 					"build-job-slave.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobSlaveXml, map[string]*bintree{}},
@@ -28905,7 +28863,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
 					"serial-latest-only-bc.yaml": &bintree{testExtendedTestdataRun_policySerialLatestOnlyBcYaml, map[string]*bintree{}},
 				}},
-				"s2i-build-root.yaml": &bintree{testExtendedTestdataS2iBuildRootYaml, map[string]*bintree{}},
 				"s2i-dropcaps": &bintree{nil, map[string]*bintree{
 					"root-access-build.yaml": &bintree{testExtendedTestdataS2iDropcapsRootAccessBuildYaml, map[string]*bintree{}},
 					"rootable-ruby": &bintree{nil, map[string]*bintree{
@@ -28921,77 +28878,15 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"nginx-serving-cert.conf": &bintree{testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
 				}},
 				"signer-buildconfig.yaml": &bintree{testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
-				"statusfail-assemble": &bintree{nil, map[string]*bintree{
-					".s2i": &bintree{nil, map[string]*bintree{
-						"bin": &bintree{nil, map[string]*bintree{
-							"assemble": &bintree{testExtendedTestdataStatusfailAssembleS2iBinAssemble, map[string]*bintree{}},
-						}},
-					}},
-				}},
-				"statusfail-badcontextdirs2i.yaml": &bintree{testExtendedTestdataStatusfailBadcontextdirs2iYaml, map[string]*bintree{}},
-				"statusfail-failedassemble.yaml": &bintree{testExtendedTestdataStatusfailFailedassembleYaml, map[string]*bintree{}},
-				"statusfail-fetchbuilderimage.yaml": &bintree{testExtendedTestdataStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
-				"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
-				"statusfail-fetchsources2i.yaml": &bintree{testExtendedTestdataStatusfailFetchsources2iYaml, map[string]*bintree{}},
-				"statusfail-genericreason.yaml": &bintree{testExtendedTestdataStatusfailGenericreasonYaml, map[string]*bintree{}},
-				"statusfail-postcommithook.yaml": &bintree{testExtendedTestdataStatusfailPostcommithookYaml, map[string]*bintree{}},
-				"statusfail-pushtoregistry.yaml": &bintree{testExtendedTestdataStatusfailPushtoregistryYaml, map[string]*bintree{}},
-				"sti-environment-build-app": &bintree{nil, map[string]*bintree{
-					".sti": &bintree{nil, map[string]*bintree{
-						"environment": &bintree{testExtendedTestdataStiEnvironmentBuildAppStiEnvironment, map[string]*bintree{}},
-					}},
-					"Gemfile": &bintree{testExtendedTestdataStiEnvironmentBuildAppGemfile, map[string]*bintree{}},
-					"config.ru": &bintree{testExtendedTestdataStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
-				}},
 				"templates": &bintree{nil, map[string]*bintree{
 					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
 					"templateservicebroker_bind.yaml": &bintree{testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
-				"test-auth-build.yaml": &bintree{testExtendedTestdataTestAuthBuildYaml, map[string]*bintree{}},
-				"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataTestBcWithPrRefYaml, map[string]*bintree{}},
-				"test-build-app": &bintree{nil, map[string]*bintree{
-					"Dockerfile": &bintree{testExtendedTestdataTestBuildAppDockerfile, map[string]*bintree{}},
-					"Gemfile": &bintree{testExtendedTestdataTestBuildAppGemfile, map[string]*bintree{}},
-					"config.ru": &bintree{testExtendedTestdataTestBuildAppConfigRu, map[string]*bintree{}},
-				}},
-				"test-build-podsvc.json": &bintree{testExtendedTestdataTestBuildPodsvcJson, map[string]*bintree{}},
-				"test-build-postcommit.json": &bintree{testExtendedTestdataTestBuildPostcommitJson, map[string]*bintree{}},
-				"test-build-proxy.yaml": &bintree{testExtendedTestdataTestBuildProxyYaml, map[string]*bintree{}},
-				"test-build-revision.json": &bintree{testExtendedTestdataTestBuildRevisionJson, map[string]*bintree{}},
-				"test-build.json": &bintree{testExtendedTestdataTestBuildJson, map[string]*bintree{}},
-				"test-buildconfigsecretinjector.yaml": &bintree{testExtendedTestdataTestBuildconfigsecretinjectorYaml, map[string]*bintree{}},
-				"test-cds-dockerbuild.json": &bintree{testExtendedTestdataTestCdsDockerbuildJson, map[string]*bintree{}},
-				"test-cds-sourcebuild.json": &bintree{testExtendedTestdataTestCdsSourcebuildJson, map[string]*bintree{}},
 				"test-cli-debug.yaml": &bintree{testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
-				"test-context-build.json": &bintree{testExtendedTestdataTestContextBuildJson, map[string]*bintree{}},
-				"test-custom-build.json": &bintree{testExtendedTestdataTestCustomBuildJson, map[string]*bintree{}},
-				"test-docker-build-pullsecret.json": &bintree{testExtendedTestdataTestDockerBuildPullsecretJson, map[string]*bintree{}},
-				"test-docker-build-quota.json": &bintree{testExtendedTestdataTestDockerBuildQuotaJson, map[string]*bintree{}},
-				"test-docker-build.json": &bintree{testExtendedTestdataTestDockerBuildJson, map[string]*bintree{}},
-				"test-docker-no-outputname.json": &bintree{testExtendedTestdataTestDockerNoOutputnameJson, map[string]*bintree{}},
-				"test-env-build.json": &bintree{testExtendedTestdataTestEnvBuildJson, map[string]*bintree{}},
 				"test-env-pod.json": &bintree{testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
 				"test-gitserver-tokenauth.yaml": &bintree{testExtendedTestdataTestGitserverTokenauthYaml, map[string]*bintree{}},
 				"test-gitserver.yaml": &bintree{testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
-				"test-imageresolution-custom-build.yaml": &bintree{testExtendedTestdataTestImageresolutionCustomBuildYaml, map[string]*bintree{}},
-				"test-imageresolution-docker-build.yaml": &bintree{testExtendedTestdataTestImageresolutionDockerBuildYaml, map[string]*bintree{}},
-				"test-imageresolution-s2i-build.yaml": &bintree{testExtendedTestdataTestImageresolutionS2iBuildYaml, map[string]*bintree{}},
-				"test-imagesource-buildconfig.yaml": &bintree{testExtendedTestdataTestImagesourceBuildconfigYaml, map[string]*bintree{}},
-				"test-nosrc-build.json": &bintree{testExtendedTestdataTestNosrcBuildJson, map[string]*bintree{}},
-				"test-s2i-build-quota.json": &bintree{testExtendedTestdataTestS2iBuildQuotaJson, map[string]*bintree{}},
-				"test-s2i-build.json": &bintree{testExtendedTestdataTestS2iBuildJson, map[string]*bintree{}},
-				"test-s2i-no-outputname.json": &bintree{testExtendedTestdataTestS2iNoOutputnameJson, map[string]*bintree{}},
-				"test-secret-build.json": &bintree{testExtendedTestdataTestSecretBuildJson, map[string]*bintree{}},
 				"test-secret.json": &bintree{testExtendedTestdataTestSecretJson, map[string]*bintree{}},
-				"valuefrom": &bintree{nil, map[string]*bintree{
-					"failed-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml, map[string]*bintree{}},
-					"failed-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml, map[string]*bintree{}},
-					"successful-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml, map[string]*bintree{}},
-					"successful-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml, map[string]*bintree{}},
-					"test-configmap.yaml": &bintree{testExtendedTestdataValuefromTestConfigmapYaml, map[string]*bintree{}},
-					"test-is.json": &bintree{testExtendedTestdataValuefromTestIsJson, map[string]*bintree{}},
-					"test-secret.yaml": &bintree{testExtendedTestdataValuefromTestSecretYaml, map[string]*bintree{}},
-				}},
 				"weighted-router.yaml": &bintree{testExtendedTestdataWeightedRouterYaml, map[string]*bintree{}},
 			}},
 		}},

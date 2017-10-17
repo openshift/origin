@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[Feature:Builds] build have source revision metadata", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture = exutil.FixturePath("testdata", "test-build-revision.json")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-revision.json")
 		oc           = exutil.NewCLI("cli-build-revision", exutil.KubeConfigPath())
 	)
 

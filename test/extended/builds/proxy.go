@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] the s2i build should support proxies", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture = exutil.FixturePath("testdata", "test-build-proxy.yaml")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-proxy.yaml")
 		oc           = exutil.NewCLI("build-proxy", exutil.KubeConfigPath())
 	)
 

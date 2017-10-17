@@ -17,7 +17,7 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", func() {
 	defer g.GinkgoRecover()
 	var (
-		appFixture            = exutil.FixturePath("testdata", "test-context-build.json")
+		appFixture            = exutil.FixturePath("testdata", "builds", "test-context-build.json")
 		oc                    = exutil.NewCLI("contextdir", exutil.KubeConfigPath())
 		s2iBuildConfigName    = "s2icontext"
 		s2iBuildName          = "s2icontext-1"

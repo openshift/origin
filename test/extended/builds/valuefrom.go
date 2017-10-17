@@ -12,7 +12,7 @@ import (
 
 var _ = g.Describe("[Feature:Builds][Conformance][valueFrom] process valueFrom in build strategy environment variables", func() {
 	var (
-		valueFromBaseDir               = exutil.FixturePath("testdata", "valuefrom")
+		valueFromBaseDir               = exutil.FixturePath("testdata", "builds", "valuefrom")
 		testImageStreamFixture         = filepath.Join(valueFromBaseDir, "test-is.json")
 		secretFixture                  = filepath.Join(valueFromBaseDir, "test-secret.yaml")
 		configmapFixture               = filepath.Join(valueFromBaseDir, "test-configmap.yaml")

@@ -11,7 +11,7 @@ var _ = g.Describe("[Feature:Builds] buildconfig secret injector", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		itemsPath = exutil.FixturePath("testdata", "test-buildconfigsecretinjector.yaml")
+		itemsPath = exutil.FixturePath("testdata", "builds", "test-buildconfigsecretinjector.yaml")
 		oc        = exutil.NewCLI("buildconfigsecretinjector", exutil.KubeConfigPath())
 	)
 

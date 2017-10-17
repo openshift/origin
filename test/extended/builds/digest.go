@@ -14,8 +14,8 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
-		stiBuildFixture    = exutil.FixturePath("testdata", "test-s2i-build.json")
-		dockerBuildFixture = exutil.FixturePath("testdata", "test-docker-build.json")
+		stiBuildFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-build.json")
+		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build.json")
 		oc                 = exutil.NewCLI("build-sti-labels", exutil.KubeConfigPath())
 	)
 
