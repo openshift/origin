@@ -50,29 +50,49 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 	allErrs := validation.ValidateObjectMeta(&clusterNet.ObjectMeta, false, path.ValidatePathSegmentName, field.NewPath("metadata"))
 	var testedCIDRS []*net.IPNet
 
-	// This check is mainly for ensuring backward compatibility
-	if len(clusterNet.Network) != 0 || clusterNet.HostSubnetLength != 0 {
-		//In the case that a user manually makes a clusterNetwork object with clusterNet.Network and clusterNet.HostubnetLength at least make sure they are valid values
-		clusterIPNet, err := validateCIDRv4(clusterNet.Network)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, err.Error()))
-		} else {
-			maskLen, addrLen := clusterIPNet.Mask.Size()
-			if clusterNet.HostSubnetLength > uint32(addrLen-maskLen) {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("hostsubnetlength"), clusterNet.HostSubnetLength, "subnet length is too large for clusterNetwork"))
-			} else if clusterNet.HostSubnetLength < 2 {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("hostsubnetlength"), clusterNet.HostSubnetLength, "subnet length must be at least 2"))
-			}
-		}
-	}
-
-	if len(clusterNet.ClusterNetworks) == 0 && len(clusterNet.Network) == 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("clusterNetworks"), clusterNet.ClusterNetworks, "must have at least one cluster network CIDR"))
-	}
 	serviceIPNet, err := validateCIDRv4(clusterNet.ServiceNetwork)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, err.Error()))
 	}
+
+	if len(clusterNet.ClusterNetworks) == 0 {
+		// legacy ClusterNetwork; old fields must be set
+		if clusterNet.Network == "" {
+			allErrs = append(allErrs, field.Required(field.NewPath("network"), "network must be set (if clusterNetworks is empty)"))
+		} else if clusterNet.HostSubnetLength == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("hostsubnetlength"), "hostsubnetlength must be set (if clusterNetworks is empty)"))
+		} else {
+			clusterIPNet, err := validateCIDRv4(clusterNet.Network)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, err.Error()))
+			}
+			maskLen, addrLen := clusterIPNet.Mask.Size()
+			if clusterNet.HostSubnetLength > uint32(addrLen-maskLen) {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("hostsubnetlength"), clusterNet.HostSubnetLength, "subnet length is too large for cidr"))
+			} else if clusterNet.HostSubnetLength < 2 {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("hostsubnetlength"), clusterNet.HostSubnetLength, "subnet length must be at least 2"))
+			}
+
+			if (clusterIPNet != nil) && (serviceIPNet != nil) && configapi.CIDRsOverlap(clusterIPNet.String(), serviceIPNet.String()) {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, "service network overlaps with cluster network"))
+			}
+		}
+	} else {
+		// "new" ClusterNetwork
+		if clusterNet.Name == networkapi.ClusterNetworkDefault {
+			if clusterNet.Network != clusterNet.ClusterNetworks[0].CIDR {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, "network must be identical to clusterNetworks[0].cidr"))
+			}
+			if clusterNet.HostSubnetLength != clusterNet.ClusterNetworks[0].HostSubnetLength {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("hostsubnetlength"), clusterNet.HostSubnetLength, "hostsubnetlength must be identical to clusterNetworks[0].hostSubnetLength"))
+			}
+		} else if clusterNet.Network != "" || clusterNet.HostSubnetLength != 0 {
+			if clusterNet.Network != clusterNet.ClusterNetworks[0].CIDR || clusterNet.HostSubnetLength != clusterNet.ClusterNetworks[0].HostSubnetLength {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("clusterNetworks").Index(0), clusterNet.ClusterNetworks[0], "network and hostsubnetlength must be unset or identical to clusterNetworks[0]"))
+			}
+		}
+	}
+
 	for i, cn := range clusterNet.ClusterNetworks {
 		clusterIPNet, err := validateCIDRv4(cn.CIDR)
 		if err != nil {
@@ -103,7 +123,7 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 			allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, "cannot change the default ClusterNetwork record via API."))
 		}
 		if clusterNet.HostSubnetLength != defaultClusterNetwork.HostSubnetLength {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "cannot change the default ClusterNetwork record via API."))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("hostsubnetlength"), clusterNet.HostSubnetLength, "cannot change the default ClusterNetwork record via API."))
 		}
 		if !reflect.DeepEqual(clusterNet.ClusterNetworks, defaultClusterNetwork.ClusterNetworks) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("ClusterNetworks"), clusterNet.ClusterNetworks, "cannot change the default ClusterNetwork record via API"))
