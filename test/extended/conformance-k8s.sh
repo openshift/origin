@@ -43,7 +43,7 @@ To recreate these results
 Nightly conformance tests are run against release branches and reported https://openshift-gce-devel.appspot.com/builds/origin-ci-test/logs/test_branch_origin_extended_conformance_k8s/
 END
 
-version="${KUBERNETES_VERSION:-release-1.8}"
+version="${KUBERNETES_VERSION:-release-1.7}"
 kubernetes="${KUBERNETES_ROOT:-${OS_ROOT}/../../../k8s.io/kubernetes}"
 if [[ ! -d "${kubernetes}" ]]; then
   if [[ -n "${KUBERNETES_ROOT-}" ]]; then
