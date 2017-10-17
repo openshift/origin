@@ -96,6 +96,11 @@ os::cmd::try_until_success 'oc rollout pause dc/database'
 os::cmd::try_until_text "oc get dc/database --template='{{.spec.paused}}'" "true"
 os::cmd::try_until_success 'oc rollout resume dc/database'
 os::cmd::try_until_text "oc get dc/database --template='{{.spec.paused}}'" "<no value>"
+# create a replication controller and attempt to perform `oc rollout cancel` on it.
+# expect an error about the resource type, rather than a panic or a success.
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-replication-controller.yaml'
+os::cmd::expect_failure_and_text 'oc rollout cancel rc/test-replication-controller' 'expected deployment configuration, got replicationcontrollers'
+
 echo "rollout: ok"
 os::test::junit::declare_suite_end
 
