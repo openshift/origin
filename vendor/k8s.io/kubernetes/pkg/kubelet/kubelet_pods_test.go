@@ -1719,7 +1719,7 @@ func TestExec(t *testing.T) {
 		tty                    = true
 	)
 	var (
-		podFullName = kubecontainer.GetPodFullName(podWithUidNameNs(podUID, podName, podNamespace))
+		podFullName = kubecontainer.GetPodFullName(podWithUIDNameNs(podUID, podName, podNamespace))
 		command     = []string{"ls"}
 		stdin       = &bytes.Buffer{}
 		stdout      = &fakeReadWriteCloser{}
@@ -1855,7 +1855,7 @@ func TestPortForward(t *testing.T) {
 			}},
 		}
 
-		podFullName := kubecontainer.GetPodFullName(podWithUidNameNs(podUID, tc.podName, podNamespace))
+		podFullName := kubecontainer.GetPodFullName(podWithUIDNameNs(podUID, tc.podName, podNamespace))
 		{ // No streaming case
 			description := "no streaming - " + tc.description
 			redirect, err := kubelet.GetPortForward(tc.podName, podNamespace, podUID, portforward.V4Options{})
