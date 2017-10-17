@@ -200,11 +200,6 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 		sc.SELinuxOptions = seLinux
 	}
 
-	if sc.Privileged == nil {
-		priv := false
-		sc.Privileged = &priv
-	}
-
 	// if we're using the non-root strategy set the marker that this container should not be
 	// run as root which will signal to the kubelet to do a final check either on the runAsUser
 	// or, if runAsUser is not set, the image
@@ -325,7 +320,7 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 	allErrs = append(allErrs, s.seLinuxStrategy.Validate(pod, container)...)
 	allErrs = append(allErrs, s.seccompStrategy.ValidateContainer(pod, container)...)
 
-	if !s.scc.AllowPrivilegedContainer && *sc.Privileged {
+	if !s.scc.AllowPrivilegedContainer && sc.Privileged != nil && *sc.Privileged {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("privileged"), *sc.Privileged, "Privileged containers are not allowed"))
 	}
 
