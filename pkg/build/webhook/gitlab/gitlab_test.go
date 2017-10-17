@@ -356,7 +356,10 @@ func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	context := setup(t, "pushevent.json", "Push Hook", "wrongref")
 
 	//execute
-	_, _, _, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	_, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
+	if err != nil {
+		t.Errorf("Error while extracting build info: %s", err)
+	}
 	if proceed {
 		t.Errorf("Expecting to not continue from this event because the branch is not for this buildConfig '%s'", context.buildCfg.Spec.Source.Git.Ref)
 	}
