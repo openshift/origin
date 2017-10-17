@@ -309,7 +309,7 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 	}
 
 	sc := container.SecurityContext
-	allErrs = append(allErrs, s.runAsUserStrategy.Validate(pod, container)...)
+	allErrs = append(allErrs, s.runAsUserStrategy.Validate(fldPath.Child("securityContext"), pod, container, sc.RunAsNonRoot, sc.RunAsUser)...)
 	allErrs = append(allErrs, s.seLinuxStrategy.Validate(fldPath.Child("seLinuxOptions"), pod, container, sc.SELinuxOptions)...)
 	allErrs = append(allErrs, s.seccompStrategy.ValidateContainer(pod, container)...)
 

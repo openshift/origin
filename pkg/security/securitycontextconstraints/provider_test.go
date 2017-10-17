@@ -416,7 +416,7 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		"failUserSCC": {
 			pod:           failUserPod,
 			scc:           failUserSCC,
-			expectedError: "does not match required UID",
+			expectedError: "runAsUser: Invalid value",
 		},
 		"failSELinuxSCC": {
 			pod:           failSELinuxPod,
