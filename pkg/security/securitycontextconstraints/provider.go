@@ -124,7 +124,7 @@ func (s *simpleProvider) CreatePodSecurityContext(pod *api.Pod) (*api.PodSecurit
 		}
 	}
 
-	if len(sc.SupplementalGroups) == 0 {
+	if sc.SupplementalGroups == nil {
 		supGroups, err := s.supplementalGroupStrategy.Generate(pod)
 		if err != nil {
 			return nil, nil, err
