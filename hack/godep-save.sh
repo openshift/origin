@@ -147,17 +147,6 @@ missing-test-deps () {
 
 fork-without-vendor github.com/docker/distribution
 fork-without-vendor github.com/libopenstorage/openstorage
-fork-with-fake-packages github.com/docker/docker \
-  api/types \
-  api/types/blkiodev \
-  api/types/container \
-  api/types/filters \
-  api/types/mount \
-  api/types/network \
-  api/types/registry \
-  api/types/strslice \
-  api/types/swarm \
-  api/types/versions
 
 # This is grotesque: godep-save does not copy dependencies of tests. Because we want to run the
 # kubernetes tests, we have to extract the missing test dependencies and run godep-save again
