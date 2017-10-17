@@ -203,7 +203,7 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 		},
 	}
 
-	for idx, plugin := range c.KubeletDeps.VolumePlugins {
+	for idx, plugin := range c.Dependencies.VolumePlugins {
 		// Can't really do type checking or use a constant here as they are not exported:
 		if plugin.CanSupport(emptyDirSpec) {
 			wrapper := emptydir.EmptyDirQuotaPlugin{
@@ -211,7 +211,7 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 				Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
 				QuotaApplicator: quotaApplicator,
 			}
-			c.KubeletDeps.VolumePlugins[idx] = &wrapper
+			c.Dependencies.VolumePlugins[idx] = &wrapper
 			wrappedEmptyDirPlugin = true
 		}
 	}
@@ -226,7 +226,7 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
 	if len(c.KubeletServer.ClusterDNS) == 0 {
-		if service, err := c.KubeletDeps.KubeClient.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
+		if service, err := c.Dependencies.KubeClient.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
 				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
@@ -234,7 +234,7 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS == nil {
-		if endpoint, err := c.KubeletDeps.KubeClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
+		if endpoint, err := c.Dependencies.KubeClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
 				// Use first endpoint if endpoint includes "dns" port 53.
 				clusterDNS = net.ParseIP(endpointIP)
@@ -251,17 +251,17 @@ func (c *NodeConfig) RunKubelet() {
 	}
 
 	// only set when ContainerRuntime == "docker"
-	c.KubeletDeps.DockerClient = c.DockerClient
+	c.Dependencies.DockerClient = c.DockerClient
 	// updated by NodeConfig.EnsureVolumeDir
 	c.KubeletServer.RootDirectory = c.VolumeDir
 
 	// hook for overriding the cadvisor interface for integration tests
-	c.KubeletDeps.CAdvisorInterface = defaultCadvisorInterface
+	c.Dependencies.CAdvisorInterface = defaultCadvisorInterface
 	// hook for overriding the container manager interface for integration tests
-	c.KubeletDeps.ContainerManager = defaultContainerManagerInterface
+	c.Dependencies.ContainerManager = defaultContainerManagerInterface
 
 	go func() {
-		glog.Fatal(kubeletapp.Run(c.KubeletServer, c.KubeletDeps))
+		glog.Fatal(kubeletapp.Run(c.KubeletServer, c.Dependencies))
 	}()
 }
 

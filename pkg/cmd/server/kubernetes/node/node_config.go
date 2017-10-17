@@ -39,8 +39,8 @@ type NodeConfig struct {
 	DockerClient dockertools.Interface
 	// KubeletServer contains the KubeletServer configuration
 	KubeletServer *kubeletoptions.KubeletServer
-	// KubeletDeps are the injected code dependencies for the kubelet, fully initialized
-	KubeletDeps *kubelet.KubeletDeps
+	// Dependencies are the injected code dependencies for the kubelet, fully initialized
+	Dependencies *kubelet.Dependencies
 }
 
 func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*NodeConfig, error) {
@@ -67,7 +67,7 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 		return nil, err
 	}
 
-	deps, err := kubeletapp.UnsecuredKubeletDeps(server)
+	deps, err := kubeletapp.UnsecuredDependencies(server)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 		VolumeDir: options.VolumeDirectory,
 
 		KubeletServer: server,
-		KubeletDeps:   deps,
+		Dependencies:  deps,
 	}
 
 	return config, nil
