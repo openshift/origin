@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -43,17 +42,19 @@ func (f *fakeHTTP) Get(url string) (*http.Response, error) {
 	return nil, f.err
 }
 
-type fakePodGetter struct {
-	pods map[types.UID]*v1.Pod
+type fakePodDeletionProvider struct {
+	pods map[types.UID]struct{}
 }
 
-func newFakePodGetter() *fakePodGetter {
-	return &fakePodGetter{make(map[types.UID]*v1.Pod)}
+func newFakePodDeletionProvider() *fakePodDeletionProvider {
+	return &fakePodDeletionProvider{
+		pods: make(map[types.UID]struct{}),
+	}
 }
 
-func (f *fakePodGetter) GetPodByUID(uid types.UID) (*v1.Pod, bool) {
-	pod, found := f.pods[uid]
-	return pod, found
+func (f *fakePodDeletionProvider) IsPodDeleted(uid types.UID) bool {
+	_, found := f.pods[uid]
+	return !found
 }
 
 func NewFakeKubeRuntimeManager(runtimeService internalapi.RuntimeService, imageService internalapi.ImageManagerService, machineInfo *cadvisorapi.MachineInfo, osInterface kubecontainer.OSInterface, runtimeHelper kubecontainer.RuntimeHelper, keyring credentialprovider.DockerKeyring) (*kubeGenericRuntimeManager, error) {
@@ -76,7 +77,7 @@ func NewFakeKubeRuntimeManager(runtimeService internalapi.RuntimeService, imageS
 		return nil, err
 	}
 
-	kubeRuntimeManager.containerGC = NewContainerGC(runtimeService, newFakePodGetter(), kubeRuntimeManager)
+	kubeRuntimeManager.containerGC = NewContainerGC(runtimeService, newFakePodDeletionProvider(), kubeRuntimeManager)
 	kubeRuntimeManager.runtimeName = typedVersion.RuntimeName
 	kubeRuntimeManager.imagePuller = images.NewImageManager(
 		kubecontainer.FilterEventRecorder(recorder),
