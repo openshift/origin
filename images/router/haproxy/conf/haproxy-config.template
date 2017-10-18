@@ -390,9 +390,11 @@ backend be_secure:{{$cfgIdx}}
     {{- end }}
   {{- end }}{{/* end disable cookies check */}}
 
-  {{- with $hsts := firstMatch $hstsPattern (index $cfg.Annotations "haproxy.router.openshift.io/hsts_header") }}
+  {{- if matchValues (print $cfg.TLSTermination) "edge" "reencrypt" }}
+    {{- with $hsts := firstMatch $hstsPattern (index $cfg.Annotations "haproxy.router.openshift.io/hsts_header") }}
   http-response set-header Strict-Transport-Security {{$hsts}}
-  {{- end }}{{/* hsts header */}}
+    {{- end }}{{/* hsts header */}}
+  {{- end }}{{/* is "edge" or "reencrypt" */}}
 
   {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
     {{- if ne $weight 0 }}

@@ -21,11 +21,6 @@ os::log::info "Server logs will be at:    ${LOG_DIR}/openshift.log"
 os::log::info "Test artifacts will be in: ${ARTIFACT_DIR}"
 os::log::info "Config dir is:             ${SERVER_CONFIG_DIR}"
 
-# Allow setting $JUNIT_REPORT to toggle output behavior
-if [[ -n "${JUNIT_REPORT:-}" ]]; then
-	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-fi
-
 mkdir -p ${LOG_DIR}
 
 os::log::info "Scan of OpenShift related processes already up via ps -ef	| grep openshift : "

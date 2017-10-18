@@ -2,11 +2,6 @@
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 os::util::environment::setup_all_server_vars "test-extended/clusterup"
 
-# Allow setting $JUNIT_REPORT to toggle output behavior
-if [[ -n "${JUNIT_REPORT:-}" ]]; then
-    export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-fi
-
 os::util::ensure::built_binary_exists 'oc'
 os::util::environment::use_sudo
 
