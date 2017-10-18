@@ -20,7 +20,7 @@ import (
 // function using cached information from the buildLister.
 var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in the buildconfig", func() {
 	var (
-		buildPruningBaseDir   = exutil.FixturePath("testdata", "build-pruning")
+		buildPruningBaseDir   = exutil.FixturePath("testdata", "builds", "build-pruning")
 		isFixture             = filepath.Join(buildPruningBaseDir, "imagestream.yaml")
 		successfulBuildConfig = filepath.Join(buildPruningBaseDir, "successful-build-config.yaml")
 		failedBuildConfig     = filepath.Join(buildPruningBaseDir, "failed-build-config.yaml")

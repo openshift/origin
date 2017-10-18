@@ -14,7 +14,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 	defer g.GinkgoRecover()
 
 	var (
-		buildFixture = exutil.FixturePath("testdata", "s2i-build-root.yaml")
+		buildFixture = exutil.FixturePath("testdata", "builds", "s2i-build-root.yaml")
 		oc           = exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
 	)
 
@@ -43,7 +43,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 				g.By("starting a test build")
 				// this uses the build-quota dir as the binary input source on purpose - we don't really care what we upload
 				// to the build since it will fail before we ever consume the inputs.
-				br, _ := exutil.StartBuildAndWait(oc, "s2i-build-root", "--from-dir", exutil.FixturePath("testdata", "build-quota"))
+				br, _ := exutil.StartBuildAndWait(oc, "s2i-build-root", "--from-dir", exutil.FixturePath("testdata", "builds", "build-quota"))
 				br.AssertFailure()
 				o.Expect(string(br.Build.Status.Reason)).To(o.Equal(string(s2istatus.ReasonPullBuilderImageFailed)))
 				o.Expect(string(br.Build.Status.Message)).To(o.Equal(string(s2istatus.ReasonMessagePullBuilderImageFailed)))

@@ -28,7 +28,7 @@ func verifyStages(stages []buildapi.StageInfo, expectedStages map[string][]strin
 
 var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations", func() {
 	var (
-		buildTimingBaseDir    = exutil.FixturePath("testdata", "build-timing")
+		buildTimingBaseDir    = exutil.FixturePath("testdata", "builds", "build-timing")
 		isFixture             = filepath.Join(buildTimingBaseDir, "test-is.json")
 		dockerBuildFixture    = filepath.Join(buildTimingBaseDir, "test-docker-build.json")
 		dockerBuildDockerfile = filepath.Join(buildTimingBaseDir, "Dockerfile")

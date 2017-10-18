@@ -36,6 +36,7 @@ import (
 	kubeclientgoinformers "k8s.io/client-go/informers"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
@@ -144,6 +145,14 @@ func NewPluginInitializer(
 		cloudConfig,
 		restMapper,
 		quotaRegistry)
+	// upstream broke this, so we can't use their mechanism.  We need to get an actual client cert and practically speaking privileged loopback will always have one
+	kubePluginInitializer.SetClientCert(privilegedLoopbackConfig.TLSClientConfig.CertData, privilegedLoopbackConfig.TLSClientConfig.KeyData)
+	// this is a really problematic thing, because it breaks DNS resolution and IP routing, but its for an alpha feature that
+	// I need to work cluster-up
+	kubePluginInitializer.SetServiceResolver(aggregatorapiserver.NewClusterIPServiceResolver(
+		informers.GetClientGoKubeInformers().Core().V1().Services().Lister(),
+	))
+
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
 		OpenshiftInternalAuthorizationClient: authorizationClient,
 		OpenshiftInternalBuildClient:         buildClient,

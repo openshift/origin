@@ -23,15 +23,15 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 		// convert the s2i failure cases to our own StatusReason
 		reasonAssembleFailed  = buildapi.StatusReason(s2istatus.ReasonAssembleFailed)
 		messageAssembleFailed = string(s2istatus.ReasonMessageAssembleFailed)
-		postCommitHookFixture = exutil.FixturePath("testdata", "statusfail-postcommithook.yaml")
-		fetchDockerSrc        = exutil.FixturePath("testdata", "statusfail-fetchsourcedocker.yaml")
-		fetchS2ISrc           = exutil.FixturePath("testdata", "statusfail-fetchsources2i.yaml")
-		badContextDirS2ISrc   = exutil.FixturePath("testdata", "statusfail-badcontextdirs2i.yaml")
-		builderImageFixture   = exutil.FixturePath("testdata", "statusfail-fetchbuilderimage.yaml")
-		pushToRegistryFixture = exutil.FixturePath("testdata", "statusfail-pushtoregistry.yaml")
-		failedAssembleFixture = exutil.FixturePath("testdata", "statusfail-failedassemble.yaml")
-		failedGenericReason   = exutil.FixturePath("testdata", "statusfail-genericreason.yaml")
-		binaryBuildDir        = exutil.FixturePath("testdata", "statusfail-assemble")
+		postCommitHookFixture = exutil.FixturePath("testdata", "builds", "statusfail-postcommithook.yaml")
+		fetchDockerSrc        = exutil.FixturePath("testdata", "builds", "statusfail-fetchsourcedocker.yaml")
+		fetchS2ISrc           = exutil.FixturePath("testdata", "builds", "statusfail-fetchsources2i.yaml")
+		badContextDirS2ISrc   = exutil.FixturePath("testdata", "builds", "statusfail-badcontextdirs2i.yaml")
+		builderImageFixture   = exutil.FixturePath("testdata", "builds", "statusfail-fetchbuilderimage.yaml")
+		pushToRegistryFixture = exutil.FixturePath("testdata", "builds", "statusfail-pushtoregistry.yaml")
+		failedAssembleFixture = exutil.FixturePath("testdata", "builds", "statusfail-failedassemble.yaml")
+		failedGenericReason   = exutil.FixturePath("testdata", "builds", "statusfail-genericreason.yaml")
+		binaryBuildDir        = exutil.FixturePath("testdata", "builds", "statusfail-assemble")
 		oc                    = exutil.NewCLI("update-buildstatus", exutil.KubeConfigPath())
 	)
 
@@ -75,12 +75,12 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 					if err != nil {
 						return true, err
 					}
-					if build.Status.CompletionTimestamp != nil {
+					if len(build.Status.LogSnippet) != 0 {
 						return true, nil
 					}
 					return false, nil
 				})
-				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(err).NotTo(o.HaveOccurred(), "Should not get an error or timeout getting LogSnippet")
 				o.Expect(len(build.Status.LogSnippet)).NotTo(o.Equal(0), "LogSnippet should be set to something for failed builds")
 			})
 		})

@@ -20,10 +20,10 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture      = exutil.FixturePath("testdata", "test-build.json")
-		bcWithPRRef       = exutil.FixturePath("testdata", "test-bc-with-pr-ref.yaml")
-		exampleGemfile    = exutil.FixturePath("testdata", "test-build-app", "Gemfile")
-		exampleBuild      = exutil.FixturePath("testdata", "test-build-app")
+		buildFixture      = exutil.FixturePath("testdata", "builds", "test-build.json")
+		bcWithPRRef       = exutil.FixturePath("testdata", "builds", "test-bc-with-pr-ref.yaml")
+		exampleGemfile    = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
+		exampleBuild      = exutil.FixturePath("testdata", "builds", "test-build-app")
 		exampleGemfileURL = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
 		exampleArchiveURL = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
 		oc                = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())

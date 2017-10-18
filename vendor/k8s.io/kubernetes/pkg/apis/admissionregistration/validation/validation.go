@@ -189,9 +189,6 @@ func validateExternalAdmissionHook(hook *admissionregistration.ExternalAdmission
 	if len(hook.Name) == 0 {
 		allErrors = append(allErrors, field.Required(fldPath.Child("name"), ""))
 	}
-	if errs := validationutil.IsDNS1123Subdomain(hook.Name); len(errs) > 0 {
-		allErrors = append(allErrors, field.Invalid(fldPath.Child("name"), hook.Name, strings.Join(errs, ",")))
-	}
 	if len(strings.Split(hook.Name, ".")) < 3 {
 		allErrors = append(allErrors, field.Invalid(fldPath.Child("name"), hook.Name, "should be a domain with at least two dots"))
 	}
@@ -199,12 +196,16 @@ func validateExternalAdmissionHook(hook *admissionregistration.ExternalAdmission
 	for i, rule := range hook.Rules {
 		allErrors = append(allErrors, validateRuleWithOperations(&rule, fldPath.Child("rules").Index(i))...)
 	}
-	// TODO: relax the validation rule when admissionregistration is beta.
-	if hook.FailurePolicy != nil && *hook.FailurePolicy != admissionregistration.Ignore {
-		allErrors = append(allErrors, field.NotSupported(fldPath.Child("failurePolicy"), *hook.FailurePolicy, []string{string(admissionregistration.Ignore)}))
+	if hook.FailurePolicy != nil && !supportedFailurePolicies.Has(string(*hook.FailurePolicy)) {
+		allErrors = append(allErrors, field.NotSupported(fldPath.Child("failurePolicy"), *hook.FailurePolicy, supportedFailurePolicies.List()))
 	}
 	return allErrors
 }
+
+var supportedFailurePolicies = sets.NewString(
+	string(admissionregistration.Ignore),
+	string(admissionregistration.Fail),
+)
 
 var supportedOperations = sets.NewString(
 	string(admissionregistration.OperationAll),

@@ -119,7 +119,7 @@ os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag -
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
 # --incremental flag should override Spec.Strategy.SourceStrategy.Incremental
-os::cmd::expect_success 'oc create -f test/extended/testdata/test-s2i-build.json'
+os::cmd::expect_success 'oc create -f test/extended/testdata/builds/test-s2i-build.json'
 build_name="$(oc start-build -o=name test)"
 os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
 build_name="$(oc start-build -o=name --incremental test)"
@@ -136,7 +136,7 @@ build_name="$(oc start-build -o=name --incremental test)"
 os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
 os::cmd::expect_success 'oc delete all --selector="name=test"'
 # --no-cache flag should override Spec.Strategy.SourceStrategy.NoCache
-os::cmd::expect_success 'oc create -f test/extended/testdata/test-docker-build.json'
+os::cmd::expect_success 'oc create -f test/extended/testdata/builds/test-docker-build.json'
 build_name="$(oc start-build -o=name test)"
 os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
 build_name="$(oc start-build -o=name --no-cache test)"

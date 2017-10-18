@@ -3,7 +3,7 @@
 package node
 
 import (
-	log "github.com/golang/glog"
+	"github.com/golang/glog"
 
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -27,7 +27,7 @@ func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
 		}
 	}
 	if err := plugin.oc.UpdateVXLANMulticastFlows(remoteIPs); err != nil {
-		log.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
+		glog.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
 	}
 }
 
@@ -39,7 +39,7 @@ func (node *OsdnNode) watchSubnets() {
 			return nil
 		}
 
-		log.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
+		glog.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
 			oldSubnet, exists := subnets[string(hs.UID)]
@@ -52,7 +52,7 @@ func (node *OsdnNode) watchSubnets() {
 				}
 			}
 			if err := node.networkInfo.ValidateNodeIP(hs.HostIP); err != nil {
-				log.Warningf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
+				glog.Warningf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
 				break
 			}
 

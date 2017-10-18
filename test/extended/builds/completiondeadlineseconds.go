@@ -14,8 +14,8 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] builds should have deadlines", func() {
 	defer g.GinkgoRecover()
 	var (
-		sourceFixture = exutil.FixturePath("testdata", "test-cds-sourcebuild.json")
-		dockerFixture = exutil.FixturePath("testdata", "test-cds-dockerbuild.json")
+		sourceFixture = exutil.FixturePath("testdata", "builds", "test-cds-sourcebuild.json")
+		dockerFixture = exutil.FixturePath("testdata", "builds", "test-cds-dockerbuild.json")
 		oc            = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
 	)
 

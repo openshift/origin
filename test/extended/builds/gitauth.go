@@ -39,7 +39,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 	var (
 		gitServerFixture          = exutil.FixturePath("testdata", "test-gitserver.yaml")
 		gitServerTokenAuthFixture = exutil.FixturePath("testdata", "test-gitserver-tokenauth.yaml")
-		testBuildFixture          = exutil.FixturePath("testdata", "test-auth-build.yaml")
+		testBuildFixture          = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
 		oc                        = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
 		caCertPath                = filepath.Join(filepath.Dir(exutil.KubeConfigPath()), "ca.crt")
 	)
