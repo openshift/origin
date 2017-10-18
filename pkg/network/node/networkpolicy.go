@@ -448,7 +448,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventTyp
 		return
 	}
 	if pod.Status.PodIP == "" {
-		glog.Warningf("PodIP is not set for pod %q", getPodFullName(pod))
+		glog.V(5).Infof("PodIP is not set for pod %q; ignoring", getPodFullName(pod))
 		return
 	}
 
