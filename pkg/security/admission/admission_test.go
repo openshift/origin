@@ -140,16 +140,17 @@ func TestAdmitCaps(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		for k, v := range tc {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
+
+			testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+
 			containers := v.pod.Spec.Containers
 			if i == 0 {
 				containers = v.pod.Spec.InitContainers
 			}
 
-			testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
-
 			if v.expectedCapabilities != nil {
 				if !reflect.DeepEqual(v.expectedCapabilities, containers[0].SecurityContext.Capabilities) {
-					t.Errorf("%s resulted in caps that were not expected - expected: %v, received: %v", k, v.expectedCapabilities, containers[0].SecurityContext.Capabilities)
+					t.Errorf("%s resulted in caps that were not expected - expected: %#v, received: %#v", k, v.expectedCapabilities, containers[0].SecurityContext.Capabilities)
 				}
 			}
 		}
@@ -239,41 +240,42 @@ func TestAdmitSuccess(t *testing.T) {
 		"specifyUIDInRange": {
 			pod:                 specifyUIDInRange,
 			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, defaultGroup),
-			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, goodUID),
+			expectedContainerSC: containerSC(nil, goodUID),
 		},
 		"specifyLabels": {
 			pod:                 specifyLabels,
 			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, defaultGroup),
-			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
+			expectedContainerSC: containerSC(&seLinuxLevelFromNamespace, 1),
 		},
 		"specifyFSGroup": {
 			pod:                 specifyFSGroupInRange,
 			expectedPodSC:       podSC(seLinuxLevelFromNamespace, goodFSGroup, defaultGroup),
-			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
+			expectedContainerSC: containerSC(nil, 1),
 		},
 		"specifySupGroup": {
 			pod:                 specifySupGroup,
 			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, 3),
-			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
+			expectedContainerSC: containerSC(nil, 1),
 		},
 		"specifyPodLevelSELinuxLevel": {
 			pod:                 specifyPodLevelSELinux,
 			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, defaultGroup),
-			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
+			expectedContainerSC: containerSC(nil, 1),
 		},
 	}
 
 	for i := 0; i < 2; i++ {
 		for k, v := range testCases {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
-			containers := v.pod.Spec.Containers
-			if i == 0 {
-				containers = v.pod.Spec.InitContainers
-			}
 
 			hasErrors := testSCCAdmission(v.pod, p, saSCC.Name, k, t)
 			if hasErrors {
 				continue
+			}
+
+			containers := v.pod.Spec.Containers
+			if i == 0 {
+				containers = v.pod.Spec.InitContainers
 			}
 
 			if !reflect.DeepEqual(v.expectedPodSC, v.pod.Spec.SecurityContext) {
@@ -934,6 +936,85 @@ func TestAdmitSeccomp(t *testing.T) {
 
 }
 
+func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
+
+	mutatingSCC := restrictiveSCC()
+	mutatingSCC.Name = "mutating-scc"
+
+	nonMutatingSCC := laxSCC()
+	nonMutatingSCC.Name = "non-mutating-scc"
+
+	simplePod := goodPod()
+	simplePod.Spec.Containers[0].Name = "simple-pod"
+	simplePod.Spec.Containers[0].Image = "test-image:0.1"
+
+	modifiedPod := simplePod.DeepCopy()
+	modifiedPod.Spec.Containers[0].Image = "test-image:0.2"
+
+	tests := map[string]struct {
+		oldPod      *kapi.Pod
+		newPod      *kapi.Pod
+		operation   kadmission.Operation
+		sccs        []*securityapi.SecurityContextConstraints
+		shouldPass  bool
+		expectedSCC string
+	}{
+		"creation: the first SCC (even if it mutates) should be used": {
+			newPod:      simplePod.DeepCopy(),
+			operation:   kadmission.Create,
+			sccs:        []*securityapi.SecurityContextConstraints{mutatingSCC, nonMutatingSCC},
+			shouldPass:  true,
+			expectedSCC: mutatingSCC.Name,
+		},
+		"updating: the first non-mutating SCC should be used": {
+			oldPod:      simplePod.DeepCopy(),
+			newPod:      modifiedPod.DeepCopy(),
+			operation:   kadmission.Update,
+			sccs:        []*securityapi.SecurityContextConstraints{mutatingSCC, nonMutatingSCC},
+			shouldPass:  true,
+			expectedSCC: nonMutatingSCC.Name,
+		},
+		"updating: a pod should be rejected when there are only mutating SCCs": {
+			oldPod:     simplePod.DeepCopy(),
+			newPod:     modifiedPod.DeepCopy(),
+			operation:  kadmission.Update,
+			sccs:       []*securityapi.SecurityContextConstraints{mutatingSCC},
+			shouldPass: false,
+		},
+	}
+
+	for testCaseName, testCase := range tests {
+		// We can't use testSCCAdmission() here because it doesn't support Update operation.
+		// We can't use testSCCAdmit() here because it doesn't support Update operation and doesn't check for the SCC annotation.
+
+		tc := setupClientSet()
+		lister := createSCCLister(t, testCase.sccs)
+		plugin := NewTestAdmission(lister, tc)
+
+		attrs := kadmission.NewAttributesRecord(testCase.newPod, testCase.oldPod, kapi.Kind("Pod").WithVersion("version"), testCase.newPod.Namespace, testCase.newPod.Name, kapi.Resource("pods").WithVersion("version"), "", testCase.operation, &user.DefaultInfo{})
+		err := plugin.(kadmission.MutationInterface).Admit(attrs)
+
+		if testCase.shouldPass {
+			if err != nil {
+				t.Errorf("%s expected no errors but received %v", testCaseName, err)
+			} else {
+				validatedSCC, ok := testCase.newPod.Annotations[allocator.ValidatedSCCAnnotation]
+				if !ok {
+					t.Errorf("expected %q to find the validated annotation on the pod for the scc but found none", testCaseName)
+
+				} else if validatedSCC != testCase.expectedSCC {
+					t.Errorf("%q should have validated against %q but found %q", testCaseName, testCase.expectedSCC, validatedSCC)
+				}
+			}
+		} else {
+			if err == nil {
+				t.Errorf("%s expected errors but received none", testCaseName)
+			}
+		}
+	}
+
+}
+
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
 // SCC. Returns true when errors have been encountered.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, testName string, t *testing.T) bool {
@@ -1087,15 +1168,16 @@ func goodPod() *kapi.Pod {
 	}
 }
 
-func containerSC(seLinuxLevel string, uid int64) *kapi.SecurityContext {
-	no := false
-	return &kapi.SecurityContext{
-		Privileged: &no,
-		RunAsUser:  &uid,
-		SELinuxOptions: &kapi.SELinuxOptions{
-			Level: seLinuxLevel,
-		},
+func containerSC(seLinuxLevel *string, uid int64) *kapi.SecurityContext {
+	sc := &kapi.SecurityContext{
+		RunAsUser: &uid,
 	}
+	if seLinuxLevel != nil {
+		sc.SELinuxOptions = &kapi.SELinuxOptions{
+			Level: *seLinuxLevel,
+		}
+	}
+	return sc
 }
 
 func podSC(seLinuxLevel string, fsGroup, supGroup int64) *kapi.PodSecurityContext {

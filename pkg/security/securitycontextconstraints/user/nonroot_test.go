@@ -4,8 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	api "k8s.io/kubernetes/pkg/apis/core"
-
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
