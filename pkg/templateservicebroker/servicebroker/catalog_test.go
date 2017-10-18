@@ -20,12 +20,12 @@ func TestServiceFromTemplate(t *testing.T) {
 			Annotations: map[string]string{
 				"description": "description",
 				"tags":        "tag1,tag2",
-				"openshift.io/display-name":                   "displayName",
-				"iconClass":                                   "iconClass",
-				"template.openshift.io/long-description":      "longDescription",
-				"template.openshift.io/provider-display-name": "providerDisplayName",
-				"template.openshift.io/documentation-url":     "documentationURL",
-				"template.openshift.io/support-url":           "supportURL",
+				"openshift.io/display-name":          "displayName",
+				"iconClass":                          "iconClass",
+				"openshift.io/long-description":      "longDescription",
+				"openshift.io/provider-display-name": "providerDisplayName",
+				"openshift.io/documentation-url":     "documentationURL",
+				"openshift.io/support-url":           "supportURL",
 			},
 		},
 		Parameters: []templateapi.Parameter{
@@ -55,12 +55,12 @@ func TestServiceFromTemplate(t *testing.T) {
 		Tags:        []string{"tag1", "tag2"},
 		Bindable:    true,
 		Metadata: map[string]interface{}{
-			"providerDisplayName":            "providerDisplayName",
-			"documentationUrl":               "documentationURL",
 			"supportUrl":                     "supportURL",
 			"displayName":                    "displayName",
-			"console.openshift.io/iconClass": "iconClass",
 			"longDescription":                "longDescription",
+			"providerDisplayName":            "providerDisplayName",
+			"documentationUrl":               "documentationURL",
+			"console.openshift.io/iconClass": "iconClass",
 		},
 		Plans: []api.Plan{
 			{
@@ -131,7 +131,7 @@ func TestServiceFromTemplate(t *testing.T) {
 	service := serviceFromTemplate(template)
 
 	if !reflect.DeepEqual(service, expectedService) {
-		t.Error("service did not match expectedService")
+		t.Errorf("service did not match expectedService.  Got:\n %#v\nExpected:\n%#v\n", service, expectedService)
 	}
 
 	template.Annotations["description"] = ""

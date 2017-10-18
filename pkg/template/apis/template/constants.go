@@ -5,20 +5,6 @@ const (
 	// IconClassAnnotation is the rss class of an icon representing a template
 	IconClassAnnotation = "iconClass"
 
-	// LongDescriptionAnnotation is a template's long description
-	LongDescriptionAnnotation = "template.openshift.io/long-description"
-
-	// ProviderDisplayNameAnnotation is the name of a template provider, e.g.
-	// "Red Hat, Inc."
-	ProviderDisplayNameAnnotation = "template.openshift.io/provider-display-name"
-
-	// DocumentationURLAnnotation is the url where documentation associated with
-	// a template can be found
-	DocumentationURLAnnotation = "template.openshift.io/documentation-url"
-
-	// SupportURLAnnotation is the url where support for a template can be found
-	SupportURLAnnotation = "template.openshift.io/support-url"
-
 	// ServiceBrokerRoot is the API root of the template service broker.
 	ServiceBrokerRoot = "/brokers/template.openshift.io"
 
