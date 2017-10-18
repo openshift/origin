@@ -45,11 +45,6 @@ export NETWORK_PLUGIN='redhat/openshift-ovs-multitenant'
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
-# Allow setting $JUNIT_REPORT to toggle output behavior
-if [[ -n "${JUNIT_REPORT:-}" ]]; then
-  export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-fi
-
 echo "Logging to ${LOG_DIR}..."
 
 os::log::system::start

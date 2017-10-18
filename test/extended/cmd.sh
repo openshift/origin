@@ -32,11 +32,6 @@ os::log::system::start
 os::start::configure_server
 os::start::server
 
-# Allow setting $JUNIT_REPORT to toggle output behavior
-if [[ -n "${JUNIT_REPORT:-}" ]]; then
-	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-fi
-
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 oc login -u system:admin -n default
