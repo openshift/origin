@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3ff25c8cb5bd34067f115ffe6e538251e3da5def
+%global commit 3e47e496a46d3b41f0f74ce6f179c1f726d926c7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.157.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3ff25c8
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.158.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3e47e49
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.158.0%{?dist}
+Release:        0.159.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,45 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Oct 18 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.159.0
+- update completions (jvallejo@redhat.com)
+- UPSTREAM: 52440: add --dry-run option -> oadm <drain,cordon,uncordon>
+  (jvallejo@redhat.com)
+- add bitbucket v5.4 support (bparees@redhat.com)
+- update generated completions (jvallejo@redhat.com)
+- UPSTREAM: 48033: Refactor and simplify generic printer for unknown objects
+  (jvallejo@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  77ce2ce4b376b00203d3cfc22263dce6b5fc8344 (eparis+openshiftbot@redhat.com)
+- Fix defaulting of legacy ClusterNetwork fields (danw@redhat.com)
+- Fix an error message (danw@redhat.com)
+- UPSTREAM: 50583: Make endpoints controller update based on semantic equality
+  (jliggitt@redhat.com)
+- UPSTREAM: <drop>: drop in 1.9 rebase.  Shims enough admission webhook to work
+  without modifying api (deads@redhat.com)
+- UPSTREAM: 53896: decode admission responses into a fresh object
+  (deads@redhat.com)
+- UPSTREAM: 50476:  fix the webhook unit test; the server cert needs to have a
+  valid CN; fix a fuzzer (deads@redhat.com)
+- UPSTREAM: 53823: allow fail close webhook admission (deads@redhat.com)
+- turn admission webhooks on in cluster up (deads@redhat.com)
+- UPSTREAM: 52673: default service resolver for webhook admission
+  (deads@redhat.com)
+- continue on nil configuration (jvallejo@redhat.com)
+- move build testdata files into builds subdirs (bparees@redhat.com)
+- UPSTREAM: 53857: kubelet sync pod throws more detailed events
+  (joesmith@redhat.com)
+- UPSTREAM: 50350: Wait for container cleanup before deletion
+  (joesmith@redhat.com)
+- UPSTREAM: 48970: Recreate pod sandbox when the sandbox does not have an IP
+  address. (joesmith@redhat.com)
+- UPSTREAM: 48589: When faild create pod sandbox record event.
+  (joesmith@redhat.com)
+- UPSTREAM: 48584: Move event type (joesmith@redhat.com)
+- UPSTREAM: 47599: Rerun init containers when the pod needs to be restarted
+  (joesmith@redhat.com)
+- Use glog local name instead of log (danw@redhat.com)
+
 * Tue Oct 17 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.158.0
 - remove unnecessary anonymous function (deads@redhat.com)
 - UPSTREAM: 53831: Fix volume reconciler test flake (hekumar@redhat.com)
