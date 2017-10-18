@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
+	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -131,7 +131,7 @@ func (vmap *nodeVNIDMap) setVNID(name string, id uint32, mcEnabled bool) {
 	vmap.mcEnabled[name] = mcEnabled
 	vmap.addNamespaceToSet(name, id)
 
-	log.Infof("Associate netid %d to namespace %q with mcEnabled %v", id, name, mcEnabled)
+	glog.Infof("Associate netid %d to namespace %q with mcEnabled %v", id, name, mcEnabled)
 }
 
 func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
@@ -145,7 +145,7 @@ func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 	vmap.removeNamespaceFromSet(name, id)
 	delete(vmap.ids, name)
 	delete(vmap.mcEnabled, name)
-	log.Infof("Dissociate netid %d from namespace %q", id, name)
+	glog.Infof("Dissociate netid %d from namespace %q", id, name)
 	return id, nil
 }
 
@@ -181,7 +181,7 @@ func (vmap *nodeVNIDMap) watchNetNamespaces() {
 	common.RunEventQueue(vmap.networkClient.Network().RESTClient(), common.NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*networkapi.NetNamespace)
 
-		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)
+		glog.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
 			// Skip this event if nothing has changed

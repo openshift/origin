@@ -5,7 +5,7 @@ import (
 	"net"
 	"strconv"
 
-	log "github.com/golang/glog"
+	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -25,16 +25,16 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 	subrange := make([]string, 0)
 	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("Error in initializing/fetching subnets: %v", err)
+		glog.Errorf("Error in initializing/fetching subnets: %v", err)
 		return err
 	}
 	for _, sub := range subnets.Items {
 		subrange = append(subrange, sub.Subnet)
 		if err = master.networkInfo.ValidateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
-			log.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(&sub), err)
+			glog.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(&sub), err)
 		} else {
-			log.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
+			glog.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
 		}
 	}
 	var subnetAllocatorList []*netutils.SubnetAllocator
@@ -75,7 +75,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 			if err != nil {
 				return "", fmt.Errorf("error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
-			log.Infof("Updated HostSubnet %s", common.HostSubnetToString(sub))
+			glog.Infof("Updated HostSubnet %s", common.HostSubnetToString(sub))
 			return nodeIP, nil
 		}
 	}
@@ -87,7 +87,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 			// Current subnet exhausted, check the next one
 			continue
 		} else if err != nil {
-			log.Errorf("Error allocating network from subnet: %v", possibleSubnet)
+			glog.Errorf("Error allocating network from subnet: %v", possibleSubnet)
 			continue
 		} else {
 			sub = &networkapi.HostSubnet{
@@ -102,7 +102,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 				possibleSubnet.ReleaseNetwork(sn)
 				return "", fmt.Errorf("error allocating node: %s", nodeName)
 			}
-			log.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
+			glog.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
 			return nodeIP, nil
 		}
 	}
@@ -119,7 +119,7 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 		return fmt.Errorf("error deleting subnet %v for node %q: %v", sub, nodeName, err)
 	}
 
-	log.Infof("Deleted HostSubnet %s", common.HostSubnetToString(sub))
+	glog.Infof("Deleted HostSubnet %s", common.HostSubnetToString(sub))
 	return nil
 }
 
@@ -176,7 +176,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 	if resultErr != nil {
 		utilruntime.HandleError(fmt.Errorf("status update failed for local node: %v", resultErr))
 	} else if cleared {
-		log.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.ObjectMeta.Name)
+		glog.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.ObjectMeta.Name)
 	}
 }
 
@@ -204,7 +204,7 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 	node := obj.(*kapi.Node)
 	nodeIP, err := getNodeIP(node)
 	if err != nil {
-		log.Errorf("Failed to get node IP for node %s, skipping %s event, node: %v", node.Name, eventType, node)
+		glog.Errorf("Failed to get node IP for node %s, skipping %s event, node: %v", node.Name, eventType, node)
 		return
 	}
 	master.clearInitialNodeNetworkUnavailableCondition(node)
@@ -213,11 +213,11 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 		return
 	}
 	// Node status is frequently updated by kubelet, so log only if the above condition is not met
-	log.V(5).Infof("Watch %s event for Node %q", eventType, node.Name)
+	glog.V(5).Infof("Watch %s event for Node %q", eventType, node.Name)
 
 	usedNodeIP, err := master.addNode(node.Name, nodeIP, nil, node.Status.Addresses)
 	if err != nil {
-		log.Errorf("Error creating subnet for node %s, ip %s: %v", node.Name, nodeIP, err)
+		glog.Errorf("Error creating subnet for node %s, ip %s: %v", node.Name, nodeIP, err)
 		return
 	}
 	master.hostSubnetNodeIPs[node.UID] = usedNodeIP
@@ -225,11 +225,11 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 
 func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 	node := obj.(*kapi.Node)
-	log.V(5).Infof("Watch %s event for Node %q", watch.Deleted, node.Name)
+	glog.V(5).Infof("Watch %s event for Node %q", watch.Deleted, node.Name)
 	delete(master.hostSubnetNodeIPs, node.UID)
 
 	if err := master.deleteNode(node.Name); err != nil {
-		log.Errorf("Error deleting node %s: %v", node.Name, err)
+		glog.Errorf("Error deleting node %s: %v", node.Name, err)
 		return
 	}
 }
@@ -242,7 +242,7 @@ func (master *OsdnMaster) watchSubnets() {
 		hostIP := hs.HostIP
 		subnet := hs.Subnet
 
-		log.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
+		glog.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
 			if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; ok {
@@ -253,7 +253,7 @@ func (master *OsdnMaster) watchSubnets() {
 				// nodes are upgraded after the master
 				err := master.networkClient.Network().HostSubnets().Delete(name, &metav1.DeleteOptions{})
 				if err != nil {
-					log.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", name, hostIP, err)
+					glog.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", name, hostIP, err)
 					return nil
 				}
 				var hsAnnotations map[string]string
@@ -263,12 +263,12 @@ func (master *OsdnMaster) watchSubnets() {
 						hsAnnotations = make(map[string]string)
 						hsAnnotations[networkapi.FixedVNIDHostAnnotation] = strconv.Itoa(vnidInt)
 					} else {
-						log.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation)
+						glog.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation)
 					}
 				}
 				_, err = master.addNode(name, hostIP, hsAnnotations, nil)
 				if err != nil {
-					log.Errorf("Error creating subnet for node %s, ip %s: %v", name, hostIP, err)
+					glog.Errorf("Error creating subnet for node %s, ip %s: %v", name, hostIP, err)
 					return nil
 				}
 			}
