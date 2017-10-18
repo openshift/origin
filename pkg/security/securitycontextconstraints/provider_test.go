@@ -32,27 +32,18 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "scc-sa",
 			},
-			SeccompProfiles:          []string{"foo"},
-			DefaultAddCapabilities:   []api.Capability{"foo"},
-			RequiredDropCapabilities: []api.Capability{"bar"},
+			SeccompProfiles: []string{"foo"},
 			RunAsUser: securityapi.RunAsUserStrategyOptions{
 				Type: securityapi.RunAsUserStrategyRunAsAny,
 			},
 			SELinuxContext: securityapi.SELinuxContextStrategyOptions{
 				Type: securityapi.SELinuxStrategyRunAsAny,
 			},
-			// these are pod mutating strategies that are tested above
 			FSGroup: securityapi.FSGroupStrategyOptions{
-				Type: securityapi.FSGroupStrategyMustRunAs,
-				Ranges: []securityapi.IDRange{
-					{Min: 1, Max: 1},
-				},
+				Type: securityapi.FSGroupStrategyRunAsAny,
 			},
 			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-				Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-				Ranges: []securityapi.IDRange{
-					{Min: 1, Max: 1},
-				},
+				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 			},
 		}
 	}
@@ -64,21 +55,13 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create provider %v", err)
 	}
-	sc, annotations, err := provider.CreatePodSecurityContext(pod)
+	_, _, err = provider.CreatePodSecurityContext(pod)
 	if err != nil {
 		t.Fatalf("unable to create psc %v", err)
 	}
 
-	// The generated security context should have filled in missing options, so they should differ
-	if reflect.DeepEqual(sc, &pod.Spec.SecurityContext) {
-		t.Error("expected created security context to be different than container's, but they were identical")
-	}
-
-	if reflect.DeepEqual(annotations, pod.Annotations) {
-		t.Error("expected created annotations to be different than container's, but they were identical")
-	}
-
 	// Creating the provider or the security context should not have mutated the scc or pod
+	// since all the strategies were permissive
 	if !reflect.DeepEqual(createPod(), pod) {
 		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreatePodSecurityContext. diff:\n%s", diff)
@@ -102,30 +85,22 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 
 	// Create an SCC with strategies that will populate a blank security context
 	createSCC := func() *securityapi.SecurityContextConstraints {
-		var uid int64 = 1
 		return &securityapi.SecurityContextConstraints{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "scc-sa",
 			},
-			DefaultAddCapabilities:   []api.Capability{"foo"},
-			RequiredDropCapabilities: []api.Capability{"bar"},
 			RunAsUser: securityapi.RunAsUserStrategyOptions{
-				Type: securityapi.RunAsUserStrategyMustRunAs,
-				UID:  &uid,
+				Type: securityapi.RunAsUserStrategyRunAsAny,
 			},
 			SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-				Type:           securityapi.SELinuxStrategyMustRunAs,
-				SELinuxOptions: &api.SELinuxOptions{User: "you"},
+				Type: securityapi.SELinuxStrategyRunAsAny,
 			},
-			// these are pod mutating strategies that are tested above
 			FSGroup: securityapi.FSGroupStrategyOptions{
 				Type: securityapi.FSGroupStrategyRunAsAny,
 			},
 			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
 				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 			},
-			// mutates the container SC by defaulting to true if container sets nil
-			ReadOnlyRootFilesystem: true,
 		}
 	}
 
@@ -136,17 +111,13 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create provider %v", err)
 	}
-	sc, err := provider.CreateContainerSecurityContext(pod, &pod.Spec.Containers[0])
+	_, err = provider.CreateContainerSecurityContext(pod, &pod.Spec.Containers[0])
 	if err != nil {
 		t.Fatalf("unable to create container security context %v", err)
 	}
 
-	// The generated security context should have filled in missing options, so they should differ
-	if reflect.DeepEqual(sc, &pod.Spec.Containers[0].SecurityContext) {
-		t.Error("expected created security context to be different than container's, but they were identical")
-	}
-
 	// Creating the provider or the security context should not have mutated the scc or pod
+	// since all the strategies were permissive
 	if !reflect.DeepEqual(createPod(), pod) {
 		diff := diff.ObjectDiff(createPod(), pod)
 		t.Errorf("pod was mutated by CreateContainerSecurityContext. diff:\n%s", diff)
