@@ -22,6 +22,8 @@
 function cleanup() {
     return_code=$?
 
+    echo "info: Max memory usage: $( cat /sys/fs/cgroup/memory/memory.max_usage_in_bytes || "<unknown>" )b"
+
     os::test::junit::generate_report
     if [[ "${JUNIT_REPORT_NUM_FAILED:-}" == "0 failed" ]]; then
         if [[ "${return_code}" -ne "0" ]]; then
