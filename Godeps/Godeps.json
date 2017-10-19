@@ -361,11 +361,6 @@
 			"Rev": "63ce630574a5ec05ecd8e8de5cea16332a5a684d"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudfront/sign",
-			"Comment": "v1.6.10",
-			"Rev": "63ce630574a5ec05ecd8e8de5cea16332a5a684d"
-		},
-		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/ec2",
 			"Comment": "v1.6.10",
 			"Rev": "63ce630574a5ec05ecd8e8de5cea16332a5a684d"
@@ -377,6 +372,11 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/elb",
+			"Comment": "v1.6.10",
+			"Rev": "63ce630574a5ec05ecd8e8de5cea16332a5a684d"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/kms",
 			"Comment": "v1.6.10",
 			"Rev": "63ce630574a5ec05ecd8e8de5cea16332a5a684d"
 		},
@@ -397,11 +397,6 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/s3/s3manager",
-			"Comment": "v1.6.10",
-			"Rev": "63ce630574a5ec05ecd8e8de5cea16332a5a684d"
-		},
-		{
-			"ImportPath": "github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface",
 			"Comment": "v1.6.10",
 			"Rev": "63ce630574a5ec05ecd8e8de5cea16332a5a684d"
 		},
