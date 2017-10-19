@@ -14,10 +14,10 @@ import (
 	"strconv"
 	"strings"
 
+	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/fileutils"
-	dockertypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
@@ -682,10 +682,13 @@ func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownl
 
 func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive.TarOptions {
 	dst = trimLeadingPath(dst)
-	patterns, patDirs, _, _ := fileutils.CleanPatterns(excludes)
 	options := &archive.TarOptions{}
+	pm, err := fileutils.NewPatternMatcher(excludes)
+	if err != nil {
+		return options
+	}
 	for _, info := range infos {
-		if ok, _ := fileutils.OptimizedMatches(info.Path, patterns, patDirs); ok {
+		if ok, _ := pm.Matches(info.Path); ok {
 			continue
 		}
 		options.IncludeFiles = append(options.IncludeFiles, info.Path)
