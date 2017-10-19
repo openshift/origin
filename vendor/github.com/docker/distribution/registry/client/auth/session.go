@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth/challenge"
 	"github.com/docker/distribution/registry/client/transport"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -155,7 +155,9 @@ type RepositoryScope struct {
 // using the scope grammar
 func (rs RepositoryScope) String() string {
 	repoType := "repository"
-	if rs.Class != "" {
+	// Keep existing format for image class to maintain backwards compatibility
+	// with authorization servers which do not support the expanded grammar.
+	if rs.Class != "" && rs.Class != "image" {
 		repoType = fmt.Sprintf("%s(%s)", repoType, rs.Class)
 	}
 	return fmt.Sprintf("%s:%s:%s", repoType, rs.Repository, strings.Join(rs.Actions, ","))
@@ -253,15 +255,6 @@ func (th *tokenHandler) AuthorizeRequest(req *http.Request, params map[string]st
 	return nil
 }
 
-func hasScope(scopes []string, scope string) bool {
-	for _, s := range scopes {
-		if s == scope {
-			return true
-		}
-	}
-	return false
-}
-
 func (th *tokenHandler) getToken(params map[string]string, additionalScopes ...string) (string, error) {
 	th.tokenLock.Lock()
 	defer th.tokenLock.Unlock()
@@ -271,9 +264,6 @@ func (th *tokenHandler) getToken(params map[string]string, additionalScopes ...s
 	}
 	var addedScopes bool
 	for _, scope := range additionalScopes {
-		if hasScope(scopes, scope) {
-			continue
-		}
 		scopes = append(scopes, scope)
 		addedScopes = true
 	}

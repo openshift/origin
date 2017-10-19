@@ -15,12 +15,12 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/distribution/registry/storage/cache"
 	"github.com/docker/distribution/registry/storage/cache/memory"
+	"github.com/opencontainers/go-digest"
 )
 
 // Registry provides an interface for calling Repositories, which returns a catalog of repositories.
@@ -268,7 +268,7 @@ func descriptorFromResponse(response *http.Response) (distribution.Descriptor, e
 		return desc, nil
 	}
 
-	dgst, err := digest.ParseDigest(digestHeader)
+	dgst, err := digest.Parse(digestHeader)
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}
@@ -321,8 +321,7 @@ func (t *tags) Get(ctx context.Context, tag string) (distribution.Descriptor, er
 	defer resp.Body.Close()
 
 	switch {
-	case resp.StatusCode >= 200 && resp.StatusCode < 400 && len(resp.Header.Get("Docker-Content-Digest")) > 0:
-		// if the response is a success AND a Docker-Content-Digest can be retrieved from the headers
+	case resp.StatusCode >= 200 && resp.StatusCode < 400:
 		return descriptorFromResponse(resp)
 	default:
 		// if the response is an error - there will be no body to decode.
@@ -422,22 +421,18 @@ func (ms *manifests) Get(ctx context.Context, dgst digest.Digest, options ...dis
 		ref         reference.Named
 		err         error
 		contentDgst *digest.Digest
-		mediaTypes  []string
 	)
 
 	for _, option := range options {
-		switch opt := option.(type) {
-		case distribution.WithTagOption:
+		if opt, ok := option.(distribution.WithTagOption); ok {
 			digestOrTag = opt.Tag
 			ref, err = reference.WithTag(ms.name, opt.Tag)
 			if err != nil {
 				return nil, err
 			}
-		case contentDigestOption:
+		} else if opt, ok := option.(contentDigestOption); ok {
 			contentDgst = opt.digest
-		case distribution.WithManifestMediaTypesOption:
-			mediaTypes = opt.MediaTypes
-		default:
+		} else {
 			err := option.Apply(ms)
 			if err != nil {
 				return nil, err
@@ -453,10 +448,6 @@ func (ms *manifests) Get(ctx context.Context, dgst digest.Digest, options ...dis
 		}
 	}
 
-	if len(mediaTypes) == 0 {
-		mediaTypes = distribution.ManifestMediaTypes()
-	}
-
 	u, err := ms.ub.BuildManifestURL(ref)
 	if err != nil {
 		return nil, err
@@ -467,7 +458,7 @@ func (ms *manifests) Get(ctx context.Context, dgst digest.Digest, options ...dis
 		return nil, err
 	}
 
-	for _, t := range mediaTypes {
+	for _, t := range distribution.ManifestMediaTypes() {
 		req.Header.Add("Accept", t)
 	}
 
@@ -484,7 +475,7 @@ func (ms *manifests) Get(ctx context.Context, dgst digest.Digest, options ...dis
 		return nil, distribution.ErrManifestNotModified
 	} else if SuccessStatus(resp.StatusCode) {
 		if contentDgst != nil {
-			dgst, err := digest.ParseDigest(resp.Header.Get("Docker-Content-Digest"))
+			dgst, err := digest.Parse(resp.Header.Get("Docker-Content-Digest"))
 			if err == nil {
 				*contentDgst = dgst
 			}
@@ -562,7 +553,7 @@ func (ms *manifests) Put(ctx context.Context, m distribution.Manifest, options .
 
 	if SuccessStatus(resp.StatusCode) {
 		dgstHeader := resp.Header.Get("Docker-Content-Digest")
-		dgst, err := digest.ParseDigest(dgstHeader)
+		dgst, err := digest.Parse(dgstHeader)
 		if err != nil {
 			return "", err
 		}
@@ -670,7 +661,7 @@ func (bs *blobs) Put(ctx context.Context, mediaType string, p []byte) (distribut
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}
-	dgstr := digest.Canonical.New()
+	dgstr := digest.Canonical.Digester()
 	n, err := io.Copy(writer, io.TeeReader(bytes.NewReader(p), dgstr.Hash()))
 	if err != nil {
 		return distribution.Descriptor{}, err
