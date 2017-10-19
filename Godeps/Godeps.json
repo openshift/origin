@@ -607,43 +607,43 @@
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/reference",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/image",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/manifest",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/pkg/strslice",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/signature",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/transports",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/types",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/image/version",
-			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+			"Rev": "8df46f076f47521cef216839d04202e89471da2e"
 		},
 		{
 			"ImportPath": "github.com/containers/storage/pkg/homedir",
