@@ -20,10 +20,14 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	extensions_v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
+	k8s_deployutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/printers"
@@ -208,22 +212,13 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 		return fallback, nil
 
 	default:
-		pod, err := f.AttachablePodForObject(object, 1*time.Minute)
+
+		pod, err := f.MostAccuratePodTemplateForObject(object)
 		if pod != nil {
 			return &api.PodTemplateSpec{
 				ObjectMeta: pod.ObjectMeta,
 				Spec:       pod.Spec,
 			}, err
-		}
-		switch t := object.(type) {
-		case *api.ReplicationController:
-			return t.Spec.Template, err
-		case *extensions.ReplicaSet:
-			return &t.Spec.Template, err
-		case *extensions.DaemonSet:
-			return &t.Spec.Template, err
-		case *batch.Job:
-			return &t.Spec.Template, err
 		}
 		return nil, err
 	}
@@ -365,6 +360,114 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	}
 }
 
+func (f *Factory) MostAccuratePodTemplateForObject(object runtime.Object) (*api.PodTemplateSpec, error) {
+	sortBy := func(pods []*v1.Pod) sort.Interface { return controller.ActivePods(pods) }
+	clientset, err := f.ClientAccessFactory.ClientSet()
+	if err != nil {
+		return nil, err
+	}
+	var podSpec *api.PodTemplateSpec
+	var pod *api.Pod
+	var selector labels.Selector
+	var namespace string
+	switch t := object.(type) {
+	case *extensions.ReplicaSet:
+		namespace = t.Namespace
+		selector = labels.SelectorFromSet(t.Spec.Selector.MatchLabels)
+		if err != nil {
+			return &t.Spec.Template, fmt.Errorf("invalid label selector: %v", err)
+		}
+		pods, err := GetAllPods(clientset.Core(), namespace, selector, sortBy)
+		if err != nil || len(pods) == 0 {
+			return &t.Spec.Template, err
+		}
+		pod = pods[0]
+	case *api.ReplicationController:
+		namespace = t.Namespace
+		selector = labels.SelectorFromSet(t.Spec.Selector)
+		if err != nil {
+			return t.Spec.Template, fmt.Errorf("invalid label selector: %v", err)
+		}
+		pods, err := GetAllPods(clientset.Core(), namespace, selector, sortBy)
+		if err != nil || len(pods) == 0 {
+			return t.Spec.Template, err
+		}
+		pod = pods[0]
+	case *apps.StatefulSet:
+		namespace = t.Namespace
+		selector, err = metav1.LabelSelectorAsSelector(t.Spec.Selector)
+		if err != nil {
+			return &t.Spec.Template, fmt.Errorf("invalid label selector: %v", err)
+		}
+		pods, err := GetAllPods(clientset.Core(), namespace, selector, sortBy)
+		if err != nil || len(pods) == 0 {
+			return &t.Spec.Template, err
+		}
+		pod = pods[0]
+	case *extensions.Deployment:
+		namespace = t.Namespace
+		selector, err = metav1.LabelSelectorAsSelector(t.Spec.Selector)
+		if err != nil {
+			return &t.Spec.Template, fmt.Errorf("invalid label selector: %v", err)
+		}
+		options := metav1.ListOptions{LabelSelector: selector.String()}
+		var allRs []*extensions_v1beta1.ReplicaSet
+		rsList, err := clientset.Extensions().ReplicaSets(namespace).List(options)
+		if err != nil {
+			return &t.Spec.Template, err
+		}
+		for _, rs := range rsList.Items {
+			rs_external := &extensions_v1beta1.ReplicaSet{}
+			extensions_v1beta1.Convert_extensions_ReplicaSet_To_v1beta1_ReplicaSet(&rs, rs_external, nil)
+			allRs = append(allRs, rs_external)
+		}
+		d := &extensions_v1beta1.Deployment{}
+		api.Scheme.Convert(t, d, nil)
+		rs, err := k8s_deployutil.FindNewReplicaSet(d, allRs)
+		if err != nil {
+			return &t.Spec.Template, err
+		}
+		rs_selector, err := metav1.LabelSelectorAsSelector(rs.Spec.Selector)
+		if err != nil {
+			return &t.Spec.Template, fmt.Errorf("invalid label selector: %v", err)
+		}
+		pods, err := GetAllPods(clientset.Core(), namespace, rs_selector, sortBy)
+		if err != nil || len(pods) == 0 {
+			return &t.Spec.Template, err
+		}
+		pod = pods[0]
+	case *batch.Job:
+		namespace = t.Namespace
+		selector, err = metav1.LabelSelectorAsSelector(t.Spec.Selector)
+		if err != nil {
+			return nil, fmt.Errorf("invalid label selector: %v", err)
+		}
+		pods, err := GetAllPods(clientset.Core(), namespace, selector, sortBy)
+		if err != nil || len(pods) == 0 {
+			return &t.Spec.Template, err
+		}
+		pod = pods[0]
+	case *api.Pod:
+		podSpec = &api.PodTemplateSpec{
+			ObjectMeta: t.ObjectMeta,
+			Spec:       t.Spec,
+		}
+	default:
+		gvks, _, err := api.Scheme.ObjectKinds(object)
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("cannot get pod template of %v: not implemented", gvks[0])
+	}
+	if pod != nil {
+		podSpec = &api.PodTemplateSpec{
+			ObjectMeta: pod.ObjectMeta,
+			Spec:       pod.Spec,
+		}
+	}
+	return podSpec, err
+}
+
 func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*v1.Pod) sort.Interface) (string, error) {
 	selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
@@ -430,3 +533,30 @@ func (g groupResourcesByName) Less(i, j int) bool {
 	return g[i].Group < g[j].Group
 }
 func (g groupResourcesByName) Swap(i, j int) { g[i], g[j] = g[j], g[i] }
+
+// GetAllPods returns all pods matching the namespace and label selector
+func GetAllPods(client coreclient.PodsGetter, namespace string, selector labels.Selector, sortBy func([]*v1.Pod) sort.Interface) ([]*api.Pod, error) {
+	options := metav1.ListOptions{LabelSelector: selector.String()}
+	res := []*api.Pod{}
+	podList, err := client.Pods(namespace).List(options)
+	if err != nil {
+		return nil, err
+	}
+	pods := []*v1.Pod{}
+	for i := range podList.Items {
+		pod := podList.Items[i]
+		externalPod := &v1.Pod{}
+		v1.Convert_api_Pod_To_v1_Pod(&pod, externalPod, nil)
+		pods = append(pods, externalPod)
+	}
+
+	if len(pods) > 0 {
+		sort.Sort(sortBy(pods))
+		for j := range pods {
+			internalPod := &api.Pod{}
+			v1.Convert_v1_Pod_To_api_Pod(pods[j], internalPod, nil)
+			res = append(res, internalPod)
+		}
+	}
+	return res, nil
+}

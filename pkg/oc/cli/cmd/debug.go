@@ -235,12 +235,11 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		return err
 	}
 
-	one := false
-	infos, err := b.Do().IntoSingleItemImplied(&one).Infos()
+	infos, err := b.Do().Infos()
 	if err != nil {
 		return err
 	}
-	if !one {
+	if len(infos) == 0 {
 		return fmt.Errorf("you must identify a resource with a pod template to debug")
 	}
 
