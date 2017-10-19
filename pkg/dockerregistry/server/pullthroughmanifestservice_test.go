@@ -579,7 +579,7 @@ func (t *testManifestService) Put(ctx context.Context, manifest distribution.Man
 
 func (t *testManifestService) Delete(ctx context.Context, dgst digest.Digest) error {
 	t.calls["Delete"]++
-	return fmt.Errorf("method not implemented")
+	return ErrNotImplemented
 }
 
 const etcdDigest = "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238"

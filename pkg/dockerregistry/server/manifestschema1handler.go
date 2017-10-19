@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 
@@ -11,7 +12,15 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/libtrust"
+
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
+
+// ErrNoManifestMetadata is an error informing about invalid manifest that lacks metadata.
+var ErrNoManifestMetadata = errors.New("no manifest metadata found")
 
 func unmarshalManifestSchema1(content []byte, signatures [][]byte) (distribution.Manifest, error) {
 	// prefer signatures from the manifest
@@ -41,8 +50,9 @@ func unmarshalManifestSchema1(content []byte, signatures [][]byte) (distribution
 }
 
 type manifestSchema1Handler struct {
-	repo     *repository
-	manifest *schema1.SignedManifest
+	repo         *repository
+	manifest     *schema1.SignedManifest
+	cachedLayers []imageapiv1.ImageLayer
 }
 
 var _ ManifestHandler = &manifestSchema1Handler{}
@@ -55,8 +65,84 @@ func (h *manifestSchema1Handler) Digest() (digest.Digest, error) {
 	return digest.FromBytes(h.manifest.Canonical), nil
 }
 
+func (h *manifestSchema1Handler) Layers(ctx context.Context) ([]imageapiv1.ImageLayer, error) {
+	if h.cachedLayers == nil {
+		var sizeContainer = imageapi.DockerV1CompatibilityImageSize{}
+
+		layers := make([]imageapiv1.ImageLayer, len(h.manifest.FSLayers))
+		for hi, li := 0, len(h.manifest.FSLayers)-1; hi < len(h.manifest.FSLayers) && li >= 0; hi, li = hi+1, li-1 {
+			layer := &layers[li]
+			sizeContainer.Size = 0
+			if hi < len(h.manifest.History) {
+				if err := json.Unmarshal([]byte(h.manifest.History[hi].V1Compatibility), &sizeContainer); err != nil {
+					sizeContainer.Size = 0
+				}
+			}
+			if err := h.updateLayerMetadata(ctx, layer, &h.manifest.FSLayers[hi], sizeContainer.Size); err != nil {
+				return nil, err
+			}
+		}
+
+		h.cachedLayers = layers
+	}
+
+	layers := make([]imageapiv1.ImageLayer, len(h.cachedLayers))
+	for i, l := range h.cachedLayers {
+		layers[i] = l
+	}
+
+	return layers, nil
+}
+
 func (h *manifestSchema1Handler) Manifest() distribution.Manifest {
 	return h.manifest
+}
+
+func (h *manifestSchema1Handler) Metadata(ctx context.Context) (*imageapi.DockerImage, error) {
+	if len(h.manifest.History) == 0 {
+		// should never have an empty history, but just in case...
+		return nil, ErrNoManifestMetadata
+	}
+
+	v1Metadata := imageapi.DockerV1CompatibilityImage{}
+	if err := json.Unmarshal([]byte(h.manifest.History[0].V1Compatibility), &v1Metadata); err != nil {
+		return nil, err
+	}
+
+	var (
+		dockerImageSize int64
+		layerSet        = sets.NewString()
+	)
+
+	layers, err := h.Layers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, layer := range layers {
+		if !layerSet.Has(layer.Name) {
+			dockerImageSize += layer.LayerSize
+			layerSet.Insert(layer.Name)
+		}
+	}
+
+	meta := &imageapi.DockerImage{}
+	meta.ID = v1Metadata.ID
+	meta.Parent = v1Metadata.Parent
+	meta.Comment = v1Metadata.Comment
+	meta.Created = v1Metadata.Created
+	meta.Container = v1Metadata.Container
+	meta.ContainerConfig = v1Metadata.ContainerConfig
+	meta.DockerVersion = v1Metadata.DockerVersion
+	meta.Author = v1Metadata.Author
+	meta.Config = v1Metadata.Config
+	meta.Architecture = v1Metadata.Architecture
+	meta.Size = dockerImageSize
+
+	return meta, nil
+}
+
+func (h *manifestSchema1Handler) Signatures(ctx context.Context) ([][]byte, error) {
+	return h.manifest.Signatures()
 }
 
 func (h *manifestSchema1Handler) Payload() (mediaType string, payload []byte, canonical []byte, err error) {
@@ -131,5 +217,27 @@ func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerif
 	if len(errs) > 0 {
 		return errs
 	}
+	return nil
+}
+
+func (h *manifestSchema1Handler) updateLayerMetadata(
+	ctx context.Context,
+	layerMetadata *imageapiv1.ImageLayer,
+	manifestLayer *schema1.FSLayer,
+	size int64,
+) error {
+	layerMetadata.Name = manifestLayer.BlobSum.String()
+	layerMetadata.MediaType = schema1.MediaTypeManifestLayer
+	if size > 0 {
+		layerMetadata.LayerSize = size
+		return nil
+	}
+
+	desc, err := h.repo.Blobs(ctx).Stat(ctx, digest.Digest(layerMetadata.Name))
+	if err != nil {
+		context.GetLogger(ctx).Errorf("failed to stat blob %s", layerMetadata.Name)
+		return err
+	}
+	layerMetadata.LayerSize = desc.Size
 	return nil
 }

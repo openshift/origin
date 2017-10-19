@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
@@ -8,8 +9,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/libtrust"
+
+	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
+	"github.com/openshift/origin/pkg/dockerregistry/testutil"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 func TestUnmarshalManifestSchema1(t *testing.T) {
@@ -166,6 +174,358 @@ func TestUnmarshalManifestSchema1(t *testing.T) {
 	}
 }
 
+func TestManifestSchema1Handler_Layers(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		manifestString  string
+		blobDescriptors blobDescriptors
+		expectedLayers  []imageapiv1.ImageLayer
+		expectedError   error
+	}{
+		{
+			name:           "valid manifest with sizes",
+			manifestString: manifestSchema1,
+			expectedLayers: []imageapiv1.ImageLayer{
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      manifestSchema1Layers[1],
+					LayerSize: 1095501,
+				},
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      digestSHA256GzippedEmptyTar.String(),
+					LayerSize: 0,
+				},
+			},
+		},
+
+		{
+			name:           "valid manifest with missing sizes",
+			manifestString: manifestSchema1WithoutSize,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[1]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[1]),
+					Size:   100,
+				},
+			},
+			expectedLayers: []imageapiv1.ImageLayer{
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      manifestSchema1Layers[1],
+					LayerSize: 100,
+				},
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      digestSHA256GzippedEmptyTar.String(),
+					LayerSize: 0,
+				},
+			},
+		},
+
+		{
+			name:           "manifest sizes take precedence",
+			manifestString: manifestSchema1,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[1]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[1]),
+					Size:   5,
+				},
+			},
+			expectedLayers: []imageapiv1.ImageLayer{
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      manifestSchema1Layers[1],
+					LayerSize: 1095501,
+				},
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      digestSHA256GzippedEmptyTar.String(),
+					LayerSize: 0,
+				},
+			},
+		},
+
+		{
+			name:           "shorter history",
+			manifestString: manifestSchema1ShortHistory,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[1]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[1]),
+					Size:   100,
+				},
+			},
+			expectedLayers: []imageapiv1.ImageLayer{
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      manifestSchema1Layers[1],
+					LayerSize: 100,
+				},
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      digestSHA256GzippedEmptyTar.String(),
+					LayerSize: 0,
+				},
+			},
+		},
+
+		{
+			name:           "shorter fs layers",
+			manifestString: manifestSchema1ShortFSLayers,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[0]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[0]),
+					Size:   100,
+				},
+			},
+			expectedLayers: []imageapiv1.ImageLayer{
+				{
+					MediaType: schema1.MediaTypeManifestLayer,
+					Name:      digestSHA256GzippedEmptyTar.String(),
+					LayerSize: 5,
+				},
+			},
+		},
+
+		{
+			name:           "manifest with no layers",
+			manifestString: manifestSchema1NoLayers,
+			expectedLayers: []imageapiv1.ImageLayer{},
+		},
+
+		{
+			name:           "blob unknown",
+			manifestString: manifestSchema1WithoutSize,
+			expectedError:  distribution.ErrBlobUnknown,
+		},
+	} {
+
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := tryUnmarshalManifestSchema1OrGenerateSignatures(t, tc.manifestString)
+
+			bds := blobDescriptors{
+				digestSHA256GzippedEmptyTar: distribution.Descriptor{
+					Digest: digestSHA256GzippedEmptyTar,
+					Size:   0,
+				},
+			}
+			for d, desc := range tc.blobDescriptors {
+				bds[d] = desc
+			}
+
+			bs := newTestBlobStore(bds, nil)
+			_, imageClient := testutil.NewFakeOpenShiftWithClient()
+			repo := newTestRepository(t, "nm", "repo", testRepositoryOptions{
+				client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
+				blobs:  bs,
+			})
+			h, err := NewManifestHandler(repo, manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ctx := withAuthPerformed(context.Background())
+			layers, err := h.Layers(ctx)
+			if !assertErrorAndContinue(t, err, tc.expectedError) {
+				return
+			}
+
+			if !reflect.DeepEqual(layers, tc.expectedLayers) {
+				t.Fatalf("got unexpected docker image layers: %s", diff.ObjectGoPrintDiff(layers, tc.expectedLayers))
+			}
+		})
+	}
+}
+
+func TestManifestSchema1Handler_Metadata(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		manifestString    string
+		metadataString    string
+		blobDescriptors   blobDescriptors
+		expectedImageSize int64
+		expectedError     error
+	}{
+		{
+			name:              "sizes in manifest",
+			manifestString:    manifestSchema1,
+			metadataString:    manifestSchema1Metadata,
+			expectedImageSize: 1095501,
+		},
+
+		{
+			name:           "manifest without layer sizes",
+			manifestString: manifestSchema1WithoutSize,
+			metadataString: manifestSchema1Metadata,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[1]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[1]),
+					Size:   100,
+				},
+			},
+			expectedImageSize: 100,
+		},
+
+		{
+			name:           "manifest sizes take precedence",
+			manifestString: manifestSchema1,
+			metadataString: manifestSchema1Metadata,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[1]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[1]),
+					Size:   5,
+				},
+			},
+			expectedImageSize: 1095501,
+		},
+
+		{
+			name:           "manifest with shorter history",
+			manifestString: manifestSchema1ShortHistory,
+			metadataString: manifestSchema1Metadata,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[1]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[1]),
+					Size:   100,
+				},
+			},
+			expectedImageSize: 100,
+		},
+
+		{
+			name:           "manifest with shorter fs layers",
+			manifestString: manifestSchema1ShortFSLayers,
+			metadataString: manifestSchema1Metadata,
+			blobDescriptors: blobDescriptors{
+				digest.Digest(manifestSchema1Layers[0]): distribution.Descriptor{
+					Digest: digest.Digest(manifestSchema1Layers[0]),
+					Size:   100,
+				},
+			},
+			expectedImageSize: 5,
+		},
+
+		{
+			name:           "manifest with no layers",
+			manifestString: manifestSchema1NoLayers,
+			expectedError:  ErrNoManifestMetadata,
+		},
+
+		{
+			name:           "blob unknown",
+			manifestString: manifestSchema1WithoutSize,
+			expectedError:  distribution.ErrBlobUnknown,
+		},
+	} {
+
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := tryUnmarshalManifestSchema1OrGenerateSignatures(t, tc.manifestString)
+
+			bds := blobDescriptors{
+				digestSHA256GzippedEmptyTar: distribution.Descriptor{
+					Digest: digestSHA256GzippedEmptyTar,
+					Size:   0,
+				},
+			}
+			for d, desc := range tc.blobDescriptors {
+				bds[d] = desc
+			}
+
+			bs := newTestBlobStore(bds, nil)
+			_, imageClient := testutil.NewFakeOpenShiftWithClient()
+			repo := newTestRepository(t, "nm", "repo", testRepositoryOptions{
+				client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
+				blobs:  bs,
+			})
+			h, err := NewManifestHandler(repo, manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ctx := withAuthPerformed(context.Background())
+			meta, err := h.Metadata(ctx)
+			if !assertErrorAndContinue(t, err, tc.expectedError) {
+				return
+			}
+
+			if meta.Created.IsZero() {
+				t.Errorf("unexpected non-zero Created value")
+			}
+
+			expMeta := imageapi.DockerImage{}
+			if err := json.Unmarshal([]byte(tc.metadataString), &expMeta); err != nil {
+				t.Fatal(err)
+			}
+			expMeta.Size = tc.expectedImageSize
+			expMeta.TypeMeta = meta.TypeMeta
+
+			if !reflect.DeepEqual(meta, &expMeta) {
+				t.Fatalf("got unexpected image metadata: %s", diff.ObjectGoPrintDiff(meta, &expMeta))
+			}
+		})
+	}
+}
+
+var _signingKey libtrust.PrivateKey
+
+func getSigningKey(t *testing.T) libtrust.PrivateKey {
+	if _signingKey == nil {
+		sk, err := libtrust.GenerateECP256PrivateKey()
+		if err != nil {
+			t.Fatalf("failed to generate signing key: %v", err)
+		}
+		_signingKey = sk
+	}
+	return _signingKey
+}
+
+func assertErrorAndContinue(t *testing.T, e, exp error) bool {
+	if e != nil {
+		if exp == nil {
+			t.Fatalf("got unexpected error: (%T) %v", e, e)
+		}
+		if e.Error() != exp.Error() {
+			t.Fatalf("got unexpected error: %s", diff.ObjectGoPrintDiff(e, exp))
+		}
+		return false
+	}
+	if e == nil && exp != nil {
+		t.Fatalf("got non-error while expecting: %v", exp)
+	}
+
+	return true
+}
+
+func tryUnmarshalManifestSchema1OrGenerateSignatures(t *testing.T, manifestString string) *schema1.SignedManifest {
+	manifest, err := unmarshalManifestSchema1([]byte(manifestString), [][]byte{})
+	if err != nil {
+		t.Logf("failed to unmarshal manifest because of: %v\ntrying to generate signatures...", err)
+		ms1 := schema1.Manifest{}
+		if err := json.Unmarshal([]byte(manifestString), &ms1); err != nil {
+			t.Fatalf("failed to unmarshal manifest json: %v", err)
+		}
+		signedManifest, err := schema1.Sign(&ms1, getSigningKey(t))
+		if err != nil {
+			t.Fatalf("failed to sign manifest: %v", err)
+		}
+		payload, err := signedManifest.MarshalJSON()
+		if err != nil {
+			t.Fatalf("failed to serialize manifest: %v", err)
+		}
+		t.Logf("signed manifest:\n%s\n", string(payload))
+		t.Fatalf("rewrite the manifest string according to the output")
+	}
+
+	sm, ok := manifest.(*schema1.SignedManifest)
+	if !ok {
+		t.Fatalf("got unexpected manifest schema: %T", sm)
+	}
+
+	return sm
+}
+
+// imported from docker.io/busybox:1.23
+const manifestSchema1Digest = `sha256:2780635f864cc66c7a5c74aca8047970b95cb91b6d5c135964d984ffe07a2024`
+const manifestSchema1Metadata = "{\"Id\":\"d7057cb020844f245031d27b76cb18af05db1cc3a96a29fa7777af75f5ac91a3\",\"Parent\":\"cfa753dfea5e68a24366dfba16e6edf573daa447abf65bc11619c1a98a3aff54\",\"Created\":\"2015-09-21T20:15:47.866196515Z\",\"Container\":\"7f652467f9e6d1b3bf51172868b9b0c2fa1c711b112f4e987029b1624dd6295f\",\"ContainerConfig\":{\"Hostname\":\"5f8e0e129ff1\",\"Cmd\":[\"/bin/sh\",\"-c\",\"#(nop) CMD [\\\"sh\\\"]\"],\"Image\":\"cfa753dfea5e68a24366dfba16e6edf573daa447abf65bc11619c1a98a3aff54\"},\"DockerVersion\":\"1.8.2\",\"Config\":{\"Hostname\":\"5f8e0e129ff1\",\"Cmd\":[\"sh\"],\"Image\":\"cfa753dfea5e68a24366dfba16e6edf573daa447abf65bc11619c1a98a3aff54\"},\"Architecture\":\"amd64\",\"Size\":1095501}\n"
 const manifestSchema1Signature = "{\"header\":{\"jwk\":{\"crv\":\"P-256\",\"kid\":\"QKEZ:N7ZA:BUSY:KPSH:PARP:NU4K:POHK:VLWF:EW22:4JFB:MKYJ:ZYSE\",\"kty\":\"EC\",\"x\":\"ppU7aXPngzHYJUswWcpDDL50hYkHWanmcrs_0X8L8Pc\",\"y\":\"dRpAggds8FfHRZsOms_g13XBOMnuqkP1fEWisGwvXso\"},\"alg\":\"ES256\"},\"signature\":\"KixitWkKYsVqNL0mkSxVSZMXQ61tzgXTlTlyeLHz4I2dZNXdDwHJZmYeoMGnYKM_HQKDcQHQeYSoxlu8AMTLOQ\",\"protected\":\"eyJmb3JtYXRMZW5ndGgiOjMyMTAsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNy0wOS0xNVQwOTo0MzowNFoifQ\"}"
 
 var manifestSchema1Layers = []string{
@@ -323,6 +683,31 @@ const manifestSchema1ShortFSLayers = `{
          },
          "signature": "sdJzNKAlPrIeV4ftAwoSGBO3SP0p3ciqsSaj19Q-zDpgrU6R5L4uGp2OiP7yt5gz8w5kQScbjACrrfS-hcZTkA",
          "protected": "eyJmb3JtYXRMZW5ndGgiOjMwODIsImZvcm1hdFRhaWwiOiJDbjAiLCJ0aW1lIjoiMjAxNy0wOS0xOFQxNTowNDowMFoifQ"
+      }
+   ]
+}`
+
+const manifestSchema1NoLayers = `{
+   "schemaVersion": 1,
+   "name": "library/busybox",
+   "tag": "1.23",
+   "architecture": "amd64",
+   "fsLayers": [],
+   "history": [],
+   "signatures": [
+      {
+         "header": {
+            "jwk": {
+               "crv": "P-256",
+               "kid": "4ZEJ:RG7V:AYDT:YJDG:E4QU:3PDO:KZBH:REE3:VMB5:2MBZ:BW7L:3HUF",
+               "kty": "EC",
+               "x": "mEFmDF5f4rVaJSNwLH7dyaaYPPi--L3V6Oqq5bvtZTA",
+               "y": "RqymHTBZ7UQenhOsqKhzwDDNjmMHSEuVujYZxwoJVjw"
+            },
+            "alg": "ES256"
+         },
+         "signature": "OK7YO7yFRTBcipZ7qgx7K5SHSEzqV99D9EkKM5oLBYbKl2ouQDv-wORH3QNARynRGqPbQ1Dyjpi-4z2kSvc74w",
+         "protected": "eyJmb3JtYXRMZW5ndGgiOjEzNiwiZm9ybWF0VGFpbCI6IkNuMCIsInRpbWUiOiIyMDE3LTA5LTE5VDEzOjA0OjA4WiJ9"
       }
    ]
 }`
