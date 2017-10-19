@@ -25,6 +25,8 @@ function os::util::describe_return_code() {
 		message+="after ${formatted_time}"
 	fi
 
+	os::log::info "Peak memory use: $( cat /sys/fs/cgroup/memory/memory.max_usage_in_bytes || echo '<unknown>' ) bytes"
+
 	if [[ "${return_code}" = "0" ]]; then
 		os::log::info "${message}"
 	else

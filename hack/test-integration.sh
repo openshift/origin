@@ -1,6 +1,13 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+function cleanup() {
+  return_code=$?
+  os::util::describe_return_code "${return_code}"
+  exit "${return_code}"
+}
+trap "cleanup" EXIT
+
 # build the test executable and make sure it's on the path
 if [[ -z "${OPENSHIFT_SKIP_BUILD-}" ]]; then
   "${OS_ROOT}/hack/build-go.sh" "test/integration/integration.test"
