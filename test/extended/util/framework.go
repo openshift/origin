@@ -154,6 +154,17 @@ func DumpBuildLogs(bc string, oc *CLI) {
 	ExaminePodDiskUsage(oc)
 }
 
+// DumpBuilds will dump the yaml for every build in the test namespace; remember, pipeline builds
+// don't have build pods so a generic framework dump won't cat our pipeline builds objs in openshift
+func DumpBuilds(oc *CLI) {
+	buildOutput, err := oc.Run("get").Args("builds", "-o", "yaml").Output()
+	if err == nil {
+		e2e.Logf("\n\n builds yaml:\n%s\n\n", buildOutput)
+	} else {
+		e2e.Logf("\n\n got error on build yaml dump: %#v\n\n", err)
+	}
+}
+
 func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*kapiv1.PodList, error) {
 	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d", deployapi.DeployerPodForDeploymentLabel, dcName, version)).String()})
 }
