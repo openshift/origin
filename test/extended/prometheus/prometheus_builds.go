@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -87,14 +88,14 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			terminalTests := map[string][]metricTest{
 				buildCountQuery: {
 					metricTest{
-						labels:      map[string]string{"phase": "complete"},
+						labels:      map[string]string{"phase": string(buildapi.BuildPhaseComplete)},
 						greaterThan: true,
 					},
 					metricTest{
-						labels: map[string]string{"phase": "cancelled"},
+						labels: map[string]string{"phase": string(buildapi.BuildPhaseCancelled)},
 					},
 					metricTest{
-						labels: map[string]string{"phase": "failed"},
+						labels: map[string]string{"phase": string(buildapi.BuildPhaseFailed)},
 					},
 				},
 			}

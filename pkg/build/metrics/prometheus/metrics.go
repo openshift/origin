@@ -1,8 +1,6 @@
 package prometheus
 
 import (
-	"strings"
-
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,13 +35,13 @@ var (
 	)
 	bc             = buildCollector{}
 	registered     = false
-	cancelledPhase = strings.ToLower(string(buildapi.BuildPhaseCancelled))
-	completePhase  = strings.ToLower(string(buildapi.BuildPhaseComplete))
-	failedPhase    = strings.ToLower(string(buildapi.BuildPhaseFailed))
-	errorPhase     = strings.ToLower(string(buildapi.BuildPhaseError))
-	newPhase       = strings.ToLower(string(buildapi.BuildPhaseNew))
-	pendingPhase   = strings.ToLower(string(buildapi.BuildPhasePending))
-	runningPhase   = strings.ToLower(string(buildapi.BuildPhaseRunning))
+	cancelledPhase = string(buildapi.BuildPhaseCancelled)
+	completePhase  = string(buildapi.BuildPhaseComplete)
+	failedPhase    = string(buildapi.BuildPhaseFailed)
+	errorPhase     = string(buildapi.BuildPhaseError)
+	newPhase       = string(buildapi.BuildPhaseNew)
+	pendingPhase   = string(buildapi.BuildPhasePending)
+	runningPhase   = string(buildapi.BuildPhaseRunning)
 )
 
 type buildCollector struct {
@@ -138,7 +136,7 @@ func (bc *buildCollector) collectBuild(ch chan<- prometheus.Metric, b *buildapi.
 		addTimeGauge(ch, b, b.Status.StartTimestamp, activeBuildDesc, runningPhase)
 	case buildapi.BuildPhaseFailed:
 		// currently only failed builds have reasons
-		reasonsCount[strings.ToLower(string(b.Status.Reason))] = 1
+		reasonsCount[string(b.Status.Reason)] = 1
 	case buildapi.BuildPhaseError:
 		errorCount++
 	case buildapi.BuildPhaseCancelled:
