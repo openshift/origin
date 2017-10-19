@@ -21,7 +21,11 @@ function os::test::extended::focus () {
 		# the [Serial] tag to them as needed.
 		os::log::info ""
 		os::log::info "Running serial tests with focus ${FOCUS}"
-		TEST_REPORT_FILE_NAME=focus_serial os::test::extended::run -- -suite "serial.conformance.openshift.io" -test.timeout 6h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
+		t=$FOCUS
+		FOCUS="\[Serial\].*?${t}"
+		TEST_REPORT_FILE_NAME=focus_serial os::test::extended::run -- -test.timeout 6h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
+		FOCUS="${t}.*?\[Serial\]"
+		TEST_REPORT_FILE_NAME=focus_serial2 os::test::extended::run -- -test.timeout 6h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
 
 		os::test::extended::merge_junit
 
