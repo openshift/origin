@@ -29,6 +29,12 @@
 %global os_git_vars OS_GIT_VERSION='' OS_GIT_COMMIT='' OS_GIT_MAJOR='' OS_GIT_MINOR='' OS_GIT_TREE_STATE=''
 }
 
+%if 0%{?skip_build}
+%global do_build 0
+%else
+%global do_build 1
+%endif
+
 %if 0%{?fedora} || 0%{?epel}
 %global need_redistributable_set 0
 %else
@@ -231,6 +237,7 @@ of docker.  Exclude those versions of docker.
 %setup -q
 
 %build
+%if 0%{do_build}
 %if 0%{make_redistributable}
 # Create Binaries for all supported arches
 %{os_git_vars} hack/build-cross.sh
@@ -262,6 +269,7 @@ OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/clu
 
 # Generate man pages
 %{os_git_vars} hack/generate-docs.sh
+%endif
 
 %install
 
