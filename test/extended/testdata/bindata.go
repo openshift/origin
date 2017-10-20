@@ -34,7 +34,6 @@
 // test/extended/testdata/builds/build-timing/test-is.json
 // test/extended/testdata/builds/build-timing/test-s2i-build.json
 // test/extended/testdata/builds/incremental-auth-build.json
-// test/extended/testdata/builds/s2i-build-root.yaml
 // test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble
 // test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml
 // test/extended/testdata/builds/statusfail-failedassemble.yaml
@@ -1482,41 +1481,6 @@ func testExtendedTestdataBuildsIncrementalAuthBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/incremental-auth-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsS2iBuildRootYaml = []byte(`---
-kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: s2i-build-root
-  creationTimestamp:
-  labels:
-    name: s2i-build-root
-spec:
-  source:
-    binary:
-      asFile: ''
-  strategy:
-    type: Source
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos
-`)
-
-func testExtendedTestdataBuildsS2iBuildRootYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsS2iBuildRootYaml, nil
-}
-
-func testExtendedTestdataBuildsS2iBuildRootYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsS2iBuildRootYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-build-root.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28276,7 +28240,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-timing/test-is.json": testExtendedTestdataBuildsBuildTimingTestIsJson,
 	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
-	"test/extended/testdata/builds/s2i-build-root.yaml": testExtendedTestdataBuildsS2iBuildRootYaml,
 	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
 	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml": testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
 	"test/extended/testdata/builds/statusfail-failedassemble.yaml": testExtendedTestdataBuildsStatusfailFailedassembleYaml,
@@ -28666,7 +28629,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 					}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
-					"s2i-build-root.yaml": &bintree{testExtendedTestdataBuildsS2iBuildRootYaml, map[string]*bintree{}},
 					"statusfail-assemble": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
 							"bin": &bintree{nil, map[string]*bintree{
