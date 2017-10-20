@@ -47,8 +47,6 @@ func (c *client) PollLastOperation(r *LastOperationRequest) (*LastOperationRespo
 	default:
 		return nil, c.handleFailureResponse(response)
 	}
-
-	return nil, nil
 }
 
 func validateLastOperationRequest(request *LastOperationRequest) error {

@@ -58,11 +58,22 @@ func optionalFieldsBindRequest() *BindRequest {
 
 const optionalFieldsBindRequestBody = `{"service_id":"test-service-id","plan_id":"test-plan-id","parameters":{"blu":2,"foo":"bar"},"bind_resource":{"app_guid":"test-app-guid","route":"test-app-guid"}}`
 
+func contextBindRequest() *BindRequest {
+	r := defaultBindRequest()
+	r.Context = map[string]interface{}{
+		"foo": "bar",
+	}
+	return r
+}
+
+const contextBindRequestBody = `{"service_id":"test-service-id","plan_id":"test-plan-id","context":{"foo":"bar"}}`
+
 func TestBind(t *testing.T) {
 	cases := []struct {
 		name                string
+		version             APIVersion
 		enableAlpha         bool
-		originatingIdentity *AlphaOriginatingIdentity
+		originatingIdentity *OriginatingIdentity
 		request             *BindRequest
 		httpChecks          httpChecks
 		httpReaction        httpReaction
@@ -136,11 +147,37 @@ func TestBind(t *testing.T) {
 				status: http.StatusInternalServerError,
 				body:   conventionalFailureResponseBody,
 			},
-			expectedErr: testHttpStatusCodeError(),
+			expectedErr: testHTTPStatusCodeError(),
+		},
+		{
+			name:    "context included if API version >= 2.13",
+			version: Version2_13(),
+			request: contextBindRequest(),
+			httpChecks: httpChecks{
+				body: contextBindRequestBody,
+			},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successBindResponseBody,
+			},
+			expectedResponse: successBindResponse(),
+		},
+		{
+			name:    "context not included if API version < 2.13",
+			version: Version2_12(),
+			request: contextBindRequest(),
+			httpChecks: httpChecks{
+				body: defaultBindRequestBody,
+			},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successBindResponseBody,
+			},
+			expectedResponse: successBindResponse(),
 		},
 		{
 			name:                "originating identity included",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue}},
 			httpReaction: httpReaction{
@@ -151,7 +188,7 @@ func TestBind(t *testing.T) {
 		},
 		{
 			name:                "originating identity excluded",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: nil,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -161,8 +198,8 @@ func TestBind(t *testing.T) {
 			expectedResponse: successBindResponse(),
 		},
 		{
-			name:                "originating identity not sent unless alpha enabled",
-			enableAlpha:         false,
+			name:                "originating identity not sent unless API Version >= 2.13",
+			version:             Version2_12(),
 			originatingIdentity: testOriginatingIdentity,
 			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
 			httpReaction: httpReaction{
@@ -188,8 +225,11 @@ func TestBind(t *testing.T) {
 			tc.httpChecks.body = defaultBindRequestBody
 		}
 
-		version := Version2_11()
-		klient := newTestClient(t, tc.name, version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
+		if tc.version.label == "" {
+			tc.version = Version2_11()
+		}
+
+		klient := newTestClient(t, tc.name, tc.version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
 
 		response, err := klient.Bind(tc.request)
 

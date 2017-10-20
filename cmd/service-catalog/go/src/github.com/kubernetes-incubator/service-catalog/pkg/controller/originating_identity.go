@@ -30,7 +30,7 @@ const (
 	originatingIdentityGroups   = "groups"
 )
 
-func buildOriginatingIdentity(userInfo *v1beta1.UserInfo) (*osb.AlphaOriginatingIdentity, error) {
+func buildOriginatingIdentity(userInfo *v1beta1.UserInfo) (*osb.OriginatingIdentity, error) {
 	if userInfo == nil {
 		return nil, nil
 	}
@@ -45,7 +45,7 @@ func buildOriginatingIdentity(userInfo *v1beta1.UserInfo) (*osb.AlphaOriginating
 	if err != nil {
 		return nil, err
 	}
-	oi := &osb.AlphaOriginatingIdentity{
+	oi := &osb.OriginatingIdentity{
 		Platform: originatingIdentityPlatform,
 		Value:    string(oiValue),
 	}

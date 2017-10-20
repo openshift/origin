@@ -23,12 +23,31 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-const externalClusterServiceClassName = "test-serviceclass"
-const externalClusterServicePlanName = "test-plan"
+const (
+	externalClusterServiceClassName = "test-serviceclass"
+	externalClusterServicePlanName  = "test-plan"
+	clusterServiceClassName         = "test-k8s-serviceclass"
+	clusterServicePlanName          = "test-k8s-plan-name"
+)
+
+func validPlanReferenceExternal() servicecatalog.PlanReference {
+	return servicecatalog.PlanReference{
+		ExternalClusterServiceClassName: externalClusterServiceClassName,
+		ExternalClusterServicePlanName:  externalClusterServicePlanName,
+	}
+}
+
+func validPlanReferenceK8S() servicecatalog.PlanReference {
+	return servicecatalog.PlanReference{
+		ClusterServiceClassName: clusterServiceClassName,
+		ClusterServicePlanName:  clusterServicePlanName,
+	}
+}
 
 func validServiceInstanceForCreate() *servicecatalog.ServiceInstance {
 	return &servicecatalog.ServiceInstance{
@@ -38,10 +57,7 @@ func validServiceInstanceForCreate() *servicecatalog.ServiceInstance {
 			Generation: 1,
 		},
 		Spec: servicecatalog.ServiceInstanceSpec{
-			PlanReference: servicecatalog.PlanReference{
-				ExternalClusterServiceClassName: externalClusterServiceClassName,
-				ExternalClusterServicePlanName:  externalClusterServicePlanName,
-			},
+			PlanReference: validPlanReferenceExternal(),
 		},
 	}
 }
@@ -93,7 +109,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "missing serviceClassName",
+			name: "missing externalClusterServiceClassName and clusterServiceClassName",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstance()
 				i.Spec.ExternalClusterServiceClassName = ""
@@ -405,6 +421,19 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid:    true,
 		},
 		{
+			name: "valid create with k8s name",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceForCreate()
+				i.Spec.ExternalClusterServiceClassName = ""
+				i.Spec.ExternalClusterServicePlanName = ""
+				i.Spec.ClusterServiceClassName = clusterServiceClassName
+				i.Spec.ClusterServicePlanName = clusterServicePlanName
+				return i
+			}(),
+			create: true,
+			valid:  true,
+		},
+		{
 			name: "create with operation in-progress",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstanceForCreate()
@@ -453,6 +482,55 @@ func TestValidateServiceInstance(t *testing.T) {
 			}(),
 			create: false,
 			valid:  false,
+		},
+		{
+			name: "external and k8s name specified in Spec.PlanReference",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ClusterServiceClassName = "can not have this here"
+				return i
+			}(),
+			create: true,
+			valid:  false,
+		},
+		{
+			name: "failed provision starting orphan mitigation",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressProvision()
+				i.Status.OperationStartTime = nil
+				i.Status.OrphanMitigationInProgress = true
+				i.Status.Conditions = []servicecatalog.ServiceInstanceCondition{
+					{
+						Type:   servicecatalog.ServiceInstanceConditionReady,
+						Status: servicecatalog.ConditionFalse,
+					},
+					{
+						Type:   servicecatalog.ServiceInstanceConditionFailed,
+						Status: servicecatalog.ConditionTrue,
+					},
+				}
+				return i
+			}(),
+			valid: true,
+		},
+		{
+			name: "in-progress orphan mitigation",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressProvision()
+				i.Status.OrphanMitigationInProgress = true
+				i.Status.Conditions = []servicecatalog.ServiceInstanceCondition{
+					{
+						Type:   servicecatalog.ServiceInstanceConditionReady,
+						Status: servicecatalog.ConditionFalse,
+					},
+					{
+						Type:   servicecatalog.ServiceInstanceConditionFailed,
+						Status: servicecatalog.ConditionTrue,
+					},
+				}
+				return i
+			}(),
+			valid: true,
 		},
 	}
 
@@ -871,6 +949,173 @@ func TestValidateServiceInstanceReferencesUpdate(t *testing.T) {
 		if len(errs) != 0 && tc.valid {
 			t.Errorf("%v: unexpected error: %v", tc.name, errs)
 			continue
+		} else if len(errs) == 0 && !tc.valid {
+			t.Errorf("%v: unexpected success", tc.name)
+		}
+	}
+}
+
+func TestValidatePlanReference(t *testing.T) {
+	cases := []struct {
+		name          string
+		ref           servicecatalog.PlanReference
+		valid         bool
+		expectedError string
+	}{
+		{
+			name:          "invalid -- empty struct",
+			ref:           servicecatalog.PlanReference{},
+			valid:         false,
+			expectedError: "exactly one of externalClusterServicePlanName",
+		},
+		{
+			name:  "valid -- external",
+			ref:   validPlanReferenceExternal(),
+			valid: true,
+		},
+		{
+			name: "invalid -- external name, k8s plan",
+			ref: servicecatalog.PlanReference{
+				ExternalClusterServiceClassName: externalClusterServiceClassName,
+				ClusterServicePlanName:          externalClusterServicePlanName,
+			},
+			valid:         false,
+			expectedError: "must specify externalClusterServicePlanName",
+		},
+		{
+			name:  "valid -- k8s",
+			ref:   validPlanReferenceK8S(),
+			valid: true,
+		},
+		{
+			name: "invalid -- valid k8s name, external plan",
+			ref: servicecatalog.PlanReference{
+				ClusterServiceClassName:        clusterServiceClassName,
+				ExternalClusterServicePlanName: externalClusterServicePlanName,
+			},
+			valid:         false,
+			expectedError: "must specify clusterServicePlanName",
+		},
+		{
+			name: "invalid -- external and k8s name specified",
+			ref: servicecatalog.PlanReference{
+				ClusterServiceClassName:         clusterServiceClassName,
+				ExternalClusterServiceClassName: externalClusterServiceClassName,
+				ExternalClusterServicePlanName:  externalClusterServicePlanName,
+			},
+			valid:         false,
+			expectedError: "exactly one of externalClusterServiceClassName",
+		},
+		{
+			name: "invalid -- external and k8s plan specified",
+			ref: servicecatalog.PlanReference{
+				ExternalClusterServiceClassName: externalClusterServiceClassName,
+				ExternalClusterServicePlanName:  externalClusterServicePlanName,
+				ClusterServicePlanName:          clusterServicePlanName,
+			},
+			valid:         false,
+			expectedError: "exactly one of externalClusterServicePlanName",
+		},
+	}
+	for _, tc := range cases {
+		errs := validatePlanReference(&tc.ref, field.NewPath("spec"))
+		if len(errs) != 0 {
+			if tc.valid {
+				t.Errorf("%v: unexpected error: %v", tc.name, errs)
+				continue
+			}
+			found := false
+			for _, e := range errs {
+				if strings.Contains(e.Error(), tc.expectedError) {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%v: did not find expected error %q in errors: %v", tc.name, tc.expectedError, errs)
+				continue
+			}
+		} else if len(errs) == 0 && !tc.valid {
+			t.Errorf("%v: unexpected success", tc.name)
+		}
+	}
+}
+
+func TestValidatePlanReferenceUpdate(t *testing.T) {
+	cases := []struct {
+		name          string
+		old           servicecatalog.PlanReference
+		new           servicecatalog.PlanReference
+		valid         bool
+		expectedError string
+	}{
+		{
+			name:  "valid -- no changes external",
+			old:   validPlanReferenceExternal(),
+			new:   validPlanReferenceExternal(),
+			valid: true,
+		},
+		{
+			name:  "valid -- no changes k8s",
+			old:   validPlanReferenceK8S(),
+			new:   validPlanReferenceK8S(),
+			valid: true,
+		},
+		{
+			name: "invalid -- changing external class name",
+			old:  validPlanReferenceExternal(),
+			new: servicecatalog.PlanReference{
+				ExternalClusterServiceClassName: clusterServiceClassName,
+				ExternalClusterServicePlanName:  externalClusterServicePlanName,
+			},
+			valid:         false,
+			expectedError: "externalClusterServiceClassName",
+		},
+		{
+			name: "valid -- changing external plan name",
+			old:  validPlanReferenceExternal(),
+			new: servicecatalog.PlanReference{
+				ExternalClusterServiceClassName: externalClusterServiceClassName,
+				ExternalClusterServicePlanName:  clusterServicePlanName,
+			},
+			valid: true,
+		},
+		{
+			name: "invalid -- changing k8s class name",
+			old:  validPlanReferenceK8S(),
+			new: servicecatalog.PlanReference{
+				ClusterServiceClassName: externalClusterServiceClassName,
+				ClusterServicePlanName:  clusterServicePlanName,
+			},
+			valid:         false,
+			expectedError: "clusterServiceClassName",
+		},
+		{
+			name: "alid -- changing k8s plan name",
+			old:  validPlanReferenceK8S(),
+			new: servicecatalog.PlanReference{
+				ClusterServiceClassName: clusterServiceClassName,
+				ClusterServicePlanName:  externalClusterServicePlanName,
+			},
+			valid: true,
+		},
+	}
+	for _, tc := range cases {
+		errs := validatePlanReferenceUpdate(&tc.old, &tc.new, field.NewPath("spec"))
+		if len(errs) != 0 {
+			if tc.valid {
+				t.Errorf("%v: unexpected error: %v", tc.name, errs)
+				continue
+			}
+			found := false
+			for _, e := range errs {
+				if strings.Contains(e.Error(), tc.expectedError) {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%v: did not find expected error %q in errors: %v", tc.name, tc.expectedError, errs)
+				continue
+			}
 		} else if len(errs) == 0 && !tc.valid {
 			t.Errorf("%v: unexpected success", tc.name)
 		}

@@ -10,11 +10,6 @@ import (
 	"testing"
 )
 
-// func init() {
-// 	flag.Set("alsologtostderr", "true")
-// 	flag.Set("v", "5")
-// }
-
 const malformedResponse = `{`
 
 const conventionalFailureResponseBody = `{
@@ -28,12 +23,12 @@ const (
 	testOriginatingIdentityHeaderValue = "fakeplatform eyJ1c2VyIjoibmFtZSJ9"
 )
 
-var testOriginatingIdentity *AlphaOriginatingIdentity = &AlphaOriginatingIdentity{
+var testOriginatingIdentity = &OriginatingIdentity{
 	Platform: testOriginatingIdentityPlatform,
 	Value:    testOriginatingIdentityValue,
 }
 
-func testHttpStatusCodeError() error {
+func testHTTPStatusCodeError() error {
 	errorMessage := "TestError"
 	description := "test error description"
 	return HTTPStatusCodeError{
@@ -87,20 +82,20 @@ func newTestClient(t *testing.T, name string, version APIVersion, enableAlpha bo
 	}
 }
 
-var walkingGhostErr = fmt.Errorf("test has already failed")
+var errWalkingGhost = fmt.Errorf("test has already failed")
 
 func doHTTP(t *testing.T, name string, checks httpChecks, reaction httpReaction) func(*http.Request) (*http.Response, error) {
 	return func(request *http.Request) (*http.Response, error) {
 		if len(checks.URL) > 0 && checks.URL != request.URL.Path {
 			t.Errorf("%v: unexpected URL; expected %v, got %v", name, checks.URL, request.URL.Path)
-			return nil, walkingGhostErr
+			return nil, errWalkingGhost
 		}
 
 		for k, v := range checks.headers {
 			actualValue := request.Header.Get(k)
 			if e, a := v, actualValue; e != a {
 				t.Errorf("%v: unexpected header value for key %q; expected %v, got %v", name, k, e, a)
-				return nil, walkingGhostErr
+				return nil, errWalkingGhost
 			}
 		}
 
@@ -108,7 +103,7 @@ func doHTTP(t *testing.T, name string, checks httpChecks, reaction httpReaction)
 			actualValue := request.URL.Query().Get(k)
 			if e, a := v, actualValue; e != a {
 				t.Errorf("%v: unexpected parameter value for key %q; expected %v, got %v", name, k, e, a)
-				return nil, walkingGhostErr
+				return nil, errWalkingGhost
 			}
 		}
 
@@ -118,13 +113,13 @@ func doHTTP(t *testing.T, name string, checks httpChecks, reaction httpReaction)
 			bodyBytes, err = ioutil.ReadAll(request.Body)
 			if err != nil {
 				t.Errorf("%v: error reading request body bytes: %v", name, err)
-				return nil, walkingGhostErr
+				return nil, errWalkingGhost
 			}
 		}
 
 		if e, a := checks.body, string(bodyBytes); e != a {
 			t.Errorf("%v: unexpected request body: expected %v, got %v", name, e, a)
-			return nil, walkingGhostErr
+			return nil, errWalkingGhost
 		}
 
 		return &http.Response{
@@ -186,7 +181,7 @@ func TestBuildOriginatingIdentityHeaderValue(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		originatingIdentity := &AlphaOriginatingIdentity{
+		originatingIdentity := &OriginatingIdentity{
 			Platform: tc.platform,
 			Value:    tc.value,
 		}

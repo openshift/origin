@@ -1009,6 +1009,298 @@ func TestBasicFlowsWithOriginatingIdentity(t *testing.T) {
 	}
 }
 
+// TestServiceInstanceOrphanMitigation tests whether an instance is
+// successfully deprovisioned after a provision request returns a status code
+// that should trigger orphan mitigation.
+func TestServiceInstanceOrphanMitigation(t *testing.T) {
+	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
+		CatalogReaction: &fakeosb.CatalogReaction{
+			Response: getTestCatalogResponse(),
+		},
+		ProvisionReaction: &fakeosb.ProvisionReaction{
+			Error: osb.HTTPStatusCodeError{
+				StatusCode:   http.StatusInternalServerError,
+			},
+		},
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{},
+		},
+	})
+	defer shutdownController()
+	defer shutdownServer()
+
+	client := catalogClient.ServicecatalogV1beta1()
+
+	broker := &v1beta1.ClusterServiceBroker{
+		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
+		Spec: v1beta1.ClusterServiceBrokerSpec{
+			URL: testBrokerURL,
+		},
+	}
+
+	_, err := client.ClusterServiceBrokers().Create(broker)
+	if nil != err {
+		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
+	}
+
+	err = util.WaitForBrokerCondition(client,
+		testBrokerName,
+		v1beta1.ServiceBrokerCondition{
+			Type:   v1beta1.ServiceBrokerConditionReady,
+			Status: v1beta1.ConditionTrue,
+		})
+	if err != nil {
+		t.Fatalf("error waiting for broker to become ready: %v", err)
+	}
+
+	err = util.WaitForClusterServiceClassToExist(client, testClusterServiceClassID)
+	if nil != err {
+		t.Fatalf("error waiting from ClusterServiceClass to exist: %v", err)
+	}
+
+	// TODO: find some way to compose scenarios; extract method here for real
+	// logic for this test.
+
+	//-----------------
+
+	instance := &v1beta1.ServiceInstance{
+		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
+		Spec: v1beta1.ServiceInstanceSpec{
+			PlanReference: v1beta1.PlanReference{
+				ExternalClusterServiceClassName: testClusterServiceClassName,
+				ExternalClusterServicePlanName:  testPlanName,
+			},
+			ExternalID: testExternalID,
+		},
+	}
+
+
+	if _, err := client.ServiceInstances(testNamespace).Create(instance); err != nil {
+		t.Fatalf("error creating Instance: %v", err)
+	}
+
+	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1beta1.ServiceInstanceCondition{
+		Type:   v1beta1.ServiceInstanceConditionFailed,
+		Status: v1beta1.ConditionTrue,
+	}); err != nil {
+		t.Fatalf("error waiting for instance to become failed: %v", err)
+	}
+
+	if err := util.WaitForInstanceReconciledGeneration(client, testNamespace, testInstanceName, instance.Status.ReconciledGeneration+1); err != nil {
+		t.Fatalf("error waiting for instance to reconcile: %v", err)
+	}
+
+	retInst, err := client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
+	}
+
+	util.AssertServiceInstanceCondition(
+		t,
+		retInst,
+		v1beta1.ServiceInstanceConditionReady,
+		v1beta1.ConditionFalse,
+		"OrphanMitigationSuccessful",
+	)
+
+	err = client.ServiceInstances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
+	if nil != err {
+		t.Fatalf("instance delete should have been accepted: %v", err)
+	}
+
+	err = util.WaitForInstanceToNotExist(client, testNamespace, testInstanceName)
+	if err != nil {
+		t.Fatalf("error waiting for instance to be deleted: %v", err)
+	}
+
+	//-----------------
+	// End orphan mitigation test
+
+	// Delete the broker
+	err = client.ClusterServiceBrokers().Delete(testBrokerName, &metav1.DeleteOptions{})
+	if nil != err {
+		t.Fatalf("broker should be deleted (%s)", err)
+	}
+
+	err = util.WaitForClusterServiceClassToNotExist(client, testClusterServiceClassName)
+	if err != nil {
+		t.Fatalf("error waiting for ClusterServiceClass to not exist: %v", err)
+	}
+
+	err = util.WaitForBrokerToNotExist(client, testBrokerName)
+	if err != nil {
+		t.Fatalf("error waiting for Broker to not exist: %v", err)
+	}
+}
+
+// TestServiceBindingOrphanMitigation tests whether a binding is
+// successfully deleted after a bind request returns a status code
+// that should trigger orphan mitigation.
+func TestServiceBindingOrphanMitigation(t *testing.T) {
+	_, fakeCatalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
+		CatalogReaction: &fakeosb.CatalogReaction{
+			Response: getTestCatalogResponse(),
+		},
+		BindReaction: &fakeosb.BindReaction{
+			Error: osb.HTTPStatusCodeError{
+				StatusCode:   http.StatusInternalServerError,
+			},
+		},
+		UnbindReaction: &fakeosb.UnbindReaction{},
+		ProvisionReaction: &fakeosb.ProvisionReaction{
+			Response: &osb.ProvisionResponse{},
+		},
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{},
+		},
+	})
+	defer shutdownController()
+	defer shutdownServer()
+
+	client := fakeCatalogClient.ServicecatalogV1beta1()
+
+	broker := &v1beta1.ClusterServiceBroker{
+		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
+		Spec: v1beta1.ClusterServiceBrokerSpec{
+			URL: testBrokerURL,
+		},
+	}
+
+	_, err := client.ClusterServiceBrokers().Create(broker)
+	if nil != err {
+		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
+	}
+
+	err = util.WaitForBrokerCondition(client,
+		testBrokerName,
+		v1beta1.ServiceBrokerCondition{
+			Type:   v1beta1.ServiceBrokerConditionReady,
+			Status: v1beta1.ConditionTrue,
+		})
+	if err != nil {
+		t.Fatalf("error waiting for broker to become ready: %v", err)
+	}
+
+	err = util.WaitForClusterServiceClassToExist(client, testClusterServiceClassID)
+	if nil != err {
+		t.Fatalf("error waiting from ClusterServiceClass to exist: %v", err)
+	}
+
+	// TODO: find some way to compose scenarios; extract method here for real
+	// logic for this test.
+
+	//-----------------
+
+	instance := &v1beta1.ServiceInstance{
+		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
+		Spec: v1beta1.ServiceInstanceSpec{
+			PlanReference: v1beta1.PlanReference{
+				ExternalClusterServiceClassName: testClusterServiceClassName,
+				ExternalClusterServicePlanName:  testPlanName,
+			},
+			ExternalID: testExternalID,
+		},
+	}
+
+	if _, err := client.ServiceInstances(testNamespace).Create(instance); err != nil {
+		t.Fatalf("error creating Instance: %v", err)
+	}
+
+	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1beta1.ServiceInstanceCondition{
+		Type:   v1beta1.ServiceInstanceConditionReady,
+		Status: v1beta1.ConditionTrue,
+	}); err != nil {
+		t.Fatalf("error waiting for instance to become ready: %v", err)
+	}
+
+	retInst, err := client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
+	}
+	if retInst.Spec.ExternalID != instance.Spec.ExternalID {
+		t.Fatalf(
+			"returned OSB GUID '%s' doesn't match original '%s'",
+			retInst.Spec.ExternalID,
+			instance.Spec.ExternalID,
+		)
+	}
+
+	// Binding test begins here
+	//-----------------
+	binding := &v1beta1.ServiceBinding{
+		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testBindingName},
+		Spec: v1beta1.ServiceBindingSpec{
+			ServiceInstanceRef: corev1.LocalObjectReference{
+				Name: testInstanceName,
+			},
+		},
+	}
+
+	_, err = client.ServiceBindings(testNamespace).Create(binding)
+	if err != nil {
+		t.Fatalf("error creating Binding: %v", binding)
+	}
+
+	if err := util.WaitForBindingReconciledGeneration(client, testNamespace, testBindingName, binding.Status.ReconciledGeneration+1); err != nil {
+		t.Fatalf("error waiting for binding to reconcile: %v", err)
+	}
+
+	retBinding, err := client.ServiceBindings(binding.Namespace).Get(binding.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error getting binding %s/%s back", binding.Namespace, binding.Name)
+	}
+
+	util.AssertServiceBindingCondition(
+		t,
+		retBinding,
+		v1beta1.ServiceBindingConditionReady,
+		v1beta1.ConditionFalse,
+		"OrphanMitigationSuccessful",
+	)
+
+	err = client.ServiceBindings(testNamespace).Delete(testBindingName, &metav1.DeleteOptions{})
+	if err != nil {
+		t.Fatalf("binding delete should have been accepted: %v", err)
+	}
+
+	err = util.WaitForBindingToNotExist(client, testNamespace, testBindingName)
+	if err != nil {
+		t.Fatalf("error waiting for binding to not exist: %v", err)
+	}
+
+	//-----------------
+	// End binding test
+
+	err = client.ServiceInstances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
+	if nil != err {
+		t.Fatalf("instance delete should have been accepted: %v", err)
+	}
+
+	err = util.WaitForInstanceToNotExist(client, testNamespace, testInstanceName)
+	if err != nil {
+		t.Fatalf("error waiting for instance to be deleted: %v", err)
+	}
+
+	//-----------------
+	// End provision test
+
+	// Delete the broker
+	err = client.ClusterServiceBrokers().Delete(testBrokerName, &metav1.DeleteOptions{})
+	if nil != err {
+		t.Fatalf("broker should be deleted (%s)", err)
+	}
+
+	err = util.WaitForClusterServiceClassToNotExist(client, testClusterServiceClassName)
+	if err != nil {
+		t.Fatalf("error waiting for ClusterServiceClass to not exist: %v", err)
+	}
+
+	err = util.WaitForBrokerToNotExist(client, testBrokerName)
+	if err != nil {
+		t.Fatalf("error waiting for Broker to not exist: %v", err)
+	}
+}
+
 // newTestController creates a new test controller injected with fake clients
 // and returns:
 //

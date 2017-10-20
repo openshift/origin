@@ -588,6 +588,19 @@ readonly -f os::build::get_version_vars
 function os::build::os_version_vars() {
   local git=(git --work-tree "${OS_ROOT}")
 
+  if [[ -z ${OS_GIT_CATALOG_VERSION-} ]]; then
+    # search git merge commits for template text and extract version
+    # subject template: Merge version v0.0.14 of Service Catalog from https://github.com/openshift/service-catalog:v0.0.14+origin
+    local summary_text=$(${git[@]} log --merges --grep "Merge version v.* of Service Catalog from https://github.com/openshift/service-catalog" --pretty=%s -1)
+    if [[ $summary_text =~ Merge[[:space:]]version[[:space:]](v.*)[[:space:]]of[[:space:]]Service[[:space:]]Catalog ]]; then
+      OS_GIT_CATALOG_VERSION=${BASH_REMATCH[1]}
+    fi
+
+    if git_status=$("${git[@]}" status --porcelain cmd/service-catalog 2>/dev/null) && [[ -n ${git_status} ]]; then
+        OS_GIT_CATALOG_VERSION+="dirty"
+    fi
+  fi
+
   if [[ -n ${OS_GIT_COMMIT-} ]] || OS_GIT_COMMIT=$("${git[@]}" rev-parse --short "HEAD^{commit}" 2>/dev/null); then
     if [[ -z ${OS_GIT_TREE_STATE-} ]]; then
       # Check if the tree is dirty.  default to dirty
@@ -725,7 +738,7 @@ function os::build::ldflags() {
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.buildDate" "${buildDate}"))
@@ -735,8 +748,7 @@ function os::build::ldflags() {
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.buildDate" "${buildDate}"))
   # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitTreeState" "clean"))
 
-  # TODO: not working in origin
-  #ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg.VERSION" ${OS_GIT_VERSION}))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg.VERSION" ${OS_GIT_CATALOG_VERSION}))
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"

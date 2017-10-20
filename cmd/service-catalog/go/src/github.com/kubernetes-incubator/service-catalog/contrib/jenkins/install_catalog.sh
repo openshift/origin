@@ -32,6 +32,7 @@ done
 
 REGISTRY="${REGISTRY:-}"
 VERSION="${VERSION:-"canary"}"
+CERT_FOLDER="${CERT_FOLDER:-"/tmp/sc-certs/"}"
 FIX_CONFIGMAP="${FIX_CONFIGMAP:-false}"
 
 CONTROLLER_MANAGER_IMAGE="${REGISTRY}controller-manager:${VERSION}"
@@ -42,6 +43,15 @@ echo '-------------------'
 echo "Using controller-manager image: ${CONTROLLER_MANAGER_IMAGE}"
 echo "Using apiserver image: ${APISERVER_IMAGE}"
 echo '-------------------'
+
+# Create certificates for API server
+echo 'Creating API server CA and certificate...'
+
+# The SC_SERVING_CA, SC_SERVING_CERT, and SC_SERVING_KEY environment variables
+# are sourced from this script.
+CERT_FOLDER="${CERT_FOLDER}" source ${ROOT}/contrib/svc-cat-apiserver-aggregation-tls-setup.sh \
+  || error_exit 'Error creating certificates for API server.'
+
 
 # Deploying to cluster
 
@@ -59,56 +69,44 @@ if [[ "${FIX_CONFIGMAP}" == true ]] && [[ -z "$(kubectl --namespace kube-system 
     [[ -n "$(kubectl --namespace kube-system get configmap extension-apiserver-authentication -o jsonpath="{ $.data['requestheader-client-ca-file'] }")" ]] || { echo "Could not add requestheader auth CA to extension-apiserver-authentication configmap."; exit 1; }
 fi
 
-VALUES=()
-VALUES+="controllerManager.image=${CONTROLLER_MANAGER_IMAGE}"
-VALUES+=",apiserver.image=${APISERVER_IMAGE}"
-VALUES+=",apiserver.service.type=NodePort"
-VALUES+=",apiserver.service.nodePort.securePort=30443"
+PARAMETERS="$(cat <<-EOF
+  --set apiserver.auth.enabled=true \
+  --set useAggregator=true \
+  --set apiserver.tls.ca=$(base64 --wrap 0 ${SC_SERVING_CA}) \
+  --set apiserver.tls.cert=$(base64 --wrap 0 ${SC_SERVING_CERT}) \
+  --set apiserver.tls.key=$(base64 --wrap 0 ${SC_SERVING_KEY}) \
+  --set controllerManager.image=${CONTROLLER_MANAGER_IMAGE} \
+  --set apiserver.image=${APISERVER_IMAGE}
+EOF
+)"
 
 retry \
     helm install "${ROOT}/charts/catalog" \
     --name "catalog" \
     --namespace "catalog" \
-    --set "${VALUES}" \
+    ${PARAMETERS} \
   || error_exit 'Error deploying service catalog to cluster.'
 
 # Waiting for everything to come up
 
-echo 'Waiting on pods to come up...'
-
-wait_for_expected_output -e 'catalog-catalog-controller-manager' \
-    kubectl get pods --namespace catalog \
-  && wait_for_expected_output -e 'catalog-catalog-apiserver' \
-    kubectl get pods --namespace catalog \
-  && wait_for_expected_output -x -e 'Pending' \
-    kubectl get pods --namespace catalog \
-  && wait_for_expected_output -x -e 'ContainerCreating' \
-    kubectl get pods --namespace catalog \
-  || error_exit 'Timed out waiting for service catalog pods to come up.'
-
-[[ "$(kubectl get pods --namespace catalog | grep catalog-catalog-apiserver | awk '{print $3}')" == 'Running' ]] \
-  || {
-    POD_NAME="$(kubectl get pods --namespace catalog | grep catalog-catalog-apiserver | awk '{print $1}')"
-    kubectl get pod "${POD_NAME}" --namespace catalog
-    kubectl describe pod "${POD_NAME}" --namespace catalog
-    error_exit 'API server pod did not come up successfully.'
-  }
-
-[[ "$(kubectl get pods --namespace catalog | grep catalog-catalog-controller | awk '{print $3}')" == 'Running' ]] \
-  || {
-    POD_NAME="$(kubectl get pods --namespace catalog | grep catalog-catalog-controller | awk '{print $1}')"
-    kubectl get pod "${POD_NAME}" --namespace catalog
-    kubectl describe pod "${POD_NAME}" --namespace catalog
-    error_exit 'Controller manager pod did not come up successfully.'
-  }
-
 echo 'Waiting for Service Catalog API Server to be up...'
 
-${ROOT}/contrib/jenkins/setup-sc-context.sh \
-  || error_exit 'Error when setting up context for service catalog.'
-
 retry &> /dev/null \
-  kubectl --context=service-catalog get clusterservicebrokers,clusterserviceclasses,serviceinstances,servicebindings \
-  || error_exit 'Timed out waiting for expected response from service catalog API server.'
+  kubectl get clusterservicebrokers,clusterserviceclasses,serviceinstances,servicebindings \
+  || {
+    API_SERVER_POD_NAME="$(kubectl get pods --namespace catalog | grep catalog-catalog-apiserver | awk '{print $1}')"
+    kubectl describe pod "${API_SERVER_POD_NAME}" --namespace catalog
+    error_exit 'Timed out waiting for expected response from service catalog API server.'
+  }
+
+echo 'Waiting for Service Catalog Controller to be up...'
+
+CONTROLLER_POD_NAME="$(kubectl get pods --namespace catalog | grep catalog-catalog-controller | awk '{print $1}')"
+wait_for_expected_output -e 'Running' \
+  kubectl get pods "${CONTROLLER_POD_NAME}" --namespace catalog \
+  || {
+    kubectl describe pod "${CONTROLLER_POD_NAME}" --namespace catalog
+    error_exit 'Timed out waiting for service catalog controller-manager pod to come up.'
+  }
 
 echo 'Service Catalog installed successfully.'

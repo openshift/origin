@@ -18,6 +18,7 @@ package util
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/golang/glog"
@@ -225,4 +226,66 @@ func WaitForBindingToNotExist(client v1beta1servicecatalog.ServicecatalogV1beta1
 			return false, nil
 		},
 	)
+}
+
+// WaitForBindingReconciledGeneration waits for the status of the named binding to
+// have the specified reconciled generation.
+func WaitForBindingReconciledGeneration(client v1beta1servicecatalog.ServicecatalogV1beta1Interface, namespace, name string, reconciledGeneration int64) error {
+	return wait.PollImmediate(500*time.Millisecond, wait.ForeverTestTimeout,
+		func() (bool, error) {
+			glog.V(5).Infof("Waiting for binding %v/%v to have reconciled generation of %v", namespace, name, reconciledGeneration)
+			binding, err := client.ServiceBindings(namespace).Get(name, metav1.GetOptions{})
+			if nil != err {
+				return false, fmt.Errorf("error getting ServiceBinding %v/%v: %v", namespace, name, err)
+			}
+
+			if binding.Status.ReconciledGeneration == reconciledGeneration {
+				return true, nil
+			}
+
+			return false, nil
+		},
+	)
+}
+
+// AssertServiceInstanceCondition asserts that the instance's status contains
+// the given condition type, status, and reason.
+func AssertServiceInstanceCondition(t *testing.T, instance *v1beta1.ServiceInstance, conditionType v1beta1.ServiceInstanceConditionType, status v1beta1.ConditionStatus, reason ...string) {
+	foundCondition := false
+	for _, condition := range instance.Status.Conditions {
+		if condition.Type == conditionType {
+			foundCondition = true
+			if condition.Status != status {
+				t.Fatalf("%v condition had unexpected status; expected %v, got %v", conditionType, status, condition.Status)
+			}
+			if len(reason) == 1 && condition.Reason != reason[0] {
+				t.Fatalf("unexpected reason; expected %v, got %v", reason[0], condition.Reason)
+			}
+		}
+	}
+
+	if !foundCondition {
+		t.Fatalf("%v condition not found", conditionType)
+	}
+}
+
+// AssertServiceBindingCondition asserts that the binding's status contains
+// the given condition type, status, and reason.
+func AssertServiceBindingCondition(t *testing.T, binding *v1beta1.ServiceBinding, conditionType v1beta1.ServiceBindingConditionType, status v1beta1.ConditionStatus, reason ...string) {
+	foundCondition := false
+	for _, condition := range binding.Status.Conditions {
+		if condition.Type == conditionType {
+			foundCondition = true
+			if condition.Status != status {
+				t.Fatalf("%v condition had unexpected status; expected %v, got %v", conditionType, status, condition.Status)
+			}
+			if len(reason) == 1 && condition.Reason != reason[0] {
+				t.Fatalf("unexpected reason; expected %v, got %v", reason[0], condition.Reason)
+			}
+		}
+	}
+
+	if !foundCondition {
+		t.Fatalf("%v condition not found", conditionType)
+	}
 }

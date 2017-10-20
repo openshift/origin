@@ -27,7 +27,7 @@ import (
 func (c *controller) servicePlanAdd(obj interface{}) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
+		glog.Errorf("ClusterServicePlan: Couldn't get key for object %+v: %v", obj, err)
 		return
 	}
 	c.servicePlanQueue.Add(key)
@@ -54,5 +54,5 @@ func (c *controller) servicePlanDelete(obj interface{}) {
 		return
 	}
 
-	glog.V(4).Infof("Received delete event for ServicePlan %v; no further processing will occur", servicePlan.Name)
+	glog.V(4).Infof("ClusterServicePlan: Received delete event for %v; no further processing will occur", servicePlan.Name)
 }

@@ -60,6 +60,7 @@ type Action struct {
 // FakeClient.
 type ActionType string
 
+// These are the set of actions that can be taken on a FakeClient.
 const (
 	GetCatalog          ActionType = "GetCatalog"
 	ProvisionInstance   ActionType = "ProvisionInstance"
@@ -89,6 +90,8 @@ type FakeClient struct {
 
 var _ v2.Client = &FakeClient{}
 
+// Actions is a method defined on FakeClient that returns the actions taken on
+// it.
 func (c *FakeClient) Actions() []Action {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -96,6 +99,7 @@ func (c *FakeClient) Actions() []Action {
 	return c.actions
 }
 
+// GetCatalog implements the Client.GetCatalog method for the FakeClient.
 func (c *FakeClient) GetCatalog() (*v2.CatalogResponse, error) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -109,6 +113,8 @@ func (c *FakeClient) GetCatalog() (*v2.CatalogResponse, error) {
 	return nil, UnexpectedActionError()
 }
 
+// ProvisionInstance implements the Client.ProvisionRequest method for the
+// FakeClient.
 func (c *FakeClient) ProvisionInstance(r *v2.ProvisionRequest) (*v2.ProvisionResponse, error) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -122,6 +128,8 @@ func (c *FakeClient) ProvisionInstance(r *v2.ProvisionRequest) (*v2.ProvisionRes
 	return nil, UnexpectedActionError()
 }
 
+// UpdateInstance implements the Client.UpdateInstance method for the
+// FakeClient.
 func (c *FakeClient) UpdateInstance(r *v2.UpdateInstanceRequest) (*v2.UpdateInstanceResponse, error) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -135,6 +143,8 @@ func (c *FakeClient) UpdateInstance(r *v2.UpdateInstanceRequest) (*v2.UpdateInst
 	return nil, UnexpectedActionError()
 }
 
+// DeprovisionInstance implements the Client.DeprovisionInstance method on the
+// FakeClient.
 func (c *FakeClient) DeprovisionInstance(r *v2.DeprovisionRequest) (*v2.DeprovisionResponse, error) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -148,6 +158,8 @@ func (c *FakeClient) DeprovisionInstance(r *v2.DeprovisionRequest) (*v2.Deprovis
 	return nil, UnexpectedActionError()
 }
 
+// PollLastOperation implements the Client.PollLastOperation method on the
+// FakeClient.
 func (c *FakeClient) PollLastOperation(r *v2.LastOperationRequest) (*v2.LastOperationResponse, error) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -161,6 +173,7 @@ func (c *FakeClient) PollLastOperation(r *v2.LastOperationRequest) (*v2.LastOper
 	return nil, UnexpectedActionError()
 }
 
+// Bind implements the Client.Bind method on the FakeClient.
 func (c *FakeClient) Bind(r *v2.BindRequest) (*v2.BindResponse, error) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -174,6 +187,7 @@ func (c *FakeClient) Bind(r *v2.BindRequest) (*v2.BindResponse, error) {
 	return nil, UnexpectedActionError()
 }
 
+// Unbind implements the Client.Unbind method on the FakeClient.
 func (c *FakeClient) Unbind(r *v2.UnbindRequest) (*v2.UnbindResponse, error) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
@@ -187,40 +201,50 @@ func (c *FakeClient) Unbind(r *v2.UnbindRequest) (*v2.UnbindResponse, error) {
 	return nil, UnexpectedActionError()
 }
 
+// UnexpectedActionError returns an error message when an action is not found
+// in the FakeClient's action array.
 func UnexpectedActionError() error {
 	return errors.New("Unexpected action")
 }
 
+// CatalogReaction is sent as the response to GetCatalog requests.
 type CatalogReaction struct {
 	Response *v2.CatalogResponse
 	Error    error
 }
 
+// ProvisionReaction is sent as the response ProvisionInstance requests.
 type ProvisionReaction struct {
 	Response *v2.ProvisionResponse
 	Error    error
 }
 
+// UpdateInstanceReaction is sent as the response UpdateInstance requests.
 type UpdateInstanceReaction struct {
 	Response *v2.UpdateInstanceResponse
 	Error    error
 }
 
+// DeprovisionReaction is sent as the response DeprovisionInstance requests.
 type DeprovisionReaction struct {
 	Response *v2.DeprovisionResponse
 	Error    error
 }
 
+// PollLastOperationReaction is sent as the response to PollLastOperation
+// requests.
 type PollLastOperationReaction struct {
 	Response *v2.LastOperationResponse
 	Error    error
 }
 
+// BindReaction is sent as the response Bind requests.
 type BindReaction struct {
 	Response *v2.BindResponse
 	Error    error
 }
 
+// UnbindReaction is sent as the response Unbind requests.
 type UnbindReaction struct {
 	Response *v2.UnbindResponse
 	Error    error

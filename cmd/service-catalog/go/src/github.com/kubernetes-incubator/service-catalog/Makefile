@@ -86,8 +86,8 @@ USER_BROKER_IMAGE                 = $(REGISTRY)user-broker-$(ARCH):$(VERSION)
 USER_BROKER_MUTABLE_IMAGE         = $(REGISTRY)user-broker-$(ARCH):$(MUTABLE_TAG)
 
 # precheck to avoid kubernetes-incubator/service-catalog#361
-$(if $(realpath vendor/k8s.io/kubernetes/vendor), \
-	$(error the vendor directory exists in the kubernetes \
+$(if $(realpath vendor/k8s.io/apimachinery/vendor), \
+	$(error the vendor directory exists in the apimachinery \
 		vendored source and must be flattened. \
 		run 'glide i -v'))
 
@@ -188,6 +188,7 @@ $(BINDIR)/e2e.test: .init $(NEWEST_E2ETEST_SOURCE) $(NEWEST_GO_FILE)
 	# Generate conversions
 	$(DOCKER_CMD) $(BINDIR)/conversion-gen \
 		--v 1 --logtostderr \
+		--extra-peer-dirs k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
 		--go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
 		--input-dirs "$(SC_PKG)/pkg/apis/servicecatalog" \
 		--input-dirs "$(SC_PKG)/pkg/apis/servicecatalog/v1beta1" \
@@ -228,6 +229,7 @@ verify: .init .generate_files verify-client-gen
 	@# observes conventions from upstream that will not pass lint checks).
 	@$(DOCKER_CMD) sh -c \
 	  'for i in $$(find $(TOP_SRC_DIRS) -name *.go \
+	    | grep -v ^pkg/kubernetes/ \
 	    | grep -v generated \
 	    | grep -v ^pkg/client/ \
 	    | grep -v v1beta1/defaults.go); \

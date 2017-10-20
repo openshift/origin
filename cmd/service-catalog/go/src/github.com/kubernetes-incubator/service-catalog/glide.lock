@@ -1,5 +1,5 @@
-hash: 5a0c7c16b152743f73c9f6ede963a42ef71d2229f516ae65b38cfec936487732
-updated: 2017-10-06T12:06:25.67282054+11:00
+hash: 136f4ca30d35d8db275ed74b9bba9a682b95de829d8383b2ab2f399af4ff7525
+updated: 2017-10-13T11:16:36.881475637-07:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -253,7 +253,7 @@ imports:
 - name: github.com/pkg/errors
   version: a22138067af1c4942683050411a841ade67fe1eb
 - name: github.com/pmorie/go-open-service-broker-client
-  version: 962a416798366b37a20a06fdb0a09180589ca964
+  version: 530248ec023d52217c43db2f06fa03ce844c40cc
   subpackages:
   - v2
   - v2/fake
@@ -693,11 +693,4 @@ imports:
   - pkg/common
   - pkg/handler
   - pkg/util
-- name: k8s.io/kubernetes
-  version: 0b9efaeb34a2fc51ff8e4d34ad9bc6375459c4a4
-  subpackages:
-  - pkg/apis/componentconfig
-  - pkg/client/leaderelectionconfig
-  - pkg/util/configz
-  - pkg/util/interrupt
 testImports: []

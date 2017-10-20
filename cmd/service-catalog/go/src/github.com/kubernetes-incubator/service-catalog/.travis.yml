@@ -8,6 +8,7 @@ cache:
 script:
 - make verify build test images
 deploy:
+  skip_cleanup: true
   provider: script
   script: contrib/travis/deploy.sh
   on:

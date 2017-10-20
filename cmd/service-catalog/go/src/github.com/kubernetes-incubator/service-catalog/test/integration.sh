@@ -19,7 +19,7 @@ set -o nounset
 set -o pipefail
 
 # this script resides in the `test/` folder at the root of the project
-KUBE_ROOT=$(realpath $(dirname "${BASH_SOURCE}")/../vendor/k8s.io/kubernetes)
+KUBE_ROOT=$(realpath $(dirname "${BASH_SOURCE}")/../pkg/kubernetes)
 source "${KUBE_ROOT}/hack/lib/init.sh"
 
 runTests() {

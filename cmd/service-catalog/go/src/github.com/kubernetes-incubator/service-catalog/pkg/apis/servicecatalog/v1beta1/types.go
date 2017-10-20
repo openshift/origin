@@ -427,6 +427,13 @@ type ServiceInstance struct {
 // ServicePlan and ServiceClass. Because there are multiple ways to
 // specify the desired Class/Plan, this structure specifies the
 // allowed ways to specify the intent.
+//
+// Currently supported ways:
+//  - ExternalClusterServiceClassName and ExternalClusterServicePlanName
+//  - ClusterServiceClassName and ClusterServicePlanName
+//
+// For both of these ways, if a ClusterServiceClass only has one plan
+// then leaving the *ServicePlanName is optional.
 type PlanReference struct {
 	// ExternalClusterServiceClassName is the human-readable name of the
 	// service as reported by the broker. Note that if the broker changes
@@ -442,6 +449,14 @@ type PlanReference struct {
 	// the current name of the ClusterServicePlan, you should follow the
 	// ClusterServicePlanRef below.
 	ExternalClusterServicePlanName string `json:"externalClusterServicePlanName,omitempty"`
+
+	// ClusterServiceClassName is the kubernetes name of the
+	// ClusterServiceClass.
+	//
+	// Immutable.
+	ClusterServiceClassName string `json:"clusterServiceClassName,omitempty"`
+	// ClusterServicePlanName is kubernetes name of the ClusterServicePlan.
+	ClusterServicePlanName string `json:"clusterServicePlanName,omitempty"`
 }
 
 // ServiceInstanceSpec represents the desired state of an Instance.

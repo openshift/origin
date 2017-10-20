@@ -29,6 +29,12 @@ func (c *client) DeprovisionInstance(r *DeprovisionRequest) (*DeprovisionRespons
 	case http.StatusOK, http.StatusGone:
 		return &DeprovisionResponse{}, nil
 	case http.StatusAccepted:
+		if !r.AcceptsIncomplete {
+			// If the client did not signify that it could handle asynchronous
+			// operations, a '202 Accepted' response should be treated as an error.
+			return nil, c.handleFailureResponse(response)
+		}
+
 		responseBodyObj := &asyncSuccessResponseBody{}
 		if err := c.unmarshalResponse(response, responseBodyObj); err != nil {
 			return nil, err
@@ -50,8 +56,6 @@ func (c *client) DeprovisionInstance(r *DeprovisionRequest) (*DeprovisionRespons
 	default:
 		return nil, c.handleFailureResponse(response)
 	}
-
-	return nil, nil
 }
 
 func validateDeprovisionRequest(request *DeprovisionRequest) error {

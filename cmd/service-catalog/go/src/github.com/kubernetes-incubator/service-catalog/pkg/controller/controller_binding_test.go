@@ -55,8 +55,8 @@ func TestReconcileServiceBindingNonExistingServiceInstance(t *testing.T) {
 			Generation: 1,
 		},
 		Spec: v1beta1.ServiceBindingSpec{
-			ServiceInstanceRef: v1.LocalObjectReference{Name: "nothere"},
-			ExternalID:         bindingGUID,
+			ServiceInstanceRef: v1.LocalObjectReference{Name: testNonExistentClusterServiceClassName},
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -83,7 +83,7 @@ func TestReconcileServiceBindingNonExistingServiceInstance(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonexistentServiceInstanceReason + " " + "ServiceBinding \"/test-binding\" references a non-existent ServiceInstance \"/nothere\""
+	expectedEvent := corev1.EventTypeWarning + " " + errorNonexistentServiceInstanceReason + " " + "References a non-existent ServiceInstance \"/nothere\""
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -100,10 +100,10 @@ func TestReconcileServiceBindingUnresolvedClusterServiceClassReference(t *testin
 		ObjectMeta: metav1.ObjectMeta{Name: testServiceInstanceName, Namespace: testNamespace},
 		Spec: v1beta1.ServiceInstanceSpec{
 			PlanReference: v1beta1.PlanReference{
-				ExternalClusterServiceClassName: "nothere",
+				ExternalClusterServiceClassName: testNonExistentClusterServiceClassName,
 				ExternalClusterServicePlanName:  testClusterServicePlanName,
 			},
-			ExternalID: instanceGUID,
+			ExternalID: testServiceInstanceGUID,
 		},
 	}
 	sharedInformers.ServiceInstances().Informer().GetStore().Add(instance)
@@ -117,7 +117,7 @@ func TestReconcileServiceBindingUnresolvedClusterServiceClassReference(t *testin
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -148,10 +148,10 @@ func TestReconcileServiceBindingUnresolvedClusterServicePlanReference(t *testing
 		ObjectMeta: metav1.ObjectMeta{Name: testServiceInstanceName, Namespace: testNamespace},
 		Spec: v1beta1.ServiceInstanceSpec{
 			PlanReference: v1beta1.PlanReference{
-				ExternalClusterServiceClassName: "nothere",
+				ExternalClusterServiceClassName: testNonExistentClusterServiceClassName,
 				ExternalClusterServicePlanName:  testClusterServicePlanName,
 			},
-			ExternalID:             instanceGUID,
+			ExternalID:             testServiceInstanceGUID,
 			ClusterServiceClassRef: &v1.ObjectReference{Name: "Some Ref"},
 		},
 	}
@@ -166,7 +166,7 @@ func TestReconcileServiceBindingUnresolvedClusterServicePlanReference(t *testing
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -198,10 +198,10 @@ func TestReconcileServiceBindingNonExistingClusterServiceClass(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: testServiceInstanceName, Namespace: testNamespace},
 		Spec: v1beta1.ServiceInstanceSpec{
 			PlanReference: v1beta1.PlanReference{
-				ExternalClusterServiceClassName: "nothere",
+				ExternalClusterServiceClassName: testNonExistentClusterServiceClassName,
 				ExternalClusterServicePlanName:  testClusterServicePlanName,
 			},
-			ExternalID:             instanceGUID,
+			ExternalID:             testServiceInstanceGUID,
 			ClusterServiceClassRef: &v1.ObjectReference{Name: "nosuchclassid"},
 			ClusterServicePlanRef:  &v1.ObjectReference{Name: "nosuchplanid"},
 		},
@@ -217,7 +217,7 @@ func TestReconcileServiceBindingNonExistingClusterServiceClass(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -242,7 +242,7 @@ func TestReconcileServiceBindingNonExistingClusterServiceClass(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonexistentClusterServiceClassMessage + " " + "ServiceBinding \"test-ns/test-binding\" references a non-existent ClusterServiceClass \"nothere\""
+	expectedEvent := corev1.EventTypeWarning + " " + errorNonexistentClusterServiceClassMessage + " " + "References a non-existent ClusterServiceClass (K8S: \"nosuchclassid\" ExternalName: \"" + testNonExistentClusterServiceClassName + "\")"
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event expected: %v got: %v", e, a)
 	}
@@ -281,7 +281,7 @@ func TestReconcileServiceBindingWithSecretConflict(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -294,13 +294,13 @@ func TestReconcileServiceBindingWithSecretConflict(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
-		AppGUID:    strPtr(testNsUID),
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+		AppGUID:    strPtr(testNamespaceGUID),
 		BindResource: &osb.BindResource{
-			AppGUID: strPtr(testNsUID),
+			AppGUID: strPtr(testNamespaceGUID),
 		},
 	})
 
@@ -311,11 +311,12 @@ func TestReconcileServiceBindingWithSecretConflict(t *testing.T) {
 	assertServiceBindingOperationInProgress(t, updatedServiceBinding, v1beta1.ServiceBindingOperationBind, binding)
 
 	updatedServiceBinding = assertUpdateStatus(t, actions[1], binding).(*v1beta1.ServiceBinding)
+
 	assertServiceBindingReadyFalse(t, updatedServiceBinding, errorInjectingBindResultReason)
 	assertServiceBindingCurrentOperation(t, updatedServiceBinding, v1beta1.ServiceBindingOperationBind)
 	assertServiceBindingOperationStartTimeSet(t, updatedServiceBinding, true)
 	assertServiceBindingReconciledGeneration(t, updatedServiceBinding, binding.Status.ReconciledGeneration)
-	assertServiceBindingInProgressPropertiesParameters(t, updatedServiceBinding, nil, "")
+	assertServiceBindingInProgressPropertiesNil(t, updatedServiceBinding)
 	// External properties are updated because the bind request with the Broker was successful
 	assertServiceBindingExternalPropertiesParameters(t, updatedServiceBinding, nil, "")
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
@@ -372,7 +373,7 @@ func TestReconcileServiceBindingWithParameters(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -394,11 +395,11 @@ func TestReconcileServiceBindingWithParameters(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
-		AppGUID:    strPtr(testNsUID),
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+		AppGUID:    strPtr(testNamespaceGUID),
 		Parameters: map[string]interface{}{
 			"args": []interface{}{
 				"first-arg",
@@ -407,7 +408,7 @@ func TestReconcileServiceBindingWithParameters(t *testing.T) {
 			"name": "test-param",
 		},
 		BindResource: &osb.BindResource{
-			AppGUID: strPtr(testNsUID),
+			AppGUID: strPtr(testNamespaceGUID),
 		},
 	})
 
@@ -503,7 +504,7 @@ func TestReconcileServiceBindingNonbindableClusterServiceClass(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -526,7 +527,7 @@ func TestReconcileServiceBindingNonbindableClusterServiceClass(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonbindableClusterServiceClassReason + ` ServiceBinding "test-ns/test-binding" references a non-bindable ClusterServiceClass ("test-unbindable-serviceclass") and Plan ("test-unbindable-plan") combination`
+	expectedEvent := corev1.EventTypeWarning + " " + errorNonbindableClusterServiceClassReason + ` References a non-bindable ClusterServiceClass (K8S: "UNBINDABLE-SERVICE" ExternalName: "test-unbindable-serviceclass") and Plan ("test-unbindable-plan") combination`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -574,7 +575,7 @@ func TestReconcileServiceBindingNonbindableClusterServiceClassBindablePlan(t *te
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -587,13 +588,13 @@ func TestReconcileServiceBindingNonbindableClusterServiceClassBindablePlan(t *te
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  nonbindableClusterServiceClassGUID,
-		PlanID:     planGUID,
-		AppGUID:    strPtr(testNsUID),
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testNonbindableClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+		AppGUID:    strPtr(testNamespaceGUID),
 		BindResource: &osb.BindResource{
-			AppGUID: strPtr(testNsUID),
+			AppGUID: strPtr(testNamespaceGUID),
 		},
 	})
 
@@ -665,7 +666,7 @@ func TestReconcileServiceBindingBindableClusterServiceClassNonbindablePlan(t *te
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -688,7 +689,7 @@ func TestReconcileServiceBindingBindableClusterServiceClassNonbindablePlan(t *te
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonbindableClusterServiceClassReason + ` ServiceBinding "test-ns/test-binding" references a non-bindable ClusterServiceClass ("test-serviceclass") and Plan ("test-unbindable-plan") combination`
+	expectedEvent := corev1.EventTypeWarning + " " + errorNonbindableClusterServiceClassReason + ` References a non-bindable ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") and Plan ("test-unbindable-plan") combination`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -713,7 +714,7 @@ func TestReconcileServiceBindingFailsWithServiceInstanceAsyncOngoing(t *testing.
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -776,7 +777,7 @@ func TestReconcileServiceBindingServiceInstanceNotReady(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -799,7 +800,7 @@ func TestReconcileServiceBindingServiceInstanceNotReady(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorServiceInstanceNotReadyReason + " " + `ServiceBinding cannot begin because referenced instance "test-ns/test-instance" is not ready`
+	expectedEvent := corev1.EventTypeWarning + " " + errorServiceInstanceNotReadyReason + " " + `ServiceBinding cannot begin because referenced ServiceInstance "test-ns/test-instance" is not ready`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -827,7 +828,7 @@ func TestReconcileServiceBindingNamespaceError(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 		},
 	}
 
@@ -877,7 +878,7 @@ func TestReconcileServiceBindingDelete(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 		Status: v1beta1.ServiceBindingStatus{
@@ -898,10 +899,10 @@ func TestReconcileServiceBindingDelete(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertUnbind(t, brokerActions[0], &osb.UnbindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
 	})
 
 	kubeActions := fakeKubeClient.Actions()
@@ -1110,10 +1111,10 @@ func TestReconcileServiceBindingDeleteFailedServiceBinding(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertUnbind(t, brokerActions[0], &osb.UnbindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
 	})
 
 	// verify one kube action occurred
@@ -1180,7 +1181,7 @@ func TestReconcileServiceBindingWithClusterServiceBrokerError(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -1202,7 +1203,7 @@ func TestReconcileServiceBindingWithClusterServiceBrokerError(t *testing.T) {
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + `Error creating ServiceBinding "test-binding/test-ns" for ServiceInstance "test-ns/test-instance" of ClusterServiceClass "test-serviceclass" at ClusterServiceBroker "test-broker": Unexpected action`
+	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + `Error creating ServiceBinding for ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Unexpected action`
 	if 1 != len(events) {
 		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
 	}
@@ -1239,7 +1240,7 @@ func TestReconcileServiceBindingWithClusterServiceBrokerHTTPError(t *testing.T) 
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -1261,7 +1262,7 @@ func TestReconcileServiceBindingWithClusterServiceBrokerHTTPError(t *testing.T) 
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + `Error creating ServiceBinding "test-binding/test-ns" for ServiceInstance "test-ns/test-instance" of ClusterServiceClass "test-serviceclass" at ClusterServiceBroker "test-broker", Status: 422; ErrorMessage: AsyncRequired; Description: This service plan requires client support for asynchronous service operations.; ResponseError: <nil>`
+	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + `Error creating ServiceBinding for ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Status: 422; ErrorMessage: AsyncRequired; Description: This service plan requires client support for asynchronous service operations.; ResponseError: <nil>`
 	if 1 != len(events) {
 		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
 	}
@@ -1341,10 +1342,10 @@ func TestReconcileServiceBindingWithServiceBindingCallFailure(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
 		AppGUID:    strPtr(""),
 		BindResource: &osb.BindResource{
 			AppGUID: strPtr(""),
@@ -1354,7 +1355,7 @@ func TestReconcileServiceBindingWithServiceBindingCallFailure(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Error creating ServiceBinding \"test-binding/test-ns\" for ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass \"test-serviceclass\" at ClusterServiceBroker \"test-broker\": fake creation failure"
+	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Error creating ServiceBinding for ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass (K8S: \"SCGUID\" ExternalName: \"test-serviceclass\") at ClusterServiceBroker \"test-broker\": fake creation failure"
 
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
@@ -1407,10 +1408,10 @@ func TestReconcileServiceBindingWithServiceBindingFailure(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
 		AppGUID:    strPtr(""),
 		BindResource: &osb.BindResource{
 			AppGUID: strPtr(""),
@@ -1420,7 +1421,7 @@ func TestReconcileServiceBindingWithServiceBindingFailure(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Error creating ServiceBinding \"test-binding/test-ns\" for ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass \"test-serviceclass\" at ClusterServiceBroker \"test-broker\", Status: 409; ErrorMessage: ServiceBindingExists; Description: Service binding with the same id, for the same service instance already exists.; ResponseError: <nil>"
+	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Error creating ServiceBinding for ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass (K8S: \"SCGUID\" ExternalName: \"test-serviceclass\") at ClusterServiceBroker \"test-broker\": Status: 409; ErrorMessage: ServiceBindingExists; Description: Service binding with the same id, for the same service instance already exists.; ResponseError: <nil>"
 
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
@@ -1605,7 +1606,7 @@ func TestReconcileUnbindingWithClusterServiceBrokerError(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 		Status: v1beta1.ServiceBindingStatus{
@@ -1631,7 +1632,7 @@ func TestReconcileUnbindingWithClusterServiceBrokerError(t *testing.T) {
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + `Error unbinding ServiceBinding "test-ns/test-binding" for ServiceInstance "test-ns/test-instance" of ClusterServiceClass "test-serviceclass" at ClusterServiceBroker "test-broker": Unexpected action`
+	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + `Error unbinding from ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Unexpected action`
 	if 1 != len(events) {
 		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
 	}
@@ -1668,7 +1669,7 @@ func TestReconcileUnbindingWithClusterServiceBrokerHTTPError(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 		Status: v1beta1.ServiceBindingStatus{
@@ -1695,7 +1696,7 @@ func TestReconcileUnbindingWithClusterServiceBrokerHTTPError(t *testing.T) {
 
 	events := getRecordedEvents(testController)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + `Error unbinding ServiceBinding "test-binding/test-ns" for ServiceInstance "test-ns/test-instance" of ClusterServiceClass "test-serviceclass" at ClusterServiceBroker "test-broker": Status: 410; ErrorMessage: <nil>; Description: <nil>; ResponseError: <nil>`
+	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + `Error unbinding from ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Status: 410; ErrorMessage: <nil>; Description: <nil>; ResponseError: <nil>`
 	if 1 != len(events) {
 		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
 	}
@@ -1743,7 +1744,7 @@ func TestReconcileBindingUsingOriginatingIdentity(t *testing.T) {
 				t.Errorf("%v: unexpected request type; expected %T, got %T", tc.name, &osb.BindRequest{}, actualRequest)
 				return
 			}
-			var expectedOriginatingIdentity *osb.AlphaOriginatingIdentity
+			var expectedOriginatingIdentity *osb.OriginatingIdentity
 			if tc.expectedOriginatingIdentity {
 				expectedOriginatingIdentity = testOriginatingIdentity
 			}
@@ -1794,7 +1795,7 @@ func TestReconcileBindingDeleteUsingOriginatingIdentity(t *testing.T) {
 				t.Errorf("%v: unexpected request type; expected %T, got %T", tc.name, &osb.UnbindRequest{}, actualRequest)
 				return
 			}
-			var expectedOriginatingIdentity *osb.AlphaOriginatingIdentity
+			var expectedOriginatingIdentity *osb.OriginatingIdentity
 			if tc.expectedOriginatingIdentity {
 				expectedOriginatingIdentity = testOriginatingIdentity
 			}
@@ -1837,13 +1838,13 @@ func TestReconcileBindingSuccessOnFinalRetry(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
-		AppGUID:    strPtr(testNsUID),
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+		AppGUID:    strPtr(testNamespaceGUID),
 		BindResource: &osb.BindResource{
-			AppGUID: strPtr(testNsUID),
+			AppGUID: strPtr(testNamespaceGUID),
 		},
 	})
 
@@ -1949,7 +1950,7 @@ func TestReconcileBindingWithSecretConflictFailedAfterFinalRetry(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 		Status: v1beta1.ServiceBindingStatus{
@@ -1965,13 +1966,13 @@ func TestReconcileBindingWithSecretConflictFailedAfterFinalRetry(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
-		AppGUID:    strPtr(testNsUID),
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+		AppGUID:    strPtr(testNamespaceGUID),
 		BindResource: &osb.BindResource{
-			AppGUID: strPtr(testNsUID),
+			AppGUID: strPtr(testNamespaceGUID),
 		},
 	})
 
@@ -1979,16 +1980,12 @@ func TestReconcileBindingWithSecretConflictFailedAfterFinalRetry(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding).(*v1beta1.ServiceBinding)
-	assertServiceBindingReadyFalse(t, updatedServiceBinding, errorServiceBindingOrphanMitigation)
-	assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, errorReconciliationRetryTimeoutReason)
-	assertServiceBindingCurrentOperation(t, updatedServiceBinding, v1beta1.ServiceBindingOperationBind)
-	assertServiceBindingOperationStartTimeSet(t, updatedServiceBinding, false)
-	assertServiceBindingReconciledGeneration(t, updatedServiceBinding, binding.Status.ReconciledGeneration)
-	assertServiceBindingInProgressPropertiesNil(t, updatedServiceBinding)
-	// External properties are updated because the bind request with the Broker was successful
-	assertServiceBindingExternalPropertiesParameters(t, updatedServiceBinding, nil, "")
+
 	assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionReady, v1beta1.ConditionFalse, errorServiceBindingOrphanMitigation)
-	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, true)
+	assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, errorReconciliationRetryTimeoutReason)
+	assertServiceBindingStartingOrphanMitigation(t, updatedServiceBinding, binding)
+	assertServiceBindingInProgressPropertiesNil(t, updatedServiceBinding)
+	assertServiceBindingExternalPropertiesParameters(t, updatedServiceBinding, nil, "")
 
 	kubeActions := fakeKubeClient.Actions()
 	assertNumberOfActions(t, kubeActions, 2)
@@ -2103,7 +2100,7 @@ func TestReconcileServiceBindingWithSecretParameters(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -2134,17 +2131,17 @@ func TestReconcileServiceBindingWithSecretParameters(t *testing.T) {
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertBind(t, brokerActions[0], &osb.BindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
-		AppGUID:    strPtr(testNsUID),
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+		AppGUID:    strPtr(testNamespaceGUID),
 		Parameters: map[string]interface{}{
 			"a": "1",
 			"b": "2",
 		},
 		BindResource: &osb.BindResource{
-			AppGUID: strPtr(testNsUID),
+			AppGUID: strPtr(testNamespaceGUID),
 		},
 	})
 
@@ -2292,7 +2289,7 @@ func TestReconcileBindingWithSetOrphanMitigation(t *testing.T) {
 			},
 			Spec: v1beta1.ServiceBindingSpec{
 				ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-				ExternalID:         bindingGUID,
+				ExternalID:         testServiceBindingGUID,
 				SecretName:         testServiceBindingSecretName,
 			},
 		}
@@ -2306,13 +2303,13 @@ func TestReconcileBindingWithSetOrphanMitigation(t *testing.T) {
 		brokerActions := fakeServiceBrokerClient.Actions()
 		assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 		assertBind(t, brokerActions[0], &osb.BindRequest{
-			BindingID:  bindingGUID,
-			InstanceID: instanceGUID,
-			ServiceID:  serviceClassGUID,
-			PlanID:     planGUID,
-			AppGUID:    strPtr(testNsUID),
+			BindingID:  testServiceBindingGUID,
+			InstanceID: testServiceInstanceGUID,
+			ServiceID:  testClusterServiceClassGUID,
+			PlanID:     testClusterServicePlanGUID,
+			AppGUID:    strPtr(testNamespaceGUID),
 			BindResource: &osb.BindResource{
-				AppGUID: strPtr(testNsUID),
+				AppGUID: strPtr(testNamespaceGUID),
 			},
 		})
 
@@ -2333,10 +2330,15 @@ func TestReconcileBindingWithSetOrphanMitigation(t *testing.T) {
 		assertServiceBindingReadyFalse(t, updatedServiceBinding)
 
 		updatedServiceBinding = assertUpdateStatus(t, actions[1], binding).(*v1beta1.ServiceBinding)
-		assertServiceBindingReadyFalse(t, updatedServiceBinding)
-		assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionReady, v1beta1.ConditionFalse)
 
-		assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, tc.setOrphanMitigation)
+		if tc.setOrphanMitigation {
+			assertServiceBindingStartingOrphanMitigation(t, updatedServiceBinding, binding)
+		} else {
+			assertServiceBindingReadyFalse(t, updatedServiceBinding)
+			assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionReady, v1beta1.ConditionFalse)
+			assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, tc.setOrphanMitigation)
+			assertServiceBindingExternalPropertiesNil(t, updatedServiceBinding)
+		}
 	}
 }
 
@@ -2368,7 +2370,7 @@ func TestReconcileBindingWithOrphanMitigationInProgress(t *testing.T) {
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -2392,10 +2394,10 @@ func TestReconcileBindingWithOrphanMitigationInProgress(t *testing.T) {
 	brokerActions := fakeServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertUnbind(t, brokerActions[0], &osb.UnbindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
 	})
 
 	actions := fakeCatalogClient.Actions()
@@ -2438,7 +2440,7 @@ func TestReconcileBindingWithOrphanMitigationReconciliationRetryTimeOut(t *testi
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         bindingGUID,
+			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
 	}
@@ -2462,10 +2464,10 @@ func TestReconcileBindingWithOrphanMitigationReconciliationRetryTimeOut(t *testi
 	brokerActions := fakeServiceBrokerClient.Actions()
 	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
 	assertUnbind(t, brokerActions[0], &osb.UnbindRequest{
-		BindingID:  bindingGUID,
-		InstanceID: instanceGUID,
-		ServiceID:  serviceClassGUID,
-		PlanID:     planGUID,
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
 	})
 
 	actions := fakeCatalogClient.Actions()
@@ -2480,7 +2482,7 @@ func TestReconcileBindingWithOrphanMitigationReconciliationRetryTimeOut(t *testi
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + "Error unbinding ServiceBinding \"test-ns/test-binding\" for ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass \"test-serviceclass\" at ClusterServiceBroker \"test-broker\": timed out"
+	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + "Error unbinding from ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass (K8S: \"SCGUID\" ExternalName: \"test-serviceclass\") at ClusterServiceBroker \"test-broker\": timed out"
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event, expected %v got %v", a, e)
 	}
