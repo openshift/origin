@@ -288,7 +288,7 @@ func TestCreateServiceAliasConfig(t *testing.T) {
 
 	namespace := "foo"
 	serviceName := "TestService"
-	serviceWeight := int32(240)
+	serviceWeight := int32(0)
 
 	route := &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{
@@ -324,8 +324,8 @@ func TestCreateServiceAliasConfig(t *testing.T) {
 
 	// Basic sanity, validate more fields as necessary
 	if config.Host != route.Spec.Host || config.Path != route.Spec.Path || !compareTLS(route, config, t) ||
-		config.PreferPort != route.Spec.Port.TargetPort.String() || !reflect.DeepEqual(expectedSUs, config.ServiceUnitNames) ||
-		config.ActiveServiceUnits != 1 {
+		config.PreferPort != route.Spec.Port.TargetPort.String() || !reflect.DeepEqual(expectedSUs, config.ServiceUnits) ||
+		config.ActiveServiceUnits != 0 {
 		t.Errorf("Route %v did not match service alias config %v", route, config)
 	}
 
