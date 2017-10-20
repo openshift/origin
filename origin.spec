@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a802800a9137c17556008da543f8943f1a00a974
+%global commit edaf77c9dbb69fd5f2defa62f31a30443768090d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.166.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=a802800 OS_GIT_CATALOG_VERSION=''
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.167.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0-rc2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=edaf77c
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.167.0%{?dist}
+Release:        0.168.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,26 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Oct 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.168.0
+- bump(github.com/openshift/origin-web-console):
+  f127c701898b224faa396d394df9b498d62e9d37 (eparis+openshiftbot@redhat.com)
+- Temporarily disable checking for multiple deployer pods until we have a fix
+  for the controllers (tnozicka@gmail.com)
+- add details to scl test steps (bparees@redhat.com)
+- check for pending, not running state for next build (bparees@redhat.com)
+- wait for group cache to avoid flake in templateinstance test
+  (jminter@redhat.com)
+- Router - A/B weights distribution improvement (pcameron@redhat.com)
+- add missing rbac rule for builder (jminter@redhat.com)
+- catalog: add versioning for release build (jpeeler@redhat.com)
+- UPSTREAM: 53167: Do not GC exited containers in running pods
+  (sjenning@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from 3aacfedec6..aa27078754 (jaboyd@redhat.com)
+- Verify that EgressIPs are on the expected subnet (danw@redhat.com)
+- Do Egress IP link initialization stuff from Start() (danw@redhat.com)
+- Tweak OVS flows for egress IPs (danw@redhat.com)
+
 * Thu Oct 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.167.0
 - 
 
