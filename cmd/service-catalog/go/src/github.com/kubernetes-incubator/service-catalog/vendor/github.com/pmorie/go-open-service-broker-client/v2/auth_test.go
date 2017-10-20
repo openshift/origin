@@ -64,15 +64,15 @@ func addBasicAuthCheck(t *testing.T, name string, authConfig *BasicAuthConfig, f
 		u, p, ok := request.BasicAuth()
 		if !ok && authConfig != nil {
 			t.Errorf("%s: Expected basic auth in request but none found", name)
-			return nil, walkingGhostErr
+			return nil, errWalkingGhost
 		} else if ok && authConfig != nil {
 			if u != authConfig.Username {
 				t.Errorf("%s: basic auth username test failed: expected %q but got %q", name, authConfig.Username, u)
-				return nil, walkingGhostErr
+				return nil, errWalkingGhost
 			}
 			if p != authConfig.Password {
 				t.Errorf("%s: basic auth password test failed: expected %q but got %q", name, authConfig.Password, p)
-				return nil, walkingGhostErr
+				return nil, errWalkingGhost
 			}
 		}
 
@@ -86,18 +86,18 @@ func addBearerAuthCheck(t *testing.T, name string, authConfig *BearerConfig, f d
 		if auth == "" {
 			if authConfig != nil {
 				t.Errorf("%s: Expected bearer auth in request but none found", name)
-				return nil, walkingGhostErr
+				return nil, errWalkingGhost
 			}
 			return f(request)
 		}
 		token, ok := parseBearerToken(auth)
 		if !ok && authConfig != nil {
 			t.Errorf("%s: Expected bearer auth in request but none found", name)
-			return nil, walkingGhostErr
+			return nil, errWalkingGhost
 		} else if ok && authConfig != nil {
 			if token != authConfig.Token {
 				t.Errorf("%s: bearer token test failed: expected %q but got %q", name, authConfig.Token, token)
-				return nil, walkingGhostErr
+				return nil, errWalkingGhost
 			}
 		}
 

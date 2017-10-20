@@ -18,6 +18,7 @@ package validation
 
 import (
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
@@ -137,8 +138,18 @@ func validateClusterServiceBrokerSpec(spec *sc.ClusterServiceBrokerSpec, fldPath
 	if spec.RelistRequests < 0 {
 		allErrs = append(
 			allErrs,
-			field.Required(fldPath.Child("relistRequests"), "relistDuration must be greater than zero"),
+			field.Required(fldPath.Child("relistRequests"), "relistRequests must be greater than zero"),
 		)
+	}
+
+	if spec.RelistDuration != nil {
+		zeroDuration := metav1.Duration{0}
+		if spec.RelistDuration.Duration <= zeroDuration.Duration {
+			allErrs = append(
+				allErrs,
+				field.Required(fldPath.Child("relistDuration"), "relistDuration must be greater than zero"),
+			)
+		}
 	}
 
 	return allErrs

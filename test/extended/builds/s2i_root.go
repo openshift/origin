@@ -1,11 +1,13 @@
 package builds
 
 import (
-	"fmt"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
@@ -14,14 +16,20 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 	defer g.GinkgoRecover()
 
 	var (
-		buildFixture = exutil.FixturePath("testdata", "builds", "s2i-build-root.yaml")
-		oc           = exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
 	)
 
 	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("creating a root build container")
+			err = oc.Run("new-build").Args("-D", "FROM centos/nodejs-6-centos7\nUSER 0", "--name", "nodejsroot").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsroot-1", nil, nil, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -32,23 +40,67 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 			}
 		})
 
-		g.Describe("Building using an image with a root default user", func() {
-			g.It("should fail the build immediately", func() {
-				oc.SetOutputDir(exutil.TestContext.OutputDir)
+		g.It("should create a root build and fail without a privileged SCC", func() {
+			err := oc.Run("new-app").Args("nodejsroot~https://github.com/openshift/nodejs-ex", "--name", "nodejsfail").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
-				err := oc.Run("create").Args("-f", buildFixture).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
+			o.Expect(err).To(o.HaveOccurred())
 
-				g.By("starting a test build")
-				// this uses the build-quota dir as the binary input source on purpose - we don't really care what we upload
-				// to the build since it will fail before we ever consume the inputs.
-				br, _ := exutil.StartBuildAndWait(oc, "s2i-build-root", "--from-dir", exutil.FixturePath("testdata", "builds", "build-quota"))
-				br.AssertFailure()
-				o.Expect(string(br.Build.Status.Reason)).To(o.Equal(string(s2istatus.ReasonPullBuilderImageFailed)))
-				o.Expect(string(br.Build.Status.Message)).To(o.Equal(string(s2istatus.ReasonMessagePullBuilderImageFailed)))
+			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseFailed))
+			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
+			o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
 
-			})
+			podname := build.Annotations[buildapi.BuildPodNameAnnotation]
+			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			containers := make([]kapiv1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+			copy(containers, pod.Spec.Containers)
+			copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
+
+			for _, c := range containers {
+				env := map[string]string{}
+				for _, e := range c.Env {
+					env[e.Name] = e.Value
+				}
+				o.Expect(env["DROP_CAPS"]).To(o.Equal("KILL,MKNOD,SETGID,SETUID"))
+				o.Expect(env["ALLOWED_UIDS"]).To(o.Equal("1-"))
+			}
+		})
+
+		g.It("should create a root build and pass with a privileged SCC", func() {
+			g.By("adding builder account to privileged SCC")
+			err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "privileged", "system:serviceaccount:"+oc.Namespace()+":builder").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = oc.Run("new-app").Args("nodejsroot~https://github.com/openshift/nodejs-ex", "--name", "nodejspass").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			podname := build.Annotations[buildapi.BuildPodNameAnnotation]
+			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			containers := make([]kapiv1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+			copy(containers, pod.Spec.Containers)
+			copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
+
+			for _, c := range containers {
+				env := map[string]string{}
+				for _, e := range c.Env {
+					env[e.Name] = e.Value
+				}
+				o.Expect(env).NotTo(o.HaveKey("DROP_CAPS"))
+				o.Expect(env).NotTo(o.HaveKey("ALLOWED_UIDS"))
+			}
 		})
 	})
 })

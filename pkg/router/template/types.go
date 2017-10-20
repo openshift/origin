@@ -53,8 +53,13 @@ type ServiceAliasConfig struct {
 	// Annotations attached to this route
 	Annotations map[string]string
 
-	// ServiceUnitNames is a collection of services that support this route, keyed by service name
-	// and valued on the weight attached to it with respect to other entries in the map
+	// ServiceUnits is the weight for each service assigned to the route keyed by service name.
+	// It is used in calculating the weight for the server that is found in ServiceUnitNames
+	ServiceUnits map[string]int32
+
+	// ServiceUnitNames is the weight to apply to each endpoint of each service supporting this route.
+	// The key is the service name, the value is the scaled portion of the service weight to assign
+	// to each endpoint in the service.
 	ServiceUnitNames map[string]int32
 
 	// ActiveServiceUnits is a count of the service units with a non-zero weight

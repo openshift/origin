@@ -26,6 +26,21 @@ readonly -f os::build::version::get_vars
 function os::build::version::openshift_vars() {
 	local git=(git --work-tree "${OS_ROOT}")
 
+	if [[ -z "${OS_GIT_CATALOG_VERSION:-}" ]]; then
+		# search git merge commits for template text and extract version
+		# subject template: Merge version v0.0.14 of Service Catalog from https://github.com/openshift/service-catalog:v0.0.14+origin
+		summary_text="$(${git[@]} log --merges --grep "Merge version v.* of Service Catalog from https://github.com/openshift/service-catalog" --pretty=%s -1)"
+		if [[ "${summary_text}" =~ Merge[[:space:]]version[[:space:]](v.*)[[:space:]]of[[:space:]]Service[[:space:]]Catalog ]]; then
+			OS_GIT_CATALOG_VERSION="${BASH_REMATCH[1]}"
+		else
+			os::log::fatal "Unable to find version for service catalog - (this should never happen)"
+		fi
+
+		if git_status=$("${git[@]}" status --porcelain cmd/service-catalog 2>/dev/null) && [[ -n ${git_status} ]]; then
+			OS_GIT_CATALOG_VERSION+="dirty"
+		fi
+	fi
+
 	if [[ -n ${OS_GIT_COMMIT-} ]] || OS_GIT_COMMIT=$("${git[@]}" rev-parse --short "HEAD^{commit}" 2>/dev/null); then
 		if [[ -z ${OS_GIT_TREE_STATE-} ]]; then
 			# Check if the tree is dirty.  default to dirty

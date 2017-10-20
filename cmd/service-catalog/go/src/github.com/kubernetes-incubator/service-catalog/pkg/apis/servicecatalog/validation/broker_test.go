@@ -320,6 +320,20 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 			},
 			valid: false,
 		},
+		{
+			name: "invalid broker - negative relistDuration value",
+			broker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+					RelistDuration: &metav1.Duration{Duration: -15 * time.Minute},
+				},
+			},
+			valid: false,
+		},
 	}
 
 	for _, tc := range cases {

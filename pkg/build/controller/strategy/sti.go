@@ -198,6 +198,8 @@ func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
 						ServiceAccountName: build.Spec.ServiceAccount,
 						Containers: []kapi.Container{
 							{
+								Name:  "fake",
+								Image: "fake",
 								SecurityContext: &kapi.SecurityContext{
 									RunAsUser: &rootUser,
 								},

@@ -68,19 +68,7 @@ func internalValidateServiceInstance(instance *sc.ServiceInstance, create bool) 
 func validateServiceInstanceSpec(spec *sc.ServiceInstanceSpec, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if "" == spec.ExternalClusterServiceClassName {
-		allErrs = append(allErrs, field.Required(fldPath.Child("externalClusterServiceClassName"), "externalClusterServiceClassName is required"))
-	}
-	for _, msg := range validateServiceClassName(spec.ExternalClusterServiceClassName, false /* prefix */) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalClusterServiceClassName"), spec.ExternalClusterServiceClassName, msg))
-	}
-
-	if "" == spec.ExternalClusterServicePlanName {
-		allErrs = append(allErrs, field.Required(fldPath.Child("externalClusterServicePlanName"), "externalClusterServicePlanName is required"))
-	}
-	for _, msg := range validateServicePlanName(spec.ExternalClusterServicePlanName, false /* prefix */) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalClusterServicePlanName"), spec.ExternalClusterServicePlanName, msg))
-	}
+	allErrs = append(allErrs, validatePlanReference(&spec.PlanReference, fldPath)...)
 
 	if spec.ParametersFrom != nil {
 		for _, paramsFrom := range spec.ParametersFrom {
@@ -134,8 +122,8 @@ func validateServiceInstanceStatus(status *sc.ServiceInstanceStatus, fldPath *fi
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("lastOperation"), "lastOperation cannot be true when currentOperation is not present"))
 		}
 	} else {
-		if status.OperationStartTime == nil {
-			allErrs = append(allErrs, field.Required(fldPath.Child("operationStartTime"), "operationStartTime is required when currentOperation is present"))
+		if status.OperationStartTime == nil && !status.OrphanMitigationInProgress {
+			allErrs = append(allErrs, field.Required(fldPath.Child("operationStartTime"), "operationStartTime is required when currentOperation is present and no orphan mitigation in progress"))
 		}
 		// Do not allow the instance to be ready if there is an on-going operation
 		for i, c := range status.Conditions {
@@ -252,14 +240,17 @@ func internalValidateServiceInstanceUpdateAllowed(new *sc.ServiceInstance, old *
 func ValidateServiceInstanceUpdate(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	allErrs := field.ErrorList{}
 
+	specFieldPath := field.NewPath("spec")
+
+	allErrs = append(allErrs, validatePlanReferenceUpdate(&new.Spec.PlanReference, &old.Spec.PlanReference, specFieldPath)...)
 	allErrs = append(allErrs, internalValidateServiceInstanceUpdateAllowed(new, old)...)
 	allErrs = append(allErrs, internalValidateServiceInstance(new, false)...)
 
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(new.Spec.ExternalClusterServiceClassName, old.Spec.ExternalClusterServiceClassName, field.NewPath("spec").Child("externalClusterServiceClassName"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(new.Spec.ExternalID, old.Spec.ExternalID, field.NewPath("spec").Child("externalID"))...)
+	allErrs = append(allErrs, apivalidation.ValidateImmutableField(new.Spec.ExternalClusterServiceClassName, old.Spec.ExternalClusterServiceClassName, specFieldPath.Child("externalClusterServiceClassName"))...)
+	allErrs = append(allErrs, apivalidation.ValidateImmutableField(new.Spec.ExternalID, old.Spec.ExternalID, specFieldPath.Child("externalID"))...)
 
 	if new.Spec.UpdateRequests < old.Spec.UpdateRequests {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("updateRequests"), new.Spec.UpdateRequests, "new updateRequests value must not be less than the old one"))
+		allErrs = append(allErrs, field.Invalid(specFieldPath.Child("updateRequests"), new.Spec.UpdateRequests, "new updateRequests value must not be less than the old one"))
 	}
 
 	return allErrs
@@ -307,5 +298,64 @@ func ValidateServiceInstanceReferencesUpdate(new *sc.ServiceInstance, old *sc.Se
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, internalValidateServiceInstanceReferencesUpdateAllowed(new, old)...)
 	allErrs = append(allErrs, internalValidateServiceInstance(new, false)...)
+	return allErrs
+}
+
+func validatePlanReference(p *sc.PlanReference, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	// Just to make reading of the conditionals in the code easier.
+	externalClassSet := p.ExternalClusterServiceClassName != ""
+	externalPlanSet := p.ExternalClusterServicePlanName != ""
+	k8sClassSet := p.ClusterServiceClassName != ""
+	k8sPlanSet := p.ClusterServicePlanName != ""
+
+	// Can't specify both External and k8s name but must specify one.
+	if externalClassSet == k8sClassSet {
+		allErrs = append(allErrs, field.Required(fldPath.Child("externalClusterServiceClassName"), "exactly one of externalClusterServiceClassName or clusterServiceClassName required"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServiceClassName"), "exactly one of externalClusterServiceClassName or clusterServiceClassName required"))
+	}
+	// Can't specify both External and k8s name but must specify one.
+	if externalPlanSet == k8sPlanSet {
+		allErrs = append(allErrs, field.Required(fldPath.Child("externalClusterServicePlanName"), "exactly one of externalClusterServicePlanName or clusterServicePlanName required"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServicePlanName"), "exactly one of externalClusterServicePlanName or clusterServicePlanName required"))
+	}
+
+	if externalClassSet {
+		for _, msg := range validateServiceClassName(p.ExternalClusterServiceClassName, false /* prefix */) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("externalClusterServiceClassName"), p.ExternalClusterServiceClassName, msg))
+		}
+
+		// If ExternalClusterServiceClassName given, must use ExternalClusterServicePlanName
+		if !externalPlanSet {
+			allErrs = append(allErrs, field.Required(fldPath.Child("externalClusterServicePlanName"), "must specify externalClusterServicePlanName with externalClusterServiceClassName"))
+		}
+
+		for _, msg := range validateServicePlanName(p.ExternalClusterServicePlanName, false /* prefix */) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("externalClusterServicePlanName"), p.ClusterServicePlanName, msg))
+		}
+	}
+	if k8sClassSet {
+		for _, msg := range validateServiceClassName(p.ClusterServiceClassName, false /* prefix */) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("clusterServiceClassName"), p.ClusterServiceClassName, msg))
+		}
+
+		// If ClusterServiceClassName given, must use ClusterServicePlanName
+		if !k8sPlanSet {
+			allErrs = append(allErrs, field.Required(fldPath.Child("clusterServicePlanName"), "must specify clusterServicePlanName with clusterServiceClassName"))
+		}
+		for _, msg := range validateServicePlanName(p.ClusterServicePlanName, false /* prefix */) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("clusterServicePlanName"), p.ClusterServicePlanName, msg))
+		}
+	}
+	return allErrs
+}
+
+func validatePlanReferenceUpdate(pOld *sc.PlanReference, pNew *sc.PlanReference, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, validatePlanReference(pOld, fldPath)...)
+	allErrs = append(allErrs, validatePlanReference(pNew, fldPath)...)
+	allErrs = append(allErrs, apivalidation.ValidateImmutableField(pNew.ExternalClusterServiceClassName, pOld.ExternalClusterServiceClassName, field.NewPath("spec").Child("externalClusterServiceClassName"))...)
+	allErrs = append(allErrs, apivalidation.ValidateImmutableField(pNew.ClusterServiceClassName, pOld.ClusterServiceClassName, field.NewPath("spec").Child("clusterServiceClassName"))...)
 	return allErrs
 }

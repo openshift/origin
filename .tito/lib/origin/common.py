@@ -31,7 +31,7 @@ def get_os_git_vars():
     shell utilities. The git tree state is spoofed.
     """
     git_vars = {}
-    for var in ["COMMIT", "VERSION", "MAJOR", "MINOR"]:
+    for var in ["COMMIT", "VERSION", "MAJOR", "MINOR", "CATALOG_VERSION"]:
         var_name = "OS_GIT_{}".format(var)
         git_vars[var_name] = run_command(
             "bash -c 'source ./hack/lib/init.sh; os::build::version::openshift_vars; echo ${}'".format(var_name)

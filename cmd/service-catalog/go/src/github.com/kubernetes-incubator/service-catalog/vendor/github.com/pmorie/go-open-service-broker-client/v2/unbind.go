@@ -31,8 +31,6 @@ func (c *client) Unbind(r *UnbindRequest) (*UnbindResponse, error) {
 	default:
 		return nil, c.handleFailureResponse(response)
 	}
-
-	return nil, nil
 }
 
 func validateUnbindRequest(request *UnbindRequest) error {

@@ -3194,6 +3194,14 @@ items:
     - list
   - apiGroups:
     - ""
+    - security.openshift.io
+    attributeRestrictions: null
+    resources:
+    - podsecuritypolicysubjectreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events

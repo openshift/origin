@@ -32,7 +32,7 @@ type HTTPStatusCodeError struct {
 	// Description is a human-readable description of the error that may be
 	// returned by the broker.
 	Description *string
-	// ResponseError is set to the error that occured when unmarshalling a
+	// ResponseError is set to the error that occurred when unmarshalling a
 	// response body from the broker.
 	ResponseError error
 }
@@ -87,10 +87,10 @@ func IsConflictError(err error) bool {
 	return statusCodeError.StatusCode == http.StatusConflict
 }
 
+// Constants are used to check for "Async" and "RequiresApp" errors and their messages
 const (
-	AsyncErrorMessage     = "AsyncRequired"
-	AsyncErrorDescription = "This service plan requires client support for asynchronous service operations."
-
+	AsyncErrorMessage               = "AsyncRequired"
+	AsyncErrorDescription           = "This service plan requires client support for asynchronous service operations."
 	AppGUIDRequiredErrorMessage     = "RequiresApp"
 	AppGUIDRequiredErrorDescription = "This service supports generation of credentials through binding an application only."
 )

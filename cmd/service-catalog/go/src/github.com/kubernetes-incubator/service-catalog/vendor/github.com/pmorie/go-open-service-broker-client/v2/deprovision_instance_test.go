@@ -40,8 +40,9 @@ func successDeprovisionResponseAsync() *DeprovisionResponse {
 func TestDeprovisionInstance(t *testing.T) {
 	cases := []struct {
 		name                string
+		version             APIVersion
 		enableAlpha         bool
-		originatingIdentity *AlphaOriginatingIdentity
+		originatingIdentity *OriginatingIdentity
 		request             *DeprovisionRequest
 		httpChecks          httpChecks
 		httpReaction        httpReaction
@@ -116,6 +117,14 @@ func TestDeprovisionInstance(t *testing.T) {
 			expectedErrMessage: "http error",
 		},
 		{
+			name: "202 with no async support",
+			httpReaction: httpReaction{
+				status: http.StatusAccepted,
+				body:   successAsyncDeprovisionResponseBody,
+			},
+			expectedErrMessage: "Status: 202; ErrorMessage: <nil>; Description: <nil>; ResponseError: <nil>",
+		},
+		{
 			name: "200 with malformed response",
 			httpReaction: httpReaction{
 				status: http.StatusOK,
@@ -137,11 +146,11 @@ func TestDeprovisionInstance(t *testing.T) {
 				status: http.StatusInternalServerError,
 				body:   conventionalFailureResponseBody,
 			},
-			expectedErr: testHttpStatusCodeError(),
+			expectedErr: testHTTPStatusCodeError(),
 		},
 		{
 			name:                "originating identity included",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: testOriginatingIdentity,
 			httpReaction: httpReaction{
 				status: http.StatusOK,
@@ -158,7 +167,7 @@ func TestDeprovisionInstance(t *testing.T) {
 		},
 		{
 			name:                "originating identity excluded",
-			enableAlpha:         true,
+			version:             Version2_13(),
 			originatingIdentity: nil,
 			httpReaction: httpReaction{
 				status: http.StatusOK,
@@ -174,8 +183,8 @@ func TestDeprovisionInstance(t *testing.T) {
 			expectedResponse: successDeprovisionResponse(),
 		},
 		{
-			name:                "originating identity not sent unless alpha enabled",
-			enableAlpha:         false,
+			name:                "originating identity not sent unless API version >= 2.13",
+			version:             Version2_12(),
 			originatingIdentity: testOriginatingIdentity,
 			httpReaction: httpReaction{
 				status: http.StatusOK,
@@ -203,8 +212,11 @@ func TestDeprovisionInstance(t *testing.T) {
 			tc.httpChecks.URL = "/v2/service_instances/test-instance-id"
 		}
 
-		version := Version2_11()
-		klient := newTestClient(t, tc.name, version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
+		if tc.version.label == "" {
+			tc.version = Version2_11()
+		}
+
+		klient := newTestClient(t, tc.name, tc.version, tc.enableAlpha, tc.httpChecks, tc.httpReaction)
 
 		response, err := klient.DeprovisionInstance(tc.request)
 
