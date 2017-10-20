@@ -20,14 +20,16 @@ Commands are organized in the package structure as:
 
 * https://github.com/openshift/origin/tree/master/pkg/cmd[pkg/cmd]
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/openshift[pkg/cmd/openshift] - `openshift` or `origin` command.
-** https://github.com/openshift/origin/tree/master/pkg/cmd/cli[pkg/cmd/cli] - `oc` or `openshift cli`, and `kubectl` commands.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/admin[pkg/cmd/admin] - `oc adm` or `oadm` or `openshift admin` command.
-** https://github.com/openshift/origin/tree/master/pkg/cmd/experimental[pkg/cmd/experimental] - `openshift ex` command.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/infra[pkg/cmd/infra]
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/builder[pkg/cmd/infra/builder] - `openshift-sti-build` and `openshift-docker-build` commands.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/deployer[pkg/cmd/infra/deployer] - `openshift-deploy` command.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/gitserver[pkg/cmd/infra/gitserver] - `openshift-gitserver` command.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/router[pkg/cmd/infra/router] - `openshift-router` command.
+
+* https://github.com/openshift/origin/tree/master/pkg/oc[pkg/oc]
+** https://github.com/openshift/origin/tree/master/pkg/oc/cli[pkg/cmd/cli] - `oc` or `openshift cli`, and `kubectl` commands.
+** https://github.com/openshift/origin/tree/master/pkg/oc/experimental[pkg/cmd/experimental] - `openshift ex` command.
 
 === Command Structure
 
