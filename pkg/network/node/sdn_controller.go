@@ -142,6 +142,16 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 }
 
 func (plugin *OsdnNode) SetupSDN() (bool, error) {
+	// Make sure IPv4 forwarding state is 1
+	sysctl := sysctl.New()
+	val, err := sysctl.GetSysctl("net/ipv4/ip_forward")
+	if err != nil {
+		return false, fmt.Errorf("could not get IPv4 forwarding state: %s", err)
+	}
+	if val != 1 {
+		return false, fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
+	}
+
 	var clusterNetworkCIDRs []string
 	for _, cn := range plugin.networkInfo.ClusterNetworks {
 		clusterNetworkCIDRs = append(clusterNetworkCIDRs, cn.ClusterCIDR.String())
@@ -234,17 +244,6 @@ func (plugin *OsdnNode) setup(clusterNetworkCIDRs []string, localSubnetCIDR, loc
 	}
 	if err != nil {
 		return err
-	}
-
-	sysctl := sysctl.New()
-
-	// Make sure IPv4 forwarding state is 1
-	val, err := sysctl.GetSysctl("net/ipv4/ip_forward")
-	if err != nil {
-		return fmt.Errorf("could not get IPv4 forwarding state: %s", err)
-	}
-	if val != 1 {
-		return fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
 	}
 
 	return nil
