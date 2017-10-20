@@ -16,8 +16,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-// this test is very latency sensitive so run it by itself (serially).
-var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration runPolicy", func() {
+var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy", func() {
 	defer g.GinkgoRecover()
 	var (
 		// Use invalid source here as we don't care about the result
@@ -152,7 +151,7 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 						o.Expect(build.Status.CompletionTimestamp).ToNot(o.BeNil(), "completed builds should have a valid completion time")
 						sawCompletion = true
 					}
-					if build.Status.Phase == buildapi.BuildPhaseRunning {
+					if build.Status.Phase == buildapi.BuildPhaseRunning || build.Status.Phase == buildapi.BuildPhasePending {
 						latency := lastCompletion.Sub(time.Now())
 						o.Expect(latency).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after last completed build")
 
@@ -256,6 +255,17 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 					select {
 					case event := <-buildWatch.ResultChan():
 						build := event.Object.(*buildapi.Build)
+						if build.Status.Phase == buildapi.BuildPhasePending {
+							if build.Name == "sample-serial-build-fail-2" {
+								duration := time.Now().Sub(failTime)
+								o.Expect(duration).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after failed build")
+							}
+							if build.Name == "sample-serial-build-fail-3" {
+								duration := time.Now().Sub(failTime2)
+								o.Expect(duration).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after failed build")
+							}
+						}
+
 						if build.Status.Phase == buildapi.BuildPhaseFailed {
 							if build.Name == "sample-serial-build-fail-1" {
 								// this may not be set on the first build modified to failed event because
@@ -301,7 +311,6 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 				o.Expect(timestamps1).To(o.BeTrue(), "failed builds should have start and completion timestamps set")
 				o.Expect(timestamps2).To(o.BeTrue(), "failed builds should have start and completion timestamps set")
 				o.Expect(timestamps3).To(o.BeTrue(), "failed builds should have start and completion timestamps set")
-
 			})
 		})
 
@@ -362,7 +371,7 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 						}
 					}
 					// Only first and third build should actually run (serially).
-					if build.Status.Phase == buildapi.BuildPhaseRunning {
+					if build.Status.Phase == buildapi.BuildPhaseRunning || build.Status.Phase == buildapi.BuildPhasePending {
 						// Ignore events from complete builds (if there are any) if we already
 						// verified the build.
 						if _, exists := buildVerified[build.Name]; exists {
