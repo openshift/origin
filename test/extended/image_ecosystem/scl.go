@@ -35,6 +35,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(pod)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("waiting for the pod to be running")
 			err = oc.KubeFramework().WaitForPodRunningSlow(pod.Name)
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pod.Name, metav1.GetOptions{})
@@ -42,6 +43,7 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 				o.Expect(err).To(o.Equal(conditions.ErrPodCompleted))
 			}
 
+			g.By("checking the log of the pod")
 			log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
