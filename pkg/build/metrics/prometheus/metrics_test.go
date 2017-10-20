@@ -46,15 +46,15 @@ func TestMetrics(t *testing.T) {
 	expectedResponse := []string{
 		"# HELP openshift_build_total Counts builds by phase and reason",
 		"# TYPE openshift_build_total gauge",
-		"openshift_build_total{phase=\"cancelled\",reason=\"\"} 1",
-		"openshift_build_total{phase=\"complete\",reason=\"\"} 1",
-		"openshift_build_total{phase=\"error\",reason=\"\"} 1",
-		"openshift_build_total{phase=\"failed\",reason=\"exceededretrytimeout\"} 1",
+		"openshift_build_total{phase=\"Cancelled\",reason=\"\"} 1",
+		"openshift_build_total{phase=\"Complete\",reason=\"\"} 1",
+		"openshift_build_total{phase=\"Error\",reason=\"\"} 1",
+		"openshift_build_total{phase=\"Failed\",reason=\"ExceededRetryTimeout\"} 1",
 		"# HELP openshift_build_active_time_seconds Shows the last transition time in unix epoch for running builds by namespace, name, and phase",
 		"# TYPE openshift_build_active_time_seconds gauge",
-		"openshift_build_active_time_seconds{name=\"testname1\",namespace=\"testnamespace\",phase=\"new\"} 123",
-		"openshift_build_active_time_seconds{name=\"testname2\",namespace=\"testnamespace\",phase=\"pending\"} 123",
-		"openshift_build_active_time_seconds{name=\"testname3\",namespace=\"testnamespace\",phase=\"running\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname1\",namespace=\"testnamespace\",phase=\"New\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname2\",namespace=\"testnamespace\",phase=\"Pending\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname3\",namespace=\"testnamespace\",phase=\"Running\"} 123",
 	}
 	registry := prometheus.NewRegistry()
 
