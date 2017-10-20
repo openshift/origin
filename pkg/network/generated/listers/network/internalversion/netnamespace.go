@@ -5,7 +5,6 @@ package internalversion
 import (
 	network "github.com/openshift/origin/pkg/network/apis/network"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *netNamespaceLister) List(selector labels.Selector) (ret []*network.NetN
 
 // Get retrieves the NetNamespace from the index for a given name.
 func (s *netNamespaceLister) Get(name string) (*network.NetNamespace, error) {
-	key := &network.NetNamespace{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}
