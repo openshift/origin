@@ -290,7 +290,7 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 	host = "prometheus.kube-system.svc"
 	statsPort = 443
 	mustCreate := false
-	if _, err := oc.AdminKubeClient().Extensions().Deployments("kube-system").Get("prometheus", metav1.GetOptions{}); err != nil {
+	if _, err := oc.AdminKubeClient().Apps().StatefulSets("kube-system").Get("prometheus", metav1.GetOptions{}); err != nil {
 		if !kapierrs.IsNotFound(err) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
