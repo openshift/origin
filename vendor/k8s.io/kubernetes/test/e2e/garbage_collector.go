@@ -35,6 +35,27 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// estimateMaximumPods estimates how many pods the cluster can handle
+// with some wiggle room, to prevent pods being unable to schedule due
+// to max pod constraints.
+func estimateMaximumPods(c clientset.Interface) int32 {
+	availablePods := int32(0)
+	for _, node := range framework.GetReadySchedulableNodesOrDie(c).Items {
+		if q, ok := node.Status.Allocatable["pods"]; ok {
+			if num, ok := q.AsInt64(); ok {
+				availablePods += int32(num) * 8 / 10
+				continue
+			}
+		}
+		// best guess
+		availablePods += 8
+	}
+	if availablePods > 100 {
+		availablePods = 100
+	}
+	return availablePods
+}
+
 func getForegroundOptions() *metav1.DeleteOptions {
 	policy := metav1.DeletePropagationForeground
 	return &metav1.DeleteOptions{PropagationPolicy: &policy}
@@ -275,7 +296,7 @@ var _ = framework.KubeDescribe("Garbage collector", func() {
 		rcClient := clientSet.Core().ReplicationControllers(f.Namespace.Name)
 		podClient := clientSet.Core().Pods(f.Namespace.Name)
 		rcName := "simpletest.rc"
-		rc := newOwnerRC(f, rcName, 100)
+		rc := newOwnerRC(f, rcName, estimateMaximumPods(clientSet))
 		By("create the rc")
 		rc, err := rcClient.Create(rc)
 		if err != nil {
@@ -500,7 +521,7 @@ var _ = framework.KubeDescribe("Garbage collector", func() {
 		rcClient := clientSet.Core().ReplicationControllers(f.Namespace.Name)
 		podClient := clientSet.Core().Pods(f.Namespace.Name)
 		rcName := "simpletest.rc"
-		rc := newOwnerRC(f, rcName, 100)
+		rc := newOwnerRC(f, rcName, estimateMaximumPods(clientSet))
 		By("create the rc")
 		rc, err := rcClient.Create(rc)
 		if err != nil {
@@ -578,7 +599,7 @@ var _ = framework.KubeDescribe("Garbage collector", func() {
 		rcClient := clientSet.Core().ReplicationControllers(f.Namespace.Name)
 		podClient := clientSet.Core().Pods(f.Namespace.Name)
 		rc1Name := "simpletest-rc-to-be-deleted"
-		replicas := int32(100)
+		replicas := int32(estimateMaximumPods(clientSet))
 		halfReplicas := int(replicas / 2)
 		rc1 := newOwnerRC(f, rc1Name, replicas)
 		By("create the rc1")
