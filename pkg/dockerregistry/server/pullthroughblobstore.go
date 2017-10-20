@@ -182,16 +182,6 @@ func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStor
 	newCtx := context.WithLogger(context.Background(), context.GetLogger(ctx))
 	writeLimiter := repo.app.writeLimiter
 
-	// the blob getter service is not thread-safe, we need to setup a new one
-	// TODO: make it thread-safe instead of instantiating a new one
-	remoteGetter := NewBlobGetterService(
-		repo.namespace,
-		repo.name,
-		repo.config.blobRepositoryCacheTTL,
-		repo.imageStreamGetter.get,
-		repo.registryOSClient,
-		repo.cachedLayers)
-
 	go func(dgst digest.Digest) {
 		if writeLimiter != nil {
 			if !writeLimiter.Start(newCtx) {
@@ -202,7 +192,7 @@ func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStor
 		}
 
 		context.GetLogger(newCtx).Infof("Start background mirroring of %q", dgst)
-		if err := storeLocal(newCtx, localBlobStore, remoteGetter, dgst); err != nil {
+		if err := storeLocal(newCtx, localBlobStore, repo.remoteBlobGetter, dgst); err != nil {
 			context.GetLogger(newCtx).Errorf("Error committing to storage: %s", err.Error())
 		}
 		context.GetLogger(newCtx).Infof("Completed mirroring of %q", dgst)
