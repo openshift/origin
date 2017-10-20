@@ -21,12 +21,12 @@ const (
 // Map OpenShift template annotations to open service broker metadata field
 // community standards.
 var annotationMap = map[string]string{
-	oapi.OpenShiftDisplayName:                 api.ServiceMetadataDisplayName,
-	templateapi.IconClassAnnotation:           templateapi.ServiceMetadataIconClass,
-	templateapi.LongDescriptionAnnotation:     api.ServiceMetadataLongDescription,
-	templateapi.ProviderDisplayNameAnnotation: api.ServiceMetadataProviderDisplayName,
-	templateapi.DocumentationURLAnnotation:    api.ServiceMetadataDocumentationURL,
-	templateapi.SupportURLAnnotation:          api.ServiceMetadataSupportURL,
+	oapi.OpenShiftDisplayName:                   api.ServiceMetadataDisplayName,
+	oapi.OpenShiftLongDescriptionAnnotation:     api.ServiceMetadataLongDescription,
+	oapi.OpenShiftProviderDisplayNameAnnotation: api.ServiceMetadataProviderDisplayName,
+	oapi.OpenShiftDocumentationURLAnnotation:    api.ServiceMetadataDocumentationURL,
+	oapi.OpenShiftSupportURLAnnotation:          api.ServiceMetadataSupportURL,
+	templateapi.IconClassAnnotation:             templateapi.ServiceMetadataIconClass,
 }
 
 // serviceFromTemplate populates an open service broker service response from
