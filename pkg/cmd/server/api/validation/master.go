@@ -336,7 +336,9 @@ func ValidateControllerConfig(config api.ControllerConfig, fldPath *field.Path) 
 			validationResults.AddErrors(field.Invalid(fldPath.Child("election", "lockResource", "resource"), election.LockResource.Resource, "may not be empty"))
 		}
 	}
-	if config.ServiceServingCert.Signer != nil {
+	if config.ServiceServingCert.Signer == nil {
+		validationResults.AddWarnings(field.Required(fldPath.Child("serviceServingCert", "signer"), "required for the service serving cert signer; automatic serving certificate signing will fail"))
+	} else {
 		validationResults.AddErrors(ValidateCertInfo(*config.ServiceServingCert.Signer, true, fldPath.Child("serviceServingCert.signer"))...)
 	}
 
