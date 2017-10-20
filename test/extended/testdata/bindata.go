@@ -16180,7 +16180,6 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
         }
       },
       "spec": {
-        "host": "www.example.com",
         "to": {
           "kind": "Service",
           "name": "frontend"
@@ -16688,7 +16687,6 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
         }
       },
       "spec": {
-        "host": "www.example.com",
         "to": {
           "kind": "Service",
           "name": "frontend"
@@ -17145,7 +17143,6 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
         }
       },
       "spec": {
-        "host": "www.example.com",
         "to": {
           "kind": "Service",
           "name": "frontend"
@@ -17642,7 +17639,6 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
         }
      },
       "spec": {
-        "host": "www.example.com",
         "to": {
           "kind": "Service",
           "name": "frontend"
