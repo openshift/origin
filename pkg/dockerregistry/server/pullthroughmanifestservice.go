@@ -16,7 +16,8 @@ import (
 type pullthroughManifestService struct {
 	distribution.ManifestService
 
-	repo *repository
+	repo   *repository
+	mirror bool
 }
 
 var _ distribution.ManifestService = &pullthroughManifestService{}
@@ -72,6 +73,10 @@ func (m *pullthroughManifestService) remoteGet(ctx context.Context, dgst digest.
 		context.GetLogger(ctx).Errorf("error getting manifest from remote location %q: %v", ref.Exact(), err)
 	}
 
+	if m.mirror {
+		m.mirrorManifest(ctx, dgst, manifest)
+	}
+
 	return manifest, err
 }
 
@@ -105,4 +110,31 @@ func (m *pullthroughManifestService) Put(ctx context.Context, manifest distribut
 	// manifest dependencies (layers and config) may not be stored locally, we need to be able to stat them in remote repositories
 	ctx = withRemoteBlobAccessCheckEnabled(ctx, true)
 	return m.ManifestService.Put(ctx, manifest, options...)
+}
+
+func (m *pullthroughManifestService) mirrorManifest(ctx context.Context, dgst digest.Digest, manifest distribution.Manifest) {
+	// store the content locally if requested, but ensure only one instance at a time
+	// is storing to avoid excessive local writes
+	mu.Lock()
+	if _, ok := inflight[dgst]; ok {
+		mu.Unlock()
+		return
+	}
+	inflight[dgst] = struct{}{}
+	mu.Unlock()
+
+	// leave only the essential entries in the context (logger)
+	newCtx := context.WithLogger(context.Background(), context.GetLogger(ctx))
+
+	context.GetLogger(newCtx).Infof("Start background manifest mirroring of %q", dgst)
+	go func(dgst digest.Digest, manifest distribution.Manifest) {
+		if _, err := m.Put(newCtx, manifest); err != nil {
+			context.GetLogger(newCtx).Errorf("Unable to mirror manifest: %s", err.Error())
+		} else {
+			context.GetLogger(newCtx).Infof("Completed manifest mirroring of %q", dgst)
+		}
+		mu.Lock()
+		delete(inflight, dgst)
+		mu.Unlock()
+	}(dgst, manifest)
 }
