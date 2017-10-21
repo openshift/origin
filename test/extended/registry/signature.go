@@ -12,7 +12,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[imageapis][registry][Skipped] image signature workflow", func() {
+var _ = g.Describe("[imageapis][registry][Skipped][Serial] image signature workflow", func() {
 
 	defer g.GinkgoRecover()
 
