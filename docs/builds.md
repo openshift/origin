@@ -33,7 +33,7 @@ The OpenShift build system provides extensible support for build strategies base
 
 ### Docker Builds
 
-OpenShift supports Docker builds. Using this strategy, users may supply a URL to a Docker context which is used as the basis for a [Docker build](https://docs.docker.com/reference/commandline/cli/#build).
+OpenShift supports Docker builds. Using this strategy, users may supply a URL to a Docker context which is used as the basis for a [Docker build](https://docs.docker.com/engine/reference/commandline/build/).
 
 #### How It Works
 
