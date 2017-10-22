@@ -173,6 +173,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 			if err != nil || !br.BuildSuccess {
+				exutil.DumpBuilds(oc)
 				exutil.DumpPodLogsStartingWith("maven", oc)
 				exutil.DumpBuildLogs("openshift-jee-sample-docker", oc)
 				exutil.DumpDeploymentLogs("openshift-jee-sample", 1, oc)
@@ -223,8 +224,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 			if err != nil || !br.BuildSuccess {
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 			}
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
@@ -273,8 +273,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 			if err != nil || !br.BuildSuccess {
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 			}
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
@@ -323,8 +322,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 			if err != nil || !br.BuildSuccess {
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 			}
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
@@ -371,6 +369,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			br, err := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
 			if err != nil || !br.BuildSuccess {
+				exutil.DumpBuilds(oc)
 				exutil.DumpBuildLogs("ruby", oc)
 				exutil.DumpDeploymentLogs("mongodb", 1, oc)
 				exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
@@ -417,8 +416,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("starting the pipeline build, including env var, and waiting for it to complete")
 			br, err := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", "sample-pipeline-withenvs")
 			if err != nil || !br.BuildSuccess {
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 			}
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
 			br.AssertSuccess()
@@ -431,16 +429,14 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("and see if env is set")
 			if !strings.Contains(out, "FOO2 is BAR2") {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 				o.Expect(out).To(o.ContainSubstring("FOO2 is BAR2"))
 			}
 
@@ -449,8 +445,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			br, err = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
 			if err != nil || !br.BuildSuccess {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 			}
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
 			br.AssertSuccess()
@@ -459,24 +454,21 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			out, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("and see if env FOO1 is set")
 			if !strings.Contains(out, "FOO1 is BAR1") {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 				o.Expect(out).To(o.ContainSubstring("FOO1 is BAR1"))
 			}
 
 			g.By("and see if env FOO2 is still not set")
 			if !strings.Contains(out, "FOO2 is null") {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
-				exutil.ExaminePodDiskUsage(oc)
-				exutil.ExamineDiskUsage()
+				exutil.DumpBuilds(oc)
 				o.Expect(out).To(o.ContainSubstring("FOO2 is null"))
 			}
 
@@ -560,8 +552,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				br, err := exutil.StartBuildResult(oc, "bluegreen-pipeline")
 				if err != nil || !br.BuildSuccess {
 					debugAnyJenkinsFailure(br, oc.Namespace()+"-bluegreen-pipeline", oc, false)
-					exutil.ExaminePodDiskUsage(oc)
-					exutil.ExamineDiskUsage()
+					exutil.DumpBuilds(oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -660,8 +651,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				debugAnyJenkinsFailure(br, oc.Namespace()+"-bluegreen-pipeline", oc, true)
 				if err != nil || !br.BuildSuccess {
 					debugAnyJenkinsFailure(br, oc.Namespace()+"-bluegreen-pipeline", oc, false)
-					exutil.ExaminePodDiskUsage(oc)
-					exutil.ExamineDiskUsage()
+					exutil.DumpBuilds(oc)
 				}
 				br.AssertSuccess()
 				o.Expect(err).NotTo(o.HaveOccurred())
