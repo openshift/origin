@@ -161,7 +161,7 @@ Other options:
 | Name       |  Description                                                                                             |
 |:-----------|:---------------------------------------------------------------------------------------------------------|
 |`--env`, *(-e)* FOO=bar | Explicitly set or override environment variable for the current build. Does not change the BuildConfig. |
-|`--build-loglevel` | Set or override the build log level output [0-5] during the build. |
+|`--build-loglevel` | Set or override the build log level output [0-10] during the build. |
 |`--commit`  | Specify the source code commit identifier the build should use; requires a build based on a Git repository. |
 |`--follow`  | Start a build and watch its logs until it completes or fails. |
 | `--wait` | Wait for a build to complete and exit with a non-zero return code if the build fails. |
@@ -737,8 +737,8 @@ $ oc config use-context my-context
 
 This displays information about the current session.
 If invoked without arguments, `oc whoami` displays the currently authenticated username.
-Flag `-t` (or `--token`) means to instead display the session token.
-Flag `-c` (or `--context`) means to instead display the user context name.
+Flag `-t` (or `--show-token`) means to instead display the session token.
+Flag `-c` (or `--show-context`) means to instead display the user context name.
 
 ```bash
 $ oc whoami -t
