@@ -194,7 +194,61 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 		}
 		break
 	}
-	return err
+	if err == nil {
+		return nil
+	}
+	savedErr := err
+
+	// Debug
+	debugPodName := e2e.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("debugpod-sourceip-%s", nodeName), func(pod *kapiv1.Pod) {
+		pod.Spec.Containers[0].Image = "openshift/node"
+		pod.Spec.NodeName = nodeName
+		pod.Spec.HostNetwork = true
+		privileged := true
+		pod.Spec.Volumes = []kapiv1.Volume{
+			{
+				Name: "ovs-socket",
+				VolumeSource: kapiv1.VolumeSource{
+					HostPath: &kapiv1.HostPathVolumeSource{
+						Path: "/var/run/openvswitch/br0.mgmt",
+					},
+				},
+			},
+		}
+		pod.Spec.Containers[0].VolumeMounts = []kapiv1.VolumeMount{
+			{
+				Name:      "ovs-socket",
+				MountPath: "/var/run/openvswitch/br0.mgmt",
+			},
+		}
+		pod.Spec.Containers[0].SecurityContext = &kapiv1.SecurityContext{Privileged: &privileged}
+	})
+	defer func() {
+		err := f.ClientSet.Core().Pods(f.Namespace.Name).Delete(debugPodName, nil)
+		Expect(err).NotTo(HaveOccurred())
+	}()
+	debugPod, err := f.ClientSet.Core().Pods(f.Namespace.Name).Get(debugPodName, metav1.GetOptions{})
+	e2e.ExpectNoError(err)
+
+	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "ovs-ofctl -O OpenFlow13 dump-flows br0")
+	if err != nil {
+		e2e.Logf("DEBUG: got error dumping OVS flows: %v", err)
+	} else {
+		e2e.Logf("DEBUG:\n%s\n", stdout)
+	}
+	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "iptables-save")
+	if err != nil {
+		e2e.Logf("DEBUG: got error dumping iptables: %v", err)
+	} else {
+		e2e.Logf("DEBUG:\n%s\n", stdout)
+	}
+	stdout, err = e2e.RunHostCmd(debugPod.Namespace, debugPod.Name, "ss -ant")
+	if err != nil {
+		e2e.Logf("DEBUG: got error dumping sockets: %v", err)
+	} else {
+		e2e.Logf("DEBUG:\n%s\n", stdout)
+	}
+	return savedErr
 }
 
 func pluginIsolatesNamespaces() bool {
