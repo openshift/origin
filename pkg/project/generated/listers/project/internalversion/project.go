@@ -5,7 +5,6 @@ package internalversion
 import (
 	project "github.com/openshift/origin/pkg/project/apis/project"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *projectLister) List(selector labels.Selector) (ret []*project.Project, 
 
 // Get retrieves the Project from the index for a given name.
 func (s *projectLister) Get(name string) (*project.Project, error) {
-	key := &project.Project{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

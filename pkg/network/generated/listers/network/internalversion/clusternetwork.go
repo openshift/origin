@@ -5,7 +5,6 @@ package internalversion
 import (
 	network "github.com/openshift/origin/pkg/network/apis/network"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *clusterNetworkLister) List(selector labels.Selector) (ret []*network.Cl
 
 // Get retrieves the ClusterNetwork from the index for a given name.
 func (s *clusterNetworkLister) Get(name string) (*network.ClusterNetwork, error) {
-	key := &network.ClusterNetwork{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

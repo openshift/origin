@@ -5,7 +5,6 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *projectLister) List(selector labels.Selector) (ret []*v1.Project, err e
 
 // Get retrieves the Project from the index for a given name.
 func (s *projectLister) Get(name string) (*v1.Project, error) {
-	key := &v1.Project{ObjectMeta: meta_v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

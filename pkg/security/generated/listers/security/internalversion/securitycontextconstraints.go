@@ -5,7 +5,6 @@ package internalversion
 import (
 	security "github.com/openshift/origin/pkg/security/apis/security"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *securityContextConstraintsLister) List(selector labels.Selector) (ret [
 
 // Get retrieves the SecurityContextConstraints from the index for a given name.
 func (s *securityContextConstraintsLister) Get(name string) (*security.SecurityContextConstraints, error) {
-	key := &security.SecurityContextConstraints{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ package internalversion
 import (
 	user "github.com/openshift/origin/pkg/user/apis/user"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *groupLister) List(selector labels.Selector) (ret []*user.Group, err err
 
 // Get retrieves the Group from the index for a given name.
 func (s *groupLister) Get(name string) (*user.Group, error) {
-	key := &user.Group{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}
