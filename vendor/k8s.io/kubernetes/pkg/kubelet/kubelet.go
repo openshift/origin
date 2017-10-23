@@ -2171,8 +2171,10 @@ func (kl *Kubelet) cleanUpContainersInPod(podId types.UID, exitedContainerID str
 	if podStatus, err := kl.podCache.Get(podId); err == nil {
 		removeAll := false
 		if syncedPod, ok := kl.podManager.GetPodByUID(podId); ok {
-			// When an evicted pod has already synced, all containers can be removed.
-			removeAll = eviction.PodIsEvicted(syncedPod.Status)
+			// generate the api status using the cached runtime status to get up-to-date ContainerStatuses
+			apiPodStatus := kl.generateAPIPodStatus(syncedPod, podStatus)
+			// When an evicted or deleted pod has already synced, all containers can be removed.
+			removeAll = eviction.PodIsEvicted(syncedPod.Status) || (syncedPod.DeletionTimestamp != nil && notRunning(apiPodStatus.ContainerStatuses))
 		}
 		kl.containerDeletor.deleteContainersInPod(exitedContainerID, podStatus, removeAll)
 	}
