@@ -26,19 +26,8 @@ type testCase struct {
 var (
 	testCases = []testCase{
 		{
-			"5.5",
-			"https://raw.githubusercontent.com/sclorg/mysql-container/master/5.5/examples/replica/mysql_replica.json",
-			// NOTE: Set to true in case of flakes.
-			false,
-		},
-		{
-			"5.6",
-			"https://raw.githubusercontent.com/sclorg/mysql-container/master/5.6/examples/replica/mysql_replica.json",
-			false,
-		},
-		{
 			"5.7",
-			"https://raw.githubusercontent.com/sclorg/mysql-container/master/5.7/examples/replica/mysql_replica.json",
+			"https://raw.githubusercontent.com/sclorg/mysql-container/master/examples/replica/mysql_replica.json",
 			false,
 		},
 	}
