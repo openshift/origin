@@ -201,8 +201,8 @@ metadata:
   uid: 07ecf19d-a781-11e7-8b18-0242ac110005
 spec:
   externalID: 7f2c176a-ae67-4b5e-a826-58591d85a1d7
-  externalClusterServiceClassName: user-provided-service
-  externalClusterServicePlanName: default
+  clusterServiceClassExternalName: user-provided-service
+  clusterServicePlanExternalName: default
   parameters:
     credentials:
       param-1: value-1
@@ -216,7 +216,7 @@ status:
     status: "True"
     type: Ready
   externalProperties:
-    externalClusterServicePlanName: default
+    clusterServicePlanExternalName: default
     parameterChecksum: e65c764db8429f9afef45f1e8f71bcbf9fdbe9a13306b86fd5dcc3c5d11e5dd3
     parameters:
       credentials:

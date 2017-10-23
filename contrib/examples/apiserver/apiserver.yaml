@@ -7,9 +7,10 @@ metadata:
 spec:
   containers:
   - name: apiserver
-    image: apiserver
+    image: service-catalog
     imagePullPolicy: IfNotPresent
     args: 
+    - apiserver
     - --etcd-servers
     - http://localhost:2379
     - -v

@@ -4,8 +4,8 @@ metadata:
   name: ups-instance
   namespace: test-ns
 spec:
-  externalClusterServiceClassName: user-provided-service
-  externalClusterServicePlanName: default
+  clusterServiceClassExternalName: user-provided-service
+  clusterServicePlanExternalName: default
   parameters:
     credentials:
       param-1: value-1

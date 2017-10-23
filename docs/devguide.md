@@ -25,8 +25,9 @@ layout:
     │   └── catalog             # Helm chart for deploying the service catalog
     │   └── ups-broker          # Helm chart for deploying the user-provided service broker
     ├── cmd                     # Contains "main" Go packages for each service catalog component binary
-    │   └── apiserver           # The service catalog API server binary
-    │   └── controller-manager  # The service catalog controller manager binary
+    │   └── apiserver           # The service catalog API server service-catalog command
+    │   └── controller-manager  # The service catalog controller manager service-catalog command
+    │   └── service-catalog     # The service catalog binary, which is used to run commands
     ├── contrib                 # Contains examples, non-essential golang source, CI configurations, etc
     │   └── build               # Dockerfiles for contrib images (example: ups-broker)
     │   └── cmd                 # Entrypoints for contrib binaries
@@ -229,14 +230,14 @@ most contributors who hack on service catalog components will wish to produce
 custom-built images, but will be unable to push to this location, it can be
 overridden through use of the `REGISTRY` environment variable.
 
-Examples of apiserver image names:
+Examples of service-catalog image names:
 
 | `REGISTRY` | Fully Qualified Image Name | Notes |
 |----------|----------------------------|-------|
-| Unset; default | `quay.io/kubernetes-service-catalog/apiserver` | You probably don't have permissions to push to here |
-| Dockerhub username + trailing slash, e.g. `krancour/` | `krancour/apiserver` | Missing hostname == Dockerhub |
-| Dockerhub username + slash + some prefix, e.g. `krancour/sc-` | `krancour/sc-apiserver` | The prefix is useful for disambiguating similarly names images within a single namespace. |
-| 192.168.99.102:5000/ | `192.168.99.102:5000/apiserver` | A local registry |
+| Unset; default | `quay.io/kubernetes-service-catalog/service-catalog` | You probably don't have permissions to push to here |
+| Dockerhub username + trailing slash, e.g. `krancour/` | `krancour/service-catalog` | Missing hostname == Dockerhub |
+| Dockerhub username + slash + some prefix, e.g. `krancour/sc-` | `krancour/sc-service-catalog` | The prefix is useful for disambiguating similarly names images within a single namespace. |
+| 192.168.99.102:5000/ | `192.168.99.102:5000/service-catalog` | A local registry |
 
 With `REGISTRY` set appropriately:
 
@@ -277,8 +278,7 @@ helm install ../charts/catalog \
     --set apiserver.tls.ca=$(base64 --wrap 0 ${SC_SERVING_CA}) \
     --set apiserver.tls.cert=$(base64 --wrap 0 ${SC_SERVING_CERT}) \
     --set apiserver.tls.key=$(base64 --wrap 0 ${SC_SERVING_KEY}) \
-    --set apiserver.image=quay.io/kubernetes-service-catalog/apiserver:canary \
-    --set controllerManager.image=quay.io/kubernetes-service-catalog/controller-manager:canary
+    --set image=quay.io/kubernetes-service-catalog/service-catalog:canary
 ```
 
 If you choose etcd storage, the helm chart will launch an etcd server for you

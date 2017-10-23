@@ -35,13 +35,11 @@ VERSION="${VERSION:-"canary"}"
 CERT_FOLDER="${CERT_FOLDER:-"/tmp/sc-certs/"}"
 FIX_CONFIGMAP="${FIX_CONFIGMAP:-false}"
 
-CONTROLLER_MANAGER_IMAGE="${REGISTRY}controller-manager:${VERSION}"
-APISERVER_IMAGE="${REGISTRY}apiserver:${VERSION}"
+SERVICE_CATALOG_IMAGE="${REGISTRY}service-catalog:${VERSION}"
 
 echo 'INSTALLING SERVICE CATALOG'
 echo '-------------------'
-echo "Using controller-manager image: ${CONTROLLER_MANAGER_IMAGE}"
-echo "Using apiserver image: ${APISERVER_IMAGE}"
+echo "Using service-catalot image: ${SERVICE_CATALOG_IMAGE}"
 echo '-------------------'
 
 # Create certificates for API server
@@ -75,8 +73,7 @@ PARAMETERS="$(cat <<-EOF
   --set apiserver.tls.ca=$(base64 --wrap 0 ${SC_SERVING_CA}) \
   --set apiserver.tls.cert=$(base64 --wrap 0 ${SC_SERVING_CERT}) \
   --set apiserver.tls.key=$(base64 --wrap 0 ${SC_SERVING_KEY}) \
-  --set controllerManager.image=${CONTROLLER_MANAGER_IMAGE} \
-  --set apiserver.image=${APISERVER_IMAGE}
+  --set image=${SERVICE_CATALOG_IMAGE}
 EOF
 )"
 

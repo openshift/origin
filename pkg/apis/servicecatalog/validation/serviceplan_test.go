@@ -19,7 +19,6 @@ package validation
 import (
 	"testing"
 
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
@@ -35,7 +34,7 @@ func validClusterServicePlan() *servicecatalog.ClusterServicePlan {
 			ExternalName:             "test-plan",
 			ExternalID:               "40d-0983-1b89",
 			Description:              "plan description",
-			ClusterServiceClassRef: v1.LocalObjectReference{
+			ClusterServiceClassRef: servicecatalog.ClusterObjectReference{
 				Name: "test-service-class",
 			},
 		},

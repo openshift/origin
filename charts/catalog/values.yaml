@@ -1,15 +1,15 @@
 # Default values for Service Catalog
+# service-catalog image to use
+image: quay.io/kubernetes-service-catalog/service-catalog:v0.1.0-rc2
+# imagePullPolicy for the service-catalog; valid values are "IfNotPresent",
+# "Never", and "Always"
+imagePullPolicy: Always
 # determines whether the API server should be registered with the kube-aggregator
 useAggregator: false
 ## If true, create & use RBAC resources
 ##
 rbacEnable: true
 apiserver:
-  # apiserver image to use
-  image: quay.io/kubernetes-service-catalog/apiserver:v0.1.0-rc2
-  # imagePullPolicy for the apiserver; valid values are "IfNotPresent",
-  # "Never", and "Always"
-  imagePullPolicy: Always
   aggregator:
     # priority is the priority of the APIService. Please see
     # https://github.com/kubernetes/kubernetes/blob/v1.7.0/staging/src/k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1/types.go#L56-L61
@@ -70,11 +70,6 @@ apiserver:
     logPath: "/tmp/service-catalog-apiserver-audit.log"
   serviceAccount: service-catalog-apiserver
 controllerManager:
-  # controller-manager image to use
-  image: quay.io/kubernetes-service-catalog/controller-manager:v0.1.0-rc2
-  # imagePullPolicy for the controller-manager; valid values are
-  # "IfNotPresent", "Never", and "Always"
-  imagePullPolicy: Always
   # Log level; valid values are in the range 0 - 10
   verbosity: 10
   # Resync interval; format is a duration (`20m`, `1h`, etc)

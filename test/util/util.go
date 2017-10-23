@@ -93,6 +93,42 @@ func WaitForClusterServiceClassToExist(client v1beta1servicecatalog.Servicecatal
 	)
 }
 
+// WaitForClusterServiceClassToExist waits for the ClusterServiceClass with the given name
+// to exist.
+func WaitForClusterServicePlanToExist(client v1beta1servicecatalog.ServicecatalogV1beta1Interface, name string) error {
+	return wait.PollImmediate(500*time.Millisecond, wait.ForeverTestTimeout,
+		func() (bool, error) {
+			glog.V(5).Infof("Waiting for ClusterServicePlan %v to exist", name)
+			_, err := client.ClusterServicePlans().Get(name, metav1.GetOptions{})
+			if nil == err {
+				return true, nil
+			}
+
+			return false, nil
+		},
+	)
+}
+
+// WaitForClusterServicePlanToNotExist waits for the ClusterServicePlan with the given name
+// to not exist.
+func WaitForClusterServicePlanToNotExist(client v1beta1servicecatalog.ServicecatalogV1beta1Interface, name string) error {
+	return wait.PollImmediate(500*time.Millisecond, wait.ForeverTestTimeout,
+		func() (bool, error) {
+			glog.V(5).Infof("Waiting for ClusterServicePlan %q to not exist", name)
+			_, err := client.ClusterServicePlans().Get(name, metav1.GetOptions{})
+			if nil == err {
+				return false, nil
+			}
+
+			if errors.IsNotFound(err) {
+				return true, nil
+			}
+
+			return false, nil
+		},
+	)
+}
+
 // WaitForClusterServiceClassToNotExist waits for the ClusterServiceClass with the given
 // name to no longer exist.
 func WaitForClusterServiceClassToNotExist(client v1beta1servicecatalog.ServicecatalogV1beta1Interface, name string) error {
