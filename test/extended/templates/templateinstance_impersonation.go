@@ -1,6 +1,8 @@
 package templates
 
 import (
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -8,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/retry"
 
@@ -53,16 +56,90 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 	)
 
 	g.BeforeEach(func() {
-		var err error
-
 		adminuser = createUser(cli, "adminuser", bootstrappolicy.AdminRoleName)
 		impersonateuser = createUser(cli, "impersonateuser", bootstrappolicy.EditRoleName)
 		impersonatebygroupuser = createUser(cli, "impersonatebygroupuser", bootstrappolicy.EditRoleName)
-		impersonategroup = createGroup(cli, "impersonategroup", bootstrappolicy.EditRoleName)
-		addUserToGroup(cli, impersonatebygroupuser.Name, impersonategroup.Name)
 		edituser1 = createUser(cli, "edituser1", bootstrappolicy.EditRoleName)
 		edituser2 = createUser(cli, "edituser2", bootstrappolicy.EditRoleName)
 		viewuser = createUser(cli, "viewuser", bootstrappolicy.ViewRoleName)
+
+		impersonategroup = createGroup(cli, "impersonategroup", bootstrappolicy.EditRoleName)
+		addUserToGroup(cli, impersonatebygroupuser.Name, impersonategroup.Name)
+
+		// additional plumbing to enable impersonateuser to impersonate edituser1
+		role, err := cli.AdminAuthorizationClient().Authorization().Roles(cli.Namespace()).Create(&authorizationapi.Role{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "impersonater",
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					Verbs:     sets.NewString("assign"),
+					APIGroups: []string{templateapi.GroupName},
+					Resources: sets.NewString("templateinstances"),
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "impersonater-binding",
+			},
+			RoleRef: kapi.ObjectReference{
+				Name:      role.Name,
+				Namespace: cli.Namespace(),
+			},
+			Subjects: []kapi.ObjectReference{
+				{
+					Kind: authorizationapi.UserKind,
+					Name: impersonateuser.Name,
+				},
+				{
+					Kind: authorizationapi.GroupKind,
+					Name: impersonategroup.Name,
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// I think we get flakes when the group cache hasn't yet noticed the
+		// new group membership made above.  Wait until all it looks like
+		// all the users above have access to the namespace as expected.
+		err = wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
+			for _, user := range []*userapi.User{adminuser, impersonateuser, impersonatebygroupuser, edituser1, edituser2, viewuser} {
+				cli.ChangeUser(user.Name)
+				sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
+					Action: authorizationapi.Action{
+						Verb:     "get",
+						Resource: "pods",
+					},
+				})
+				if err != nil {
+					return false, err
+				}
+				if !sar.Allowed {
+					return false, nil
+				}
+			}
+
+			cli.ChangeUser(impersonatebygroupuser.Name)
+			sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
+				Action: authorizationapi.Action{
+					Verb:     "assign",
+					Group:    templateapi.GroupName,
+					Resource: "templateinstances",
+				},
+			})
+			if err != nil {
+				return false, err
+			}
+			if !sar.Allowed {
+				return false, nil
+			}
+
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		dummytemplateinstance = &templateapi.TemplateInstance{
 			ObjectMeta: metav1.ObjectMeta{
@@ -141,42 +218,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 				hasUpdateStatusPermission: false,
 			},
 		}
-
-		// additional plumbing to enable impersonateuser to impersonate edituser1
-		role, err := cli.AdminAuthorizationClient().Authorization().Roles(cli.Namespace()).Create(&authorizationapi.Role{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "impersonater",
-			},
-			Rules: []authorizationapi.PolicyRule{
-				{
-					Verbs:     sets.NewString("assign"),
-					APIGroups: []string{templateapi.GroupName},
-					Resources: sets.NewString("templateinstances"),
-				},
-			},
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "impersonater-binding",
-			},
-			RoleRef: kapi.ObjectReference{
-				Name:      role.Name,
-				Namespace: cli.Namespace(),
-			},
-			Subjects: []kapi.ObjectReference{
-				{
-					Kind: authorizationapi.UserKind,
-					Name: impersonateuser.Name,
-				},
-				{
-					Kind: authorizationapi.GroupKind,
-					Name: impersonategroup.Name,
-				},
-			},
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.AfterEach(func() {
