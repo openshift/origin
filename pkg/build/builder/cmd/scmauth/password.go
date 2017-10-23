@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/util/file"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
@@ -77,7 +79,11 @@ func (u UsernamePassword) Setup(baseDir string, context SCMAuthContext) error {
 		}
 		defer gitconfig.Close()
 
-		fmt.Fprintf(gitconfig, UserPassGitConfig, gitcredentials.Name())
+		configContent := fmt.Sprintf(UserPassGitConfig, gitcredentials.Name())
+
+		glog.V(5).Infof("Adding username/password credentials to git config:\n%s\n", configContent)
+
+		fmt.Fprintf(gitconfig, "%s", configContent)
 		fmt.Fprintf(gitcredentials, "%s", gitconfigURL.String())
 
 		return ensureGitConfigIncludes(gitconfig.Name(), context)

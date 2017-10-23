@@ -1849,6 +1849,9 @@ objects:
         name: ${SOURCE_SECRET}
     strategy:
       sourceStrategy:
+        env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
         from:
           kind: ImageStreamTag
           name: ruby:latest
