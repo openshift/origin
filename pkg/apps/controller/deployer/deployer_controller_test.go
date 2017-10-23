@@ -138,6 +138,7 @@ func TestHandle_createPodOk(t *testing.T) {
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
+	deployment.CreationTimestamp = metav1.Now()
 
 	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 
@@ -227,6 +228,7 @@ func TestHandle_createPodFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	deployment.CreationTimestamp = metav1.Now()
 
 	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 
@@ -282,6 +284,7 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 		config := deploytest.OkDeploymentConfig(1)
 		deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+		deployment.CreationTimestamp = metav1.Now()
 		deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 
 		client := &fake.Clientset{}
@@ -321,6 +324,7 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 
 	client := &fake.Clientset{}
@@ -362,6 +366,7 @@ func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
 
@@ -433,6 +438,7 @@ func TestHandle_noop(t *testing.T) {
 
 		deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
+		deployment.CreationTimestamp = metav1.Now()
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
 
@@ -476,6 +482,7 @@ func TestHandle_failedTest(t *testing.T) {
 	// Verify successful cleanup
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
@@ -519,6 +526,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
+	deployment.CreationTimestamp = metav1.Now()
 
 	controller := okDeploymentController(client, deployment, hookPods, true, v1.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
@@ -562,6 +570,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	// Verify successful cleanup
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	deployment.CreationTimestamp = metav1.Now()
 	one := int32(1)
 	deployment.Spec.Replicas = &one
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
@@ -606,6 +615,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	// Verify no-op
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
 
 	controller := okDeploymentController(client, deployment, nil, true, v1.PodSucceeded)
@@ -637,6 +647,7 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 	// Verify error
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
 
 	controller := okDeploymentController(client, deployment, nil, true, v1.PodSucceeded)
@@ -667,6 +678,7 @@ func TestHandle_cancelNew(t *testing.T) {
 	})
 
 	deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
+	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 
@@ -688,6 +700,7 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 	deletedDeployer := false
 
 	deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
+	deployment.CreationTimestamp = metav1.Now()
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 
@@ -782,6 +795,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 		})
 
 		deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
+		deployment.CreationTimestamp = metav1.Now()
 		deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 
@@ -845,6 +859,7 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 			continue
 		}
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.phase)
+		deployment.CreationTimestamp = metav1.Now()
 		updatedDeployment = deployment
 
 		controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
@@ -980,6 +995,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 
 		deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
+		deployment.CreationTimestamp = metav1.Now()
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
 

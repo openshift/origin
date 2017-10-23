@@ -127,6 +127,21 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			}
 			break
 		}
+		// In case the deployment is stuck in "new" state because we fail to create
+		// deployer pod (quota, etc..) we should respect the timeoutSeconds in the
+		// config strategy and transition the rollout to failed instead of waiting for
+		// the deployment pod forever.
+		config, err := deployutil.DecodeDeploymentConfig(deployment, c.codec)
+		if err != nil {
+			return err
+		}
+		if deployutil.RolloutExceededTimeoutSeconds(config, deployment) {
+			nextStatus = deployapi.DeploymentStatusFailed
+			updatedAnnotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnableToCreateDeployerPod
+			c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", deployutil.LabelForDeploymentV1(deployment), deployutil.GetTimeoutSecondsForStrategy(config)))
+			glog.V(4).Infof("Failing deployment %s/%s as we reached timeout while waiting for the deployer pod to be created", deployment.Namespace, deployment.Name)
+			break
+		}
 
 		switch {
 		case kerrors.IsNotFound(deployerErr):

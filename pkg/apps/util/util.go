@@ -652,6 +652,12 @@ func IsTerminatedDeployment(deployment runtime.Object) bool {
 	return IsCompleteDeployment(deployment) || IsFailedDeployment(deployment)
 }
 
+// IsNewDeployment returns true if the passed deployment is in new state.
+func IsNewDeployment(deployment runtime.Object) bool {
+	current := DeploymentStatusFor(deployment)
+	return current == deployapi.DeploymentStatusNew
+}
+
 // IsCompleteDeployment returns true if the passed deployment is in state complete.
 func IsCompleteDeployment(deployment runtime.Object) bool {
 	current := DeploymentStatusFor(deployment)
@@ -780,6 +786,42 @@ func DeploymentsForCleanup(configuration *deployapi.DeploymentConfig, deployment
 	}
 
 	return relevantDeployments
+}
+
+// GetTimeoutSecondsForStrategy returns the timeout in seconds defined in the
+// deployment config strategy.
+func GetTimeoutSecondsForStrategy(config *deployapi.DeploymentConfig) int64 {
+	var timeoutSeconds int64
+	switch config.Spec.Strategy.Type {
+	case deployapi.DeploymentStrategyTypeRolling:
+		timeoutSeconds = deployapi.DefaultRollingTimeoutSeconds
+		if t := config.Spec.Strategy.RollingParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case deployapi.DeploymentStrategyTypeRecreate:
+		timeoutSeconds = deployapi.DefaultRecreateTimeoutSeconds
+		if t := config.Spec.Strategy.RecreateParams.TimeoutSeconds; t != nil {
+			timeoutSeconds = *t
+		}
+	case deployapi.DeploymentStrategyTypeCustom:
+		timeoutSeconds = deployapi.DefaultRecreateTimeoutSeconds
+	}
+	return timeoutSeconds
+}
+
+// RolloutExceededTimeoutSeconds returns true if the current deployment exceeded
+// the timeoutSeconds defined for its strategy.
+// Note that this is different than activeDeadlineSeconds which is the timeout
+// set for the deployer pod. In some cases, the deployer pod cannot be created
+// (like quota, etc...). In that case deployer controller use this function to
+// measure if the created deployment (RC) exceeded the timeout.
+func RolloutExceededTimeoutSeconds(config *deployapi.DeploymentConfig, latestRC *v1.ReplicationController) bool {
+	timeoutSeconds := GetTimeoutSecondsForStrategy(config)
+	// If user set the timeoutSeconds to 0, we assume there should be no timeout.
+	if timeoutSeconds <= 0 {
+		return false
+	}
+	return int64(time.Since(latestRC.CreationTimestamp.Time).Seconds()) > timeoutSeconds
 }
 
 // WaitForRunningDeployerPod waits a given period of time until the deployer pod
