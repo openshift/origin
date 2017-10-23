@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/image/docker"
+	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -32,7 +33,11 @@ func (s *containerImageSignatureDownloader) DownloadImageSignatures(image *image
 	}
 	source, err := reference.NewImageSource(nil, nil)
 	if err != nil {
-		return nil, err
+		// In case we fail to talk to registry to get the image metadata (private
+		// registry, internal registry, etc...), do not fail with error to avoid
+		// spamming logs.
+		glog.V(4).Infof("Failed to get %q: %v", image.DockerImageReference, err)
+		return []imageapi.ImageSignature{}, nil
 	}
 	defer source.Close()
 
