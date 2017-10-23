@@ -279,8 +279,6 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 								failTime = time.Now()
 							}
 							if build.Name == "sample-serial-build-fail-2" {
-								duration := time.Now().Sub(failTime)
-								o.Expect(duration).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after failed build")
 								if build.Status.CompletionTimestamp != nil {
 									o.Expect(build.Status.StartTimestamp).ToNot(o.BeNil(), "failed builds should have a valid start time")
 									o.Expect(build.Status.CompletionTimestamp).ToNot(o.BeNil(), "failed builds should have a valid completion time")
@@ -289,8 +287,6 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 								failTime2 = time.Now()
 							}
 							if build.Name == "sample-serial-build-fail-3" {
-								duration := time.Now().Sub(failTime2)
-								o.Expect(duration).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after failed build")
 								if build.Status.CompletionTimestamp != nil {
 									o.Expect(build.Status.StartTimestamp).ToNot(o.BeNil(), "failed builds should have a valid start time")
 									o.Expect(build.Status.CompletionTimestamp).ToNot(o.BeNil(), "failed builds should have a valid completion time")
