@@ -6,97 +6,82 @@ import (
 	"github.com/openshift/origin/tools/junitreport/pkg/api"
 )
 
-func newTestDataParser() testDataParser {
-	return testDataParser{
-		// testStartPattern matches the line in verbose `go test` output that marks the declaration of a test.
-		// The first submatch of this regex is the name of the test
-		testStartPattern: regexp.MustCompile(`=== RUN\s+([^/]+)$`),
+// testStartPattern matches the line in verbose `go test` output that marks the declaration of a test.
+// The first submatch of this regex is the name of the test
+var testStartPattern = regexp.MustCompile(`^=== RUN\s+([^\s]+)$`)
 
-		// testResultPattern matches the line in verbose `go test` output that marks the result of a test.
-		// The first submatch of this regex is the result of the test (PASS, FAIL, or SKIP)
-		// The second submatch of this regex is the name of the test
-		// The third submatch of this regex is the time taken in seconds for the test to finish
-		testResultPattern: regexp.MustCompile(`--- (PASS|FAIL|SKIP):\s+([^/]+)\s+\((\d+\.\d+)(s| seconds)\)`),
-	}
-}
-
-type testDataParser struct {
-	testStartPattern  *regexp.Regexp
-	testResultPattern *regexp.Regexp
-}
-
-// MarksBeginning determines if the line marks the beginning of a test case
-func (p *testDataParser) MarksBeginning(line string) bool {
-	return p.testStartPattern.MatchString(line)
-}
-
-// ExtractName extracts the name of the test case from test output line
-func (p *testDataParser) ExtractName(line string) (string, bool) {
-	if matches := p.testStartPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
+// ExtractRun identifies the start of a test output section.
+func ExtractRun(line string) (string, bool) {
+	if matches := testStartPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
 		return matches[1], true
 	}
-
-	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 2 && len(matches[2]) > 0 {
-		return matches[2], true
-	}
-
 	return "", false
 }
 
-// ExtractResult extracts the test result from a test output line
-func (p *testDataParser) ExtractResult(line string) (api.TestResult, bool) {
-	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
-		switch matches[1] {
+// testResultPattern matches the line in verbose `go test` output that marks the result of a test.
+// The first submatch of this regex is the result of the test (PASS, FAIL, or SKIP)
+// The second submatch of this regex is the name of the test
+// The third submatch of this regex is the time taken in seconds for the test to finish
+var testResultPattern = regexp.MustCompile(`^(\s*)--- (PASS|FAIL|SKIP):\s+([^\s]+)\s+\((\d+\.\d+)(s| seconds)\)$`)
+
+// ExtractResult extracts the test result from a test output line. Depth is measured as the leading whitespace
+// for the line multiplied by four, which is used to identify output from nested Go subtests.
+func ExtractResult(line string) (r api.TestResult, name string, depth int, duration string, ok bool) {
+	if matches := testResultPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[2]) > 0 {
+		switch matches[2] {
 		case "PASS":
-			return api.TestResultPass, true
+			r = api.TestResultPass
 		case "SKIP":
-			return api.TestResultSkip, true
+			r = api.TestResultSkip
 		case "FAIL":
-			return api.TestResultFail, true
+			r = api.TestResultFail
+		default:
+			return "", "", 0, "", false
 		}
+		name = matches[3]
+		duration = matches[4] + "s"
+		depth = len(matches[1]) / 4
+		ok = true
+		return
 	}
-	return "", false
+	return "", "", 0, "", false
 }
 
-// ExtractDuration extracts the test duration from a test output line
-func (p *testDataParser) ExtractDuration(line string) (string, bool) {
-	if matches := p.testResultPattern.FindStringSubmatch(line); len(matches) > 3 && len(matches[3]) > 0 {
-		return matches[3] + "s", true
+// testOutputPattern captures a line with leading whitespace.
+var testOutputPattern = regexp.MustCompile(`^(\s*)(.*)$`)
+
+// ExtractOutput captures a line of output indented by whitespace and returns
+// the output, the indentation depth (4 spaces is the canonical indentation used by go test),
+// and whether the match was successful.
+func ExtractOutput(line string) (string, int, bool) {
+	if matches := testOutputPattern.FindStringSubmatch(line); len(matches) > 1 {
+		return matches[2], len(matches[1]) / 4, true
 	}
-	return "", false
+	return "", 0, false
 }
 
-func newTestSuiteDataParser() testSuiteDataParser {
-	return testSuiteDataParser{
-		// coverageOutputPattern matches coverage output on a single line.
-		// The first submatch of this regex is the percent coverage
-		coverageOutputPattern: regexp.MustCompile(`coverage:\s+(\d+\.\d+)\% of statements`),
+// coverageOutputPattern matches coverage output on a single line.
+// The first submatch of this regex is the percent coverage
+var coverageOutputPattern = regexp.MustCompile(`coverage:\s+(\d+\.\d+)\% of statements`)
 
-		// packageResultPattern matches the `go test` output for the end of a package.
-		// The first submatch of this regex matches the result of the test (ok or FAIL)
-		// The second submatch of this regex matches the name of the package
-		// The third submatch of this regex matches the time taken in seconds for tests in the package to finish
-		// The sixth (optional) submatch of this regex is the percent coverage
-		packageResultPattern: regexp.MustCompile(`(ok|FAIL)\s+(.+)[\s\t]+(\d+\.\d+(s| seconds))([\s\t]+coverage:\s+(\d+\.\d+)\% of statements)?`),
+// packageResultPattern matches the `go test` output for the end of a package.
+// The first submatch of this regex matches the result of the test (ok or FAIL)
+// The second submatch of this regex matches the name of the package
+// The third submatch of this regex matches the time taken in seconds for tests in the package to finish
+// The sixth (optional) submatch of this regex is the percent coverage
+var packageResultPattern = regexp.MustCompile(`^(ok|FAIL)\s+(.+)[\s\t]+(\d+\.\d+(s| seconds))([\s\t]+coverage:\s+(\d+\.\d+)\% of statements)?$`)
+
+// ExtractPackage extracts the name of the test suite from a test package line.
+func ExtractPackage(line string) (name string, duration string, coverage string, ok bool) {
+	if matches := packageResultPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[2]) > 0 {
+		return matches[2], matches[3], matches[5], true
 	}
-}
-
-type testSuiteDataParser struct {
-	coverageOutputPattern *regexp.Regexp
-	packageResultPattern  *regexp.Regexp
-}
-
-// ExtractName extracts the name of the test suite from a test output line
-func (p *testSuiteDataParser) ExtractName(line string) (string, bool) {
-	if matches := p.packageResultPattern.FindStringSubmatch(line); len(matches) > 2 && len(matches[2]) > 0 {
-		return matches[2], true
-	}
-	return "", false
+	return "", "", "", false
 }
 
 // ExtractDuration extracts the package duration from a test output line
-func (p *testSuiteDataParser) ExtractDuration(line string) (string, bool) {
-	if resultMatches := p.packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 3 && len(resultMatches[3]) > 0 {
+func ExtractDuration(line string) (string, bool) {
+	if resultMatches := packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 3 && len(resultMatches[3]) > 0 {
 		return resultMatches[3], true
 	}
 	return "", false
@@ -107,24 +92,19 @@ const (
 )
 
 // ExtractProperties extracts any metadata properties of the test suite from a test output line
-func (p *testSuiteDataParser) ExtractProperties(line string) (map[string]string, bool) {
+func ExtractProperties(line string) (map[string]string, bool) {
 	// the only test suite properties that Go testing can create are coverage values, which can either
 	// be present on their own line or in the package result line
-	if matches := p.coverageOutputPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
+	if matches := coverageOutputPattern.FindStringSubmatch(line); len(matches) > 1 && len(matches[1]) > 0 {
 		return map[string]string{
 			coveragePropertyName: matches[1],
 		}, true
 	}
 
-	if resultMatches := p.packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 6 && len(resultMatches[6]) > 0 {
+	if resultMatches := packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 6 && len(resultMatches[6]) > 0 {
 		return map[string]string{
 			coveragePropertyName: resultMatches[6],
 		}, true
 	}
 	return map[string]string{}, false
-}
-
-// MarksCompletion determines if the line marks the completion of a test suite
-func (p *testSuiteDataParser) MarksCompletion(line string) bool {
-	return p.packageResultPattern.MatchString(line)
 }

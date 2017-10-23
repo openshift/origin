@@ -1,11 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-	<testsuite name="k8s.io/kubernetes/plugin/pkg/auth/authorizer/node" tests="2" skipped="1" failures="1" time="0.078">
+	<testsuite name="k8s.io/kubernetes/plugin/pkg/auth/authorizer/node" tests="13" skipped="2" failures="2" time="0.078">
 		<testcase name="TestAuthorizer" time="0">
-			<failure message="">=== RUN   TestAuthorizer&#xA;=== RUN   TestAuthorizer/allowed_configmap&#xA;=== RUN   TestAuthorizer/allowed_secret_via_pod&#xA;=== RUN   TestAuthorizer/allowed_shared_secret_via_pod&#xA;=== RUN   TestAuthorizer/allowed_shared_secret_via_pvc&#xA;=== RUN   TestAuthorizer/allowed_pvc&#xA;=== RUN   TestAuthorizer/allowed_pv&#xA;=== RUN   TestAuthorizer/disallowed_configmap&#xA;=== RUN   TestAuthorizer/disallowed_secret_via_pod&#xA;=== RUN   TestAuthorizer/disallowed_shared_secret_via_pvc&#xA;=== RUN   TestAuthorizer/disallowed_pvc&#xA;=== RUN   TestAuthorizer/disallowed_pv&#xA;--- FAIL: TestAuthorizer (0.00s)&#xA;    --- PASS: TestAuthorizer/allowed_configmap (0.00s)&#xA;    --- PASS: TestAuthorizer/allowed_secret_via_pod (0.00s)&#xA;    --- PASS: TestAuthorizer/allowed_shared_secret_via_pod (0.00s)&#xA;    --- PASS: TestAuthorizer/allowed_shared_secret_via_pvc (0.00s)&#xA;    --- FAIL: TestAuthorizer/allowed_pvc (0.00s)&#xA;    &#x9;node_authorizer_test.go:125: expected true, got false&#xA;    --- PASS: TestAuthorizer/allowed_pv (0.00s)&#xA;    --- PASS: TestAuthorizer/disallowed_configmap (0.00s)&#xA;    --- PASS: TestAuthorizer/disallowed_secret_via_pod (0.00s)&#xA;    --- PASS: TestAuthorizer/disallowed_shared_secret_via_pvc (0.00s)&#xA;    --- PASS: TestAuthorizer/disallowed_pvc (0.00s)&#xA;    --- SKIP: TestAuthorizer/disallowed_pv (0.00s)&#xA;    &#x9;node_authorizer_test.go:121: disallowed pv</failure>
+			<failure message=""></failure>
+		</testcase>
+		<testcase name="TestAuthorizer/allowed_configmap" time="0"></testcase>
+		<testcase name="TestAuthorizer/allowed_secret_via_pod" time="0"></testcase>
+		<testcase name="TestAuthorizer/allowed_shared_secret_via_pod" time="0"></testcase>
+		<testcase name="TestAuthorizer/allowed_shared_secret_via_pvc" time="0"></testcase>
+		<testcase name="TestAuthorizer/allowed_pvc" time="0">
+			<failure message="">node_authorizer_test.go:125: expected true, got false</failure>
+		</testcase>
+		<testcase name="TestAuthorizer/allowed_pv" time="0"></testcase>
+		<testcase name="TestAuthorizer/disallowed_configmap" time="0"></testcase>
+		<testcase name="TestAuthorizer/disallowed_secret_via_pod" time="0"></testcase>
+		<testcase name="TestAuthorizer/disallowed_shared_secret_via_pvc" time="0"></testcase>
+		<testcase name="TestAuthorizer/disallowed_pvc" time="0"></testcase>
+		<testcase name="TestAuthorizer/disallowed_pv" time="0">
+			<skipped message="node_authorizer_test.go:121: disallowed pv"></skipped>
 		</testcase>
 		<testcase name="TestPopulationMemoryUsage" time="0">
-			<skipped message="=== RUN   TestPopulationMemoryUsage&#xA;--- SKIP: TestPopulationMemoryUsage (0.00s)&#xA;&#x9;node_authorizer_test.go:172: Skipping large population test. Run with TEST_POPULATION_MEMORY_USAGE=true to output memory profiles.&#xA;FAIL&#xA;exit status 1"></skipped>
+			<skipped message="node_authorizer_test.go:172: Skipping large population test. Run with TEST_POPULATION_MEMORY_USAGE=true to output memory profiles."></skipped>
 		</testcase>
 	</testsuite>
 </testsuites>
