@@ -5,7 +5,6 @@ package internalversion
 import (
 	user "github.com/openshift/origin/pkg/user/apis/user"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *userLister) List(selector labels.Selector) (ret []*user.User, err error
 
 // Get retrieves the User from the index for a given name.
 func (s *userLister) Get(name string) (*user.User, error) {
-	key := &user.User{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}
