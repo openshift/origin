@@ -28,6 +28,10 @@ import (
 	informerfactory "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
+const (
+	DefaultResyncInterval = 30 * time.Minute
+)
+
 // RouterControllerFactory initializes and manages the watches that drive a router
 // controller. It supports optional scoping on Namespace, Labels, and Fields of routes.
 // If Namespace is empty, it means "all namespaces".
@@ -52,7 +56,7 @@ func NewDefaultRouterControllerFactory(rc routeclientset.Interface, pc projectcl
 		KClient:        kc,
 		RClient:        rc,
 		ProjectClient:  pc,
-		ResyncInterval: 10 * time.Minute,
+		ResyncInterval: DefaultResyncInterval,
 
 		Namespace: v1.NamespaceAll,
 		informers: map[reflect.Type]kcache.SharedIndexInformer{},

@@ -59,7 +59,7 @@ type RouterSelection struct {
 
 // Bind sets the appropriate labels
 func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
-	flag.DurationVar(&o.ResyncInterval, "resync-interval", 10*time.Minute, "The interval at which the route list should be fully refreshed")
+	flag.DurationVar(&o.ResyncInterval, "resync-interval", controllerfactory.DefaultResyncInterval, "The interval at which the route list should be fully refreshed")
 	flag.StringVar(&o.HostnameTemplate, "hostname-template", cmdutil.Env("ROUTER_SUBDOMAIN", ""), "If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}-${namespace}.myapps.mycompany.com')")
 	flag.BoolVar(&o.OverrideHostname, "override-hostname", cmdutil.Env("ROUTER_OVERRIDE_HOSTNAME", "") == "true", "Override the spec.host value for a route with --hostname-template")
 	flag.StringVar(&o.LabelSelector, "labels", cmdutil.Env("ROUTE_LABELS", ""), "A label selector to apply to the routes to watch")
