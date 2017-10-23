@@ -24,7 +24,7 @@ rm -rf "${context}"
 mkdir -p "${context}"
 mkdir -p "${OS_OUTPUT}"
 
-container="$( os::build::environment::create /bin/sh -c "OS_ONLY_BUILD_PLATFORMS=${OS_ONLY_BUILD_PLATFORMS-} make build-cross" )"
+container="$( os::build::environment::create /bin/sh -c "OS_BUILD_SERVER_PLATFORMS=${OS_BUILD_SERVER_PLATFORMS-} OS_BUILD_IMAGE_PLATFORMS=${OS_BUILD_IMAGE_PLATFORMS-} OS_BUILD_CLIENT_PLATFORMS=${OS_BUILD_CLIENT_PLATFORMS-} make build-cross" )"
 trap "os::build::environment::cleanup ${container}" EXIT
 
 # Perform the build and release in Docker.

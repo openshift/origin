@@ -231,34 +231,45 @@ of docker.  Exclude those versions of docker.
 %setup -q
 
 %build
-%if 0%{make_redistributable}
-# Create Binaries for all supported arches
-%{os_git_vars} hack/build-cross.sh
-%{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-%{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
-%{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
-%else
-# Create Binaries only for building arch
 %ifarch x86_64
-  BUILD_PLATFORM="linux/amd64"
+  HOST_PLATFORM="linux/amd64"
 %endif
 %ifarch %{ix86}
-  BUILD_PLATFORM="linux/386"
+  HOST_PLATFORM="linux/386"
 %endif
 %ifarch ppc64le
-  BUILD_PLATFORM="linux/ppc64le"
+  HOST_PLATFORM="linux/ppc64le"
 %endif
-%ifarch %{arm} aarch64
-  BUILD_PLATFORM="linux/arm64"
+%ifarch %{arm}
+  HOST_PLATFORM="linux/arm"
+%endif
+%ifarch aarch64
+  HOST_PLATFORM="linux/arm64"
 %endif
 %ifarch s390x
-  BUILD_PLATFORM="linux/s390x"
+  HOST_PLATFORM="linux/s390x"
 %endif
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
+
+# Always limit server and image platforms to the host architecture
+export OS_BUILD_SERVER_PLATFORMS="${HOST_PLATFORM}"
+export OS_BUILD_IMAGE_PLATFORMS="${HOST_PLATFORM}"
+
+%if ! 0%{make_redistributable}
+# Limit the client platforms to the host architecture
+export OS_BUILD_CLIENT_PLATFORMS="${HOST_PLATFORM}"
 %endif
+
+# Build the server, client, image and test binaries
+%{os_git_vars} hack/build-cross.sh
+
+# Build the ginko binary
+%{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
+
+# Build the Service Catalog and Cluster Capacity binaries for the
+# host platform only
+export OS_ONLY_BUILD_PLATFORMS="${HOST_PLATFORM}"
+%{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
+%{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
 
 # Generate man pages
 %{os_git_vars} hack/generate-docs.sh
@@ -281,11 +292,20 @@ install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_lib
 install -p -m 755 _output/local/bin/${PLATFORM}/ginkgo %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
-# Install client executable for windows and mac
-install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
-install -p -m 755 _output/local/bin/linux/amd64/oc %{buildroot}%{_datadir}/%{name}/linux/oc
-install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
-install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
+# Install redistributable client executables
+for goos_dir in _output/local/bin/*; do
+  goos=${goos_dir##*/}
+  install -d %{buildroot}%{_datadir}/%{name}/${goos}
+  for goarch_dir in _output/local/bin/${goos}/*; do
+    goarch=${goarch_dir##*/}
+    install -d %{buildroot}%{_datadir}/%{name}/${goos}/${goarch}
+    if [ "${goos}" == "windows" ]; then
+      install -p -m 755 _output/local/bin/${goos}/${goarch}/oc.exe %{buildroot}%{_datadir}/%{name}/${goos}/${goarch}/oc.exe
+    else
+      install -p -m 755 _output/local/bin/${goos}/${goarch}/oc %{buildroot}%{_datadir}/%{name}/${goos}/${goarch}/oc
+    fi
+  done
+done
 %endif
 
 # Install federation services
@@ -581,12 +601,9 @@ fi
 
 %if 0%{?make_redistributable}
 %files clients-redistributable
-%dir %{_datadir}/%{name}/linux/
-%dir %{_datadir}/%{name}/macosx/
-%dir %{_datadir}/%{name}/windows/
-%{_datadir}/%{name}/linux/oc
-%{_datadir}/%{name}/macosx/oc
-%{_datadir}/%{name}/windows/oc.exe
+%dir %{_datadir}/%{name}/*/*
+%{_datadir}/%{name}/*/*/oc
+%{_datadir}/%{name}/*/*/oc.exe
 %endif
 
 %files dockerregistry
