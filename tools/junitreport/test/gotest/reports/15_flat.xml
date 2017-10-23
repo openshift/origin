@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite name="parser/gotest" tests="4" skipped="0" failures="2" time="0.019">
+		<testcase name="TestSubTestWithFailures" time="0">
+			<failure message=""></failure>
+		</testcase>
+		<testcase name="TestSubTestWithFailures/subtest-pass-1" time="0"></testcase>
+		<testcase name="TestSubTestWithFailures/subtest-pass-2" time="0"></testcase>
+		<testcase name="TestSubTestWithFailures/subtest-fail-1" time="0">
+			<failure message="">data_parser_test.go:14: log line&#xA;data_parser_test.go:14: failed</failure>
+			<system-out>text line</system-out>
+		</testcase>
+	</testsuite>
+	<testsuite name="github.com/openshift/origin/tools/junitreport/pkg/parser/gotest/example" tests="19" skipped="0" failures="9" time="0.006">
+		<property name="coverage.statements.pct" value="0.0"></property>
+		<testcase name="TestSubTestWithFailures" time="0">
+			<failure message=""></failure>
+		</testcase>
+		<testcase name="TestSubTestWithFailures/subtest-pass-1" time="0"></testcase>
+		<testcase name="TestSubTestWithFailures/subtest-pass-2" time="0"></testcase>
+		<testcase name="TestSubTestWithFailures/subtest-fail-1" time="0">
+			<failure message="">example_test.go:11: log line&#xA;example_test.go:11: failed</failure>
+			<system-out>text line</system-out>
+		</testcase>
+		<testcase name="TestSubTestWithFirstFailures" time="0">
+			<failure message=""></failure>
+		</testcase>
+		<testcase name="TestSubTestWithFirstFailures/subtest-fail-1" time="0">
+			<failure message="">example_test.go:15: log line&#xA;example_test.go:15: failed</failure>
+			<system-out>text line</system-out>
+		</testcase>
+		<testcase name="TestSubTestWithFirstFailures/subtest-pass-1" time="0"></testcase>
+		<testcase name="TestSubTestWithFirstFailures/subtest-pass-2" time="0"></testcase>
+		<testcase name="TestSubTestWithSubTestFailures" time="0">
+			<failure message=""></failure>
+		</testcase>
+		<testcase name="TestSubTestWithSubTestFailures/subtest-pass-1" time="0"></testcase>
+		<testcase name="TestSubTestWithSubTestFailures/subtest-pass-2" time="0"></testcase>
+		<testcase name="TestSubTestWithSubTestFailures/subtest-fail-1" time="0">
+			<failure message="">example_test.go:25: log line before</failure>
+			<system-out>text line</system-out>
+		</testcase>
+		<testcase name="TestSubTestWithSubTestFailures/subtest-fail-1/sub-subtest-pass-1" time="0"></testcase>
+		<testcase name="TestSubTestWithSubTestFailures/subtest-fail-1/sub-subtest-pass-2" time="0"></testcase>
+		<testcase name="TestSubTestWithSubTestFailures/subtest-fail-1/sub-subtest-fail-1" time="0">
+			<failure message="">example_test.go:28: log line&#xA;example_test.go:28: failed&#xA;example_test.go:29: log line after</failure>
+			<system-out>text line</system-out>
+		</testcase>
+		<testcase name="TestSubTestWithMiddleFailures" time="0">
+			<failure message=""></failure>
+		</testcase>
+		<testcase name="TestSubTestWithMiddleFailures/subtest-pass-1" time="0"></testcase>
+		<testcase name="TestSubTestWithMiddleFailures/subtest-fail-1" time="0">
+			<failure message="">example_test.go:35: log line&#xA;example_test.go:35: failed</failure>
+			<system-out>text line</system-out>
+		</testcase>
+		<testcase name="TestSubTestWithMiddleFailures/subtest-pass-2" time="0"></testcase>
+	</testsuite>
+</testsuites>

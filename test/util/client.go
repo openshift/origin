@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -37,11 +38,15 @@ func KubeConfigPath() string {
 }
 
 func GetClusterAdminKubeClient(adminKubeConfigFile string) (kclientset.Interface, error) {
-	c, _, err := configapi.GetInternalKubeClient(adminKubeConfigFile, nil)
+	config, err := GetClusterAdminClientConfig(adminKubeConfigFile)
 	if err != nil {
 		return nil, err
 	}
-	return c, nil
+	kubeClientset, err := kclientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return kubeClientset, nil
 }
 
 func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config, error) {
@@ -49,7 +54,7 @@ func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config
 	if err != nil {
 		return nil, err
 	}
-	return conf, nil
+	return turnOffRateLimiting(conf), nil
 }
 
 // GetClusterAdminClientConfigOrDie returns a REST config for the cluster admin
@@ -68,7 +73,7 @@ func GetClientForUser(clientConfig *restclient.Config, username string) (kclient
 		return nil, nil, err
 	}
 
-	userClientConfig := restclient.AnonymousClientConfig(clientConfig)
+	userClientConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(clientConfig))
 	userClientConfig.BearerToken = token
 
 	kubeClientset, err := kclientset.NewForConfig(userClientConfig)
@@ -102,7 +107,7 @@ func GetScopedClientForUser(clusterAdminClientConfig *restclient.Config, usernam
 		return nil, nil, err
 	}
 
-	scopedConfig := restclient.AnonymousClientConfig(clusterAdminClientConfig)
+	scopedConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(clusterAdminClientConfig))
 	scopedConfig.BearerToken = token.Name
 	kubeClient, err := kclientset.NewForConfig(scopedConfig)
 	if err != nil {
@@ -144,7 +149,7 @@ func GetClientForServiceAccount(adminClient kclientset.Interface, clientConfig r
 		return nil, nil, err
 	}
 
-	saClientConfig := restclient.AnonymousClientConfig(&clientConfig)
+	saClientConfig := restclient.AnonymousClientConfig(turnOffRateLimiting(&clientConfig))
 	saClientConfig.BearerToken = token
 
 	kubeClientset, err := kclientset.NewForConfig(saClientConfig)
@@ -221,4 +226,14 @@ func isLimitSynced(received, expected kapi.ResourceList) bool {
 		return false
 	}
 	return true
+}
+
+// turnOffRateLimiting reduces the chance that a flaky test can be written while using this package
+func turnOffRateLimiting(config *restclient.Config) *restclient.Config {
+	configCopy := *config
+	configCopy.QPS = 10000
+	configCopy.Burst = 10000
+	configCopy.RateLimiter = flowcontrol.NewFakeAlwaysRateLimiter()
+	configCopy.Timeout = time.Minute
+	return &configCopy
 }

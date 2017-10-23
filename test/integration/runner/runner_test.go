@@ -84,14 +84,17 @@ func executeTests(t *testing.T, dir, packageName string, maxRetries int) {
 		if testing.Verbose() {
 			t.Logf("compiling %s", packageName)
 		}
-		cmd := exec.Command("go", "test", packageName, "-i", "-c", binaryName)
+		binaryPath, err = filepath.Abs(binaryName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command("go", "test", packageName, "-i", "-c", binaryPath)
 		if testing.Verbose() {
 			cmd.Args = append(cmd.Args, "-test.v")
 		}
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatal(string(out))
 		}
-		binaryPath = "." + string(filepath.Separator) + binaryName
 	}
 
 	// run all the nested tests
@@ -162,16 +165,42 @@ func runSingleTest(t *testing.T, dir, binaryPath, name string) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if len(out) != 0 {
-			return fmt.Errorf(string(out))
+			return fmt.Errorf(transformOutput(string(out)))
 		}
 		return err
 	}
 
 	if testing.Verbose() {
-		t.Log(string(out))
+		if len(out) < 20000 {
+			t.Log(transformOutput(string(out)))
+		}
 	}
 	return nil
 }
+
+func transformOutput(out string) string {
+	if match := testStartPattern.FindStringIndex(out); len(match) == 2 {
+		out = out[match[1]:]
+	}
+	var log string
+	if match := testSplitPattern.FindStringIndex(out); len(match) == 2 {
+		log = out[match[1]:]
+		out = out[:match[0]]
+	}
+	if match := testEndPattern.FindStringIndex(log); len(match) == 2 {
+		log = log[:match[0]]
+	}
+	if len(log) > 0 {
+		return log + "\n=== OUTPUT\n" + out
+	}
+	return "\n=== OUTPUT\n" + out
+}
+
+var (
+	testSplitPattern = regexp.MustCompile(`(?m:^--- (PASS|FAIL):.*$)`)
+	testStartPattern = regexp.MustCompile(`(?m:^=== RUN.*$)`)
+	testEndPattern   = regexp.MustCompile(`(?m:^(PASS|FAIL)$)`)
+)
 
 func without(all []string, value string) []string {
 	var result []string

@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/diff"
+
 	"github.com/openshift/origin/tools/junitreport/pkg/api"
 	"github.com/openshift/origin/tools/junitreport/pkg/builder/flat"
 )
@@ -55,12 +57,7 @@ func TestFlatParse(t *testing.T) {
 								Name:     "TestOne",
 								Duration: 0.02,
 								FailureOutput: &api.FailureOutput{
-									Output: `=== RUN TestOne
---- FAIL: TestOne (0.02 seconds)
-	file_test.go:11: Error message
-	file_test.go:11: Longer
-		error
-		message.`,
+									Output: "file_test.go:11: Error message\nfile_test.go:11: Longer\nerror\nmessage.\n",
 								},
 							},
 							{
@@ -87,9 +84,7 @@ func TestFlatParse(t *testing.T) {
 								Name:     "TestOne",
 								Duration: 0.02,
 								SkipMessage: &api.SkipMessage{
-									Message: `=== RUN TestOne
---- SKIP: TestOne (0.02 seconds)
-	file_test.go:11: Skip message`,
+									Message: "file_test.go:11: Skip message\n",
 								},
 							},
 							{
@@ -154,12 +149,7 @@ func TestFlatParse(t *testing.T) {
 								Name:     "TestOne",
 								Duration: 0.02,
 								FailureOutput: &api.FailureOutput{
-									Output: `=== RUN TestOne
---- FAIL: TestOne (0.02 seconds)
-	file_test.go:11: Error message
-	file_test.go:11: Longer
-		error
-		message.`,
+									Output: "file_test.go:11: Error message\nfile_test.go:11: Longer\nerror\nmessage.\n",
 								},
 							},
 							{
@@ -253,7 +243,7 @@ func TestFlatParse(t *testing.T) {
 			},
 		},
 		{
-			name:     "nested ",
+			name:     "nested",
 			testFile: "9.txt",
 			expectedSuites: &api.TestSuites{
 				Suites: []*api.TestSuite{
@@ -283,22 +273,14 @@ func TestFlatParse(t *testing.T) {
 								Name:     "TestOne",
 								Duration: 0.02,
 								FailureOutput: &api.FailureOutput{
-									Output: `=== RUN   TestOne
---- FAIL: TestOne (0.02 seconds)
-	file_test.go:11: Error message
-	file_test.go:11: Longer
-		error
-		message.`,
+									Output: "file_test.go:11: Error message\nfile_test.go:11: Longer\nerror\nmessage.\n",
 								},
 							},
 							{
 								Name:     "TestTwo",
 								Duration: 0.03,
 								SkipMessage: &api.SkipMessage{
-									Message: `=== RUN   TestTwo
---- SKIP: TestTwo (0.03 seconds)
-	file_test.go:11: Skip message
-PASS`,
+									Message: "file_test.go:11: Skip message\n",
 								},
 							},
 						},
@@ -376,23 +358,23 @@ PASS`,
 	}
 
 	for _, testCase := range testCases {
-		parser := NewParser(flat.NewTestSuitesBuilder(), false)
+		t.Run(testCase.name, func(t *testing.T) {
+			parser := NewParser(flat.NewTestSuitesBuilder(), false)
 
-		testFile := "./../../../test/gotest/testdata/" + testCase.testFile
+			testFile := "./../../../test/gotest/testdata/" + testCase.testFile
 
-		reader, err := os.Open(testFile)
-		if err != nil {
-			t.Errorf("%s: unexpected error opening file %q: %v", testCase.name, testFile, err)
-			continue
-		}
-		testSuites, err := parser.Parse(bufio.NewScanner(reader))
-		if err != nil {
-			t.Errorf("%s: unexpected error parsing file: %v", testCase.name, err)
-			continue
-		}
+			reader, err := os.Open(testFile)
+			if err != nil {
+				t.Fatalf("unexpected error opening file %q: %v", testFile, err)
+			}
+			testSuites, err := parser.Parse(bufio.NewScanner(reader))
+			if err != nil {
+				t.Fatalf("unexpected error parsing file: %v", err)
+			}
 
-		if !reflect.DeepEqual(testSuites, testCase.expectedSuites) {
-			t.Errorf("%s: did not produce the correct test suites from file:\n\texpected:\n\t%v,\n\tgot\n\t%v", testCase.name, testCase.expectedSuites, testSuites)
-		}
+			if !reflect.DeepEqual(testSuites, testCase.expectedSuites) {
+				t.Errorf("did not produce the correct test suites from file:\n %s", diff.ObjectReflectDiff(testCase.expectedSuites, testSuites))
+			}
+		})
 	}
 }

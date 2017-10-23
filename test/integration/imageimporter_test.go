@@ -662,6 +662,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig)
+
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -719,7 +720,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	var event watch.Event
 	select {
 	case event = <-ch:
-	case <-time.After(2 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("never got watch event")
 	}
 	change, ok := event.Object.(*imageapi.ImageStream)
@@ -759,7 +760,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	// wait for next event
 	select {
 	case <-written:
-	case <-time.After(2 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatalf("waited too long for 3rd write")
 	}
 
@@ -767,7 +768,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	event = <-ch
 	change, ok = event.Object.(*imageapi.ImageStream)
 	if !ok {
-		t.Fatalf("unexpected object: %#v", event.Object)
+		t.Fatalf("unexpected object: %#v in event %#v", event.Object, event)
 	}
 	tagEvent = imageapi.LatestTaggedImage(change, "latest")
 	if tagEvent == nil {
@@ -786,7 +787,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	}
 
 	// sleep for a period of time to check for a second scheduled import
-	time.Sleep(2 * time.Second)
+	time.Sleep(60 * time.Second)
 	select {
 	case event := <-ch:
 		t.Fatalf("there should not have been a second import after failure: %s %#v", event.Type, event.Object)
@@ -946,7 +947,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 			},
 		},
 	}
-	context := gocontext.WithValue(gocontext.Background(), importer.ContextKeyV1RegistryClient, dockerregistry.NewClient(20*time.Second, false))
+	context := gocontext.WithValue(gocontext.Background(), importer.ContextKeyV1RegistryClient, dockerregistry.NewClient(60*time.Second, false))
 	importCtx = importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 	err := retryWhenUnreachable(t, func() error {
 		i = importer.NewImageStreamImporter(importCtx, 3, nil, nil)
