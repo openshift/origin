@@ -77,13 +77,18 @@ func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enabl
 		NamespaceRoutes:        make(map[string]map[string]*routeapi.Route),
 		NamespaceEndpoints:     make(map[string]map[string]*kapi.Endpoints),
 
-		ProjectClient: f.ProjectClient,
-		ProjectLabels: f.ProjectLabels,
-		// Check projects a bit more often than we resync events, so that we aren't always waiting
-		// the maximum interval for new items to come into the list
-		ProjectSyncInterval: f.ResyncInterval - 10*time.Second,
+		ProjectClient:       f.ProjectClient,
+		ProjectLabels:       f.ProjectLabels,
 		ProjectWaitInterval: 10 * time.Second,
 		ProjectRetries:      5,
+	}
+
+	// Check projects a bit more often than we resync events, so that we aren't always waiting
+	// the maximum interval for new items to come into the list
+	if f.ResyncInterval > 10*time.Second {
+		rc.ProjectSyncInterval = f.ResyncInterval - 10*time.Second
+	} else {
+		rc.ProjectSyncInterval = f.ResyncInterval
 	}
 
 	f.initInformers(rc)
