@@ -24,7 +24,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -129,7 +128,7 @@ func newClusterServicePlans(count uint, useDifferentClasses bool) []*servicecata
 		Spec: servicecatalog.ClusterServicePlanSpec{
 			ExternalName: "bar",
 			ExternalID:   "12345",
-			ClusterServiceClassRef: v1.LocalObjectReference{
+			ClusterServiceClassRef: servicecatalog.ClusterObjectReference{
 				Name: classname,
 			},
 		},
@@ -142,7 +141,7 @@ func newClusterServicePlans(count uint, useDifferentClasses bool) []*servicecata
 		Spec: servicecatalog.ClusterServicePlanSpec{
 			ExternalName: "baz",
 			ExternalID:   "23456",
-			ClusterServiceClassRef: v1.LocalObjectReference{
+			ClusterServiceClassRef: servicecatalog.ClusterObjectReference{
 				Name: classname,
 			},
 		},
@@ -172,7 +171,7 @@ func TestWithListFailure(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 
 	instance := newServiceInstance("dummy")
-	instance.Spec.ExternalClusterServiceClassName = "foo"
+	instance.Spec.ClusterServiceClassExternalName = "foo"
 
 	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
@@ -181,7 +180,7 @@ func TestWithListFailure(t *testing.T) {
 		t.Errorf("did not find expected error, got %q", err)
 	}
 	assertPlanReference(t,
-		servicecatalog.PlanReference{ExternalClusterServiceClassName: "foo"},
+		servicecatalog.PlanReference{ClusterServiceClassExternalName: "foo"},
 		instance.Spec.PlanReference)
 }
 
@@ -194,8 +193,8 @@ func TestWithPlanWorks(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 
 	instance := newServiceInstance("dummy")
-	instance.Spec.ExternalClusterServiceClassName = "foo"
-	instance.Spec.ExternalClusterServicePlanName = "bar"
+	instance.Spec.ClusterServiceClassExternalName = "foo"
+	instance.Spec.ClusterServicePlanExternalName = "bar"
 
 	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
@@ -206,7 +205,7 @@ func TestWithPlanWorks(t *testing.T) {
 		t.Errorf("unexpected error %q returned from admission handler: %v", err, actions)
 	}
 	assertPlanReference(t,
-		servicecatalog.PlanReference{ExternalClusterServiceClassName: "foo", ExternalClusterServicePlanName: "bar"},
+		servicecatalog.PlanReference{ClusterServiceClassExternalName: "foo", ClusterServicePlanExternalName: "bar"},
 		instance.Spec.PlanReference)
 }
 
@@ -219,7 +218,7 @@ func TestWithNoPlanFailsWithNoClusterServiceClass(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 
 	instance := newServiceInstance("dummy")
-	instance.Spec.ExternalClusterServiceClassName = "foobar"
+	instance.Spec.ClusterServiceClassExternalName = "foobar"
 
 	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
@@ -228,7 +227,7 @@ func TestWithNoPlanFailsWithNoClusterServiceClass(t *testing.T) {
 		t.Errorf("did not find expected error, got %q", err)
 	}
 	assertPlanReference(t,
-		servicecatalog.PlanReference{ExternalClusterServiceClassName: "foobar"},
+		servicecatalog.PlanReference{ClusterServiceClassExternalName: "foobar"},
 		instance.Spec.PlanReference)
 }
 
@@ -246,7 +245,7 @@ func TestWithNoPlanWorksWithSinglePlan(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 
 	instance := newServiceInstance("dummy")
-	instance.Spec.ExternalClusterServiceClassName = "foo"
+	instance.Spec.ClusterServiceClassExternalName = "foo"
 
 	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
@@ -257,7 +256,7 @@ func TestWithNoPlanWorksWithSinglePlan(t *testing.T) {
 		t.Errorf("unexpected error %q returned from admission handler: %v", err, actions)
 	}
 	assertPlanReference(t,
-		servicecatalog.PlanReference{ExternalClusterServiceClassName: "foo", ExternalClusterServicePlanName: "bar"},
+		servicecatalog.PlanReference{ClusterServiceClassExternalName: "foo", ClusterServicePlanExternalName: "bar"},
 		instance.Spec.PlanReference)
 }
 
@@ -274,7 +273,7 @@ func TestWithNoPlanFailsWithMultiplePlans(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 
 	instance := newServiceInstance("dummy")
-	instance.Spec.ExternalClusterServiceClassName = "foo"
+	instance.Spec.ClusterServiceClassExternalName = "foo"
 
 	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
@@ -284,7 +283,7 @@ func TestWithNoPlanFailsWithMultiplePlans(t *testing.T) {
 		t.Errorf("did not find expected error, got %q", err)
 	}
 	assertPlanReference(t,
-		servicecatalog.PlanReference{ExternalClusterServiceClassName: "foo"},
+		servicecatalog.PlanReference{ClusterServiceClassExternalName: "foo"},
 		instance.Spec.PlanReference)
 }
 
@@ -303,7 +302,7 @@ func TestWithNoPlanSucceedsWithMultiplePlansFromDifferentClasses(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 
 	instance := newServiceInstance("dummy")
-	instance.Spec.ExternalClusterServiceClassName = "foo"
+	instance.Spec.ClusterServiceClassExternalName = "foo"
 
 	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
@@ -314,7 +313,7 @@ func TestWithNoPlanSucceedsWithMultiplePlansFromDifferentClasses(t *testing.T) {
 		t.Errorf("unexpected error %q returned from admission handler: %v", err, actions)
 	}
 	assertPlanReference(t,
-		servicecatalog.PlanReference{ExternalClusterServiceClassName: "foo", ExternalClusterServicePlanName: "bar"},
+		servicecatalog.PlanReference{ClusterServiceClassExternalName: "foo", ClusterServicePlanExternalName: "bar"},
 		instance.Spec.PlanReference)
 }
 

@@ -21,14 +21,14 @@ import (
 	"testing"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestBuildParameters(t *testing.T) {
-	secret := &v1.Secret{
+	secret := &corev1.Secret{
 		Data: map[string][]byte{
 			"json-key":   []byte("{ \"json\": true }"),
 			"string-key": []byte("textFromSecret"),
@@ -39,7 +39,7 @@ func TestBuildParameters(t *testing.T) {
 		name                                  string
 		parametersFrom                        []v1beta1.ParametersFromSource
 		parameters                            *runtime.RawExtension
-		secret                                *v1.Secret
+		secret                                *corev1.Secret
 		expectedParameters                    map[string]interface{}
 		expectedParametersWithSecretsRedacted map[string]interface{}
 		shouldSucceed                         bool
@@ -147,7 +147,7 @@ func TestBuildParameters(t *testing.T) {
 	}
 }
 
-func testBuildParameters(t *testing.T, parametersFrom []v1beta1.ParametersFromSource, parameters *runtime.RawExtension, secret *v1.Secret, expected map[string]interface{}, expectedWithSecretsRdacted map[string]interface{}, shouldSucceed bool) {
+func testBuildParameters(t *testing.T, parametersFrom []v1beta1.ParametersFromSource, parameters *runtime.RawExtension, secret *corev1.Secret, expected map[string]interface{}, expectedWithSecretsRdacted map[string]interface{}, shouldSucceed bool) {
 	// create a fake kube client
 	fakeKubeClient := &clientgofake.Clientset{}
 	if secret != nil {

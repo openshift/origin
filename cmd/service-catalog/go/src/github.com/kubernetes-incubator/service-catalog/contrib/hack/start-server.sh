@@ -43,7 +43,7 @@ docker run -d --name apiserver \
 	--privileged \
 	--net container:etcd-svc-cat \
 	scbuildimage \
-	bin/apiserver -v 10 --etcd-servers http://localhost:2379 \
+	bin/service-catalog apiserver -v 10 --etcd-servers http://localhost:2379 \
 		--storage-type=etcd --disable-auth
 
 # Wait for apiserver to be up and running

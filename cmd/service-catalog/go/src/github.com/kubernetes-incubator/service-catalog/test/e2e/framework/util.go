@@ -110,7 +110,7 @@ func CreateKubeNamespace(baseName string, c kubernetes.Interface) (*corev1.Names
 	var got *corev1.Namespace
 	err := wait.PollImmediate(Poll, defaultTimeout, func() (bool, error) {
 		var err error
-		got, err = c.Core().Namespaces().Create(ns)
+		got, err = c.CoreV1().Namespaces().Create(ns)
 		if err != nil {
 			Logf("Unexpected error while creating namespace: %v", err)
 			return false, nil
@@ -124,7 +124,7 @@ func CreateKubeNamespace(baseName string, c kubernetes.Interface) (*corev1.Names
 }
 
 func DeleteKubeNamespace(c kubernetes.Interface, namespace string) error {
-	return c.Core().Namespaces().Delete(namespace, nil)
+	return c.CoreV1().Namespaces().Delete(namespace, nil)
 }
 
 func ExpectNoError(err error, explain ...interface{}) {
@@ -171,7 +171,7 @@ func endpointAvailable(c kubernetes.Interface, namespace, name string) wait.Cond
 
 func podRunning(c kubernetes.Interface, podName, namespace string) wait.ConditionFunc {
 	return func() (bool, error) {
-		pod, err := c.Core().Pods(namespace).Get(podName, metav1.GetOptions{})
+		pod, err := c.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
