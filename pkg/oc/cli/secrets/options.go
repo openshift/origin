@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,9 +99,24 @@ func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
 func (o SecretOptions) GetSecretNames(secrets []*kapi.Secret) sets.String {
 	names := sets.String{}
 	for _, secret := range secrets {
-		names.Insert(secret.Name)
+		names.Insert(parseSecretName(secret.Name))
 	}
 	return names
+}
+
+// parseSecretName receives a resource name as either
+// <resource type> / <name> or <name> and returns only the resource <name>.
+func parseSecretName(name string) string {
+	segs := strings.Split(name, "/")
+	if len(segs) < 2 {
+		return name
+	}
+
+	if segs[0] == "secret" || segs[0] == "secrets" {
+		return segs[1]
+	}
+
+	return name
 }
 
 // GetMountSecretNames Get a list of the names of the mount secrets associated
