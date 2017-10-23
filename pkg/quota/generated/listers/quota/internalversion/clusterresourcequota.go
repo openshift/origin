@@ -5,7 +5,6 @@ package internalversion
 import (
 	quota "github.com/openshift/origin/pkg/quota/apis/quota"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *clusterResourceQuotaLister) List(selector labels.Selector) (ret []*quot
 
 // Get retrieves the ClusterResourceQuota from the index for a given name.
 func (s *clusterResourceQuotaLister) Get(name string) (*quota.ClusterResourceQuota, error) {
-	key := &quota.ClusterResourceQuota{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ package internalversion
 import (
 	oauth "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *oAuthAccessTokenLister) List(selector labels.Selector) (ret []*oauth.OA
 
 // Get retrieves the OAuthAccessToken from the index for a given name.
 func (s *oAuthAccessTokenLister) Get(name string) (*oauth.OAuthAccessToken, error) {
-	key := &oauth.OAuthAccessToken{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

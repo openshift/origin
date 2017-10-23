@@ -5,7 +5,6 @@ package internalversion
 import (
 	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -39,8 +38,7 @@ func (s *clusterPolicyLister) List(selector labels.Selector) (ret []*authorizati
 
 // Get retrieves the ClusterPolicy from the index for a given name.
 func (s *clusterPolicyLister) Get(name string) (*authorization.ClusterPolicy, error) {
-	key := &authorization.ClusterPolicy{ObjectMeta: v1.ObjectMeta{Name: name}}
-	obj, exists, err := s.indexer.Get(key)
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}
