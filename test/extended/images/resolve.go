@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:ImageLookup] Image policy", func() {
+var _ = g.Describe("[Feature:ImageLookup][registry] Image policy", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("resolve-local-names", exutil.KubeConfigPath())
 	one := int64(0)

@@ -3,7 +3,9 @@ package templateinstance
 import (
 	"errors"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -96,8 +98,34 @@ func (s *templateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, o
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("user not found in context"))}
 	}
 
-	templateInstance := obj.(*templateapi.TemplateInstance)
-	oldTemplateInstance := old.(*templateapi.TemplateInstance)
+	// Decode Spec.Template.Objects on both obj and old to Unstructureds.  This
+	// allows detectection of at least some cases where the Objects are
+	// semantically identical, but the serialisations have been jumbled up.  One
+	// place where this happens is in the garbage collector, which uses
+	// Unstructureds via the dynamic client.
+
+	objcopy, err := kapi.Scheme.DeepCopy(obj)
+	if err != nil {
+		return field.ErrorList{field.InternalError(field.NewPath(""), err)}
+	}
+	templateInstance := objcopy.(*templateapi.TemplateInstance)
+
+	errs := runtime.DecodeList(templateInstance.Spec.Template.Objects, unstructured.UnstructuredJSONScheme)
+	if len(errs) != 0 {
+		return field.ErrorList{field.InternalError(field.NewPath(""), kutilerrors.NewAggregate(errs))}
+	}
+
+	oldcopy, err := kapi.Scheme.DeepCopy(old)
+	if err != nil {
+		return field.ErrorList{field.InternalError(field.NewPath(""), err)}
+	}
+	oldTemplateInstance := oldcopy.(*templateapi.TemplateInstance)
+
+	errs = runtime.DecodeList(oldTemplateInstance.Spec.Template.Objects, unstructured.UnstructuredJSONScheme)
+	if len(errs) != 0 {
+		return field.ErrorList{field.InternalError(field.NewPath(""), kutilerrors.NewAggregate(errs))}
+	}
+
 	allErrs := validation.ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance)
 	allErrs = append(allErrs, s.validateImpersonationUpdate(templateInstance, oldTemplateInstance, user)...)
 

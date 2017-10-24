@@ -19,12 +19,15 @@ func (t *TestSuite) AddProperty(name, value string) {
 func (t *TestSuite) AddTestCase(testCase *TestCase) {
 	t.NumTests += 1
 
-	if testCase.SkipMessage != nil {
+	switch {
+	case testCase.SkipMessage != nil:
 		t.NumSkipped += 1
-	}
-
-	if testCase.FailureOutput != nil {
+	case testCase.FailureOutput != nil:
 		t.NumFailed += 1
+	default:
+		// we do not preserve output on tests that are not failures or skips
+		testCase.SystemOut = ""
+		testCase.SystemErr = ""
 	}
 
 	t.Duration += testCase.Duration

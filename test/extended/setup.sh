@@ -27,8 +27,6 @@ function os::test::extended::focus () {
 		FOCUS="${t}.*?\[Serial\]"
 		TEST_REPORT_FILE_NAME=focus_serial2 os::test::extended::run -- -test.timeout 6h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
 
-		os::test::extended::merge_junit
-
 		exit $exitstatus
 	fi
 }
@@ -43,7 +41,6 @@ function os::test::extended::setup () {
 	os::util::ensure::built_binary_exists 'extended.test' 'test/extended/extended.test'
 	os::util::ensure::built_binary_exists 'oadm'
 	os::util::ensure::built_binary_exists 'oc'
-	os::util::ensure::built_binary_exists 'junitmerge'
 
 	# ensure proper relative directories are set
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
@@ -242,18 +239,3 @@ function os::test::extended::test_list () {
 	export TEST_COUNT=${#selected_tests[@]}
 }
 readonly -f os::test::extended::test_list
-
-# Merge all of the JUnit output files in the TEST_REPORT_DIR into a single file.
-# This works around a gap in Jenkins JUnit reporter output that double counts skipped
-# files until https://github.com/jenkinsci/junit-plugin/pull/54 is merged.
-function os::test::extended::merge_junit () {
-	if [[ -z "${JUNIT_REPORT:-}" ]]; then
-		return
-	fi
-	local output
-	output="$( mktemp )"
-	"$( os::util::find::built_binary junitmerge )" "${TEST_REPORT_DIR}"/*.xml > "${output}"
-	rm "${TEST_REPORT_DIR}"/*.xml
-	mv "${output}" "${TEST_REPORT_DIR}/junit.xml"
-}
-readonly -f os::test::extended::merge_junit

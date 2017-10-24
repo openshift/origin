@@ -273,8 +273,20 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				o.Expect(templateinstance.HasCondition(test.expectCondition, kapi.ConditionTrue)).To(o.Equal(true))
 				o.Expect(test.checkOK(test.namespace)).To(o.BeTrue())
 
-				err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+				foreground := metav1.DeletePropagationForeground
+				err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, &metav1.DeleteOptions{PropagationPolicy: &foreground})
 				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// wait for garbage collector to do its thing
+				err = wait.Poll(100*time.Millisecond, 30*time.Second, func() (bool, error) {
+					_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+					if kerrors.IsNotFound(err) {
+						return true, nil
+					}
+					return false, err
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Delete(secret.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}

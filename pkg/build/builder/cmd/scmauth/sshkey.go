@@ -3,6 +3,8 @@ package scmauth
 import (
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/golang/glog"
 )
 
 const SSHPrivateKeyMethodName = "ssh-privatekey"
@@ -21,9 +23,13 @@ func (_ SSHPrivateKey) Setup(baseDir string, context SCMAuthContext) error {
 	if err := script.Chmod(0711); err != nil {
 		return err
 	}
-	if _, err := script.WriteString("#!/bin/sh\nssh -i " +
+	content := "#!/bin/sh\nssh -i " +
 		filepath.Join(baseDir, SSHPrivateKeyMethodName) +
-		" -o StrictHostKeyChecking=false \"$@\"\n"); err != nil {
+		" -o StrictHostKeyChecking=false \"$@\"\n"
+
+	glog.V(5).Infof("Adding Private SSH Auth:\n%s\n", content)
+
+	if _, err := script.WriteString(content); err != nil {
 		return err
 	}
 	// set environment variable to tell git to use the SSH wrapper

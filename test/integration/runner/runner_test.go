@@ -84,14 +84,17 @@ func executeTests(t *testing.T, dir, packageName string, maxRetries int) {
 		if testing.Verbose() {
 			t.Logf("compiling %s", packageName)
 		}
-		cmd := exec.Command("go", "test", packageName, "-i", "-c", binaryName)
+		binaryPath, err = filepath.Abs(binaryName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command("go", "test", packageName, "-i", "-c", binaryPath)
 		if testing.Verbose() {
 			cmd.Args = append(cmd.Args, "-test.v")
 		}
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatal(string(out))
 		}
-		binaryPath = "." + string(filepath.Separator) + binaryName
 	}
 
 	// run all the nested tests
@@ -162,15 +165,48 @@ func runSingleTest(t *testing.T, dir, binaryPath, name string) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if len(out) != 0 {
-			return fmt.Errorf(string(out))
+			return fmt.Errorf(splitSingleGoTestOutput(string(out)))
 		}
 		return err
 	}
 
 	if testing.Verbose() {
-		t.Log(string(out))
+		// show the last 20k output from the run only
+		if len(out) > 20000 {
+			out = out[len(out)-20000:]
+		}
+		t.Log(splitSingleGoTestOutput(string(out)))
 	}
 	return nil
+}
+
+var (
+	testStartPattern = regexp.MustCompile(`(?m:^=== RUN.*$)`)
+	testSplitPattern = regexp.MustCompile(`(?m:^--- (PASS|FAIL):.*$)`)
+	testEndPattern   = regexp.MustCompile(`(?m:^(PASS|FAIL)$)`)
+)
+
+// splitSingleGoTestOutput takes the output of a single go test run and places a divider token (=== OUTPUT)
+// between the system output (shown between '=== RUN' and '--- PASS') and the test output (t.Log/t.Error
+// between '--- PASS' and the final 'PASS|FAIL' line). go test does not capture system output correctly for
+// parallel jobs, so we can't guarantee a program parsing the test output can get at system output without
+// this approach.
+func splitSingleGoTestOutput(out string) string {
+	if match := testStartPattern.FindStringIndex(out); len(match) == 2 {
+		out = out[match[1]:]
+	}
+	var log string
+	if match := testSplitPattern.FindStringIndex(out); len(match) == 2 {
+		log = out[match[1]:]
+		out = out[:match[0]]
+	}
+	if match := testEndPattern.FindStringIndex(log); len(match) == 2 {
+		log = log[:match[0]]
+	}
+	if len(log) > 0 {
+		return log + "\n=== OUTPUT\n" + out
+	}
+	return "\n=== OUTPUT\n" + out
 }
 
 func without(all []string, value string) []string {

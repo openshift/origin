@@ -164,7 +164,8 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			srcChain: "FORWARD",
 			srcRule:  []string{"-i", Tun0, "!", "-o", Tun0, "-m", "comment", "--comment", "administrator overrides"},
 			rules:    nil,
-		})
+		},
+	)
 
 	var masqRules [][]string
 	var masq2Rules [][]string
@@ -182,16 +183,6 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 		filterRules = append(filterRules, []string{"-s", cidr, "-m", "comment", "--comment", "forward traffic to SDN", "-j", "ACCEPT"})
 	}
 
-	if !n.masqueradeServices {
-		masq2Rules = append(masq2Rules, []string{"-j", "MASQUERADE"})
-		chainArray = append(chainArray,
-			Chain{
-				table: "nat",
-				name:  "OPENSHIFT-MASQUERADE-2",
-				rules: masq2Rules,
-			})
-	}
-
 	chainArray = append(chainArray,
 		Chain{
 			table:    "nat",
@@ -206,7 +197,18 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			srcChain: "FORWARD",
 			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
 			rules:    filterRules,
-		})
+		},
+	)
+	if !n.masqueradeServices {
+		masq2Rules = append(masq2Rules, []string{"-j", "MASQUERADE"})
+		chainArray = append(chainArray,
+			Chain{
+				table: "nat",
+				name:  "OPENSHIFT-MASQUERADE-2",
+				rules: masq2Rules,
+			},
+		)
+	}
 	return chainArray
 }
 
