@@ -69,6 +69,16 @@ func (o SecretOptions) Validate() error {
 		return errors.New("KubeCoreClient must be present")
 	}
 
+	// if any secret names are of the form <resource>/<name>,
+	// ensure <resource> is a secret.
+	for _, secretName := range o.SecretNames {
+		if segs := strings.Split(secretName, "/"); len(segs) > 1 {
+			if segs[0] != "secret" && segs[0] != "secrets" {
+				return errors.New(fmt.Sprintf("expected resource of type secret, got %q", secretName))
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -112,11 +122,7 @@ func parseSecretName(name string) string {
 		return name
 	}
 
-	if segs[0] == "secret" || segs[0] == "secrets" {
-		return segs[1]
-	}
-
-	return name
+	return segs[1]
 }
 
 // GetMountSecretNames Get a list of the names of the mount secrets associated
