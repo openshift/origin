@@ -14,44 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// The controller manager is responsible for monitoring replication
-// controllers, and creating corresponding pods to achieve the desired
-// state.  It uses the API to listen for new controllers and to create/delete
-// pods.
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/kubernetes-incubator/service-catalog/cmd/controller-manager/app"
 	"github.com/kubernetes-incubator/service-catalog/cmd/controller-manager/app/options"
-	"github.com/kubernetes-incubator/service-catalog/pkg"
-
-	"k8s.io/apiserver/pkg/server/healthz"
-	"k8s.io/apiserver/pkg/util/flag"
-	"k8s.io/apiserver/pkg/util/logs"
-
-	"github.com/spf13/pflag"
+	"github.com/kubernetes-incubator/service-catalog/pkg/hyperkube"
 )
 
-func init() {
-	healthz.DefaultHealthz()
-}
-
-func main() {
+// NewControllerManager creates a new hyperkube Server object that includes the
+// description and flags.
+func NewControllerManager() *hyperkube.Server {
 	s := options.NewControllerManagerServer()
-	s.AddFlags(pflag.CommandLine)
-	version := pkg.VersionFlag(pflag.CommandLine)
 
-	flag.InitFlags()
-	logs.InitLogs()
-	defer logs.FlushLogs()
-
-	version.PrintAndExitIfRequested()
-
-	if err := app.Run(s); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+	hks := hyperkube.Server{
+		PrimaryName:     "controller-manager",
+		AlternativeName: "service-catalog-controller-manager",
+		SimpleUsage:     "controller-manager",
+		Long:            `The service-catalog controller manager is a daemon that embeds the core control loops shipped with the service catalog.`,
+		Run: func(_ *hyperkube.Server, args []string, stopCh <-chan struct{}) error {
+			return app.Run(s)
+		},
+		RespectsStopCh: false,
 	}
+	s.AddFlags(hks.Flags())
+	return &hks
 }

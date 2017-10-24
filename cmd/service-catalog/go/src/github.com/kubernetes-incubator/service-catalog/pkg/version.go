@@ -19,30 +19,14 @@ package pkg
 import (
 	"fmt"
 	"os"
-
-	"github.com/spf13/pflag"
 )
 
 // VERSION is the version string for built artifacts. It's set by the build system, and should
 // not be changed in this codebase
 var VERSION = "UNKNOWN"
 
-// Version decides whether we should print the version and leave.
-type Version struct {
-	print bool
-}
-
-// VersionFlag creates the version flag for your application.
-func VersionFlag(fs *pflag.FlagSet) *Version {
-	v := Version{}
-	fs.BoolVar(&v.print, "version", false, "Print version information and quit")
-	return &v
-}
-
-// PrintAndExitIfRequested will print the version if requested, and exit.
-func (v Version) PrintAndExitIfRequested() {
-	if v.print {
-		fmt.Println(VERSION)
-		os.Exit(0)
-	}
+// PrintAndExit will print the version and exit.
+func PrintAndExit() {
+	fmt.Println(VERSION)
+	os.Exit(0)
 }
