@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit bcfa50cb7b86fdce500a0f708e0fa8f44876f27d
+%global commit 589f15762b2b240c3d1f85bb584d54687eb9bb86
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.175.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0-rc2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=bcfa50c
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.176.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0-rc2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=589f157
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.176.0%{?dist}
+Release:        0.177.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -656,6 +656,25 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Oct 24 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.177.0
+- wait for group cache in templateinstance tests (jminter@redhat.com)
+- hack/lib/cmd.sh - replacing "minute" with "$minute" in "local
+  duration=${#:-minute}". (nhosoi@redhat.com)
+- image: fix signature import from secure registries (mfojtik@redhat.com)
+- fix flake in run_policy failed build handling test (bparees@redhat.com)
+- Fix initialization of iptables under networkpolicy plugin (danw@redhat.com)
+- Add debug to build authentication (cewong@redhat.com)
+- consistent [registry] and [Feature:Image*] tags on image/registry tests
+  (bparees@redhat.com)
+- Remove abstractj from OWNERS (mkhan@redhat.com)
+- delete templateinstances in foreground where necessary in extended tests
+  (jminter@redhat.com)
+- Allow passing a flag to skip a binary build when creating rpms
+  (cewong@redhat.com)
+- Split integration test output into two parts (ccoleman@redhat.com)
+- Correctly parse nested go tests (ccoleman@redhat.com)
+- stop calling junit merge. (bparees@redhat.com)
+
 * Mon Oct 23 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.176.0
 - address refactored mysql replica scripts (bparees@redhat.com)
 
