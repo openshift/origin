@@ -17,6 +17,7 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -312,11 +313,11 @@ func (o *TemplateRouterOptions) Run() error {
 		if err != nil {
 			return fmt.Errorf("ROUTER_METRICS_READY_HTTP_URL must be a valid URL or empty: %v", err)
 		}
-		check := metrics.HTTPBackendAvailable(u)
+		check := []healthz.HealthzChecker{metrics.TCPBackendAvailable(u), metrics.HTTPBackendAvailable(u)}
 		if useProxy := util.Env("ROUTER_USE_PROXY_PROTOCOL", ""); useProxy == "true" || useProxy == "TRUE" {
-			check = metrics.ProxyProtocolHTTPBackendAvailable(u)
+			check[1] = metrics.ProxyProtocolHTTPBackendAvailable(u)
 		}
-		metrics.Listen(o.ListenAddr, o.StatsUsername, o.StatsPassword, check)
+		metrics.Listen(o.ListenAddr, o.StatsUsername, o.StatsPassword, check...)
 	}
 
 	pluginCfg := templateplugin.TemplatePluginConfig{

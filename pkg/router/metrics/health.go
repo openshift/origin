@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/kubernetes/pkg/probe"
 	probehttp "k8s.io/kubernetes/pkg/probe/http"
+	probetcp "k8s.io/kubernetes/pkg/probe/tcp"
 )
 
 var errBackend = fmt.Errorf("backend reported failure")
@@ -25,6 +27,27 @@ func HTTPBackendAvailable(u *url.URL) healthz.HealthzChecker {
 	p := probehttp.New()
 	return healthz.NamedCheck("backend-http", func(r *http.Request) error {
 		result, _, err := p.Probe(u, nil, 2*time.Second)
+		if err != nil {
+			return err
+		}
+		if result != probe.Success {
+			return errBackend
+		}
+		return nil
+	})
+}
+
+// TCPBackendAvailable returns a healthz check that verifies a backend responds to a TCP ping.
+func TCPBackendAvailable(u *url.URL) healthz.HealthzChecker {
+	p := probetcp.New()
+	host := u.Hostname()
+	portStr := u.Port()
+	port := 80
+	if portStr != "" {
+		port, _ = strconv.Atoi(portStr)
+	}
+	return healthz.NamedCheck("backend-tcp", func(r *http.Request) error {
+		result, _, err := p.Probe(host, port, 2*time.Second)
 		if err != nil {
 			return err
 		}
