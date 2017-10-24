@@ -202,7 +202,7 @@ func (h *Helper) HostIP() string {
 
 func (h *Helper) ContainerLog(container string, numLines int) string {
 	outBuf := &bytes.Buffer{}
-	if err := h.client.ContainerLogs(container, types.ContainerLogsOptions{Tail: strconv.Itoa(numLines)}, outBuf, outBuf); err != nil {
+	if err := h.client.ContainerLogs(container, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Tail: strconv.Itoa(numLines)}, outBuf, outBuf); err != nil {
 		glog.V(2).Infof("Error getting container %q log: %v", container, err)
 	}
 	return outBuf.String()
