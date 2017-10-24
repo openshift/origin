@@ -18,7 +18,6 @@ package server
 
 import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/api"
-	"github.com/pborman/uuid"
 	"github.com/spf13/pflag"
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
@@ -32,10 +31,18 @@ type EtcdOptions struct {
 	*genericserveroptions.EtcdOptions
 }
 
+const (
+	// DefaultEtcdPathPrefix is the default prefix that is prepended to all
+	// resource paths in etcd.  It is intended to allow an operator to
+	// differentiate the storage of different API servers from one another in
+	// a single etcd.
+	DefaultEtcdPathPrefix = "/registry"
+)
+
 // NewEtcdOptions creates a new, empty, EtcdOptions instance
 func NewEtcdOptions() *EtcdOptions {
 	return &EtcdOptions{
-		EtcdOptions: genericserveroptions.NewEtcdOptions(storagebackend.NewDefaultConfig(uuid.New(), api.Scheme, nil)),
+		EtcdOptions: genericserveroptions.NewEtcdOptions(storagebackend.NewDefaultConfig(DefaultEtcdPathPrefix, api.Scheme, nil)),
 	}
 }
 

@@ -85,14 +85,11 @@ func (s *sarcheck) Admit(a admission.Attributes) error {
 		return nil
 	}
 
-	var secretRef *corev1.ObjectReference
+	var secretRef *servicecatalog.ObjectReference
 	if clusterClusterServiceBroker.Spec.AuthInfo.Basic != nil {
 		secretRef = clusterClusterServiceBroker.Spec.AuthInfo.Basic.SecretRef
 	} else if clusterClusterServiceBroker.Spec.AuthInfo.Bearer != nil {
 		secretRef = clusterClusterServiceBroker.Spec.AuthInfo.Bearer.SecretRef
-	} else if clusterClusterServiceBroker.Spec.AuthInfo.BasicAuthSecret != nil {
-		// TODO: this field is deprecated, remove in v1beta1
-		secretRef = clusterClusterServiceBroker.Spec.AuthInfo.BasicAuthSecret
 	}
 	userInfo := a.GetUserInfo()
 
@@ -109,12 +106,10 @@ func (s *sarcheck) Admit(a admission.Attributes) error {
 			User:   userInfo.GetName(),
 			Groups: userInfo.GetGroups(),
 			Extra:  convertToSARExtra(userInfo.GetExtra()),
-			// TODO: uncomment after rebase onto Kubernetes 1.8.
-			// See https://github.com/kubernetes/kubernetes/pull/49677
-			//UID:    userInfo.GetUID(),
+			UID:    userInfo.GetUID(),
 		},
 	}
-	sar, err := s.client.Authorization().SubjectAccessReviews().Create(sar)
+	sar, err := s.client.AuthorizationV1().SubjectAccessReviews().Create(sar)
 	if err != nil {
 		return err
 	}

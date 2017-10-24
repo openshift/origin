@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -36,7 +35,7 @@ func getTestInstanceCredential() *servicecatalog.ServiceBinding {
 			Generation: 1,
 		},
 		Spec: servicecatalog.ServiceBindingSpec{
-			ServiceInstanceRef: v1.LocalObjectReference{
+			ServiceInstanceRef: servicecatalog.LocalObjectReference{
 				Name: "some-string",
 			},
 		},
@@ -81,7 +80,7 @@ func TestInstanceCredentialUpdate(t *testing.T) {
 		//			older: getTestInstanceCredential(),
 		//			newer: func() *v1beta1.ServiceBinding {
 		//				ic := getTestInstanceCredential()
-		//				ic.Spec.ServiceInstanceRef = v1.LocalObjectReference{
+		//				ic.Spec.ServiceInstanceRef = servicecatalog.LocalObjectReference{
 		//					Name: "new-string",
 		//				}
 		//				return ic

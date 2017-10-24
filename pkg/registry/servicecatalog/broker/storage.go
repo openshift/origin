@@ -139,6 +139,11 @@ func NewStorage(opts server.Options) (brokers, brokersStatus rest.Storage) {
 		DestroyFunc: dFunc,
 	}
 
+	options := &generic.StoreOptions{RESTOptions: opts.EtcdOptions.RESTOptions, AttrFunc: GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
+		panic(err) // TODO: Propagate error up
+	}
+
 	statusStore := store
 	statusStore.UpdateStrategy = brokerStatusUpdateStrategy
 

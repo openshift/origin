@@ -36,7 +36,8 @@ type GetRESTOptionsHelper struct {
 
 func (g GetRESTOptionsHelper) GetRESTOptions(resource schema.GroupResource) (generic.RESTOptions, error) {
 	return generic.RESTOptions{
-		StorageConfig: &storagebackend.Config{},
+		ResourcePrefix: resource.Group + "/" + resource.Resource,
+		StorageConfig:  &storagebackend.Config{},
 		Decorator: generic.StorageDecorator(func(
 			copier runtime.ObjectCopier,
 			config *storagebackend.Config,

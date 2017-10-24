@@ -23,8 +23,8 @@ spec:
       serviceAccountName: "{{ .Values.apiserver.serviceAccount }}"
       containers:
       - name: apiserver
-        image: {{ .Values.apiserver.image }}
-        imagePullPolicy: {{ .Values.apiserver.imagePullPolicy }}
+        image: {{ .Values.image }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         resources:
           requests:
             cpu: 100m
@@ -33,6 +33,7 @@ spec:
             cpu: 100m
             memory: 30Mi
         args:
+        - apiserver
         {{ if .Values.apiserver.audit.activated -}}
         - --audit-log-path
         - {{ .Values.apiserver.audit.logPath }}

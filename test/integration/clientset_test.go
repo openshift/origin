@@ -28,7 +28,6 @@ import (
 	"testing"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// our versioned types
@@ -281,7 +280,7 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 		)
 	}
 
-	authSecret := &corev1.ObjectReference{
+	authSecret := &v1beta1.ObjectReference{
 		Namespace: "test-namespace",
 		Name:      "test-name",
 	}
@@ -619,7 +618,7 @@ func testClusterServicePlanClient(sType server.StorageType, client servicecatalo
 			ExternalName:             name,
 			ExternalID:               "b8269ab4-7d2d-456d-8c8b-5aab63b321d1",
 			Description:              "test description",
-			ClusterServiceClassRef: corev1.LocalObjectReference{
+			ClusterServiceClassRef: v1beta1.ClusterObjectReference{
 				Name: "test-serviceclass",
 			},
 		},
@@ -717,7 +716,7 @@ func testClusterServicePlanClient(sType server.StorageType, client servicecatalo
 			ExternalName:             sp2Name,
 			ExternalID:               sp2ID,
 			Description:              "test description 2",
-			ClusterServiceClassRef: corev1.LocalObjectReference{
+			ClusterServiceClassRef: v1beta1.ClusterObjectReference{
 				Name: "test-serviceclass",
 			},
 		},
@@ -825,8 +824,14 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: v1beta1.ServiceInstanceSpec{
 			PlanReference: v1beta1.PlanReference{
-				ExternalClusterServiceClassName: "service-class-name",
-				ExternalClusterServicePlanName:  "plan-name",
+				ClusterServiceClassExternalName: "service-class-name",
+				ClusterServicePlanExternalName:  "plan-name",
+			},
+			ClusterServiceClassRef: &v1beta1.ClusterObjectReference{
+				Name: "test-serviceclass",
+			},
+			ClusterServicePlanRef: &v1beta1.ClusterObjectReference{
+				Name: "test-serviceplan",
 			},
 			Parameters: &runtime.RawExtension{Raw: []byte(instanceParameter)},
 			ExternalID: osbGUID,
@@ -933,9 +938,9 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 	}
 
 	// Update the instance references
-	classRef := &corev1.ObjectReference{Name: "service-class-ref"}
+	classRef := &v1beta1.ClusterObjectReference{Name: "service-class-ref"}
 	instanceServer.Spec.ClusterServiceClassRef = classRef
-	planRef := &corev1.ObjectReference{Name: "service-plan-ref"}
+	planRef := &v1beta1.ClusterObjectReference{Name: "service-plan-ref"}
 	instanceServer.Spec.ClusterServicePlanRef = planRef
 	returnedInstance, err := instanceClient.UpdateReferences(instanceServer)
 	if err != nil {
@@ -966,6 +971,34 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 	}
 	if oldGeneration != instanceServer.Generation {
 		return fmt.Errorf("Generation was changed, expected: %q got: %q", oldGeneration, instanceServer.Generation)
+	}
+
+	// field selector tests
+	instances, err = instanceClient.List(metav1.ListOptions{FieldSelector: "spec.clusterServiceClassRef.name=should-return-zero"})
+	if err != nil {
+		return fmt.Errorf("error listing instances: %v", err)
+	}
+
+	if 0 != len(instances.Items) {
+		return fmt.Errorf("should have exactly zero instances, had %v instances", len(instances.Items))
+	}
+
+	instances, err = instanceClient.List(metav1.ListOptions{FieldSelector: "spec.clusterServiceClassRef.name=service-class-ref"})
+	if err != nil {
+		return fmt.Errorf("error listing instances: %v", err)
+	}
+
+	if 1 != len(instances.Items) {
+		return fmt.Errorf("should have exactly one instance, had %v instances", len(instances.Items))
+	}
+
+	instances, err = instanceClient.List(metav1.ListOptions{FieldSelector: "spec.clusterServicePlanRef.name=service-plan-ref"})
+	if err != nil {
+		return fmt.Errorf("error listing instances: %v", err)
+	}
+
+	if 1 != len(instances.Items) {
+		return fmt.Errorf("should have exactly one instance, had %v instances", len(instances.Items))
 	}
 
 	// update the instance's spec
@@ -1044,7 +1077,7 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 	binding := &v1beta1.ServiceBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-binding"},
 		Spec: v1beta1.ServiceBindingSpec{
-			ServiceInstanceRef: corev1.LocalObjectReference{
+			ServiceInstanceRef: v1beta1.LocalObjectReference{
 				Name: "bar",
 			},
 			Parameters: &runtime.RawExtension{Raw: []byte(bindingParameter)},

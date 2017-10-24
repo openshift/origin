@@ -20,7 +20,6 @@ import (
 	v1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/kubernetes-incubator/service-catalog/test/e2e/framework"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
@@ -127,8 +126,8 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 			},
 			Spec: v1beta1.ServiceInstanceSpec{
 				PlanReference: v1beta1.PlanReference{
-					ExternalClusterServiceClassName: serviceclassName,
-					ExternalClusterServicePlanName:  "default",
+					ClusterServiceClassExternalName: serviceclassName,
+					ClusterServicePlanExternalName:  "default",
 				},
 			},
 		}
@@ -164,7 +163,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 				Namespace: testnamespace.Name,
 			},
 			Spec: v1beta1.ServiceBindingSpec{
-				ServiceInstanceRef: corev1.LocalObjectReference{
+				ServiceInstanceRef: v1beta1.LocalObjectReference{
 					Name: instanceName,
 				},
 				SecretName: "my-secret",
@@ -219,7 +218,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 			},
 			Spec: v1beta1.ServiceInstanceSpec{
 				PlanReference: v1beta1.PlanReference{
-					ExternalClusterServiceClassName: serviceclassName,
+					ClusterServiceClassExternalName: serviceclassName,
 				},
 			},
 		}

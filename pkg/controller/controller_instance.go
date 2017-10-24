@@ -66,6 +66,10 @@ const (
 	errorNonexistentClusterServiceClassMessage string = "ReferencesNonexistentServiceClass"
 	errorNonexistentClusterServicePlanReason   string = "ReferencesNonexistentServicePlan"
 	errorNonexistentClusterServiceBrokerReason string = "ReferencesNonexistentBroker"
+	errorDeletedClusterServiceClassReason      string = "ReferencesDeletedServiceClass"
+	errorDeletedClusterServiceClassMessage     string = "ReferencesDeletedServiceClass"
+	errorDeletedClusterServicePlanReason       string = "ReferencesDeletedServicePlan"
+	errorDeletedClusterServicePlanMessage      string = "ReferencesDeletedServicePlan"
 	errorFindingNamespaceServiceInstanceReason string = "ErrorFindingNamespaceForInstance"
 	errorOrphanMitigationFailedReason          string = "OrphanMitigationFailed"
 
@@ -370,8 +374,8 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 	if err != nil {
 		if httpErr, ok := osb.IsHTTPError(err); ok {
 			s := fmt.Sprintf(
-				"Deprovision call failed; received error response from broker: Status Code: %d, Error Message: %v, Description: %v",
-				httpErr.StatusCode, httpErr.ErrorMessage, httpErr.Description,
+				"Deprovision call failed; received error response from broker: %v",
+				httpErr.Error(),
 			)
 			glog.Warningf(
 				`%s "%s/%s": %s`,
@@ -626,7 +630,18 @@ func (c *controller) reconcileServiceInstance(instance *v1beta1.ServiceInstance)
 		return err
 	}
 
-	ns, err := c.kubeClient.Core().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
+	// Check if the ServiceClass or ServicePlan has been deleted and do not allow
+	// creation of new ServiceInstances or plan upgrades. It's little complicated
+	// since we do want to allow parameter changes on an instance whose plan or class
+	// has been removed from the broker's catalog.
+	// If changes are not allowed, the method will set the appropriate status / record
+	// events, so we can just return here on failure.
+	err = c.checkForRemovedClassAndPlan(instance, serviceClass, servicePlan)
+	if err != nil {
+		return err
+	}
+
+	ns, err := c.kubeClient.CoreV1().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
 	if err != nil {
 		s := fmt.Sprintf("Failed to get namespace %q during instance create: %s", instance.Namespace, err)
 		glog.Infof(
@@ -725,7 +740,7 @@ func (c *controller) reconcileServiceInstance(instance *v1beta1.ServiceInstance)
 	}
 
 	toUpdate.Status.InProgressProperties = &v1beta1.ServiceInstancePropertiesState{
-		ExternalClusterServicePlanName: servicePlan.Spec.ExternalName,
+		ClusterServicePlanExternalName: servicePlan.Spec.ExternalName,
 		Parameters:                     rawParametersWithRedaction,
 		ParametersChecksum:             parametersChecksum,
 		UserInfo:                       instance.Spec.UserInfo,
@@ -799,7 +814,7 @@ func (c *controller) reconcileServiceInstance(instance *v1beta1.ServiceInstance)
 		}
 		// Only send the plan ID if the plan name has changed from what the Broker has
 		if toUpdate.Status.ExternalProperties == nil ||
-			toUpdate.Status.InProgressProperties.ExternalClusterServicePlanName != toUpdate.Status.ExternalProperties.ExternalClusterServicePlanName {
+			toUpdate.Status.InProgressProperties.ClusterServicePlanExternalName != toUpdate.Status.ExternalProperties.ClusterServicePlanExternalName {
 			planID := servicePlan.Spec.ExternalID
 			updateRequest.PlanID = &planID
 		}
@@ -1076,7 +1091,7 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 		typeSI, instance.Namespace, instance.Name,
 	)
 
-	serviceClass, servicePlan, brokerName, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(instance)
+	serviceClass, servicePlan, _, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(instance)
 	if err != nil {
 		return err
 	}
@@ -1193,41 +1208,31 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 			}
 			toUpdate := clone.(*v1beta1.ServiceInstance)
 
+			var (
+				reason  string
+				message string
+			)
+			switch {
+			case mitigatingOrphan:
+				reason = successOrphanMitigationReason
+				message = successOrphanMitigationMessage
+			default:
+				reason = successDeprovisionReason
+				message = successDeprovisionMessage
+			}
+
 			c.clearServiceInstanceCurrentOperation(toUpdate)
 			toUpdate.Status.ExternalProperties = nil
 
-			if mitigatingOrphan {
-				glog.V(5).Infof(
-					`%s "%s/%s": %s`,
-					typeSI,
-					instance.Namespace,
-					instance.Name,
-					successOrphanMitigationMessage,
-				)
-				c.recorder.Event(instance, corev1.EventTypeNormal, successOrphanMitigationReason, successOrphanMitigationMessage)
+			setServiceInstanceCondition(
+				toUpdate,
+				v1beta1.ServiceInstanceConditionReady,
+				v1beta1.ConditionFalse,
+				reason,
+				message,
+			)
 
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionFalse,
-					successOrphanMitigationReason,
-					successOrphanMitigationMessage,
-				)
-			} else {
-				glog.V(5).Infof(
-					`%s "%s/%s": Successfully deprovisioned ServiceInstance of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q`,
-					typeSI, instance.Namespace, instance.Name, serviceClass.Name, serviceClass.Spec.ExternalName, brokerName,
-				)
-				c.recorder.Event(instance, corev1.EventTypeNormal, successDeprovisionReason, successDeprovisionMessage)
-
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionFalse,
-					successDeprovisionReason,
-					successDeprovisionMessage,
-				)
-
+			if !mitigatingOrphan {
 				// Clear the finalizer
 				if finalizers := sets.NewString(toUpdate.Finalizers...); finalizers.Has(v1beta1.FinalizerServiceCatalog) {
 					finalizers.Delete(v1beta1.FinalizerServiceCatalog)
@@ -1238,6 +1243,13 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 				return err
 			}
+
+			glog.V(5).Infof(
+				`%s "%s/%s": %s`,
+				typeSI, instance.Namespace, instance.Name, message,
+			)
+
+			c.recorder.Event(instance, corev1.EventTypeNormal, reason, message)
 
 			return c.finishPollingServiceInstance(instance)
 		}
@@ -1251,10 +1263,7 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 		// the instance.
 		errText := ""
 		if httpErr, ok := osb.IsHTTPError(err); ok {
-			errText = fmt.Sprintf(
-				"Status code: %d; ErrorMessage: %q; description: %q",
-				httpErr.StatusCode, httpErr.ErrorMessage, httpErr.Description,
-			)
+			errText = httpErr.Error()
 		} else {
 			errText = err.Error()
 		}
@@ -1310,7 +1319,7 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 	}
 
 	glog.V(4).Infof(
-		`%s "%s/%s": Poll returned %q : %q`,
+		`%s "%s/%s": Poll returned %q : Response description: %v`,
 		typeSI, instance.Namespace, instance.Name, response.State, response.Description,
 	)
 
@@ -1484,26 +1493,38 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 			return err
 		}
 	case osb.StateFailed:
-		description := ""
+		description := "(no description provided)"
 		if response.Description != nil {
 			description = *response.Description
 		}
-		actionText := ""
+		var (
+			readyCond v1beta1.ConditionStatus
+			reason    string
+			message   string
+		)
 		switch {
 		case mitigatingOrphan:
-			actionText = "mitigating orphan"
+			readyCond = v1beta1.ConditionUnknown
+			reason = errorOrphanMitigationFailedReason
+			message = "Orphan mitigation failed: " + description
 		case deleting:
-			actionText = "deprovisioning"
+			readyCond = v1beta1.ConditionUnknown
+			reason = errorDeprovisionCalledReason
+			message = "Deprovision call failed: " + description
 		case provisioning:
-			actionText = "provisioning"
+			readyCond = v1beta1.ConditionFalse
+			reason = errorProvisionCallFailedReason
+			message = "Provision call failed: " + description
 		default:
-			actionText = "updating"
+			readyCond = v1beta1.ConditionFalse
+			reason = errorUpdateInstanceCallFailedReason
+			message = "Update call failed: " + description
 		}
-		s := fmt.Sprintf(`Error %s: %q`, actionText, description)
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorDeprovisionCalledReason, s)
+
+		c.recorder.Event(instance, corev1.EventTypeWarning, reason, message)
 		glog.V(5).Infof(
 			`%s "%s/%s": %s`,
-			typeSI, instance.Namespace, instance.Name, s,
+			typeSI, instance.Namespace, instance.Name, message,
 		)
 
 		clone, err := api.Scheme.DeepCopy(instance)
@@ -1511,38 +1532,15 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 			return err
 		}
 		toUpdate := clone.(*v1beta1.ServiceInstance)
-		c.clearServiceInstanceCurrentOperation(toUpdate)
 
-		var (
-			readyCond v1beta1.ConditionStatus
-			reason    string
-			msg       string
-		)
-		switch {
-		case mitigatingOrphan:
-			readyCond = v1beta1.ConditionUnknown
-			reason = errorOrphanMitigationFailedReason
-			msg = "Orphan mitigation failed: " + s
-		case deleting:
-			readyCond = v1beta1.ConditionUnknown
-			reason = errorDeprovisionCalledReason
-			msg = "Deprovision call failed: " + s
-		case provisioning:
-			readyCond = v1beta1.ConditionFalse
-			reason = errorProvisionCallFailedReason
-			msg = "Provision call failed: " + s
-		default:
-			readyCond = v1beta1.ConditionFalse
-			reason = errorUpdateInstanceCallFailedReason
-			msg = "Update call failed: " + s
-		}
+		c.clearServiceInstanceCurrentOperation(toUpdate)
 
 		setServiceInstanceCondition(
 			toUpdate,
 			v1beta1.ServiceInstanceConditionReady,
 			readyCond,
 			reason,
-			msg,
+			message,
 		)
 
 		if !mitigatingOrphan {
@@ -1551,7 +1549,7 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 				v1beta1.ServiceInstanceConditionFailed,
 				v1beta1.ConditionTrue,
 				reason,
-				msg,
+				message,
 			)
 		}
 
@@ -1559,10 +1557,7 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 			return err
 		}
 
-		err = c.finishPollingServiceInstance(instance)
-		if err != nil {
-			return err
-		}
+		return c.finishPollingServiceInstance(instance)
 	default:
 		glog.Warningf(
 			`%s "%s/%s": Got invalid state in LastOperationResponse: %q`,
@@ -1653,30 +1648,26 @@ func (c *controller) resolveReferences(instance *v1beta1.ServiceInstance) (*v1be
 // Event, and sets the InstanceCondition with the appropriate error message.
 func (c *controller) resolveClusterServiceClassRef(instance *v1beta1.ServiceInstance) (*v1beta1.ServiceInstance, *v1beta1.ClusterServiceClass, error) {
 	var sc *v1beta1.ClusterServiceClass
-	if instance.Spec.ExternalClusterServiceClassName != "" {
+	if instance.Spec.ClusterServiceClassExternalName != "" {
 		glog.V(4).Infof(
 			`%s "%s/%s": looking up a ClusterServiceClass from externalName: %q`,
-			typeSI, instance.Namespace, instance.Name, instance.Spec.ExternalClusterServiceClassName,
+			typeSI, instance.Namespace, instance.Name, instance.Spec.ClusterServiceClassExternalName,
 		)
-		listOpts := metav1.ListOptions{FieldSelector: "spec.externalName==" + instance.Spec.ExternalClusterServiceClassName}
+		listOpts := metav1.ListOptions{FieldSelector: "spec.externalName==" + instance.Spec.ClusterServiceClassExternalName}
 		serviceClasses, err := c.serviceCatalogClient.ClusterServiceClasses().List(listOpts)
 		if err == nil && len(serviceClasses.Items) == 1 {
 			sc = &serviceClasses.Items[0]
-			instance.Spec.ClusterServiceClassRef = &corev1.ObjectReference{
-				Kind:            sc.Kind,
-				Name:            sc.Name,
-				UID:             sc.UID,
-				APIVersion:      sc.APIVersion,
-				ResourceVersion: sc.ResourceVersion,
+			instance.Spec.ClusterServiceClassRef = &v1beta1.ClusterObjectReference{
+				Name: sc.Name,
 			}
 			glog.V(4).Infof(
 				`%s "%s/%s": resolved ClusterServiceClass with externalName %q to K8S ClusterServiceClass %q`,
-				typeSI, instance.Namespace, instance.Name, instance.Spec.ExternalClusterServiceClassName, sc.Name,
+				typeSI, instance.Namespace, instance.Name, instance.Spec.ClusterServiceClassExternalName, sc.Name,
 			)
 		} else {
 			s := fmt.Sprintf(
 				"References a non-existent ClusterServiceClass (ExternalName: %q) or there is more than one (found: %d)",
-				instance.Spec.ExternalClusterServiceClassName, len(serviceClasses.Items),
+				instance.Spec.ClusterServiceClassExternalName, len(serviceClasses.Items),
 			)
 			glog.Warningf(
 				`%s "%s/%s": %s`,
@@ -1701,12 +1692,8 @@ func (c *controller) resolveClusterServiceClassRef(instance *v1beta1.ServiceInst
 		var err error
 		sc, err = c.serviceClassLister.Get(instance.Spec.ClusterServiceClassName)
 		if err == nil {
-			instance.Spec.ClusterServiceClassRef = &corev1.ObjectReference{
-				Kind:            sc.Kind,
-				Name:            sc.Name,
-				UID:             sc.UID,
-				APIVersion:      sc.APIVersion,
-				ResourceVersion: sc.ResourceVersion,
+			instance.Spec.ClusterServiceClassRef = &v1beta1.ClusterObjectReference{
+				Name: sc.Name,
 			}
 			glog.V(4).Infof(
 				`%s "%s/%s": resolved ClusterServiceClass with K8S name %q to ClusterServiceClass with external Name %q`,
@@ -1733,7 +1720,7 @@ func (c *controller) resolveClusterServiceClassRef(instance *v1beta1.ServiceInst
 		}
 	} else {
 		// ServiceInstance is in invalid state, should not ever happen. check
-		return nil, nil, fmt.Errorf("ServiceInstance is in inconsistent state, neither ExternalClusterServiceClassName nor ClusterServiceClassName is set: %+v", instance.Spec)
+		return nil, nil, fmt.Errorf("ServiceInstance is in inconsistent state, neither ClusterServiceClassExternalName nor ClusterServiceClassName is set: %+v", instance.Spec)
 	}
 	return instance, sc, nil
 }
@@ -1743,9 +1730,9 @@ func (c *controller) resolveClusterServiceClassRef(instance *v1beta1.ServiceInst
 // If ClusterServicePlan can not be resolved, returns an error, records an
 // Event, and sets the InstanceCondition with the appropriate error message.
 func (c *controller) resolveClusterServicePlanRef(instance *v1beta1.ServiceInstance, brokerName string) (*v1beta1.ServiceInstance, error) {
-	if instance.Spec.ExternalClusterServicePlanName != "" {
+	if instance.Spec.ClusterServicePlanExternalName != "" {
 		fieldSet := fields.Set{
-			"spec.externalName":                instance.Spec.ExternalClusterServicePlanName,
+			"spec.externalName":                instance.Spec.ClusterServicePlanExternalName,
 			"spec.clusterServiceClassRef.name": instance.Spec.ClusterServiceClassRef.Name,
 			"spec.clusterServiceBrokerName":    brokerName,
 		}
@@ -1754,21 +1741,17 @@ func (c *controller) resolveClusterServicePlanRef(instance *v1beta1.ServiceInsta
 		servicePlans, err := c.serviceCatalogClient.ClusterServicePlans().List(listOpts)
 		if err == nil && len(servicePlans.Items) == 1 {
 			sp := &servicePlans.Items[0]
-			instance.Spec.ClusterServicePlanRef = &corev1.ObjectReference{
-				Kind:            sp.Kind,
-				Name:            sp.Name,
-				UID:             sp.UID,
-				APIVersion:      sp.APIVersion,
-				ResourceVersion: sp.ResourceVersion,
+			instance.Spec.ClusterServicePlanRef = &v1beta1.ClusterObjectReference{
+				Name: sp.Name,
 			}
 			glog.V(4).Infof(
 				`%s "%s/%s": resolved ClusterServicePlan (ExternalName: %q) to ClusterServicePlan (K8S: %q)`,
-				typeSI, instance.Namespace, instance.Name, instance.Spec.ExternalClusterServicePlanName, sp.Name,
+				typeSI, instance.Namespace, instance.Name, instance.Spec.ClusterServicePlanExternalName, sp.Name,
 			)
 		} else {
 			s := fmt.Sprintf(
 				"References a non-existent ClusterServicePlan (K8S: %q ExternalName: %q) on ClusterServiceClass (K8S: %q ExternalName: %q) or there is more than one (found: %d)",
-				instance.Spec.ClusterServicePlanName, instance.Spec.ExternalClusterServicePlanName, instance.Spec.ClusterServiceClassRef.Name, instance.Spec.ExternalClusterServiceClassName, len(servicePlans.Items),
+				instance.Spec.ClusterServicePlanName, instance.Spec.ClusterServicePlanExternalName, instance.Spec.ClusterServiceClassRef.Name, instance.Spec.ClusterServiceClassExternalName, len(servicePlans.Items),
 			)
 			glog.Warningf(
 				`%s "%s/%s": %s`,
@@ -1787,12 +1770,8 @@ func (c *controller) resolveClusterServicePlanRef(instance *v1beta1.ServiceInsta
 	} else if instance.Spec.ClusterServicePlanName != "" {
 		sp, err := c.servicePlanLister.Get(instance.Spec.ClusterServicePlanName)
 		if err == nil {
-			instance.Spec.ClusterServicePlanRef = &corev1.ObjectReference{
-				Kind:            sp.Kind,
-				Name:            sp.Name,
-				UID:             sp.UID,
-				APIVersion:      sp.APIVersion,
-				ResourceVersion: sp.ResourceVersion,
+			instance.Spec.ClusterServicePlanRef = &v1beta1.ClusterObjectReference{
+				Name: sp.Name,
 			}
 			glog.V(4).Infof(
 				`%s "%s/%s": resolved ClusterServicePlan with K8S name %q to ClusterServicePlan with external name %q`,
@@ -1804,7 +1783,7 @@ func (c *controller) resolveClusterServicePlanRef(instance *v1beta1.ServiceInsta
 				instance.Spec.ClusterServicePlanName, instance.Spec.ClusterServiceClassName,
 			)
 			glog.Warningf(
-				`%s "%s/%s": `,
+				`%s "%s/%s": %s`,
 				typeSI, instance.Namespace, instance.Name, s,
 			)
 			c.updateServiceInstanceCondition(
@@ -1819,7 +1798,7 @@ func (c *controller) resolveClusterServicePlanRef(instance *v1beta1.ServiceInsta
 		}
 	} else {
 		// ServiceInstance is in invalid state, should not ever happen. check
-		return nil, fmt.Errorf("ServiceInstance is in inconsistent state, neither ExternalClusterServicePlanName nor ClusterServicePlanName is set: %+v", instance.Spec)
+		return nil, fmt.Errorf("ServiceInstance is in inconsistent state, neither ClusterServicePlanExternalName nor ClusterServicePlanName is set: %+v", instance.Spec)
 	}
 	return instance, nil
 }
@@ -1890,7 +1869,7 @@ func setServiceInstanceConditionInternal(toUpdate *v1beta1.ServiceInstance,
 
 	glog.V(3).Infof(
 		`%s "%s/%s": Setting lastTransitionTime, condition %q to %v`,
-		toUpdate.Namespace, toUpdate.Name, conditionType, t,
+		typeSI, toUpdate.Namespace, toUpdate.Name, conditionType, t,
 	)
 	newCondition.LastTransitionTime = t
 	toUpdate.Status.Conditions = append(toUpdate.Status.Conditions, newCondition)
@@ -2044,6 +2023,74 @@ func (c *controller) setServiceInstanceStartOrphanMitigation(toUpdate *v1beta1.S
 		startingInstanceOrphanMitigationReason,
 		startingInstanceOrphanMitigationMessage,
 	)
+}
+
+// checkForRemovedClassAndPlan looks at serviceClass and servicePlan and
+// if either has been deleted, will block a new instance creation. If
+//
+func (c *controller) checkForRemovedClassAndPlan(instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, servicePlan *v1beta1.ClusterServicePlan) error {
+	classDeleted := serviceClass.Status.RemovedFromBrokerCatalog
+	planDeleted := servicePlan.Status.RemovedFromBrokerCatalog
+
+	if !classDeleted && !planDeleted {
+		// Neither has been deleted, life's good.
+		return nil
+	}
+
+	isProvisioning := false
+	if instance.Status.ReconciledGeneration == 0 {
+		isProvisioning = true
+	}
+
+	// Regardless of what's been deleted, you can always update
+	// parameters (ie, not change plans)
+	if !isProvisioning && instance.Status.ExternalProperties != nil &&
+		servicePlan.Spec.ExternalName == instance.Status.ExternalProperties.ClusterServicePlanExternalName {
+		// Service Instance has already been provisioned and we're only
+		// updating parameters, so let it through.
+		return nil
+	}
+
+	// At this point we know that plan is being changed
+	if planDeleted {
+		s := fmt.Sprintf("Service Plan %q (K8S name: %q) has been deleted, can not provision.", servicePlan.Spec.ExternalName, servicePlan.Name)
+		glog.Warningf(
+			`%s "%s/%s": %s`,
+			typeSI, instance.Namespace, instance.Name, s,
+		)
+		c.recorder.Event(instance, corev1.EventTypeWarning, errorDeletedClusterServicePlanReason, s)
+
+		setServiceInstanceCondition(
+			instance,
+			v1beta1.ServiceInstanceConditionReady,
+			v1beta1.ConditionFalse,
+			errorDeletedClusterServicePlanReason,
+			s,
+		)
+		if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+			return err
+		}
+		return fmt.Errorf(s)
+	}
+
+	s := fmt.Sprintf("Service Class %q (K8S name: %q) has been deleted, can not provision.", serviceClass.Spec.ExternalName, serviceClass.Name)
+	glog.Warningf(
+		`%s "%s/%s": %s`,
+		typeSI, instance.Namespace, instance.Name, s,
+	)
+	c.recorder.Event(instance, corev1.EventTypeWarning, errorDeletedClusterServiceClassReason, s)
+
+	setServiceInstanceCondition(
+		instance,
+		v1beta1.ServiceInstanceConditionReady,
+		v1beta1.ConditionFalse,
+		errorDeletedClusterServiceClassReason,
+		s,
+	)
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+	return fmt.Errorf(s)
 }
 
 // shouldStartOrphanMitigation returns whether an error with the given status

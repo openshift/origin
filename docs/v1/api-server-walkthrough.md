@@ -8,8 +8,8 @@ changes on a daily basis so thing may break w/o being updated as K8s
 changes.
 
 
-Invoking `make apiserver` in the root directory will result in an
-`apiserver` binary in the `bin/` directory.
+Invoking `make service-catalog` in the root directory will result in a
+`service-catalog` binary in the `bin/` directory.
 
 When the API server starts up, it will generate a certificate will be
 generated in `/var/run/kubernetes-service-catalog/` so that directory must be
@@ -29,7 +29,7 @@ To run it locally, start with:
 # run etcd locally on the default port
 $ etcd 
 # switch to another shell and run
-$ ./bin/apiserver -v 10 --etcd-servers http://localhost:2379
+$ ./bin/service-catalog apiserver -v 10 --etcd-servers http://localhost:2379
 ```
 
 Alternatively, you can run the apiserver and etcd as a pod:

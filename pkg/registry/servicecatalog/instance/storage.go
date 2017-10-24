@@ -88,8 +88,21 @@ func Match(label labels.Selector, field fields.Selector) storage.SelectionPredic
 
 // toSelectableFields returns a field set that represents the object for matching purposes.
 func toSelectableFields(instance *servicecatalog.ServiceInstance) fields.Set {
+	// If you add a new selectable field, you also need to modify
+	// pkg/apis/servicecatalog/v1beta1/conversion[_test].go
 	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&instance.ObjectMeta, true)
-	return generic.MergeFieldsSets(objectMetaFieldsSet, nil)
+
+	specFieldSet := make(fields.Set, 2)
+
+	if instance.Spec.ClusterServiceClassRef != nil {
+		specFieldSet["spec.clusterServiceClassRef.name"] = instance.Spec.ClusterServiceClassRef.Name
+	}
+
+	if instance.Spec.ClusterServicePlanRef != nil {
+		specFieldSet["spec.clusterServicePlanRef.name"] = instance.Spec.ClusterServicePlanRef.Name
+	}
+
+	return generic.MergeFieldsSets(objectMetaFieldsSet, specFieldSet)
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
@@ -136,6 +149,10 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage, rest.Storage) 
 
 		Storage:     storageInterface,
 		DestroyFunc: dFunc,
+	}
+	options := &generic.StoreOptions{RESTOptions: opts.EtcdOptions.RESTOptions, AttrFunc: GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
+		panic(err) // TODO: Propagate error up
 	}
 
 	statusStore := store
