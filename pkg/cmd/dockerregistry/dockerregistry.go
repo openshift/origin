@@ -104,7 +104,15 @@ func ExecutePruner(configFile io.Reader, dryRun bool) {
 		log.Fatalf("error creating registry: %s", err)
 	}
 
-	stats, err := prune.Prune(ctx, storageDriver, registry, registryClient, dryRun)
+	var pruner prune.Pruner
+
+	if dryRun {
+		pruner = &prune.DryRunPruner{}
+	} else {
+		pruner = &prune.RegistryPruner{storageDriver}
+	}
+
+	stats, err := prune.Prune(ctx, registry, registryClient, pruner)
 	if err != nil {
 		log.Error(err)
 	}
