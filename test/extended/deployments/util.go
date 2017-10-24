@@ -162,10 +162,9 @@ func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []*corev1.Rep
 			running.Insert(k)
 		}
 	}
-	// FIXME: enable this check when we fix the controllers
-	//if running.Len() > 1 {
-	//	return fmt.Errorf("found multiple running deployments: %v", running.List())
-	//}
+	if running.Len() > 1 {
+		return fmt.Errorf("found multiple running deployments: %v", running.List())
+	}
 	sawStatus := sets.NewString()
 	statuses := []string{}
 	for _, rc := range rcs {
