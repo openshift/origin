@@ -1,6 +1,7 @@
 package deployments
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -27,10 +28,55 @@ import (
 const deploymentRunTimeout = 5 * time.Minute
 const deploymentChangeTimeout = 30 * time.Second
 
+type dicEntry struct {
+	dic    *deployerPodInvariantChecker
+	ctx    context.Context
+	cancel func()
+}
+
 var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 	defer g.GinkgoRecover()
+
+	dicMap := make(map[string]dicEntry)
+	var oc *exutil.CLI
+
+	g.JustBeforeEach(func() {
+		namespace := oc.Namespace()
+		o.Expect(namespace).NotTo(o.BeEmpty())
+		o.Expect(dicMap).NotTo(o.HaveKey(namespace))
+
+		dic := NewDeployerPodInvariantChecker(namespace, oc.AdminKubeClient())
+		ctx, cancel := context.WithCancel(context.Background())
+		dic.Start(ctx)
+
+		dicMap[namespace] = dicEntry{
+			dic:    dic,
+			ctx:    ctx,
+			cancel: cancel,
+		}
+	})
+
+	// This have to be registered before we create kube framework (NewCLI).
+	// It is probably a bug with Ginkgo because AfterEach description say innermost will be run first
+	// but it runs outermost first.
+	g.AfterEach(func() {
+		namespace := oc.Namespace()
+		o.Expect(namespace).NotTo(o.BeEmpty(), "There is something wrong with testing framework or the AfterEach functions have been registered in wrong order")
+		o.Expect(dicMap).To(o.HaveKey(namespace))
+
+		// Give some time to the checker to catch up
+		time.Sleep(2 * time.Second)
+
+		entry := dicMap[namespace]
+		delete(dicMap, namespace)
+
+		entry.cancel()
+		entry.dic.Wait()
+	})
+
+	oc = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
+
 	var (
-		oc                              = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())
 		deploymentFixture               = exutil.FixturePath("testdata", "deployments", "test-deployment-test.yaml")
 		simpleDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-simple.yaml")
 		customDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "custom-deployment.yaml")
