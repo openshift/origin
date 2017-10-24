@@ -451,8 +451,9 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 
 		listedPathProvider: apiServerHandler,
 
-		swaggerConfig: c.SwaggerConfig,
-		openAPIConfig: c.OpenAPIConfig,
+		swaggerConfig:           c.SwaggerConfig,
+		openAPIConfig:           c.OpenAPIConfig,
+		openAPIDelegationTarget: delegationTarget,
 
 		postStartHooks:         map[string]postStartHookEntry{},
 		disabledPostStartHooks: c.DisabledPostStartHooks,

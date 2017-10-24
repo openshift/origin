@@ -24,6 +24,7 @@ import (
 	"time"
 
 	systemd "github.com/coreos/go-systemd/daemon"
+	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-swagger12"
 	"github.com/golang/glog"
 
@@ -148,11 +149,16 @@ type GenericAPIServer struct {
 
 	// delegationTarget is the next delegate in the chain or nil
 	delegationTarget DelegationTarget
+
+	// delegationTarget only exists
+	openAPIDelegationTarget OpenAPIDelegationTarget
 }
 
 // DelegationTarget is an interface which allows for composition of API servers with top level handling that works
 // as expected.
 type DelegationTarget interface {
+	OpenAPIDelegationTarget
+
 	// UnprotectedHandler returns a handler that is NOT protected by a normal chain
 	UnprotectedHandler() http.Handler
 
@@ -168,6 +174,15 @@ type DelegationTarget interface {
 
 	// ListedPaths returns the paths for supporting an index
 	ListedPaths() []string
+}
+
+// OpenAPIDelegationTarget provides methods for access the openapi and swagger bits of the delegate server
+// so that they can be later unioned.  This is the only post-construction side-effect we know of
+type OpenAPIDelegationTarget interface {
+	// SwaggerAPIContainer gives all the restful containers involved in this API server to be used to aggregate swagger
+	// It must include all containers it delegates to as well.  Individual entries may be nil an order must be most recent to
+	// least recent.
+	SwaggerAPIContainers() []*restful.Container
 
 	// NextDelegate returns the next delegationTarget in the chain of delegations
 	NextDelegate() DelegationTarget
@@ -177,6 +192,11 @@ func (s *GenericAPIServer) UnprotectedHandler() http.Handler {
 	// when we delegate, we need the server we're delegating to choose whether or not to use gorestful
 	return s.Handler.Director
 }
+
+func (s *GenericAPIServer) SwaggerAPIContainers() []*restful.Container {
+	return append([]*restful.Container{s.Handler.GoRestfulContainer}, s.openAPIDelegationTarget.SwaggerAPIContainers()...)
+}
+
 func (s *GenericAPIServer) PostStartHooks() map[string]postStartHookEntry {
 	return s.postStartHooks
 }
@@ -201,6 +221,9 @@ type emptyDelegate struct {
 
 func (s emptyDelegate) UnprotectedHandler() http.Handler {
 	return nil
+}
+func (s emptyDelegate) SwaggerAPIContainers() []*restful.Container {
+	return []*restful.Container{}
 }
 func (s emptyDelegate) PostStartHooks() map[string]postStartHookEntry {
 	return map[string]postStartHookEntry{}
@@ -237,7 +260,7 @@ type preparedGenericAPIServer struct {
 // PrepareRun does post API installation setup steps.
 func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 	if s.swaggerConfig != nil {
-		routes.Swagger{Config: s.swaggerConfig}.Install(s.Handler.GoRestfulContainer)
+		routes.Swagger{Config: s.swaggerConfig}.Install(s.SwaggerAPIContainers(), s.Handler.GoRestfulContainer)
 	}
 	if s.openAPIConfig != nil {
 		routes.OpenAPI{
