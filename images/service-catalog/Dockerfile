@@ -5,4 +5,4 @@ RUN INSTALL_PKGS="origin-service-catalog" && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all
 
-CMD [ "/usr/bin/controller-manager" ]
+CMD [ "/usr/bin/service-catalog" ]

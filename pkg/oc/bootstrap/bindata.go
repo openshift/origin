@@ -13949,8 +13949,9 @@ objects:
         serviceAccountName: service-catalog-apiserver
         containers:
         - command: 
-          - apiserver
+          - service-catalog
           args:
+          - apiserver
           - --admission-control
           - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceBindingsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
           - --storage-type
@@ -14047,8 +14048,9 @@ objects:
         serviceAccountName: service-catalog-controller
         containers:
         - command: 
-          - controller-manager
+          - service-catalog
           args:
+          - controller-manager
           - -v
           - "5"
           - --leader-election-namespace
