@@ -59,12 +59,13 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			_, err := oc.Run("create").Args("-f", simpleDeploymentFixture).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			r := rand.New(rand.NewSource(g.GinkgoRandomSeed()))
 			iterations := 15
 			for i := 0; i < iterations; i++ {
-				if rand.Float32() < 0.2 {
-					time.Sleep(time.Duration(rand.Float32() * rand.Float32() * float32(time.Second)))
+				if r.Float32() < 0.2 {
+					time.Sleep(time.Duration(r.Float32() * r.Float32() * float32(time.Second)))
 				}
-				switch n := rand.Float32(); {
+				switch n := r.Float32(); {
 
 				case n < 0.4:
 					// trigger a new deployment
@@ -111,7 +112,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 						for _, pod := range pods {
 							e2e.Logf("%02d: deleting deployer pod %s", i, pod.Name)
 							options := metav1.NewDeleteOptions(0)
-							if rand.Float32() < 0.5 {
+							if r.Float32() < 0.5 {
 								options = nil
 							}
 							if err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(pod.Name, options); err != nil {
