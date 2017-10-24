@@ -346,10 +346,6 @@ backend be_secure:{{$cfgIdx}}
   timeout server  {{$value}}
     {{- end }} {{/* end balance algorithm setting. */}}
 
-    {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout") }}
-  timeout server  {{$value}}
-    {{- end }}
-
     {{- if isTrue (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
   stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
   tcp-request content track-sc2 src
