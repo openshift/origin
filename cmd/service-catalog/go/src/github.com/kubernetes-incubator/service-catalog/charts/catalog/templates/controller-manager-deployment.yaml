@@ -23,8 +23,8 @@ spec:
       serviceAccountName: "{{ .Values.controllerManager.serviceAccount }}"
       containers:
       - name: controller-manager
-        image: {{ .Values.controllerManager.image }}
-        imagePullPolicy: {{ .Values.controllerManager.imagePullPolicy }}
+        image: {{ .Values.image }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         resources:
           requests:
             cpu: 100m
@@ -38,6 +38,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         args:
+        - controller-manager
         - --port
         - "8080"
         {{ if .Values.controllerManager.leaderElection.activated -}}

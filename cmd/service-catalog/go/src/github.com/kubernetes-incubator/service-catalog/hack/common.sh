@@ -588,16 +588,18 @@ readonly -f os::build::get_version_vars
 function os::build::os_version_vars() {
   local git=(git --work-tree "${OS_ROOT}")
 
-  if [[ -z ${OS_GIT_CATALOG_VERSION-} ]]; then
+  if [[ -z "${OS_GIT_CATALOG_VERSION:-}" ]]; then
     # search git merge commits for template text and extract version
     # subject template: Merge version v0.0.14 of Service Catalog from https://github.com/openshift/service-catalog:v0.0.14+origin
-    local summary_text=$(${git[@]} log --merges --grep "Merge version v.* of Service Catalog from https://github.com/openshift/service-catalog" --pretty=%s -1)
-    if [[ $summary_text =~ Merge[[:space:]]version[[:space:]](v.*)[[:space:]]of[[:space:]]Service[[:space:]]Catalog ]]; then
-      OS_GIT_CATALOG_VERSION=${BASH_REMATCH[1]}
+    summary_text="$(${git[@]} log --merges --grep "Merge version v.* of Service Catalog from https://github.com/openshift/service-catalog" --pretty=%s -1)"
+    if [[ "${summary_text}" =~ Merge[[:space:]]version[[:space:]](v.*)[[:space:]]of[[:space:]]Service[[:space:]]Catalog ]]; then
+      OS_GIT_CATALOG_VERSION="${BASH_REMATCH[1]}"
+    else
+      os::log::fatal "Unable to find version for service catalog - (this should never happen)"
     fi
 
     if git_status=$("${git[@]}" status --porcelain cmd/service-catalog 2>/dev/null) && [[ -n ${git_status} ]]; then
-        OS_GIT_CATALOG_VERSION+="dirty"
+      OS_GIT_CATALOG_VERSION+="dirty"
     fi
   fi
 
@@ -732,23 +734,32 @@ function os::build::ldflags() {
 
   declare -a ldflags=()
 
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/bootstrap/docker.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.DefaultImagePrefix" "${OS_BUILD_LDFLAGS_IMAGE_PREFIX}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.buildDate" "${buildDate}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitTreeState" "clean"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.buildDate" "${buildDate}"))
-  # ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitTreeState" "clean"))
+  # Origin tooling hardcodes tree state to clean, but it would look pretty
+  # strange to see the version not match the tree state. Since the version is
+  # passed in from outside of the catalog vendor directory (and is not hardcoded
+  # to simply "clean"), parse the suffix of the correct version string.
+  if [[ ${OS_GIT_CATALOG_VERSION} =~ .dirty$ ]]; then
+    CATALOG_DIRTY_STATUS="dirty"
+  else
+    CATALOG_DIRTY_STATUS="clean"
+  fi
 
+  # note that OS_GIT_CATALOG_VERSION is passed from the tito build tooling
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg.VERSION" ${OS_GIT_CATALOG_VERSION}))
+
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitMajor" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitMinor" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitVersion" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.gitTreeState" "${CATALOG_DIRTY_STATUS}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
+
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitMajor" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitMinor" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitVersion" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitCommit" "${OS_GIT_COMMIT}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitTreeState" "${CATALOG_DIRTY_STATUS}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.buildDate" "${buildDate}"))
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"

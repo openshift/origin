@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
@@ -58,7 +57,7 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
-							SecretRef: &v1.ObjectReference{
+							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 								Name:      "test-secret",
 							},
@@ -80,7 +79,7 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
-							SecretRef: &v1.ObjectReference{
+							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 								Name:      "test-secret",
 							},
@@ -117,7 +116,7 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
-							SecretRef: &v1.ObjectReference{
+							SecretRef: &servicecatalog.ObjectReference{
 								Name: "test-secret",
 							},
 						},
@@ -138,7 +137,7 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
-							SecretRef: &v1.ObjectReference{
+							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 							},
 						},
@@ -159,7 +158,7 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
-							SecretRef: &v1.ObjectReference{
+							SecretRef: &servicecatalog.ObjectReference{
 								Name: "test-secret",
 							},
 						},
@@ -180,7 +179,7 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
-							SecretRef: &v1.ObjectReference{
+							SecretRef: &servicecatalog.ObjectReference{
 								Namespace: "test-ns",
 							},
 						},

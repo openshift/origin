@@ -65,5 +65,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(schema.GroupVersion{Version: "v1"}, &metav1.Status{})
 	scheme.AddFieldLabelConversionFunc("servicecatalog.k8s.io/v1beta1", "ClusterServiceClass", ClusterServiceClassFieldLabelConversionFunc)
 	scheme.AddFieldLabelConversionFunc("servicecatalog.k8s.io/v1beta1", "ClusterServicePlan", ClusterServicePlanFieldLabelConversionFunc)
+	scheme.AddFieldLabelConversionFunc("servicecatalog.k8s.io/v1beta1", "ServiceInstance", ServiceInstanceFieldLabelConversionFunc)
+
 	return nil
 }

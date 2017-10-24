@@ -154,7 +154,7 @@ func (instanceRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new,
 	newServiceInstance.Spec.ClusterServicePlanRef = oldServiceInstance.Spec.ClusterServicePlanRef
 
 	// Clear out the ClusterServicePlanRef so that it is resolved during reconciliation
-	if newServiceInstance.Spec.ExternalClusterServicePlanName != oldServiceInstance.Spec.ExternalClusterServicePlanName {
+	if newServiceInstance.Spec.ClusterServicePlanExternalName != oldServiceInstance.Spec.ClusterServicePlanExternalName {
 		newServiceInstance.Spec.ClusterServicePlanRef = nil
 	}
 

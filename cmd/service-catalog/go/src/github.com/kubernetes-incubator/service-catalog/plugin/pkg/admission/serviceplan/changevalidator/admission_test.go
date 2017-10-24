@@ -69,8 +69,8 @@ func newServiceInstance(namespace string, serviceClassName string, planName stri
 	instance := servicecatalog.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: "instance", Namespace: namespace},
 	}
-	instance.Spec.ExternalClusterServiceClassName = serviceClassName
-	instance.Spec.ExternalClusterServicePlanName = planName
+	instance.Spec.ClusterServiceClassExternalName = serviceClassName
+	instance.Spec.ClusterServicePlanExternalName = planName
 	return instance
 }
 

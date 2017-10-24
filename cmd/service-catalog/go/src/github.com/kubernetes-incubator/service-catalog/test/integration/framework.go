@@ -82,6 +82,7 @@ func withConfigGetFreshApiserverAndClient(
 		if serverstorage.StorageTypeEtcd == serverConfig.storageType {
 			etcdOptions = server.NewEtcdOptions()
 			etcdOptions.StorageConfig.ServerList = serverConfig.etcdServerList
+			etcdOptions.EtcdOptions.StorageConfig.Prefix = fmt.Sprintf("%s-%08X", server.DefaultEtcdPathPrefix, rand.Int31())
 		} else {
 			t.Fatal("no storage type specified")
 		}
@@ -96,13 +97,12 @@ func withConfigGetFreshApiserverAndClient(
 			AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
 			AuditOptions:            genericserveroptions.NewAuditOptions(),
 			DisableAuth:             true,
-			StopCh:                  stopCh,
 			StandaloneMode:          true, // this must be true because we have no kube server for integration.
 		}
 		options.SecureServingOptions.BindPort = securePort
 		options.SecureServingOptions.ServerCert.CertDirectory = certDir
 
-		if err := server.RunServer(options); err != nil {
+		if err := server.RunServer(options, stopCh); err != nil {
 			close(serverFailed)
 			t.Fatalf("Error in bringing up the server: %v", err)
 		}

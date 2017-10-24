@@ -19,7 +19,6 @@ package validation
 import (
 	"testing"
 
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -33,7 +32,7 @@ func validServiceBinding() *servicecatalog.ServiceBinding {
 			Namespace: "test-ns",
 		},
 		Spec: servicecatalog.ServiceBindingSpec{
-			ServiceInstanceRef: v1.LocalObjectReference{
+			ServiceInstanceRef: servicecatalog.LocalObjectReference{
 				Name: "test-instance",
 			},
 			SecretName: "test-secret",
