@@ -121,16 +121,16 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return c.updateStatus(config, existingDeployments)
 	}
 
-	latestIsDeployed, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
+	latestExists, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
 
-	if !latestIsDeployed {
+	if !latestExists {
 		if err := c.cancelRunningRollouts(config, existingDeployments, cm); err != nil {
 			return err
 		}
 	}
 	configCopy := config.DeepCopy()
 	// Process triggers and start an initial rollouts
-	shouldTrigger, shouldSkip := triggerActivated(configCopy, latestIsDeployed, latestDeployment, c.codec)
+	shouldTrigger, shouldSkip := triggerActivated(configCopy, latestExists, latestDeployment, c.codec)
 	if !shouldSkip && shouldTrigger {
 		configCopy.Status.LatestVersion++
 		return c.updateStatus(configCopy, existingDeployments)
@@ -141,18 +141,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	}
 	// If the latest deployment already exists, reconcile existing deployments
 	// and return early.
-	if latestIsDeployed {
-		// If the latest deployment is still running, try again later. We don't
-		// want to compete with the deployer.
-		if !deployutil.IsTerminatedDeployment(latestDeployment) {
-			return c.updateStatus(config, existingDeployments)
-		}
-
-		return c.reconcileDeployments(existingDeployments, config, cm)
-	}
-	// If the latest deployment already exists, reconcile existing deployments
-	// and return early.
-	if latestIsDeployed {
+	if latestExists {
 		// If the latest deployment is still running, try again later. We don't
 		// want to compete with the deployer.
 		if !deployutil.IsTerminatedDeployment(latestDeployment) {
@@ -530,7 +519,7 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 // triggers were activated (config change or image change). The first bool indicates that
 // the triggers are active and second indicates if we should skip the rollout because we
 // are waiting for the trigger to complete update (waiting for image for example).
-func triggerActivated(config *deployapi.DeploymentConfig, latestIsDeployed bool, latestDeployment *v1.ReplicationController, codec runtime.Codec) (bool, bool) {
+func triggerActivated(config *deployapi.DeploymentConfig, latestExists bool, latestDeployment *v1.ReplicationController, codec runtime.Codec) (bool, bool) {
 	if config.Spec.Paused {
 		return false, false
 	}
@@ -569,7 +558,7 @@ func triggerActivated(config *deployapi.DeploymentConfig, latestIsDeployed bool,
 	}
 
 	// Wait for the RC to be created
-	if !latestIsDeployed {
+	if !latestExists {
 		return false, true
 	}
 
