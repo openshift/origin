@@ -275,21 +275,6 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		}
 	}
 
-	// if a nodeName was specified, ensure node exists
-	if len(o.NodeName) > 0 {
-		r := f.NewBuilder(true).
-			NamespaceParam(cmdNamespace).
-			SingleResourceType().
-			ResourceTypeOrNameArgs(true, []string{"nodes", o.NodeName}...).
-			Flatten().
-			Do()
-
-		_, err := r.Infos()
-		if err != nil {
-			return err
-		}
-	}
-
 	config, err := f.ClientConfig()
 	if err != nil {
 		return err
