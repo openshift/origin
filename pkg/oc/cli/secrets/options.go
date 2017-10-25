@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,6 +69,16 @@ func (o SecretOptions) Validate() error {
 		return errors.New("KubeCoreClient must be present")
 	}
 
+	// if any secret names are of the form <resource>/<name>,
+	// ensure <resource> is a secret.
+	for _, secretName := range o.SecretNames {
+		if segs := strings.Split(secretName, "/"); len(segs) > 1 {
+			if segs[0] != "secret" && segs[0] != "secrets" {
+				return errors.New(fmt.Sprintf("expected resource of type secret, got %q", secretName))
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -98,9 +109,20 @@ func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
 func (o SecretOptions) GetSecretNames(secrets []*kapi.Secret) sets.String {
 	names := sets.String{}
 	for _, secret := range secrets {
-		names.Insert(secret.Name)
+		names.Insert(parseSecretName(secret.Name))
 	}
 	return names
+}
+
+// parseSecretName receives a resource name as either
+// <resource type> / <name> or <name> and returns only the resource <name>.
+func parseSecretName(name string) string {
+	segs := strings.Split(name, "/")
+	if len(segs) < 2 {
+		return name
+	}
+
+	return segs[1]
 }
 
 // GetMountSecretNames Get a list of the names of the mount secrets associated
