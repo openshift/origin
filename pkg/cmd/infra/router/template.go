@@ -1,6 +1,7 @@
 package router
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -17,9 +18,16 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
+	"k8s.io/apiserver/pkg/server/healthz"
+	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
+	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1beta1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
@@ -248,9 +256,6 @@ func (o *TemplateRouterOptions) Run() error {
 	statsPort := o.StatsPort
 	switch {
 	case o.MetricsType == "haproxy" && statsPort != 0:
-		if len(o.StatsUsername) == 0 || len(o.StatsPassword) == 0 {
-			glog.Warningf("Metrics were requested but no username or password has been provided - the metrics endpoint will not be accessible to prevent accidental security breaches")
-		}
 		// Exposed to allow tuning in production if this becomes an issue
 		var timeout time.Duration
 		if t := util.Env("ROUTER_METRICS_HAPROXY_TIMEOUT", ""); len(t) > 0 {
@@ -316,7 +321,58 @@ func (o *TemplateRouterOptions) Run() error {
 		if useProxy := util.Env("ROUTER_USE_PROXY_PROTOCOL", ""); useProxy == "true" || useProxy == "TRUE" {
 			check = metrics.ProxyProtocolHTTPBackendAvailable(u)
 		}
-		metrics.Listen(o.ListenAddr, o.StatsUsername, o.StatsPassword, check)
+
+		kubeconfig := o.Config.KubeConfig()
+		client, err := authorizationclient.NewForConfig(kubeconfig)
+		if err != nil {
+			return err
+		}
+		authz, err := authorizerfactory.DelegatingAuthorizerConfig{
+			SubjectAccessReviewClient: client.SubjectAccessReviews(),
+			AllowCacheTTL:             2 * time.Minute,
+			DenyCacheTTL:              5 * time.Second,
+		}.New()
+		if err != nil {
+			return err
+		}
+		tokenClient, err := authenticationclient.NewForConfig(kubeconfig)
+		if err != nil {
+			return err
+		}
+		authn, _, err := authenticatorfactory.DelegatingAuthenticatorConfig{
+			Anonymous:               true,
+			TokenAccessReviewClient: tokenClient.TokenReviews(),
+			CacheTTL:                10 * time.Second,
+			ClientCAFile:            util.Env("ROUTER_METRICS_AUTHENTICATOR_CA_FILE", ""),
+		}.New()
+		if err != nil {
+			return err
+		}
+		l := metrics.Listener{
+			Addr:          o.ListenAddr,
+			Username:      o.StatsUsername,
+			Password:      o.StatsPassword,
+			Authenticator: authn,
+			Authorizer:    authz,
+			Record: authorizer.AttributesRecord{
+				ResourceRequest: true,
+				APIGroup:        "route.openshift.io",
+				Resource:        "routers",
+				Name:            o.RouterName,
+			},
+			Checks: []healthz.HealthzChecker{check},
+		}
+		if certFile := util.Env("ROUTER_METRICS_TLS_CERT_FILE", ""); len(certFile) > 0 {
+			certificate, err := tls.LoadX509KeyPair(certFile, util.Env("ROUTER_METRICS_TLS_KEY_FILE", ""))
+			if err != nil {
+				return err
+			}
+			l.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
+				Certificates: []tls.Certificate{certificate},
+				ClientAuth:   tls.RequestClientCert,
+			})
+		}
+		l.Listen()
 	}
 
 	pluginCfg := templateplugin.TemplatePluginConfig{
