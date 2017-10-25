@@ -59,13 +59,20 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				p := expfmt.TextParser{}
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
-
+				// original field in 2.0.0-beta
 				counts := findCountersWithLabels(metrics["tsdb_samples_appended_total"], labels{})
 				if len(counts) != 0 && counts[0] > 0 {
 					success = true
 					break
 				}
+				// 2.0.0-rc.0
 				counts = findCountersWithLabels(metrics["tsdb_head_samples_appended_total"], labels{})
+				if len(counts) != 0 && counts[0] > 0 {
+					success = true
+					break
+				}
+				// 2.0.0-rc.2
+				counts = findCountersWithLabels(metrics["prometheus_tsdb_head_samples_appended_total"], labels{})
 				if len(counts) != 0 && counts[0] > 0 {
 					success = true
 					break
@@ -73,7 +80,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				time.Sleep(time.Second)
 				continue
 			}
-			o.Expect(success).To(o.BeTrue(), fmt.Sprintf("Did not find tsdb_samples_appended_total or tsdb_head_samples_appended_total in:\n%#v,", metrics))
+			o.Expect(success).To(o.BeTrue(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total in:\n%#v,", metrics))
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
 			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("https://%s:%d", host, statsPort), 403)
