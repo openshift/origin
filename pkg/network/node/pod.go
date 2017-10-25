@@ -191,6 +191,15 @@ func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.PodPort
 	return nil
 }
 
+func hasHostPorts(pod *kubehostport.PodPortMapping) bool {
+	for _, mapping := range pod.PortMappings {
+		if mapping.HostPort != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // Return a list of Kubernetes RunningPod objects for hostport operations
 func (m *podManager) shouldSyncHostports(newPod *kubehostport.PodPortMapping) []*kubehostport.PodPortMapping {
 	if m.hostportSyncer == nil {
@@ -201,11 +210,11 @@ func (m *podManager) shouldSyncHostports(newPod *kubehostport.PodPortMapping) []
 	mappings := make([]*kubehostport.PodPortMapping, 0)
 	for _, runningPod := range m.runningPods {
 		mappings = append(mappings, runningPod.podPortMapping)
-		if !newActiveHostports && len(runningPod.podPortMapping.PortMappings) > 0 {
+		if !newActiveHostports && hasHostPorts(runningPod.podPortMapping) {
 			newActiveHostports = true
 		}
 	}
-	if newPod != nil && len(newPod.PortMappings) > 0 {
+	if newPod != nil && hasHostPorts(newPod) {
 		newActiveHostports = true
 	}
 
