@@ -10,6 +10,9 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
+
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 var (
@@ -65,9 +68,49 @@ func (h *manifestSchema2Handler) Manifest() distribution.Manifest {
 	return h.manifest
 }
 
+func (h *manifestSchema2Handler) Layers(ctx context.Context) (string, []imageapiv1.ImageLayer, error) {
+	layers := make([]imageapiv1.ImageLayer, len(h.manifest.Layers))
+	for i, layer := range h.manifest.Layers {
+		layers[i].Name = layer.Digest.String()
+		layers[i].LayerSize = layer.Size
+		layers[i].MediaType = layer.MediaType
+	}
+	return imageapi.DockerImageLayersOrderAscending, layers, nil
+}
+
 func (h *manifestSchema2Handler) Payload() (mediaType string, payload []byte, canonical []byte, err error) {
 	mt, p, err := h.manifest.Payload()
 	return mt, p, p, err
+}
+
+func (h *manifestSchema2Handler) verifyLayer(ctx context.Context, fsLayer distribution.Descriptor) error {
+	if fsLayer.MediaType == schema2.MediaTypeForeignLayer {
+		// Clients download this layer from an external URL, so do not check for
+		// its presense.
+		if len(fsLayer.URLs) == 0 {
+			return errMissingURL
+		}
+		return nil
+	}
+
+	if len(fsLayer.URLs) != 0 {
+		return errUnexpectedURL
+	}
+
+	desc, err := h.repo.Blobs(ctx).Stat(ctx, fsLayer.Digest)
+	if err != nil {
+		return err
+	}
+
+	if fsLayer.Size != desc.Size {
+		return ErrManifestBlobBadSize{
+			Digest:         fsLayer.Digest,
+			ActualSize:     desc.Size,
+			SizeInManifest: fsLayer.Size,
+		}
+	}
+
+	return nil
 }
 
 func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerification bool) error {
@@ -82,35 +125,9 @@ func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerif
 	// and since we use pullthroughBlobStore all the layer existence checks will be
 	// successful. This means that the docker client will not attempt to send them
 	// to us as it will assume that the registry has them.
-	repo := h.repo
-
-	target := h.manifest.Target()
-	_, err := repo.Blobs(ctx).Stat(ctx, target.Digest)
-	if err != nil {
-		if err != distribution.ErrBlobUnknown {
-			errs = append(errs, err)
-		}
-
-		// On error here, we always append unknown blob errors.
-		errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: target.Digest})
-	}
 
 	for _, fsLayer := range h.manifest.References() {
-		var err error
-		if fsLayer.MediaType != schema2.MediaTypeForeignLayer {
-			if len(fsLayer.URLs) == 0 {
-				_, err = repo.Blobs(ctx).Stat(ctx, fsLayer.Digest)
-			} else {
-				err = errUnexpectedURL
-			}
-		} else {
-			// Clients download this layer from an external URL, so do not check for
-			// its presense.
-			if len(fsLayer.URLs) == 0 {
-				err = errMissingURL
-			}
-		}
-		if err != nil {
+		if err := h.verifyLayer(ctx, fsLayer); err != nil {
 			if err != distribution.ErrBlobUnknown {
 				errs = append(errs, err)
 				continue

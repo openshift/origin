@@ -24,6 +24,9 @@ type ManifestHandler interface {
 	// Manifest returns a deserialized manifest object.
 	Manifest() distribution.Manifest
 
+	// Layers returns image layers and a value for the dockerLayersOrder annotation.
+	Layers(ctx context.Context) (order string, layers []imageapiv1.ImageLayer, err error)
+
 	// Payload returns manifest's media type, complete payload with signatures and canonical payload without
 	// signatures or an error if the information could not be fetched.
 	Payload() (mediaType string, payload []byte, canonical []byte, err error)

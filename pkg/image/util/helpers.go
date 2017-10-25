@@ -14,6 +14,58 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
+func fillImageLayers(image *imageapi.Image, manifest imageapi.DockerImageManifest) error {
+	if len(image.DockerImageLayers) != 0 {
+		// DockerImageLayers is already filled by the registry.
+		return nil
+	}
+
+	switch manifest.SchemaVersion {
+	case 1:
+		if len(manifest.History) != len(manifest.FSLayers) {
+			return fmt.Errorf("the image %s (%s) has mismatched history and fslayer cardinality (%d != %d)", image.Name, image.DockerImageReference, len(manifest.History), len(manifest.FSLayers))
+		}
+
+		image.DockerImageLayers = make([]imageapi.ImageLayer, len(manifest.FSLayers))
+		for i, obj := range manifest.History {
+			layer := manifest.FSLayers[i]
+
+			var size imageapi.DockerV1CompatibilityImageSize
+			if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
+				size.Size = 0
+			}
+
+			// reverse order of the layers: in schema1 manifests the
+			// first layer is the youngest (base layers are at the
+			// end), but we want to store layers in the Image resource
+			// in order from the oldest to the youngest.
+			revidx := (len(manifest.History) - 1) - i // n-1, n-2, ..., 1, 0
+
+			image.DockerImageLayers[revidx].Name = layer.DockerBlobSum
+			image.DockerImageLayers[revidx].LayerSize = size.Size
+			image.DockerImageLayers[revidx].MediaType = schema1.MediaTypeManifestLayer
+		}
+	case 2:
+		// The layer list is ordered starting from the base image (opposite order of schema1).
+		// So, we do not need to change the order of layers.
+		image.DockerImageLayers = make([]imageapi.ImageLayer, len(manifest.Layers))
+		for i, layer := range manifest.Layers {
+			image.DockerImageLayers[i].Name = layer.Digest
+			image.DockerImageLayers[i].LayerSize = layer.Size
+			image.DockerImageLayers[i].MediaType = layer.MediaType
+		}
+	default:
+		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
+	}
+
+	if image.Annotations == nil {
+		image.Annotations = map[string]string{}
+	}
+	image.Annotations[imageapi.DockerImageLayersOrderAnnotation] = imageapi.DockerImageLayersOrderAscending
+
+	return nil
+}
+
 // ImageWithMetadata mutates the given image. It parses raw DockerImageManifest data stored in the image and
 // fills its DockerImageMetadata and other fields.
 func ImageWithMetadata(image *imageapi.Image) error {
@@ -21,67 +73,36 @@ func ImageWithMetadata(image *imageapi.Image) error {
 		return nil
 	}
 
+	ReorderImageLayers(image)
+
 	if len(image.DockerImageLayers) > 0 && image.DockerImageMetadata.Size > 0 && len(image.DockerImageManifestMediaType) > 0 {
 		glog.V(5).Infof("Image metadata already filled for %s", image.Name)
-
-		ReorderImageLayers(image)
-
-		// don't update image already filled
 		return nil
 	}
 
-	manifestData := image.DockerImageManifest
-
 	manifest := imageapi.DockerImageManifest{}
-	if err := json.Unmarshal([]byte(manifestData), &manifest); err != nil {
+	if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
 		return err
 	}
 
-	if image.Annotations == nil {
-		image.Annotations = map[string]string{}
+	err := fillImageLayers(image, manifest)
+	if err != nil {
+		return err
 	}
 
 	switch manifest.SchemaVersion {
-	case 0:
-		// legacy config object
 	case 1:
 		image.DockerImageManifestMediaType = schema1.MediaTypeManifest
 
 		if len(manifest.History) == 0 {
-			// should never have an empty history, but just in case...
-			return nil
+			// It should never have an empty history, but just in case.
+			return fmt.Errorf("the image %s (%s) has a schema 1 manifest, but it doesn't have history", image.Name, image.DockerImageReference)
 		}
 
 		v1Metadata := imageapi.DockerV1CompatibilityImage{}
 		if err := json.Unmarshal([]byte(manifest.History[0].DockerV1Compatibility), &v1Metadata); err != nil {
 			return err
 		}
-
-		image.DockerImageLayers = make([]imageapi.ImageLayer, len(manifest.FSLayers))
-		for i, layer := range manifest.FSLayers {
-			image.DockerImageLayers[i].MediaType = schema1.MediaTypeManifestLayer
-			image.DockerImageLayers[i].Name = layer.DockerBlobSum
-		}
-		if len(manifest.History) == len(image.DockerImageLayers) {
-			// This code does not work for images converted from v2 to v1, since V1Compatibility does not
-			// contain size information in this case.
-			image.DockerImageLayers[0].LayerSize = v1Metadata.Size
-			var size = imageapi.DockerV1CompatibilityImageSize{}
-			for i, obj := range manifest.History[1:] {
-				size.Size = 0
-				if err := json.Unmarshal([]byte(obj.DockerV1Compatibility), &size); err != nil {
-					continue
-				}
-				image.DockerImageLayers[i+1].LayerSize = size.Size
-			}
-		} else {
-			glog.V(4).Infof("Imported image has mismatched layer count and history count, not updating image metadata: %s", image.Name)
-		}
-		// reverse order of the layers for v1 (lowest = 0, highest = i)
-		for i, j := 0, len(image.DockerImageLayers)-1; i < j; i, j = i+1, j-1 {
-			image.DockerImageLayers[i], image.DockerImageLayers[j] = image.DockerImageLayers[j], image.DockerImageLayers[i]
-		}
-		image.Annotations[imageapi.DockerImageLayersOrderAnnotation] = imageapi.DockerImageLayersOrderAscending
 
 		image.DockerImageMetadata.ID = v1Metadata.ID
 		image.DockerImageMetadata.Parent = v1Metadata.Parent
@@ -93,40 +114,17 @@ func ImageWithMetadata(image *imageapi.Image) error {
 		image.DockerImageMetadata.Author = v1Metadata.Author
 		image.DockerImageMetadata.Config = v1Metadata.Config
 		image.DockerImageMetadata.Architecture = v1Metadata.Architecture
-		if len(image.DockerImageLayers) > 0 {
-			size := int64(0)
-			layerSet := sets.NewString()
-			for _, layer := range image.DockerImageLayers {
-				if layerSet.Has(layer.Name) {
-					continue
-				}
-				layerSet.Insert(layer.Name)
-				size += layer.LayerSize
-			}
-			image.DockerImageMetadata.Size = size
-		} else {
-			image.DockerImageMetadata.Size = v1Metadata.Size
-		}
 	case 2:
 		image.DockerImageManifestMediaType = schema2.MediaTypeManifest
 
 		if len(image.DockerImageConfig) == 0 {
 			return fmt.Errorf("dockerImageConfig must not be empty for manifest schema 2")
 		}
+
 		config := imageapi.DockerImageConfig{}
 		if err := json.Unmarshal([]byte(image.DockerImageConfig), &config); err != nil {
 			return fmt.Errorf("failed to parse dockerImageConfig: %v", err)
 		}
-
-		// The layer list is ordered starting from the base image (opposite order of schema1).
-		// So, we do not need to change the order of layers.
-		image.DockerImageLayers = make([]imageapi.ImageLayer, len(manifest.Layers))
-		for i, layer := range manifest.Layers {
-			image.DockerImageLayers[i].Name = layer.Digest
-			image.DockerImageLayers[i].LayerSize = layer.Size
-			image.DockerImageLayers[i].MediaType = layer.MediaType
-		}
-		image.Annotations[imageapi.DockerImageLayersOrderAnnotation] = imageapi.DockerImageLayersOrderAscending
 
 		image.DockerImageMetadata.ID = manifest.Config.Digest
 		image.DockerImageMetadata.Parent = config.Parent
@@ -138,20 +136,23 @@ func ImageWithMetadata(image *imageapi.Image) error {
 		image.DockerImageMetadata.Author = config.Author
 		image.DockerImageMetadata.Config = config.Config
 		image.DockerImageMetadata.Architecture = config.Architecture
-		image.DockerImageMetadata.Size = int64(len(image.DockerImageConfig))
-
-		layerSet := sets.NewString(image.DockerImageMetadata.ID)
-		if len(image.DockerImageLayers) > 0 {
-			for _, layer := range image.DockerImageLayers {
-				if layerSet.Has(layer.Name) {
-					continue
-				}
-				layerSet.Insert(layer.Name)
-				image.DockerImageMetadata.Size += layer.LayerSize
-			}
-		}
 	default:
 		return fmt.Errorf("unrecognized Docker image manifest schema %d for %q (%s)", manifest.SchemaVersion, image.Name, image.DockerImageReference)
+	}
+
+	layerSet := sets.NewString()
+	if manifest.SchemaVersion == 2 {
+		layerSet.Insert(manifest.Config.Digest)
+		image.DockerImageMetadata.Size = int64(len(image.DockerImageConfig))
+	} else {
+		image.DockerImageMetadata.Size = 0
+	}
+	for _, layer := range image.DockerImageLayers {
+		if layerSet.Has(layer.Name) {
+			continue
+		}
+		layerSet.Insert(layer.Name)
+		image.DockerImageMetadata.Size += layer.LayerSize
 	}
 
 	return nil
@@ -167,7 +168,7 @@ func ReorderImageLayers(image *imageapi.Image) {
 	layersOrder, ok := image.Annotations[imageapi.DockerImageLayersOrderAnnotation]
 	if !ok {
 		switch image.DockerImageManifestMediaType {
-		case schema1.MediaTypeManifest:
+		case schema1.MediaTypeManifest, schema1.MediaTypeSignedManifest:
 			layersOrder = imageapi.DockerImageLayersOrderAscending
 		case schema2.MediaTypeManifest:
 			layersOrder = imageapi.DockerImageLayersOrderDescending
