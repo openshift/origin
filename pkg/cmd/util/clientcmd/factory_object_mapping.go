@@ -31,6 +31,7 @@ import (
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -39,6 +40,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
@@ -349,6 +351,74 @@ func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusVi
 		return deploycmd.NewDeploymentConfigStatusViewer(appsclient.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeObjectMappingFactory.StatusViewer(mapping)
+}
+
+// ApproximatePodTemplateForObject returns a pod template object for the provided source.
+// It may return both an error and a object. It attempt to return the best possible template
+// available at the current time.
+func (f *ring1Factory) ApproximatePodTemplateForObject(object runtime.Object) (*kapi.PodTemplateSpec, error) {
+	switch t := object.(type) {
+	case *imageapi.ImageStreamTag:
+		// create a minimal pod spec that uses the image referenced by the istag without any introspection
+		// it possible that we could someday do a better job introspecting it
+		return &kapi.PodTemplateSpec{
+			Spec: kapi.PodSpec{
+				RestartPolicy: kapi.RestartPolicyNever,
+				Containers: []kapi.Container{
+					{Name: "container-00", Image: t.Image.DockerImageReference},
+				},
+			},
+		}, nil
+	case *imageapi.ImageStreamImage:
+		// create a minimal pod spec that uses the image referenced by the istag without any introspection
+		// it possible that we could someday do a better job introspecting it
+		return &kapi.PodTemplateSpec{
+			Spec: kapi.PodSpec{
+				RestartPolicy: kapi.RestartPolicyNever,
+				Containers: []kapi.Container{
+					{Name: "container-00", Image: t.Image.DockerImageReference},
+				},
+			},
+		}, nil
+	case *deployapi.DeploymentConfig:
+		fallback := t.Spec.Template
+
+		kc, err := f.clientAccessFactory.ClientSet()
+		if err != nil {
+			return fallback, err
+		}
+
+		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
+		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
+		if err != nil {
+			return fallback, err
+		}
+
+		fallback = deployment.Spec.Template
+
+		pods, err := kc.Core().Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector).String()})
+		if err != nil {
+			return fallback, err
+		}
+
+		// If we have any pods available, find the newest
+		// pod with regards to our most recent deployment.
+		// If the fallback PodTemplateSpec is nil, prefer
+		// the newest pod available.
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+			if fallback == nil || pod.CreationTimestamp.Before(fallback.CreationTimestamp) {
+				fallback = &kapi.PodTemplateSpec{
+					ObjectMeta: pod.ObjectMeta,
+					Spec:       pod.Spec,
+				}
+			}
+		}
+		return fallback, nil
+
+	default:
+		return f.kubeObjectMappingFactory.ApproximatePodTemplateForObject(object)
+	}
 }
 
 func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout time.Duration) (*kapi.Pod, error) {
