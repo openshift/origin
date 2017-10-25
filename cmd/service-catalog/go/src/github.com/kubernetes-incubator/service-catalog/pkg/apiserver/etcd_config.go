@@ -88,6 +88,8 @@ func (c completedEtcdConfig) NewServer() (*ServiceCatalogAPIServer, error) {
 
 	roFactory := etcdRESTOptionsFactory{
 		deleteCollectionWorkers: c.extraConfig.deleteCollectionWorkers,
+		// TODO https://github.com/kubernetes/kubernetes/issues/44507
+		// we still need to enable it so finalizers are respected.
 		enableGarbageCollection: true,
 		storageFactory:          c.extraConfig.storageFactory,
 		storageDecorator:        generic.UndecoratedStorage,

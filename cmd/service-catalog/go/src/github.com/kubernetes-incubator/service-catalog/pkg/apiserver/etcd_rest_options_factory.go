@@ -45,6 +45,6 @@ func (f etcdRESTOptionsFactory) GetRESTOptions(resource schema.GroupResource) (g
 		Decorator:               f.storageDecorator,
 		DeleteCollectionWorkers: f.deleteCollectionWorkers,
 		EnableGarbageCollection: f.enableGarbageCollection,
-		ResourcePrefix:          f.storageFactory.ResourcePrefix(resource),
+		ResourcePrefix:          resource.Group + "/" + resource.Resource,
 	}, nil
 }

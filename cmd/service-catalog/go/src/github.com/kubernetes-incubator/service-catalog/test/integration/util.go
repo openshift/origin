@@ -21,3 +21,8 @@ package integration
 func strPtr(s string) *string {
 	return &s
 }
+
+func truePtr() *bool {
+	b := true
+	return &b
+}
