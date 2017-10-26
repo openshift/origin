@@ -121,7 +121,7 @@ func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 var supportedBuildTypes = []string{"buildconfigs"}
 
 func (o *BuildSecretOptions) secretFromArg(f *clientcmd.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
-	builder := f.NewBuilder(!o.Local).
+	builder := f.NewBuilder().
 		NamespaceParam(namespace).DefaultNamespace().
 		RequireObject(false).
 		ContinueOnError().
@@ -173,7 +173,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return err
 		}
 	}
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -195,6 +195,8 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		if len(resources) > 0 {
 			return resource.LocalResourceError
 		}
+
+		o.Builder = o.Builder.Local(f.ClientForMapping)
 	}
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")

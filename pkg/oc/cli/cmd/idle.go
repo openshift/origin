@@ -114,7 +114,7 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 		return fmt.Errorf("resource names, selectors, and the all flag may not be be specified if a filename is specified")
 	}
 
-	o.svcBuilder = f.NewBuilder(true).
+	o.svcBuilder = f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
 		Flatten().

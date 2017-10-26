@@ -225,7 +225,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	if len(o.From) != 0 {
-		b := f.NewBuilder(!o.Local).
+		b := f.NewBuilder().
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -235,6 +235,8 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 			b = b.
 				SelectorParam(o.Selector).
 				ResourceTypeOrNameArgs(o.All, o.From)
+		} else {
+			b = b.Local(f.ClientForMapping)
 		}
 
 		one := false
@@ -287,7 +289,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		}
 	}
 
-	b := f.NewBuilder(!o.Local).
+	b := f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -304,6 +306,8 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		if len(o.Resources) > 0 {
 			return resource.LocalResourceError
 		}
+
+		b = b.Local(f.ClientForMapping)
 	}
 
 	one := false

@@ -220,7 +220,7 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	}
 
 	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -237,6 +237,8 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		if len(args) > 0 {
 			return resource.LocalResourceError
 		}
+
+		o.Builder = o.Builder.Local(f.ClientForMapping)
 	}
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")

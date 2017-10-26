@@ -156,7 +156,7 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 	o.Cmd = cmd
 
 	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -177,6 +177,8 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 		if len(resources) > 0 {
 			return resource.LocalResourceError
 		}
+
+		o.Builder = o.Builder.Local(f.ClientForMapping)
 	}
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")

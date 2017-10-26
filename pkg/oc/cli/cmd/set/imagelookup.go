@@ -164,7 +164,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	o.PrintTable = (len(args) == 0 && !o.All) || o.List
 
 	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -175,7 +175,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return kcmdutil.UsageErrorf(cmd, "Pass files with -f when using --local")
 	case o.Local:
 		// perform no lookups on the server
-		// TODO: discovery still requires a running server, doesn't fall back correctly
+		o.Builder = o.Builder.Local(f.ClientForMapping)
 	case len(args) == 0 && len(o.Filenames) == 0:
 		o.Builder = o.Builder.
 			SelectorParam(o.Selector).

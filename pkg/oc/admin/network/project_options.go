@@ -58,7 +58,7 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 		return err
 	}
 
-	p.Builder = f.NewBuilder(true)
+	p.Builder = f.NewBuilder()
 	p.DefaultNamespace = defaultNamespace
 	p.Oclient = networkClient
 	p.Kclient = kc

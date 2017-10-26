@@ -427,7 +427,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 }
 
 func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
-	b := f.NewBuilder(!v.Local).
+	b := f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
 		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
@@ -444,6 +444,8 @@ func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
 		if len(args) > 0 {
 			return resource.LocalResourceError
 		}
+
+		b = b.Local(f.ClientForMapping)
 	}
 
 	singleItemImplied := false
