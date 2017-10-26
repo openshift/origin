@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/manifest/schema1"
@@ -278,7 +279,7 @@ middleware:
 
 func putManifest(name, user, token string) (digest.Digest, error) {
 	creds := registryutil.NewBasicCredentialStore(user, token)
-	desc, _, err := registryutil.UploadRandomTestBlob(&url.URL{Host: "127.0.0.1:5000", Scheme: "http"}, creds, testutil.Namespace()+"/"+name)
+	desc, _, err := registryutil.UploadRandomTestBlob(context.Background(), &url.URL{Host: "127.0.0.1:5000", Scheme: "http"}, creds, testutil.Namespace()+"/"+name)
 	if err != nil {
 		return "", err
 	}

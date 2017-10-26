@@ -151,6 +151,7 @@ func TestManifestServicePut(t *testing.T) {
 		Manifest: schema2.Manifest{
 			Config: distribution.Descriptor{
 				Digest: "test:1",
+				Size:   2,
 			},
 		},
 	}

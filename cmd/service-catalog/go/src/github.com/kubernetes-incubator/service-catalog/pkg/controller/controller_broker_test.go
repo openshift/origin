@@ -26,6 +26,7 @@ import (
 	fakeosb "github.com/pmorie/go-open-service-broker-client/v2/fake"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
+	"github.com/kubernetes-incubator/service-catalog/test/fake"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -36,7 +37,6 @@ import (
 	"strings"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/api"
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	clientgotesting "k8s.io/client-go/testing"
 )
@@ -232,9 +232,9 @@ func TestReconcileClusterServiceBrokerExistingServiceClassAndServicePlan(t *test
 	assertNumberOfActions(t, actions, 6)
 	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
-	assertCreate(t, actions[2], testClusterServicePlan)
-	assertCreate(t, actions[3], testClusterServicePlanNonbindable)
-	assertUpdate(t, actions[4], testClusterServiceClass)
+	assertUpdate(t, actions[2], testClusterServiceClass)
+	assertCreate(t, actions[3], testClusterServicePlan)
+	assertCreate(t, actions[4], testClusterServicePlanNonbindable)
 
 	// 4 update action for broker status subresource
 	updatedClusterServiceBroker := assertUpdateStatus(t, actions[5], getTestClusterServiceBroker())
@@ -281,10 +281,10 @@ func TestReconcileClusterServiceBrokerRemovedClusterServiceClass(t *testing.T) {
 	assertNumberOfActions(t, actions, 7)
 	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
-	assertCreate(t, actions[2], testClusterServicePlan)
-	assertCreate(t, actions[3], testClusterServicePlanNonbindable)
-	assertUpdate(t, actions[4], testClusterServiceClass)
-	assertUpdateStatus(t, actions[5], testRemovedClusterServiceClass)
+	assertUpdate(t, actions[2], testClusterServiceClass)
+	assertUpdateStatus(t, actions[3], testRemovedClusterServiceClass)
+	assertCreate(t, actions[4], testClusterServicePlan)
+	assertCreate(t, actions[5], testClusterServicePlanNonbindable)
 
 	updatedClusterServiceBroker := assertUpdateStatus(t, actions[6], getTestClusterServiceBroker())
 	assertClusterServiceBrokerReadyTrue(t, updatedClusterServiceBroker)
@@ -336,10 +336,10 @@ func TestReconcileClusterServiceBrokerRemovedClusterServicePlan(t *testing.T) {
 	assertNumberOfActions(t, actions, 7)
 	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
-	assertCreate(t, actions[2], testClusterServicePlan)
-	assertCreate(t, actions[3], testClusterServicePlanNonbindable)
-	assertUpdateStatus(t, actions[4], testRemovedClusterServicePlan)
-	assertUpdate(t, actions[5], testClusterServiceClass)
+	assertUpdate(t, actions[2], testClusterServiceClass)
+	assertCreate(t, actions[3], testClusterServicePlan)
+	assertCreate(t, actions[4], testClusterServicePlanNonbindable)
+	assertUpdateStatus(t, actions[5], testRemovedClusterServicePlan)
 
 	updatedClusterServiceBroker := assertUpdateStatus(t, actions[6], getTestClusterServiceBroker())
 	assertClusterServiceBrokerReadyTrue(t, updatedClusterServiceBroker)
@@ -358,15 +358,7 @@ func TestReconcileClusterServiceBrokerExistingClusterServiceClassDifferentBroker
 	testClusterServiceClass := getTestClusterServiceClass()
 	testClusterServiceClass.Spec.ClusterServiceBrokerName = "notTheSame"
 
-	testClusterServicePlan := getTestClusterServicePlan()
-	testClusterServicePlan.Spec.ClusterServiceBrokerName = "notTheSame"
-
-	testClusterServicePlanNonbindable := getTestClusterServicePlanNonbindable()
-	testClusterServicePlanNonbindable.Spec.ClusterServiceBrokerName = "notTheSame"
-
 	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(testClusterServiceClass)
-	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(testClusterServicePlan)
-	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(testClusterServicePlanNonbindable)
 
 	if err := testController.reconcileClusterServiceBroker(getTestClusterServiceBroker()); err == nil {
 		t.Fatal("The same service class should not belong to two different brokers.")
@@ -386,6 +378,54 @@ func TestReconcileClusterServiceBrokerExistingClusterServiceClassDifferentBroker
 	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
 	updatedClusterServiceBroker := assertUpdateStatus(t, actions[2], getTestClusterServiceBroker())
+	assertClusterServiceBrokerReadyFalse(t, updatedClusterServiceBroker)
+
+	// verify no kube resources created
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 1)
+
+	expectedEvent := corev1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") (broker "test-broker"): ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") already exists for Broker "notTheSame"`
+	if e, a := expectedEvent, events[0]; e != a {
+		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
+	}
+}
+
+// TestReconcileClusterServiceBrokerExistingClusterServicePlanDifferentClass simulates catalog
+// refresh where broker lists a service plan which matches an existing, already
+// cataloged service plan but the plan points to a different ClusterServiceClass.  Results in an error.
+func TestReconcileClusterServiceBrokerExistingClusterServicePlanDifferentClass(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
+
+	testClusterServicePlan := getTestClusterServicePlan()
+	testClusterServicePlan.Spec.ClusterServiceBrokerName = "notTheSame"
+	testClusterServicePlan.Spec.ClusterServiceClassRef = v1beta1.ClusterObjectReference{
+		Name: "notTheSameClass",
+	}
+
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(testClusterServicePlan)
+
+	if err := testController.reconcileClusterServiceBroker(getTestClusterServiceBroker()); err == nil {
+		t.Fatal("The same service class should not belong to two different brokers.")
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	assertGetCatalog(t, brokerActions[0])
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 4)
+
+	listRestrictions := clientgotesting.ListRestrictions{
+		Labels: labels.Everything(),
+		Fields: fields.OneTermEqualSelector("spec.clusterServiceBrokerName", "test-broker"),
+	}
+	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
+	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
+	assertCreate(t, actions[2], getTestClusterServiceClass())
+	updatedClusterServiceBroker := assertUpdateStatus(t, actions[3], getTestClusterServiceBroker())
 	assertClusterServiceBrokerReadyFalse(t, updatedClusterServiceBroker)
 
 	// verify no kube resources created
@@ -512,7 +552,7 @@ func TestReconcileClusterServiceBrokerErrorFetchingCatalog(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorFetchingCatalogReason + " " + `ClusterServiceBroker "test-broker": Error getting broker catalog: ooops`
+	expectedEvent := corev1.EventTypeWarning + " " + errorFetchingCatalogReason + " " + "Error getting broker catalog: ooops"
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -558,7 +598,7 @@ func TestReconcileClusterServiceBrokerZeroServices(t *testing.T) {
 func TestReconcileClusterServiceBrokerWithAuth(t *testing.T) {
 	basicAuthInfo := &v1beta1.ServiceBrokerAuthInfo{
 		Basic: &v1beta1.BasicAuthConfig{
-			SecretRef: &v1.ObjectReference{
+			SecretRef: &v1beta1.ObjectReference{
 				Namespace: "test-ns",
 				Name:      "auth-secret",
 			},
@@ -566,19 +606,19 @@ func TestReconcileClusterServiceBrokerWithAuth(t *testing.T) {
 	}
 	bearerAuthInfo := &v1beta1.ServiceBrokerAuthInfo{
 		Bearer: &v1beta1.BearerTokenAuthConfig{
-			SecretRef: &v1.ObjectReference{
+			SecretRef: &v1beta1.ObjectReference{
 				Namespace: "test-ns",
 				Name:      "auth-secret",
 			},
 		},
 	}
-	basicAuthSecret := &v1.Secret{
+	basicAuthSecret := &corev1.Secret{
 		Data: map[string][]byte{
 			v1beta1.BasicAuthUsernameKey: []byte("foo"),
 			v1beta1.BasicAuthPasswordKey: []byte("bar"),
 		},
 	}
-	bearerAuthSecret := &v1.Secret{
+	bearerAuthSecret := &corev1.Secret{
 		Data: map[string][]byte{
 			v1beta1.BearerTokenKey: []byte("token"),
 		},
@@ -594,7 +634,7 @@ func TestReconcileClusterServiceBrokerWithAuth(t *testing.T) {
 	cases := []struct {
 		name          string
 		authInfo      *v1beta1.ServiceBrokerAuthInfo
-		secret        *v1.Secret
+		secret        *corev1.Secret
 		shouldSucceed bool
 	}{
 		{
@@ -643,7 +683,7 @@ func TestReconcileClusterServiceBrokerWithAuth(t *testing.T) {
 	}
 }
 
-func testReconcileClusterServiceBrokerWithAuth(t *testing.T, authInfo *v1beta1.ServiceBrokerAuthInfo, secret *v1.Secret, shouldSucceed bool) {
+func testReconcileClusterServiceBrokerWithAuth(t *testing.T, authInfo *v1beta1.ServiceBrokerAuthInfo, secret *corev1.Secret, shouldSucceed bool) {
 	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{})
 
 	broker := getTestClusterServiceBrokerWithAuth(authInfo)
@@ -709,10 +749,10 @@ func testReconcileClusterServiceBrokerWithAuth(t *testing.T, authInfo *v1beta1.S
 	if shouldSucceed {
 		expectedEvent = corev1.EventTypeNormal + " " + successFetchedCatalogReason + " " + successFetchedCatalogMessage
 	} else {
-		expectedEvent = corev1.EventTypeWarning + " " + errorAuthCredentialsReason + " " + `ClusterServiceBroker "test-broker": Error getting broker auth credentials`
+		expectedEvent = corev1.EventTypeWarning + " " + errorAuthCredentialsReason + " " + `Error getting broker auth credentials`
 	}
 	if e, a := expectedEvent, events[0]; !strings.HasPrefix(a, e) {
-		t.Fatalf("Received unexpected event: %v", a)
+		t.Fatalf("Received unexpected event,\nexpected:\t%s \ngot:\t%s", e, a)
 	}
 }
 
@@ -737,7 +777,7 @@ func TestReconcileClusterServiceBrokerWithReconcileError(t *testing.T) {
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 6)
+	assertNumberOfActions(t, actions, 4)
 
 	listRestrictions := clientgotesting.ListRestrictions{
 		Labels: labels.Everything(),
@@ -745,12 +785,10 @@ func TestReconcileClusterServiceBrokerWithReconcileError(t *testing.T) {
 	}
 	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
-	assertCreate(t, actions[2], getTestClusterServicePlan())
-	assertCreate(t, actions[3], getTestClusterServicePlanNonbindable())
 
 	// the two plans in the catalog as two separate actions
 
-	createSCAction := actions[4].(clientgotesting.CreateAction)
+	createSCAction := actions[2].(clientgotesting.CreateAction)
 	createdSC, ok := createSCAction.GetObject().(*v1beta1.ClusterServiceClass)
 	if !ok {
 		t.Fatalf("couldn't convert to a ClusterServiceClass: %+v", createSCAction.GetObject())
@@ -758,7 +796,7 @@ func TestReconcileClusterServiceBrokerWithReconcileError(t *testing.T) {
 	if e, a := getTestClusterServiceClass(), createdSC; !reflect.DeepEqual(e, a) {
 		t.Fatalf("unexpected diff for created ClusterServiceClass: %v,\n\nEXPECTED: %+v\n\nACTUAL:  %+v", diff.ObjectReflectDiff(e, a), e, a)
 	}
-	updatedClusterServiceBroker := assertUpdateStatus(t, actions[5], broker)
+	updatedClusterServiceBroker := assertUpdateStatus(t, actions[3], broker)
 	assertClusterServiceBrokerReadyFalse(t, updatedClusterServiceBroker)
 
 	kubeActions := fakeKubeClient.Actions()
@@ -807,9 +845,9 @@ func TestReconcileClusterServiceBrokerSuccessOnFinalRetry(t *testing.T) {
 
 	assertList(t, actions[1], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[2], &v1beta1.ClusterServicePlan{}, listRestrictions)
-	assertCreate(t, actions[3], getTestClusterServicePlan())
-	assertCreate(t, actions[4], getTestClusterServicePlanNonbindable())
-	assertCreate(t, actions[5], testClusterServiceClass)
+	assertCreate(t, actions[3], testClusterServiceClass)
+	assertCreate(t, actions[4], getTestClusterServicePlan())
+	assertCreate(t, actions[5], getTestClusterServicePlanNonbindable())
 
 	updatedClusterServiceBroker = assertUpdateStatus(t, actions[6], getTestClusterServiceBroker())
 	assertClusterServiceBrokerReadyTrue(t, updatedClusterServiceBroker)
@@ -904,9 +942,9 @@ func TestReconcileClusterServiceBrokerWithStatusUpdateError(t *testing.T) {
 
 	assertList(t, actions[0], &v1beta1.ClusterServiceClass{}, listRestrictions)
 	assertList(t, actions[1], &v1beta1.ClusterServicePlan{}, listRestrictions)
-	assertCreate(t, actions[2], getTestClusterServicePlan())
-	assertCreate(t, actions[3], getTestClusterServicePlanNonbindable())
-	assertCreate(t, actions[4], testClusterServiceClass)
+	assertCreate(t, actions[2], testClusterServiceClass)
+	assertCreate(t, actions[3], getTestClusterServicePlan())
+	assertCreate(t, actions[4], getTestClusterServicePlanNonbindable())
 
 	// 4 update action for broker status subresource
 	updatedClusterServiceBroker := assertUpdateStatus(t, actions[5], getTestClusterServiceBroker())
@@ -1048,6 +1086,105 @@ func TestUpdateServiceBrokerCondition(t *testing.T) {
 		}
 		if e, a := tc.message, outputCondition.Message; e != "" && e != a {
 			t.Errorf("%v: condition message didn't match; expected %v, got %v", tc.name, e, a)
+		}
+	}
+}
+
+func TestReconcileClusterServicePlanFromClusterServiceBrokerCatalog(t *testing.T) {
+	updatedPlan := func() *v1beta1.ClusterServicePlan {
+		p := getTestClusterServicePlan()
+		p.Spec.Description = "new-description"
+		p.Spec.ExternalName = "new-value"
+		p.Spec.Free = false
+		p.Spec.ExternalMetadata = &runtime.RawExtension{Raw: []byte(`{"field1": "value1"}`)}
+		p.Spec.ServiceInstanceCreateParameterSchema = &runtime.RawExtension{Raw: []byte(`{"field1": "value1"}`)}
+		p.Spec.ServiceInstanceUpdateParameterSchema = &runtime.RawExtension{Raw: []byte(`{"field1": "value1"}`)}
+		p.Spec.ServiceBindingCreateParameterSchema = &runtime.RawExtension{Raw: []byte(`{"field1": "value1"}`)}
+
+		return p
+	}
+
+	cases := []struct {
+		name                    string
+		newServicePlan          *v1beta1.ClusterServicePlan
+		existingServicePlan     *v1beta1.ClusterServicePlan
+		listerServicePlan       *v1beta1.ClusterServicePlan
+		shouldError             bool
+		errText                 *string
+		catalogClientPrepFunc   func(*fake.Clientset)
+		catalogActionsCheckFunc func(t *testing.T, name string, actions []clientgotesting.Action)
+	}{
+		{
+			name:           "new plan",
+			newServicePlan: getTestClusterServicePlan(),
+			shouldError:    false,
+			catalogActionsCheckFunc: func(t *testing.T, name string, actions []clientgotesting.Action) {
+				expectNumberOfActions(t, name, actions, 1)
+				expectCreate(t, name, actions[0], getTestClusterServicePlan())
+			},
+		},
+		{
+			name:                "exists, but for a different broker",
+			newServicePlan:      getTestClusterServicePlan(),
+			existingServicePlan: getTestClusterServicePlan(),
+			listerServicePlan: func() *v1beta1.ClusterServicePlan {
+				p := getTestClusterServicePlan()
+				p.Spec.ClusterServiceBrokerName = "something-else"
+				return p
+			}(),
+			shouldError: true,
+			errText:     strPtr(`ClusterServiceBroker "test-broker": ClusterServicePlan "test-plan" already exists for Broker "something-else"`),
+		},
+		{
+			name:                "plan update",
+			newServicePlan:      updatedPlan(),
+			existingServicePlan: getTestClusterServicePlan(),
+			shouldError:         false,
+			catalogActionsCheckFunc: func(t *testing.T, name string, actions []clientgotesting.Action) {
+				expectNumberOfActions(t, name, actions, 1)
+				expectUpdate(t, name, actions[0], updatedPlan())
+			},
+		},
+		{
+			name:                "plan update - failure",
+			newServicePlan:      updatedPlan(),
+			existingServicePlan: getTestClusterServicePlan(),
+			catalogClientPrepFunc: func(client *fake.Clientset) {
+				client.AddReactor("update", "clusterserviceplans", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+					return true, nil, errors.New("oops")
+				})
+			},
+			shouldError: true,
+			errText:     strPtr("oops"),
+		},
+	}
+
+	broker := getTestClusterServiceBroker()
+
+	for _, tc := range cases {
+		_, fakeCatalogClient, _, testController, sharedInformers := newTestController(t, noFakeActions())
+		if tc.catalogClientPrepFunc != nil {
+			tc.catalogClientPrepFunc(fakeCatalogClient)
+		}
+
+		if tc.listerServicePlan != nil {
+			sharedInformers.ClusterServicePlans().Informer().GetStore().Add(tc.listerServicePlan)
+		}
+
+		err := testController.reconcileClusterServicePlanFromClusterServiceBrokerCatalog(broker, tc.newServicePlan, tc.existingServicePlan)
+		if err != nil {
+			if !tc.shouldError {
+				t.Errorf("%v: unexpected error from method under test: %v", tc.name, err)
+				continue
+			} else if tc.errText != nil && *tc.errText != err.Error() {
+				t.Errorf("%v: unexpected error text from method under test; expected %v, got %v", tc.name, tc.errText, err.Error())
+				continue
+			}
+		}
+
+		if tc.catalogActionsCheckFunc != nil {
+			actions := fakeCatalogClient.Actions()
+			tc.catalogActionsCheckFunc(t, tc.name, actions)
 		}
 	}
 }

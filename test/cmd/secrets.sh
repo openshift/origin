@@ -85,6 +85,19 @@ os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull'
 os::cmd::expect_success 'oc secrets add deployer basicauth sshauth --for=pull,mount'
 
 # attach secrets to service account
+# test that those secrets can be unlinked
+# after they have been deleted.
+os::cmd::expect_success 'oc create secret generic deleted-secret'
+os::cmd::expect_success 'oc secrets link deployer deleted-secret'
+# confirm our soon-to-be-deleted secret has been linked
+os::cmd::expect_success_and_text "oc get serviceaccount deployer -o jsonpath='{.secrets[?(@.name==\"deleted-secret\")]}'" 'deleted\-secret'
+# delete "deleted-secret" and attempt to unlink from service account
+os::cmd::expect_success 'oc delete secret deleted-secret'
+os::cmd::expect_failure_and_text 'oc secrets unlink deployer secrets/deleted-secret' 'Unlinked deleted secrets'
+# ensure already-deleted secret has been unlinked
+os::cmd::expect_success_and_not_text "oc get serviceaccount deployer -o jsonpath='{.secrets[?(@.name==\"deleted-secret\")]}'" 'deleted\-secret'
+
+# attach secrets to service account
 # single secret with prefix
 os::cmd::expect_success 'oc secrets link deployer basicauth'
 # don't add the same secret twice

@@ -26,11 +26,11 @@ runTests() {
   kube::etcd::start
 
   go test -race -i github.com/kubernetes-incubator/service-catalog/test/integration/... -c \
-      && ./integration.test -test.v
+      && ./integration.test -test.v $@
 }
 
 # Run cleanup to stop etcd on interrupt or other kill signal.
 trap kube::etcd::cleanup EXIT
 
-runTests
+runTests $@
 

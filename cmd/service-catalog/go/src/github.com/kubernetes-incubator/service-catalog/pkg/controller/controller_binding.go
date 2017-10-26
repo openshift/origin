@@ -121,19 +121,19 @@ func isServiceBindingFailed(binding *v1beta1.ServiceBinding) bool {
 	return false
 }
 
-// setAndUpdateOrphanMitigation is for setting the OrphanMitigationInProgress
-// status to true, setting the proper condition statuses, and persisting the
-// changes via updateServiceBindingStatus.
-func (c *controller) setAndUpdateOrphanMitigation(binding *v1beta1.ServiceBinding, toUpdate *v1beta1.ServiceBinding, instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, brokerName string, errorStr string) error {
+// setAndUpdateServiceBindingStartOrphanMitigation is for setting the
+// OrphanMitigationInProgress status to true, setting the proper condition
+// statuses, and persisting the changes via updateServiceBindingStatus.
+func (c *controller) setAndUpdateServiceBindingStartOrphanMitigation(toUpdate *v1beta1.ServiceBinding) error {
 	s := fmt.Sprintf(
 		`%s "%s/%s": Starting orphan mitgation`,
-		typeSB, binding.Name, binding.Namespace,
+		typeSB, toUpdate.Name, toUpdate.Namespace,
 	)
 	toUpdate.Status.OrphanMitigationInProgress = true
 	toUpdate.Status.OperationStartTime = nil
 	glog.V(5).Info(s)
 
-	c.setServiceBindingCondition(
+	setServiceBindingCondition(
 		toUpdate,
 		v1beta1.ServiceBindingConditionReady,
 		v1beta1.ConditionFalse,
@@ -141,7 +141,7 @@ func (c *controller) setAndUpdateOrphanMitigation(binding *v1beta1.ServiceBindin
 		s,
 	)
 
-	c.recorder.Event(binding, corev1.EventTypeWarning, errorServiceBindingOrphanMitigation, s)
+	c.recorder.Event(toUpdate, corev1.EventTypeWarning, errorServiceBindingOrphanMitigation, s)
 	if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			typeSB, binding.Namespace, binding.Name, s, err,
 		)
 		c.recorder.Event(binding, corev1.EventTypeWarning, errorNonexistentServiceInstanceReason, s)
-		c.setServiceBindingCondition(
+		setServiceBindingCondition(
 			toUpdate,
 			v1beta1.ServiceBindingConditionReady,
 			v1beta1.ConditionFalse,
@@ -217,7 +217,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		)
 		glog.Info(s)
 		c.recorder.Event(binding, corev1.EventTypeWarning, errorWithOngoingAsyncOperation, s)
-		c.setServiceBindingCondition(
+		setServiceBindingCondition(
 			toUpdate,
 			v1beta1.ServiceBindingConditionReady,
 			v1beta1.ConditionFalse,
@@ -243,14 +243,14 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 	if !isPlanBindable(serviceClass, servicePlan) {
 		s := fmt.Sprintf(
 			`References a non-bindable ClusterServiceClass (K8S: %q ExternalName: %q) and Plan (%q) combination`,
-			serviceClass.Name, serviceClass.Spec.ExternalName, instance.Spec.ExternalClusterServicePlanName,
+			serviceClass.Name, serviceClass.Spec.ExternalName, instance.Spec.ClusterServicePlanExternalName,
 		)
 		glog.Warningf(
 			`%s "%s/%s": %s`,
 			typeSB, binding.Namespace, binding.Name, s,
 		)
 		c.recorder.Event(binding, corev1.EventTypeWarning, errorNonbindableClusterServiceClassReason, s)
-		c.setServiceBindingCondition(
+		setServiceBindingCondition(
 			toUpdate,
 			v1beta1.ServiceBindingConditionReady,
 			v1beta1.ConditionFalse,
@@ -269,15 +269,15 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			typeSB, binding.Namespace, binding.Name,
 		)
 
-		ns, err := c.kubeClient.Core().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
+		ns, err := c.kubeClient.CoreV1().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
 		if err != nil {
 			s := fmt.Sprintf(`Failed to get namespace %q during binding: %s`, instance.Namespace, err)
 			glog.Infof(
-				`%s "%s/%s": `,
+				`%s "%s/%s": %s`,
 				typeSB, binding.Namespace, binding.Name, s,
 			)
 			c.recorder.Eventf(binding, corev1.EventTypeWarning, errorFindingNamespaceServiceInstanceReason, s)
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionFalse,
@@ -300,7 +300,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				typeSB, binding.Namespace, binding.Name, s,
 			)
 			c.recorder.Eventf(binding, corev1.EventTypeWarning, errorServiceInstanceNotReadyReason, s)
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionFalse,
@@ -331,7 +331,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorWithParameters, s)
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionReady,
 					v1beta1.ConditionFalse,
@@ -352,7 +352,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Eventf(binding, corev1.EventTypeWarning, errorWithParameters, s)
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionReady,
 					v1beta1.ConditionFalse,
@@ -372,7 +372,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Eventf(binding, corev1.EventTypeWarning, errorWithParameters, s)
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionReady,
 					v1beta1.ConditionFalse,
@@ -415,7 +415,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorWithOriginatingIdentity, s)
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionReady,
 					v1beta1.ConditionFalse,
@@ -442,28 +442,28 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		response, err := brokerClient.Bind(request)
 		// orphan mitigation: looking for timeout
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionFailed,
 				v1beta1.ConditionTrue,
 				errorBindCallReason,
 				"Communication with the ServiceBroker timed out; Bind operation will not be retried: "+err.Error(),
 			)
-			return c.setAndUpdateOrphanMitigation(binding, toUpdate, instance, serviceClass, brokerName, netErr.Error())
+			return c.setAndUpdateServiceBindingStartOrphanMitigation(toUpdate)
 		} else if err != nil {
 			if httpErr, ok := osb.IsHTTPError(err); ok {
 				// orphan mitigation: looking for 2xx (excluding 200), 408, 5xx
 				if httpErr.StatusCode > 200 && httpErr.StatusCode < 300 ||
 					httpErr.StatusCode == http.StatusRequestTimeout ||
 					httpErr.StatusCode >= 500 && httpErr.StatusCode < 600 {
-					c.setServiceBindingCondition(
+					setServiceBindingCondition(
 						toUpdate,
 						v1beta1.ServiceBindingConditionFailed,
 						v1beta1.ConditionTrue,
 						errorBindCallReason,
 						"ServiceBroker returned a failure; Bind operation will not be retried: "+err.Error(),
 					)
-					return c.setAndUpdateOrphanMitigation(binding, toUpdate, instance, serviceClass, brokerName, httpErr.Error())
+					return c.setAndUpdateServiceBindingStartOrphanMitigation(toUpdate)
 				}
 				s := fmt.Sprintf(
 					`Error creating ServiceBinding for ServiceInstance "%s/%s" of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q: %v`,
@@ -474,14 +474,14 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorBindCallReason, s)
 
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionFailed,
 					v1beta1.ConditionTrue,
 					"ServiceBindingReturnedFailure",
 					s,
 				)
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionReady,
 					v1beta1.ConditionFalse,
@@ -503,7 +503,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				typeSB, binding.Name, binding.Namespace, s,
 			)
 			c.recorder.Event(binding, corev1.EventTypeWarning, errorBindCallReason, s)
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionFalse,
@@ -517,7 +517,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-				c.setServiceBindingCondition(toUpdate,
+				setServiceBindingCondition(toUpdate,
 					v1beta1.ServiceBindingConditionFailed,
 					v1beta1.ConditionTrue,
 					errorReconciliationRetryTimeoutReason,
@@ -553,7 +553,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				typeSB, binding.Namespace, binding.Name, s,
 			)
 			c.recorder.Event(binding, corev1.EventTypeWarning, errorInjectingBindResultReason, s)
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionFalse,
@@ -568,12 +568,12 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				)
 				glog.Info(s)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-				c.setServiceBindingCondition(toUpdate,
+				setServiceBindingCondition(toUpdate,
 					v1beta1.ServiceBindingConditionFailed,
 					v1beta1.ConditionTrue,
 					errorReconciliationRetryTimeoutReason,
 					s)
-				return c.setAndUpdateOrphanMitigation(binding, toUpdate, instance, serviceClass, brokerName, "too much time has elapsed")
+				return c.setAndUpdateServiceBindingStartOrphanMitigation(toUpdate)
 			}
 
 			if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
@@ -586,7 +586,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 
 		c.clearServiceBindingCurrentOperation(toUpdate)
 
-		c.setServiceBindingCondition(
+		setServiceBindingCondition(
 			toUpdate,
 			v1beta1.ServiceBindingConditionReady,
 			v1beta1.ConditionTrue,
@@ -620,7 +620,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				typeSB, binding.Namespace, binding.Name, s,
 			)
 			c.recorder.Eventf(binding, corev1.EventTypeWarning, errorEjectingBindReason, "%v %v", errorEjectingBindMessage, s)
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionUnknown,
@@ -649,7 +649,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorWithOriginatingIdentity, s)
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionReady,
 					v1beta1.ConditionFalse,
@@ -688,14 +688,14 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorUnbindCallReason, s)
-				c.setServiceBindingCondition(
+				setServiceBindingCondition(
 					toUpdate,
 					v1beta1.ServiceBindingConditionReady,
 					v1beta1.ConditionUnknown,
 					errorUnbindCallReason,
 					"Unbind call failed. "+s)
 				if !toUpdate.Status.OrphanMitigationInProgress {
-					c.setServiceBindingCondition(
+					setServiceBindingCondition(
 						toUpdate,
 						v1beta1.ServiceBindingConditionFailed,
 						v1beta1.ConditionTrue,
@@ -717,7 +717,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				typeSB, binding.Namespace, binding.Name, s,
 			)
 			c.recorder.Event(binding, corev1.EventTypeWarning, errorUnbindCallReason, s)
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionUnknown,
@@ -731,7 +731,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					typeSB, binding.Namespace, binding.Name, s,
 				)
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-				c.setServiceBindingCondition(toUpdate,
+				setServiceBindingCondition(toUpdate,
 					v1beta1.ServiceBindingConditionFailed,
 					v1beta1.ConditionTrue,
 					errorReconciliationRetryTimeoutReason,
@@ -750,7 +750,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 						typeSB, binding.Namespace, binding.Name, s,
 					)
 					c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-					c.setServiceBindingCondition(toUpdate,
+					setServiceBindingCondition(toUpdate,
 						v1beta1.ServiceBindingConditionFailed,
 						v1beta1.ConditionTrue,
 						errorReconciliationRetryTimeoutReason,
@@ -774,14 +774,14 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				`%s "%s/%s": Orphan mitigation successful`,
 				typeSB, binding.Namespace, binding.Name,
 			)
-			c.setServiceBindingCondition(toUpdate,
+			setServiceBindingCondition(toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionFalse,
 				successOrphanMitigationReason,
 				s)
 		} else {
 			s := "The binding was deleted successfully"
-			c.setServiceBindingCondition(
+			setServiceBindingCondition(
 				toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionFalse,
@@ -839,12 +839,12 @@ func (c *controller) injectServiceBinding(binding *v1beta1.ServiceBinding, crede
 	}
 
 	// Creating/updating the Secret
-	secretClient := c.kubeClient.Core().Secrets(binding.Namespace)
+	secretClient := c.kubeClient.CoreV1().Secrets(binding.Namespace)
 	existingSecret, err := secretClient.Get(binding.Spec.SecretName, metav1.GetOptions{})
 	if err == nil {
 		// Update existing secret
-		if !IsControlledBy(existingSecret, binding) {
-			controllerRef := GetControllerOf(existingSecret)
+		if !metav1.IsControlledBy(existingSecret, binding) {
+			controllerRef := metav1.GetControllerOf(existingSecret)
 			return fmt.Errorf(`Secret "%s/%s" is not owned by ServiceBinding, controllerRef: %v`, binding.Namespace, existingSecret.Name, controllerRef)
 		}
 		existingSecret.Data = secretData
@@ -869,7 +869,7 @@ func (c *controller) injectServiceBinding(binding *v1beta1.ServiceBinding, crede
 				Name:      binding.Spec.SecretName,
 				Namespace: binding.Namespace,
 				OwnerReferences: []metav1.OwnerReference{
-					*NewControllerRef(binding, bindingControllerKind),
+					*metav1.NewControllerRef(binding, bindingControllerKind),
 				},
 			},
 			Data: secretData,
@@ -896,7 +896,7 @@ func (c *controller) ejectServiceBinding(binding *v1beta1.ServiceBinding) error 
 		`%s "%s/%s": Deleting Secret "%s/%s"`,
 		typeSB, binding.Namespace, binding.Name, binding.Namespace, binding.Spec.SecretName,
 	)
-	err = c.kubeClient.Core().Secrets(binding.Namespace).Delete(binding.Spec.SecretName, &metav1.DeleteOptions{})
+	err = c.kubeClient.CoreV1().Secrets(binding.Namespace).Delete(binding.Spec.SecretName, &metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -913,7 +913,7 @@ func (c *controller) ejectServiceBinding(binding *v1beta1.ServiceBinding) error 
 //
 // Note: objects coming from informers should never be mutated; always pass a
 // deep copy as the binding parameter.
-func (c *controller) setServiceBindingCondition(toUpdate *v1beta1.ServiceBinding,
+func setServiceBindingCondition(toUpdate *v1beta1.ServiceBinding,
 	conditionType v1beta1.ServiceBindingConditionType,
 	status v1beta1.ConditionStatus,
 	reason, message string) {
@@ -1005,7 +1005,7 @@ func (c *controller) updateServiceBindingCondition(
 		return err
 	}
 
-	c.setServiceBindingCondition(toUpdate, conditionType, status, reason, message)
+	setServiceBindingCondition(toUpdate, conditionType, status, reason, message)
 
 	glog.V(4).Infof(
 		`%s "%s/%s": Updating %v condition to %v (Reason: %q, Message: %q)`,
@@ -1056,7 +1056,7 @@ func (c *controller) recordStartOfServiceBindingOperation(toUpdate *v1beta1.Serv
 		reason = unbindingInFlightReason
 		message = unbindingInFlightMessage
 	}
-	c.setServiceBindingCondition(
+	setServiceBindingCondition(
 		toUpdate,
 		v1beta1.ServiceBindingConditionReady,
 		v1beta1.ConditionFalse,

@@ -113,6 +113,7 @@ const (
 	DeploymentCancelledNewerDeploymentExists  = "newer deployment was found running"
 	DeploymentFailedUnrelatedDeploymentExists = "unrelated pod with the same name as this deployment is already running"
 	DeploymentFailedDeployerPodNoLongerExists = "deployer pod no longer exists"
+	DeploymentFailedUnableToCreateDeployerPod = "unable to create deployer pod"
 )
 
 // DeploymentStatus describes the possible states a deployment can be in.

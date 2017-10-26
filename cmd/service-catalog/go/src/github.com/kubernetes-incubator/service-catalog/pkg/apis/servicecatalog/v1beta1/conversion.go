@@ -49,3 +49,15 @@ func ClusterServiceClassFieldLabelConversionFunc(label, value string) (string, s
 		return "", "", fmt.Errorf("field label not supported: %s", label)
 	}
 }
+
+// ServiceInstanceFieldLabelConversionFunc does not convert anything, just returns
+// what it's given for the supported fields, and errors for unsupported.
+func ServiceInstanceFieldLabelConversionFunc(label, value string) (string, string, error) {
+	switch label {
+	case "spec.clusterServiceClassRef.name",
+		"spec.clusterServicePlanRef.name":
+		return label, value, nil
+	default:
+		return "", "", fmt.Errorf("field label not supported: %s", label)
+	}
+}

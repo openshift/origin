@@ -141,8 +141,7 @@ image_config = {
         "directory": "service-catalog",
         "vendor_dir": "cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog",
         "binaries": {
-            "controller-manager": "/usr/bin/controller-manager",
-            "apiserver": "/usr/bin/apiserver",
+            "service-catalog": "/usr/bin/service-catalog",
         },
         "files": {},
         "enable_default": False,

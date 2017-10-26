@@ -130,6 +130,38 @@ func TestClusterServiceClassFieldLabelConversionFunc(t *testing.T) {
 
 }
 
+func TestServiceInstanceFieldLabelConversionFunc(t *testing.T) {
+	cases := []testcase{
+		{
+			name:     "spec.clusterServiceClassRef.name works",
+			inLabel:  "spec.clusterServiceClassRef.name",
+			inValue:  "someref",
+			outLabel: "spec.clusterServiceClassRef.name",
+			outValue: "someref",
+			success:  true,
+		},
+		{
+			name:     "spec.clusterServicePlanRef.name works",
+			inLabel:  "spec.clusterServicePlanRef.name",
+			inValue:  "someref",
+			outLabel: "spec.clusterServicePlanRef.name",
+			outValue: "someref",
+			success:  true,
+		},
+		{
+			name:          "random fails",
+			inLabel:       "spec.random",
+			inValue:       "randomvalue",
+			outLabel:      "",
+			outValue:      "",
+			success:       false,
+			expectedError: "field label not supported: spec.random",
+		},
+	}
+	runTestCases(t, cases, "ServiceInstanceFieldLabelConversionFunc", ServiceInstanceFieldLabelConversionFunc)
+
+}
+
 func runTestCases(t *testing.T, cases []testcase, testFuncName string, testFunc conversionFunc) {
 	for _, tc := range cases {
 		outLabel, outValue, err := testFunc(tc.inLabel, tc.inValue)

@@ -31,13 +31,13 @@ func Get() apimachineryversion.Info {
 	return apimachineryversion.Info{
 		Major: "", // deprecated
 		Minor: "", // deprecated
-		// TODO: we need to update these values when building a release.
-		// GitVersion:   "",
-		// GitCommit:    "",
-		// GitTreeState: "",
-		// BuildDate:    "1970-01-01T00:00:00Z",
-		GoVersion: runtime.Version(),
-		Compiler:  runtime.Compiler,
-		Platform:  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		// The following four are filled in by the Makefile
+		GitVersion:   gitVersion,
+		GitCommit:    gitCommit,
+		GitTreeState: gitTreeState,
+		BuildDate:    buildDate,
+		GoVersion:    runtime.Version(),
+		Compiler:     runtime.Compiler,
+		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 	}
 }

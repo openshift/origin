@@ -79,7 +79,7 @@ func TestPullthroughManifests(t *testing.T) {
 	}
 
 	ms1dgst, ms1canonical, _, ms1manifest, err := registrytest.CreateAndUploadTestManifest(
-		registrytest.ManifestSchema1, 2, serverURL, nil, repoName, "schema1")
+		backgroundCtx, registrytest.ManifestSchema1, 2, serverURL, nil, repoName, "schema1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 	}
 
 	ms1dgst, ms1canonical, _, ms1manifest, err := registrytest.CreateAndUploadTestManifest(
-		registrytest.ManifestSchema1, 2, serverURL, nil, repoName, "schema1")
+		backgroundCtx, registrytest.ManifestSchema1, 2, serverURL, nil, repoName, "schema1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 	}
 	t.Logf("ms1dgst=%s, ms1manifest: %s", ms1dgst, ms1canonical)
 	ms2dgst, ms2canonical, ms2config, ms2manifest, err := registrytest.CreateAndUploadTestManifest(
-		registrytest.ManifestSchema2, 2, serverURL, nil, repoName, "schema2")
+		backgroundCtx, registrytest.ManifestSchema2, 2, serverURL, nil, repoName, "schema2")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -357,59 +357,59 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 			},
 		},
 	} {
-		fos, imageClient := registrytest.NewFakeOpenShiftWithClient(backgroundCtx)
+		t.Run(tc.name, func(t *testing.T) {
+			fos, imageClient := registrytest.NewFakeOpenShiftWithClient(backgroundCtx)
 
-		tc.fakeOpenShiftInit(fos)
+			tc.fakeOpenShiftInit(fos)
 
-		localManifestService := newTestManifestService(repoName, tc.localData)
+			localManifestService := newTestManifestService(repoName, tc.localData)
 
-		ctx := WithTestPassthroughToUpstream(backgroundCtx, false)
-		repo := newTestRepository(ctx, t, namespace, repo, testRepositoryOptions{
-			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
-			enablePullThrough: true,
-		})
-		ctx = withRepository(ctx, repo)
+			ctx := WithTestPassthroughToUpstream(backgroundCtx, false)
+			repo := newTestRepository(ctx, t, namespace, repo, testRepositoryOptions{
+				client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
+				enablePullThrough: true,
+			})
+			ctx = withRepository(ctx, repo)
 
-		ptms := &pullthroughManifestService{
-			ManifestService: localManifestService,
-			repo:            repo,
-		}
-
-		manifestResult, err := ptms.Get(ctx, tc.manifestDigest)
-		switch err.(type) {
-		case nil:
-			if len(tc.expectedErrorString) > 0 {
-				t.Errorf("[%s] unexpected successful response", tc.name)
-				continue
+			ptms := &pullthroughManifestService{
+				ManifestService: localManifestService,
+				repo:            repo,
 			}
-		default:
-			if len(tc.expectedErrorString) > 0 {
-				if !strings.Contains(err.Error(), tc.expectedErrorString) {
-					t.Fatalf("expected error string %q, got instead: %s (%#+v)", tc.expectedErrorString, err.Error(), err)
+
+			manifestResult, err := ptms.Get(ctx, tc.manifestDigest)
+			switch err.(type) {
+			case nil:
+				if len(tc.expectedErrorString) > 0 {
+					t.Fatalf("unexpected successful response")
 				}
-				break
+			default:
+				if len(tc.expectedErrorString) > 0 {
+					if !strings.Contains(err.Error(), tc.expectedErrorString) {
+						t.Fatalf("expected error string %q, got instead: %s (%#+v)", tc.expectedErrorString, err.Error(), err)
+					}
+					break
+				}
+				t.Fatalf("unexpected error: %#+v (%s)", err, err.Error())
 			}
-			t.Fatalf("[%s] unexpected error: %#+v (%s)", tc.name, err, err.Error())
-		}
 
-		if tc.localData != nil {
-			if manifestResult != nil && manifestResult != tc.localData[tc.manifestDigest] {
-				t.Errorf("[%s] unexpected result returned", tc.name)
-				continue
+			if tc.localData != nil {
+				if manifestResult != nil && manifestResult != tc.localData[tc.manifestDigest] {
+					t.Fatalf("unexpected result returned")
+				}
 			}
-		}
 
-		registrytest.AssertManifestsEqual(t, tc.name, manifestResult, tc.expectedManifest)
+			registrytest.AssertManifestsEqual(t, tc.name, manifestResult, tc.expectedManifest)
 
-		for name, count := range localManifestService.calls {
-			expectCount, exists := tc.expectedLocalCalls[name]
-			if !exists {
-				t.Errorf("[%s] expected no calls to method %s of local manifest service, got %d", tc.name, name, count)
+			for name, count := range localManifestService.calls {
+				expectCount, exists := tc.expectedLocalCalls[name]
+				if !exists {
+					t.Errorf("expected no calls to method %s of local manifest service, got %d", name, count)
+				}
+				if count != expectCount {
+					t.Errorf("unexpected number of calls to method %s of local manifest service, got %d", name, count)
+				}
 			}
-			if count != expectCount {
-				t.Errorf("[%s] unexpected number of calls to method %s of local manifest service, got %d", tc.name, name, count)
-			}
-		}
+		})
 	}
 }
 

@@ -305,8 +305,7 @@ install -p -m 755 cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cl
 ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
 
 # Install service-catalog
-install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/apiserver %{buildroot}%{_bindir}/
-install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/controller-manager %{buildroot}%{_bindir}/
+install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/service-catalog %{buildroot}%{_bindir}/
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -405,7 +404,7 @@ chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
 
 # Install docker-excluder script
 sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-template > $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
-sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.13* docker*1.14* docker*1.15* docker*1.16* docker*1.17* docker*1.18* docker*1.19* docker*1.20*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
+sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.14* docker*1.15* docker*1.16* docker*1.17* docker*1.18* docker*1.19* docker*1.20*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 
 # Install migration scripts
@@ -555,8 +554,7 @@ if [ -d %{kube_plugin_path} ]; then
 fi
 
 %files service-catalog
-%{_bindir}/apiserver
-%{_bindir}/controller-manager
+%{_bindir}/service-catalog
 
 %files -n tuned-profiles-%{name}-node
 %license LICENSE

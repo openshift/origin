@@ -87,7 +87,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		t.Fatalf("error parsing server url: %v", err)
 	}
 
-	desc, _, err := registrytest.UploadRandomTestBlob(serverURL, nil, "user/app")
+	desc, _, err := registrytest.UploadRandomTestBlob(ctx, serverURL, nil, "user/app")
 	if err != nil {
 		t.Fatal(err)
 	}

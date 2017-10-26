@@ -31,15 +31,15 @@ import (
 )
 
 // RunServer runs an API server with configuration according to opts
-func RunServer(opts *ServiceCatalogServerOptions) error {
+func RunServer(opts *ServiceCatalogServerOptions, stopCh <-chan struct{}) error {
 	storageType, err := opts.StorageType()
 	if err != nil {
 		return err
 	}
-	if opts.StopCh == nil {
+	if stopCh == nil {
 		/* the caller of RunServer should generate the stop channel
 		if there is a need to stop the API server */
-		opts.StopCh = make(chan struct{})
+		stopCh = make(chan struct{})
 	}
 
 	err = opts.Validate()
@@ -48,13 +48,13 @@ func RunServer(opts *ServiceCatalogServerOptions) error {
 	}
 
 	if storageType == server.StorageTypeEtcd {
-		return runEtcdServer(opts)
+		return runEtcdServer(opts, stopCh)
 	}
 	// This should never happen, catch for potential bugs
 	panic("Unexpected storage type: " + storageType)
 }
 
-func runEtcdServer(opts *ServiceCatalogServerOptions) error {
+func runEtcdServer(opts *ServiceCatalogServerOptions, stopCh <-chan struct{}) error {
 	etcdOpts := opts.EtcdOptions
 	glog.V(4).Infoln("Preparing to run API server")
 	genericConfig, scConfig, err := buildGenericConfig(opts)
@@ -105,7 +105,7 @@ func runEtcdServer(opts *ServiceCatalogServerOptions) error {
 	if err != nil {
 		return fmt.Errorf("error completing API server configuration: %v", err)
 	}
-	addPostStartHooks(server.GenericAPIServer, scConfig, opts.StopCh)
+	addPostStartHooks(server.GenericAPIServer, scConfig, stopCh)
 
 	// Install healthz checks before calling PrepareRun.
 	etcdChecker := checkEtcdConnectable{
@@ -117,7 +117,7 @@ func runEtcdServer(opts *ServiceCatalogServerOptions) error {
 
 	// do we need to do any post api installation setup? We should have set up the api already?
 	glog.Infoln("Running the API server")
-	server.PrepareRun().Run(opts.StopCh)
+	server.PrepareRun().Run(stopCh)
 
 	return nil
 }

@@ -22,65 +22,107 @@ import (
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
-// UploadBlob uploads a blob with payload to the registry server located at
-// serverURL.
-func UploadBlob(
-	payload []byte,
-	serverURL *url.URL,
-	creds auth.CredentialStore,
-	repoName string,
-) (distribution.Descriptor, error) {
-	// TODO(dmage): get the context from the caller
-	ctx := context.Background()
+func NewTransport(baseURL string, repoName string, creds auth.CredentialStore) (http.RoundTripper, error) {
+	if creds == nil {
+		return nil, nil
+	}
 
+	challengeManager := challenge.NewSimpleManager()
+
+	_, err := ping(challengeManager, baseURL+"/v2/", "")
+	if err != nil {
+		return nil, err
+	}
+
+	return transport.NewTransport(
+		nil,
+		auth.NewAuthorizer(
+			challengeManager,
+			auth.NewTokenHandler(nil, creds, repoName, "pull", "push"),
+			auth.NewBasicHandler(creds),
+		),
+	), nil
+}
+
+// NewRepository creates a new Repository for the given repository name, base URL and creds.
+func NewRepository(ctx context.Context, repoName string, baseURL string, transport http.RoundTripper) (distribution.Repository, error) {
 	ref, err := reference.ParseNamed(repoName)
 	if err != nil {
-		return distribution.Descriptor{}, err
+		return nil, err
 	}
 
-	var rt http.RoundTripper
-	if creds != nil {
-		challengeManager := challenge.NewSimpleManager()
-		_, err := ping(challengeManager, serverURL.String()+"/v2/", "")
-		if err != nil {
-			return distribution.Descriptor{}, err
-		}
-		rt = transport.NewTransport(
-			nil,
-			auth.NewAuthorizer(
-				challengeManager,
-				auth.NewTokenHandler(nil, creds, repoName, "pull", "push"),
-				auth.NewBasicHandler(creds)))
-	}
+	return distclient.NewRepository(ctx, ref, baseURL, transport)
+}
 
-	repo, err := distclient.NewRepository(ctx, ref, serverURL.String(), rt)
-	if err != nil {
-		return distribution.Descriptor{}, fmt.Errorf("failed to get repository %q: %v", repoName, err)
-	}
-
+// UploadBlob uploads the blob with content to repo and verifies its digest.
+func UploadBlob(ctx context.Context, repo distribution.Repository, desc distribution.Descriptor, content []byte) error {
 	wr, err := repo.Blobs(ctx).Create(ctx)
 	if err != nil {
-		return distribution.Descriptor{}, err
+		return fmt.Errorf("failed to create upload to %s: %v", repo.Named(), err)
 	}
 
-	_, err = io.Copy(wr, bytes.NewReader(payload))
+	_, err = io.Copy(wr, bytes.NewReader(content))
 	if err != nil {
-		return distribution.Descriptor{}, fmt.Errorf("unexpected error copying to upload: %v", err)
+		return fmt.Errorf("error uploading blob to %s: %v", repo.Named(), err)
 	}
 
-	return wr.Commit(ctx, distribution.Descriptor{
-		Digest: digest.FromBytes(payload),
+	uploadDesc, err := wr.Commit(ctx, distribution.Descriptor{
+		Digest: digest.FromBytes(content),
 	})
+	if err != nil {
+		return fmt.Errorf("failed to complete upload to %s: %v", repo.Named(), err)
+	}
+
+	// uploadDesc is checked here and is not returned, because it has invalid MediaType.
+	if uploadDesc.Digest != desc.Digest {
+		return fmt.Errorf("upload blob to %s failed: digest mismatch: got %s, want %s", repo.Named(), uploadDesc.Digest, desc.Digest)
+	}
+
+	return nil
+}
+
+// UploadManifest uploads manifest to repo and verifies its digest.
+func UploadManifest(ctx context.Context, repo distribution.Repository, tag string, manifest distribution.Manifest) error {
+	canonical, err := CanonicalManifest(manifest)
+	if err != nil {
+		return err
+	}
+
+	ms, err := repo.Manifests(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get manifest service for %s: %v", repo.Named(), err)
+	}
+
+	dgst, err := ms.Put(ctx, manifest, distribution.WithTag(tag))
+	if err != nil {
+		return fmt.Errorf("failed to upload manifest to %s: %v", repo.Named(), err)
+	}
+
+	if expectedDgst := digest.FromBytes(canonical); dgst != expectedDgst {
+		return fmt.Errorf("upload manifest to %s failed: digest mismatch: got %s, want %s", repo.Named(), dgst, expectedDgst)
+	}
+
+	return nil
 }
 
 // UploadRandomTestBlob generates a random tar file and uploads it to the given repository.
-func UploadRandomTestBlob(serverURL *url.URL, creds auth.CredentialStore, repoName string) (distribution.Descriptor, []byte, error) {
-	payload, err := CreateRandomTarFile()
+func UploadRandomTestBlob(ctx context.Context, serverURL *url.URL, creds auth.CredentialStore, repoName string) (distribution.Descriptor, []byte, error) {
+	payload, desc, err := MakeRandomLayer()
 	if err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("unexpected error generating test layer file: %v", err)
 	}
 
-	desc, err := UploadBlob(payload, serverURL, creds, repoName)
+	rt, err := NewTransport(serverURL.String(), repoName, creds)
+	if err != nil {
+		return distribution.Descriptor{}, nil, err
+	}
+
+	repo, err := NewRepository(ctx, repoName, serverURL.String(), rt)
+	if err != nil {
+		return distribution.Descriptor{}, nil, err
+	}
+
+	err = UploadBlob(ctx, repo, desc, payload)
 	if err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("upload random test blob: %s", err)
 	}
@@ -90,9 +132,9 @@ func UploadRandomTestBlob(serverURL *url.URL, creds auth.CredentialStore, repoNa
 
 // CreateRandomTarFile creates a random tarfile and returns its content.
 // An error is returned if there is a problem generating valid content.
-// Inspired by github.com/vendor/docker/distribution/testutil/tarfile.go.
+// Inspired by github.com/docker/distribution/testutil/tarfile.go.
 func CreateRandomTarFile() ([]byte, error) {
-	nFiles := 2
+	nFiles := 2 // random enough
 
 	var target bytes.Buffer
 	wr := tar.NewWriter(&target)
@@ -138,7 +180,18 @@ func CreateRandomTarFile() ([]byte, error) {
 
 // CreateRandomImage creates an image with a random content.
 func CreateRandomImage(namespace, name string) (*imageapiv1.Image, error) {
-	_, manifest, _, err := CreateRandomManifest(ManifestSchema1, 3)
+	const layersCount = 3
+
+	layersDescs := make([]distribution.Descriptor, layersCount)
+	for i := range layersDescs {
+		_, desc, err := MakeRandomLayer()
+		if err != nil {
+			return nil, err
+		}
+		layersDescs[i] = desc
+	}
+
+	manifest, err := MakeSchema1Manifest("unused-name", "unused-tag", layersDescs)
 	if err != nil {
 		return nil, err
 	}
@@ -148,17 +201,12 @@ func CreateRandomImage(namespace, name string) (*imageapiv1.Image, error) {
 		return nil, err
 	}
 
-	image, err := NewImageForManifest(
+	return NewImageForManifest(
 		fmt.Sprintf("%s/%s", namespace, name),
 		string(manifestSchema1),
 		"",
 		false,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return image, nil
 }
 
 const SampleImageManifestSchema1 = `{
