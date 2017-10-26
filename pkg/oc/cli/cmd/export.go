@@ -110,8 +110,17 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		return err
 	}
 
-	mapper, typer := f.Object()
-	b := f.NewBuilder(true).
+	builder, err := f.NewUnstructuredBuilder(true)
+	if err != nil {
+		return err
+	}
+
+	mapper, typer, err := f.UnstructuredObject()
+	if err != nil {
+		return err
+	}
+
+	b := builder.
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 		SelectorParam(selector).
@@ -132,12 +141,44 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		newInfos := []*resource.Info{}
 		errs := []error{}
 		for _, info := range infos {
+			converted := false
+
+			// convert unstructured object to runtime.Object
+			data, err := runtime.Encode(kapi.Codecs.LegacyCodec(), info.Object)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			decoded, err := runtime.Decode(f.Decoder(true), data)
+			if err == nil {
+				// ignore error, if any, in order to allow resources
+				// not known by the client to still be exported
+				info.Object = decoded
+				converted = true
+			}
+
 			if err := exporter.Export(info.Object, exact); err != nil {
 				if err == ErrExportOmit {
 					continue
 				}
 				errs = append(errs, err)
 			}
+
+			// if an unstructured resource was successfully converted by the universal decoder,
+			// re-convert that object once again into its external version.
+			// If object cannot be converted to an external version, ignore error and proceed with
+			// internal version.
+			if converted {
+				if data, err = runtime.Encode(kapi.Codecs.LegacyCodec(outputVersion), info.Object); err == nil {
+					external, err := runtime.Decode(f.Decoder(false), data)
+					if err != nil {
+						errs = append(errs, fmt.Errorf("error: failed to convert resource to external version: %v", err))
+						continue
+					}
+					info.Object = external
+				}
+			}
+
 			newInfos = append(newInfos, info)
 		}
 		if len(errs) > 0 {
