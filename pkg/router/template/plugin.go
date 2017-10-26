@@ -265,10 +265,9 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 		wasIdled = true
 	}
 
-	// Take a reasonable guess at the number of endpoints to avoid reallocating the out array when we append
 	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
 
-	// Now build the actual endpoints we pass to the template
+	// TODO: review me for sanity
 	for _, s := range subsets {
 		for _, p := range s.Ports {
 			if excludeUDP && p.Protocol == kapi.ProtocolUDP {
@@ -305,12 +304,6 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 				out = append(out, ep)
 			}
 		}
-	}
-
-	// We want to disable endpoint checks if there is only one endpoint
-	// We skip the case where it is idled, since we set NoHealthCheck above
-	if wasIdled == false && len(out) == 1 {
-		out[0].NoHealthCheck = true
 	}
 
 	return out
