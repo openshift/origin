@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,7 +30,7 @@ const (
 )
 
 // InstallServiceCatalog checks whether the service catalog is installed and installs it if not already installed
-func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMaster, catalogHost string, imageFormat string) error {
+func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMaster, catalogHost string, imageFormat string, apiserverLoglevel int, controllerLoglevel int) error {
 	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -63,9 +64,11 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	imageTemplate.Latest = false
 
 	params := map[string]string{
-		"SERVICE_CATALOG_SERVICE_IP": ServiceCatalogServiceIP,
-		"CORS_ALLOWED_ORIGIN":        publicMaster,
-		"SERVICE_CATALOG_IMAGE":      imageTemplate.ExpandOrDie("service-catalog"),
+		"SERVICE_CATALOG_SERVICE_IP":          ServiceCatalogServiceIP,
+		"CORS_ALLOWED_ORIGIN":                 publicMaster,
+		"SERVICE_CATALOG_IMAGE":               imageTemplate.ExpandOrDie("service-catalog"),
+		"SERVICE_CATALOG_APISERVER_LOGLEVEL":  strconv.Itoa(apiserverLoglevel),
+		"SERVICE_CATALOG_CONTROLLER_LOGLEVEL": strconv.Itoa(controllerLoglevel),
 	}
 	glog.V(2).Infof("instantiating service catalog template with parameters %v", params)
 

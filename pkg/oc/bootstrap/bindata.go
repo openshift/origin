@@ -14084,7 +14084,7 @@ objects:
           - --etcd-servers
           - http://localhost:2379
           - -v
-          - "10"
+          - ${SERVICE_CATALOG_APISERVER_LOGLEVEL}
           - --cors-allowed-origins
           - ${CORS_ALLOWED_ORIGIN}
           - --feature-gates
@@ -14175,7 +14175,7 @@ objects:
           args:
           - controller-manager
           - -v
-          - "5"
+          - ${SERVICE_CATALOG_CONTROLLER_LOGLEVEL}
           - --leader-election-namespace
           - kube-service-catalog
           - --broker-relist-interval
@@ -14241,6 +14241,16 @@ parameters:
   name: KUBE_SYSTEM_NAMESPACE
   required: true
   value: kube-system
+- description: Log level for service catalog apiserver
+  displayName: Service Catalog loglevel
+  name: SERVICE_CATALOG_APISERVER_LOGLEVEL
+  required: true
+  value: "3"
+- description: Log level for service catalog controller
+  displayName: Service Catalog loglevel
+  name: SERVICE_CATALOG_CONTROLLER_LOGLEVEL
+  required: true
+  value: "4"
 `)
 
 func examplesServiceCatalogServiceCatalogYamlBytes() ([]byte, error) {
