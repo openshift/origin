@@ -143,37 +143,18 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		// Not an OpenShift plugin
 		return nil, nil
 	}
+	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
+
+	if useConnTrack && c.ProxyMode != componentconfig.ProxyModeIPTables {
+		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
+	}
 
 	// If our CNI config file exists, remove it so that kubelet doesn't think
 	// we're ready yet
 	os.Remove(filepath.Join(cniDirPath, openshiftCNIFile))
 
-	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
-	if c.Hostname == "" {
-		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
-		if err != nil {
-			return nil, err
-		}
-		c.Hostname = strings.TrimSpace(string(output))
-		glog.Infof("Resolved hostname to %q", c.Hostname)
-	}
-	if c.SelfIP == "" {
-		var err error
-		c.SelfIP, err = netutils.GetNodeIP(c.Hostname)
-		if err != nil {
-			glog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
-			var defaultIP net.IP
-			defaultIP, err = kubeutilnet.ChooseHostInterface()
-			if err != nil {
-				return nil, err
-			}
-			c.SelfIP = defaultIP.String()
-			glog.Infof("Resolved IP address to %q", c.SelfIP)
-		}
-	}
-
-	if useConnTrack && c.ProxyMode != componentconfig.ProxyModeIPTables {
-		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
+	if err := c.setNodeIP(); err != nil {
+		return nil, err
 	}
 
 	ovsif, err := ovs.New(kexec.New(), Br0, minOvsVersion)
@@ -213,6 +194,35 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 	RegisterMetrics()
 
 	return plugin, nil
+}
+
+// Set node IP if required
+func (c *OsdnNodeConfig) setNodeIP() error {
+	if len(c.Hostname) == 0 {
+		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
+		if err != nil {
+			return err
+		}
+		c.Hostname = strings.TrimSpace(string(output))
+		glog.Infof("Resolved hostname to %q", c.Hostname)
+	}
+
+	if len(c.SelfIP) == 0 {
+		var err error
+		c.SelfIP, err = netutils.GetNodeIP(c.Hostname)
+		if err != nil {
+			glog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
+			var defaultIP net.IP
+			defaultIP, err = kubeutilnet.ChooseHostInterface()
+			if err != nil {
+				return err
+			}
+			c.SelfIP = defaultIP.String()
+			glog.Infof("Resolved IP address to %q", c.SelfIP)
+		}
+	}
+
+	return nil
 }
 
 // Detect whether we are upgrading from a pre-CNI openshift and clean up
