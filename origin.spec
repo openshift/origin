@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3cb49d1d2ac064d52dad51ffc180fceacf9e9d15
+%global commit 8f5e4352d25befa0eaf915abb1d55df479b3c426
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.178.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3cb49d1
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.179.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=8f5e435
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.179.0%{?dist}
+Release:        0.180.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,18 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Oct 26 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.180.0
+- bump(github.com/openshift/origin-web-console):
+  68b29c4b8cf3c1a78893f9b4ae04875099dcdb26 (eparis+openshiftbot@redhat.com)
+- fix cluster up extended test (bparees@redhat.com)
+- update .dockercfg content to config.json (jvallejo@redhat.com)
+- UPSTREAM: 53916: update .dockercfg data to config.json format
+  (jvallejo@redhat.com)
+- convert unstructured objs before exporting (jvallejo@redhat.com)
+- UPSTREAM: 53464: output empty creationTimestamps as null
+  (jvallejo@redhat.com)
+- use unstructured builder - oc export (jvallejo@redhat.com)
+
 * Thu Oct 26 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.179.0
 - Add some basic headers to OSIN provided pages (simo@redhat.com)
 - Refactor hard prune (agladkov@redhat.com)
