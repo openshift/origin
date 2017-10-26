@@ -222,6 +222,14 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 		}
 	}
 
+	if _, _, err := common.GetLinkDetails(c.SelfIP); err != nil {
+		if err == common.ErrorNetworkInterfaceNotFound {
+			return fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
+		} else {
+			return err
+		}
+	}
+
 	return nil
 }
 
