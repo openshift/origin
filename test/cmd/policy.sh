@@ -40,6 +40,11 @@ os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::cmd::expect_success 'oc delete project policy-login'
 os::cmd::expect_failure_and_text 'oc create policybinding default -n myproject' 'error: the server does not support legacy policy resources'
 
+# validate --serviceaccount values
+os::cmd::expect_success_and_text 'oc policy add-role-to-user admin -z default' 'role "admin" added\: "default"'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin -z system:serviceaccount:test:default' 'should only be used with short\-form serviceaccount names'
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user admin -z :invalid' '"\:invalid" is not a valid serviceaccount name'
+
 # This test validates user level policy
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify a role'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
