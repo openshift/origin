@@ -30,4 +30,5 @@ update-deps:
 generate:
 	hack/update-deepcopy.sh
 	hack/update-protobuf.sh
+	hack/update-swagger-docs.sh
 .PHONY: generate
