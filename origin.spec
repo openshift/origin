@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 00d4a91eadd570eaf38c3c3ec99c372aaca9d3be
+%global commit 3cb49d1d2ac064d52dad51ffc180fceacf9e9d15
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.177.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0-rc2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=00d4a91
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.178.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3cb49d1
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.178.0%{?dist}
+Release:        0.179.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,34 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Oct 26 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.179.0
+- Add some basic headers to OSIN provided pages (simo@redhat.com)
+- Refactor hard prune (agladkov@redhat.com)
+- apps: deployment config stuck in the new state should respect timeoutSecods
+  (mfojtik@redhat.com)
+- Fix the check for "pod has HostPorts" (danw@redhat.com)
+- Remove dead code (simo@redhat.com)
+- Verify layer sizes in the integrated registry (obulatov@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6960e4f7d85d9aa6506a28091b5197a7f32b548d (eparis+openshiftbot@redhat.com)
+- catalog: handle change to single catalog binary (jpeeler@redhat.com)
+- rpm: Remove 1.13 from excluder (smilner@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from aa27078754..510060232e (jpeeler@redhat.com)
+- validate user-specified resource, if given (jvallejo@redhat.com)
+- UPSTREAM: 51750: output `<none>` for colums not found (jvallejo@redhat.com)
+- parse resource name before removing deleted secret (jvallejo@redhat.com)
+- UPSTREAM: 53606: implement ApproximatePodTemplateObject upstream
+  (jvallejo@redhat.com)
+- use deployment pod template if 0 replicas (jvallejo@redhat.com)
+- UPSTREAM: 53720: Optimize random string generator to avoid multiple locks.
+  This is a modified version of the upstream 53720, as SafeEncodeString
+  function does not exist in 3.7. (avagarwa@redhat.com)
+- UPSTREAM: 53793: User separate client for leader election in scheduler 1.7 PR
+  is https://github.com/kubernetes/kubernetes/pull/53884 (avagarwa@redhat.com)
+- UPSTREAM: 53989: Remove repeated random string generations in scheduler
+  volume predicate (avagarwa@redhat.com)
+
 * Wed Oct 25 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.178.0
 - prevent client from looking up specific node (jvallejo@redhat.com)
 - bump(github.com/openshift/origin-web-console):
