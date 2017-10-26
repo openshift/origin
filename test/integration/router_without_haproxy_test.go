@@ -388,7 +388,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, name string, reloadInterval int, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
-	r.EnableRateLimiter(reloadInterval, func() error {
+	r.SetCommitFunc(func() error {
 		r.FakeReloadHandler()
 		return rateLimitingFunc()
 	})
