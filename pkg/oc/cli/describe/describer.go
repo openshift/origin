@@ -1017,13 +1017,15 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 			for i := range limitRangeList.Items {
 				limitRange := &limitRangeList.Items[i]
 				fmt.Fprintf(out, "\tName:\t%s\n", limitRange.Name)
-				fmt.Fprintf(out, "\tType\tResource\tMin\tMax\tDefault\n")
-				fmt.Fprintf(out, "\t----\t--------\t---\t---\t---\n")
+				fmt.Fprintf(out, "\tType\tResource\tMin\tMax\tDefault\tLimit\tLimit/Request\n")
+				fmt.Fprintf(out, "\t----\t--------\t---\t---\t---\t-----\t-------------\n")
 				for i := range limitRange.Spec.Limits {
 					item := limitRange.Spec.Limits[i]
 					maxResources := item.Max
 					minResources := item.Min
 					defaultResources := item.Default
+					defaultRequestResources := item.DefaultRequest
+					ratio := item.MaxLimitRequestRatio
 
 					set := map[kapi.ResourceName]bool{}
 					for k := range maxResources {
@@ -1035,12 +1037,20 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 					for k := range defaultResources {
 						set[k] = true
 					}
+					for k := range defaultRequestResources {
+						set[k] = true
+					}
+					for k := range ratio {
+						set[k] = true
+					}
 
 					for k := range set {
 						// if no value is set, we output -
 						maxValue := "-"
 						minValue := "-"
 						defaultValue := "-"
+						defaultLimitValue := "-"
+						ratioValue := "-"
 
 						maxQuantity, maxQuantityFound := maxResources[k]
 						if maxQuantityFound {
@@ -1057,8 +1067,18 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 							defaultValue = defaultQuantity.String()
 						}
 
-						msg := "\t%v\t%v\t%v\t%v\t%v\n"
-						fmt.Fprintf(out, msg, item.Type, k, minValue, maxValue, defaultValue)
+						defaultLimitQuantity, defaultLimitQuantityFound := defaultResources[k]
+						if defaultLimitQuantityFound {
+							defaultLimitValue = defaultLimitQuantity.String()
+						}
+
+						ratioQuantity, ratioQuantityFound := ratio[k]
+						if ratioQuantityFound {
+							ratioValue = ratioQuantity.String()
+						}
+
+						msg := "\t%v\t%v\t%v\t%v\t%v\t%v\t%v\n"
+						fmt.Fprintf(out, msg, item.Type, k, minValue, maxValue, defaultValue, defaultLimitValue, ratioValue)
 					}
 				}
 			}
