@@ -84,7 +84,7 @@ func RunStop(f cmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer
 	}
 
 	mapper, _ := f.Object()
-	r := f.NewBuilder(true).
+	r := f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		ResourceTypeOrNameArgs(false, args...).
