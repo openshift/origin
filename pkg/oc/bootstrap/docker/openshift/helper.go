@@ -850,12 +850,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		}
 		cfg.AssetConfig.ExtensionScripts = append(cfg.AssetConfig.ExtensionScripts, serviceCatalogExtensionPath)
 
-		extension := `
-window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
-  service_catalog_landing_page: true,
-  template_service_broker: true
-};
-`
+		extension := "window.OPENSHIFT_CONSTANTS.TEMPLATE_SERVICE_BROKER_ENABLED = true;\n"
 		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
 		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)
 		if err != nil {
