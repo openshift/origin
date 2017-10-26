@@ -425,6 +425,10 @@ func (u *Unstructured) GetCreationTimestamp() metav1.Time {
 
 func (u *Unstructured) SetCreationTimestamp(timestamp metav1.Time) {
 	ts, _ := timestamp.MarshalQueryParameter()
+	if len(ts) == 0 {
+		u.setNestedField(nil, "metadata", "creationTimestamp")
+		return
+	}
 	u.setNestedField(ts, "metadata", "creationTimestamp")
 }
 

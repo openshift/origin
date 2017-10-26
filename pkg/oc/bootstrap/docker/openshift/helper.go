@@ -709,6 +709,10 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg.AdmissionConfig.PluginConfig["GenericAdmissionWebhook"] = configapi.AdmissionPluginConfig{
 		Configuration: &configapi.DefaultAdmissionConfig{},
 	}
+
+	if cfg.KubernetesMasterConfig.APIServerArguments == nil {
+		cfg.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
+	}
 	cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/admissionregistration.k8s.io/v1alpha1=true")
 
 	if len(opt.RoutingSuffix) > 0 {
