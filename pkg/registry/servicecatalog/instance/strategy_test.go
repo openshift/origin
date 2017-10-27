@@ -163,3 +163,52 @@ func TestInstanceUserInfo(t *testing.T) {
 		t.Errorf("unexpected user info in deleted spec: expected %v, got %v", e, a)
 	}
 }
+
+// TestInstanceUpdateForUpdateRequests tests that the UpdateRequests field is
+// ignored during updates when it is the default value.
+func TestInstanceUpdateForUpdateRequests(t *testing.T) {
+	cases := []struct {
+		name          string
+		oldValue      int64
+		newValue      int64
+		expectedValue int64
+	}{
+		{
+			name:          "both default",
+			oldValue:      0,
+			newValue:      0,
+			expectedValue: 0,
+		},
+		{
+			name:          "old default",
+			oldValue:      0,
+			newValue:      1,
+			expectedValue: 1,
+		},
+		{
+			name:          "new default",
+			oldValue:      1,
+			newValue:      0,
+			expectedValue: 1,
+		},
+		{
+			name:          "neither default",
+			oldValue:      1,
+			newValue:      2,
+			expectedValue: 2,
+		},
+	}
+	for _, tc := range cases {
+		oldInstance := getTestInstance()
+		oldInstance.Spec.UpdateRequests = tc.oldValue
+
+		newInstance := getTestInstance()
+		newInstance.Spec.UpdateRequests = tc.newValue
+
+		instanceRESTStrategies.PrepareForUpdate(nil, newInstance, oldInstance)
+
+		if e, a := tc.expectedValue, newInstance.Spec.UpdateRequests; e != a {
+			t.Errorf("%s: got unexpected UpdateRequests: expected %v, got %v", tc.name, e, a)
+		}
+	}
+}

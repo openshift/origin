@@ -25,6 +25,7 @@ const (
 	ClusterServiceBroker
 	ClusterServiceClass
 	ClusterServicePlan
+	ServiceBinding
 	ServiceInstance
 )
 
@@ -36,6 +37,8 @@ func (k Kind) String() string {
 		return "ClusterServiceClass"
 	case ClusterServicePlan:
 		return "ClusterServicePlan"
+	case ServiceBinding:
+		return "ServiceBinding"
 	case ServiceInstance:
 		return "ServiceInstance"
 	default:

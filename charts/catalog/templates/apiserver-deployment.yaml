@@ -18,6 +18,7 @@ spec:
         app: {{ template "fullname" . }}-apiserver
         chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
         release: "{{ .Release.Name }}"
+        releaseRevision: "{{ .Release.Revision }}"
         heritage: "{{ .Release.Service }}"
     spec:
       serviceAccountName: "{{ .Values.apiserver.serviceAccount }}"

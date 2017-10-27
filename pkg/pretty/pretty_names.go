@@ -36,6 +36,16 @@ func Name(kind Kind, k8sName, externalName string) string {
 	return s
 }
 
+// ServiceInstanceName returns a string with the type, namespace and name of an instance.
+func ServiceInstanceName(instance *v1beta1.ServiceInstance) string {
+	return fmt.Sprintf(`%s "%s/%s"`, ServiceInstance, instance.Namespace, instance.Name)
+}
+
+// ClusterServiceBrokerName returns a string with the type and name of a broker
+func ClusterServiceBrokerName(brokerName string) string {
+	return fmt.Sprintf(`%s %q`, ClusterServiceBroker, brokerName)
+}
+
 // ClusterServiceClassName returns a string with the k8s name and external name if available.
 func ClusterServiceClassName(serviceClass *v1beta1.ClusterServiceClass) string {
 	if serviceClass != nil {
@@ -50,4 +60,12 @@ func ClusterServicePlanName(servicePlan *v1beta1.ClusterServicePlan) string {
 		return Name(ClusterServicePlan, servicePlan.Name, servicePlan.Spec.ExternalName)
 	}
 	return Name(ClusterServicePlan, "", "")
+}
+
+// FromServiceInstanceOfClusterServiceClassAtBrokerName returns a string in the form of "%s of %s at %s" to help in logging the full context.
+func FromServiceInstanceOfClusterServiceClassAtBrokerName(instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, brokerName string) string {
+	return fmt.Sprintf(
+		"%s of %s at %s",
+		ServiceInstanceName(instance), ClusterServiceClassName(serviceClass), ClusterServiceBrokerName(brokerName),
+	)
 }

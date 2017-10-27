@@ -30,8 +30,10 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
+	"github.com/kubernetes-incubator/service-catalog/pkg/pretty"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -60,20 +62,39 @@ const (
 // bindingControllerKind contains the schema.GroupVersionKind for this controller type.
 var bindingControllerKind = v1beta1.SchemeGroupVersion.WithKind("ServiceBinding")
 
-var typeSB = "ServiceBinding"
-
 // ServiceBinding handlers and control-loop
 
 func (c *controller) bindingAdd(obj interface{}) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
-		glog.Errorf(
-			`%s: Couldn't get key for object %+v: %v`,
-			typeSB, obj, err,
-		)
+		pcb := pretty.NewContextBuilder(pretty.ServiceBinding, "", "")
+		glog.Errorf(pcb.Messagef("Couldn't get key for object %+v: %v", obj, err))
 		return
 	}
+
+	acc, err := meta.Accessor(obj)
+	if err != nil {
+		glog.Errorf("error creating meta accessor: %v", err)
+		return
+	}
+
+	glog.V(6).Infof("ServiceBinding %v: received ADD/UPDATE event for: resourceVersion: %v", key, acc.GetResourceVersion())
+
 	c.bindingQueue.Add(key)
+}
+
+func (c *controller) bindingUpdate(oldObj, newObj interface{}) {
+	c.bindingAdd(newObj)
+}
+
+func (c *controller) bindingDelete(obj interface{}) {
+	binding, ok := obj.(*v1beta1.ServiceBinding)
+	if binding == nil || !ok {
+		return
+	}
+
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, binding.Namespace, binding.Name)
+	glog.V(4).Info(pcb.Messagef("Received DELETE event; no further processing will occur; resourceVersion %v", binding.ResourceVersion))
 }
 
 func (c *controller) reconcileServiceBindingKey(key string) error {
@@ -81,27 +102,18 @@ func (c *controller) reconcileServiceBindingKey(key string) error {
 	if err != nil {
 		return err
 	}
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, namespace, name)
 	binding, err := c.bindingLister.ServiceBindings(namespace).Get(name)
 	if apierrors.IsNotFound(err) {
-		glog.Infof(
-			`%s "%s/%s": Not doing work because the ServiceBinding has been deleted`,
-			typeSB, namespace, name,
-		)
+		glog.Info(pcb.Message("Not doing work because the ServiceBinding has been deleted"))
 		return nil
 	}
 	if err != nil {
-		glog.Infof(
-			`%s "%s/%s": Unable to retrieve store: %v`,
-			typeSB, namespace, name, err,
-		)
+		glog.Info(pcb.Messagef("Unable to retrieve store: %v", err))
 		return err
 	}
 
 	return c.reconcileServiceBinding(binding)
-}
-
-func (c *controller) bindingUpdate(oldObj, newObj interface{}) {
-	c.bindingAdd(newObj)
 }
 
 func makeServiceBindingClone(binding *v1beta1.ServiceBinding) (*v1beta1.ServiceBinding, error) {
@@ -125,10 +137,8 @@ func isServiceBindingFailed(binding *v1beta1.ServiceBinding) bool {
 // OrphanMitigationInProgress status to true, setting the proper condition
 // statuses, and persisting the changes via updateServiceBindingStatus.
 func (c *controller) setAndUpdateServiceBindingStartOrphanMitigation(toUpdate *v1beta1.ServiceBinding) error {
-	s := fmt.Sprintf(
-		`%s "%s/%s": Starting orphan mitgation`,
-		typeSB, toUpdate.Name, toUpdate.Namespace,
-	)
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, toUpdate.Name, toUpdate.Namespace)
+	s := pcb.Message("Starting orphan mitgation")
 	toUpdate.Status.OrphanMitigationInProgress = true
 	toUpdate.Status.OperationStartTime = nil
 	glog.V(5).Info(s)
@@ -151,11 +161,10 @@ func (c *controller) setAndUpdateServiceBindingStartOrphanMitigation(toUpdate *v
 // an error is returned to indicate that the binding has not been
 // fully processed and should be resubmitted at a later time.
 func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) error {
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, binding.Namespace, binding.Name)
+	glog.V(6).Info(pcb.Messagef(`beginning to process resourceVersion: %v`, binding.ResourceVersion))
 	if isServiceBindingFailed(binding) && binding.ObjectMeta.DeletionTimestamp == nil && !binding.Status.OrphanMitigationInProgress {
-		glog.V(4).Infof(
-			`%s "%s/%s": Not processing event; status showed that it has failed`,
-			typeSB, binding.Namespace, binding.Name,
-		)
+		glog.V(4).Info(pcb.Message("not processing event; status showed that it has failed"))
 		return nil
 	}
 
@@ -168,10 +177,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 	// but does not affect the generation.
 	if binding.DeletionTimestamp == nil {
 		if binding.Status.ReconciledGeneration == binding.Generation {
-			glog.V(4).Infof(
-				`%s "%s/%s": Not processing event; reconciled generation showed there is no work to do`,
-				typeSB, binding.Namespace, binding.Name,
-			)
+			glog.V(4).Info(pcb.Message("Not processing event; reconciled generation showed there is no work to do"))
 			return nil
 		}
 	}
@@ -181,21 +187,15 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		return err
 	}
 
-	glog.V(4).Infof(
-		`%s "%s/%s": Processing`,
-		typeSB, binding.Namespace, binding.Name,
-	)
+	glog.V(4).Info(pcb.Message("Processing"))
 
 	instance, err := c.instanceLister.ServiceInstances(binding.Namespace).Get(binding.Spec.ServiceInstanceRef.Name)
 	if err != nil {
 		s := fmt.Sprintf(
-			`References a non-existent ServiceInstance "%s/%s"`,
-			binding.Namespace, binding.Spec.ServiceInstanceRef.Name,
+			`References a non-existent %s "%s/%s"`,
+			pretty.ServiceInstance, binding.Namespace, binding.Spec.ServiceInstanceRef.Name,
 		)
-		glog.Warningf(
-			`%s "%s/%s": %s (%s)`,
-			typeSB, binding.Namespace, binding.Name, s, err,
-		)
+		glog.Warningf(pcb.Messagef("%s (%s)", s, err))
 		c.recorder.Event(binding, corev1.EventTypeWarning, errorNonexistentServiceInstanceReason, s)
 		setServiceBindingCondition(
 			toUpdate,
@@ -212,10 +212,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 
 	if instance.Status.AsyncOpInProgress {
 		s := fmt.Sprintf(
-			`%s "%s/%s": Trying to bind to ServiceInstance "%s/%s" that has ongoing asynchronous operation`,
-			typeSB, binding.Namespace, binding.Name, binding.Namespace, binding.Spec.ServiceInstanceRef.Name,
+			`trying to bind to %s "%s/%s" that has ongoing asynchronous operation`,
+			pretty.ServiceInstance, binding.Namespace, binding.Spec.ServiceInstanceRef.Name,
 		)
-		glog.Info(s)
+		glog.Info(pcb.Message(s))
 		c.recorder.Event(binding, corev1.EventTypeWarning, errorWithOngoingAsyncOperation, s)
 		setServiceBindingCondition(
 			toUpdate,
@@ -242,13 +242,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 
 	if !isPlanBindable(serviceClass, servicePlan) {
 		s := fmt.Sprintf(
-			`References a non-bindable ClusterServiceClass (K8S: %q ExternalName: %q) and Plan (%q) combination`,
-			serviceClass.Name, serviceClass.Spec.ExternalName, instance.Spec.ClusterServicePlanExternalName,
+			`References a non-bindable %s and Plan (%q) combination`,
+			pretty.ClusterServiceClassName(serviceClass), instance.Spec.ClusterServicePlanExternalName,
 		)
-		glog.Warningf(
-			`%s "%s/%s": %s`,
-			typeSB, binding.Namespace, binding.Name, s,
-		)
+		glog.Warning(pcb.Message(s))
 		c.recorder.Event(binding, corev1.EventTypeWarning, errorNonbindableClusterServiceClassReason, s)
 		setServiceBindingCondition(
 			toUpdate,
@@ -264,18 +261,12 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 	}
 
 	if binding.DeletionTimestamp == nil && !binding.Status.OrphanMitigationInProgress { // Add or update
-		glog.V(4).Infof(
-			`%s "%s/%s": Adding/Updating`,
-			typeSB, binding.Namespace, binding.Name,
-		)
+		glog.V(4).Info(pcb.Message("Adding/Updating"))
 
 		ns, err := c.kubeClient.CoreV1().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
 		if err != nil {
 			s := fmt.Sprintf(`Failed to get namespace %q during binding: %s`, instance.Namespace, err)
-			glog.Infof(
-				`%s "%s/%s": %s`,
-				typeSB, binding.Namespace, binding.Name, s,
-			)
+			glog.Info(pcb.Message(s))
 			c.recorder.Eventf(binding, corev1.EventTypeWarning, errorFindingNamespaceServiceInstanceReason, s)
 			setServiceBindingCondition(
 				toUpdate,
@@ -292,13 +283,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 
 		if !isServiceInstanceReady(instance) {
 			s := fmt.Sprintf(
-				`ServiceBinding cannot begin because referenced ServiceInstance "%s/%s" is not ready`,
-				instance.Namespace, instance.Name,
+				`ServiceBinding cannot begin because referenced %s is not ready`,
+				pretty.ServiceInstanceName(instance),
 			)
-			glog.Infof(
-				`%s "%s/%s": %s`,
-				typeSB, binding.Namespace, binding.Name, s,
-			)
+			glog.Info(pcb.Message(s))
 			c.recorder.Eventf(binding, corev1.EventTypeWarning, errorServiceInstanceNotReadyReason, s)
 			setServiceBindingCondition(
 				toUpdate,
@@ -326,10 +314,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					`Failed to prepare parameters\n%s\n %s`,
 					binding.Spec.Parameters, err,
 				)
-				glog.Warningf(
-					`%s "%s/%s": %s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
+				glog.Warning(pcb.Message(s))
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorWithParameters, s)
 				setServiceBindingCondition(
 					toUpdate,
@@ -347,10 +332,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			parametersChecksum, err = generateChecksumOfParameters(parameters)
 			if err != nil {
 				s := fmt.Sprintf(`Failed to generate the parameters checksum to store in Status: %s`, err)
-				glog.Infof(
-					`%s "%s/%s": %s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
+				glog.Info(pcb.Message(s))
 				c.recorder.Eventf(binding, corev1.EventTypeWarning, errorWithParameters, s)
 				setServiceBindingCondition(
 					toUpdate,
@@ -367,10 +349,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			marshalledParametersWithRedaction, err := MarshalRawParameters(parametersWithSecretsRedacted)
 			if err != nil {
 				s := fmt.Sprintf(`Failed to marshal the parameters to store in Status: %s`, err)
-				glog.Infof(
-					`%s "%s/%s": %s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
+				glog.Info(pcb.Message(s))
 				c.recorder.Eventf(binding, corev1.EventTypeWarning, errorWithParameters, s)
 				setServiceBindingCondition(
 					toUpdate,
@@ -410,10 +389,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			originatingIdentity, err := buildOriginatingIdentity(binding.Spec.UserInfo)
 			if err != nil {
 				s := fmt.Sprintf(`Error building originating identity headers for binding: %v`, err)
-				glog.Warningf(
-					`%s "%s/%s": s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
+				glog.Warning(pcb.Message(s))
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorWithOriginatingIdentity, s)
 				setServiceBindingCondition(
 					toUpdate,
@@ -466,12 +442,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					return c.setAndUpdateServiceBindingStartOrphanMitigation(toUpdate)
 				}
 				s := fmt.Sprintf(
-					`Error creating ServiceBinding for ServiceInstance "%s/%s" of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q: %v`,
-					instance.Namespace, instance.Name, serviceClass.Name, serviceClass.Spec.ExternalName, brokerName, httpErr.Error(),
+					`Error creating ServiceBinding for %s: %v`,
+					pretty.FromServiceInstanceOfClusterServiceClassAtBrokerName(instance, serviceClass, brokerName), httpErr.Error(),
 				)
-				glog.Warningf(`%s "%s/%s": %s`,
-					typeSB, binding.Name, binding.Namespace, s,
-				)
+				glog.Warning(pcb.Message(s))
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorBindCallReason, s)
 
 				setServiceBindingCondition(
@@ -495,13 +469,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			}
 
 			s := fmt.Sprintf(
-				`Error creating ServiceBinding for ServiceInstance "%s/%s" of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q: %s`,
-				instance.Namespace, instance.Name, serviceClass.Name, serviceClass.Spec.ExternalName, brokerName, err,
+				`Error creating ServiceBinding for %s: %s`,
+				pretty.FromServiceInstanceOfClusterServiceClassAtBrokerName(instance, serviceClass, brokerName), err,
 			)
-			glog.Warningf(
-				`%s "%s/%s": %s`,
-				typeSB, binding.Name, binding.Namespace, s,
-			)
+			glog.Warning(pcb.Message(s))
 			c.recorder.Event(binding, corev1.EventTypeWarning, errorBindCallReason, s)
 			setServiceBindingCondition(
 				toUpdate,
@@ -512,10 +483,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 
 			if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
 				s := "Stopping reconciliation retries, too much time has elapsed"
-				glog.Infof(
-					`%s "%s/%s": %s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
+				glog.Info(pcb.Message(s))
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
 				setServiceBindingCondition(toUpdate,
 					v1beta1.ServiceBindingConditionFailed,
@@ -548,10 +516,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		err = c.injectServiceBinding(binding, response.Credentials)
 		if err != nil {
 			s := fmt.Sprintf(`Error injecting binding results: %s`, err)
-			glog.Warningf(
-				`%s "%s/%s": %s`,
-				typeSB, binding.Namespace, binding.Name, s,
-			)
+			glog.Warning(pcb.Message(s))
 			c.recorder.Event(binding, corev1.EventTypeWarning, errorInjectingBindResultReason, s)
 			setServiceBindingCondition(
 				toUpdate,
@@ -562,11 +527,8 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			)
 
 			if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-				s := fmt.Sprintf(
-					`%s "%s/%s": Stopping reconciliation retries, too much time has elapsed`,
-					typeSB, binding.Namespace, binding.Name,
-				)
-				glog.Info(s)
+				s := fmt.Sprint(pcb.Message("Stopping reconciliation retries, too much time has elapsed"))
+				glog.Info(pcb.Message(s))
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
 				setServiceBindingCondition(toUpdate,
 					v1beta1.ServiceBindingConditionFailed,
@@ -599,10 +561,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		}
 
 		c.recorder.Event(binding, corev1.EventTypeNormal, successInjectedBindResultReason, successInjectedBindResultMessage)
-		glog.V(5).Infof(
-			`%s "%s/%s": Successfully bound to ServiceInstance "%s/%s" of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %v`,
-			typeSB, binding.Namespace, binding.Name, instance.Namespace, instance.Name, serviceClass.Name, serviceClass.Spec.ExternalName, brokerName,
-		)
+		glog.V(5).Info(pcb.Messagef(
+			`Successfully bound to %s`,
+			pretty.FromServiceInstanceOfClusterServiceClassAtBrokerName(instance, serviceClass, brokerName),
+		))
 
 		return nil
 	}
@@ -615,10 +577,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		err := c.ejectServiceBinding(binding)
 		if err != nil {
 			s := fmt.Sprintf(`Error deleting secret: %s`, err)
-			glog.Warningf(
-				`%s "%s/%s": %s`,
-				typeSB, binding.Namespace, binding.Name, s,
-			)
+			glog.Warning(pcb.Message(s))
 			c.recorder.Eventf(binding, corev1.EventTypeWarning, errorEjectingBindReason, "%v %v", errorEjectingBindMessage, s)
 			setServiceBindingCondition(
 				toUpdate,
@@ -644,10 +603,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			originatingIdentity, err := buildOriginatingIdentity(binding.Spec.UserInfo)
 			if err != nil {
 				s := fmt.Sprintf(`Error building originating identity headers while unbinding: %v`, err)
-				glog.Warningf(
-					`%s "%s/%s": %s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
+				glog.Warning(pcb.Message(s))
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorWithOriginatingIdentity, s)
 				setServiceBindingCondition(
 					toUpdate,
@@ -664,29 +620,33 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			unbindRequest.OriginatingIdentity = originatingIdentity
 		}
 
-		if toUpdate.Status.CurrentOperation == "" {
-			toUpdate, err = c.recordStartOfServiceBindingOperation(toUpdate, v1beta1.ServiceBindingOperationUnbind)
-			if err != nil {
-				// There has been an update to the binding. Start reconciliation
-				// over with a fresh view of the binding.
-				return err
+		if toUpdate.DeletionTimestamp == nil {
+			if toUpdate.Status.OperationStartTime == nil {
+				now := metav1.Now()
+				toUpdate.Status.OperationStartTime = &now
 			}
-		} else if toUpdate.Status.OrphanMitigationInProgress && toUpdate.Status.OperationStartTime == nil {
-			now := metav1.Now()
-			toUpdate.Status.OperationStartTime = &now
+		} else {
+			if toUpdate.Status.CurrentOperation != v1beta1.ServiceBindingOperationUnbind {
+				// Cancel any pending orphan mitigation since the resource is being deleted
+				toUpdate.Status.OrphanMitigationInProgress = false
+
+				toUpdate, err = c.recordStartOfServiceBindingOperation(toUpdate, v1beta1.ServiceBindingOperationUnbind)
+				if err != nil {
+					// There has been an update to the binding. Start reconciliation
+					// over with a fresh view of the binding.
+					return err
+				}
+			}
 		}
 
 		_, err = brokerClient.Unbind(unbindRequest)
 		if err != nil {
 			if httpErr, ok := osb.IsHTTPError(err); ok {
 				s := fmt.Sprintf(
-					`Error unbinding from ServiceInstance "%s/%s" of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q: %s`,
-					instance.Namespace, instance.Name, serviceClass.Name, serviceClass.Spec.ExternalName, brokerName, httpErr.Error(),
+					`Error unbinding from %s: %s`,
+					pretty.FromServiceInstanceOfClusterServiceClassAtBrokerName(instance, serviceClass, brokerName), httpErr.Error(),
 				)
-				glog.Warningf(
-					`%s "%s/%s": %s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
+				glog.Warning(pcb.Message(s))
 				c.recorder.Event(binding, corev1.EventTypeWarning, errorUnbindCallReason, s)
 				setServiceBindingCondition(
 					toUpdate,
@@ -709,13 +669,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				return nil
 			}
 			s := fmt.Sprintf(
-				`Error unbinding from ServiceInstance "%s/%s" of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q: %s`,
-				instance.Namespace, instance.Name, serviceClass.Name, serviceClass.Spec.ExternalName, brokerName, err,
+				`Error unbinding from %s: %s`,
+				pretty.FromServiceInstanceOfClusterServiceClassAtBrokerName(instance, serviceClass, brokerName), err,
 			)
-			glog.Warningf(
-				`%s "%s/%s": %s`,
-				typeSB, binding.Namespace, binding.Name, s,
-			)
+			glog.Warning(pcb.Message(s))
 			c.recorder.Event(binding, corev1.EventTypeWarning, errorUnbindCallReason, s)
 			setServiceBindingCondition(
 				toUpdate,
@@ -725,30 +682,13 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 				"Unbind call failed. "+s)
 
 			if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-				s := "Stopping reconciliation retries, too much time has elapsed"
-				glog.Infof(
-					`%s "%s/%s": %s`,
-					typeSB, binding.Namespace, binding.Name, s,
-				)
-				c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-				setServiceBindingCondition(toUpdate,
-					v1beta1.ServiceBindingConditionFailed,
-					v1beta1.ConditionTrue,
-					errorReconciliationRetryTimeoutReason,
-					s)
 				if toUpdate.Status.OrphanMitigationInProgress {
 					s := "Stopping reconciliation retries, too much time has elapsed during orphan mitigation"
-					glog.Infof(
-						`%s "%s/%s": %s`,
-						typeSB, binding.Namespace, binding.Name, s,
-					)
+					glog.Info(pcb.Message(s))
 					c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
 				} else {
 					s := "Stopping reconciliation retries, too much time has elapsed"
-					glog.Infof(
-						`%s "%s/%s": %s`,
-						typeSB, binding.Namespace, binding.Name, s,
-					)
+					glog.Info(pcb.Message(s))
 					c.recorder.Event(binding, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
 					setServiceBindingCondition(toUpdate,
 						v1beta1.ServiceBindingConditionFailed,
@@ -770,10 +710,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		}
 
 		if toUpdate.Status.OrphanMitigationInProgress {
-			s := fmt.Sprintf(
-				`%s "%s/%s": Orphan mitigation successful`,
-				typeSB, binding.Namespace, binding.Name,
-			)
+			s := "Orphan mitigation successful"
 			setServiceBindingCondition(toUpdate,
 				v1beta1.ServiceBindingConditionReady,
 				v1beta1.ConditionFalse,
@@ -800,10 +737,10 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		}
 
 		c.recorder.Event(binding, corev1.EventTypeNormal, successUnboundReason, "This binding was deleted successfully")
-		glog.V(5).Infof(
-			`%s "%s/%s": Successfully deleted ServiceBinding of ServiceInstance "%s/%s" of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %v`,
-			typeSB, binding.Namespace, binding.Name, instance.Namespace, instance.Name, serviceClass.Name, serviceClass.Spec.ExternalName, brokerName,
-		)
+		glog.V(5).Info(pcb.Messagef(
+			"Successfully deleted ServiceBinding of %s",
+			pretty.FromServiceInstanceOfClusterServiceClassAtBrokerName(instance, serviceClass, brokerName),
+		))
 	}
 	return nil
 }
@@ -824,10 +761,10 @@ func isPlanBindable(serviceClass *v1beta1.ClusterServiceClass, plan *v1beta1.Clu
 }
 
 func (c *controller) injectServiceBinding(binding *v1beta1.ServiceBinding, credentials map[string]interface{}) error {
-	glog.V(5).Infof(
-		`%s "%s/%s": Creating/updating Secret "%s/%s" with %d keys`,
-		typeSB, binding.Namespace, binding.Name, binding.Namespace, binding.Spec.SecretName, len(credentials),
-	)
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, binding.Namespace, binding.Name)
+	glog.V(5).Info(pcb.Messagef(`Creating/updating Secret "%s/%s" with %d keys`,
+		binding.Namespace, binding.Spec.SecretName, len(credentials),
+	))
 
 	secretData := make(map[string][]byte)
 	for k, v := range credentials {
@@ -891,11 +828,10 @@ func (c *controller) injectServiceBinding(binding *v1beta1.ServiceBinding, crede
 
 func (c *controller) ejectServiceBinding(binding *v1beta1.ServiceBinding) error {
 	var err error
-
-	glog.V(5).Infof(
-		`%s "%s/%s": Deleting Secret "%s/%s"`,
-		typeSB, binding.Namespace, binding.Name, binding.Namespace, binding.Spec.SecretName,
-	)
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, binding.Namespace, binding.Name)
+	glog.V(5).Info(pcb.Messagef(`Deleting Secret "%s/%s"`,
+		binding.Namespace, binding.Spec.SecretName,
+	))
 	err = c.kubeClient.CoreV1().Secrets(binding.Namespace).Delete(binding.Spec.SecretName, &metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
@@ -929,11 +865,11 @@ func setServiceBindingConditionInternal(toUpdate *v1beta1.ServiceBinding,
 	status v1beta1.ConditionStatus,
 	reason, message string,
 	t metav1.Time) {
-
-	glog.V(5).Infof(
-		`%s "%s/%s": Setting condition %q to %v`,
-		typeSB, toUpdate.Namespace, toUpdate.Name, conditionType, status,
-	)
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, toUpdate.Namespace, toUpdate.Name)
+	glog.V(5).Info(pcb.Messagef(
+		"Setting condition %q to %v",
+		conditionType, status,
+	))
 
 	newCondition := v1beta1.ServiceBindingCondition{
 		Type:    conditionType,
@@ -943,10 +879,10 @@ func setServiceBindingConditionInternal(toUpdate *v1beta1.ServiceBinding,
 	}
 
 	if len(toUpdate.Status.Conditions) == 0 {
-		glog.Infof(
-			`%s "%s/%s": Setting lastTransitionTime for condition %q to %v`,
-			typeSB, toUpdate.Namespace, toUpdate.Name, conditionType, t,
-		)
+		glog.Info(pcb.Messagef(
+			"Setting lastTransitionTime for condition %q to %v",
+			conditionType, t,
+		))
 		newCondition.LastTransitionTime = t
 		toUpdate.Status.Conditions = []v1beta1.ServiceBindingCondition{newCondition}
 		return
@@ -954,10 +890,10 @@ func setServiceBindingConditionInternal(toUpdate *v1beta1.ServiceBinding,
 	for i, cond := range toUpdate.Status.Conditions {
 		if cond.Type == conditionType {
 			if cond.Status != newCondition.Status {
-				glog.V(3).Infof(
-					`%s "%s/%s": Found status change for condition %q: %q -> %q; setting lastTransitionTime to %v`,
-					typeSB, toUpdate.Namespace, toUpdate.Name, conditionType, cond.Status, status, t,
-				)
+				glog.V(3).Info(pcb.Messagef(
+					"Found status change for condition %q: %q -> %q; setting lastTransitionTime to %v",
+					conditionType, cond.Status, status, t,
+				))
 				newCondition.LastTransitionTime = t
 			} else {
 				newCondition.LastTransitionTime = cond.LastTransitionTime
@@ -968,27 +904,27 @@ func setServiceBindingConditionInternal(toUpdate *v1beta1.ServiceBinding,
 		}
 	}
 
-	glog.V(3).Infof(
-		`%s "%s/%s": Setting lastTransitionTime for condition %q to %v`,
-		typeSB, toUpdate.Namespace, toUpdate.Name, conditionType, t,
-	)
+	glog.V(3).Info(
+		pcb.Messagef("Setting lastTransitionTime for condition %q to %v",
+			conditionType, t,
+		))
 
 	newCondition.LastTransitionTime = t
 	toUpdate.Status.Conditions = append(toUpdate.Status.Conditions, newCondition)
 }
 
 func (c *controller) updateServiceBindingStatus(toUpdate *v1beta1.ServiceBinding) (*v1beta1.ServiceBinding, error) {
-	glog.V(4).Infof(
-		`%s "%s/%s": Updating status`,
-		typeSB, toUpdate.Namespace, toUpdate.Name,
-	)
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, toUpdate.Namespace, toUpdate.Name)
+	glog.V(4).Info(pcb.Message("Updating status"))
 	updatedBinding, err := c.serviceCatalogClient.ServiceBindings(toUpdate.Namespace).UpdateStatus(toUpdate)
 	if err != nil {
-		glog.Errorf(
-			`%s "%s/%s": Error updating status`,
-			typeSB, toUpdate.Namespace, toUpdate.Name,
+		glog.Errorf(pcb.Messagef("Error updating status: %v", err))
+	} else {
+		glog.V(6).Info(pcb.Messagef(`Updated status of resourceVersion: %v; got resourceVersion: %v`,
+			toUpdate.ResourceVersion, updatedBinding.ResourceVersion),
 		)
 	}
+
 	return updatedBinding, err
 }
 
@@ -1000,6 +936,8 @@ func (c *controller) updateServiceBindingCondition(
 	status v1beta1.ConditionStatus,
 	reason, message string) error {
 
+	pcb := pretty.NewContextBuilder(pretty.ServiceBinding, binding.Namespace, binding.Name)
+
 	toUpdate, err := makeServiceBindingClone(binding)
 	if err != nil {
 		return err
@@ -1007,30 +945,18 @@ func (c *controller) updateServiceBindingCondition(
 
 	setServiceBindingCondition(toUpdate, conditionType, status, reason, message)
 
-	glog.V(4).Infof(
-		`%s "%s/%s": Updating %v condition to %v (Reason: %q, Message: %q)`,
-		typeSB, binding.Namespace, binding.Name, conditionType, status, reason, message,
-	)
+	glog.V(4).Info(pcb.Messagef(
+		"Updating %v condition to %v (Reason: %q, Message: %q)",
+		conditionType, status, reason, message,
+	))
 	_, err = c.serviceCatalogClient.ServiceBindings(binding.Namespace).UpdateStatus(toUpdate)
 	if err != nil {
-		glog.Errorf(
-			`%s "%s/%s": Error updating %v condition to %v: %v`,
-			typeSB, binding.Namespace, binding.Name, conditionType, status, err,
-		)
+		glog.Errorf(pcb.Messagef(
+			"Error updating %v condition to %v: %v",
+			status, err,
+		))
 	}
 	return err
-}
-
-func (c *controller) bindingDelete(obj interface{}) {
-	binding, ok := obj.(*v1beta1.ServiceBinding)
-	if binding == nil || !ok {
-		return
-	}
-
-	glog.V(4).Infof(
-		`%s "%s/%s": Received delete event; no further processing will occur`,
-		typeSB, binding.Namespace, binding.Name,
-	)
 }
 
 // recordStartOfServiceBindingOperation updates the binding to indicate

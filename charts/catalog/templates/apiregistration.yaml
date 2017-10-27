@@ -1,3 +1,8 @@
+{{- $ca := genCA "svc-cat-ca" 3650 }}
+{{- $cn := printf "%s-catalog-apiserver" .Release.Name }}
+{{- $altName1 := printf "%s-catalog-apiserver.%s" .Release.Name .Release.Namespace }}
+{{- $altName2 := printf "%s-catalog-apiserver.%s.svc" .Release.Name .Release.Namespace }}
+{{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
 {{- if .Values.useAggregator }}
 {{- if .Capabilities.APIVersions.Has "apiregistration.k8s.io/v1beta1" }}
 apiVersion: apiregistration.k8s.io/v1beta1
@@ -13,7 +18,7 @@ spec:
   service:
     namespace: {{ .Release.Namespace }}
     name: {{ template "fullname" . }}-apiserver
-  caBundle: {{ .Values.apiserver.tls.ca }}
+  caBundle: {{ b64enc $ca.Cert }}
   {{ if .Capabilities.APIVersions.Has "apiregistration.k8s.io/v1alpha1" -}}
   priority: {{ .Values.apiserver.aggregator.priority }}
   {{ else if .Capabilities.APIVersions.Has "apiregistration.k8s.io/v1beta1" -}}
@@ -21,3 +26,20 @@ spec:
   versionPriority: {{ .Values.apiserver.aggregator.versionPriority }}
   {{- end }}
 {{ end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ template "fullname" . }}-apiserver-cert
+  labels:
+    app: {{ template "fullname" . }}-apiserver
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+type: Opaque
+data:
+  tls.crt: {{ b64enc $cert.Cert }}
+  tls.key: {{ b64enc $cert.Key }}
+  {{- if .Values.apiserver.tls.requestHeaderCA }}
+  requestheader-ca.crt: {{ .Values.apiserver.tls.requestHeaderCA }}
+  {{- end }}

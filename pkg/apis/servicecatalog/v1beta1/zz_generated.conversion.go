@@ -996,6 +996,7 @@ func autoConvert_v1beta1_ServiceInstanceStatus_To_servicecatalog_ServiceInstance
 	out.OperationStartTime = (*v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	out.InProgressProperties = (*servicecatalog.ServiceInstancePropertiesState)(unsafe.Pointer(in.InProgressProperties))
 	out.ExternalProperties = (*servicecatalog.ServiceInstancePropertiesState)(unsafe.Pointer(in.ExternalProperties))
+	out.DeprovisionStatus = servicecatalog.ServiceInstanceDeprovisionStatus(in.DeprovisionStatus)
 	return nil
 }
 
@@ -1015,6 +1016,7 @@ func autoConvert_servicecatalog_ServiceInstanceStatus_To_v1beta1_ServiceInstance
 	out.OperationStartTime = (*v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	out.InProgressProperties = (*ServiceInstancePropertiesState)(unsafe.Pointer(in.InProgressProperties))
 	out.ExternalProperties = (*ServiceInstancePropertiesState)(unsafe.Pointer(in.ExternalProperties))
+	out.DeprovisionStatus = ServiceInstanceDeprovisionStatus(in.DeprovisionStatus)
 	return nil
 }
 

@@ -478,9 +478,11 @@ func TestProvisionFailure(t *testing.T) {
 				Description:  strPtr("You're out of quota!"),
 			},
 		},
-		// no DeprovisionReaction is configured, so that the client will
-		// return an unexpected call error message if deprovision is called on
-		// the broker.
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{
+				Async: false,
+			},
+		},
 	})
 	defer shutdownController()
 	defer shutdownServer()
