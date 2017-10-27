@@ -5480,6 +5480,49 @@ _openshift_admin_verify-image-signature()
     noun_aliases=()
 }
 
+_openshift_admin_version()
+{
+    last_command="openshift_admin_version"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--as=")
+    flags+=("--as-group=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _openshift_admin()
 {
     last_command="openshift_admin"
@@ -5515,6 +5558,7 @@ _openshift_admin()
     commands+=("top")
     commands+=("uncordon")
     commands+=("verify-image-signature")
+    commands+=("version")
 
     flags=()
     two_word_flags=()
@@ -10810,6 +10854,49 @@ _openshift_cli_adm_verify-image-signature()
     noun_aliases=()
 }
 
+_openshift_cli_adm_version()
+{
+    last_command="openshift_cli_adm_version"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--as=")
+    flags+=("--as-group=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _openshift_cli_adm()
 {
     last_command="openshift_cli_adm"
@@ -10845,6 +10932,7 @@ _openshift_cli_adm()
     commands+=("top")
     commands+=("uncordon")
     commands+=("verify-image-signature")
+    commands+=("version")
 
     flags=()
     two_word_flags=()
