@@ -484,11 +484,13 @@ func canRetry(err error) bool {
 // All other errors are left in their natural state - they will not be retried unless
 // they define a Temporary() method that returns true.
 func DefaultRetriable(info *resource.Info, err error) error {
-	// tolerate the deletion of resources during migration
-	if err == nil || isNotFoundForInfo(info, err) {
-		return nil
-	}
 	switch {
+	case err == nil:
+		return nil
+	case isNotFoundForInfo(info, err):
+		// tolerate the deletion of resources during migration
+		// report unchanged since we did not actually migrate this object
+		return ErrUnchanged
 	case errors.IsMethodNotSupported(err):
 		return ErrNotRetriable{err}
 	case errors.IsConflict(err):
@@ -498,8 +500,9 @@ func DefaultRetriable(info *resource.Info, err error) error {
 		return ErrRetriable{err}
 	case errors.IsServerTimeout(err):
 		return ErrRetriable{err}
+	default:
+		return err
 	}
-	return err
 }
 
 // isNotFoundForInfo returns true iff the error is a not found for the specific info object.
@@ -515,6 +518,11 @@ func isNotFoundForInfo(info *resource.Info, err error) bool {
 	if details == nil {
 		return false
 	}
-	gvk := info.Object.GetObjectKind().GroupVersionKind()
-	return details.Name == info.Name && details.Kind == gvk.Kind && (details.Group == "" || details.Group == gvk.Group)
+	// get schema.GroupKind from the mapping since the actual object may not have type meta filled out
+	gk := info.Mapping.GroupVersionKind.GroupKind()
+	// based on case-insensitive string comparisons, the error matches info iff
+	// the name and kind match
+	// the group match, but only if both the error and info specify a group
+	return strings.EqualFold(details.Name, info.Name) && strings.EqualFold(details.Kind, gk.Kind) &&
+		(len(details.Group) == 0 || len(gk.Group) == 0 || strings.EqualFold(details.Group, gk.Group))
 }
