@@ -1,9 +1,9 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -111,7 +111,7 @@ type SignatureCondition struct {
 	// Type of signature condition, Complete or Failed.
 	Type SignatureConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=SignatureConditionType"`
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
+	Status corev1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// Last time the condition was checked.
 	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
 	// Last time the condition transit from one status to another.
@@ -206,7 +206,7 @@ type TagReference struct {
 	Annotations map[string]string `json:"annotations" protobuf:"bytes,2,rep,name=annotations"`
 	// Optional; if specified, a reference to another image that this tag should point to. Valid values
 	// are ImageStreamTag, ImageStreamImage, and DockerImage.
-	From *kapi.ObjectReference `json:"from,omitempty" protobuf:"bytes,3,opt,name=from"`
+	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,3,opt,name=from"`
 	// Reference states if the tag will be imported. Default value is false, which means the tag will
 	// be imported.
 	Reference bool `json:"reference,omitempty" protobuf:"varint,4,opt,name=reference"`
@@ -310,7 +310,7 @@ type TagEventCondition struct {
 	// Type of tag event condition, currently only ImportSuccess
 	Type TagEventConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=TagEventConditionType"`
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
+	Status corev1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// LastTransitionTIme is the time the condition transitioned from one status to another.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// Reason is a brief machine readable explanation for the condition's last transition.
@@ -458,7 +458,7 @@ type ImageStreamImportStatus struct {
 // RepositoryImportSpec describes a request to import images from a Docker image repository.
 type RepositoryImportSpec struct {
 	// From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 
 	// ImportPolicy is the policy controlling how the image is imported
 	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" protobuf:"bytes,2,opt,name=importPolicy"`
@@ -482,9 +482,9 @@ type RepositoryImportStatus struct {
 // ImageImportSpec describes a request to import a specific image.
 type ImageImportSpec struct {
 	// From is the source of an image to import; only kind DockerImage is allowed
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 	// To is a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used
-	To *kapi.LocalObjectReference `json:"to,omitempty" protobuf:"bytes,2,opt,name=to"`
+	To *corev1.LocalObjectReference `json:"to,omitempty" protobuf:"bytes,2,opt,name=to"`
 
 	// ImportPolicy is the policy controlling how the image is imported
 	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" protobuf:"bytes,3,opt,name=importPolicy"`

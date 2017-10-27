@@ -1,14 +1,14 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // AllowAllCapabilities can be used as a value for the
 // SecurityContextConstraints.AllowAllCapabilities field and means that any
 // capabilities are allowed to be requested.
-var AllowAllCapabilities kapi.Capability = "*"
+var AllowAllCapabilities corev1.Capability = "*"
 
 // +genclient
 // +genclient:nonNamespaced
@@ -35,15 +35,15 @@ type SecurityContextConstraints struct {
 	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
 	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
 	// DefaultAddCapabilities and RequiredDropCapabilities.
-	DefaultAddCapabilities []kapi.Capability `json:"defaultAddCapabilities" protobuf:"bytes,4,rep,name=defaultAddCapabilities,casttype=Capability"`
+	DefaultAddCapabilities []corev1.Capability `json:"defaultAddCapabilities" protobuf:"bytes,4,rep,name=defaultAddCapabilities,casttype=Capability"`
 	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
 	// are required to be dropped and cannot be added.
-	RequiredDropCapabilities []kapi.Capability `json:"requiredDropCapabilities" protobuf:"bytes,5,rep,name=requiredDropCapabilities,casttype=Capability"`
+	RequiredDropCapabilities []corev1.Capability `json:"requiredDropCapabilities" protobuf:"bytes,5,rep,name=requiredDropCapabilities,casttype=Capability"`
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
 	// Capabilities in this field maybe added at the pod author's discretion.
 	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
 	// To allow all capabilities you may use '*'.
-	AllowedCapabilities []kapi.Capability `json:"allowedCapabilities" protobuf:"bytes,6,rep,name=allowedCapabilities,casttype=Capability"`
+	AllowedCapabilities []corev1.Capability `json:"allowedCapabilities" protobuf:"bytes,6,rep,name=allowedCapabilities,casttype=Capability"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	// +k8s:conversion-gen=false
 	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" protobuf:"varint,7,opt,name=allowHostDirVolumePlugin"`
@@ -137,7 +137,7 @@ type SELinuxContextStrategyOptions struct {
 	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
 	Type SELinuxContextStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=SELinuxContextStrategyType"`
 	// seLinuxOptions required to run as; required for MustRunAs
-	SELinuxOptions *kapi.SELinuxOptions `json:"seLinuxOptions,omitempty" protobuf:"bytes,2,opt,name=seLinuxOptions"`
+	SELinuxOptions *corev1.SELinuxOptions `json:"seLinuxOptions,omitempty" protobuf:"bytes,2,opt,name=seLinuxOptions"`
 }
 
 // RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
@@ -254,7 +254,7 @@ type PodSecurityPolicySubjectReview struct {
 type PodSecurityPolicySubjectReviewSpec struct {
 	// template is the PodTemplateSpec to check. If template.spec.serviceAccountName is empty it will not be defaulted.
 	// If its non-empty, it will be checked.
-	Template kapi.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
+	Template corev1.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
 
 	// user is the user you're testing for.
 	// If you specify "user" but not "group", then is it interpreted as "What if user were not a member of any groups.
@@ -270,7 +270,7 @@ type PodSecurityPolicySubjectReviewStatus struct {
 	// allowedBy is a reference to the rule that allows the PodTemplateSpec.
 	// A rule can be a SecurityContextConstraint or a PodSecurityPolicy
 	// A `nil`, indicates that it was denied.
-	AllowedBy *kapi.ObjectReference `json:"allowedBy,omitempty" protobuf:"bytes,1,opt,name=allowedBy"`
+	AllowedBy *corev1.ObjectReference `json:"allowedBy,omitempty" protobuf:"bytes,1,opt,name=allowedBy"`
 
 	// A machine-readable description of why this operation is in the
 	// "Failure" status. If this value is empty there
@@ -278,7 +278,7 @@ type PodSecurityPolicySubjectReviewStatus struct {
 	Reason string `json:"reason,omitempty" protobuf:"bytes,2,opt,name=reason"`
 
 	// template is the PodTemplateSpec after the defaulting is applied.
-	Template kapi.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
+	Template corev1.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
 }
 
 // +genclient
@@ -299,7 +299,7 @@ type PodSecurityPolicySelfSubjectReview struct {
 // PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.
 type PodSecurityPolicySelfSubjectReviewSpec struct {
 	// template is the PodTemplateSpec to check.
-	Template kapi.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
+	Template corev1.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
 }
 
 // +genclient
@@ -323,7 +323,7 @@ type PodSecurityPolicyReviewSpec struct {
 	// if serviceAccountNames is empty, unless the template.spec.serviceAccountName is empty,
 	// in which case "default" is used.
 	// If serviceAccountNames is specified, template.spec.serviceAccountName is ignored.
-	Template kapi.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
+	Template corev1.PodTemplateSpec `json:"template" protobuf:"bytes,1,opt,name=template"`
 
 	// serviceAccountNames is an optional set of ServiceAccounts to run the check with.
 	// If serviceAccountNames is empty, the template.spec.serviceAccountName is used,

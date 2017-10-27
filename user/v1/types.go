@@ -3,8 +3,8 @@ package v1
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +genclient
@@ -66,7 +66,7 @@ type Identity struct {
 
 	// User is a reference to the user this identity is associated with
 	// Both Name and UID must be set
-	User kapi.ObjectReference `json:"user" protobuf:"bytes,4,opt,name=user"`
+	User corev1.ObjectReference `json:"user" protobuf:"bytes,4,opt,name=user"`
 
 	// Extra holds extra information about this identity
 	Extra map[string]string `json:"extra,omitempty" protobuf:"bytes,5,rep,name=extra"`
@@ -95,9 +95,9 @@ type UserIdentityMapping struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Identity is a reference to an identity
-	Identity kapi.ObjectReference `json:"identity,omitempty" protobuf:"bytes,2,opt,name=identity"`
+	Identity corev1.ObjectReference `json:"identity,omitempty" protobuf:"bytes,2,opt,name=identity"`
 	// User is a reference to a user
-	User kapi.ObjectReference `json:"user,omitempty" protobuf:"bytes,3,opt,name=user"`
+	User corev1.ObjectReference `json:"user,omitempty" protobuf:"bytes,3,opt,name=user"`
 }
 
 // OptionalNames is an array that may also be left nil to distinguish between set and unset.

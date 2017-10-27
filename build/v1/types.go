@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +genclient
@@ -68,7 +68,7 @@ type CommonSpec struct {
 	Output BuildOutput `json:"output,omitempty" protobuf:"bytes,5,opt,name=output"`
 
 	// resources computes resource requirements to execute the build.
-	Resources kapi.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,6,opt,name=resources"`
+	Resources corev1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,6,opt,name=resources"`
 
 	// postCommit is a build hook executed after the build output image is
 	// committed, before it is pushed to a registry.
@@ -168,7 +168,7 @@ type ImageChangeCause struct {
 
 	// fromRef contains detailed information about an image that triggered a
 	// build.
-	FromRef *kapi.ObjectReference `json:"fromRef,omitempty" protobuf:"bytes,2,opt,name=fromRef"`
+	FromRef *corev1.ObjectReference `json:"fromRef,omitempty" protobuf:"bytes,2,opt,name=fromRef"`
 }
 
 // BuildStatus contains the status of a build
@@ -207,7 +207,7 @@ type BuildStatus struct {
 	OutputDockerImageReference string `json:"outputDockerImageReference,omitempty" protobuf:"bytes,8,opt,name=outputDockerImageReference"`
 
 	// config is an ObjectReference to the BuildConfig this Build is based on.
-	Config *kapi.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
+	Config *corev1.ObjectReference `json:"config,omitempty" protobuf:"bytes,9,opt,name=config"`
 
 	// output describes the Docker image the build has produced.
 	Output BuildStatusOutput `json:"output,omitempty" protobuf:"bytes,10,opt,name=output"`
@@ -411,7 +411,7 @@ type BuildSource struct {
 	// The secret contains valid credentials for remote repository, where the
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
-	SourceSecret *kapi.LocalObjectReference `json:"sourceSecret,omitempty" protobuf:"bytes,7,opt,name=sourceSecret"`
+	SourceSecret *corev1.LocalObjectReference `json:"sourceSecret,omitempty" protobuf:"bytes,7,opt,name=sourceSecret"`
 
 	// secrets represents a list of secrets and their destinations that will
 	// be used only for the build.
@@ -426,14 +426,14 @@ type BuildSource struct {
 type ImageSource struct {
 	// from is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to
 	// copy source from.
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 
 	// paths is a list of source and destination paths to copy from the image.
 	Paths []ImageSourcePath `json:"paths" protobuf:"bytes,2,rep,name=paths"`
 
 	// pullSecret is a reference to a secret to be used to pull the image from a registry
 	// If the image is pulled from the OpenShift registry, this field does not need to be set.
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,3,opt,name=pullSecret"`
+	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,3,opt,name=pullSecret"`
 }
 
 // ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.
@@ -455,7 +455,7 @@ type ImageSourcePath struct {
 type SecretBuildSource struct {
 	// secret is a reference to an existing secret that you want to use in your
 	// build.
-	Secret kapi.LocalObjectReference `json:"secret" protobuf:"bytes,1,opt,name=secret"`
+	Secret corev1.LocalObjectReference `json:"secret" protobuf:"bytes,1,opt,name=secret"`
 
 	// destinationDir is the directory where the files from the secret should be
 	// available for the build time.
@@ -581,15 +581,15 @@ const (
 type CustomBuildStrategy struct {
 	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
+	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
 	// env contains additional environment variables you want to pass into a builder container.
-	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 
 	// exposeDockerSocket will allow running Docker commands (and build Docker images) from
 	// inside the Docker container.
@@ -633,19 +633,19 @@ type DockerBuildStrategy struct {
 	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
 	// the resulting image will be used in the FROM line of the Dockerfile for this build.
-	From *kapi.ObjectReference `json:"from,omitempty" protobuf:"bytes,1,opt,name=from"`
+	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,1,opt,name=from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
+	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
 	// noCache if set to true indicates that the docker build must be executed with the
 	// --no-cache=true flag
 	NoCache bool `json:"noCache,omitempty" protobuf:"varint,3,opt,name=noCache"`
 
 	// env contains additional environment variables you want to pass into a builder container.
-	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,4,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,4,rep,name=env"`
 
 	// forcePull describes if the builder should pull the images from registry prior to building.
 	ForcePull bool `json:"forcePull,omitempty" protobuf:"varint,5,opt,name=forcePull"`
@@ -656,7 +656,7 @@ type DockerBuildStrategy struct {
 
 	// buildArgs contains build arguments that will be resolved in the Dockerfile.  See
 	// https://docs.docker.com/engine/reference/builder/#/arg for more details.
-	BuildArgs []kapi.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,7,rep,name=buildArgs"`
+	BuildArgs []corev1.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,7,rep,name=buildArgs"`
 
 	// imageOptimizationPolicy describes what optimizations the system can use when building images
 	// to reduce the final size or time spent building the image. The default policy is 'None' which
@@ -672,15 +672,15 @@ type DockerBuildStrategy struct {
 type SourceBuildStrategy struct {
 	// from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
 	// the docker image should be pulled
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 
 	// pullSecret is the name of a Secret that would be used for setting up
 	// the authentication for pulling the Docker images from the private Docker
 	// registries
-	PullSecret *kapi.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
+	PullSecret *corev1.LocalObjectReference `json:"pullSecret,omitempty" protobuf:"bytes,2,opt,name=pullSecret"`
 
 	// env contains additional environment variables you want to pass into a builder container.
-	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 
 	// scripts is the location of Source scripts
 	Scripts string `json:"scripts,omitempty" protobuf:"bytes,4,opt,name=scripts"`
@@ -710,7 +710,7 @@ type JenkinsPipelineBuildStrategy struct {
 	Jenkinsfile string `json:"jenkinsfile,omitempty" protobuf:"bytes,2,opt,name=jenkinsfile"`
 
 	// env contains additional environment variables you want to pass into a build pipeline.
-	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 }
 
 // A BuildPostCommitSpec holds a build post commit hook specification. The hook
@@ -809,12 +809,12 @@ type BuildOutput struct {
 	// This value will be used to look up a Docker image repository to push to.
 	// In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
 	// the build unless Namespace is specified.
-	To *kapi.ObjectReference `json:"to,omitempty" protobuf:"bytes,1,opt,name=to"`
+	To *corev1.ObjectReference `json:"to,omitempty" protobuf:"bytes,1,opt,name=to"`
 
 	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
-	PushSecret *kapi.LocalObjectReference `json:"pushSecret,omitempty" protobuf:"bytes,2,opt,name=pushSecret"`
+	PushSecret *corev1.LocalObjectReference `json:"pushSecret,omitempty" protobuf:"bytes,2,opt,name=pushSecret"`
 
 	// imageLabels define a list of labels that are applied to the resulting image. If there
 	// are multiple labels with the same name then the last one in the list is used.
@@ -919,7 +919,7 @@ type ImageChangeTrigger struct {
 	// It is optional. If no From is specified, the From image from the build strategy
 	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
 	// a build configuration.
-	From *kapi.ObjectReference `json:"from,omitempty" protobuf:"bytes,2,opt,name=from"`
+	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,2,opt,name=from"`
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
@@ -1011,7 +1011,7 @@ type GenericWebHookEvent struct {
 
 	// env contains additional environment variables you want to pass into a builder container.
 	// ValueFrom is not supported.
-	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 
 	// DockerStrategyOptions contains additional docker-strategy specific options for the build
 	DockerStrategyOptions *DockerStrategyOptions `json:"dockerStrategyOptions,omitempty" protobuf:"bytes,4,opt,name=dockerStrategyOptions"`
@@ -1034,7 +1034,7 @@ type BuildLog struct {
 type DockerStrategyOptions struct {
 	// Args contains any build arguments that are to be passed to Docker.  See
 	// https://docs.docker.com/engine/reference/builder/#/arg for more details
-	BuildArgs []kapi.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,1,rep,name=buildArgs"`
+	BuildArgs []corev1.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,1,rep,name=buildArgs"`
 
 	// noCache overrides the docker-strategy noCache option in the build config
 	NoCache *bool `json:"noCache,omitempty" protobuf:"varint,2,opt,name=noCache"`
@@ -1058,10 +1058,10 @@ type BuildRequest struct {
 	Revision *SourceRevision `json:"revision,omitempty" protobuf:"bytes,2,opt,name=revision"`
 
 	// triggeredByImage is the Image that triggered this build.
-	TriggeredByImage *kapi.ObjectReference `json:"triggeredByImage,omitempty" protobuf:"bytes,3,opt,name=triggeredByImage"`
+	TriggeredByImage *corev1.ObjectReference `json:"triggeredByImage,omitempty" protobuf:"bytes,3,opt,name=triggeredByImage"`
 
 	// from is the reference to the ImageStreamTag that triggered the build.
-	From *kapi.ObjectReference `json:"from,omitempty" protobuf:"bytes,4,opt,name=from"`
+	From *corev1.ObjectReference `json:"from,omitempty" protobuf:"bytes,4,opt,name=from"`
 
 	// binary indicates a request to build from a binary provided to the builder
 	Binary *BinaryBuildSource `json:"binary,omitempty" protobuf:"bytes,5,opt,name=binary"`
@@ -1072,7 +1072,7 @@ type BuildRequest struct {
 	LastVersion *int64 `json:"lastVersion,omitempty" protobuf:"varint,6,opt,name=lastVersion"`
 
 	// env contains additional environment variables you want to pass into a builder container.
-	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,7,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,7,rep,name=env"`
 
 	// triggeredBy describes which triggers started the most recent update to the
 	// build configuration and contains information about those triggers.
@@ -1163,7 +1163,7 @@ type BuildLogOptions struct {
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
 type SecretSpec struct {
 	// secretSource is a reference to the secret
-	SecretSource kapi.LocalObjectReference `json:"secretSource" protobuf:"bytes,1,opt,name=secretSource"`
+	SecretSource corev1.LocalObjectReference `json:"secretSource" protobuf:"bytes,1,opt,name=secretSource"`
 
 	// mountPath is the path at which to mount the secret
 	MountPath string `json:"mountPath" protobuf:"bytes,2,opt,name=mountPath"`
