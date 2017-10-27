@@ -157,16 +157,28 @@ func processEndpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit, action 
 }
 
 func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
-	if len(alias.PreferPort) == 0 {
+	if len(alias.PreferPort) == 0 && len(svc.EndpointTable) != 1 {
+		// We can skip the work.  They are selecting everything, and since they don't have one endpoint,
+		// we can't disable the health checks.  So we can just use their list.
 		return svc.EndpointTable
 	}
+
 	endpoints := make([]Endpoint, 0, len(svc.EndpointTable))
-	for i := range svc.EndpointTable {
-		endpoint := svc.EndpointTable[i]
-		if endpoint.PortName == alias.PreferPort || endpoint.Port == alias.PreferPort {
+	for _, endpoint := range svc.EndpointTable {
+		// Filter the list:
+		// - If PreferPort length is 0, match everything
+		// - Otherwise, if the PortName or Port matches PreferPort, then we have a match
+		if len(alias.PreferPort) == 0 || endpoint.PortName == alias.PreferPort || endpoint.Port == alias.PreferPort {
 			endpoints = append(endpoints, endpoint)
 		}
 	}
+
+	// We want to disable endpoint checks if there is only one endpoint since there's no point in
+	// testing and removing it from the set ahead of time since there are no other eps to replace it.
+	if len(endpoints) == 1 {
+		endpoints[0].NoHealthCheck = true
+	}
+
 	return endpoints
 }
 
