@@ -33,6 +33,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	securityclientset "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -333,6 +334,15 @@ func (c *CLI) AdminTemplateClient() templateclientset.Interface {
 func (c *CLI) AdminUserClient() userclientset.Interface {
 	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
 	client, err := userclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminSecurityClient() securityclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := securityclientset.NewForConfig(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}
