@@ -297,7 +297,11 @@ func (eip *egressIPWatcher) claimEgressIP(egressIP, egressHex string) error {
 	}
 	err = netlink.AddrAdd(eip.localEgressLink, addr)
 	if err != nil {
-		return fmt.Errorf("could not add egress IP %q to %s: %v", egressIPNet, eip.localEgressLink.Attrs().Name, err)
+		if err == syscall.EEXIST {
+			glog.V(2).Infof("Egress IP %q already exists on %s", egressIPNet, eip.localEgressLink.Attrs().Name)
+		} else {
+			return fmt.Errorf("could not add egress IP %q to %s: %v", egressIPNet, eip.localEgressLink.Attrs().Name, err)
+		}
 	}
 
 	if err := eip.iptables.AddEgressIPRules(egressIP, egressHex); err != nil {
