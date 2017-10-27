@@ -17,6 +17,7 @@
 // examples/jenkins/pipeline/bluegreen-pipeline.yaml
 // examples/jenkins/pipeline/mapsapp-pipeline.yaml
 // examples/jenkins/pipeline/maven-pipeline.yaml
+// examples/jenkins/pipeline/nodejs-sample-pipeline.yaml
 // examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 // examples/jenkins/pipeline/samplepipeline.yaml
 // examples/quickstarts/cakephp-mysql-persistent.json
@@ -6229,6 +6230,101 @@ func examplesJenkinsPipelineMavenPipelineYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "examples/jenkins/pipeline/maven-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesJenkinsPipelineNodejsSamplePipelineYaml = []byte(`kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "nodejs-sample-pipeline"
+spec:
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        // path of the template to use
+        def templatePath = 'https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs-mongodb.json'
+        // name of the template that will be created
+        def templateName = 'nodejs-mongodb-example'
+        openshift.withCluster() {
+          openshift.withProject() {
+            echo "Using project: ${openshift.project()}"
+            pipeline {
+              agent {
+                node {
+                  // spin up a node.js slave pod to run this build on
+                  label 'nodejs'
+                }
+              }
+              options {
+                // set a timeout of 20 minutes for this pipeline
+                timeout(time: 20, unit: 'MINUTES')
+              }
+              stages {
+                stage('cleanup') {
+                  steps {
+                    // delete everything with this template label
+                    openshift.selector("all", [ template : templateName ]).delete()
+                    // delete any secrets with this template label
+                    if (openshift.selector("secrets", templateName).exists()) {
+                      openshift.selector("secrets", templateName).delete()
+                    }
+                  }
+                }
+                stage('create') {
+                  steps {
+                    // create a new application from the templatePath
+                    openshift.newApp(templatePath)
+                  }
+                }
+                stage('build') {
+                  steps {
+                    def builds = openshift.selector("bc", templateName).related('builds')
+                    // wait up to 5 minutes for the build to complete
+                    timeout(5) {
+                      builds.untilEach(1) {
+                        return (it.object().status.phase == "Complete")
+                      }
+                    }
+                  }
+                }
+                stage('deploy') {
+                  steps {
+                    def rm = openshift.selector("dc", templateName).rollout()
+                    // wait up to 5 minutes for the deployment to complete
+                    timeout(5) {
+                      openshift.selector("dc", templateName).related('pods').untilEach(1) {
+                        return (it.object().status.phase == "Running")
+                      }
+                    }
+                  }
+                }
+                stage('tag') {
+                  steps {
+                    // if everything else succeeded, tag the ${templateName}:latest image as ${templateName}-staging:latest
+                    // a pipeline build config for the staging environment can watch for the ${templateName}-staging:latest
+                    // image to change and then deploy it to the staging environment
+                    openshift.tag("${templateName}:latest", "${templateName}-staging:latest")
+                  }
+                }
+              }
+            }
+          }
+        }
+    type: JenkinsPipeline
+`)
+
+func examplesJenkinsPipelineNodejsSamplePipelineYamlBytes() ([]byte, error) {
+	return _examplesJenkinsPipelineNodejsSamplePipelineYaml, nil
+}
+
+func examplesJenkinsPipelineNodejsSamplePipelineYaml() (*asset, error) {
+	bytes, err := examplesJenkinsPipelineNodejsSamplePipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/jenkins/pipeline/nodejs-sample-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -14559,6 +14655,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/jenkins/pipeline/bluegreen-pipeline.yaml": examplesJenkinsPipelineBluegreenPipelineYaml,
 	"examples/jenkins/pipeline/mapsapp-pipeline.yaml": examplesJenkinsPipelineMapsappPipelineYaml,
 	"examples/jenkins/pipeline/maven-pipeline.yaml": examplesJenkinsPipelineMavenPipelineYaml,
+	"examples/jenkins/pipeline/nodejs-sample-pipeline.yaml": examplesJenkinsPipelineNodejsSamplePipelineYaml,
 	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
 	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
 	"examples/quickstarts/cakephp-mysql-persistent.json": examplesQuickstartsCakephpMysqlPersistentJson,
@@ -14651,6 +14748,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"bluegreen-pipeline.yaml": &bintree{examplesJenkinsPipelineBluegreenPipelineYaml, map[string]*bintree{}},
 				"mapsapp-pipeline.yaml": &bintree{examplesJenkinsPipelineMapsappPipelineYaml, map[string]*bintree{}},
 				"maven-pipeline.yaml": &bintree{examplesJenkinsPipelineMavenPipelineYaml, map[string]*bintree{}},
+				"nodejs-sample-pipeline.yaml": &bintree{examplesJenkinsPipelineNodejsSamplePipelineYaml, map[string]*bintree{}},
 				"openshift-client-plugin-pipeline.yaml": &bintree{examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml, map[string]*bintree{}},
 				"samplepipeline.yaml": &bintree{examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{}},
 			}},
