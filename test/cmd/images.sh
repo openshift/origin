@@ -9,7 +9,7 @@ trap os::test::junit::reconcile_output EXIT
   os::cmd::expect_success 'oc login -u system:admin'
   cluster_admin_context="$( oc config current-context )"
   os::cmd::expect_success "oc config use-context '${original_context}'"
-  oc delete project test-cmd-images-2 --context=${cluster_admin_context}
+  oc delete project test-cmd-images-2 merge-tags --context=${cluster_admin_context}
   oc delete all,templates --all --context=${cluster_admin_context}
 
   exit 0
@@ -290,6 +290,17 @@ os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}
 os::cmd::expect_success 'oc delete all --all'
 
 echo "delete istag: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
+os::cmd::expect_success 'oc new-project merge-tags'
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 latest'
+os::cmd::expect_success 'oc apply -f test/testdata/images/modified-ruby-imagestream.json'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.0 2.2 2.3 2.4 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[3].annotations.version}' '2.4 patched'
+os::cmd::expect_success 'oc delete project merge-tags'
+echo "apply new imagestream tags: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_end

@@ -90333,7 +90333,9 @@
       "type": "array",
       "items": {
        "$ref": "#/definitions/com.github.openshift.origin.pkg.image.apis.image.v1.TagReference"
-      }
+      },
+      "x-kubernetes-patch-merge-key": "name",
+      "x-kubernetes-patch-strategy": "merge"
      }
     }
    },
@@ -90356,7 +90358,9 @@
       "type": "array",
       "items": {
        "$ref": "#/definitions/com.github.openshift.origin.pkg.image.apis.image.v1.NamedTagEventList"
-      }
+      },
+      "x-kubernetes-patch-merge-key": "tag",
+      "x-kubernetes-patch-strategy": "merge"
      }
     }
    },
