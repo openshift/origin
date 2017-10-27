@@ -125,6 +125,11 @@ func (brokerRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, o
 
 	newClusterServiceBroker.Status = oldClusterServiceBroker.Status
 
+	// Ignore the RelistRequests field when it is the default value
+	if newClusterServiceBroker.Spec.RelistRequests == 0 {
+		newClusterServiceBroker.Spec.RelistRequests = oldClusterServiceBroker.Spec.RelistRequests
+	}
+
 	// Spec updates bump the generation so that we can distinguish between
 	// spec changes and other changes to the object.
 	if !apiequality.Semantic.DeepEqual(oldClusterServiceBroker.Spec, newClusterServiceBroker.Spec) {

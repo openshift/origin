@@ -45,6 +45,23 @@ var validServiceInstanceOperationValues = func() []string {
 	return validValues
 }()
 
+var validServiceInstanceDeprovisionStatuses = map[sc.ServiceInstanceDeprovisionStatus]bool{
+	sc.ServiceInstanceDeprovisionStatusNotRequired: true,
+	sc.ServiceInstanceDeprovisionStatusRequired:    true,
+	sc.ServiceInstanceDeprovisionStatusSucceeded:   true,
+	sc.ServiceInstanceDeprovisionStatusFailed:      true,
+}
+
+var validServiceInstanceDeprovisionStatusValues = func() []string {
+	validValues := make([]string, len(validServiceInstanceDeprovisionStatuses))
+	i := 0
+	for operation := range validServiceInstanceDeprovisionStatuses {
+		validValues[i] = string(operation)
+		i++
+	}
+	return validValues
+}()
+
 // ValidateServiceInstance validates an Instance and returns a list of errors.
 func ValidateServiceInstance(instance *sc.ServiceInstance) field.ErrorList {
 	return internalValidateServiceInstance(instance, true)
@@ -150,6 +167,16 @@ func validateServiceInstanceStatus(status *sc.ServiceInstanceStatus, fldPath *fi
 
 	if status.ExternalProperties != nil {
 		allErrs = append(allErrs, validateServiceInstancePropertiesState(status.ExternalProperties, fldPath.Child("externalProperties"), create)...)
+	}
+
+	if create {
+		if status.DeprovisionStatus != sc.ServiceInstanceDeprovisionStatusNotRequired {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("deprovisionStatus"), status.DeprovisionStatus, `deprovisionStatus must be "NotRequired" on create`))
+		}
+	} else {
+		if !validServiceInstanceDeprovisionStatuses[status.DeprovisionStatus] {
+			allErrs = append(allErrs, field.NotSupported(fldPath.Child("deprovisionStatus"), status.DeprovisionStatus, validServiceInstanceDeprovisionStatusValues))
+		}
 	}
 
 	return allErrs

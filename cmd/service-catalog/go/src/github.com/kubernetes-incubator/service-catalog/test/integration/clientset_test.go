@@ -836,6 +836,9 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 			Parameters: &runtime.RawExtension{Raw: []byte(instanceParameter)},
 			ExternalID: osbGUID,
 		},
+		Status: v1beta1.ServiceInstanceStatus{
+			DeprovisionStatus: v1beta1.ServiceInstanceDeprovisionStatusNotRequired,
+		},
 	}
 
 	// list the instances & expect there to be none
@@ -921,6 +924,7 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 	instanceServer.Status = v1beta1.ServiceInstanceStatus{
 		ReconciledGeneration: instanceServer.Generation,
 		Conditions:           []v1beta1.ServiceInstanceCondition{readyConditionTrue},
+		DeprovisionStatus:    v1beta1.ServiceInstanceDeprovisionStatusNotRequired,
 	}
 
 	_, err = instanceClient.UpdateStatus(instanceServer)

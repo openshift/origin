@@ -20,6 +20,5 @@ contrib/build/*/tmp/*
 .pkg
 .kube
 .var
-docs/certs
 # this is for buildling service catalog with origin tooling
 _output

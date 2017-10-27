@@ -59,19 +59,7 @@ PLATFORM?=linux
 ARCH?=amd64
 
 # TODO: Consider using busybox instead of debian
-ifeq ($(ARCH),amd64)
-	BASEIMAGE?=debian:jessie
-else ifeq ($(ARCH),arm)
-	BASEIMAGE?=arm32v7/debian:jessie
-else ifeq ($(ARCH),arm64)
-	BASEIMAGE?=arm64v8/debian:jessie
-else ifeq ($(ARCH),ppc64le)
-	BASEIMAGE?=ppc64le/debian:jessie
-else ifeq ($(ARCH),s390x)
-	BASEIMAGE?=s390x/debian:jessie
-else
-$(error Unsupported platform to compile for)
-endif
+BASEIMAGE?=gcr.io/google-containers/debian-base-$(ARCH):0.2
 
 GO_BUILD       = env GOOS=$(PLATFORM) GOARCH=$(ARCH) go build -i $(GOFLAGS) \
                    -ldflags "-X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)"
@@ -92,6 +80,16 @@ $(if $(realpath vendor/k8s.io/apimachinery/vendor), \
 
 ifdef UNIT_TESTS
 	UNIT_TEST_FLAGS=-run $(UNIT_TESTS) -v
+endif
+
+ifdef INT_TESTS
+	INT_TEST_FLAGS=--test.run=$(INT_TESTS)
+endif
+
+ifdef TEST_LOG_LEVEL
+	UNIT_TEST_FLAGS+=-v
+	UNIT_TEST_LOG_FLAGS=-args --alsologtostderr --v=$(TEST_LOG_LEVEL)
+	INT_TEST_FLAGS+=--alsologtostderr --v=$(TEST_LOG_LEVEL)
 endif
 
 ifdef NO_DOCKER
@@ -271,14 +269,14 @@ test-unit-native: check-go
 test-unit: .init build
 	@echo Running tests:
 	$(DOCKER_CMD) go test -race $(UNIT_TEST_FLAGS) \
-	  $(addprefix $(SC_PKG)/,$(TEST_DIRS))
+	  $(addprefix $(SC_PKG)/,$(TEST_DIRS)) $(UNIT_TEST_LOG_FLAGS)
 
 test-integration: .init $(scBuildImageTarget) build
 	# test kubectl
 	contrib/hack/setup-kubectl.sh
 	contrib/hack/test-apiserver.sh
 	# golang integration tests
-	$(DOCKER_CMD) test/integration.sh
+	$(DOCKER_CMD) test/integration.sh $(INT_TEST_FLAGS)
 
 clean-e2e:
 	rm -f $(BINDIR)/e2e.test
