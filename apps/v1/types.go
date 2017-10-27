@@ -3,9 +3,9 @@ package v1
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +genclient
@@ -73,7 +73,7 @@ type DeploymentConfigSpec struct {
 
 	// Template is the object that describes the pod that will be created if
 	// insufficient replicas are detected.
-	Template *kapi.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,8,opt,name=template"`
+	Template *corev1.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,8,opt,name=template"`
 }
 
 // DeploymentStrategy describes how to perform a deployment.
@@ -91,7 +91,7 @@ type DeploymentStrategy struct {
 	RollingParams *RollingDeploymentStrategyParams `json:"rollingParams,omitempty" protobuf:"bytes,4,opt,name=rollingParams"`
 
 	// Resources contains resource requirements to execute the deployment and any hooks.
-	Resources kapi.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,5,opt,name=resources"`
+	Resources corev1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,5,opt,name=resources"`
 	// Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
 	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,6,rep,name=labels"`
 	// Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
@@ -119,7 +119,7 @@ type CustomDeploymentStrategyParams struct {
 	// Image specifies a Docker image which can carry out a deployment.
 	Image string `json:"image,omitempty" protobuf:"bytes,1,opt,name=image"`
 	// Environment holds the environment which will be given to the container for Image.
-	Environment []kapi.EnvVar `json:"environment,omitempty" protobuf:"bytes,2,rep,name=environment"`
+	Environment []corev1.EnvVar `json:"environment,omitempty" protobuf:"bytes,2,rep,name=environment"`
 	// Command is optional and overrides CMD in the container Image.
 	Command []string `json:"command,omitempty" protobuf:"bytes,3,rep,name=command"`
 }
@@ -219,7 +219,7 @@ type ExecNewPodHook struct {
 	// Command is the action command and its arguments.
 	Command []string `json:"command" protobuf:"bytes,1,rep,name=command"`
 	// Env is a set of environment variables to supply to the hook pod's container.
-	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,2,rep,name=env"`
+	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,2,rep,name=env"`
 	// ContainerName is the name of a container in the deployment pod template
 	// whose Docker image will be used for the hook pod's container.
 	ContainerName string `json:"containerName" protobuf:"bytes,3,opt,name=containerName"`
@@ -235,7 +235,7 @@ type TagImageHook struct {
 	// container this value will be defaulted to the name of that container.
 	ContainerName string `json:"containerName" protobuf:"bytes,1,opt,name=containerName"`
 	// To is the target ImageStreamTag to set the container's image onto.
-	To kapi.ObjectReference `json:"to" protobuf:"bytes,2,opt,name=to"`
+	To corev1.ObjectReference `json:"to" protobuf:"bytes,2,opt,name=to"`
 }
 
 // DeploymentTriggerPolicies is a list of policies where nil values and different from empty arrays.
@@ -280,7 +280,7 @@ type DeploymentTriggerImageChangeParams struct {
 	// From is a reference to an image stream tag to watch for changes. From.Name is the only
 	// required subfield - if From.Namespace is blank, the namespace of the current deployment
 	// trigger will be used.
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,3,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,3,opt,name=from"`
 	// LastTriggeredImage is the last image to be triggered.
 	LastTriggeredImage string `json:"lastTriggeredImage,omitempty" protobuf:"bytes,4,opt,name=lastTriggeredImage"`
 }
@@ -333,7 +333,7 @@ type DeploymentCause struct {
 type DeploymentCauseImageTrigger struct {
 	// From is a reference to the changed object which triggered a deployment. The field may have
 	// the kinds DockerImage, ImageStreamTag, or ImageStreamImage.
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 }
 
 type DeploymentConditionType string
@@ -369,7 +369,7 @@ type DeploymentCondition struct {
 	// Type of deployment condition.
 	Type DeploymentConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=DeploymentConditionType"`
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
+	Status corev1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// The last time this condition was updated.
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty" protobuf:"bytes,6,opt,name=lastUpdateTime"`
 	// The last time the condition transitioned from one status to another.
@@ -408,7 +408,7 @@ type DeploymentConfigRollback struct {
 // DeploymentConfigRollbackSpec represents the options for rollback generation.
 type DeploymentConfigRollbackSpec struct {
 	// From points to a ReplicationController which is a deployment.
-	From kapi.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
+	From corev1.ObjectReference `json:"from" protobuf:"bytes,1,opt,name=from"`
 	// Revision to rollback to. If set to 0, rollback to the last revision.
 	Revision int64 `json:"revision,omitempty" protobuf:"varint,2,opt,name=revision"`
 	// IncludeTriggers specifies whether to include config Triggers.

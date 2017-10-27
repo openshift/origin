@@ -3,9 +3,9 @@ package v1
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +genclient
@@ -123,7 +123,7 @@ type TemplateInstanceSpec struct {
 
 	// secret is a reference to a Secret object containing the necessary
 	// template parameters.
-	Secret *kapiv1.LocalObjectReference `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
+	Secret *corev1.LocalObjectReference `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
 
 	// requester holds the identity of the agent requesting the template
 	// instantiation.
@@ -173,7 +173,7 @@ type TemplateInstanceCondition struct {
 	// Type of the condition, currently Ready or InstantiateFailure.
 	Type TemplateInstanceConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=TemplateInstanceConditionType"`
 	// Status of the condition, one of True, False or Unknown.
-	Status kapiv1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
+	Status corev1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
 	// LastTransitionTime is the last time a condition status transitioned from
 	// one state to another.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
@@ -203,7 +203,7 @@ type TemplateInstanceObject struct {
 	// ref is a reference to the created object.  When used under .spec, only
 	// name and namespace are used; these can contain references to parameters
 	// which will be substituted following the usual rules.
-	Ref kapiv1.ObjectReference `json:"ref,omitempty" protobuf:"bytes,1,opt,name=ref"`
+	Ref corev1.ObjectReference `json:"ref,omitempty" protobuf:"bytes,1,opt,name=ref"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -237,11 +237,11 @@ type BrokerTemplateInstance struct {
 type BrokerTemplateInstanceSpec struct {
 	// templateinstance is a reference to a TemplateInstance object residing
 	// in a namespace.
-	TemplateInstance kapiv1.ObjectReference `json:"templateInstance" protobuf:"bytes,1,opt,name=templateInstance"`
+	TemplateInstance corev1.ObjectReference `json:"templateInstance" protobuf:"bytes,1,opt,name=templateInstance"`
 
 	// secret is a reference to a Secret object residing in a namespace,
 	// containing the necessary template parameters.
-	Secret kapiv1.ObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
+	Secret corev1.ObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
 
 	// bindingids is a list of 'binding_id's provided during successive bind
 	// calls to the template service broker.

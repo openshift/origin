@@ -1,10 +1,10 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 const (
@@ -37,7 +37,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TemplateInstanceList{},
 		&BrokerTemplateInstance{},
 		&BrokerTemplateInstanceList{},
-		&kapiv1.List{},
+		&corev1.List{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

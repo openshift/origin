@@ -1,8 +1,8 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +genclient
@@ -32,7 +32,7 @@ type ClusterResourceQuotaSpec struct {
 	Selector ClusterResourceQuotaSelector `json:"selector" protobuf:"bytes,1,opt,name=selector"`
 
 	// Quota defines the desired quota
-	Quota kapi.ResourceQuotaSpec `json:"quota" protobuf:"bytes,2,opt,name=quota"`
+	Quota corev1.ResourceQuotaSpec `json:"quota" protobuf:"bytes,2,opt,name=quota"`
 }
 
 // ClusterResourceQuotaSelector is used to select projects.  At least one of LabelSelector or AnnotationSelector
@@ -49,7 +49,7 @@ type ClusterResourceQuotaSelector struct {
 // ClusterResourceQuotaStatus defines the actual enforced quota and its current usage
 type ClusterResourceQuotaStatus struct {
 	// Total defines the actual enforced quota and its current usage across all projects
-	Total kapi.ResourceQuotaStatus `json:"total" protobuf:"bytes,1,opt,name=total"`
+	Total corev1.ResourceQuotaStatus `json:"total" protobuf:"bytes,1,opt,name=total"`
 
 	// Namespaces slices the usage by project.  This division allows for quick resolution of
 	// deletion reconciliation inside of a single project without requiring a recalculation
@@ -78,7 +78,7 @@ type ResourceQuotaStatusByNamespace struct {
 	Namespace string `json:"namespace" protobuf:"bytes,1,opt,name=namespace"`
 
 	// Status indicates how many resources have been consumed by this project
-	Status kapi.ResourceQuotaStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
+	Status corev1.ResourceQuotaStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
 }
 
 // +genclient

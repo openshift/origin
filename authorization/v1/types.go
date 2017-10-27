@@ -3,9 +3,9 @@ package v1
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // Authorization is calculated against
@@ -91,12 +91,12 @@ type RoleBinding struct {
 	// Thus newer clients that do not need to support backwards compatibility should send
 	// only fully qualified Subjects and should omit the UserNames and GroupNames fields.
 	// Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.
-	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
+	Subjects []corev1.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
 
 	// RoleRef can only reference the current namespace and the global namespace.
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role.
-	RoleRef kapi.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
+	RoleRef corev1.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
 }
 
 type NamedRoles []NamedRole
@@ -134,7 +134,7 @@ type PolicyBinding struct {
 	LastModified metav1.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
 
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
-	PolicyRef kapi.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
+	PolicyRef corev1.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
 	// RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
 	RoleBindings NamedRoleBindings `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
 }
@@ -448,12 +448,12 @@ type ClusterRoleBinding struct {
 	// Thus newer clients that do not need to support backwards compatibility should send
 	// only fully qualified Subjects and should omit the UserNames and GroupNames fields.
 	// Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.
-	Subjects []kapi.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
+	Subjects []corev1.ObjectReference `json:"subjects" protobuf:"bytes,4,rep,name=subjects"`
 
 	// RoleRef can only reference the current namespace and the global namespace.
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role.
-	RoleRef kapi.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
+	RoleRef corev1.ObjectReference `json:"roleRef" protobuf:"bytes,5,opt,name=roleRef"`
 }
 
 type NamedClusterRoles []NamedClusterRole
@@ -493,7 +493,7 @@ type ClusterPolicyBinding struct {
 	LastModified metav1.Time `json:"lastModified" protobuf:"bytes,2,opt,name=lastModified"`
 
 	// PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
-	PolicyRef kapi.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
+	PolicyRef corev1.ObjectReference `json:"policyRef" protobuf:"bytes,3,opt,name=policyRef"`
 	// RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name
 	RoleBindings NamedClusterRoleBindings `json:"roleBindings" protobuf:"bytes,4,rep,name=roleBindings"`
 }
