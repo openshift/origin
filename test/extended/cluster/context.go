@@ -33,16 +33,7 @@ type ClusterLoaderObjectType struct {
 	Image      string
 	Basename   string
 	File       string
-	Parameters ParameterConfigType
-}
-
-// ParameterConfigType contains config parameters for each object
-type ParameterConfigType struct {
-	Run         string `mapstructure:"run"`
-	RouterIP    string `mapstructure:"router_ip"`
-	TargetHost  string `mapstructure:"target_host"`
-	DurationSec int    `mapstructure:"duration"`
-	Megabytes   int
+	Parameters map[string]interface{}
 }
 
 // TuningSetType is nested type for controlling Cluster Loader deployment pattern

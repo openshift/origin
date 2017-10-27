@@ -92,15 +92,15 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					}
 					allArgs = append(allArgs, templateObj.Name)
 
-					if template.Parameters == (ParameterConfigType{}) {
-						e2e.Logf("Pod environment variables will not be modified.")
+					if template.Parameters == nil {
+						e2e.Logf("Template environment variables will not be modified.")
 					} else {
 						params := convertVariablesToString(template.Parameters)
 						allArgs = append(allArgs, params...)
 					}
 
 					config, err := oc.AdminTemplateClient().Template().Templates(nsName).Create(templateObj)
-					e2e.Logf("Template %v created, config: %+v", templateObj.Name, config)
+					e2e.Logf("Template %v created, arguments: %v, config: %+v", templateObj.Name, allArgs, config)
 
 					err = oc.SetNamespace(nsName).Run("new-app").Args(allArgs...).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -110,7 +110,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					// Parse Pod file into struct
 					config := ParsePods(mkPath(pod.File))
 					// Check if environment variables are defined in CL config
-					if pod.Parameters == (ParameterConfigType{}) {
+					if pod.Parameters == nil {
 						e2e.Logf("Pod environment variables will not be modified.")
 					} else {
 						// Override environment variables for Pod using ConfigMap
