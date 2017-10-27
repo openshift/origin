@@ -62,8 +62,10 @@ func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNe
 				return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", entry.CIDR, err)
 			}
 			glog.Errorf("Configured clusterNetworks value %q is invalid; treating it as %q", entry.CIDR, cidr.String())
+			cns = append(cns, ClusterNetwork{ClusterCIDR: cidr, HostSubnetLength: entry.HostSubnetLength})
+		} else {
+			cns = append(cns, ClusterNetwork{ClusterCIDR: cidr, HostSubnetLength: entry.HostSubnetLength})
 		}
-		cns = append(cns, ClusterNetwork{ClusterCIDR: cidr, HostSubnetLength: entry.HostSubnetLength})
 	}
 
 	sn, err := netutils.ParseCIDRMask(serviceNetwork)
