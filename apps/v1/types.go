@@ -11,8 +11,8 @@ import (
 // +genclient
 // +genclient:method=Instantiate,verb=create,subresource=instantiate,input=DeploymentRequest
 // +genclient:method=Rollback,verb=create,subresource=rollback,input=DeploymentConfigRollback
-// +genclient:method=GetScale,verb=get,subresource=scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
-// +genclient:method=UpdateScale,verb=update,subresource=scale,input=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
+// +genclient:method=GetScale,verb=get,subresource=scale,result=k8s.io/api/extensions/v1beta1.Scale
+// +genclient:method=UpdateScale,verb=update,subresource=scale,input=k8s.io/api/extensions/v1beta1.Scale,result=k8s.io/api/extensions/v1beta1.Scale
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Deployment Configs define the template for a pod and manages deploying new images or configuration changes.

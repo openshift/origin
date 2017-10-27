@@ -24,13 +24,13 @@ const (
 // ProjectSpec describes the attributes on a Project
 type ProjectSpec struct {
 	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
-	Finalizers []corev1.FinalizerName `json:"finalizers,omitempty" protobuf:"bytes,1,rep,name=finalizers,casttype=k8s.io/kubernetes/pkg/api/v1.FinalizerName"`
+	Finalizers []corev1.FinalizerName `json:"finalizers,omitempty" protobuf:"bytes,1,rep,name=finalizers,casttype=k8s.io/api/core/v1.FinalizerName"`
 }
 
 // ProjectStatus is information about the current status of a Project
 type ProjectStatus struct {
 	// Phase is the current lifecycle phase of the project
-	Phase corev1.NamespacePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=k8s.io/kubernetes/pkg/api/v1.NamespacePhase"`
+	Phase corev1.NamespacePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=k8s.io/api/core/v1.NamespacePhase"`
 }
 
 // +genclient
