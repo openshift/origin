@@ -22,7 +22,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/router/controller"
-	"github.com/openshift/origin/pkg/util/ratelimiter"
+	"github.com/openshift/origin/pkg/router/template/limiter"
 )
 
 const (
@@ -88,9 +88,7 @@ type templateRouter struct {
 	allowWildcardRoutes bool
 	// rateLimitedCommitFunction is a rate limited commit (persist state + refresh the backend)
 	// function that coalesces and controls how often the router is reloaded.
-	rateLimitedCommitFunction *ratelimiter.RateLimitedFunction
-	// rateLimitedCommitStopChannel is the stop/terminate channel.
-	rateLimitedCommitStopChannel chan struct{}
+	rateLimitedCommitFunction *limiter.CoalescingSerializingRateLimiter
 	// lock is a mutex used to prevent concurrent router reloads.
 	lock sync.Mutex
 	// If true, haproxy should only bind ports when it has route and endpoint state
@@ -206,12 +204,10 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		metricReload:      metricsReload,
 		metricWriteConfig: metricWriteConfig,
 
-		rateLimitedCommitFunction:    nil,
-		rateLimitedCommitStopChannel: make(chan struct{}),
+		rateLimitedCommitFunction: nil,
 	}
 
-	numSeconds := int(cfg.reloadInterval.Seconds())
-	router.EnableRateLimiter(numSeconds, router.commitAndReload)
+	router.EnableRateLimiter(cfg.reloadInterval, router.commitAndReload)
 
 	if err := router.writeDefaultCert(); err != nil {
 		return nil, err
@@ -227,14 +223,9 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	return router, nil
 }
 
-func (r *templateRouter) EnableRateLimiter(interval int, handlerFunc ratelimiter.HandlerFunc) {
-	keyFunc := func(_ interface{}) (string, error) {
-		return "templaterouter", nil
-	}
-
-	r.rateLimitedCommitFunction = ratelimiter.NewRateLimitedFunction(keyFunc, interval, handlerFunc)
-	r.rateLimitedCommitFunction.RunUntil(r.rateLimitedCommitStopChannel)
-	glog.V(2).Infof("Template router will coalesce reloads within %v seconds of each other", interval)
+func (r *templateRouter) EnableRateLimiter(interval time.Duration, handlerFunc limiter.HandlerFunc) {
+	r.rateLimitedCommitFunction = limiter.NewCoalescingSerializingRateLimiter(interval, handlerFunc)
+	glog.V(2).Infof("Template router will coalesce reloads within %s of each other", interval.String())
 }
 
 // secretToPem composes a PEM file at the output directory from an input private key and crt file.
@@ -328,7 +319,7 @@ func (r *templateRouter) Commit() {
 	r.lock.Unlock()
 
 	if needsCommit {
-		r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
+		r.rateLimitedCommitFunction.RegisterChange()
 	}
 }
 

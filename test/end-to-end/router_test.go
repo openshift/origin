@@ -1348,10 +1348,15 @@ func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, maste
 		hostVols = append(hostVols, fmt.Sprintf("%[1]s:/usr/bin/openshift", binary))
 	}
 
+	logLevel := os.Getenv("OPENSHIFT_LOG_LEVEL")
+	if len(logLevel) == 0 {
+		logLevel = "4"
+	}
+
 	containerOpts := dockerClient.CreateContainerOptions{
 		Config: &dockerClient.Config{
 			Image:        getRouterImage(),
-			Cmd:          []string{"--master=" + masterIp, "--loglevel=4"},
+			Cmd:          []string{"--master=" + masterIp, "--loglevel=" + logLevel},
 			Env:          env,
 			ExposedPorts: exposedPorts,
 			VolumesFrom:  vols,
@@ -1414,8 +1419,10 @@ func validateServer(server *tr.TestHttpService, t *testing.T) {
 
 // cleanUp stops and removes the deployed router
 func cleanUp(t *testing.T, dockerCli *dockerClient.Client, routerId string) {
+	getAllLogs, _ := strconv.ParseBool(os.Getenv("OPENSHIFT_GET_ALL_DOCKER_LOGS"))
+
 	dockerCli.StopContainer(routerId, 5)
-	if t.Failed() {
+	if t.Failed() || getAllLogs {
 		dockerCli.Logs(dockerClient.LogsOptions{
 			Container:    routerId,
 			OutputStream: os.Stdout,
