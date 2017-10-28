@@ -115,6 +115,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		routeapi.Kind("Route"):                          &RouteDescriber{routeClient, kclient},
 		projectapi.Kind("Project"):                      &ProjectDescriber{projectClient, kclient},
 		templateapi.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), kapi.Scheme, nil},
+		templateapi.Kind("TemplateInstance"):            &TemplateInstanceDescriber{kclient, templateClient, nil},
 		authorizationapi.Kind("Policy"):                 &PolicyDescriber{oauthorizationClient},
 		authorizationapi.Kind("PolicyBinding"):          &PolicyBindingDescriber{oauthorizationClient},
 		authorizationapi.Kind("RoleBinding"):            &RoleBindingDescriber{oauthorizationClient},
@@ -1200,6 +1201,97 @@ func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (st
 		d.describeObjects(template.Objects, out)
 		return nil
 	})
+}
+
+// TemplateInstanceDescriber generates information about a template instance
+type TemplateInstanceDescriber struct {
+	kubeClient     kclientset.Interface
+	templateClient templateclient.TemplateInterface
+	kprinters.ObjectDescriber
+}
+
+// Describe returns the description of a template instance
+func (d *TemplateInstanceDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
+	c := d.templateClient.TemplateInstances(namespace)
+	templateInstance, err := c.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return d.DescribeTemplateInstance(templateInstance, namespace, settings)
+}
+
+// DescribeTemplateInstance prints out information about the template instance
+func (d *TemplateInstanceDescriber) DescribeTemplateInstance(templateInstance *templateapi.TemplateInstance, namespace string, settings kprinters.DescriberSettings) (string, error) {
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, templateInstance.ObjectMeta)
+		out.Write([]byte("\n"))
+		out.Flush()
+		d.DescribeConditions(templateInstance.Status.Conditions, out)
+		out.Write([]byte("\n"))
+		out.Flush()
+		d.DescribeObjects(templateInstance.Status.Objects, out)
+		out.Write([]byte("\n"))
+		out.Flush()
+		d.DescribeParameters(templateInstance.Spec.Template, namespace, templateInstance.Spec.Secret.Name, out)
+		out.Write([]byte("\n"))
+		out.Flush()
+		return nil
+	})
+}
+
+// DescribeConditions prints out information about the conditions of a template instance
+func (d *TemplateInstanceDescriber) DescribeConditions(conditions []templateapi.TemplateInstanceCondition, out *tabwriter.Writer) {
+	formatString(out, "Conditions", " ")
+	indent := "    "
+	for _, c := range conditions {
+		formatString(out, indent+"Type", c.Type)
+		formatString(out, indent+"Status", c.Status)
+		formatString(out, indent+"LastTransitionTime", c.LastTransitionTime)
+		formatString(out, indent+"Reason", c.Reason)
+		formatString(out, indent+"Message", c.Message)
+		out.Write([]byte("\n"))
+	}
+}
+
+// DescribeObjects prints out information about the objects that a template instance creates
+func (d *TemplateInstanceDescriber) DescribeObjects(objects []templateapi.TemplateInstanceObject, out *tabwriter.Writer) {
+	formatString(out, "Objects", " ")
+	indent := "    "
+	for _, o := range objects {
+		formatString(out, indent+o.Ref.Kind, fmt.Sprintf("%s/%s", o.Ref.Namespace, o.Ref.Name))
+	}
+}
+
+// DescribeParameters prints out information about the secret that holds the template instance parameters
+// kinternalprinter.SecretDescriber#Describe could have been used here, but the formatting
+// is off when it prints the information and seems to not be easily fixable
+func (d *TemplateInstanceDescriber) DescribeParameters(template templateapi.Template, namespace, name string, out *tabwriter.Writer) {
+	secret, err := d.kubeClient.Core().Secrets(namespace).Get(name, metav1.GetOptions{})
+
+	formatString(out, "Parameters", " ")
+
+	if kerrs.IsForbidden(err) || kerrs.IsUnauthorized(err) {
+		fmt.Fprintf(out, "Unable to access parameters, insufficient permissions.")
+		return
+	} else if kerrs.IsNotFound(err) {
+		fmt.Fprintf(out, "Unable to access parameters, secret not found: %s", secret.Name)
+		return
+	} else if err != nil {
+		fmt.Fprintf(out, "Unknown error occurred, please rerun with loglevel > 4 for more information")
+		glog.V(4).Infof("%v", err)
+		return
+	}
+
+	indent := "    "
+	if len(template.Parameters) == 0 {
+		fmt.Fprintf(out, indent+"No parameters found.")
+	} else {
+		for _, p := range template.Parameters {
+			if val, ok := secret.Data[p.Name]; ok {
+				formatString(out, indent+p.Name, fmt.Sprintf("%d bytes", len(val)))
+			}
+		}
+	}
 }
 
 // IdentityDescriber generates information about a user
