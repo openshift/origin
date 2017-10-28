@@ -103,6 +103,10 @@ type templateRouter struct {
 	metricReload prometheus.Summary
 	// metricWriteConfig tracks writing config
 	metricWriteConfig prometheus.Summary
+	//ARP cache readability status
+	arpCacheReadable bool
+	//true if number of endpoints reches the threshold limit of the ARP cache
+	arpCacheWarn bool
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -205,6 +209,9 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 
 		metricReload:      metricsReload,
 		metricWriteConfig: metricWriteConfig,
+
+		arpCacheWarn:     false,
+		arpCacheReadable: true,
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),
@@ -399,7 +406,11 @@ func (r *templateRouter) writeConfig() error {
 		cfg.Status = ServiceAliasConfigStatusSaved
 		r.state[k] = cfg
 	}
-
+	if !r.arpCacheWarn && r.arpCacheReadable {
+		if err := r.checkEndpointCount(); err != nil {
+			glog.Warningf("Error checking endpoint neighbour availability: %s", err)
+		}
+	}
 	for path, template := range r.templates {
 		file, err := os.Create(path)
 		if err != nil {
@@ -426,6 +437,30 @@ func (r *templateRouter) writeConfig() error {
 	}
 
 	return nil
+}
+
+// Check that the number of endpoints don't exceed the ARP cache limit
+func (r *templateRouter) checkEndpointCount() error {
+	data, err := ioutil.ReadFile("/proc/sys/net/ipv4/neigh/default/gc_thresh3")
+	if err != nil {
+		glog.Warningf("Error reading ARP neighbour information: %s", err)
+		r.arpCacheReadable = false
+		return err
+	} else {
+		arpCache, err := strconv.Atoi(string(data[:len(data)-1]))
+		if err != nil {
+			glog.Warningf("Error: %s", err)
+			return err
+		}
+		r.arpCacheReadable = true
+		arpThreshold := float64(arpCache) * 0.9
+		items := len(r.serviceUnits)
+		if items > int(arpThreshold) {
+			glog.Warningf("The number of distinct endpoints (%d) is close to the size of the ARP neighbour cache (%d). Please increase the ARP neighbour cache size.", items, arpCache)
+			r.arpCacheWarn = true
+		}
+	}
+	return nil //no error
 }
 
 // writeCertificates attempts to write certificates only if the cfg requires it see shouldWriteCerts
