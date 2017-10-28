@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -47,6 +48,11 @@ func (r ReporterBool) Changed() bool {
 
 func AlwaysRequiresMigration(_ *resource.Info) (Reporter, error) {
 	return ReporterBool(true), nil
+}
+
+// timeStampNow returns the current time in the same format as glog
+func timeStampNow() string {
+	return time.Now().Format("0102 15:04:05.000000")
 }
 
 // NotChanged is a Reporter returned by operations that are guaranteed to be read-only
@@ -397,9 +403,9 @@ func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 		ns = "-n " + ns
 	}
 	if err != nil {
-		fmt.Fprintf(t.out, "%-10s %s %s/%s: %v\n", prefix, ns, info.Mapping.Resource, info.Name, err)
+		fmt.Fprintf(t.out, "E%s %-10s %s %s/%s: %v\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name, err)
 	} else {
-		fmt.Fprintf(t.out, "%-10s %s %s/%s\n", prefix, ns, info.Mapping.Resource, info.Name)
+		fmt.Fprintf(t.out, "I%s %-10s %s %s/%s\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name)
 	}
 }
 
