@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/retry"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -73,7 +74,14 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 
 		g.It("should create a root build and pass with a privileged SCC", func() {
 			g.By("adding builder account to privileged SCC")
-			err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "privileged", "system:serviceaccount:"+oc.Namespace()+":builder").Execute()
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				scc, err := oc.AdminSecurityClient().Security().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				scc.Users = append(scc.Users, "system:serviceaccount:"+oc.Namespace()+":builder")
+				_, err = oc.AdminSecurityClient().Security().SecurityContextConstraints().Update(scc)
+				return err
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = oc.Run("new-app").Args("nodejsroot~https://github.com/openshift/nodejs-ex", "--name", "nodejspass").Execute()
