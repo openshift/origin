@@ -66,17 +66,22 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		panic("No ClusterNetworks set in networkConfig; should have been defaulted in if not configured")
 	}
 
+	var parsedClusterNetworkEntries []networkapi.ClusterNetworkEntry
+	for _, entry := range master.networkInfo.ClusterNetworks {
+		parsedClusterNetworkEntries = append(parsedClusterNetworkEntries, networkapi.ClusterNetworkEntry{CIDR: entry.ClusterCIDR.String(), HostSubnetLength: entry.HostSubnetLength})
+	}
+
 	configCN := &networkapi.ClusterNetwork{
 		TypeMeta:   metav1.TypeMeta{Kind: "ClusterNetwork"},
 		ObjectMeta: metav1.ObjectMeta{Name: networkapi.ClusterNetworkDefault},
 
-		ClusterNetworks: clusterNetworkEntries,
-		ServiceNetwork:  networkConfig.ServiceNetworkCIDR,
+		ClusterNetworks: parsedClusterNetworkEntries,
+		ServiceNetwork:  master.networkInfo.ServiceNetwork.String(),
 		PluginName:      networkConfig.NetworkPluginName,
 
 		// Need to set these for backward compat
-		Network:          clusterNetworkEntries[0].CIDR,
-		HostSubnetLength: clusterNetworkEntries[0].HostSubnetLength,
+		Network:          parsedClusterNetworkEntries[0].CIDR,
+		HostSubnetLength: parsedClusterNetworkEntries[0].HostSubnetLength,
 	}
 	osapivalidation.SetDefaultClusterNetwork(*configCN)
 
