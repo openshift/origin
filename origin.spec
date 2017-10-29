@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1ae96d4d897595d131dd1599c28d3c38a8d78a68
+%global commit 42284eb79c368ff3317e5861686f6cab2c43db66
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.184.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1ae96d4
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.185.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=42284eb
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.185.0%{?dist}
+Release:        0.186.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,23 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Oct 29 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.186.0
+- retry scc update in extended test on conflict (jminter@redhat.com)
+- Bug 1505266 - Validate node IP is local during sdn node initialization
+  (rpenta@redhat.com)
+- Refactor: Move sdn node Hostname/SelfIP initialization to setNodeIP()
+  (rpenta@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  aaa1d47a1eccb19859d6a64e64def7da734d95ef (jminter@redhat.com)
+- Update console OPENSHIFT_CONSTANTS flags for cluster up (spadgett@redhat.com)
+- Change the router reload suppression so that it doesn't block updates
+  (bbennett@redhat.com)
+- Fixed the wrong link, which will cause 404 response (teleyic@gmail.com)
+- UPSTREAM: 54597: kubelet: check for illegal container state transition
+  (amcdermo@redhat.com)
+- Made the router test take Env variables to alter logging
+  (bbennett@redhat.com)
+
 * Sat Oct 28 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.185.0
 - Fix Hybrid Proxy Logging Verbosity (sross@redhat.com)
 
