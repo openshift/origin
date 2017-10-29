@@ -142,7 +142,7 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 	plugins := []*templateplugin.TemplatePlugin{}
 
 	// Don't coalesce reloads to validate reload suppression during sync.
-	reloadInterval := 0
+	reloadInterval := 0 * time.Second
 
 	// Track reload counts indexed by router name.
 	reloadedMap := make(map[string]int)
@@ -364,7 +364,7 @@ func (p *DelayPlugin) Commit() error {
 
 // launchRateLimitedRouter launches a rate-limited template router
 // that communicates with the api via the provided clients.
-func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval int, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
+func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval time.Duration, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
 	reloadedMap[name] = 0
 	rateLimitingFunc := func() error {
 		reloadedMap[name] += 1
@@ -385,7 +385,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 	return templatePlugin
 }
 
-func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, name string, reloadInterval int, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
+func initializeRouterPlugins(routeclient routeinternalclientset.Interface, projectclient projectinternalclientset.Interface, name string, reloadInterval time.Duration, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
 	r.EnableRateLimiter(reloadInterval, func() error {
