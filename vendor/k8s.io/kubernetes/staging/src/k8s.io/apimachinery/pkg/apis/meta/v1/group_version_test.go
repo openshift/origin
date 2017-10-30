@@ -17,11 +17,10 @@ limitations under the License.
 package v1
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type GroupVersionHolder struct {
@@ -47,7 +46,8 @@ func TestGroupVersionUnmarshalJSON(t *testing.T) {
 			t.Errorf("JSON codec failed to unmarshal input '%s': expected %+v, got %+v", c.input, c.expect, result.GV)
 		}
 		// test the json-iterator codec
-		if err := jsoniter.ConfigFastest.Unmarshal(c.input, &result); err != nil {
+		// if err := jsoniter.ConfigFastest.Unmarshal(c.input, &result); err != nil {
+		if err := json.Unmarshal(c.input, &result); err != nil {
 			t.Errorf("json-iterator codec failed to unmarshal input '%v': %v", c.input, err)
 		}
 		if !reflect.DeepEqual(result.GV, c.expect) {
