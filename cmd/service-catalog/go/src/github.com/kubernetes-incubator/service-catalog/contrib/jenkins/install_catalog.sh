@@ -39,17 +39,8 @@ SERVICE_CATALOG_IMAGE="${REGISTRY}service-catalog:${VERSION}"
 
 echo 'INSTALLING SERVICE CATALOG'
 echo '-------------------'
-echo "Using service-catalot image: ${SERVICE_CATALOG_IMAGE}"
+echo "Using service-catalog image: ${SERVICE_CATALOG_IMAGE}"
 echo '-------------------'
-
-# Create certificates for API server
-echo 'Creating API server CA and certificate...'
-
-# The SC_SERVING_CA, SC_SERVING_CERT, and SC_SERVING_KEY environment variables
-# are sourced from this script.
-CERT_FOLDER="${CERT_FOLDER}" source ${ROOT}/contrib/svc-cat-apiserver-aggregation-tls-setup.sh \
-  || error_exit 'Error creating certificates for API server.'
-
 
 # Deploying to cluster
 
@@ -68,11 +59,6 @@ if [[ "${FIX_CONFIGMAP}" == true ]] && [[ -z "$(kubectl --namespace kube-system 
 fi
 
 PARAMETERS="$(cat <<-EOF
-  --set apiserver.auth.enabled=true \
-  --set useAggregator=true \
-  --set apiserver.tls.ca=$(base64 --wrap 0 ${SC_SERVING_CA}) \
-  --set apiserver.tls.cert=$(base64 --wrap 0 ${SC_SERVING_CERT}) \
-  --set apiserver.tls.key=$(base64 --wrap 0 ${SC_SERVING_KEY}) \
   --set image=${SERVICE_CATALOG_IMAGE}
 EOF
 )"

@@ -58,6 +58,9 @@ func validServiceInstanceForCreate() *servicecatalog.ServiceInstance {
 		Spec: servicecatalog.ServiceInstanceSpec{
 			PlanReference: validPlanReferenceExternal(),
 		},
+		Status: servicecatalog.ServiceInstanceStatus{
+			DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusNotRequired,
+		},
 	}
 }
 
@@ -531,6 +534,45 @@ func TestValidateServiceInstance(t *testing.T) {
 			}(),
 			valid: true,
 		},
+		{
+			name: "required deprovision status on create",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceForCreate()
+				i.Status.DeprovisionStatus = servicecatalog.ServiceInstanceDeprovisionStatusRequired
+				return i
+			}(),
+			create: true,
+			valid:  false,
+		},
+		{
+			name: "succeeded deprovision status on create",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceForCreate()
+				i.Status.DeprovisionStatus = servicecatalog.ServiceInstanceDeprovisionStatusSucceeded
+				return i
+			}(),
+			create: true,
+			valid:  false,
+		},
+		{
+			name: "failed deprovision status on create",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceForCreate()
+				i.Status.DeprovisionStatus = servicecatalog.ServiceInstanceDeprovisionStatusFailed
+				return i
+			}(),
+			create: true,
+			valid:  false,
+		},
+		{
+			name: "invalid deprovision status on update",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Status.DeprovisionStatus = servicecatalog.ServiceInstanceDeprovisionStatus("bad-deprovision-status")
+				return i
+			}(),
+			valid: false,
+		},
 	}
 
 	for _, tc := range cases {
@@ -711,12 +753,14 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 			name: "Start async op",
 			old: &servicecatalog.ServiceInstanceStatus{
 				AsyncOpInProgress: false,
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
 				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
 				AsyncOpInProgress:    true,
+				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			valid: true,
 			err:   "",
@@ -728,9 +772,11 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 				OperationStartTime:   &now,
 				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
 				AsyncOpInProgress:    true,
+				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
 				AsyncOpInProgress: false,
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			valid: true,
 			err:   "",
@@ -743,6 +789,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionFalse,
 				}},
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
@@ -752,6 +799,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionTrue,
 				}},
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			valid: false,
 			err:   "operation in progress",
@@ -766,6 +814,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionFalse,
 				}},
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation: "",
@@ -773,6 +822,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionTrue,
 				}},
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			valid: true,
 			err:   "",
@@ -784,12 +834,14 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 				OperationStartTime:   &now,
 				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
 				Conditions:           []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionFalse}},
+				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
 				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
 				Conditions:           []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionTrue}},
+				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			valid: true,
 			err:   "",
@@ -797,12 +849,14 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 		{
 			name: "Update non-ready instance condition outside of operation",
 			old: &servicecatalog.ServiceInstanceStatus{
-				CurrentOperation: "",
-				Conditions:       []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionFalse}},
+				CurrentOperation:  "",
+				Conditions:        []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionFalse}},
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
-				CurrentOperation: "",
-				Conditions:       []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionTrue}},
+				CurrentOperation:  "",
+				Conditions:        []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionTrue}},
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			valid: true,
 			err:   "",
@@ -814,10 +868,12 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 				OperationStartTime:   &now,
 				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
 				Conditions:           []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionFalse}},
+				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
-				CurrentOperation: "",
-				Conditions:       []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionTrue}},
+				CurrentOperation:  "",
+				Conditions:        []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionTrue}},
+				DeprovisionStatus: servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			valid: true,
 			err:   "",

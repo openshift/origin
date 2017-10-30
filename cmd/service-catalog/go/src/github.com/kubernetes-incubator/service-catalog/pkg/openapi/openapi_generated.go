@@ -217,7 +217,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"url", "relistBehavior", "relistRequests"},
+					Required: []string{"url", "relistBehavior"},
 				},
 			},
 			Dependencies: []string{
@@ -1359,7 +1359,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"externalID", "updateRequests"},
+					Required: []string{"externalID"},
 				},
 			},
 			Dependencies: []string{
@@ -1443,8 +1443,15 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1.ServiceInstancePropertiesState"),
 							},
 						},
+						"deprovisionStatus": {
+							SchemaProps: spec.SchemaProps{
+								Description: "DeprovisionStatus describes what has been done to deprovision the ServiceInstance.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 					},
-					Required: []string{"conditions", "asyncOpInProgress", "orphanMitigationInProgress", "reconciledGeneration"},
+					Required: []string{"conditions", "asyncOpInProgress", "orphanMitigationInProgress", "reconciledGeneration", "deprovisionStatus"},
 				},
 			},
 			Dependencies: []string{

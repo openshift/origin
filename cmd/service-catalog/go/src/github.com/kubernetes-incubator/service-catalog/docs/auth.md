@@ -1,22 +1,21 @@
 # Serving Certificates, Authentication, and Authorization
 
 This document outlines how the service catalog API server handles
-authentication and authorization, and the steps needed to set this up in
-your cluster.
-
-Additionally, it provides instructions for generating the serving
-certificates used to securely serve the service catalog API.
-
-**Note**: when launching from the service catalog API server from the Helm
-charts, authentication and authorization is disabled by default.  The
-`apiserver.auth.enabled` option can be set on the Helm chart to enable
 authentication and authorization.
+
+The service catalog Helm chart's defaults paired with most Kubernetes
+distributions will automatically set up all authentication and authorization
+details correctly. This documentation, therefore, exists for the benefit of
+those who wish to develop and advanced understanding of this topic and those
+who have a need to address various outlying scenarios.
 
 ## Certificates Overview
 
+Certificates are used for parties to identify themselves to one another.
+
 CA (Certificate Authority) certificates are used to delegate trust.
 Whenever something trusts the CA, it can trust any certificates *signed*
-by the CA private key by verifying the signature using the CA certificate.
+by the CA.
 
 If a certificate is not signed by a separate CA, it is instead
 *self-signed*. A self-signed certificate must either be trusted directly
@@ -34,142 +33,43 @@ In a full setup of the service catalog API server, there are three
    the service catalog serving certificates, but a different CA
    may also be used.
 
-   By default, the service catalog API server automatically generates
-   self-signed certificates if no serving certificates are passed in,
-   making this CA optional.  However, in a real setup, you'll need this CA
-   so that clients can easily trust the identity of the service catalog
-   API server.
+   The service catalog Helm chart automatically generates this CA. There is
+   generally no need to override this.
 
-2. a client CA: this CA signs client certificates, and is used by the API
-   server to authenticate users based on the client certificates they
-   submit.  The same client CA may also be used for the service catalog
+2. a client CA: this CA signs client certificates, and is used by the main
+   Kubernetes API server to authenticate users based on the client certificates
+   they submit.  The same client CA may also be used for the service catalog
    API server, but a different CA may also be used.  Using the same CA
-   ensures that identity trust works the same way between the main
-   Kubernetes API server and the service catalog API server.
+   ensures that identity trust works consistently for both the main Kubernetes
+   API server and the service catalog API server.
 
    As an example, the default cluster admin user generated in many
-   Kubernetes setups uses client certificate authentication. Additionally,
-   controllers or non-human clients running outside the cluster often use
-   certificate-based authentication.
+   Kubernetes distributions uses client certificate authentication.
+   Additionally, controllers or non-human clients running outside the cluster
+   often use certificate-based authentication.
 
 3. a RequestHeader client CA: this special CA signs proxy client
-   certificates.  Clients presenting these certificates are effectively
+   certificates. Clients presenting these certificates are effectively
    trusted to masquerade as any other identity.  When running behind the
    API aggregator, this *must* be the same CA used to sign the
-   aggregator's proxy client certificate.  When not running with an
-   aggregator (e.g. pre-Kubernetes-1.7, without a separate aggregator
-   pod), this simply needs to exist.
+   aggregator's proxy client certificate.
 
-### Quickstart
-
-**Note**: options on the service catalog API server take paths to files.
-Options passed to the Helm chart take the base64-encoded contents of the
-files.
-
-In order to run the service catalog API server with a full authentication
-and authorization setup, refer to the following stesp:
-
-1. Ensure that you have a ConfigMap in the `kube-system` namespace named
-   `extensions-apiserver-authentication`.  If not, simply follow the "if
-   not, ..." clauses in steps 2 and 3.
-
-   ```shell
-   $ kubectl get configmap extension-apiserver-authentication --namespace kube-system -o yaml
-   ```
-
-2. Ensure that there is a `client-ca-file` key in that ConfigMap.  If not,
-   you'll need a client CA file (see [generating
-   certificates](#generating-certificates) below).  This file can be
-   passed to the service catalog API server using `--client-ca-file`.
-
-3. Ensure that there is a `requestheader-client-ca-file` key in that
-   ConfigMap. If not, you'll need a requestheader client CA file (see
-   [generating certificates](#generating-certificates) below).  This file
-   can be passed to the service catalog API server using
-   `--requestheader-client-ca-file`, or the
-   `apiserver.tls.requestHeaderCA` Helm chart option:
-
-   ```shell
-   helm install charts/catalog --name catalog --namespace catalog --set apiserver.auth.enabled=true --set apiserver.tls.requestHeaderCA=$(base64 --wrap 0 requestheader-client-ca.crt)
-   ```
-
-4. If running the service catalog API server outside of the corresponding
-   Kubernetes cluster, ensure that you pass in a Kubeconfig file to
-   authenticate with the main cluster using the
-   `--authentication-kubeconfig` and `--authorization-kubeconfig` options
-   on the service catalog API server.
+   On many Kubernetes distributions, this CA is provided through a flag on the
+   main Kubernetes API server. The main Kubernetes API server inserts the CA
+   certificate into a config map and the API server for all aggregated APIs
+   will, by default, inherit the CA from that config map. For Kubernetes
+   distributions that do not handle this automatically, the RequestHeader client
+   CA can be set manually on the service catalog API server.
 
 ### Generating certificates
-
-The Kubernetes documentation has a [detailed
-section](https://kubernetes.io/docs/admin/authentication/#creating-certificates)
-on how to create certificates several different ways.  For convenience,
-we'll reproduce the basics using the `openssl` and `cfssl` commands below
-(you can install `cfssl` using `go get -u
-github.com/cloudflare/cfssl/cmd/...`).
 
 In the common case, all three CA certificates referenced above already
 exist as part of the main Kubernetes cluster setup.
 
 In case you need to generate any of the CA certificate pairs mentioned
-above yourself, you can do so using the following command (see below for
-appropriate values of `$PURPOSE`):
-
-```shell
-export PURPOSE=<purpose>
-openssl req -x509 -sha256 -new -nodes -days 365 -newkey rsa:2048 -keyout ${PURPOSE}-ca.key -out ${PURPOSE}-ca.crt -subj "/CN=ca"
-echo '{"signing":{"default":{"expiry":"43800h","usages":["signing","key encipherment","'${PURPOSE}'"]}}}' > "${PURPOSE}-ca-config.json"
-```
-
-This generates a certificate and private key for the CA, as well as
-a signing configuration used by `cfssl` below. `$PURPOSE` should be set to
-one of `serving`/`server`, `client`, or `requestheader-client`, as
-detailed above in the [certificates overview](#certificates-overview).
-
-These CA certificates are self-signed; no "higher-level" CAs are signing
-these CA certificates, so they represent the "roots" of your trust
-relationship.
-
-To generate a serving certificate keypair (see the [serving
-certificates](#serving-certificates) section for more details), you can
-use the following commands:
-
-```shell
-export SERVICE_NAME=<service>
-export ALT_NAMES='"<service>.<namespace>","<service>.<namespace>.svc"'
-echo '{"CN":"'${SERVICE_NAME}'","hosts":['${ALT_NAMES}'],"key":{"algo":"rsa","size":2048}}' | cfssl gencert -ca=server-ca.crt -ca-key=server-ca.key -config=server-ca-config.json - | cfssljson -bare apiserver
-```
-
-`<service>` should be the name of the Service for service
-catalog API server (e.g. `<release>-<chart>` when using Helm).
-
-This will create a pair of files named `apiserver-key.pem` and
-`apiserver.pem`.  These are the private key and public certificate,
-respectively.  The private key and certificate are commonly referred to
-with `.key ` and `.crt` extensions, respectively: `apiserver.key` and
-`apiserver.crt`.
-
-To base64 encode these files for passing to the Helm charts, run `base64
---wrap=0 <file>`.  The resulting output may be passed to the Helm charts
-for the `apiserver.tls.*` series of options.
-
-### Serving Certificates
-
-In order to securely serve the service catalog API server over HTTPS,
-you'll need serving certificates.  By default, a set of self-signed
-certificates are generated by the service catalog API server. However,
-clients have no way to trust these (since they are self-signed, there is
-no separate CA), so production deployments, or deployments running behind
-an API server aggregator, should use manually generated CA certificates.
-
-By default, the service catalog API server looks for these certificates in
-the `/var/run/kubernetes-service-catalog` directory, although this may be
-overridden using the `--cert-dir` option on the API server.  The files
-must be named `apiserver.crt` and `apiserver.key`.
-
-When deploying using the Helm charts, you should pass the
-`apiserver.tls.cert` and `apiserver.tls.key` options, populated with the
-contents of the aforementioned files, base64 encoded.
+above yourself, the Kubernetes documentation has [detailed
+instructions](https://kubernetes.io/docs/admin/authentication/#creating-certificates)
+on how to create certificates several different ways.
 
 ## Authentication
 
@@ -263,11 +163,6 @@ the `--requestheader-client-ca-file` option to the service catalog API
 server. Any API server proxies need to have client certificates signed by
 this CA certificate in order to properly pass their authentication
 information through to the service catalog API server.
-
-When using the Helm charts, you can pass the contents of the CA
-certificate in the `apiserver.tls.requestHeaderCA` option (base64
-encoded), similarly to how other certificates are passed to the Helm
-charts.
 
 Alternatively, you can pass the `--authentication-skip-lookup` flag to the
 service catalog API server.  However, this will *also* disable client
