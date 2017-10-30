@@ -1599,7 +1599,6 @@ func (proxier *Proxier) syncProxyRules() {
 	err = proxier.iptables.RestoreAll(proxier.iptablesData.Bytes(), utiliptables.NoFlushTables, utiliptables.RestoreCounters)
 	if err != nil {
 		glog.Errorf("Failed to execute iptables-restore: %v", err)
-		glog.V(2).Infof("Rules:\n%s", proxier.iptablesData.Bytes())
 		// Revert new local ports.
 		revertPorts(replacementPortsMap, proxier.portsMap)
 		return

@@ -3144,7 +3144,7 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"openshift/base-centos7"
+          "name":"centos/s2i-base-centos7"
         }
       }
     },
