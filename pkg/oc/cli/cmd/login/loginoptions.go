@@ -225,14 +225,16 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	clientConfig.KeyFile = o.KeyFile
 	token, err := tokencmd.RequestToken(o.Config, o.Reader, o.Username, o.Password)
 	if err != nil {
+		suggestion := "verify you have provided the correct host and port and that the server is currently running."
+
 		// if internal error occurs, suggest making sure
 		// client is connecting to the right host:port
 		if statusErr, ok := err.(*kerrors.StatusError); ok {
 			if statusErr.Status().Code == http.StatusInternalServerError {
-				return fmt.Errorf("error: The server was unable to respond - verify you have provided the correct host and port and that the server is currently running.")
+				return fmt.Errorf("error: The server was unable to respond - %v", suggestion)
 			}
 		}
-		return err
+		return fmt.Errorf("%v - %v", err, suggestion)
 	}
 	clientConfig.BearerToken = token
 
