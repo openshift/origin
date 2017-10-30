@@ -1160,4 +1160,221 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 		})
 	})
+
+	g.Describe("keep the deployer pod invariant valid [Conformance]", func() {
+		dcName := "deployment-simple"
+
+		g.AfterEach(func() {
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should deal with cancellation of running deployment", func() {
+			namespace := oc.Namespace()
+
+			g.By("creating DC")
+			dc, err := readDCFixture(simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			dc.Spec.Replicas = 1
+			// Make sure the deployer pod doesn't end too soon
+			dc.Spec.MinReadySeconds = 60
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for RC to be created")
+			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
+				dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+					cond := deployutil.GetDeploymentCondition(config.Status, deployapi.DeploymentProgressing)
+					if cond != nil && cond.Reason == deployapi.NewReplicationControllerReason {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
+
+			g.By("waiting for deployer pod to be running")
+			rc, err := waitForRCModification(oc, namespace, deployutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
+					if deployutil.DeploymentStatusFor(currentRC) == deployapi.DeploymentStatusRunning {
+						return true, nil
+					}
+					return false, nil
+				})
+
+			g.By("canceling the deployment")
+			rc, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(
+				deployutil.LatestDeploymentNameForConfig(dc), types.StrategicMergePatchType,
+				[]byte(fmt.Sprintf(`{"metadata":{"annotations":{%q: %q, %q: %q}}}`,
+					deployapi.DeploymentCancelledAnnotation, deployapi.DeploymentCancelledAnnotationValue,
+					deployapi.DeploymentStatusReasonAnnotation, deployapi.DeploymentCancelledByUser,
+				)))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(deployutil.DeploymentVersionFor(rc)).To(o.Equal(dc.Status.LatestVersion))
+
+			g.By("redeploying immediately by config change")
+			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(dc.Namespace).Patch(dc.Name, types.StrategicMergePatchType,
+				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
+				dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+					if config.Status.LatestVersion == 2 {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Wait for deployment pod to be running
+			rc, err = waitForRCModification(oc, namespace, deployutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
+					if deployutil.DeploymentStatusFor(currentRC) == deployapi.DeploymentStatusRunning {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should deal with config change in case the deployment is still running", func() {
+			namespace := oc.Namespace()
+
+			g.By("creating DC")
+			dc, err := readDCFixture(simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			dc.Spec.Replicas = 1
+			// Make sure the deployer pod doesn't end too soon
+			dc.Spec.MinReadySeconds = 60
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for RC to be created")
+			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentRunTimeout,
+				dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+					cond := deployutil.GetDeploymentCondition(config.Status, deployapi.DeploymentProgressing)
+					if cond != nil && cond.Reason == deployapi.NewReplicationControllerReason {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
+
+			g.By("waiting for deployer pod to be running")
+			_, err = waitForRCModification(oc, namespace, deployutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
+					if deployutil.DeploymentStatusFor(currentRC) == deployapi.DeploymentStatusRunning {
+						return true, nil
+					}
+					return false, nil
+				})
+
+			g.By("redeploying immediately by config change")
+			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(dc.Namespace).Patch(dc.Name, types.StrategicMergePatchType,
+				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
+				dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+					if config.Status.LatestVersion == 2 {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Wait for deployment pod to be running
+			_, err = waitForRCModification(oc, namespace, deployutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
+					if deployutil.DeploymentStatusFor(currentRC) == deployapi.DeploymentStatusRunning {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should deal with cancellation after deployer pod succeeded", func() {
+			namespace := oc.Namespace()
+
+			g.By("creating DC")
+			dc, err := readDCFixture(simpleDeploymentFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			dc.Spec.Replicas = 1
+			// Make sure the deployer pod doesn't immediately
+			dc.Spec.MinReadySeconds = 3
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for RC to be created")
+			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentRunTimeout,
+				dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+					cond := deployutil.GetDeploymentCondition(config.Status, deployapi.DeploymentProgressing)
+					if cond != nil && cond.Reason == deployapi.NewReplicationControllerReason {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Status.LatestVersion).To(o.BeEquivalentTo(1))
+
+			rcName := deployutil.LatestDeploymentNameForConfig(dc)
+
+			g.By("waiting for deployer to be completed")
+			_, err = waitForPodModification(oc, namespace,
+				deployutil.DeployerPodNameForDeployment(rcName),
+				deploymentRunTimeout, "",
+				func(pod *kapiv1.Pod) (bool, error) {
+					switch pod.Status.Phase {
+					case kapiv1.PodSucceeded:
+						return true, nil
+					case kapiv1.PodFailed:
+						return true, errors.New("pod failed")
+					default:
+						return false, nil
+					}
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("canceling the deployment")
+			rc, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(
+				rcName, types.StrategicMergePatchType,
+				[]byte(fmt.Sprintf(`{"metadata":{"annotations":{%q: %q, %q: %q}}}`,
+					deployapi.DeploymentCancelledAnnotation, deployapi.DeploymentCancelledAnnotationValue,
+					deployapi.DeploymentStatusReasonAnnotation, deployapi.DeploymentCancelledByUser,
+				)))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(deployutil.DeploymentVersionFor(rc)).To(o.BeEquivalentTo(1))
+
+			g.By("redeploying immediately by config change")
+			o.Expect(dc.Spec.Template.Annotations["foo"]).NotTo(o.Equal("bar"))
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(dc.Namespace).Patch(dc.Name, types.StrategicMergePatchType,
+				[]byte(`{"spec":{"template":{"metadata":{"annotations":{"foo": "bar"}}}}}`))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			dc, err = waitForDCModification(oc, namespace, dcName, deploymentRunTimeout,
+				dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+					if config.Status.LatestVersion == 2 {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Wait for deployment pod to be running
+			_, err = waitForRCModification(oc, namespace, deployutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
+				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
+					if deployutil.DeploymentStatusFor(currentRC) == deployapi.DeploymentStatusRunning {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
 })
