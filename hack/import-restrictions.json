@@ -272,9 +272,11 @@
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
       "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/api/v1",
       "vendor/k8s.io/kubernetes/pkg/api/install",
-      "vendor/k8s.io/kubernetes/pkg/apis/authorization",
-      "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset",
+      "vendor/k8s.io/kubernetes/pkg/apis/authorization/v1",
+      "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/clientset",
+      "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/authorization/v1",
       "vendor/github.com/emicklei/go-restful",
       "vendor/github.com/lestrrat/go-jsschema",
       "vendor/k8s.io/kubernetes/pkg/controller",
@@ -282,7 +284,6 @@
       "github.com/openshift/origin/pkg/api",
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/template/apis/template/v1",
-      "github.com/openshift/origin/pkg/authorization/util",
       "github.com/openshift/origin/pkg/template/apis/template/validation",
       "github.com/openshift/origin/pkg/route/apis/route"
     ]

@@ -11,6 +11,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 
@@ -31,7 +32,7 @@ var annotationMap = map[string]string{
 
 // serviceFromTemplate populates an open service broker service response from
 // an OpenShift template.
-func serviceFromTemplate(template *templateapi.Template) *api.Service {
+func serviceFromTemplate(template *templateapiv1.Template) *api.Service {
 	metadata := make(map[string]interface{})
 	for srcname, dstname := range annotationMap {
 		if value, ok := template.Annotations[srcname]; ok {

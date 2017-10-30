@@ -17,8 +17,9 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
-	templateinternalclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	templateclientset "github.com/openshift/origin/pkg/template/generated/clientset"
+	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/externalversions"
 	templateservicebroker "github.com/openshift/origin/pkg/templateservicebroker/servicebroker"
 )
 
@@ -93,20 +94,20 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 	if err != nil {
 		return nil, err
 	}
-	templateClient, err := templateinternalclientset.NewForConfig(clientConfig)
+	templateClient, err := templateclientset.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
 	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, 5*time.Minute)
-	templateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
+	templateInformers.Template().V1().Templates().Informer().AddIndexers(cache.Indexers{
 		templateapi.TemplateUIDIndex: func(obj interface{}) ([]string, error) {
-			return []string{string(obj.(*templateapi.Template).UID)}, nil
+			return []string{string(obj.(*templateapiv1.Template).UID)}, nil
 		},
 	})
 
 	broker, err := templateservicebroker.NewBroker(
 		clientConfig,
-		templateInformers.Template().InternalVersion().Templates(),
+		templateInformers.Template().V1().Templates(),
 		c.TemplateNamespaces,
 	)
 	if err != nil {
@@ -115,7 +116,7 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 
 	if err := s.GenericAPIServer.AddPostStartHook("template-service-broker-synctemplates", func(context genericapiserver.PostStartHookContext) error {
 		templateInformers.Start(context.StopCh)
-		if !controller.WaitForCacheSync("tsb", context.StopCh, templateInformers.Template().InternalVersion().Templates().Informer().HasSynced) {
+		if !controller.WaitForCacheSync("tsb", context.StopCh, templateInformers.Template().V1().Templates().Informer().HasSynced) {
 			return fmt.Errorf("unable to sync caches")
 		}
 		return nil

@@ -19,13 +19,13 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/util/jsonpath"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 
-	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/config/cmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	"github.com/openshift/origin/pkg/templateservicebroker/util"
 )
 
 func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {
@@ -158,7 +158,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 
 	// end users are not expected to have access to BrokerTemplateInstance
 	// objects; SAR on the TemplateInstance instead.
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "get",
 		Group:     templateapi.GroupName,
@@ -200,7 +200,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 			return api.InternalServerError(err)
 		}
 
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: object.Ref.Namespace,
 			Verb:      "get",
 			Group:     object.Ref.GroupVersionKind().Group,
@@ -249,7 +249,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 	if status == http.StatusCreated { // binding not found; create it
 		// end users are not expected to have access to BrokerTemplateInstance
 		// objects; SAR on the TemplateInstance instead.
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
 			Verb:      "update",
 			Group:     templateapi.GroupName,
