@@ -267,7 +267,7 @@ func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool, lookupSvc
 
 	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
 
-	// TODO: review me for sanity
+	// Now build the actual endpoints we pass to the template
 	for _, s := range subsets {
 		for _, p := range s.Ports {
 			if excludeUDP && p.Protocol == kapi.ProtocolUDP {
