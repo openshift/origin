@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -203,6 +204,11 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	if len(resolvConfHostPath) != 0 {
+		cmd := exec.Command("chcon", "system_u:object_r:svirt_sandbox_file_t:s0", "/etc/resolv.conf")
+		err := cmd.Run()
+		if err != nil {
+			return fmt.Errorf("unable to set permissions on /etc/resolv.conf: %v", err)
+		}
 		config.BuildVolumes = []string{fmt.Sprintf("%s:/etc/resolv.conf", resolvConfHostPath)}
 	}
 
