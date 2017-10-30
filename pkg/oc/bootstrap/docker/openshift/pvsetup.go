@@ -124,15 +124,17 @@ func (h *Helper) ensurePVInstallerSA(authorizationClient authorizationtypedclien
 		}
 	}
 
-	err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "pvinstaller", "default", &bytes.Buffer{})
+	cmdOut := &bytes.Buffer{}
+	err = h.AddSCCToServiceAccount("privileged", "pvinstaller", "default", cmdOut)
 	if err != nil {
-		return errors.NewError("cannot add privileged SCC to pvinstaller service account").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot add privileged SCC to pvinstaller service account").WithCause(err).WithDetails(cmdOut.String())
 	}
 
 	saUser := serviceaccount.MakeUsername(pvSetupNamespace, pvInstallerSA)
-	err = AddClusterRole(authorizationClient, "cluster-admin", saUser)
+	cmdOut = &bytes.Buffer{}
+	err = h.AddClusterRole("cluster-admin", saUser, cmdOut)
 	if err != nil {
-		return errors.NewError("cannot add cluster role to service account (%s/%s)", pvSetupNamespace, pvInstallerSA).WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot add cluster role to service account (%s/%s)", pvSetupNamespace, pvInstallerSA).WithCause(err).WithDetails(cmdOut.String())
 	}
 
 	return nil

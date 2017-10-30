@@ -1,6 +1,7 @@
 package openshift
 
 import (
+	"bytes"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -96,8 +97,9 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 	}
 
 	// Add cluster reader role to heapster service account
-	if err = AddClusterRole(authorizationClient.Authorization(), "cluster-reader", "system:serviceaccount:openshift-infra:heapster"); err != nil {
-		return errors.NewError("cannot add cluster reader role to heapster service account").WithCause(err).WithDetails(h.OriginLog())
+	cmdOutput := &bytes.Buffer{}
+	if err = h.AddClusterRole("cluster-reader", "system:serviceaccount:openshift-infra:heapster", cmdOutput); err != nil {
+		return errors.NewError("cannot add cluster reader role to heapster service account").WithCause(err).WithDetails(cmdOutput.String())
 	}
 
 	// Create metrics deployer secret

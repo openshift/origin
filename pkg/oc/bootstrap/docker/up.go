@@ -1117,11 +1117,11 @@ func (c *ClientStartConfig) Login(out io.Writer) error {
 
 // CreateProject creates a new project for the current user
 func (c *ClientStartConfig) CreateProject(out io.Writer) error {
-	f, err := openshift.LoggedInUserFactory()
+	f, token, err := openshift.LoggedInUserFactory()
 	if err != nil {
 		return errors.NewError("cannot get logged in user client").WithCause(err)
 	}
-	return openshift.CreateProject(f, initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
+	return c.OpenShiftHelper().CreateProject(f, initialProjectName, initialProjectDisplay, initialProjectDesc, token, out)
 }
 
 // RemoveTemporaryDirectory removes the local configuration directory

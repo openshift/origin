@@ -2,9 +2,8 @@ package openshift
 
 import (
 	"io"
-	"io/ioutil"
+	"strings"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -13,36 +12,16 @@ import (
 )
 
 // CreateProject creates a project
-func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, out io.Writer) error {
-	projectClient, err := f.OpenshiftInternalProjectClient()
-	if err != nil {
-		return err
+func (h *Helper) CreateProject(f *clientcmd.Factory, name, display, desc, token string, out io.Writer) error {
+	command := []string{"oc", "new-project", name, "--display-name", display, "--description", desc}
+	if len(token) > 0 {
+		command = append(command, "--token", token)
 	}
-	pathOptions := config.NewPathOptionsWithConfig("")
-	opt := &cmd.NewProjectOptions{
-		ProjectName: name,
-		DisplayName: display,
-		Description: desc,
-
-		Name: basecmd,
-
-		Client: projectClient.Project(),
-
-		ProjectOptions: &cmd.ProjectOptions{PathOptions: pathOptions},
-		Out:            ioutil.Discard,
+	result, err := h.execHelper.Command(command...).CombinedOutput()
+	if err == nil || (err != nil && strings.Contains(result, "AlreadyExists")) {
+		return setCurrentProject(f, name, out)
 	}
-	err = opt.ProjectOptions.Complete(f, []string{}, ioutil.Discard)
-	if err != nil {
-		return err
-	}
-	err = opt.Run()
-	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			return setCurrentProject(f, name, out)
-		}
-		return err
-	}
-	return nil
+	return err
 }
 
 func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
@@ -52,11 +31,18 @@ func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
 	return opt.RunProject()
 }
 
-func LoggedInUserFactory() (*clientcmd.Factory, error) {
+// LoggedInUserFactory returns a factory for the currently logged in
+// user as well as a token.
+func LoggedInUserFactory() (*clientcmd.Factory, string, error) {
 	cfg, err := config.NewOpenShiftClientConfigLoadingRules().Load()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defaultCfg := kclientcmd.NewDefaultClientConfig(*cfg, &kclientcmd.ConfigOverrides{})
-	return clientcmd.NewFactory(defaultCfg), nil
+	clientCfg, err := defaultCfg.ClientConfig()
+	if err != nil {
+		return nil, "", err
+	}
+
+	return clientcmd.NewFactory(defaultCfg), clientCfg.BearerToken, nil
 }

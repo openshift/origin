@@ -38,7 +38,7 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, public
 
 	// Create logging namespace
 	out := &bytes.Buffer{}
-	err = CreateProject(f, loggingNamespace, "", "", "oc", out)
+	err = h.CreateProject(f, loggingNamespace, "", "", "", out)
 	if err != nil {
 		return errors.NewError("cannot create logging project").WithCause(err).WithDetails(out.String())
 	}
@@ -65,15 +65,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
-	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
-	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
-	}
 	templateClient, err := f.OpenshiftInternalTemplateClient()
-	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
-	}
-	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -86,7 +78,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 
 	// Create logging namespace
 	out := &bytes.Buffer{}
-	err = CreateProject(f, loggingNamespace, "", "", "oc", out)
+	err = h.CreateProject(f, loggingNamespace, "", "", "", out)
 	if err != nil {
 		return errors.NewError("cannot create logging project").WithCause(err).WithDetails(out.String())
 	}
@@ -98,17 +90,17 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Add oauth-editor cluster role to logging-deployer sa
-	if err = AddClusterRole(authorizationClient.Authorization(), "oauth-editor", "system:serviceaccount:logging:logging-deployer"); err != nil {
+	if err = h.AddClusterRole("oauth-editor", "system:serviceaccount:logging:logging-deployer", out); err != nil {
 		return errors.NewError("cannot add oauth editor role to logging deployer service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add cluster-reader cluster role to aggregated-logging-fluentd sa
-	if err = AddClusterRole(authorizationClient.Authorization(), "cluster-reader", "system:serviceaccount:logging:aggregated-logging-fluentd"); err != nil {
+	if err = h.AddClusterRole("cluster-reader", "system:serviceaccount:logging:aggregated-logging-fluentd", out); err != nil {
 		return errors.NewError("cannot cluster reader role to logging fluentd service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add privileged SCC to aggregated-logging-fluentd sa
-	if err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "aggregated-logging-fluentd", loggingNamespace, out); err != nil {
+	if err = h.AddSCCToServiceAccount("privileged", "aggregated-logging-fluentd", loggingNamespace, out); err != nil {
 		return errors.NewError("cannot add privileged security context constraint to logging fluentd service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
