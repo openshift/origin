@@ -704,7 +704,7 @@ func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, egressH
 		otx.AddFlow("table=100, priority=100, reg0=%d, actions=drop", vnid)
 	} else if nodeIP == oc.localIP {
 		// Local Egress IP
-		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->eth_dst,set_field:%s->pkt_mark,output:2", vnid, oc.tunMAC, egressHex)
+		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->eth_dst,set_field:%s->pkt_mark,goto_table:101", vnid, oc.tunMAC, egressHex)
 	} else {
 		// Remote Egress IP; send via VXLAN
 		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", vnid, nodeIP)
