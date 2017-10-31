@@ -344,10 +344,6 @@ backend be_secure:{{$cfgIdx}}
     {{- end }}
     {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
   timeout server  {{$value}}
-    {{- end }} {{/* end balance algorithm setting. */}}
-
-    {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout") }}
-  timeout server  {{$value}}
     {{- end }}
 
     {{- if isTrue (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
