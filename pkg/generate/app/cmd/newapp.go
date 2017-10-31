@@ -11,6 +11,7 @@ import (
 	"time"
 
 	dockerfileparser "github.com/docker/docker/builder/dockerfile/parser"
+	"github.com/docker/go-connections/nat"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
@@ -1100,7 +1101,7 @@ func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRe
 	for _, repo := range repositories {
 		if repoInfo := repo.Info(); repoInfo != nil && repoInfo.Dockerfile != nil {
 			node := repoInfo.Dockerfile.AST()
-			if err := exposedPortsAreNumeric(node); err != nil {
+			if err := exposedPortsAreValid(node); err != nil {
 				return fmt.Errorf("the Dockerfile has an invalid EXPOSE instruction: %v", err)
 			}
 		}
@@ -1109,11 +1110,38 @@ func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRe
 	return nil
 }
 
-func exposedPortsAreNumeric(node *dockerfileparser.Node) error {
+func exposedPortsAreValid(node *dockerfileparser.Node) error {
+	allErrs := make([]error, 0)
+
 	for _, port := range dockerfileutil.LastExposedPorts(node) {
-		if _, err := strconv.ParseInt(port, 10, 32); err != nil {
-			return fmt.Errorf("could not parse %q: must be numeric", port)
+		errs := make([]string, 0)
+
+		if strings.HasPrefix(port, "$") {
+			errs = append(errs, "args are not supported for port numbers")
 		}
+
+		proto, port := nat.SplitProtoPort(port)
+
+		_, err := strconv.ParseUint(port, 10, 16)
+		if err != nil {
+			if numError, ok := err.(*strconv.NumError); ok {
+				if numError.Err == strconv.ErrRange || numError.Err == strconv.ErrSyntax {
+					errs = append(errs, "port number must be in range 0 - 65535")
+				}
+			}
+		}
+		if len(proto) > 0 && !(strings.ToLower(proto) == "tcp" || strings.ToLower(proto) == "udp") {
+			errs = append(errs, "protocol must be tcp or udp")
+		}
+		if len(errs) > 0 {
+			allErrs = append(allErrs, fmt.Errorf("could not parse %q: [%v]", port, strings.Join(errs, ", ")))
+		}
+
 	}
+
+	if len(allErrs) > 0 {
+		return kutilerrors.NewAggregate(allErrs)
+	}
+
 	return nil
 }
