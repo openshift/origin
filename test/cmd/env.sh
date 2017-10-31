@@ -13,6 +13,12 @@ os::cmd::expect_failure_and_text 'oc set env dc --all --containers="node"' 'erro
 os::cmd::expect_failure_and_not_text 'oc set env --from=secret/mysecret dc/node' 'error: at least one environment variable must be provided'
 os::cmd::expect_failure_and_text 'oc set env dc/node test#abc=1234' 'environment variables must be of the form key=value'
 
+# ensure deleting a var through --env does not result in an error message
+os::cmd::expect_success_and_text 'oc set env dc/node key=value' 'deploymentconfig "node" updated'
+os::cmd::expect_success_and_text 'oc set env dc --all --containers="node" --env=key-' 'deploymentconfig "node" updated'
+# ensure deleting a var through --env actually deletes the env var
+os::cmd::expect_success_and_not_text "oc get dc/node -o jsonpath='{ .spec.template.spec.containers[?(@.name==\"node\")].env }'" 'name\:key'
+
 # check that env vars are not split at commas
 os::cmd::expect_success_and_text 'oc set env -o yaml dc/node PASS=x,y=z' 'value: x,y=z'
 os::cmd::expect_success_and_text 'oc set env -o yaml dc/node --env PASS=x,y=z' 'value: x,y=z'

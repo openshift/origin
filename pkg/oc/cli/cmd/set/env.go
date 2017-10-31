@@ -478,7 +478,7 @@ updates:
 
 		// make sure arguments to set or replace environment variables are set
 		// before returning a successful message
-		if len(env) == 0 && len(o.EnvArgs) == 0 {
+		if len(env) == 0 && len(o.EnvArgs) == 0 && len(remove) == 0 {
 			return fmt.Errorf("at least one environment variable must be provided")
 		}
 
