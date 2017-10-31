@@ -114,12 +114,14 @@ func (instanceRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj 
 	// Creating a brand new object, thus it must have no
 	// status. We can't fail here if they passed a status in, so
 	// we just wipe it clean.
-	instance.Status = sc.ServiceInstanceStatus{}
+	instance.Status = sc.ServiceInstanceStatus{
+		// Fill in the first entry set to "creating"?
+		Conditions:        []sc.ServiceInstanceCondition{},
+		DeprovisionStatus: sc.ServiceInstanceDeprovisionStatusNotRequired,
+	}
 
 	instance.Spec.ClusterServiceClassRef = nil
 	instance.Spec.ClusterServicePlanRef = nil
-	// Fill in the first entry set to "creating"?
-	instance.Status.Conditions = []sc.ServiceInstanceCondition{}
 	instance.Finalizers = []string{sc.FinalizerServiceCatalog}
 	instance.Generation = 1
 }
@@ -156,6 +158,11 @@ func (instanceRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new,
 	// Clear out the ClusterServicePlanRef so that it is resolved during reconciliation
 	if newServiceInstance.Spec.ClusterServicePlanExternalName != oldServiceInstance.Spec.ClusterServicePlanExternalName {
 		newServiceInstance.Spec.ClusterServicePlanRef = nil
+	}
+
+	// Ignore the UpdateRequests field when it is the default value
+	if newServiceInstance.Spec.UpdateRequests == 0 {
+		newServiceInstance.Spec.UpdateRequests = oldServiceInstance.Spec.UpdateRequests
 	}
 
 	// Spec updates bump the generation so that we can distinguish between

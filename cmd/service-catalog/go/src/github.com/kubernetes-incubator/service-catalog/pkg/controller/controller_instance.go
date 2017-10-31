@@ -72,6 +72,8 @@ const (
 	errorDeletedClusterServicePlanMessage      string = "ReferencesDeletedServicePlan"
 	errorFindingNamespaceServiceInstanceReason string = "ErrorFindingNamespaceForInstance"
 	errorOrphanMitigationFailedReason          string = "OrphanMitigationFailed"
+	errorInvalidDeprovisionStatusReason        string = "InvalidDeprovisionStatus"
+	errorInvalidDeprovisionStatusMessage       string = "The deprovision status is invalid"
 
 	asyncProvisioningReason                 string = "Provisioning"
 	asyncProvisioningMessage                string = "The instance is being provisioned asynchronously"
@@ -227,6 +229,21 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 		return nil
 	}
 
+	finalizerToken := v1beta1.FinalizerServiceCatalog
+	finalizers := sets.NewString(instance.Finalizers...)
+	if !finalizers.Has(finalizerToken) {
+		return nil
+	}
+
+	// If deprovisioning has failed, do not do anything more
+	if instance.Status.DeprovisionStatus == v1beta1.ServiceInstanceDeprovisionStatusFailed {
+		glog.V(4).Infof(
+			`%s "%s/%s": Not processing deleting event because deprovisioning has failed`,
+			typeSI, instance.Namespace, instance.Name,
+		)
+		return nil
+	}
+
 	glog.V(4).Infof(
 		`%s "%s/%s": Processing deleting event`,
 		typeSI, instance.Namespace, instance.Name,
@@ -271,19 +288,9 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 		}
 	}
 
-	finalizerToken := v1beta1.FinalizerServiceCatalog
-	finalizers := sets.NewString(instance.Finalizers...)
-	if !finalizers.Has(finalizerToken) {
-		return nil
-	}
-
-	// If there is no op in progress, and the instance either was never
-	// provisioned or was already deprovisioned due to orphan mitigation,
-	// we can just clear the finalizer and delete. One possible scenario
-	// is if the service class name referenced never existed.
-	if instance.Status.CurrentOperation == "" &&
-		instance.Status.ReconciledGeneration == 0 ||
-		(isServiceInstanceFailed(instance) && instance.Status.ReconciledGeneration == 1) {
+	// If the deprovisioning succeeded or is not needed, then clear out the finalizers
+	if instance.Status.DeprovisionStatus == v1beta1.ServiceInstanceDeprovisionStatusNotRequired ||
+		instance.Status.DeprovisionStatus == v1beta1.ServiceInstanceDeprovisionStatusSucceeded {
 
 		glog.V(5).Infof(
 			`%s "%s/%s": Clearing catalog finalizer`,
@@ -297,6 +304,50 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 		// Clear the finalizer
 		finalizers.Delete(finalizerToken)
 		toUpdate.Finalizers = finalizers.List()
+		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// At this point, the deprovision status should be Required as the
+	// controller is about to send a deprovision request. The other
+	// valid values for deprovision status have all been handled above.
+	// If the deprovision status is anything other than Required, then either
+	// there is an invalid value or there is a logical error in the
+	// controller. In either case, the controller needs to bail out, setting
+	// the deprovision status to Failed.
+	if instance.Status.DeprovisionStatus != v1beta1.ServiceInstanceDeprovisionStatusRequired {
+		clone, err := api.Scheme.DeepCopy(instance)
+		if err != nil {
+			return err
+		}
+		toUpdate := clone.(*v1beta1.ServiceInstance)
+		s := fmt.Sprintf("%s: %s", errorInvalidDeprovisionStatusMessage, instance.Status.DeprovisionStatus)
+		glog.Infof(
+			`%s "%s/%s": %s`,
+			typeSI, instance.Namespace, instance.Name, s,
+		)
+		c.recorder.Event(instance, corev1.EventTypeWarning, errorInvalidDeprovisionStatusReason, s)
+
+		if instance.Status.OrphanMitigationInProgress {
+			setServiceInstanceCondition(
+				toUpdate,
+				v1beta1.ServiceInstanceConditionReady,
+				v1beta1.ConditionUnknown,
+				errorInvalidDeprovisionStatusReason,
+				"Orphan mitigation failed: "+s)
+		} else {
+			setServiceInstanceCondition(toUpdate,
+				v1beta1.ServiceInstanceConditionFailed,
+				v1beta1.ConditionTrue,
+				errorInvalidDeprovisionStatusReason,
+				s)
+		}
+
+		c.clearServiceInstanceCurrentOperation(toUpdate)
+		toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
+
 		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 			return err
 		}
@@ -352,17 +403,22 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 		request.OriginatingIdentity = originatingIdentity
 	}
 
-	if instance.Status.OrphanMitigationInProgress && instance.Status.OperationStartTime == nil {
-		now := metav1.Now()
-		toUpdate.Status.OperationStartTime = &now
-	}
+	if toUpdate.DeletionTimestamp == nil {
+		if toUpdate.Status.OperationStartTime == nil {
+			now := metav1.Now()
+			toUpdate.Status.OperationStartTime = &now
+		}
+	} else {
+		if toUpdate.Status.CurrentOperation != v1beta1.ServiceInstanceOperationDeprovision {
+			// Cancel any pending orphan mitigation since the resource is being deleted
+			toUpdate.Status.OrphanMitigationInProgress = false
 
-	if toUpdate.Status.CurrentOperation == "" {
-		toUpdate, err = c.recordStartOfServiceInstanceOperation(toUpdate, v1beta1.ServiceInstanceOperationDeprovision)
-		if err != nil {
-			// There has been an update to the instance. Start reconciliation
-			// over with a fresh view of the instance.
-			return err
+			toUpdate, err = c.recordStartOfServiceInstanceOperation(toUpdate, v1beta1.ServiceInstanceOperationDeprovision)
+			if err != nil {
+				// There has been an update to the instance. Start reconciliation
+				// over with a fresh view of the instance.
+				return err
+			}
 		}
 	}
 
@@ -411,6 +467,7 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 			}
 
 			c.clearServiceInstanceCurrentOperation(toUpdate)
+			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
 			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 				return err
 			}
@@ -458,6 +515,7 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 			}
 
 			c.clearServiceInstanceCurrentOperation(toUpdate)
+			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
 			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 				return err
 			}
@@ -513,6 +571,7 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 
 	c.clearServiceInstanceCurrentOperation(toUpdate)
 	toUpdate.Status.ExternalProperties = nil
+	toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
 
 	if instance.DeletionTimestamp != nil {
 		glog.V(5).Infof(
@@ -804,6 +863,7 @@ func (c *controller) reconcileServiceInstance(instance *v1beta1.ServiceInstance)
 		provisionOrUpdateText = "provision"
 		provisionedOrUpdatedText = "provisioned"
 		provisioningOrUpdatingText = "provisioning"
+		toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 	} else {
 		isProvisioning = false
 		updateRequest = &osb.UpdateInstanceRequest{
@@ -1143,6 +1203,7 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 
 		if !provisioning {
 			c.clearServiceInstanceCurrentOperation(toUpdate)
+			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
 		} else {
 			c.setServiceInstanceStartOrphanMitigation(toUpdate)
 		}
@@ -1223,6 +1284,7 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 
 			c.clearServiceInstanceCurrentOperation(toUpdate)
 			toUpdate.Status.ExternalProperties = nil
+			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
 
 			setServiceInstanceCondition(
 				toUpdate,
@@ -1307,6 +1369,10 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 				c.clearServiceInstanceCurrentOperation(toUpdate)
 			} else {
 				c.setServiceInstanceStartOrphanMitigation(toUpdate)
+			}
+
+			if deleting {
+				toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
 			}
 
 			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
@@ -1400,6 +1466,10 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 				c.setServiceInstanceStartOrphanMitigation(toUpdate)
 			}
 
+			if deleting {
+				toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
+			}
+
 			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 				return err
 			}
@@ -1461,6 +1531,9 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 
 		toUpdate.Status.ExternalProperties = toUpdate.Status.InProgressProperties
 		c.clearServiceInstanceCurrentOperation(toUpdate)
+		if deleting {
+			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
+		}
 
 		setServiceInstanceCondition(
 			toUpdate,
@@ -1534,6 +1607,9 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 		toUpdate := clone.(*v1beta1.ServiceInstance)
 
 		c.clearServiceInstanceCurrentOperation(toUpdate)
+		if deleting {
+			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
+		}
 
 		setServiceInstanceCondition(
 			toUpdate,
@@ -1595,6 +1671,10 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 				c.clearServiceInstanceCurrentOperation(toUpdate)
 			} else {
 				c.setServiceInstanceStartOrphanMitigation(toUpdate)
+			}
+
+			if deleting {
+				toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
 			}
 
 			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {

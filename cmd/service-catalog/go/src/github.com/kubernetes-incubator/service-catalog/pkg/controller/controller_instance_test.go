@@ -1277,6 +1277,7 @@ func TestReconcileServiceInstanceDelete(t *testing.T) {
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, instance, nil
@@ -1343,6 +1344,7 @@ func TestReconcileServiceInstanceDeleteBlockedByCredentials(t *testing.T) {
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, instance, nil
@@ -1445,6 +1447,7 @@ func TestReconcileServiceInstanceDeleteAsynchronous(t *testing.T) {
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, instance, nil
@@ -1498,10 +1501,10 @@ func TestReconcileServiceInstanceDeleteAsynchronous(t *testing.T) {
 	}
 }
 
-// TestReconcileServiceInstanceDeleteFailedProvision tests that an instance
-// that failed to provision will be finalized, but no deprovision request will
-// be sent to the broker.
-func TestReconcileServiceInstanceDeleteFailedProvision(t *testing.T) {
+// TestReconcileServiceInstanceDeleteFailedProvisionWithoutRequest tests that
+// an instance that failed to provision without making a provision request
+// will be finalized, but no deprovision request will be sent to the broker.
+func TestReconcileServiceInstanceDeleteFailedProvisionWithoutRequest(t *testing.T) {
 	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, noFakeActions())
 
 	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
@@ -1512,9 +1515,116 @@ func TestReconcileServiceInstanceDeleteFailedProvision(t *testing.T) {
 	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
 	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusNotRequired
 
-	// we only invoke the broker client to deprovision if we have a reconciled generation set
-	// as that implies a previous success.
+	instance.Generation = 1
+	instance.Status.ReconciledGeneration = 0
+
+	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, instance, nil
+	})
+
+	err := testController.reconcileServiceInstance(instance)
+	if err != nil {
+		t.Fatalf("Unexpected error from reconcileServiceInstance: %v", err)
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 0)
+
+	// Verify no core kube actions occurred
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 1)
+
+	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
+	assertEmptyFinalizers(t, updatedServiceInstance)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 0)
+}
+
+// TestReconcileServiceInstanceDeleteFailedProvisionWithRequest tests that an
+// instance that failed to provision but for which a provision request was
+// made will have a deprovision request sent to the broker.
+func TestReconcileServiceInstanceDeleteFailedProvisionWithRequest(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{},
+		},
+	})
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	instance := getTestServiceInstanceWithFailedStatus()
+	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
+	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
+
+	instance.Generation = 2
+	instance.Status.ReconciledGeneration = 1
+
+	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, instance, nil
+	})
+
+	err := testController.reconcileServiceInstance(instance)
+	if err != nil {
+		t.Fatalf("Unexpected error from reconcileServiceInstance: %v", err)
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	assertDeprovision(t, brokerActions[0], &osb.DeprovisionRequest{
+		AcceptsIncomplete: true,
+		InstanceID:        testServiceInstanceGUID,
+		ServiceID:         testClusterServiceClassGUID,
+		PlanID:            testClusterServicePlanGUID,
+	})
+
+	// Verify no core kube actions occurred
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 2)
+
+	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+
+	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 1)
+
+	expectedEvent := corev1.EventTypeNormal + " " + successDeprovisionReason + " " + "The instance was deprovisioned successfully"
+	if e, a := expectedEvent, events[0]; e != a {
+		t.Fatalf("Received unexpected event: %v\nExpected: %v", a, e)
+	}
+}
+
+// TestReconcileServiceInstanceDeleteWhenAlreadyDeprovisionedSuccessfully
+// tests that an instance that has already been deprovisioned will be
+// finalized, but no deprovision request will be sent to the broker.
+func TestReconcileServiceInstanceDeleteWhenAlreadyDeprovisionedSuccessfully(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, noFakeActions())
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	instance := getTestServiceInstanceWithFailedStatus()
+	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
+	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
+
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
 
@@ -1544,6 +1654,50 @@ func TestReconcileServiceInstanceDeleteFailedProvision(t *testing.T) {
 	assertNumEvents(t, events, 0)
 }
 
+// TestReconcileServiceInstanceDeleteWhenAlreadyDeprovisionedUnsuccessfully
+// tests that an instance that has already had a failed deprovision request
+// will not be finalized and no further deprovision request will be sent to
+// the broker.
+func TestReconcileServiceInstanceDeleteWhenAlreadyDeprovisionedUnsuccessfully(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, noFakeActions())
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	instance := getTestServiceInstanceWithFailedStatus()
+	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
+	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
+
+	instance.Generation = 2
+	instance.Status.ReconciledGeneration = 1
+
+	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, instance, nil
+	})
+
+	err := testController.reconcileServiceInstance(instance)
+	if err != nil {
+		t.Fatalf("Unexpected error from reconcileServiceInstance: %v", err)
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 0)
+
+	// Verify no core kube actions occurred
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	// Verify no catalog client actions occurred
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 0)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 0)
+}
+
 // TestReconcileServiceInstanceDeleteFailedUpdate tests that an instance
 // that failed after having been successfully provisioned will send a
 // deprovision request to the broker.
@@ -1564,6 +1718,7 @@ func TestReconcileServiceInstanceDeleteFailedUpdate(t *testing.T) {
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 2
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, instance, nil
@@ -1623,6 +1778,7 @@ func TestReconcileServiceInstanceDeleteDoesNotInvokeClusterServiceBroker(t *test
 	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
 	instance.Generation = 1
 	instance.Status.ReconciledGeneration = 0
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusNotRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, instance, nil
@@ -2542,9 +2698,7 @@ func TestReconcileServiceInstanceWithStatusUpdateError(t *testing.T) {
 func TestSetServiceInstanceCondition(t *testing.T) {
 	instanceWithCondition := func(condition *v1beta1.ServiceInstanceCondition) *v1beta1.ServiceInstance {
 		instance := getTestServiceInstance()
-		instance.Status = v1beta1.ServiceInstanceStatus{
-			Conditions: []v1beta1.ServiceInstanceCondition{*condition},
-		}
+		instance.Status.Conditions = []v1beta1.ServiceInstanceCondition{*condition}
 
 		return instance
 	}
@@ -2914,6 +3068,7 @@ func TestReconcileInstanceDeleteUsingOriginatingIdentity(t *testing.T) {
 			// ReconciledGeneration set as that implies a previous success.
 			instance.Generation = 2
 			instance.Status.ReconciledGeneration = 1
+			instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 			if tc.includeUserInfo {
 				instance.Spec.UserInfo = testUserInfo
 			}
@@ -3282,6 +3437,7 @@ func TestReconcileServiceInstanceOrphanMitigation(t *testing.T) {
 		instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
 		instance.Status.CurrentOperation = v1beta1.ServiceInstanceOperationProvision
 		instance.Status.OrphanMitigationInProgress = true
+		instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 		if tc.async {
 			instance.Status.AsyncOpInProgress = true
@@ -3551,6 +3707,7 @@ func TestReconcileServiceInstanceUpdateParameters(t *testing.T) {
 	instance := getTestServiceInstanceWithRefs()
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	oldParameters := map[string]interface{}{
 		"args": map[string]interface{}{
@@ -3611,7 +3768,7 @@ func TestReconcileServiceInstanceUpdateParameters(t *testing.T) {
 	expectedParameters := map[string]interface{}{
 		"args": map[string]interface{}{
 			"first":  "first-arg",
-			"second": "second-arg",
+			"second": "new-second-arg",
 		},
 		"name": "test-param",
 	}
@@ -3749,6 +3906,7 @@ func TestReconcileServiceInstanceUpdatePlan(t *testing.T) {
 	instance := getTestServiceInstanceWithRefs()
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	oldParameters := map[string]interface{}{
 		"args": map[string]interface{}{
@@ -4179,6 +4337,7 @@ func TestReconcileServiceInstanceUpdateAsynchronous(t *testing.T) {
 	instance := getTestServiceInstanceWithRefs()
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
 		ClusterServicePlanExternalName: "old-plan-name",

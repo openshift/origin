@@ -222,8 +222,8 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 		}
 	}
 
-	if _, _, err := common.GetLinkDetails(c.SelfIP); err != nil {
-		if err == common.ErrorNetworkInterfaceNotFound {
+	if _, _, err := GetLinkDetails(c.SelfIP); err != nil {
+		if err == ErrorNetworkInterfaceNotFound {
 			return fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
 		} else {
 			return err
@@ -231,6 +231,37 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 	}
 
 	return nil
+}
+
+var (
+	ErrorNetworkInterfaceNotFound = fmt.Errorf("could not find network interface")
+)
+
+func GetLinkDetails(ip string) (netlink.Link, *net.IPNet, error) {
+	links, err := netlink.LinkList()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, link := range links {
+		addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
+		if err != nil {
+			glog.Warningf("Could not get addresses of interface %q: %v", link.Attrs().Name, err)
+			continue
+		}
+
+		for _, addr := range addrs {
+			if addr.IP.String() == ip {
+				_, ipNet, err := net.ParseCIDR(addr.IPNet.String())
+				if err != nil {
+					return nil, nil, fmt.Errorf("could not parse CIDR network from address %q: %v", ip, err)
+				}
+				return link, ipNet, nil
+			}
+		}
+	}
+
+	return nil, nil, ErrorNetworkInterfaceNotFound
 }
 
 // Detect whether we are upgrading from a pre-CNI openshift and clean up

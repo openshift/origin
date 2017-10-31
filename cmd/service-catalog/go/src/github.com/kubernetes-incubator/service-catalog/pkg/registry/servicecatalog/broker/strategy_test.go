@@ -125,3 +125,52 @@ func TestBrokerUpdate(t *testing.T) {
 		}
 	}
 }
+
+// TestBrokerUpdateForRelistRequests tests that the RelistRequests field is
+// ignored during updates when it is the default value.
+func TestBrokerUpdateForRelistRequests(t *testing.T) {
+	cases := []struct {
+		name          string
+		oldValue      int64
+		newValue      int64
+		expectedValue int64
+	}{
+		{
+			name:          "both default",
+			oldValue:      0,
+			newValue:      0,
+			expectedValue: 0,
+		},
+		{
+			name:          "old default",
+			oldValue:      0,
+			newValue:      1,
+			expectedValue: 1,
+		},
+		{
+			name:          "new default",
+			oldValue:      1,
+			newValue:      0,
+			expectedValue: 1,
+		},
+		{
+			name:          "neither default",
+			oldValue:      1,
+			newValue:      2,
+			expectedValue: 2,
+		},
+	}
+	for _, tc := range cases {
+		oldBroker := brokerWithOldSpec()
+		oldBroker.Spec.RelistRequests = tc.oldValue
+
+		newBroker := brokerWithOldSpec()
+		newBroker.Spec.RelistRequests = tc.newValue
+
+		brokerRESTStrategies.PrepareForUpdate(nil, newBroker, oldBroker)
+
+		if e, a := tc.expectedValue, newBroker.Spec.RelistRequests; e != a {
+			t.Errorf("%s: got unexpected RelistRequests: expected %v, got %v", tc.name, e, a)
+		}
+	}
+}

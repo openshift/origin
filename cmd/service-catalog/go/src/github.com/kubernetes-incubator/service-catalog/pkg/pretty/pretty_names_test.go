@@ -31,6 +31,25 @@ func TestPrettyNames(t *testing.T) {
 	}
 }
 
+func TestServiceInstanceName(t *testing.T) {
+	e := `ServiceInstance "namespace/name"`
+	serviceInstance := &v1beta1.ServiceInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: "name", Namespace: "namespace"},
+	}
+	g := ServiceInstanceName(serviceInstance)
+	if g != e {
+		t.Fatalf("Unexpected value of PrettyName String; expected %v, got %v", e, g)
+	}
+}
+
+func TestClusterServiceBrokerName(t *testing.T) {
+	e := `ClusterServiceBroker "brokerName"`
+	g := ClusterServiceBrokerName("brokerName")
+	if g != e {
+		t.Fatalf("Unexpected value of PrettyName String; expected %v, got %v", e, g)
+	}
+}
+
 func TestClusterServiceClassName(t *testing.T) {
 	serviceClass := &v1beta1.ClusterServiceClass{
 		ObjectMeta: metav1.ObjectMeta{Name: "service-class"},

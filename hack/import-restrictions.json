@@ -190,6 +190,19 @@
 
   {
     "checkedPackages": [
+      "github.com/openshift/origin/pkg/network/master",
+      "github.com/openshift/origin/pkg/network/common"
+    ],
+    "forbiddenImportPackageRoots": [
+      "vendor/github.com/vishvananda/netlink"
+    ],
+    "allowedImportPackageRoots": [
+      ""
+    ]
+  },
+
+  {
+    "checkedPackages": [
       "github.com/openshift/origin/pkg/network/apis/network",
       "github.com/openshift/origin/pkg/network/apis/network/v1"
     ],

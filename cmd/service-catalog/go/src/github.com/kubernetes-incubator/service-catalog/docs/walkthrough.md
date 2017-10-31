@@ -1,7 +1,7 @@
 # Service Catalog Demonstration Walkthrough
 
 This document assumes that you've installed Service Catalog onto your cluster.
-If you haven't, please see [install-1.7.md](./install-1.7.md).
+If you haven't, please see [install.md](./install.md).
 
 All commands in this document assume that you're operating out of the root
 of this repository.

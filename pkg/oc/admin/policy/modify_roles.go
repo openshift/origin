@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -318,6 +320,19 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 
 	if (len(o.Users) == 0) && (len(saNames) == 0) {
 		return errors.New("you must specify at least one user or service account")
+	}
+
+	// return an error if a fully-qualified service-account name is used
+	for _, sa := range saNames {
+		if strings.HasPrefix(sa, "system:serviceaccount") {
+			return errors.New("--serviceaccount (-z) should only be used with short-form serviceaccount names (e.g. `default`)")
+		}
+
+		if errCauses := validation.ValidateServiceAccountName(sa, false); len(errCauses) > 0 {
+			message := fmt.Sprintf("%q is not a valid serviceaccount name:\n  ", sa)
+			message += strings.Join(errCauses, "\n  ")
+			return errors.New(message)
+		}
 	}
 
 	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()

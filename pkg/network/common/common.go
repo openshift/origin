@@ -22,8 +22,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-
-	"github.com/vishvananda/netlink"
 )
 
 func HostSubnetToString(subnet *networkapi.HostSubnet) string {
@@ -279,35 +277,4 @@ func RegisterSharedInformerEventHandlers(kubeInformers kinternalinformers.Shared
 			delFunc(obj)
 		},
 	})
-}
-
-var (
-	ErrorNetworkInterfaceNotFound = fmt.Errorf("could not find network interface")
-)
-
-func GetLinkDetails(ip string) (netlink.Link, *net.IPNet, error) {
-	links, err := netlink.LinkList()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, link := range links {
-		addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
-		if err != nil {
-			glog.Warningf("Could not get addresses of interface %q: %v", link.Attrs().Name, err)
-			continue
-		}
-
-		for _, addr := range addrs {
-			if addr.IP.String() == ip {
-				_, ipNet, err := net.ParseCIDR(addr.IPNet.String())
-				if err != nil {
-					return nil, nil, fmt.Errorf("could not parse CIDR network from address %q: %v", ip, err)
-				}
-				return link, ipNet, nil
-			}
-		}
-	}
-
-	return nil, nil, ErrorNetworkInterfaceNotFound
 }
