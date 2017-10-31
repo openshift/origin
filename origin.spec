@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 88f2c37dc1a2e221b9e0ead975eb73ddbf3e32bc
+%global commit 009f0e1735326c7e28dffc9c7112eae86e5478d2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.186.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=88f2c37
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.187.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=009f0e1
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.187.0%{?dist}
+Release:        0.188.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,17 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Oct 31 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.188.0
+- Use import-verifier to keep us from breaking build-cross in pkg/network
+  (danw@redhat.com)
+- return error on long-form or invalid sa name (jvallejo@redhat.com)
+- Fix cross build (danw@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from 510060232e..892b0368f0 (jpeeler@redhat.com)
+- include err message suggestion oc login err output (jvallejo@redhat.com)
+- Set X-DNS-Prefetch-Control header on console assets (jforrest@redhat.com)
+- test: extended: avoid using docker directly (runcom@redhat.com)
+
 * Mon Oct 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.187.0
 - use new s2i base image (bparees@redhat.com)
 - use the output of ParseNetworkInfo to create the cluster network object
