@@ -275,16 +275,15 @@ func TestHandleEndpoints(t *testing.T) {
 				Name: "foo/test", //service name from kapi.endpoints object
 				EndpointTable: []Endpoint{
 					{
-						ID:            "ept:test:1.1.1.1:345",
-						IP:            "1.1.1.1",
-						Port:          "345",
-						NoHealthCheck: true,
+						ID:   "ept:test:1.1.1.1:345",
+						IP:   "1.1.1.1",
+						Port: "345",
 					},
 				},
 			},
 		},
 		{
-			name:      "Endpoint mod (one ep, one address)",
+			name:      "Endpoint mod",
 			eventType: watch.Modified,
 			endpoints: &kapi.Endpoints{
 				ObjectMeta: metav1.ObjectMeta{
@@ -300,143 +299,9 @@ func TestHandleEndpoints(t *testing.T) {
 				Name: "foo/test",
 				EndpointTable: []Endpoint{
 					{
-						ID:            "pod:pod-1:test:2.2.2.2:8080",
-						IP:            "2.2.2.2",
-						Port:          "8080",
-						NoHealthCheck: true,
-					},
-				},
-			},
-		},
-		{
-			name:      "Endpoint mod (second ep, one address each)",
-			eventType: watch.Modified,
-			endpoints: &kapi.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "test",
-				},
-				Subsets: []kapi.EndpointSubset{
-					{
-						Addresses: []kapi.EndpointAddress{{IP: "2.2.2.2", TargetRef: &kapi.ObjectReference{Kind: "Pod", Name: "pod-1"}}},
-						Ports:     []kapi.EndpointPort{{Port: 8080}},
-					},
-					{
-						Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3", TargetRef: &kapi.ObjectReference{Kind: "Pod", Name: "pod-2"}}},
-						Ports:     []kapi.EndpointPort{{Port: 8081}},
-					},
-				},
-			},
-			expectedServiceUnit: &ServiceUnit{
-				Name: "foo/test",
-				EndpointTable: []Endpoint{
-					{
-						ID:            "pod:pod-1:test:2.2.2.2:8080",
-						IP:            "2.2.2.2",
-						Port:          "8080",
-						NoHealthCheck: false,
-					},
-					{
-						ID:            "pod:pod-2:test:3.3.3.3:8081",
-						IP:            "3.3.3.3",
-						Port:          "8081",
-						NoHealthCheck: false,
-					},
-				},
-			},
-		},
-		{
-			name:      "Endpoint mod (one ep, two addresses)",
-			eventType: watch.Modified,
-			endpoints: &kapi.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "test",
-				},
-				Subsets: []kapi.EndpointSubset{
-					{
-						Addresses: []kapi.EndpointAddress{
-							{IP: "3.3.3.3", TargetRef: &kapi.ObjectReference{Kind: "Pod", Name: "pod-2"}},
-							{IP: "4.4.4.4", TargetRef: &kapi.ObjectReference{Kind: "Pod", Name: "pod-3"}},
-						},
-						Ports: []kapi.EndpointPort{{Port: 8080}},
-					},
-				},
-			},
-			expectedServiceUnit: &ServiceUnit{
-				Name: "foo/test",
-				EndpointTable: []Endpoint{
-					{
-						ID:            "pod:pod-2:test:3.3.3.3:8080",
-						IP:            "3.3.3.3",
-						Port:          "8080",
-						NoHealthCheck: false,
-					},
-					{
-						ID:            "pod:pod-3:test:4.4.4.4:8080",
-						IP:            "4.4.4.4",
-						Port:          "8080",
-						NoHealthCheck: false,
-					},
-				},
-			},
-		},
-		{
-			name:      "Endpoint mod (one ep, two ports)",
-			eventType: watch.Modified,
-			endpoints: &kapi.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "test",
-				},
-				Subsets: []kapi.EndpointSubset{
-					{
-						Addresses: []kapi.EndpointAddress{
-							{IP: "3.3.3.3", TargetRef: &kapi.ObjectReference{Kind: "Pod", Name: "pod-2"}},
-						},
-						Ports: []kapi.EndpointPort{{Port: 8080}, {Port: 8081}},
-					},
-				},
-			},
-			expectedServiceUnit: &ServiceUnit{
-				Name: "foo/test",
-				EndpointTable: []Endpoint{
-					{
-						ID:            "pod:pod-2:test:3.3.3.3:8080",
-						IP:            "3.3.3.3",
-						Port:          "8080",
-						NoHealthCheck: false,
-					},
-					{
-						ID:            "pod:pod-2:test:3.3.3.3:8081",
-						IP:            "3.3.3.3",
-						Port:          "8081",
-						NoHealthCheck: false,
-					},
-				},
-			},
-		},
-		{
-			name:      "Endpoint mod (back to one ep)",
-			eventType: watch.Modified,
-			endpoints: &kapi.Endpoints{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "test",
-				},
-				Subsets: []kapi.EndpointSubset{{
-					Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3", TargetRef: &kapi.ObjectReference{Kind: "Pod", Name: "pod-1"}}},
-					Ports:     []kapi.EndpointPort{{Port: 8080}},
-				}},
-			},
-			expectedServiceUnit: &ServiceUnit{
-				Name: "foo/test",
-				EndpointTable: []Endpoint{
-					{
-						ID:            "pod:pod-1:test:3.3.3.3:8080",
-						IP:            "3.3.3.3",
-						Port:          "8080",
-						NoHealthCheck: true,
+						ID:   "pod:pod-1:test:2.2.2.2:8080",
+						IP:   "2.2.2.2",
+						Port: "8080",
 					},
 				},
 			},
@@ -450,8 +315,8 @@ func TestHandleEndpoints(t *testing.T) {
 					Name:      "test",
 				},
 				Subsets: []kapi.EndpointSubset{{
-					Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3", TargetRef: &kapi.ObjectReference{Kind: "Pod", Name: "pod-1"}}},
-					Ports:     []kapi.EndpointPort{{Port: 8080}},
+					Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3"}},
+					Ports:     []kapi.EndpointPort{{Port: 0}},
 				}},
 			},
 			expectedServiceUnit: &ServiceUnit{
