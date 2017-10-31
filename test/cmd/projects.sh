@@ -36,6 +36,12 @@ os::cmd::try_until_text 'oc projects' 'test6'
 os::cmd::expect_success_and_text 'oc project test6' 'Now using project "test6"'
 os::cmd::expect_success_and_text 'oc config view -o jsonpath="{.contexts[*].context.namespace}"' '\btest6\b'
 echo 'projects command ok'
-
+os::cmd::expect_success_and_text 'oc new-project test7 --display-name=test7' 'Now using project "test7" on server '
+os::cmd::expect_success 'oc new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git'
+os::cmd::try_until_text "oc get projects |grep test7 |awk -F ' ' {'print $3'}" "Active"
+os::cmd::expect_success 'oc delete project test7'
+os::cmd::expect_success "oc get projects |grep test7 |awk -F ' ' {'print $3'}" "Terminating"
+os::cmd::expect_failure 'oc new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-hello-world.git' ''
+echo 'projects list and deletion workflow ok'
 
 os::test::junit::declare_suite_end
