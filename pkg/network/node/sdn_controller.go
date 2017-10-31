@@ -18,9 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	utildbus "k8s.io/kubernetes/pkg/util/dbus"
-	kexec "k8s.io/kubernetes/pkg/util/exec"
-	"k8s.io/kubernetes/pkg/util/iptables"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 
 	"github.com/vishvananda/netlink"
@@ -166,16 +163,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
 
 	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
-
-	exec := kexec.New()
-
-	if plugin.clearLbr0IptablesRule {
-		// Delete docker's left-over lbr0 rule; cannot do this from
-		// NewNodePlugin (where docker is cleaned up) because we need
-		// localSubnetCIDR which is only valid after plugin start
-		ipt := iptables.New(exec, utildbus.New(), iptables.ProtocolIpv4)
-		ipt.DeleteRule(iptables.TableNAT, iptables.ChainPostrouting, "-s", localSubnetCIDR, "!", "-o", "lbr0", "-j", "MASQUERADE")
-	}
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
 
