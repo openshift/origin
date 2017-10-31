@@ -72,7 +72,7 @@ func newEgressIPWatcher(localIP string, oc *ovsController) *egressIPWatcher {
 
 func (eip *egressIPWatcher) Start(networkClient networkclient.Interface, iptables *NodeIPTables) error {
 	var err error
-	if eip.localEgressLink, eip.localEgressNet, err = common.GetLinkDetails(eip.localIP); err != nil {
+	if eip.localEgressLink, eip.localEgressNet, err = GetLinkDetails(eip.localIP); err != nil {
 		// Not expected, should already be caught by node.New()
 		return err
 	}
