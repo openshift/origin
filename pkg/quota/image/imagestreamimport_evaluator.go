@@ -46,8 +46,8 @@ func (i *imageStreamImportEvaluator) GroupKind() schema.GroupKind {
 	return imageapi.Kind("ImageStreamImport")
 }
 
-func (i *imageStreamImportEvaluator) Handles(operation kadmission.Operation) bool {
-	return operation == kadmission.Create
+func (i *imageStreamImportEvaluator) Handles(a kadmission.Attributes) bool {
+	return a.GetOperation() == kadmission.Create
 }
 
 func (i *imageStreamImportEvaluator) Matches(resourceQuota *kapi.ResourceQuota, item runtime.Object) (bool, error) {

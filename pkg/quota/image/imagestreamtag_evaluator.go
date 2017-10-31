@@ -48,7 +48,8 @@ func (i *imageStreamTagEvaluator) GroupKind() schema.GroupKind {
 	return imageapi.Kind("ImageStreamTag")
 }
 
-func (i *imageStreamTagEvaluator) Handles(operation kadmission.Operation) bool {
+func (i *imageStreamTagEvaluator) Handles(a kadmission.Attributes) bool {
+	operation := a.GetOperation()
 	return operation == kadmission.Create || operation == kadmission.Update
 }
 
