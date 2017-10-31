@@ -140,7 +140,7 @@ func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
 
 	output, err := ovsif.execer.Command(cmd, args...).CombinedOutput()
 	if err != nil {
-		glog.V(5).Infof("Error executing %s: %s", cmd, string(output))
+		glog.V(2).Infof("Error executing %s: %s", cmd, string(output))
 		return "", err
 	}
 
