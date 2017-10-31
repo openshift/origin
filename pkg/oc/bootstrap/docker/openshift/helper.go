@@ -90,6 +90,7 @@ var (
 	}
 	version15 = semver.MustParse("1.5.0")
 	version35 = semver.MustParse("3.5.0")
+	version36 = semver.MustParse("3.6.0")
 	version37 = semver.MustParse("3.7.0")
 )
 
@@ -696,6 +697,10 @@ func useAggregator(version semver.Version) bool {
 	return version.GTE(version37)
 }
 
+func enableAdmissionRegistrationAPI(version semver.Version) bool {
+	return version.GT(version36)
+}
+
 func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
 	if err != nil {
@@ -709,11 +714,6 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg.AdmissionConfig.PluginConfig["GenericAdmissionWebhook"] = configapi.AdmissionPluginConfig{
 		Configuration: &configapi.DefaultAdmissionConfig{},
 	}
-
-	if cfg.KubernetesMasterConfig.APIServerArguments == nil {
-		cfg.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
-	}
-	cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/admissionregistration.k8s.io/v1alpha1=true")
 
 	if len(opt.RoutingSuffix) > 0 {
 		cfg.RoutingConfig.Subdomain = opt.RoutingSuffix
@@ -767,6 +767,14 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	if err != nil {
 		return err
 	}
+
+	if enableAdmissionRegistrationAPI(version) {
+		if cfg.KubernetesMasterConfig.APIServerArguments == nil {
+			cfg.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
+		}
+		cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/admissionregistration.k8s.io/v1alpha1=true")
+	}
+
 	if useAggregator(version) || opt.ServiceCatalog {
 		// setup the api aggegrator
 		cfg.AggregatorConfig = configapi.AggregatorConfig{

@@ -277,16 +277,10 @@ readonly default_tests=(
     "numerichostname"
     "portinuse"
     "svcaccess"
-
-# enable once https://github.com/openshift/origin/issues/16995 is fixed
-#    "default"
-# enable once https://github.com/openshift/origin/issues/16995 is fixed
-#    "image::ose3.3"
-# enable once https://github.com/openshift/origin/issues/16995 is fixed
-#    "image::ose3.4"
-# enable once https://github.com/openshift/origin/issues/16995 is fixed
-#    "image::ose3.5"
-
+    "default"
+    "image::ose3.3"
+    "image::ose3.4"
+    "image::ose3.5"
     "image::ose3.6"
 
 # logging+metrics team needs to fix/enable these tests.

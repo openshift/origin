@@ -24,7 +24,6 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 const (
@@ -47,11 +46,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 		return errors.NewError("error retrieving docker registry service").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	securityClient, err := f.OpenshiftInternalSecurityClient()
-	if err != nil {
-		return err
-	}
-	err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "registry", "default", out)
+	err = h.AddSCCToServiceAccount("privileged", "registry", "default", out)
 	if err != nil {
 		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -121,18 +116,9 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	}
 
 	// Add router SA to privileged SCC
-	securityClient, err := f.OpenshiftInternalSecurityClient()
+	err = h.AddSCCToServiceAccount("privileged", "router", "default", out)
 	if err != nil {
-		return err
-	}
-	privilegedSCC, err := securityClient.Security().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
-	if err != nil {
-		return errors.NewError("cannot retrieve privileged SCC").WithCause(err).WithDetails(h.OriginLog())
-	}
-	privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", "router"))
-	_, err = securityClient.Security().SecurityContextConstraints().Update(privilegedSCC)
-	if err != nil {
-		return errors.NewError("cannot update privileged SCC").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot add privileged SCC to router service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	routingSuffix := h.routingSuffix
@@ -197,14 +183,11 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	return nil
 }
 
-func AddClusterRole(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, role, user string) error {
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationClient)
-	addClusterReaderRole := policy.RoleModificationOptions{
-		RoleName:            role,
-		RoleBindingAccessor: clusterRoleBindingAccessor,
-		Users:               []string{user},
-	}
-	return addClusterReaderRole.AddRole()
+func (h *Helper) AddClusterRole(role, user string, out io.Writer) error {
+	command := []string{"oc", "adm", "policy", "add-cluster-role-to-user", role, user}
+	result, err := h.execHelper.Command(command...).CombinedOutput()
+	fmt.Fprintf(out, "%s", result)
+	return err
 }
 
 func AddRoleToServiceAccount(authorizationClient authorizationtypedclient.RoleBindingsGetter, role, sa, namespace string) error {
@@ -223,21 +206,12 @@ func AddRoleToServiceAccount(authorizationClient authorizationtypedclient.RoleBi
 	return addRole.AddRole()
 }
 
-func AddSCCToServiceAccount(securityClient securitytypedclient.SecurityContextConstraintsGetter, scc, sa, namespace string, out io.Writer) error {
-	modifySCC := policy.SCCModificationOptions{
-		SCCName:      scc,
-		SCCInterface: securityClient.SecurityContextConstraints(),
-		Subjects: []kapi.ObjectReference{
-			{
-				Namespace: namespace,
-				Name:      sa,
-				Kind:      "ServiceAccount",
-			},
-		},
-
-		Out: out,
-	}
-	return modifySCC.AddSCC()
+func (h *Helper) AddSCCToServiceAccount(scc, sa, namespace string, out io.Writer) error {
+	user := serviceaccount.MakeUsername(namespace, sa)
+	command := []string{"oc", "adm", "policy", "add-scc-to-user", scc, user}
+	result, err := h.execHelper.Command(command...).CombinedOutput()
+	fmt.Fprintf(out, "%s", result)
+	return err
 }
 
 // catFiles concatenates multiple source files into a single destination file
