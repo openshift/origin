@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	knet "k8s.io/apimachinery/pkg/util/net"
-	kubeletremotecommand "k8s.io/apimachinery/pkg/util/remotecommand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -271,14 +270,13 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to node, could not retrieve TLS client config: %v", err))
 	}
-	upgrader := spdy.NewRoundTripper(tlsClientConfig, false)
-	exec, err := remotecommand.NewStreamExecutor(upgrader, nil, "POST", location)
+	upgrader := spdy.NewRoundTripper(tlsClientConfig, true)
+	exec, err := remotecommand.NewSPDYExecutorForTransports(upgrader, upgrader, "POST", location)
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))
 	}
 	streamOptions := remotecommand.StreamOptions{
-		SupportedProtocols: kubeletremotecommand.SupportedStreamingProtocols,
-		Stdin:              r,
+		Stdin: r,
 		// TODO remove Stdout and Stderr once https://github.com/kubernetes/kubernetes/issues/44448 is
 		// fixed
 		Stdout: ioutil.Discard,
