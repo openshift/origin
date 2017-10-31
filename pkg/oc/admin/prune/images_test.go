@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -97,6 +98,7 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 		ImageClient:     imageFake.Image(),
 		KubeClient:      kFake,
 		DiscoveryClient: fakeDiscovery,
+		Timeout:         time.Millisecond,
 		Out:             ioutil.Discard,
 		ErrOut:          errBuf,
 	}
