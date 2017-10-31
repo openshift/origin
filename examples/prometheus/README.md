@@ -10,6 +10,8 @@ $ oc new-app -f prometheus.yaml
 
 You may customize where the images (built from `openshift/prometheus` and `openshift/oauth-proxy`) are pulled from via template parameters.
 
+Note: you may want to use prometheus-high-performance.yaml for high resolution granularity.
+
 ## Useful metrics queries
 
 ### Related to how much data is being gathered by Prometheus

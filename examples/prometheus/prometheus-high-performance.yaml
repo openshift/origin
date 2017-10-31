@@ -1,0 +1,298 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: prometheus
+  annotations:
+    "openshift.io/display-name": Prometheus
+    description: |
+      A monitoring solution for an OpenShift cluster - collect and gather metrics from nodes, services, and the infrastructure. This is a tech preview feature.
+    iconClass: icon-cogs
+    tags: "monitoring,prometheus,time-series"
+parameters:
+- description: The namespace to instantiate prometheus under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: kube-system
+- description: The location of the proxy image
+  name: IMAGE_PROXY
+  value: openshift/oauth-proxy:v1.0.0
+- description: The location of the prometheus image
+  name: IMAGE_PROMETHEUS
+  value: openshift/prometheus:v2.0.0-dev
+- description: The session secret for the proxy
+  name: SESSION_SECRET
+  generate: expression
+  from: "[a-zA-Z0-9]{43}"
+- description: Time interval for scrape config (1m, 5s)
+  name: SCRAPE_INTERVAL
+  value: 1m
+objects:
+# Authorize the prometheus service account to read data about the cluster
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus
+    namespace: "${NAMESPACE}"
+    annotations:
+      serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"prometheus"}}'
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: prometheus-cluster-reader
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: "${NAMESPACE}"
+# Create a fully end-to-end TLS connection to the proxy
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  spec:
+    to:
+      name: prometheus
+    tls:
+      termination: Reencrypt
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
+      service.alpha.openshift.io/serving-cert-secret-name: prometheus-tls
+    labels:
+      name: prometheus
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - name: prometheus
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      app: prometheus
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: prometheus-proxy
+    namespace: "${NAMESPACE}"
+  stringData:
+    session_secret: "${SESSION_SECRET}="
+# Deploy Prometheus behind an oauth proxy
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: prometheus
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: prometheus
+    template:
+      metadata:
+        labels:
+          app: prometheus
+        name: prometheus
+      spec:
+        serviceAccountName: prometheus
+        containers:
+        - name: oauth-proxy
+          image: ${IMAGE_PROXY}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8443
+            name: web
+          args:
+          - -https-address=:8443
+          - -email-domain=*
+          - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
+          - -upstream=http://localhost:9090
+          - -provider=openshift
+          - -redirect-url=https:///oauth2/callback
+          - '-openshift-sar={"namespace": "${NAMESPACE}", "verb": "list", "resource": "services"}'
+          - -tls-cert=/etc/tls/private/tls.crt
+          - -tls-key=/etc/tls/private/tls.key
+          - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -skip-auth-regex=^/metrics
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: prometheus-tls
+          - mountPath: /etc/proxy/secrets
+            name: secrets
+
+        - name: prometheus
+          args:
+          - --storage.tsdb.retention=6h
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --web.listen-address=localhost:9090
+          image: ${IMAGE_PROMETHEUS}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - mountPath: /etc/prometheus
+            name: config-volume
+          - mountPath: /prometheus
+            name: data-volume
+
+        restartPolicy: Always
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: prometheus
+          name: config-volume
+        - name: secrets
+          secret:
+            secretName: prometheus-proxy
+        - name: prometheus-tls
+          secret:
+            secretName: prometheus-tls
+        - emptyDir: {}
+          name: data-volume
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: prometheus
+    namespace: "${NAMESPACE}"
+  data:
+    global:
+      scrape_interval:     "${SCRAPE_INTERVAL}"
+    prometheus.yml: |
+      # A scrape configuration for running Prometheus on a Kubernetes cluster.
+      # This uses separate scrape configs for cluster components (i.e. API server, node)
+      # and services to allow each to use different authentication configs.
+      #
+      # Kubernetes labels will be added as Prometheus labels on metrics via the
+      # `labelmap` relabeling action.
+
+      # Scrape config for API servers.
+      #
+      # Kubernetes exposes API servers as endpoints to the default/kubernetes
+      # service so this uses `endpoints` role and uses relabelling to only keep
+      # the endpoints associated with the default/kubernetes service using the
+      # default named port `https`. This works for single API server deployments as
+      # well as HA API server deployments.
+      scrape_configs:
+      - job_name: 'kubernetes-apiservers'
+
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        # Default to scraping over https. If required, just disable this or change to
+        # `http`.
+        scheme: https
+
+        # This TLS & bearer token file config is used to connect to the actual scrape
+        # endpoints for cluster components. This is separate to discovery auth
+        # configuration because discovery & scraping are two separate concerns in
+        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+        # the cluster. Otherwise, more config options have to be provided within the
+        # <kubernetes_sd_config>.
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          # If your node certificates are self-signed or use a different CA to the
+          # master CA, then disable certificate verification below. Note that
+          # certificate verification is an integral part of a secure infrastructure
+          # so this should only be disabled in a controlled environment. You can
+          # disable certificate verification by uncommenting the line below.
+          #
+          # insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        # Keep only the default/kubernetes service endpoints for the https port. This
+        # will add targets for each API server which Kubernetes adds an endpoint to
+        # the default/kubernetes service.
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+
+      - job_name: 'kubernetes-nodes'
+
+        # Default to scraping over https. If required, just disable this or change to
+        # `http`.
+        scheme: https
+
+        # This TLS & bearer token file config is used to connect to the actual scrape
+        # endpoints for cluster components. This is separate to discovery auth
+        # configuration because discovery & scraping are two separate concerns in
+        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+        # the cluster. Otherwise, more config options have to be provided within the
+        # <kubernetes_sd_config>.
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          # If your node certificates are self-signed or use a different CA to the
+          # master CA, then disable certificate verification below. Note that
+          # certificate verification is an integral part of a secure infrastructure
+          # so this should only be disabled in a controlled environment. You can
+          # disable certificate verification by uncommenting the line below.
+          #
+          # insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: node
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
+      # Scrape config for service endpoints.
+      #
+      # The relabeling allows the actual service scrape endpoint to be configured
+      # via the following annotations:
+      #
+      # * `prometheus.io/scrape`: Only scrape services that have a value of `true`
+      # * `prometheus.io/scheme`: If the metrics endpoint is secured then you will need
+      # to set this to `https` & most likely set the `tls_config` of the scrape config.
+      # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
+      # * `prometheus.io/port`: If the metrics are exposed on a different port to the
+      # service then set this appropriately.
+      - job_name: 'kubernetes-service-endpoints'
+
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          # TODO: this should be per target
+          insecure_skip_verify: true
+
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: (.+)(?::\d+);(\d+)
+          replacement: $1:$2
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_username]
+          action: replace
+          target_label: __basic_auth_username__
+          regex: (.+)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_password]
+          action: replace
+          target_label: __basic_auth_password__
+          regex: (.+)
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
