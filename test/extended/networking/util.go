@@ -264,10 +264,10 @@ func makeNamespaceGlobal(ns *corev1.Namespace) {
 	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	expectNoError(err)
-	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+	netns, err := networkClient.Network().NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 	expectNoError(err)
 	netns.NetID = 0
-	_, err = networkClient.NetNamespaces().Update(netns)
+	_, err = networkClient.Network().NetNamespaces().Update(netns)
 	expectNoError(err)
 }
 

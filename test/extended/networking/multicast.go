@@ -45,13 +45,13 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
 	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	expectNoError(err)
-	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+	netns, err := networkClient.Network().NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 	expectNoError(err)
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string, 1)
 	}
 	netns.Annotations[networkapi.MulticastEnabledAnnotation] = "true"
-	_, err = networkClient.NetNamespaces().Update(netns)
+	_, err = networkClient.Network().NetNamespaces().Update(netns)
 	expectNoError(err)
 }
 

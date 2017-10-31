@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/networking"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
@@ -212,7 +212,7 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 	case EgressNetworkPolicies:
 		expectedType = &networkapi.EgressNetworkPolicy{}
 	case NetworkPolicies:
-		expectedType = &extensions.NetworkPolicy{}
+		expectedType = &networking.NetworkPolicy{}
 	default:
 		glog.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
