@@ -3,16 +3,22 @@ package network
 import (
 	"fmt"
 	"net"
+	"time"
 
 	miekgdns "github.com/miekg/dns"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/kubelet/certificate"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network/transport"
 	"github.com/openshift/origin/pkg/dns"
 	"github.com/openshift/origin/pkg/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
@@ -42,11 +48,32 @@ type NetworkConfig struct {
 	SDNProxy network.ProxyInterface
 }
 
+// configureKubeConfigForClientCertRotation attempts to watch for client certificate rotation on the kubelet's cert
+// dir, if configured. This allows the network component to participate in client cert rotation when it is in the
+// same process (since it can't share a client with the Kubelet). This code path will be removed or altered when
+// the network process is split into a daemonset.
+func configureKubeConfigForClientCertRotation(options configapi.NodeConfig, kubeConfig *rest.Config) error {
+	v, ok := options.KubeletArguments["cert-dir"]
+	if !ok || len(v) == 0 {
+		return nil
+	}
+	certDir := v[0]
+	// equivalent to values in pkg/kubelet/certificate/kubelet.go
+	store, err := certificate.NewFileStore("kubelet-client", certDir, certDir, kubeConfig.TLSClientConfig.CertFile, kubeConfig.TLSClientConfig.KeyFile)
+	if err != nil {
+		return err
+	}
+	return transport.RefreshCertificateAfterExpiry(utilwait.NeverStop, 10*time.Second, kubeConfig, store)
+}
+
 // New creates a new network config object for running the networking components of the OpenShift node.
 func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *componentconfig.KubeProxyConfiguration, enableProxy, enableDNS bool) (*NetworkConfig, error) {
 	kubeConfig, err := configapi.GetKubeConfigOrInClusterConfig(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
+	}
+	if err := configureKubeConfigForClientCertRotation(options, kubeConfig); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Unable to enable client certificate rotation for network components: %v", err))
 	}
 	internalKubeClient, err := kclientsetinternal.NewForConfig(kubeConfig)
 	if err != nil {
