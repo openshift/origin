@@ -11,9 +11,11 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
-func newScheduler(kubeconfigFile, schedulerConfigFile string, cmdLineArgs map[string][]string) (*scheduleroptions.SchedulerServer, error) {
-	if cmdLineArgs == nil {
-		cmdLineArgs = map[string][]string{}
+func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[string][]string) (*scheduleroptions.SchedulerServer, error) {
+	cmdLineArgs := map[string][]string{}
+	// deep-copy the input args to avoid mutation conflict.
+	for k, v := range schedulerArgs {
+		cmdLineArgs[k] = append([]string{}, v...)
 	}
 	if len(cmdLineArgs["kubeconfig"]) == 0 {
 		cmdLineArgs["kubeconfig"] = []string{kubeconfigFile}
