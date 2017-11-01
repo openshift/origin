@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 009f0e1735326c7e28dffc9c7112eae86e5478d2
+%global commit 5c6fb2d167bb87f8ac9c66ff9ece52323b09b27c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.187.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=009f0e1
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.188.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=5c6fb2d
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.188.0%{?dist}
+Release:        0.189.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,30 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Nov 01 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.189.0
+- Log OVS errors at a better level (danw@redhat.com)
+- Allow EXPOSE <number>/<protocol> in Dockerfile (cdaley@redhat.com)
+- Router - reduce log output (pcameron@redhat.com)
+- unit-tests: fixed flake and race in image pruning (miminar@redhat.com)
+- Skip health checks when there is one server that backs the route
+  (bbennett@redhat.com)
+- Fixed a TODO comment by reviewing the code (bbennett@redhat.com)
+- Fix incorrect comment in template (ichavero@redhat.com)
+- UPSTREAM: 54763: make iptables wait flag generic; increase the max wait time
+  from 2 seconds to 5 seconds (rchopra@redhat.com)
+- image-pruning: derefence imagestreamtags (miminar@redhat.com)
+- DeploymentConfig replicas should be optional, other fields too
+  (ccoleman@redhat.com)
+- Revert "Made the router skip health checks when there is one endpoint"
+  (bbennett@redhat.com)
+- fixes #16902.  Add etcd section to inventory for 'oc cluster up'
+  (jcantril@redhat.com)
+- Fix duplicate timeout directive (ichavero@redhat.com)
+- image-pruning: adding replica sets to the graph (miminar@redhat.com)
+- image-pruning: add upstream deployments to the graph (miminar@redhat.com)
+- image-pruning: add daemonsets to the graph (miminar@redhat.com)
+- image-pruning: delete istag references to absent images (miminar@redhat.com)
+
 * Tue Oct 31 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.188.0
 - Use import-verifier to keep us from breaking build-cross in pkg/network
   (danw@redhat.com)
