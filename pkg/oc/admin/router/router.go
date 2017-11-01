@@ -638,39 +638,39 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		}
 	}
 
-	env := app.Environment{
-		"ROUTER_SUBDOMAIN":                      cfg.Subdomain,
-		"ROUTER_SERVICE_NAME":                   name,
-		"ROUTER_SERVICE_NAMESPACE":              namespace,
-		"ROUTER_SERVICE_HTTP_PORT":              "80",
-		"ROUTER_SERVICE_HTTPS_PORT":             "443",
-		"ROUTER_EXTERNAL_HOST_HOSTNAME":         cfg.ExternalHost,
-		"ROUTER_EXTERNAL_HOST_USERNAME":         cfg.ExternalHostUsername,
-		"ROUTER_EXTERNAL_HOST_PASSWORD":         cfg.ExternalHostPassword,
-		"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":     cfg.ExternalHostHttpVserver,
-		"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER":    cfg.ExternalHostHttpsVserver,
-		"ROUTER_EXTERNAL_HOST_INSECURE":         strconv.FormatBool(cfg.ExternalHostInsecure),
-		"ROUTER_EXTERNAL_HOST_PARTITION_PATH":   cfg.ExternalHostPartitionPath,
-		"ROUTER_EXTERNAL_HOST_PRIVKEY":          privkeyPath,
-		"ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS": cfg.ExternalHostInternalIP,
-		"ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR":    cfg.ExternalHostVxLANGateway,
-		"ROUTER_CIPHERS":                        cfg.Ciphers,
-		"STATS_PORT":                            strconv.Itoa(cfg.StatsPort),
-		"STATS_USERNAME":                        cfg.StatsUsername,
-		"STATS_PASSWORD":                        cfg.StatsPassword,
-	}
+	env := app.Environment{}
+	env.Add("ROUTER_SUBDOMAIN", cfg.Subdomain)
+	env.Add("ROUTER_SERVICE_NAME", name)
+	env.Add("ROUTER_SERVICE_NAMESPACE", namespace)
+	env.Add("ROUTER_SERVICE_HTTP_PORT", "80")
+	env.Add("ROUTER_SERVICE_HTTPS_PORT", "443")
+	env.Add("ROUTER_EXTERNAL_HOST_HOSTNAME", cfg.ExternalHost)
+	env.Add("ROUTER_EXTERNAL_HOST_USERNAME", cfg.ExternalHostUsername)
+	env.Add("ROUTER_EXTERNAL_HOST_PASSWORD", cfg.ExternalHostPassword)
+	env.Add("ROUTER_EXTERNAL_HOST_HTTP_VSERVER", cfg.ExternalHostHttpVserver)
+	env.Add("ROUTER_EXTERNAL_HOST_HTTPS_VSERVER", cfg.ExternalHostHttpsVserver)
+	env.Add("ROUTER_EXTERNAL_HOST_INSECURE", strconv.FormatBool(cfg.ExternalHostInsecure))
+	env.Add("ROUTER_EXTERNAL_HOST_PARTITION_PATH", cfg.ExternalHostPartitionPath)
+	env.Add("ROUTER_EXTERNAL_HOST_PRIVKEY", privkeyPath)
+	env.Add("ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS", cfg.ExternalHostInternalIP)
+	env.Add("ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR", cfg.ExternalHostVxLANGateway)
+	env.Add("ROUTER_CIPHERS", cfg.Ciphers)
+	env.Add("STATS_PORT", strconv.Itoa(cfg.StatsPort))
+	env.Add("STATS_USERNAME", cfg.StatsUsername)
+	env.Add("STATS_PASSWORD", cfg.StatsPassword)
+
 	if len(cfg.MaxConnections) > 0 {
-		env["ROUTER_MAX_CONNECTIONS"] = cfg.MaxConnections
+		env.Add("ROUTER_MAX_CONNECTIONS", cfg.MaxConnections)
 	}
 	if len(cfg.ForceSubdomain) > 0 {
-		env["ROUTER_SUBDOMAIN"] = cfg.ForceSubdomain
-		env["ROUTER_OVERRIDE_HOSTNAME"] = "true"
+		env.Add("ROUTER_SUBDOMAIN", cfg.ForceSubdomain)
+		env.Add("ROUTER_OVERRIDE_HOSTNAME", "true")
 	}
 	if cfg.DisableNamespaceOwnershipCheck {
-		env["ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK"] = "true"
+		env.Add("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "true")
 	}
 	if cfg.StrictSNI {
-		env["ROUTER_STRICT_SNI"] = "true"
+		env.Add("ROUTER_STRICT_SNI", "true")
 	}
 	if len(cfg.RouterCanonicalHostname) > 0 {
 		if errs := validation.IsDNS1123Subdomain(cfg.RouterCanonicalHostname); len(errs) != 0 {
@@ -679,22 +679,22 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		if errs := validation.IsValidIP(cfg.RouterCanonicalHostname); len(errs) == 0 {
 			return fmt.Errorf("canonical hostname must not be an IP address: %s", cfg.RouterCanonicalHostname)
 		}
-		env["ROUTER_CANONICAL_HOSTNAME"] = cfg.RouterCanonicalHostname
+		env.Add("ROUTER_CANONICAL_HOSTNAME", cfg.RouterCanonicalHostname)
 	}
 	// automatically start the internal metrics agent if we are handling a known type
 	if cfg.Type == "haproxy-router" && cfg.StatsPort != 0 {
-		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort)
-		env["ROUTER_METRICS_TYPE"] = "haproxy"
+		env.Add("ROUTER_LISTEN_ADDR", fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort))
+		env.Add("ROUTER_METRICS_TYPE", "haproxy")
 	}
-	env.Add(secretEnv)
+	env.AddEnvs(secretEnv)
 	if len(defaultCert) > 0 {
 		if cfg.SecretsAsEnv {
-			env.Add(app.Environment{"DEFAULT_CERTIFICATE": string(defaultCert)})
+			env.Add("DEFAULT_CERTIFICATE", string(defaultCert))
 		} else {
-			env.Add(app.Environment{"DEFAULT_CERTIFICATE_PATH": defaultCertificatePath})
+			env.Add("DEFAULT_CERTIFICATE_PATH", defaultCertificatePath)
 		}
 	}
-	env.Add(app.Environment{"DEFAULT_CERTIFICATE_DIR": defaultCertificateDir})
+	env.Add("DEFAULT_CERTIFICATE_DIR", defaultCertificateDir)
 	var certName = fmt.Sprintf("%s-certs", cfg.Name)
 	secrets, volumes, mounts, err := generateSecretsConfig(cfg, namespace, defaultCert, certName)
 	if err != nil {

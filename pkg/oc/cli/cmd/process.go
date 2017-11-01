@@ -353,7 +353,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 // injectUserVars injects user specified variables into the Template
 func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnknownParameters bool) []error {
 	var errors []error
-	for param, val := range values {
+	for param, val := range values.Map() {
 		v := template.GetParameterByName(t, param)
 		if v != nil {
 			v.Value = val

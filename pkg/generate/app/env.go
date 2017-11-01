@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -14,30 +13,38 @@ import (
 )
 
 // Environment holds environment variables for new-app
-type Environment map[string]string
+type environmentEntry struct {
+	key   string
+	value string
+}
+type Environment []environmentEntry
 
 // ParseEnvironmentAllowEmpty converts the provided strings in key=value form
 // into environment entries. In case there's no equals sign in a string, it's
 // considered as a key with empty value.
 func ParseEnvironmentAllowEmpty(vals ...string) Environment {
-	env := make(Environment)
+	env := Environment{}
 	for _, s := range vals {
+		var key, value string
 		if i := strings.Index(s, "="); i == -1 {
-			env[s] = ""
+			key = s
+			value = ""
 		} else {
-			env[s[:i]] = s[i+1:]
+			key = s[:i]
+			value = s[i+1:]
 		}
+		env.Add(key, value)
 	}
 	return env
 }
 
 // ParseEnvironment takes a slice of strings in key=value format and transforms
-// them into a map. List of duplicate keys is returned in the second return
+// them into an Environment. List of duplicate keys is returned in the second return
 // value.
 func ParseEnvironment(vals ...string) (Environment, []string, []error) {
 	errs := []error{}
 	duplicates := []string{}
-	env := make(Environment)
+	env := Environment{}
 	for _, s := range vals {
 		valid := cmdutil.IsValidEnvironmentArgument(s)
 		p := strings.SplitN(s, "=", 2)
@@ -46,88 +53,122 @@ func ParseEnvironment(vals ...string) (Environment, []string, []error) {
 			continue
 		}
 		key, val := p[0], p[1]
-		if _, exists := env[key]; exists {
+		if env.Has(key) {
 			duplicates = append(duplicates, key)
 			continue
 		}
-		env[key] = val
+		env.Add(key, val)
 	}
 	return env, duplicates, errs
 }
 
-// NewEnvironment returns a new set of environment variables based on all
-// the provided environment variables
-func NewEnvironment(envs ...map[string]string) Environment {
-	if len(envs) == 1 {
-		return envs[0]
-	}
-	out := make(Environment)
-	out.Add(envs...)
+// NewEnvironment returns a new Environment variable based on all
+// the provided Environment variables
+func NewEnvironment(envs ...Environment) Environment {
+	out := Environment{}
+	out.AddEnvs(envs...)
 	return out
 }
 
-// Add adds the environment variables to the current environment
-func (e Environment) Add(envs ...map[string]string) {
+// NewEnvironmentFromEnvVars returns a new Environment with the
+// entries from the given environment variables
+func NewEnvironmentFromEnvVars(envs []kapi.EnvVar) Environment {
+	out := Environment{}
+	out.AddEnvVars(envs)
+	return out
+}
+
+// NewEnvironmentFromMap returns a new Environment with the
+// entries from the given map
+func NewEnvironmentFromMap(m map[string]string) Environment {
+	out := Environment{}
+	out.AddMap(m)
+	return out
+}
+
+// AddEnvs adds the given Environments to the current environment
+func (e *Environment) AddEnvs(envs ...Environment) {
 	for _, env := range envs {
-		for k, v := range env {
-			e[k] = v
+		for _, entry := range env {
+			e.Add(entry.key, entry.value)
 		}
 	}
+}
+
+func (e *Environment) AddMap(m map[string]string) {
+	for k, v := range m {
+		e.Add(k, v)
+	}
+}
+
+// AddEnvVars adds EnvVar entries to the current environment
+func (e *Environment) AddEnvVars(envs []kapi.EnvVar) {
+	for _, entry := range envs {
+		e.Add(entry.Name, entry.Value)
+	}
+}
+
+// Add adds a single entry to the current environment
+func (e *Environment) Add(key, value string) {
+	(*e) = append(*e, environmentEntry{key: key, value: value})
+}
+
+// Has returns true if the passed key exists in the current environment
+func (e *Environment) Has(key string) bool {
+	for _, entry := range *e {
+		if entry.key == key {
+			return true
+		}
+	}
+	return false
 }
 
 // AddIfNotPresent adds the environment variables to the current environment.
 // In case of key conflict the old value is kept. Conflicting keys are returned
 // as a slice.
-func (e Environment) AddIfNotPresent(more Environment) []string {
+func (e *Environment) AddIfNotPresent(more Environment) []string {
 	duplicates := []string{}
-	for k, v := range more {
-		if _, exists := e[k]; exists {
-			duplicates = append(duplicates, k)
+	for _, entry := range more {
+		if e.Has(entry.key) {
+			duplicates = append(duplicates, entry.key)
 		} else {
-			e[k] = v
+			e.Add(entry.key, entry.value)
 		}
 	}
-
 	return duplicates
 }
 
-// List sorts and returns all the environment variables
-func (e Environment) List() []kapi.EnvVar {
+// Map returns a map from the current environment
+func (e *Environment) Map() map[string]string {
+	result := map[string]string{}
+	for _, entry := range *e {
+		result[entry.key] = entry.value
+	}
+	return result
+}
+
+// List returns all the environment variables
+func (e *Environment) List() []kapi.EnvVar {
 	env := []kapi.EnvVar{}
-	for k, v := range e {
+	for _, entry := range *e {
 		env = append(env, kapi.EnvVar{
-			Name:  k,
-			Value: v,
+			Name:  entry.key,
+			Value: entry.value,
 		})
 	}
-	sort.Sort(sortedEnvVar(env))
 	return env
 }
 
-type sortedEnvVar []kapi.EnvVar
-
-func (m sortedEnvVar) Len() int           { return len(m) }
-func (m sortedEnvVar) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m sortedEnvVar) Less(i, j int) bool { return m[i].Name < m[j].Name }
-
 // JoinEnvironment joins two different sets of environment variables
 // into one, leaving out all the duplicates
-func JoinEnvironment(a, b []kapi.EnvVar) (out []kapi.EnvVar) {
-	out = a
-	for i := range b {
-		exists := false
-		for j := range a {
-			if a[j].Name == b[i].Name {
-				exists = true
-				break
-			}
+func JoinEnvironment(a, b []kapi.EnvVar) []kapi.EnvVar {
+	out := NewEnvironmentFromEnvVars(a)
+	for _, envVar := range b {
+		if !out.Has(envVar.Name) {
+			out.Add(envVar.Name, envVar.Value)
 		}
-		if exists {
-			continue
-		}
-		out = append(out, b[i])
 	}
-	return out
+	return out.List()
 }
 
 // LoadEnvironmentFile accepts filename of a file containing key=value pairs
@@ -137,11 +178,11 @@ func LoadEnvironmentFile(filename string, stdin io.Reader) (Environment, error) 
 	errorFilename := filename
 
 	if filename == "-" && stdin != nil {
-		//once https://github.com/joho/godotenv/pull/20 is merged we can get rid of using tempfile
 		temp, err := ioutil.TempFile("", "origin-env-stdin")
 		if err != nil {
 			return nil, fmt.Errorf("Cannot create temporary file: %s", err)
 		}
+		defer temp.Close()
 
 		filename = temp.Name()
 		errorFilename = "stdin"
@@ -158,19 +199,21 @@ func LoadEnvironmentFile(filename string, stdin io.Reader) (Environment, error) 
 	if info, err := os.Stat(filename); err == nil && info.IsDir() {
 		return nil, fmt.Errorf("Cannot read variables from %q: is a directory", filename)
 	} else if err != nil {
-		return nil, fmt.Errorf("Cannot stat %q: %s", filename, err)
+		return nil, fmt.Errorf("Cannot stat %q: %v", filename, err)
 	}
 
 	env, err := godotenv.Read(filename)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot read variables from file %q: %s", errorFilename, err)
 	}
+	result := Environment{}
 	for k, v := range env {
 		if !cmdutil.IsValidEnvironmentArgument(fmt.Sprintf("%s=%s", k, v)) {
 			return nil, fmt.Errorf("invalid parameter assignment in %s=%s", k, v)
 		}
+		result.Add(k, v)
 	}
-	return env, nil
+	return result, nil
 }
 
 // ParseAndCombineEnvironment parses key=value records from slice of strings

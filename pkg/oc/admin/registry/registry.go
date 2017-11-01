@@ -336,14 +336,14 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	healthzPort := defaultPort
 	if len(opts.ports) > 0 {
 		healthzPort = int(opts.ports[0].ContainerPort)
-		env["REGISTRY_HTTP_ADDR"] = fmt.Sprintf(":%d", healthzPort)
-		env["REGISTRY_HTTP_NET"] = "tcp"
+		env.Add("REGISTRY_HTTP_ADDR", fmt.Sprintf(":%d", healthzPort))
+		env.Add("REGISTRY_HTTP_NET", "tcp")
 	}
 	secrets, volumes, mounts, extraEnv, tls, err := generateSecretsConfig(opts.Config, servingCert, servingKey)
 	if err != nil {
 		return err
 	}
-	env.Add(extraEnv)
+	env.AddEnvs(extraEnv)
 
 	livenessProbe := generateLivenessProbeConfig(healthzPort, tls)
 	readinessProbe := generateReadinessProbeConfig(healthzPort, tls)
@@ -555,10 +555,8 @@ func generateSecretsConfig(
 		}
 		mounts = append(mounts, mount)
 
-		extraEnv.Add(app.Environment{
-			"REGISTRY_HTTP_TLS_CERTIFICATE": path.Join(defaultCertificateDir, kapi.TLSCertKey),
-			"REGISTRY_HTTP_TLS_KEY":         path.Join(defaultCertificateDir, kapi.TLSPrivateKeyKey),
-		})
+		extraEnv.Add("REGISTRY_HTTP_TLS_CERTIFICATE", path.Join(defaultCertificateDir, kapi.TLSCertKey))
+		extraEnv.Add("REGISTRY_HTTP_TLS_KEY", path.Join(defaultCertificateDir, kapi.TLSPrivateKeyKey))
 	}
 
 	secretBytes := make([]byte, randomSecretSize)
@@ -566,7 +564,7 @@ func generateSecretsConfig(
 		return nil, nil, nil, nil, false, fmt.Errorf("registry does not exist; could not generate random bytes for HTTP secret: %v", err)
 	}
 	httpSecretString := base64.StdEncoding.EncodeToString(secretBytes)
-	extraEnv["REGISTRY_HTTP_SECRET"] = httpSecretString
+	extraEnv.Add("REGISTRY_HTTP_SECRET", httpSecretString)
 
 	return secrets, volumes, mounts, extraEnv, len(defaultCrt) > 0, nil
 }

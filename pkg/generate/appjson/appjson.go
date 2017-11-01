@@ -103,10 +103,10 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 	template.Annotations["iconURL"] = appJSON.Logo
 
 	// create parameters and environment for containers
-	allEnv := make(app.Environment)
+	allEnv := make(app.Environment, 0)
 	for k, v := range appJSON.Env {
 		if v.EnvVar != nil {
-			allEnv[k] = fmt.Sprintf("${%s}", k)
+			allEnv.Add(k, fmt.Sprintf("${%s}", k))
 		}
 	}
 	envVars := allEnv.List()
