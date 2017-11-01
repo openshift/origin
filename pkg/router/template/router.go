@@ -952,7 +952,7 @@ func (r *templateRouter) calculateServiceWeights(serviceUnits map[string]int32) 
 			numEp := r.numberOfEndpoints(key)
 			glog.V(4).Infof("%s: WARNING: Too many endpoints to achieve desired weight for route. Service can have %d but has %d endpoints", key, int32(weight*float32(numEp)), numEp)
 		}
-		glog.Infof("%s: weight %d  %f  %d", key, serviceUnits[key], weight, serviceUnitNames[key]) // PHIL debug
+		glog.V(6).Infof("%s: weight %d  %f  %d", key, serviceUnits[key], weight, serviceUnitNames[key])
 	}
 
 	return serviceUnitNames
