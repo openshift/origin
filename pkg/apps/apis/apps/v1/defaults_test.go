@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -540,19 +541,20 @@ func TestDefaults(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		t.Logf("test %d", i)
-		original := test.original
-		expected := test.expected
-		obj2 := roundTrip(t, runtime.Object(original))
-		got, ok := obj2.(*DeploymentConfig)
-		if !ok {
-			t.Errorf("unexpected object: %v", got)
-			t.FailNow()
-		}
-		// TODO(rebase): check that there are no fields which have different semantics for nil and []
-		if !equality.Semantic.DeepEqual(got.Spec, expected.Spec) {
-			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, diff.ObjectDiff(expected, got), diff.ObjectGoPrintSideBySide(expected, got))
-		}
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			t.Logf("test %d", i)
+			original := test.original
+			expected := test.expected
+			obj2 := roundTrip(t, runtime.Object(original))
+			got, ok := obj2.(*DeploymentConfig)
+			if !ok {
+				t.Fatalf("unexpected object: %v", got)
+			}
+			// TODO(rebase): check that there are no fields which have different semantics for nil and []
+			if !equality.Semantic.DeepEqual(got.Spec, expected.Spec) {
+				t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, diff.ObjectDiff(expected, got), diff.ObjectGoPrintSideBySide(expected, got))
+			}
+		})
 	}
 }
 

@@ -36,8 +36,12 @@ func EnsureAllImageStreamTagNodes(g osgraph.MutableUniqueGraph, is *imageapi.Ima
 	return ret
 }
 
-func FindImage(g osgraph.MutableUniqueGraph, imageName string) graph.Node {
-	return g.Find(ImageNodeName(&imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: imageName}}))
+func FindImage(g osgraph.MutableUniqueGraph, imageName string) *ImageNode {
+	n := g.Find(ImageNodeName(&imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: imageName}}))
+	if imageNode, ok := n.(*ImageNode); ok {
+		return imageNode
+	}
+	return nil
 }
 
 // EnsureDockerRepositoryNode adds the named Docker repository tag reference to the graph if it does

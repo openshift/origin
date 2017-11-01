@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 
@@ -206,3 +208,60 @@ func TryProtocolsWithRegistryURL(registry string, allowInsecure bool, action fun
 type retryPath struct{ err error }
 
 func (rp *retryPath) Error() string { return rp.err.Error() }
+
+// ErrBadReference denotes an invalid reference to image, imagestreamtag or imagestreamimage stored in a
+// particular object. The object is identified by kind, namespace and name.
+type ErrBadReference struct {
+	kind       string
+	namespace  string
+	name       string
+	targetKind string
+	reference  string
+	reason     string
+}
+
+func newErrBadReferenceToImage(reference string, obj *kapi.ObjectReference, reason string) error {
+	kind := "<UnknownType>"
+	namespace := ""
+	name := "<unknown-name>"
+	if obj != nil {
+		kind = obj.Kind
+		namespace = obj.Namespace
+		name = obj.Name
+	}
+
+	return &ErrBadReference{
+		kind:      kind,
+		namespace: namespace,
+		name:      name,
+		reference: reference,
+		reason:    reason,
+	}
+}
+
+func newErrBadReferenceTo(targetKind, reference string, obj *kapi.ObjectReference, reason string) error {
+	return &ErrBadReference{
+		kind:       obj.Kind,
+		namespace:  obj.Namespace,
+		name:       obj.Name,
+		targetKind: targetKind,
+		reference:  reference,
+		reason:     reason,
+	}
+}
+
+func (e *ErrBadReference) Error() string {
+	return e.String()
+}
+
+func (e *ErrBadReference) String() string {
+	name := e.name
+	if len(e.namespace) > 0 {
+		name = e.namespace + "/" + name
+	}
+	targetKind := "docker image"
+	if len(e.targetKind) > 0 {
+		targetKind = e.targetKind
+	}
+	return fmt.Sprintf("%s[%s]: invalid %s reference %q: %s", e.kind, name, targetKind, e.reference, e.reason)
+}

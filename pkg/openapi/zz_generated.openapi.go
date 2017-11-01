@@ -192,7 +192,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"spec", "status"},
+					Required: []string{"spec"},
 				},
 			},
 			Dependencies: []string{
@@ -429,7 +429,6 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"strategy", "triggers", "replicas", "test"},
 				},
 			},
 			Dependencies: []string{
@@ -6741,7 +6740,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"name", "annotations", "generation"},
+					Required: []string{"name"},
 				},
 			},
 			Dependencies: []string{

@@ -2,6 +2,7 @@ package prune
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,9 +16,14 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	knet "k8s.io/apimachinery/pkg/util/net"
+	discovery "k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -32,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/image/prune"
 	oserrors "github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/netutils"
+	"github.com/openshift/origin/pkg/version"
 )
 
 // PruneImagesRecommendedName is the recommended command name
@@ -72,8 +79,8 @@ var (
 			--insecure-skip-tls-verify or allowed for insecure connection)`)
 
 	imagesExample = templates.Examples(`
-	  # See, what the prune command would delete if only images more than an hour old and obsoleted
-	  # by 3 newer revisions under the same tag were considered.
+	  # See, what the prune command would delete if only images and their referrers were more than an hour old
+	  # and obsoleted by 3 newer revisions under the same tag were considered.
 	  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m
 
 	  # To actually perform the prune operation, the confirm flag must be appended
@@ -111,12 +118,15 @@ type PruneImagesOptions struct {
 	Namespace           string
 	ForceInsecure       bool
 
-	ClientConfig *restclient.Config
-	AppsClient   appsclient.AppsInterface
-	BuildClient  buildclient.BuildInterface
-	ImageClient  imageclient.ImageInterface
-	KubeClient   kclientset.Interface
-	Out          io.Writer
+	ClientConfig    *restclient.Config
+	AppsClient      appsclient.AppsInterface
+	BuildClient     buildclient.BuildInterface
+	ImageClient     imageclient.ImageInterface
+	DiscoveryClient discovery.DiscoveryInterface
+	KubeClient      kclientset.Interface
+	Timeout         time.Duration
+	Out             io.Writer
+	ErrOut          io.Writer
 }
 
 // NewCmdPruneImages implements the OpenShift cli prune images command.
@@ -146,7 +156,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "If true, specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything. Requires a valid route to the integrated Docker registry (see --registry-url).")
 	cmd.Flags().BoolVar(opts.AllImages, "all", *opts.AllImages, "Include images that were imported from external registries as candidates for pruning.  If pruned, all the mirrored objects associated with them will also be removed from the integrated registry.")
-	cmd.Flags().DurationVar(opts.KeepYoungerThan, "keep-younger-than", *opts.KeepYoungerThan, "Specify the minimum age of an image for it to be considered a candidate for pruning.")
+	cmd.Flags().DurationVar(opts.KeepYoungerThan, "keep-younger-than", *opts.KeepYoungerThan, "Specify the minimum age of an image and its referrers for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(opts.KeepTagRevisions, "keep-tag-revisions", *opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
 	cmd.Flags().BoolVar(opts.PruneOverSizeLimit, "prune-over-size-limit", *opts.PruneOverSizeLimit, "Specify if images which are exceeding LimitRanges (see 'openshift.io/Image'), specified in the same namespace, should be considered for pruning. This flag cannot be combined with --keep-younger-than nor --keep-tag-revisions.")
 	cmd.Flags().StringVar(&opts.CABundle, "certificate-authority", opts.CABundle, "The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file. It cannot be used together with --force-insecure.")
@@ -183,13 +193,13 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 	}
 	o.Out = out
+	o.ErrOut = os.Stderr
 
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
 	o.ClientConfig = clientConfig
-
 	appsClient, buildClient, imageClient, kubeClient, err := getClients(f)
 	if err != nil {
 		return err
@@ -198,6 +208,12 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	o.BuildClient = buildClient
 	o.ImageClient = imageClient
 	o.KubeClient = kubeClient
+	o.DiscoveryClient = kubeClient.Discovery()
+
+	o.Timeout = clientConfig.Timeout
+	if o.Timeout == 0 {
+		o.Timeout = time.Duration(10 * time.Second)
+	}
 
 	return nil
 }
@@ -261,9 +277,36 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
+	allDSs, err := o.KubeClient.Extensions().DaemonSets(o.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		// TODO: remove in future (3.9) release
+		if !kerrors.IsForbidden(err) {
+			return err
+		}
+		fmt.Fprintf(o.ErrOut, "Failed to list daemonsets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
+	}
+
+	allDeployments, err := o.KubeClient.Extensions().Deployments(o.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		// TODO: remove in future (3.9) release
+		if !kerrors.IsForbidden(err) {
+			return err
+		}
+		fmt.Fprintf(o.ErrOut, "Failed to list deployments: %v\n - * Make sure to update clusterRoleBindings.\n", err)
+	}
+
 	allDCs, err := o.AppsClient.DeploymentConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
+	}
+
+	allRSs, err := o.KubeClient.Extensions().ReplicaSets(o.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		// TODO: remove in future (3.9) release
+		if !kerrors.IsForbidden(err) {
+			return err
+		}
+		fmt.Fprintf(o.ErrOut, "Failed to list replicasets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
 	}
 
 	limitRangesList, err := o.KubeClient.Core().LimitRanges(o.Namespace).List(metav1.ListOptions{})
@@ -332,7 +375,10 @@ func (o PruneImagesOptions) Run() error {
 		RCs:                allRCs,
 		BCs:                allBCs,
 		Builds:             allBuilds,
+		DSs:                allDSs,
+		Deployments:        allDeployments,
 		DCs:                allDCs,
+		RSs:                allRSs,
 		LimitRanges:        limitRangesMap,
 		DryRun:             o.Confirm == false,
 		RegistryClient:     registryClient,
@@ -341,19 +387,20 @@ func (o PruneImagesOptions) Run() error {
 	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace
 	}
-	pruner, err := prune.NewPruner(options)
-	if err != nil {
-		return err
+	pruner, errs := prune.NewPruner(options)
+	if errs != nil {
+		o.printGraphBuildErrors(errs)
+		return fmt.Errorf("failed to build graph - no changes made")
 	}
 
 	w := tabwriter.NewWriter(o.Out, 10, 4, 3, ' ', 0)
 	defer w.Flush()
 
-	imageDeleter := &describingImageDeleter{w: w}
-	imageStreamDeleter := &describingImageStreamDeleter{w: w}
-	layerLinkDeleter := &describingLayerLinkDeleter{w: w}
-	blobDeleter := &describingBlobDeleter{w: w}
-	manifestDeleter := &describingManifestDeleter{w: w}
+	imageDeleter := &describingImageDeleter{w: w, errOut: o.ErrOut}
+	imageStreamDeleter := &describingImageStreamDeleter{w: w, errOut: o.ErrOut}
+	layerLinkDeleter := &describingLayerLinkDeleter{w: w, errOut: o.ErrOut}
+	blobDeleter := &describingBlobDeleter{w: w, errOut: o.ErrOut}
+	manifestDeleter := &describingManifestDeleter{w: w, errOut: o.ErrOut}
 
 	if o.Confirm {
 		imageDeleter.delegate = prune.NewImageDeleter(o.ImageClient)
@@ -362,10 +409,40 @@ func (o PruneImagesOptions) Run() error {
 		blobDeleter.delegate = prune.NewBlobDeleter()
 		manifestDeleter.delegate = prune.NewManifestDeleter()
 	} else {
-		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
+		fmt.Fprintln(o.ErrOut, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
 	}
 
 	return pruner.Prune(imageDeleter, imageStreamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
+}
+
+func (o *PruneImagesOptions) printGraphBuildErrors(errs kutilerrors.Aggregate) {
+	refErrors := []error{}
+
+	fmt.Fprintf(o.ErrOut, "Failed to build graph!\n")
+
+	for _, err := range errs.Errors() {
+		if _, ok := err.(*prune.ErrBadReference); ok {
+			refErrors = append(refErrors, err)
+		} else {
+			fmt.Fprintf(o.ErrOut, "%v\n", err)
+		}
+	}
+
+	if len(refErrors) > 0 {
+		clientVersion, masterVersion, err := getClientAndMasterVersions(o.DiscoveryClient, o.Timeout)
+		if err != nil {
+			fmt.Fprintf(o.ErrOut, "Failed to get master API version: %v\n", err)
+		}
+		fmt.Fprintf(o.ErrOut, "\nThe following objects have invalid references:\n\n")
+		for _, err := range refErrors {
+			fmt.Fprintf(o.ErrOut, "  %s\n", err)
+		}
+		fmt.Fprintf(o.ErrOut, "\nEither fix the references or delete the objects to make the pruner proceed.\n")
+
+		if masterVersion != nil && (clientVersion.Major != masterVersion.Major || clientVersion.Minor != masterVersion.Minor) {
+			fmt.Fprintf(o.ErrOut, "Client version (%s) doesn't match master (%s), which may allow for different image references. Try to re-run this binary with the same version.\n", clientVersion, masterVersion)
+		}
+	}
 }
 
 // describingImageStreamDeleter prints information about each image stream update.
@@ -374,6 +451,7 @@ type describingImageStreamDeleter struct {
 	w             io.Writer
 	delegate      prune.ImageStreamDeleter
 	headerPrinted bool
+	errOut        io.Writer
 }
 
 var _ prune.ImageStreamDeleter = &describingImageStreamDeleter{}
@@ -389,7 +467,7 @@ func (p *describingImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageS
 
 	updatedStream, err := p.delegate.UpdateImageStream(stream)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error updating image stream %s/%s to remove image references: %v\n", stream.Namespace, stream.Name, err)
+		fmt.Fprintf(p.errOut, "error updating image stream %s/%s to remove image references: %v\n", stream.Namespace, stream.Name, err)
 	}
 
 	return updatedStream, err
@@ -416,6 +494,7 @@ type describingImageDeleter struct {
 	w             io.Writer
 	delegate      prune.ImageDeleter
 	headerPrinted bool
+	errOut        io.Writer
 }
 
 var _ prune.ImageDeleter = &describingImageDeleter{}
@@ -435,7 +514,7 @@ func (p *describingImageDeleter) DeleteImage(image *imageapi.Image) error {
 
 	err := p.delegate.DeleteImage(image)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting image %s from server: %v\n", image.Name, err)
+		fmt.Fprintf(p.errOut, "error deleting image %s from server: %v\n", image.Name, err)
 	}
 
 	return err
@@ -447,6 +526,7 @@ type describingLayerLinkDeleter struct {
 	w             io.Writer
 	delegate      prune.LayerLinkDeleter
 	headerPrinted bool
+	errOut        io.Writer
 }
 
 var _ prune.LayerLinkDeleter = &describingLayerLinkDeleter{}
@@ -466,7 +546,7 @@ func (p *describingLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client
 
 	err := p.delegate.DeleteLayerLink(registryClient, registryURL, repo, name)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting repository %s layer link %s from the registry: %v\n", repo, name, err)
+		fmt.Fprintf(p.errOut, "error deleting repository %s layer link %s from the registry: %v\n", repo, name, err)
 	}
 
 	return err
@@ -478,6 +558,7 @@ type describingBlobDeleter struct {
 	w             io.Writer
 	delegate      prune.BlobDeleter
 	headerPrinted bool
+	errOut        io.Writer
 }
 
 var _ prune.BlobDeleter = &describingBlobDeleter{}
@@ -497,7 +578,7 @@ func (p *describingBlobDeleter) DeleteBlob(registryClient *http.Client, registry
 
 	err := p.delegate.DeleteBlob(registryClient, registryURL, layer)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting blob %s from the registry: %v\n", layer, err)
+		fmt.Fprintf(p.errOut, "error deleting blob %s from the registry: %v\n", layer, err)
 	}
 
 	return err
@@ -510,6 +591,7 @@ type describingManifestDeleter struct {
 	w             io.Writer
 	delegate      prune.ManifestDeleter
 	headerPrinted bool
+	errOut        io.Writer
 }
 
 var _ prune.ManifestDeleter = &describingManifestDeleter{}
@@ -529,7 +611,7 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 
 	err := p.delegate.DeleteManifest(registryClient, registryURL, repo, manifest)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting manifest %s from repository %s: %v\n", manifest, repo, err)
+		fmt.Fprintf(p.errOut, "error deleting manifest %s from repository %s: %v\n", manifest, repo, err)
 	}
 
 	return err
@@ -642,4 +724,49 @@ func getRegistryClient(clientConfig *restclient.Config, registryCABundle string,
 	return &http.Client{
 		Transport: wrappedTransport,
 	}, nil
+}
+
+// getClientAndMasterVersions returns version info for client and master binaries. If it takes too long to get
+// a response from the master, timeout error is returned.
+func getClientAndMasterVersions(client discovery.DiscoveryInterface, timeout time.Duration) (clientVersion, masterVersion *version.Info, err error) {
+	done := make(chan error)
+
+	go func() {
+		defer close(done)
+
+		ocVersionBody, err := client.RESTClient().Get().AbsPath("/version/openshift").Do().Raw()
+		switch {
+		case err == nil:
+			var ocServerInfo version.Info
+			err = json.Unmarshal(ocVersionBody, &ocServerInfo)
+			if err != nil && len(ocVersionBody) > 0 {
+				done <- err
+				return
+			}
+			masterVersion = &ocServerInfo
+
+		case kerrors.IsNotFound(err) || kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err):
+		default:
+			done <- err
+			return
+		}
+	}()
+
+	select {
+	case err, closed := <-done:
+		if strings.HasSuffix(fmt.Sprintf("%v", err), "connection refused") || clientcmd.IsConfigurationMissing(err) || kclientcmd.IsConfigurationInvalid(err) {
+			return nil, nil, err
+		}
+		if closed && err != nil {
+			return nil, nil, err
+		}
+	// do not block error printing if the master is busy
+	case <-time.After(timeout):
+		return nil, nil, fmt.Errorf("error: server took too long to respond with version information.")
+	}
+
+	v := version.Get()
+	clientVersion = &v
+
+	return
 }

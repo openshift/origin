@@ -609,7 +609,66 @@ func TestDisallowedNonNumericExposedPorts(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error wasn't returned")
 
-		} else if !strings.Contains(err.Error(), "invalid EXPOSE") || !strings.Contains(err.Error(), "must be numeric") {
+		} else if !strings.Contains(err.Error(), "args are not supported for port numbers") {
+			t.Errorf("Unexpected error: %v", err)
+		}
+	}
+}
+
+func TestExposedPortsAreValid(t *testing.T) {
+	tests := []struct {
+		dockerfile    string
+		expectedError string
+	}{
+		{
+			dockerfile:    "FROM centos\nEXPOSE 8080\nEXPOSE 8443",
+			expectedError: "",
+		},
+		{
+			dockerfile:    "FROM centos\nEXPOSE 8080/tcp\nEXPOSE 8443/udp",
+			expectedError: "",
+		},
+		{
+			dockerfile:    "FROM centos\nEXPOSE 808080",
+			expectedError: "port number must be in range 0 - 65535",
+		},
+		{
+			dockerfile:    "FROM centos\nEXPOSE -1",
+			expectedError: "port number must be in range 0 - 65535",
+		},
+		{
+			dockerfile:    "FROM centos\nEXPOSE 808080/tcp",
+			expectedError: "port number must be in range 0 - 65535",
+		},
+		{
+			dockerfile:    "FROM centos\nEXPOSE -1/udp",
+			expectedError: "port number must be in range 0 - 65535",
+		},
+		{
+			dockerfile:    "FROM centos\nARG PORT=8080\nEXPOSE $PORT",
+			expectedError: "args are not supported for port numbers",
+		},
+		{
+			dockerfile:    "FROM centos\nEXPOSE 8080/xyz",
+			expectedError: "protocol must be tcp or udp",
+		},
+	}
+
+	for _, test := range tests {
+		config := &AppConfig{}
+		config.Strategy = generate.StrategyDocker
+		config.AllowNonNumericExposedPorts = false
+
+		repo, err := app.NewSourceRepositoryForDockerfile(test.dockerfile)
+		if err != nil {
+			t.Fatalf("Unexpected error during setup: %v", err)
+		}
+		repos := app.SourceRepositories{repo}
+
+		err = optionallyValidateExposedPorts(config, repos)
+		if err == nil && test.expectedError == "" {
+			continue
+		} else if !strings.Contains(err.Error(), test.expectedError) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
