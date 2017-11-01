@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/distribution/context"
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 )
 
 // Environment variables.
@@ -79,7 +80,7 @@ func newRepositoryConfig(ctx context.Context, options map[string]interface{}) (r
 		context.GetLogger(ctx).Infof("DEPRECATED: %q is deprecated, use the %q instead", DockerRegistryURLEnvVar, OpenShiftDefaultRegistryEnvVar)
 	}
 	if len(rc.registryAddr) == 0 {
-		rc.registryAddr, err = getStringOption(DockerRegistryURLEnvVarOption, "dockerregistryurl", rc.registryAddr, options)
+		rc.registryAddr, err = configuration.GetStringOption(DockerRegistryURLEnvVarOption, "dockerregistryurl", rc.registryAddr, options)
 		if err != nil {
 			return
 		}
@@ -95,18 +96,18 @@ func newRepositoryConfig(ctx context.Context, options map[string]interface{}) (r
 		}
 	}
 
-	rc.acceptSchema2, err = getBoolOption(AcceptSchema2EnvVar, "acceptschema2", true, options)
+	rc.acceptSchema2, err = configuration.GetBoolOption(AcceptSchema2EnvVar, "acceptschema2", true, options)
 	if err != nil {
 		return
 	}
-	rc.blobRepositoryCacheTTL, err = getDurationOption(BlobRepositoryCacheTTLEnvVar, "blobrepositorycachettl", defaultBlobRepositoryCacheTTL, options)
+	rc.blobRepositoryCacheTTL, err = configuration.GetDurationOption(BlobRepositoryCacheTTLEnvVar, "blobrepositorycachettl", defaultBlobRepositoryCacheTTL, options)
 	if err != nil {
 		return
 	}
-	rc.pullthrough, err = getBoolOption(PullthroughEnvVar, "pullthrough", true, options)
+	rc.pullthrough, err = configuration.GetBoolOption(PullthroughEnvVar, "pullthrough", true, options)
 	if err != nil {
 		return
 	}
-	rc.mirrorPullthrough, err = getBoolOption(MirrorPullthroughEnvVar, "mirrorpullthrough", true, options)
+	rc.mirrorPullthrough, err = configuration.GetBoolOption(MirrorPullthroughEnvVar, "mirrorpullthrough", true, options)
 	return
 }

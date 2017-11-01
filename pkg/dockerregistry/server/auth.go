@@ -124,7 +124,7 @@ func TokenRealm(options map[string]interface{}) (*url.URL, error) {
 }
 
 func (app *App) newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
-	realm, err := getStringOption("", RealmKey, "origin", options)
+	realm, err := configuration.GetStringOption("", RealmKey, "origin", options)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (app *App) newAccessController(options map[string]interface{}) (registryaut
 			}
 		}
 
-		ac.auditLog, err = getBoolOption("", "enabled", false, auditOptions)
+		ac.auditLog, err = configuration.GetBoolOption("", "enabled", false, auditOptions)
 		if err != nil {
 			return nil, err
 		}
