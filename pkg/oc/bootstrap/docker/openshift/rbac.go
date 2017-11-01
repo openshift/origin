@@ -15,7 +15,7 @@ func GetServiceCatalogRBACDelta() []rbac.ClusterRole {
 				Name: bootstrappolicy.AdminRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+				rbac.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
 				rbac.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
 			},
 		},
@@ -24,7 +24,7 @@ func GetServiceCatalogRBACDelta() []rbac.ClusterRole {
 				Name: bootstrappolicy.EditRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
+				rbac.NewRule("create", "update", "delete", "get", "list", "watch", "patch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").RuleOrDie(),
 				rbac.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").RuleOrDie(),
 			},
 		},
