@@ -160,7 +160,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=100", "reg0=44", "0xac110066->pkt_mark", "output:2"},
+			match: []string{"table=100", "reg0=44", "0xac110066->pkt_mark", "goto_table:101"},
 		},
 	)
 	if err != nil {
@@ -195,7 +195,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=100", "reg0=45", "0xac110067->pkt_mark", "output:2"},
+			match: []string{"table=100", "reg0=45", "0xac110067->pkt_mark", "goto_table:101"},
 		},
 	)
 	if err != nil {
@@ -216,7 +216,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowRemoved,
-			match: []string{"table=100", "reg0=44", "0xac110066->pkt_mark", "output:2"},
+			match: []string{"table=100", "reg0=44", "0xac110066->pkt_mark", "goto_table:101"},
 		},
 	)
 	if err != nil {
@@ -262,7 +262,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowRemoved,
-			match: []string{"table=100", "reg0=45", "0xac110067->pkt_mark", "output:2"},
+			match: []string{"table=100", "reg0=45", "0xac110067->pkt_mark", "goto_table:101"},
 		},
 		flowChange{
 			kind:  flowAdded,
