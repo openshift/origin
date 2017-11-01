@@ -50,6 +50,9 @@ openshift_metrics_hawkular_hostname={{.HawkularHostName}}
 
 [nodes]
 {{.MasterIP}}
+
+[etcd]
+{{.MasterIP}}
 `
 
 const defaultLoggingInventory = `
@@ -80,6 +83,9 @@ openshift_logging_kibana_hostname={{.KibanaHostName}}
 {{.MasterIP}} ansible_connection=local
 
 [nodes]
+{{.MasterIP}}
+
+[etcs]
 {{.MasterIP}}
 `
 
