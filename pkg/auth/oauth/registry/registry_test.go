@@ -12,7 +12,9 @@ import (
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clienttesting "k8s.io/client-go/testing"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -287,7 +290,7 @@ func TestRegistryAndServer(t *testing.T) {
 			objs = append(objs, testCase.ClientAuth)
 		}
 		fakeOAuthClient := oauthfake.NewSimpleClientset(objs...)
-		storage := registrystorage.New(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeOAuthClient.Oauth().OAuthAuthorizeTokens(), fakeOAuthClient.Oauth().OAuthClients(), NewUserConversion())
+		storage := registrystorage.New(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeOAuthClient.Oauth().OAuthAuthorizeTokens(), fakeOAuthClient.Oauth().OAuthClients(), NewUserConversion(), 0)
 		config := osinserver.NewDefaultServerConfig()
 
 		h.AuthorizeHandler = osinserver.AuthorizeHandlers{
@@ -471,5 +474,206 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 	}
 	if userInfo == nil {
 		t.Error("Did not get a user!")
+	}
+}
+
+type fakeOAuthClientLister struct {
+	clients oauthclient.OAuthClientInterface
+}
+
+func (f fakeOAuthClientLister) Get(name string) (*oapi.OAuthClient, error) {
+	return f.clients.Get(name, metav1.GetOptions{})
+}
+
+func (f fakeOAuthClientLister) List(selector labels.Selector) ([]*oapi.OAuthClient, error) {
+	var list []*oapi.OAuthClient
+	ret, _ := f.clients.List(metav1.ListOptions{})
+	for i := range ret.Items {
+		list = append(list, &ret.Items[i])
+	}
+	return list, nil
+}
+
+func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oauthclient.OAuthAccessTokenInterface, present bool) {
+	userInfo, found, err := authf.AuthenticateToken(name)
+	if present {
+		if !found {
+			t.Errorf("Did not find token %s!", name)
+		}
+		if err != nil {
+			t.Errorf("Unexpected error checking for token %s: %v", name, err)
+		}
+		if userInfo == nil {
+			t.Errorf("Did not get a user for token %s!", name)
+		}
+	} else {
+		if found {
+			token, _ := tokens.Get(name, metav1.GetOptions{})
+			t.Errorf("Found token (created=%s, timeout=%di, now=%s), but it should be gone!",
+				token.CreationTimestamp, token.InactivityTimeoutSeconds, time.Now())
+		}
+		if err != errTimedout {
+			t.Errorf("Unexpected error checking absence of token %s: %v", name, err)
+		}
+		if userInfo != nil {
+			t.Errorf("Unexpected user checking absence of token %s: %v", name, userInfo)
+		}
+	}
+}
+
+func TestAuthenticateTokenTimeout(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	defaultTimeout := int32(30) // 30 seconds
+	clientTimeout := int32(15)  // 15 seconds so flush -> 5 seconds
+	minTimeout := int32(10)     // 10 seconds
+
+	testClient := oapi.OAuthClient{
+		ObjectMeta:                          metav1.ObjectMeta{Name: "testClient"},
+		AccessTokenInactivityTimeoutSeconds: &clientTimeout,
+	}
+	quickClient := oapi.OAuthClient{
+		ObjectMeta:                          metav1.ObjectMeta{Name: "quickClient"},
+		AccessTokenInactivityTimeoutSeconds: &minTimeout,
+	}
+	slowClient := oapi.OAuthClient{
+		ObjectMeta: metav1.ObjectMeta{Name: "slowClient"},
+	}
+	testToken := oapi.OAuthAccessToken{
+		ObjectMeta:               metav1.ObjectMeta{Name: "testToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ClientName:               "testClient",
+		ExpiresIn:                600, // 10 minutes
+		UserName:                 "foo",
+		UserUID:                  string("bar"),
+		InactivityTimeoutSeconds: clientTimeout,
+	}
+	quickToken := oapi.OAuthAccessToken{
+		ObjectMeta:               metav1.ObjectMeta{Name: "quickToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ClientName:               "quickClient",
+		ExpiresIn:                600, // 10 minutes
+		UserName:                 "foo",
+		UserUID:                  string("bar"),
+		InactivityTimeoutSeconds: minTimeout,
+	}
+	slowToken := oapi.OAuthAccessToken{
+		ObjectMeta:               metav1.ObjectMeta{Name: "slowToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ClientName:               "slowClient",
+		ExpiresIn:                600, // 10 minutes
+		UserName:                 "foo",
+		UserUID:                  string("bar"),
+		InactivityTimeoutSeconds: defaultTimeout,
+	}
+	emergToken := oapi.OAuthAccessToken{
+		ObjectMeta:               metav1.ObjectMeta{Name: "emergToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ClientName:               "quickClient",
+		ExpiresIn:                600, // 10 minutes
+		UserName:                 "foo",
+		UserUID:                  string("bar"),
+		InactivityTimeoutSeconds: 5, // super short timeout
+	}
+	fakeOAuthClient := oauthfake.NewSimpleClientset(&testToken, &quickToken, &slowToken, &emergToken, &testClient, &quickClient, &slowClient)
+	userRegistry := usertest.NewUserRegistry()
+	userRegistry.GetUsers["foo"] = &userapi.User{ObjectMeta: metav1.ObjectMeta{UID: "bar"}}
+	accessTokenGetter := fakeOAuthClient.Oauth().OAuthAccessTokens()
+	oauthClients := fakeOAuthClient.Oauth().OAuthClients()
+	lister := &fakeOAuthClientLister{
+		clients: oauthClients,
+	}
+	timeouts := NewTimeoutValidator(accessTokenGetter, lister, defaultTimeout, minTimeout)
+	tokenAuthenticator := NewTokenAuthenticator(accessTokenGetter, userRegistry, identitymapper.NoopGroupMapper{}, timeouts)
+
+	go timeouts.Run(stopCh)
+
+	// wait to see that the other thread has updated the timeouts
+	time.Sleep(1 * time.Second)
+
+	// TIME: 1 seconds have passed here
+
+	// first time should succeed for all
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "quickToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "slowToken", tokenAuthenticator, accessTokenGetter, true)
+	// this should cause an emergency flush, if not the next auth will fail,
+	// as the token will be timed out
+	checkToken(t, "emergToken", tokenAuthenticator, accessTokenGetter, true)
+
+	// wait 5 seconds
+	time.Sleep(5 * time.Second)
+
+	// TIME: 6th second
+
+	// See if emergency flush happened
+	checkToken(t, "emergToken", tokenAuthenticator, accessTokenGetter, true)
+
+	// wait for timeout (minTimeout + 1 - the previously waited 6 seconds)
+	time.Sleep(time.Duration(minTimeout-5) * time.Second)
+
+	// TIME: 11th second
+
+	// now we change the testClient and see if the testToken will still be
+	// valid instead of timing out
+	changeClient, ret := oauthClients.Get("testClient", metav1.GetOptions{})
+	if ret != nil {
+		t.Error("Failed to get testClient")
+	} else {
+		longTimeout := int32(20)
+		changeClient.AccessTokenInactivityTimeoutSeconds = &longTimeout
+		_, ret = oauthClients.Update(changeClient)
+		if ret != nil {
+			t.Error("Failed to update testClient")
+		}
+	}
+
+	// this should fail
+	checkToken(t, "quickToken", tokenAuthenticator, accessTokenGetter, false)
+	// while this should get updated
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
+
+	// wait for timeout
+	time.Sleep(time.Duration(clientTimeout+1) * time.Second)
+
+	// TIME: 27th second
+
+	// this should get updated
+	checkToken(t, "slowToken", tokenAuthenticator, accessTokenGetter, true)
+
+	// while this should not fail
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
+	// and should be updated to last at least till the 31st second
+	token, err := accessTokenGetter.Get("testToken", metav1.GetOptions{})
+	if err != nil {
+		t.Error("Failed to get testToken")
+	} else {
+		if token.InactivityTimeoutSeconds < 31 {
+			t.Errorf("Expected timeout in more than 31 seconds, found: %d", token.InactivityTimeoutSeconds)
+		}
+	}
+
+	//now change testClient again, so that tokens do not expire anymore
+	changeclient, ret := oauthClients.Get("testClient", metav1.GetOptions{})
+	if ret != nil {
+		t.Error("Failed to get testClient")
+	} else {
+		changeclient.AccessTokenInactivityTimeoutSeconds = new(int32)
+		_, ret = oauthClients.Update(changeclient)
+		if ret != nil {
+			t.Error("Failed to update testClient")
+		}
+	}
+
+	// and wait until test token should time out, and has been flushed for sure
+	time.Sleep(time.Duration(minTimeout) * time.Second)
+
+	// while this should not fail
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
+	// and should be updated to have a ZERO timeout
+	token, err = accessTokenGetter.Get("testToken", metav1.GetOptions{})
+	if err != nil {
+		t.Error("Failed to get testToken")
+	} else {
+		if token.InactivityTimeoutSeconds != 0 {
+			t.Errorf("Expected timeout of 0 seconds, found: %d", token.InactivityTimeoutSeconds)
+		}
 	}
 }
