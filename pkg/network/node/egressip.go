@@ -74,7 +74,7 @@ func (eip *egressIPWatcher) Start(networkClient networkclient.Interface, iptable
 	var err error
 	if eip.localEgressLink, eip.localEgressNet, err = GetLinkDetails(eip.localIP); err != nil {
 		// Not expected, should already be caught by node.New()
-		return err
+		return nil
 	}
 
 	eip.iptables = iptables
