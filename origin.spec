@@ -465,33 +465,33 @@ fi
 %{_datadir}/%{name}/migration/*
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
-%ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/admin.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/admin.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/ca.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/ca.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/ca.serial.txt
-%ghost %config(noreplace) %{_sysconfdir}/origin/etcd.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/etcd.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master-config.yaml
-%ghost %config(noreplace) %{_sysconfdir}/origin/master.etcd-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master.etcd-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master.kubelet-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master.kubelet-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-master.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-master.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-master.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-registry.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-registry.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-registry.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-router.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-router.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-router.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/policy.json
-%ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.private.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.public.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.serial.txt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master-config.yaml
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/policy.json
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.private.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.public.key
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
 
 %post master
@@ -653,6 +653,9 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Jul 12 2017 Steve Milner <smilner@redhat.com> 0.2-10
+- Master config files moved to /etc/origin/master/ BZ#1469034.
+
 * Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9
 - Rename from openshift -> origin
 - Symlink /var/lib/origin to /var/lib/openshift if /var/lib/openshift exists
