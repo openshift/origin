@@ -1112,7 +1112,7 @@ func (c *ClientStartConfig) RegisterTemplateServiceBroker(out io.Writer) error {
 // Login logs into the new server and sets up a default user and project
 func (c *ClientStartConfig) Login(out io.Writer) error {
 	server := c.OpenShiftHelper().Master(c.ServerIP)
-	return openshift.Login(initialUser, initialPassword, server, c.LocalConfigDir, c.originalFactory, c.command, out)
+	return openshift.Login(initialUser, initialPassword, server, c.LocalConfigDir, c.originalFactory, c.command, out, out)
 }
 
 // CreateProject creates a new project for the current user

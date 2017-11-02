@@ -162,6 +162,7 @@ func TestOAuthOIDC(t *testing.T) {
 		StartingKubeConfig: &clientcmdapi.Config{},
 		Reader:             bytes.NewBufferString("mylogin\nmypassword\n"),
 		Out:                loginOutput,
+		ErrOut:             ioutil.Discard,
 	}
 	if err := loginOptions.GatherInfo(); err != nil {
 		t.Fatalf("Error logging in: %v\n%v", err, loginOutput.String())
