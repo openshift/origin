@@ -410,10 +410,8 @@ backend be_secure:{{$cfgIdx}}
           {{- else if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
           {{- end }}{{/* end type specific options*/}}
 
-            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
+            {{- if and (not $endpoint.NoHealthCheck) (gt $cfg.ActiveEndpoints 1) }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
-
-
           {{- end }}{{/* end if cg.TLSTermination */}}
         {{- end }}{{/* end range processEndpointsForAlias */}}
       {{- end }}{{/* end get serviceUnit from its name */}}
@@ -464,7 +462,7 @@ backend be_tcp:{{$cfgIdx}}
         {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{- range $idx, $endpoint := processEndpointsForAlias $cfg $serviceUnit (env "ROUTER_BACKEND_PROCESS_ENDPOINTS" "") }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} weight {{$weight}}
-            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
+            {{- if and (not $endpoint.NoHealthCheck) (gt $cfg.ActiveEndpoints 1) }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
           {{- end }}{{/* end range processEndpointsForAlias */}}
         {{- end }}{{/* end get ServiceUnit from serviceUnitName */}}
