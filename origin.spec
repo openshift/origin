@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 5c6fb2d167bb87f8ac9c66ff9ece52323b09b27c
+%global commit a734c1e13b3f8a1d6fac66ffd7e40b1bd25cd17c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.188.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=5c6fb2d
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.189.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=a734c1e
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.189.0%{?dist}
+Release:        0.190.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,25 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Nov 02 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.190.0
+- fixing added whitespace (smunilla@redhat.com)
+- catalog: add RBAC rules for serviceinstances (jpeeler@redhat.com)
+- Partially revert node IP startup check (danw@redhat.com)
+- UPSTREAM: 54812: Allow override of cluster level (default, whitelist)
+  tolerations by namespace level empty (default, whitelist) tolerations.
+  (avagarwa@redhat.com)
+- Bug 1508061: Fix panic when accessing controller args (mfojtik@redhat.com)
+- Fix crash with invalid serviceNetworkCIDR (danw@redhat.com)
+- Fix auto-egress-IP / EgressNetworkPolicy interaction (danw@redhat.com)
+- Fix up destination MAC of auto-egress-ip packets (danw@redhat.com)
+- UPSTREAM: drop: fix for bz1507257 hacked from upstream PR47850, drop these
+  changes in favour of that PR because this one does not carry the entire
+  dependent chain. Conflicts were removed manually. (dcbw@redhat.com)
+- UPSTREAM: google/cadvisor: 1785: fix long du duration message
+  (sjenning@redhat.com)
+- origin.spec: Master configs now under /etc/origin/master/
+  (smilner@redhat.com)
+
 * Wed Nov 01 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.189.0
 - Log OVS errors at a better level (danw@redhat.com)
 - Allow EXPOSE <number>/<protocol> in Dockerfile (cdaley@redhat.com)
