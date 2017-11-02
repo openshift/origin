@@ -18,8 +18,6 @@ trap "cleanup" EXIT
 os::util::ensure::gopath_binary_exists imagebuilder
 # image builds require RPMs to have been built
 os::build::release::check_for_rpms
-# OS_RELEASE_COMMIT is required by image-build
-os::build::archive::detect_local_release_tars $(os::build::host_platform_friendly)
 
 # we need to mount RPMs into the container builds for installation
 OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/origin-local-release/"
