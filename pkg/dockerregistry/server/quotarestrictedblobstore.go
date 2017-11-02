@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
 
@@ -33,33 +33,23 @@ const (
 // newQuotaEnforcingConfig creates caches for quota objects. The objects are stored with given eviction
 // timeout. Caches will only be initialized if the given ttl is positive. Options are gathered from
 // configuration file and will be overridden by enforceQuota and projectCacheTTL environment variable values.
-func newQuotaEnforcingConfig(ctx context.Context, enforceQuota, projectCacheTTL string, options map[string]interface{}) *quotaEnforcingConfig {
-	enforce, err := configuration.GetBoolOption(EnforceQuotaEnvVar, "enforcequota", false, options)
-	if err != nil {
-		context.GetLogger(ctx).Error(err)
-	}
-
-	if !enforce {
+func newQuotaEnforcingConfig(ctx context.Context, cfg *configuration.Configuration) *quotaEnforcingConfig {
+	if !cfg.Quota.Enabled {
 		context.GetLogger(ctx).Info("quota enforcement disabled")
 		return &quotaEnforcingConfig{}
 	}
 
-	ttl, err := configuration.GetDurationOption(ProjectCacheTTLEnvVar, "projectcachettl", defaultProjectCacheTTL, options)
-	if err != nil {
-		context.GetLogger(ctx).Error(err)
-	}
-
-	if ttl <= 0 {
+	if cfg.Cache.QuotaTTL <= 0 {
 		context.GetLogger(ctx).Info("not using project caches for quota objects")
 		return &quotaEnforcingConfig{
 			enforcementEnabled: true,
 		}
 	}
 
-	context.GetLogger(ctx).Infof("caching project quota objects with TTL %s", ttl.String())
+	context.GetLogger(ctx).Infof("caching project quota objects with TTL %s", cfg.Cache.QuotaTTL.String())
 	return &quotaEnforcingConfig{
 		enforcementEnabled: true,
-		limitRanges:        newProjectObjectListCache(ttl),
+		limitRanges:        newProjectObjectListCache(cfg.Cache.QuotaTTL),
 	}
 }
 

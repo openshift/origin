@@ -27,7 +27,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 
-	dockerregistryserver "github.com/openshift/origin/pkg/dockerregistry/server"
+	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	"github.com/openshift/origin/pkg/dockerregistry/testutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -81,8 +81,8 @@ func DoesRegistryAcceptSchema2(oc *exutil.CLI) (bool, error) {
 		return defaultAcceptSchema2, err
 	}
 
-	if strings.Contains(env, fmt.Sprintf("%s=", dockerregistryserver.AcceptSchema2EnvVar)) {
-		return strings.Contains(env, fmt.Sprintf("%s=true", dockerregistryserver.AcceptSchema2EnvVar)), nil
+	if strings.Contains(env, fmt.Sprintf("%s=", registryconfig.AcceptSchema2EnvVar)) {
+		return strings.Contains(env, fmt.Sprintf("%s=true", registryconfig.AcceptSchema2EnvVar)), nil
 	}
 
 	return defaultAcceptSchema2, nil
@@ -149,9 +149,9 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error
 	envOverrides := []string{}
 
 	if desiredState.AcceptSchema2 != nil {
-		current := !strings.Contains(env, fmt.Sprintf("%s=%t", dockerregistryserver.AcceptSchema2EnvVar, false))
+		current := !strings.Contains(env, fmt.Sprintf("%s=%t", registryconfig.AcceptSchema2EnvVar, false))
 		if current != *desiredState.AcceptSchema2 {
-			new := fmt.Sprintf("%s=%t", dockerregistryserver.AcceptSchema2EnvVar, *desiredState.AcceptSchema2)
+			new := fmt.Sprintf("%s=%t", registryconfig.AcceptSchema2EnvVar, *desiredState.AcceptSchema2)
 			envOverrides = append(envOverrides, new)
 		}
 	}

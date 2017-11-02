@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
@@ -23,13 +22,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
-)
-
-const (
-	// Default values
-
-	defaultDigestToRepositoryCacheSize = 2048
-	defaultBlobRepositoryCacheTTL      = time.Minute * 10
 )
 
 var (

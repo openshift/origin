@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/configuration"
@@ -13,6 +12,11 @@ import (
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	"github.com/openshift/origin/pkg/dockerregistry/server/maxconnections"
+)
+
+const (
+	// Default values
+	defaultDigestToRepositoryCacheSize = 2048
 )
 
 // App is a global registry application object. Shared resources can be placed
@@ -62,6 +66,7 @@ func NewApp(ctx context.Context, registryClient client.RegistryClient, dockerCon
 		registryClient: registryClient,
 		extraConfig:    extraConfig,
 		writeLimiter:   writeLimiter,
+		quotaEnforcing: newQuotaEnforcingConfig(ctx, extraConfig),
 	}
 
 	cache, err := newDigestToRepositoryCache(defaultDigestToRepositoryCacheSize)
@@ -75,12 +80,11 @@ func NewApp(ctx context.Context, registryClient client.RegistryClient, dockerCon
 	repositoryEnabled := false
 	for _, middleware := range dockerConfig.Middleware["repository"] {
 		if middleware.Name == middlewareOpenShift {
-			rc, err := newRepositoryConfig(ctx, middleware.Options)
+			rc, err := newRepositoryConfig(ctx, extraConfig, middleware.Options)
 			if err != nil {
 				context.GetLogger(ctx).Fatalf("error configuring the repository middleware: %s", err)
 			}
 			app.repositoryConfig = rc
-			app.quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), middleware.Options)
 			repositoryEnabled = true
 			break
 		}
@@ -100,7 +104,7 @@ func NewApp(ctx context.Context, registryClient client.RegistryClient, dockerCon
 
 	// Add a token handling endpoint
 	if dockerConfig.Auth.Type() == middlewareOpenShift {
-		tokenRealm, err := TokenRealm(dockerConfig.Auth[middlewareOpenShift])
+		tokenRealm, err := TokenRealm(extraConfig.Auth.TokenRealm)
 		if err != nil {
 			context.GetLogger(dockerApp).Fatalf("error setting up token auth: %s", err)
 		}
