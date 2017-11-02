@@ -76,6 +76,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	}
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	cmd.Flags().String("path", "", "Set a path for the new route")
+	cmd.Flags().Bool("path-regexp", false, "Specifies that the path is a regular expression")
 	cmd.Flags().String("wildcard-policy", "", "Sets the WildcardPolicy for the hostname, the default is \"None\". Valid values are \"None\" and \"Subdomain\"")
 	return cmd
 }

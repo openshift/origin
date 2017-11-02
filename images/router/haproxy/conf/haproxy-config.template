@@ -487,7 +487,7 @@ backend be_tcp:{{$cfgIdx}}
 {{       range $idx, $cfg := .State -}}
 {{         if ne $cfg.Host "" -}}
 {{           if $cfg.IsWildcard -}}
-{{generateRouteRegexp $cfg.Host "" true}} 1
+{{generateRouteRegexp2 $cfg.Host "" false true}} 1
 {{           end -}}
 {{         end -}}
 {{       end -}}
@@ -501,7 +501,8 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
+{{         $pathRegexp := isTrue (index $cfg.Annotations "haproxy.router.openshift.io/path-regexp") -}}
+{{generateRouteRegexp2 $cfg.Host $cfg.Path $pathRegexp $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end http host map template */}}
@@ -513,7 +514,8 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_edge_http_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
+{{         $pathRegexp := isTrue (index $cfg.Annotations "haproxy.router.openshift.io/path-regexp") -}}
+{{generateRouteRegexp2 $cfg.Host $cfg.Path $pathRegexp $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end edge http host map template */}}
@@ -526,10 +528,11 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_route_http_expose.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (and (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") (eq $cfg.InsecureEdgeTerminationPolicy "Allow")) -}}
+{{         $pathRegexp := isTrue (index $cfg.Annotations "haproxy.router.openshift.io/path-regexp") -}}
 {{         if (eq $cfg.TLSTermination "edge") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http:{{$idx}}
+{{generateRouteRegexp2 $cfg.Host $cfg.Path $pathRegexp $cfg.IsWildcard}} be_edge_http:{{$idx}}
 {{         else -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_secure:{{$idx}}
+{{generateRouteRegexp2 $cfg.Host $cfg.Path $pathRegexp $cfg.IsWildcard}} be_secure:{{$idx}}
 {{         end -}}
 {{       end -}}
 {{     end -}}
@@ -543,7 +546,8 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_route_http_redirect.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
+{{         $pathRegexp := isTrue (index $cfg.Annotations "haproxy.router.openshift.io/path-regexp") -}}
+{{generateRouteRegexp2 $cfg.Host $cfg.Path $pathRegexp $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end redirect http host map template */}}
@@ -556,7 +560,7 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (matchValues (print $cfg.TLSTermination) "passthrough" "reencrypt")) -}}
-{{generateRouteRegexp $cfg.Host "" $cfg.IsWildcard}} {{$idx}}
+{{generateRouteRegexp2 $cfg.Host "" false $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end tcp host map template */}}
@@ -568,7 +572,7 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "passthrough") -}}
-{{generateRouteRegexp $cfg.Host "" $cfg.IsWildcard}} 1
+{{generateRouteRegexp2 $cfg.Host "" false $cfg.IsWildcard}} 1
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end sni passthrough map template */}}
@@ -581,7 +585,8 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_reencrypt.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
+{{         $pathRegexp := isTrue (index $cfg.Annotations "haproxy.router.openshift.io/path-regexp") -}}
+{{generateRouteRegexp2 $cfg.Host $cfg.Path $pathRegexp $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end reencrypt map template */}}

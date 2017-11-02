@@ -80,6 +80,7 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("path", "", "Path that the router watches to route traffic to the service.")
+	cmd.Flags().Bool("path-regexp", false, "Specifies that the path is a regular expression")
 	cmd.Flags().String("cert", "", "Path to a certificate file.")
 	cmd.MarkFlagFilename("cert")
 	cmd.Flags().String("key", "", "Path to a key file.")
@@ -125,6 +126,13 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
 	route.Spec.Path = kcmdutil.GetFlagString(cmd, "path")
+
+	if route.ObjectMeta.Annotations == nil {
+		route.ObjectMeta.Annotations = make(map[string]string)
+	}
+	if kcmdutil.GetFlagBool(cmd, "path-regexp") {
+		route.ObjectMeta.Annotations[routeapi.RoutePathRegexpAnnotation] = "true"
+	}
 
 	route.Spec.TLS = new(routeapi.TLSConfig)
 	route.Spec.TLS.Termination = routeapi.TLSTerminationEdge
@@ -324,6 +332,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 	cmd.Flags().String("service", "", "Name of the service that the new route is exposing")
 	cmd.MarkFlagRequired("service")
 	cmd.Flags().String("path", "", "Path that the router watches to route traffic to the service.")
+	cmd.Flags().Bool("path-regexp", false, "Specifies that the path is a regular expression")
 	cmd.Flags().String("cert", "", "Path to a certificate file.")
 	cmd.MarkFlagFilename("cert")
 	cmd.Flags().String("key", "", "Path to a key file.")
@@ -372,6 +381,13 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
 	route.Spec.Path = kcmdutil.GetFlagString(cmd, "path")
+
+	if route.ObjectMeta.Annotations == nil {
+		route.ObjectMeta.Annotations = make(map[string]string)
+	}
+	if kcmdutil.GetFlagBool(cmd, "path-regexp") {
+		route.ObjectMeta.Annotations[routeapi.RoutePathRegexpAnnotation] = "true"
+	}
 
 	route.Spec.TLS = new(routeapi.TLSConfig)
 	route.Spec.TLS.Termination = routeapi.TLSTerminationReencrypt
