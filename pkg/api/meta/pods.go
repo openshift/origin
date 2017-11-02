@@ -56,8 +56,6 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	batch.Resource("jobs"):                  batch.Kind("Job"),
 	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
 
-	// TODO do we still need this or is cronjob sufficient?
-	batch.Resource("scheduledjobs"):    batch.Kind("ScheduledJob"),
 	batch.Resource("cronjobs"):         batch.Kind("CronJob"),
 	extensions.Resource("deployments"): extensions.Kind("Deployment"),
 	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),

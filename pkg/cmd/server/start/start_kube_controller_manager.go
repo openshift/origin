@@ -172,8 +172,6 @@ func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, po
 		// these resources contain security information in their names, and we don't need to track them
 		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"},
 		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
-		// exposed already as cronjobs
-		componentconfig.GroupResource{Group: "batch", Resource: "scheduledjobs"},
 		// exposed already as extensions v1beta1 by other controllers
 		componentconfig.GroupResource{Group: "apps", Resource: "deployments"},
 		// exposed as autoscaling v1
