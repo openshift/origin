@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/pkg/apis/apps"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -299,6 +300,24 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
+		if err != nil {
+			return "", err
+		}
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
+		if err != nil {
+			return "", err
+		}
+		return pod.Name, nil
+	case apps.Resource("statefulsets"):
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		s, err := kc.Apps().StatefulSets(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+		selector, err := metav1.LabelSelectorAsSelector(s.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
