@@ -97,21 +97,11 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, brokerTem
 		extra[k] = templateapi.ExtraValue(v)
 	}
 
-	blockOwnerDeletion := true
 	templateInstance := &templateapi.TemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: instanceID,
 			Annotations: map[string]string{
 				api.OpenServiceBrokerInstanceExternalID: instanceID,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         templateapiv1.SchemeGroupVersion.String(),
-					Kind:               "BrokerTemplateInstance",
-					Name:               brokerTemplateInstance.Name,
-					UID:                brokerTemplateInstance.UID,
-					BlockOwnerDeletion: &blockOwnerDeletion,
-				},
 			},
 		},
 		Spec: templateapi.TemplateInstanceSpec{

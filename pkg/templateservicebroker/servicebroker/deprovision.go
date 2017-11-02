@@ -55,9 +55,20 @@ func (b *Broker) Deprovision(u user.Info, instanceID string) *api.Response {
 		return api.Forbidden(err)
 	}
 
-	opts := metav1.NewPreconditionDeleteOptions(string(brokerTemplateInstance.UID))
+	templateInstance := brokerTemplateInstance.Spec.TemplateInstance
+	opts := metav1.NewPreconditionDeleteOptions(string(templateInstance.UID))
 	policy := metav1.DeletePropagationForeground
 	opts.PropagationPolicy = &policy
+	err = b.templateclient.TemplateInstances(templateInstance.Namespace).Delete(templateInstance.Name, opts)
+	if err != nil {
+		if !kerrors.IsNotFound(err) {
+			return api.InternalServerError(err)
+		}
+	}
+
+	opts = metav1.NewPreconditionDeleteOptions(string(brokerTemplateInstance.UID))
+	opts.PropagationPolicy = &policy
+
 	err = b.templateclient.BrokerTemplateInstances().Delete(instanceID, opts)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
