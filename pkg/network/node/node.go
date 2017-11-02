@@ -224,10 +224,9 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 
 	if _, _, err := GetLinkDetails(c.SelfIP); err != nil {
 		if err == ErrorNetworkInterfaceNotFound {
-			return fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
-		} else {
-			return err
+			err = fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
 		}
+		glog.Errorf("Unable to find network interface for node IP; some features will not work! (%v)", err)
 	}
 
 	return nil

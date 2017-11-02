@@ -18,6 +18,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+
+	"github.com/vishvananda/netlink"
 )
 
 type ovsController struct {
@@ -25,6 +27,7 @@ type ovsController struct {
 	pluginId     int
 	useConnTrack bool
 	localIP      string
+	tunMAC       string
 }
 
 const (
@@ -83,6 +86,13 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	if err != nil {
 		return err
 	}
+	if oc.tunMAC == "" {
+		link, err := netlink.LinkByName(Tun0)
+		if err != nil {
+			return err
+		}
+		oc.tunMAC = link.Attrs().HardwareAddr.String()
+	}
 
 	otx := oc.ovs.NewTransaction()
 
@@ -94,6 +104,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	for _, clusterCIDR := range clusterNetworkCIDR {
 		otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterCIDR, localSubnetCIDR)
 		otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterCIDR)
+		otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterCIDR)
 	}
 	otx.AddFlow("table=0, priority=150, in_port=1, actions=drop")
 	// tun0
@@ -693,7 +704,7 @@ func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, egressH
 		otx.AddFlow("table=100, priority=100, reg0=%d, actions=drop", vnid)
 	} else if nodeIP == oc.localIP {
 		// Local Egress IP
-		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->pkt_mark,output:2", vnid, egressHex)
+		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->eth_dst,set_field:%s->pkt_mark,goto_table:101", vnid, oc.tunMAC, egressHex)
 	} else {
 		// Remote Egress IP; send via VXLAN
 		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", vnid, nodeIP)

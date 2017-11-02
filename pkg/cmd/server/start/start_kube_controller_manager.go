@@ -49,9 +49,11 @@ func kubeControllerManagerAddFlags(cmserver *controlleroptions.CMServer) func(fl
 	}
 }
 
-func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, recyclerImage string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string) (*controlleroptions.CMServer, []func(), error) {
-	if cmdLineArgs == nil {
-		cmdLineArgs = map[string][]string{}
+func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, recyclerImage string, dynamicProvisioningEnabled bool, controllerArgs map[string][]string) (*controlleroptions.CMServer, []func(), error) {
+	cmdLineArgs := map[string][]string{}
+	// deep-copy the input args to avoid mutation conflict.
+	for k, v := range controllerArgs {
+		cmdLineArgs[k] = append([]string{}, v...)
 	}
 	cleanupFunctions := []func(){}
 
