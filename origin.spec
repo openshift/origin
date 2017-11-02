@@ -728,7 +728,7 @@ fi
 - strip template prefix from TSB annotations (bparees@redhat.com)
 
 * Fri Oct 27 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.183.0
--
+- 
 
 * Thu Oct 26 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.182.0
 - UPSTREAM: 54593: Removed containers are not always waiting
@@ -736,7 +736,7 @@ fi
 - add Limit & Limit/Request columns (jvallejo@redhat.com)
 
 * Thu Oct 26 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.181.0
--
+- 
 
 * Thu Oct 26 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.180.0
 - bump(github.com/openshift/origin-web-console):
@@ -849,7 +849,7 @@ fi
   log driver (joesmith@redhat.com)
 
 * Fri Oct 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.170.0
--
+- 
 
 * Fri Oct 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.169.0
 - don't lowercase metric labels (bparees@redhat.com)
@@ -884,26 +884,26 @@ fi
 - Tweak OVS flows for egress IPs (danw@redhat.com)
 
 * Thu Oct 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.167.0
--
+- 
 
 * Thu Oct 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.166.0
--
+- 
 
 * Thu Oct 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.165.0
--
+- 
 
 * Thu Oct 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.164.0
--
+- 
 
 * Thu Oct 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.163.0
 - don't run conformance tests w/ serial unless they are part of the focus
   (bparees@redhat.com)
 
 * Thu Oct 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.162.0
--
+- 
 
 * Wed Oct 18 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.161.0
--
+- 
 
 * Wed Oct 18 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.160.0
 - bump(github.com/openshift/origin-web-console):
@@ -964,7 +964,7 @@ fi
   not, in the score calculation. (jpazdziora@redhat.com)
 
 * Mon Oct 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.157.0
--
+- 
 
 * Mon Oct 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.156.0
 - replace cmdutil.ErrExit with kcmdutil.ErrExit (bparees@redhat.com)
@@ -994,7 +994,7 @@ fi
   (ccoleman@redhat.com)
 
 * Sat Oct 14 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.154.0
--
+- 
 
 * Fri Oct 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.153.0
 - Update the generated completion to remove deprected commands
@@ -1002,7 +1002,7 @@ fi
 - Warn about deprecated commands (simo@redhat.com)
 
 * Fri Oct 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.152.0
--
+- 
 
 * Fri Oct 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.151.0
 - bump(github.com/openshift/origin-web-console):
@@ -1135,7 +1135,7 @@ fi
   (maszulik@redhat.com)
 
 * Mon Oct 09 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.146.0
--
+- 
 
 * Mon Oct 09 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.145.0
 - bump(github.com/openshift/origin-web-console):
@@ -1317,13 +1317,13 @@ fi
 - Fix route checking in alreadySetUp (danw@redhat.com)
 
 * Mon Oct 02 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.139.0
--
+- 
 
 * Mon Oct 02 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.138.0
 - Make DC extended ControllerRef test more resilient (tnozicka@gmail.com)
 
 * Mon Oct 02 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.137.0
--
+- 
 
 * Sun Oct 01 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.136.0
 - bump(github.com/openshift/origin-web-console):
@@ -1942,7 +1942,7 @@ fi
   supported (jsafrane@redhat.com)
 
 * Tue Sep 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.125.0
--
+- 
 
 * Tue Sep 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.124.0
 - Remove build docker volumes if OS_BUILD_ENV_CLEAN_BUILD_VOLUME is set.
@@ -2043,7 +2043,7 @@ fi
   (bparees@redhat.com)
 
 * Wed Aug 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.122.0
--
+- 
 
 * Wed Aug 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.121.0
 - Handle final image (ccoleman@redhat.com)
@@ -2158,10 +2158,10 @@ fi
 - default oc set image to --source=docker (bparees@redhat.com)
 
 * Fri Aug 25 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.116.0
--
+- 
 
 * Fri Aug 25 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.115.0
--
+- 
 
 * Fri Aug 25 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.114.0
 - bump(github.com/openshift/origin-web-console):
@@ -2194,13 +2194,13 @@ fi
 - Rebase hybrid proxy onto event-driven proxy code (sross@redhat.com)
 
 * Thu Aug 24 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.109.0
--
+- 
 
 * Thu Aug 24 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.108.0
--
+- 
 
 * Thu Aug 24 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.107.0
--
+- 
 
 * Thu Aug 24 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.106.0
 - move rbac field selectors to last point of use (deads@redhat.com)
@@ -2267,7 +2267,7 @@ fi
   (jpazdziora@redhat.com)
 
 * Sun Aug 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.104.0
--
+- 
 
 * Sat Aug 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.103.0
 - move old direct etcd methods for policy closer to source (deads@redhat.com)
@@ -2278,7 +2278,7 @@ fi
 - Make sdn pod teardown robust (rpenta@redhat.com)
 
 * Fri Aug 18 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.102.0
--
+- 
 
 * Fri Aug 18 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.101.0
 - Revert "Merge pull request #15845 from deads2k/server-32-scrub-kuber"
@@ -2976,7 +2976,7 @@ fi
 - Remove unused flag from latest prometheus example (ccoleman@redhat.com)
 
 * Sun Jul 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.151-1
--
+- 
 
 * Sun Jul 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.150-1
 - tail build logs into build object (bparees@redhat.com)
@@ -3090,7 +3090,7 @@ fi
 - ImageStreamTag update should ignore missing labels (ccoleman@redhat.com)
 
 * Sat Jul 08 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.139-1
--
+- 
 
 * Sat Jul 08 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.138-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console e52273d
@@ -3781,7 +3781,7 @@ fi
 - Show SCC provider in error message. (vsemushi@redhat.com)
 
 * Wed Jun 14 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.109-1
--
+- 
 
 * Wed Jun 14 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.108-1
 - fix build to buildconfig ownerref (bparees@redhat.com)
@@ -4037,7 +4037,7 @@ fi
 - Revert "disable image-references" (maszulik@redhat.com)
 
 * Wed Jun 07 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.99-1
--
+- 
 
 * Tue Jun 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.98-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console be07324
@@ -4716,7 +4716,7 @@ fi
 - Dump events from e2e tests (mkargaki@redhat.com)
 
 * Tue May 09 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.72-1
--
+- 
 
 * Mon May 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.71-1
 - improve output of --list-pods (jvallejo@redhat.com)
@@ -4873,10 +4873,10 @@ fi
 - proxy/hybrid: add locking around userspace map (dcbw@redhat.com)
 
 * Mon May 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.60-1
--
+- 
 
 * Mon May 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.59-1
--
+- 
 
 * Mon May 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.58-1
 - bump(github.com/openshift/origin-web-console):
@@ -5231,19 +5231,19 @@ fi
 - Update logging in our deployment controllers (mkargaki@redhat.com)
 
 * Sun Apr 23 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.46-1
--
+- 
 
 * Sun Apr 23 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.45-1
--
+- 
 
 * Sat Apr 22 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.44-1
--
+- 
 
 * Sat Apr 22 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.43-1
 - Work around an OSX xcode ld error temporarily (ccoleman@redhat.com)
 
 * Fri Apr 21 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.42-1
--
+- 
 
 * Thu Apr 20 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.41-1
 - bump(github.com/openshift/origin-web-console):
@@ -5327,7 +5327,7 @@ fi
 - Add debugging to the stacktrace dump (skuznets@redhat.com)
 
 * Mon Apr 17 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.33-1
--
+- 
 
 * Sun Apr 16 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.32-1
 - Fix service IP validation to handle "ClusterIP: None" (danw@redhat.com)
@@ -5406,7 +5406,7 @@ fi
   (maszulik@redhat.com)
 
 * Mon Apr 10 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.26-1
--
+- 
 
 * Mon Apr 10 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.25-1
 - added debug for image_ecosystem tests (gmontero@redhat.com)
@@ -5523,7 +5523,7 @@ fi
 - mark jenkins v1 image deprecated (bparees@redhat.com)
 
 * Mon Apr 03 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.14-1
--
+- 
 
 * Mon Apr 03 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.13-1
 - Update retries to a saner count (mkargaki@redhat.com)
@@ -5585,7 +5585,7 @@ fi
   (jsafrane@redhat.com)
 
 * Sun Mar 26 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.5-1
--
+- 
 
 * Sat Mar 25 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.4-1
 - bump(github.com/openshift/origin-web-console):
@@ -6203,10 +6203,10 @@ fi
 - Fix NetworkPolicies allowing from all to *some* (not all) (danw@redhat.com)
 
 * Thu Feb 16 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.29-1
--
+- 
 
 * Thu Feb 16 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.28-1
--
+- 
 
 * Thu Feb 16 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.27-1
 - deployment: add unit test to exercise the watch restart (mfojtik@redhat.com)
@@ -6225,14 +6225,14 @@ fi
 - improve output of `oc idle` (jvallejo@redhat.com)
 
 * Wed Feb 15 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.25-1
--
+- 
 
 * Wed Feb 15 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.24-1
 - improve scale,process,get help output handle multi-line strings in
   describe/newapp output (jvallejo@redhat.com)
 
 * Wed Feb 15 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.23-1
--
+- 
 
 * Wed Feb 15 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.22-1
 - Merge remote-tracking branch enterprise-3.5, bump origin-web-console 04d7652
