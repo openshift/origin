@@ -38,14 +38,14 @@ type Metrics struct {
 }
 
 type Requests struct {
-	Read  RequestsLimits
-	Write RequestsLimits
+	Read  RequestsLimits `yaml:"read"`
+	Write RequestsLimits `yaml:"write"`
 }
 
 type RequestsLimits struct {
-	MaxRunning     int
-	MaxInQueue     int
-	MaxWaitInQueue time.Duration
+	MaxRunning     int           `yaml:"maxrunning"`
+	MaxInQueue     int           `yaml:"maxinqueue"`
+	MaxWaitInQueue time.Duration `yaml:"maxwaitinqueue"`
 }
 
 type versionInfo struct {
