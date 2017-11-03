@@ -74,16 +74,6 @@ func InsertInstructions(node *parser.Node, pos int, instructions string) error {
 	return nil
 }
 
-// LastBaseImage takes a Dockerfile root node and returns the base image
-// declared in the last FROM instruction.
-func LastBaseImage(node *parser.Node) string {
-	baseImages := baseImages(node)
-	if len(baseImages) == 0 {
-		return ""
-	}
-	return baseImages[len(baseImages)-1]
-}
-
 // baseImages takes a Dockerfile root node and returns a list of all base images
 // declared in the Dockerfile. Each base image is the argument of a FROM
 // instruction.
@@ -93,17 +83,6 @@ func baseImages(node *parser.Node) []string {
 		images = append(images, nextValues(node.Children[pos])...)
 	}
 	return images
-}
-
-// LastExposedPorts takes a Dockerfile root node and returns a list of ports
-// exposed in the last image built by the Dockerfile, i.e., only the EXPOSE
-// instructions after the last FROM instruction are considered.
-func LastExposedPorts(node *parser.Node) []string {
-	exposedPorts := exposedPorts(node)
-	if len(exposedPorts) == 0 {
-		return nil
-	}
-	return exposedPorts[len(exposedPorts)-1]
 }
 
 // exposedPorts takes a Dockerfile root node and returns a list of all ports
