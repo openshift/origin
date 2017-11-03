@@ -720,6 +720,14 @@ func TestPodChanged(t *testing.T) {
 		t.Errorf("Expected pod to be changed with pod readiness change")
 	}
 	oldPod.Status.Conditions = saveConditions
+
+	oldTimestamp := newPod.ObjectMeta.DeletionTimestamp
+	now := metav1.NewTime(time.Now().UTC())
+	newPod.ObjectMeta.DeletionTimestamp = &now
+	if !podChanged(oldPod, newPod) {
+		t.Errorf("Expected pod to be changed with DeletionTimestamp change")
+	}
+	newPod.ObjectMeta.DeletionTimestamp = oldTimestamp
 }
 
 func TestDetermineNeededServiceUpdates(t *testing.T) {
