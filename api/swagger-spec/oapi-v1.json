@@ -26688,7 +26688,8 @@
      "tag",
      "generation",
      "lookupPolicy",
-     "image"
+     "image",
+     "publicImageReference"
     ],
     "properties": {
      "kind": {
@@ -26726,6 +26727,10 @@
      "image": {
       "$ref": "v1.Image",
       "description": "image associated with the ImageStream and tag."
+     },
+     "publicImageReference": {
+      "type": "string",
+      "description": "publicImageReference is the pull spec that can be used to acccess this image from outside of the cluster. It may be empty if the cluster is not configured to expose an external image reference."
      }
     }
    },

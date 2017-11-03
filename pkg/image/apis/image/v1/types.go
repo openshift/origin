@@ -370,6 +370,12 @@ type ImageStreamTag struct {
 
 	// image associated with the ImageStream and tag.
 	Image Image `json:"image" protobuf:"bytes,5,opt,name=image"`
+
+	// publicImageReference is the pull spec that can be used to acccess this
+	// image from outside of the cluster. It may be empty if the cluster is not
+	// configured to expose an external image reference.
+	// +optional
+	PublicImageReference string `json:"publicImageReference,optional" protobuf:"bytes,7,opt,name=publicImageReference"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

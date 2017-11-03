@@ -313,6 +313,12 @@ message ImageStreamTag {
 
   // image associated with the ImageStream and tag.
   optional Image image = 5;
+
+  // publicImageReference is the pull spec that can be used to acccess this
+  // image from outside of the cluster. It may be empty if the cluster is not
+  // configured to expose an external image reference.
+  // +optional
+  optional string publicImageReference = 7;
 }
 
 // ImageStreamTagList is a list of ImageStreamTag objects.

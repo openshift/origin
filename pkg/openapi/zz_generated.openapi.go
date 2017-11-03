@@ -6255,6 +6255,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.Image"),
 							},
 						},
+						"publicImageReference": {
+							SchemaProps: spec.SchemaProps{
+								Description: "publicImageReference is the pull spec that can be used to acccess this image from outside of the cluster. It may be empty if the cluster is not configured to expose an external image reference.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 					},
 					Required: []string{"tag", "generation", "lookupPolicy", "image"},
 				},
