@@ -401,10 +401,10 @@ func TestReconcileServiceInstanceWithParameters(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, expectedParameters, expectedParametersChecksum, instance)
+	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, expectedParameters, expectedParametersChecksum, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, expectedParameters, expectedParametersChecksum, instance)
+	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, expectedParameters, expectedParametersChecksum, instance)
 
 	updateObject, ok := updatedServiceInstance.(*v1beta1.ServiceInstance)
 	if !ok {
@@ -515,10 +515,10 @@ func TestReconcileServiceInstanceResolvesReferences(t *testing.T) {
 	}
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[3], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[4], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	// verify no kube resources created
 	// One single action comes from getting namespace uid
@@ -616,10 +616,10 @@ func TestReconcileServiceInstanceResolvesReferencesClusterServiceClassRefAlready
 	}
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[2], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[3], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	// verify no kube resources created
 	// One single action comes from getting namespace uid
@@ -734,10 +734,10 @@ func TestReconcileServiceInstanceWithProvisionCallFailure(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceRequestRetriableError(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, errorErrorCallingProvisionReason, testClusterServicePlanName, instance)
+	assertServiceInstanceRequestRetriableError(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, errorErrorCallingProvisionReason, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -797,7 +797,7 @@ func TestReconcileServiceInstanceWithProvisionFailure(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
 	assertServiceInstanceRequestFailingErrorNoOrphanMitigation(
@@ -878,10 +878,10 @@ func TestReconcileServiceInstance(t *testing.T) {
 	}
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 	assertServiceInstanceDashboardURL(t, updatedServiceInstance, testDashboardURL)
 
 	events := getRecordedEvents(testController)
@@ -1060,10 +1060,10 @@ func TestReconcileServiceInstanceSuccessWithK8SNames(t *testing.T) {
 	}
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[2], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 	assertServiceInstanceDashboardURL(t, updatedServiceInstance, testDashboardURL)
 
 	events := getRecordedEvents(testController)
@@ -1126,10 +1126,10 @@ func TestReconcileServiceInstanceAsynchronous(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testOperation, testClusterServicePlanName, instance)
+	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testOperation, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 	assertServiceInstanceDashboardURL(t, updatedServiceInstance, testDashboardURL)
 
 	// verify no kube resources created.
@@ -1193,10 +1193,10 @@ func TestReconcileServiceInstanceAsynchronousNoOperation(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, "", testClusterServicePlanName, instance)
+	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, "", testClusterServicePlanName, testClusterServicePlanGUID, instance)
 	assertServiceInstanceDashboardURL(t, updatedServiceInstance, testDashboardURL)
 
 	// verify no kube resources created.
@@ -1276,7 +1276,10 @@ func TestReconcileServiceInstanceDelete(t *testing.T) {
 	// as that implies a previous success.
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
-	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
+		ClusterServicePlanExternalName: testClusterServicePlanName,
+		ClusterServicePlanExternalID:   testClusterServicePlanGUID,
+	}
 	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
@@ -1305,10 +1308,10 @@ func TestReconcileServiceInstanceDelete(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -1343,7 +1346,10 @@ func TestReconcileServiceInstanceDeleteBlockedByCredentials(t *testing.T) {
 	// as that implies a previous success.
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
-	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
+		ClusterServicePlanExternalName: testClusterServicePlanName,
+		ClusterServicePlanExternalID:   testClusterServicePlanGUID,
+	}
 	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
@@ -1411,10 +1417,10 @@ func TestReconcileServiceInstanceDeleteBlockedByCredentials(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events = getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -1446,7 +1452,10 @@ func TestReconcileServiceInstanceDeleteAsynchronous(t *testing.T) {
 	// as that implies a previous success.
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 1
-	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
+		ClusterServicePlanExternalName: testClusterServicePlanName,
+		ClusterServicePlanExternalID:   testClusterServicePlanGUID,
+	}
 	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
@@ -1487,10 +1496,10 @@ func TestReconcileServiceInstanceDeleteAsynchronous(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testOperation, testClusterServicePlanName, instance)
+	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testOperation, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -1563,7 +1572,7 @@ func TestReconcileServiceInstanceDeleteFailedProvisionWithRequest(t *testing.T) 
 	instance := getTestServiceInstanceWithFailedStatus()
 	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
 	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
-	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.ExternalProperties = nil
 	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
 
 	instance.Generation = 2
@@ -1595,10 +1604,10 @@ func TestReconcileServiceInstanceDeleteFailedProvisionWithRequest(t *testing.T) 
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -1622,7 +1631,7 @@ func TestReconcileServiceInstanceDeleteWhenAlreadyDeprovisionedSuccessfully(t *t
 	instance := getTestServiceInstanceWithFailedStatus()
 	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
 	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
-	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.ExternalProperties = nil
 	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
 
 	instance.Generation = 2
@@ -1715,7 +1724,10 @@ func TestReconcileServiceInstanceDeleteFailedUpdate(t *testing.T) {
 	instance := getTestServiceInstanceWithRefs()
 	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
 	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
-	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{}
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
+		ClusterServicePlanExternalName: testClusterServicePlanName,
+		ClusterServicePlanExternalID:   testClusterServicePlanGUID,
+	}
 	instance.Generation = 2
 	instance.Status.ReconciledGeneration = 2
 	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
@@ -1746,10 +1758,10 @@ func TestReconcileServiceInstanceDeleteFailedUpdate(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -1891,7 +1903,7 @@ func TestPollServiceInstanceInProgressProvisioningWithOperation(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testOperation, testClusterServicePlanName, instance)
+	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testOperation, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 	assertServiceInstanceConditionHasLastOperationDescription(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, lastOperationDescription)
 
 	// verify no kube resources created.
@@ -1952,7 +1964,7 @@ func TestPollServiceInstanceSuccessProvisioningWithOperation(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 }
 
 // TestPollServiceInstanceFailureProvisioningWithOperation tests polling an
@@ -2065,7 +2077,7 @@ func TestPollServiceInstanceInProgressDeprovisioningWithOperationNoFinalizer(t *
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testOperation, testClusterServicePlanName, instance)
+	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testOperation, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 	assertServiceInstanceConditionHasLastOperationDescription(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, lastOperationDescription)
 
 	// verify no kube resources created.
@@ -2125,7 +2137,7 @@ func TestPollServiceInstanceSuccessDeprovisioningWithOperationNoFinalizer(t *tes
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -2135,10 +2147,10 @@ func TestPollServiceInstanceSuccessDeprovisioningWithOperationNoFinalizer(t *tes
 	}
 }
 
-// TestPollServiceInstanceFailureDeprovisioningWithOperation tests polling an
-// instance that has a async deprovision in progress.  Current poll status is
-// failed.  Verify instance state is set to unknown.
-func TestPollServiceInstanceFailureDeprovisioningWithOperation(t *testing.T) {
+// TestPollServiceInstanceFailureDeprovisioning tests polling an
+// instance that has a async deprovision in progress where the broker responds
+// with Failed.
+func TestPollServiceInstanceFailureDeprovisioning(t *testing.T) {
 	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
 		PollLastOperationReaction: &fakeosb.PollLastOperationReaction{
 			Response: &osb.LastOperationResponse{
@@ -2152,6 +2164,78 @@ func TestPollServiceInstanceFailureDeprovisioningWithOperation(t *testing.T) {
 	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
 
 	instance := getTestServiceInstanceAsyncDeprovisioning(testOperation)
+	instanceKey := testNamespace + "/" + testServiceInstanceName
+
+	if testController.pollingQueue.NumRequeues(instanceKey) != 0 {
+		t.Fatalf("Expected polling queue to not have any record of test instance")
+	}
+
+	err := testController.pollServiceInstance(instance)
+	if err != nil {
+		t.Fatalf("pollServiceInstance failed: %s", err)
+	}
+
+	if testController.pollingQueue.NumRequeues(instanceKey) != 1 {
+		t.Fatalf("Expected polling queue to have record of seeing test instance once")
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	operationKey := osb.OperationKey(testOperation)
+	assertPollLastOperation(t, brokerActions[0], &osb.LastOperationRequest{
+		InstanceID:   testServiceInstanceGUID,
+		ServiceID:    strPtr(testClusterServiceClassGUID),
+		PlanID:       strPtr(testClusterServicePlanGUID),
+		OperationKey: &operationKey,
+	})
+
+	// verify no kube resources created.
+	// No actions
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 1)
+
+	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
+	assertServiceInstanceRequestRetriableError(
+		t,
+		updatedServiceInstance,
+		v1beta1.ServiceInstanceOperationDeprovision,
+		errorDeprovisionCalledReason,
+		"", // plan name
+		"", // plan ID
+		instance,
+	)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 1)
+	expectedEvent := corev1.EventTypeWarning + " " + errorDeprovisionCalledReason + " " + "Deprovision call failed: (no description provided)"
+	if e, a := expectedEvent, events[0]; e != a {
+		t.Fatalf("Received unexpected event: %v\nExpected: %v", a, e)
+	}
+}
+
+// TestPollServiceInstanceFailureDeprovisioningWithReconciliationTimeout tests
+// polling an instance that has a async deprovision in progress where the
+// broker responds with Failed and the reconciliation retry duration has been
+// exhausted.
+func TestPollServiceInstanceFailureDeprovisioningWithReconciliationTimeout(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
+		PollLastOperationReaction: &fakeosb.PollLastOperationReaction{
+			Response: &osb.LastOperationResponse{
+				State: osb.StateFailed,
+			},
+		},
+	})
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	instance := getTestServiceInstanceAsyncDeprovisioning(testOperation)
+	startTime := metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
+	instance.Status.OperationStartTime = &startTime
 	instanceKey := testNamespace + "/" + testServiceInstanceName
 
 	if testController.pollingQueue.NumRequeues(instanceKey) != 0 {
@@ -2190,18 +2274,22 @@ func TestPollServiceInstanceFailureDeprovisioningWithOperation(t *testing.T) {
 		t,
 		updatedServiceInstance,
 		v1beta1.ServiceInstanceOperationDeprovision,
-		errorDeprovisionCalledReason,
-		errorDeprovisionCalledReason,
+		errorReconciliationRetryTimeoutReason,
+		errorReconciliationRetryTimeoutReason,
 		instance,
 	)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-	expectedEvent := corev1.EventTypeWarning + " " + errorDeprovisionCalledReason + " " + "Deprovision call failed: (no description provided)"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v\nExpected: %v", a, e)
+	expectedEvents := []string{
+		corev1.EventTypeWarning + " " + errorDeprovisionCalledReason + " " + "Deprovision call failed: (no description provided)",
+		corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries on ServiceInstance because too much time has elapsed",
 	}
-
+	assertNumEvents(t, events, len(expectedEvents))
+	for i, expectedEvent := range expectedEvents {
+		if e, a := expectedEvent, events[i]; e != a {
+			t.Fatalf("Received unexpected event: %v\nExpected: %v", a, e)
+		}
+	}
 }
 
 // TestPollServiceInstanceStatusGoneDeprovisioningWithOperationNoFinalizer test
@@ -2255,7 +2343,7 @@ func TestPollServiceInstanceStatusGoneDeprovisioningWithOperationNoFinalizer(t *
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -2379,7 +2467,7 @@ func TestPollServiceInstanceSuccessDeprovisioningWithOperationWithFinalizer(t *t
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -2429,7 +2517,7 @@ func TestReconcileServiceInstanceSuccessOnFinalRetry(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	// verify no kube resources created
 	// One single action comes from getting namespace uid
@@ -2573,7 +2661,7 @@ func TestPollServiceInstanceSuccessOnFinalRetry(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 }
 
 // TestPollServiceInstanceFailureOnFinalRetry verifies that polling
@@ -2672,7 +2760,7 @@ func TestReconcileServiceInstanceWithStatusUpdateError(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 0)
@@ -3308,7 +3396,18 @@ func TestReconcileServiceInstanceOrphanMitigation(t *testing.T) {
 			deprovReaction: &fakeosb.DeprovisionReaction{
 				Error: fakeosb.AsyncRequiredError(),
 			},
+			finishedOrphanMitigation:     false,
+			shouldError:                  true,
+			expectedReadyConditionStatus: v1beta1.ConditionUnknown,
+			expectedReadyConditionReason: errorDeprovisionCalledReason,
+		},
+		{
+			name: "sync - http error - retry duration exceeded",
+			deprovReaction: &fakeosb.DeprovisionReaction{
+				Error: fakeosb.AsyncRequiredError(),
+			},
 			finishedOrphanMitigation:     true,
+			retryDurationExceeded:        true,
 			expectedReadyConditionStatus: v1beta1.ConditionUnknown,
 			expectedReadyConditionReason: errorOrphanMitigationFailedReason,
 		},
@@ -3379,6 +3478,19 @@ func TestReconcileServiceInstanceOrphanMitigation(t *testing.T) {
 			},
 			async: true,
 			finishedOrphanMitigation:     true,
+			retryDurationExceeded:        true,
+			expectedReadyConditionStatus: v1beta1.ConditionUnknown,
+			expectedReadyConditionReason: errorOrphanMitigationFailedReason,
+		},
+		{
+			name: "poll - failed - retry duration exceeded",
+			pollReaction: &fakeosb.PollLastOperationReaction{
+				Response: &osb.LastOperationResponse{
+					State: osb.StateFailed,
+				},
+			},
+			async: true,
+			finishedOrphanMitigation:     false,
 			expectedReadyConditionStatus: v1beta1.ConditionUnknown,
 			expectedReadyConditionReason: errorOrphanMitigationFailedReason,
 		},
@@ -3576,10 +3688,10 @@ func TestReconcileServiceInstanceWithSecretParameters(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, expectedParameters, expectedParametersChecksum, instance)
+	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, expectedParameters, expectedParametersChecksum, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, expectedParameters, expectedParametersChecksum, instance)
+	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationProvision, testClusterServicePlanName, testClusterServicePlanGUID, expectedParameters, expectedParametersChecksum, instance)
 
 	updateObject, ok := updatedServiceInstance.(*v1beta1.ServiceInstance)
 	if !ok {
@@ -3731,6 +3843,7 @@ func TestReconcileServiceInstanceUpdateParameters(t *testing.T) {
 
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
 		ClusterServicePlanExternalName: testClusterServicePlanName,
+		ClusterServicePlanExternalID:   testClusterServicePlanGUID,
 		Parameters:                     oldParametersRaw,
 		ParametersChecksum:             oldParametersChecksum,
 	}
@@ -3756,6 +3869,10 @@ func TestReconcileServiceInstanceUpdateParameters(t *testing.T) {
 		InstanceID:        testServiceInstanceGUID,
 		ServiceID:         testClusterServiceClassGUID,
 		PlanID:            nil, // no change to plan
+		Context: map[string]interface{}{
+			"platform":  "kubernetes",
+			"namespace": "test-ns",
+		},
 		Parameters: map[string]interface{}{
 			"args": map[string]interface{}{
 				"first":  "first-arg",
@@ -3781,10 +3898,10 @@ func TestReconcileServiceInstanceUpdateParameters(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, expectedParameters, expectedParametersChecksum, instance)
+	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, expectedParameters, expectedParametersChecksum, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, expectedParameters, expectedParametersChecksum, instance)
+	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, expectedParameters, expectedParametersChecksum, instance)
 
 	updateObject, ok := updatedServiceInstance.(*v1beta1.ServiceInstance)
 	if !ok {
@@ -3930,6 +4047,7 @@ func TestReconcileServiceInstanceUpdatePlan(t *testing.T) {
 
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
 		ClusterServicePlanExternalName: "old-plan-name",
+		ClusterServicePlanExternalID:   "old-plan-id",
 		Parameters:                     oldParametersRaw,
 		ParametersChecksum:             oldParametersChecksum,
 	}
@@ -3956,17 +4074,21 @@ func TestReconcileServiceInstanceUpdatePlan(t *testing.T) {
 		InstanceID:        testServiceInstanceGUID,
 		ServiceID:         testClusterServiceClassGUID,
 		PlanID:            &expectedPlanID,
-		Parameters:        nil, // no change to parameters
+		Context: map[string]interface{}{
+			"platform":  "kubernetes",
+			"namespace": "test-ns",
+		},
+		Parameters: nil, // no change to parameters
 	})
 
 	actions := fakeCatalogClient.Actions()
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, oldParameters, oldParametersChecksum, instance)
+	assertServiceInstanceOperationInProgressWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, oldParameters, oldParametersChecksum, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, oldParameters, oldParametersChecksum, instance)
+	assertServiceInstanceOperationSuccessWithParameters(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, oldParameters, oldParametersChecksum, instance)
 
 	updateObject, ok := updatedServiceInstance.(*v1beta1.ServiceInstance)
 	if !ok {
@@ -4024,6 +4146,10 @@ func TestReconcileServiceInstanceWithUpdateCallFailure(t *testing.T) {
 		InstanceID:        testServiceInstanceGUID,
 		ServiceID:         testClusterServiceClassGUID,
 		PlanID:            &expectedPlanID,
+		Context: map[string]interface{}{
+			"platform":  "kubernetes",
+			"namespace": "test-ns",
+		},
 	})
 
 	// verify no kube resources created
@@ -4039,10 +4165,10 @@ func TestReconcileServiceInstanceWithUpdateCallFailure(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceRequestRetriableError(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, errorErrorCallingUpdateInstanceReason, testClusterServicePlanName, instance)
+	assertServiceInstanceRequestRetriableError(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, errorErrorCallingUpdateInstanceReason, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
@@ -4085,6 +4211,10 @@ func TestReconcileServiceInstanceWithUpdateFailure(t *testing.T) {
 		InstanceID:        testServiceInstanceGUID,
 		ServiceID:         testClusterServiceClassGUID,
 		PlanID:            &expectedPlanID,
+		Context: map[string]interface{}{
+			"platform":  "kubernetes",
+			"namespace": "test-ns",
+		},
 	})
 
 	// verify one kube action occurred
@@ -4099,7 +4229,7 @@ func TestReconcileServiceInstanceWithUpdateFailure(t *testing.T) {
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
 	assertServiceInstanceRequestFailingErrorNoOrphanMitigation(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, errorUpdateInstanceCallFailedReason, "ClusterServiceBrokerReturnedFailure", instance)
@@ -4341,6 +4471,7 @@ func TestReconcileServiceInstanceUpdateAsynchronous(t *testing.T) {
 
 	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
 		ClusterServicePlanExternalName: "old-plan-name",
+		ClusterServicePlanExternalID:   "old-plan-id",
 	}
 
 	instanceKey := testNamespace + "/" + testServiceInstanceName
@@ -4360,16 +4491,20 @@ func TestReconcileServiceInstanceUpdateAsynchronous(t *testing.T) {
 		InstanceID:        testServiceInstanceGUID,
 		ServiceID:         testClusterServiceClassGUID,
 		PlanID:            &expectedPlanID,
+		Context: map[string]interface{}{
+			"platform":  "kubernetes",
+			"namespace": "test-ns",
+		},
 	})
 
 	actions := fakeCatalogClient.Actions()
 	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
-	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testOperation, testClusterServicePlanName, instance)
+	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testOperation, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 
 	// verify no kube resources created.
 	// One single action comes from getting namespace uid
@@ -4431,7 +4566,7 @@ func TestPollServiceInstanceAsyncInProgressUpdating(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testOperation, testClusterServicePlanName, instance)
+	assertServiceInstanceAsyncInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testOperation, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 	assertServiceInstanceConditionHasLastOperationDescription(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, lastOperationDescription)
 
 	// verify no kube resources created.
@@ -4492,7 +4627,7 @@ func TestPollServiceInstanceAsyncSuccessUpdating(t *testing.T) {
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
-	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationUpdate, testClusterServicePlanName, testClusterServicePlanGUID, instance)
 }
 
 // TestPollServiceInstanceAsyncFailureUpdating tests polling an instance where
@@ -4646,5 +4781,214 @@ func TestCheckClassAndPlanForDeletion(t *testing.T) {
 			events := getRecordedEvents(testController)
 			assertNumEvents(t, events, 1)
 		}
+	}
+}
+
+// TestReconcileServiceInstanceDeleteDuringOngoingOperation tests deleting an
+// instance that has an on-going operation.
+func TestReconcileServiceInstanceDeleteDuringOngoingOperation(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{},
+		},
+	})
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	instance := getTestServiceInstanceWithRefs()
+	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
+	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
+	instance.Status.CurrentOperation = v1beta1.ServiceInstanceOperationProvision
+	startTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+	instance.Status.OperationStartTime = &startTime
+
+	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, instance, nil
+	})
+
+	timeOfReconciliation := metav1.Now()
+
+	err := testController.reconcileServiceInstance(instance)
+	if err != nil {
+		t.Fatalf("This should not fail")
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	assertDeprovision(t, brokerActions[0], &osb.DeprovisionRequest{
+		AcceptsIncomplete: true,
+		InstanceID:        testServiceInstanceGUID,
+		ServiceID:         testClusterServiceClassGUID,
+		PlanID:            testClusterServicePlanGUID,
+	})
+
+	// Verify no core kube actions occurred
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 2)
+
+	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance).(*v1beta1.ServiceInstance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
+
+	// Verify that the operation start time was reset to Now
+	if updatedServiceInstance.Status.OperationStartTime.Before(&timeOfReconciliation) {
+		t.Fatalf(
+			"OperationStartTime should not be before the time that the reconciliation started. OperationStartTime=%v. timeOfReconciliation=%v",
+			updatedServiceInstance.Status.OperationStartTime,
+			timeOfReconciliation,
+		)
+	}
+
+	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance).(*v1beta1.ServiceInstance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 1)
+
+	expectedEvent := corev1.EventTypeNormal + " " + successDeprovisionReason + " " + "The instance was deprovisioned successfully"
+	if e, a := expectedEvent, events[0]; e != a {
+		t.Fatalf("Received unexpected event: %v\nExpected: %v", a, e)
+	}
+}
+
+// TestReconcileServiceInstanceDeleteDuringOrphanMitigation tests deleting an
+// instance that is undergoing orphan mitigation.
+func TestReconcileServiceInstanceDeleteWithOngoingOperation(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{},
+		},
+	})
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	instance := getTestServiceInstanceWithRefs()
+	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
+	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
+	instance.Status.CurrentOperation = v1beta1.ServiceInstanceOperationProvision
+	startTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+	instance.Status.OperationStartTime = &startTime
+	instance.Status.OrphanMitigationInProgress = true
+
+	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, instance, nil
+	})
+
+	timeOfReconciliation := metav1.Now()
+
+	err := testController.reconcileServiceInstance(instance)
+	if err != nil {
+		t.Fatalf("This should not fail")
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	assertDeprovision(t, brokerActions[0], &osb.DeprovisionRequest{
+		AcceptsIncomplete: true,
+		InstanceID:        testServiceInstanceGUID,
+		ServiceID:         testClusterServiceClassGUID,
+		PlanID:            testClusterServicePlanGUID,
+	})
+
+	// Verify no core kube actions occurred
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 2)
+
+	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance).(*v1beta1.ServiceInstance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
+
+	// Verify that the operation start time was reset to Now
+	if updatedServiceInstance.Status.OperationStartTime.Before(&timeOfReconciliation) {
+		t.Fatalf(
+			"OperationStartTime should not be before the time that the reconciliation started. OperationStartTime=%v. timeOfReconciliation=%v",
+			updatedServiceInstance.Status.OperationStartTime,
+			timeOfReconciliation,
+		)
+	}
+
+	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance).(*v1beta1.ServiceInstance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, testClusterServicePlanName, testClusterServicePlanGUID, instance)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 1)
+
+	expectedEvent := corev1.EventTypeNormal + " " + successDeprovisionReason + " " + "The instance was deprovisioned successfully"
+	if e, a := expectedEvent, events[0]; e != a {
+		t.Fatalf("Received unexpected event: %v\nExpected: %v", a, e)
+	}
+}
+
+// TestReconcileServiceInstanceDeleteWithNonExistentPlan tests deprovisioning
+// an instance that has been updated to a non-existent plan.
+func TestReconcileServiceInstanceDeleteWithNonExistentPlan(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{},
+		},
+	})
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+
+	instance := getTestServiceInstanceWithRefs()
+	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
+	instance.ObjectMeta.Finalizers = []string{v1beta1.FinalizerServiceCatalog}
+	// we only invoke the broker client to deprovision if we have a reconciled generation set
+	// as that implies a previous success.
+	instance.Generation = 2
+	instance.Status.ReconciledGeneration = 1
+	instance.Status.ExternalProperties = &v1beta1.ServiceInstancePropertiesState{
+		ClusterServicePlanExternalName: "old-plan-name",
+		ClusterServicePlanExternalID:   "old-plan-id",
+	}
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
+	instance.Spec.ClusterServicePlanRef = nil
+
+	fakeCatalogClient.AddReactor("get", "serviceinstances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, instance, nil
+	})
+
+	err := testController.reconcileServiceInstance(instance)
+	if err != nil {
+		t.Fatalf("This should not fail")
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	assertDeprovision(t, brokerActions[0], &osb.DeprovisionRequest{
+		AcceptsIncomplete: true,
+		InstanceID:        testServiceInstanceGUID,
+		ServiceID:         testClusterServiceClassGUID,
+		PlanID:            "old-plan-id",
+	})
+
+	// Verify no core kube actions occurred
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 2)
+
+	updatedServiceInstance := assertUpdateStatus(t, actions[0], instance)
+	assertServiceInstanceOperationInProgress(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, "old-plan-name", "old-plan-id", instance)
+
+	updatedServiceInstance = assertUpdateStatus(t, actions[1], instance)
+	assertServiceInstanceOperationSuccess(t, updatedServiceInstance, v1beta1.ServiceInstanceOperationDeprovision, "old-plan-name", "old-plan-id", instance)
+
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, 1)
+
+	expectedEvent := corev1.EventTypeNormal + " " + successDeprovisionReason + " " + "The instance was deprovisioned successfully"
+	if e, a := expectedEvent, events[0]; e != a {
+		t.Fatalf("Received unexpected event: %v\nExpected: %v", a, e)
 	}
 }

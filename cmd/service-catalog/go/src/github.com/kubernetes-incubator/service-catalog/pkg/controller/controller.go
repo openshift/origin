@@ -245,7 +245,9 @@ func worker(queue workqueue.RateLimitingInterface, resourceType string, maxRetri
 // getClusterServiceClassPlanAndClusterServiceBroker is a sequence of operations that's done in couple of
 // places so this method fetches the Service Class, Service Plan and creates
 // a brokerClient to use for that method given an ServiceInstance.
-// Sets ClusterServiceClassRef and/or ClusterServicePlanRef if they haven't been already set.
+// The ClusterServicePlan returned will be nil if the ClusterServicePlanRef
+// is nil. This will happen when deleting a ServiceInstance that previously
+// had an update to a non-existent plan.
 func (c *controller) getClusterServiceClassPlanAndClusterServiceBroker(instance *v1beta1.ServiceInstance) (*v1beta1.ClusterServiceClass, *v1beta1.ClusterServicePlan, string, osb.Client, error) {
 	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
 	serviceClass, err := c.serviceClassLister.Get(instance.Spec.ClusterServiceClassRef.Name)
@@ -266,22 +268,26 @@ func (c *controller) getClusterServiceClassPlanAndClusterServiceBroker(instance 
 		return nil, nil, "", nil, err
 	}
 
-	servicePlan, err := c.servicePlanLister.Get(instance.Spec.ClusterServicePlanRef.Name)
-	if nil != err {
-		s := fmt.Sprintf(
-			"References a non-existent ClusterServicePlan (K8S: %q ExternalName: %q) on ClusterServiceClass (K8S: %q ExternalName: %q)",
-			instance.Spec.ClusterServicePlanName, instance.Spec.ClusterServicePlanExternalName, serviceClass.Name, serviceClass.Spec.ExternalName,
-		)
-		glog.Warning(pcb.Message(s))
-		c.updateServiceInstanceCondition(
-			instance,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			errorNonexistentClusterServicePlanReason,
-			"The instance references a ClusterServicePlan that does not exist. "+s,
-		)
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorNonexistentClusterServicePlanReason, s)
-		return nil, nil, "", nil, fmt.Errorf(s)
+	var servicePlan *v1beta1.ClusterServicePlan
+	if instance.Spec.ClusterServicePlanRef != nil {
+		var err error
+		servicePlan, err = c.servicePlanLister.Get(instance.Spec.ClusterServicePlanRef.Name)
+		if nil != err {
+			s := fmt.Sprintf(
+				"References a non-existent ClusterServicePlan (K8S: %q ExternalName: %q) on ClusterServiceClass (K8S: %q ExternalName: %q)",
+				instance.Spec.ClusterServicePlanName, instance.Spec.ClusterServicePlanExternalName, serviceClass.Name, serviceClass.Spec.ExternalName,
+			)
+			glog.Warning(pcb.Message(s))
+			c.updateServiceInstanceCondition(
+				instance,
+				v1beta1.ServiceInstanceConditionReady,
+				v1beta1.ConditionFalse,
+				errorNonexistentClusterServicePlanReason,
+				"The instance references a ClusterServicePlan that does not exist. "+s,
+			)
+			c.recorder.Event(instance, corev1.EventTypeWarning, errorNonexistentClusterServicePlanReason, s)
+			return nil, nil, "", nil, fmt.Errorf(s)
+		}
 	}
 
 	broker, err := c.brokerLister.Get(serviceClass.Spec.ClusterServiceBrokerName)

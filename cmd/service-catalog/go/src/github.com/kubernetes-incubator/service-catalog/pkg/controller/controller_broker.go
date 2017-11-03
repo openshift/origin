@@ -128,11 +128,14 @@ func shouldReconcileClusterServiceBroker(broker *v1beta1.ClusterServiceBroker, n
 				}
 
 				// By default, the broker should relist if it has been longer than the
-				// RelistDuration since the broker's ready condition became true.
+				// RelistDuration since the last time we fetched the Catalog
 				duration := broker.Spec.RelistDuration.Duration
-				intervalPassed := now.After(condition.LastTransitionTime.Add(duration))
+				intervalPassed := true
+				if broker.Status.LastCatalogRetrievalTime != nil {
+					intervalPassed = now.After(broker.Status.LastCatalogRetrievalTime.Time.Add(duration))
+				}
 				if intervalPassed == false {
-					glog.V(10).Info(pcb.Message("Not processing because RelistDuration has not elapsed since the broker became ready"))
+					glog.V(10).Info(pcb.Message("Not processing because RelistDuration has not elapsed since the last relist"))
 				}
 				return intervalPassed
 			}
@@ -669,10 +672,12 @@ func (c *controller) updateClusterServiceBrokerCondition(broker *v1beta1.Cluster
 		}
 	}
 
-	// Set status.ReconciledGeneration if updating ready condition to true
+	// Set status.ReconciledGeneration && status.LastCatalogRetrievalTime if updating ready condition to true
 
 	if conditionType == v1beta1.ServiceBrokerConditionReady && status == v1beta1.ConditionTrue {
 		toUpdate.Status.ReconciledGeneration = toUpdate.Generation
+		now := metav1.NewTime(t)
+		toUpdate.Status.LastCatalogRetrievalTime = &now
 	}
 
 	glog.V(4).Info(pcb.Messagef("Updating ready condition to %v", status))

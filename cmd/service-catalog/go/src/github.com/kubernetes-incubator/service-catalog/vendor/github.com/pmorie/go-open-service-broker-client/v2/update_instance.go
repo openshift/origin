@@ -11,6 +11,7 @@ type updateInstanceRequestBody struct {
 	ServiceID  string                 `json:"service_id"`
 	PlanID     *string                `json:"plan_id,omitempty"`
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Context    map[string]interface{} `json:"context,omitempty"`
 
 	// Note: this client does not currently support the 'previous_values'
 	// field of this request body.
@@ -31,6 +32,10 @@ func (c *client) UpdateInstance(r *UpdateInstanceRequest) (*UpdateInstanceRespon
 		ServiceID:  r.ServiceID,
 		PlanID:     r.PlanID,
 		Parameters: r.Parameters,
+	}
+
+	if c.APIVersion.AtLeast(Version2_12()) {
+		requestBody.Context = r.Context
 	}
 
 	response, err := c.prepareAndDo(http.MethodPatch, fullURL, params, requestBody, r.OriginatingIdentity)

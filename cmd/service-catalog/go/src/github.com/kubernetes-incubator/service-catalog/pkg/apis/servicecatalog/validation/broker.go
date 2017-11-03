@@ -148,6 +148,10 @@ func validateClusterServiceBrokerSpec(spec *sc.ClusterServiceBrokerSpec, fldPath
 // ValidateClusterServiceBrokerUpdate checks that when changing from an older broker to a newer broker is okay ?
 func ValidateClusterServiceBrokerUpdate(new *sc.ClusterServiceBroker, old *sc.ClusterServiceBroker) field.ErrorList {
 	allErrs := field.ErrorList{}
+	// RelistRequests can be increasing to relist the broker, or equal to update other fields
+	if new.Spec.RelistRequests < old.Spec.RelistRequests {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("relistRequests"), old.Spec.RelistRequests, "RelistRequests must be strictly increasing"))
+	}
 	allErrs = append(allErrs, ValidateClusterServiceBroker(new)...)
 	return allErrs
 }

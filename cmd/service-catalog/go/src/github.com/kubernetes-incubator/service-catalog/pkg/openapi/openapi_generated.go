@@ -253,6 +253,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 							},
 						},
+						"lastCatalogRetrievalTime": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LastCatalogRetrievalTime is the time the Catalog was last fetched from the Service Broker",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							},
+						},
 					},
 					Required: []string{"conditions", "reconciledGeneration"},
 				},
@@ -1248,6 +1254,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"clusterServicePlanExternalID": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterServicePlanExternalID is the external ID of the plan that the broker knows this ServiceInstance to be on.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 						"parameters": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Parameters is a blob of the parameters and their values that the broker knows about for this ServiceInstance.  If a parameter was sourced from a secret, its value will be \"<redacted>\" in this blob.",
@@ -1268,7 +1281,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"clusterServicePlanExternalName"},
+					Required: []string{"clusterServicePlanExternalName", "clusterServicePlanExternalID"},
 				},
 			},
 			Dependencies: []string{

@@ -38,6 +38,20 @@ func testHTTPStatusCodeError() error {
 	}
 }
 
+func testGetBindingNotAllowedErrorUnsupportedAPIVersion() error {
+	e := AlphaAPIMethodsNotAllowedError{
+		reason: fmt.Sprintf(
+			"must have latest API Version. Current: %s, Expected: %s",
+			Version2_11().label,
+			LatestAPIVersion().label,
+		),
+	}
+
+	return GetBindingNotAllowedError{
+		reason: e.Error(),
+	}
+}
+
 func truePtr() *bool {
 	b := true
 	return &b

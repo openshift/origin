@@ -84,8 +84,10 @@ func validServiceInstanceWithInProgressProvision() *servicecatalog.ServiceInstan
 
 func validServiceInstancePropertiesState() *servicecatalog.ServiceInstancePropertiesState {
 	return &servicecatalog.ServiceInstancePropertiesState{
-		Parameters:         &runtime.RawExtension{Raw: []byte("a: 1\nb: \"2\"")},
-		ParametersChecksum: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		ClusterServicePlanExternalName: "plan-name",
+		ClusterServicePlanExternalID:   "plan-id",
+		Parameters:                     &runtime.RawExtension{Raw: []byte("a: 1\nb: \"2\"")},
+		ParametersChecksum:             "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 	}
 }
 
@@ -236,7 +238,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "in-progress provision with missing InProgressParameters",
+			name: "in-progress provision with missing InProgressProperties",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstanceWithInProgressProvision()
 				i.Status.InProgressProperties = nil
@@ -245,7 +247,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "in-progress update with missing InProgressParameters",
+			name: "in-progress update with missing InProgressProperties",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstanceWithInProgressProvision()
 				i.Status.CurrentOperation = servicecatalog.ServiceInstanceOperationUpdate
@@ -255,7 +257,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "not in-progress with present InProgressParameters",
+			name: "not in-progress with present InProgressProperties",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstance()
 				i.Status.InProgressProperties = validServiceInstancePropertiesState()
@@ -264,10 +266,28 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "in-progress deprovision with present InProgressParameters",
+			name: "in-progress deprovision with present InProgressProperties",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstanceWithInProgressProvision()
 				i.Status.CurrentOperation = servicecatalog.ServiceInstanceOperationDeprovision
+				return i
+			}(),
+			valid: false,
+		},
+		{
+			name: "in-progress properties with no external plan name",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressProvision()
+				i.Status.InProgressProperties.ClusterServicePlanExternalName = ""
+				return i
+			}(),
+			valid: false,
+		},
+		{
+			name: "in-progress properties with no external plan ID",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressProvision()
+				i.Status.InProgressProperties.ClusterServicePlanExternalID = ""
 				return i
 			}(),
 			valid: false,
@@ -344,6 +364,26 @@ func TestValidateServiceInstance(t *testing.T) {
 				return i
 			}(),
 			valid: true,
+		},
+		{
+			name: "external properties with no external plan name",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Status.ExternalProperties = validServiceInstancePropertiesState()
+				i.Status.ExternalProperties.ClusterServicePlanExternalName = ""
+				return i
+			}(),
+			valid: false,
+		},
+		{
+			name: "external properties with no external plan ID",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Status.ExternalProperties = validServiceInstancePropertiesState()
+				i.Status.ExternalProperties.ClusterServicePlanExternalID = ""
+				return i
+			}(),
+			valid: false,
 		},
 		{
 			name: "valid external properties with no parameters",
@@ -758,7 +798,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 			new: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
-				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
+				InProgressProperties: validServiceInstancePropertiesState(),
 				AsyncOpInProgress:    true,
 				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
@@ -770,7 +810,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 			old: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
-				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
+				InProgressProperties: validServiceInstancePropertiesState(),
 				AsyncOpInProgress:    true,
 				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
@@ -794,7 +834,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 			new: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
-				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
+				InProgressProperties: validServiceInstancePropertiesState(),
 				Conditions: []servicecatalog.ServiceInstanceCondition{{
 					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionTrue,
@@ -809,7 +849,7 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 			old: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
-				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
+				InProgressProperties: validServiceInstancePropertiesState(),
 				Conditions: []servicecatalog.ServiceInstanceCondition{{
 					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionFalse,
@@ -832,14 +872,14 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 			old: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
-				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
+				InProgressProperties: validServiceInstancePropertiesState(),
 				Conditions:           []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionFalse}},
 				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},
 			new: &servicecatalog.ServiceInstanceStatus{
 				CurrentOperation:     servicecatalog.ServiceInstanceOperationProvision,
 				OperationStartTime:   &now,
-				InProgressProperties: &servicecatalog.ServiceInstancePropertiesState{},
+				InProgressProperties: validServiceInstancePropertiesState(),
 				Conditions:           []servicecatalog.ServiceInstanceCondition{{Status: servicecatalog.ConditionTrue}},
 				DeprovisionStatus:    servicecatalog.ServiceInstanceDeprovisionStatusRequired,
 			},

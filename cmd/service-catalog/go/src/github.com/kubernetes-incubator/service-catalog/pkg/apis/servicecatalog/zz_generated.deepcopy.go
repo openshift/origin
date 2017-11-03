@@ -367,6 +367,15 @@ func (in *ClusterServiceBrokerStatus) DeepCopyInto(out *ClusterServiceBrokerStat
 			(*in).DeepCopyInto(*out)
 		}
 	}
+	if in.LastCatalogRetrievalTime != nil {
+		in, out := &in.LastCatalogRetrievalTime, &out.LastCatalogRetrievalTime
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(v1.Time)
+			(*in).DeepCopyInto(*out)
+		}
+	}
 	return
 }
 
