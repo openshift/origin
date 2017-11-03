@@ -17,6 +17,12 @@ func defaultBindRequest() *BindRequest {
 	}
 }
 
+func defaultAsyncBindRequest() *BindRequest {
+	r := defaultBindRequest()
+	r.AcceptsIncomplete = true
+	return r
+}
+
 const defaultBindRequestBody = `{"service_id":"test-service-id","plan_id":"test-plan-id"}`
 
 const successBindResponseBody = `{
@@ -30,6 +36,10 @@ const successBindResponseBody = `{
   }
 }`
 
+const successAsyncBindResponseBody = `{
+  "operation": "test-operation-key"
+}`
+
 func successBindResponse() *BindResponse {
 	return &BindResponse{
 		Credentials: map[string]interface{}{
@@ -40,6 +50,13 @@ func successBindResponse() *BindResponse {
 			"port":     float64(3306),
 			"database": "dbname",
 		},
+	}
+}
+
+func successBindResponseAsync() *BindResponse {
+	return &BindResponse{
+		Async:        true,
+		OperationKey: &testOperation,
 	}
 }
 
@@ -119,11 +136,35 @@ func TestBind(t *testing.T) {
 			expectedResponse: successBindResponse(),
 		},
 		{
+			name:        "success - asynchronous",
+			version:     LatestAPIVersion(),
+			enableAlpha: true,
+			request:     defaultAsyncBindRequest(),
+			httpChecks: httpChecks{
+				params: map[string]string{
+					asyncQueryParamKey: "true",
+				},
+			},
+			httpReaction: httpReaction{
+				status: http.StatusAccepted,
+				body:   successAsyncBindResponseBody,
+			},
+			expectedResponse: successBindResponseAsync(),
+		},
+		{
 			name: "http error",
 			httpReaction: httpReaction{
 				err: fmt.Errorf("http error"),
 			},
 			expectedErrMessage: "http error",
+		},
+		{
+			name: "202 with no async support",
+			httpReaction: httpReaction{
+				status: http.StatusAccepted,
+				body:   successAsyncBindResponseBody,
+			},
+			expectedErrMessage: "Status: 202; ErrorMessage: <nil>; Description: <nil>; ResponseError: <nil>",
 		},
 		{
 			name: "200 with malformed response",
@@ -207,6 +248,20 @@ func TestBind(t *testing.T) {
 				body:   successBindResponseBody,
 			},
 			expectedResponse: successBindResponse(),
+		},
+		{
+			name:               "async with alpha features disabled",
+			version:            LatestAPIVersion(),
+			enableAlpha:        false,
+			request:            defaultAsyncBindRequest(),
+			expectedErrMessage: "Asynchronous binding operations are not allowed: alpha API methods not allowed: alpha features must be enabled",
+		},
+		{
+			name:               "async with unsupported API version",
+			version:            Version2_12(),
+			enableAlpha:        true,
+			request:            defaultAsyncBindRequest(),
+			expectedErrMessage: "Asynchronous binding operations are not allowed: alpha API methods not allowed: must have latest API Version. Current: 2.12, Expected: 2.13",
 		},
 	}
 

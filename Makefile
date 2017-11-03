@@ -338,6 +338,7 @@ define build-and-tag # (service, image, mutable_image, prefix)
 	# -i.bak is required for cross-platform compat: https://stackoverflow.com/questions/5694228/sed-in-place-flag-that-works-both-on-mac-bsd-and-linux
 	sed -i.bak "s|BASEIMAGE|$(BASEIMAGE)|g" $(tmp_build_path)/Dockerfile
 	rm $(tmp_build_path)/Dockerfile.bak
+	docker run --rm --privileged multiarch/qemu-user-static:register --reset
 	docker build -t $(2) $(tmp_build_path)
 	docker tag $(2) $(3)
 	rm -rf $(tmp_build_path)

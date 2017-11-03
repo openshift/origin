@@ -145,6 +145,24 @@ type Client interface {
 	// asynchronous deprovision, callers should test the value of the returned
 	// error with IsGoneError.
 	PollLastOperation(r *LastOperationRequest) (*LastOperationResponse, error)
+	// PollBindingLastOperation is an ALPHA API method and may change.
+	// Alpha features must be enabled and the client must be using the
+	// latest API Version in order to use this method.
+	//
+	// PollBindingLastOperation sends a request to query the last operation
+	// for a service binding to the broker and returns information about the
+	// operation or an error.  PollBindingLastOperation does a GET on the broker's
+	// last operation endpoint for the requested binding ID
+	// (/v2/service_instances/instance-id/service_bindings/binding-id/last_operation).
+	//
+	// Callers should periodically call PollBindingLastOperation until they
+	// receive a success response.  PollBindingLastOperation may return an
+	// HTTP GONE error for asynchronous unbinding.  This is a valid response
+	// for async operations and means that the binding has been successfully
+	// deleted.  When calling PollBindingLastOperation to check the status of
+	// an asynchronous unbind, callers should test the value of the returned
+	// error with IsGoneError.
+	PollBindingLastOperation(r *BindingLastOperationRequest) (*LastOperationResponse, error)
 	// Bind requests a new binding between a service instance and an
 	// application and returns information about the binding or an error. Bind
 	// does a PUT on the Broker's endpoint for the requested instance and
@@ -155,6 +173,15 @@ type Client interface {
 	// error. Unbind does a DELETE on the Broker's endpoint for the requested
 	// instance and binding IDs (/v2/service_instances/instance-id/service_bindings/binding-id).
 	Unbind(r *UnbindRequest) (*UnbindResponse, error)
+	// GetBinding is an ALPHA API method and may change. Alpha features must
+	// be enabled and the client must be using the latest API Version in
+	// order to use this method.
+	//
+	// GetBinding returns configuration and credential information
+	// about an existing binding. GetBindings calls GET on the Broker's
+	// binding endpoint
+	// (/v2/service_instances/instance-id/service_bindings/binding-id)
+	GetBinding(r *GetBindingRequest) (*GetBindingResponse, error)
 }
 
 // CreateFunc allows control over which implementation of a Client is

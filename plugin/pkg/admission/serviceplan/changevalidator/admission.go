@@ -72,7 +72,11 @@ func (d *denyPlanChangeIfNotUpdatable) Admit(a admission.Attributes) error {
 		return apierrors.NewBadRequest("Resource was marked with kind Instance but was unable to be converted")
 	}
 
-	sc, err := d.scLister.Get(instance.Spec.ClusterServiceClassExternalName)
+	if instance.Spec.ClusterServiceClassRef == nil {
+		return nil // user chose a service class that doesn't exist
+	}
+
+	sc, err := d.scLister.Get(instance.Spec.ClusterServiceClassRef.Name)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			glog.V(5).Infof("Could not locate service class %v, can not determine if UpdateablePlan.", instance.Spec.ClusterServiceClassExternalName)

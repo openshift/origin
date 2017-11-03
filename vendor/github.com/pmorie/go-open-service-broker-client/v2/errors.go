@@ -142,3 +142,46 @@ func IsAppGUIDRequiredError(err error) bool {
 
 	return *statusCodeError.Description == AppGUIDRequiredErrorDescription
 }
+
+// AlphaAPIMethodsNotAllowedError is an error type signifying that alpha API
+// methods are not allowed for this client's API Version.
+type AlphaAPIMethodsNotAllowedError struct {
+	reason string
+}
+
+func (e AlphaAPIMethodsNotAllowedError) Error() string {
+	return fmt.Sprintf(
+		"alpha API methods not allowed: %s",
+		e.reason,
+	)
+}
+
+// GetBindingNotAllowedError is an error type signifying that doing a GET to
+// fetch a binding is not allowed for this client.
+type GetBindingNotAllowedError struct {
+	reason string
+}
+
+func (e GetBindingNotAllowedError) Error() string {
+	return fmt.Sprintf(
+		"GetBinding not allowed: %s",
+		e.reason,
+	)
+}
+
+// AsyncBindingOperationsNotAllowedError is an error type signifying that asynchronous
+// binding operations (bind/unbind/poll) are not allowed for this client.
+type AsyncBindingOperationsNotAllowedError struct {
+	reason string
+}
+
+func (e AsyncBindingOperationsNotAllowedError) Error() string {
+	return fmt.Sprintf("Asynchronous binding operations are not allowed: %s", e.reason)
+}
+
+// AsyncBindingOperationsNotAllowedError returns whether the error represents asynchronous
+// binding operations (bind/unbind/poll) not being allowed for this client.
+func IsAsyncBindingOperationsNotAllowedError(err error) bool {
+	_, ok := err.(AsyncBindingOperationsNotAllowedError)
+	return ok
+}

@@ -25,11 +25,12 @@ const (
 	// identity.
 	OriginatingIdentityHeader = "X-Broker-API-Originating-Identity"
 
-	catalogURL            = "%s/v2/catalog"
-	serviceInstanceURLFmt = "%s/v2/service_instances/%s"
-	lastOperationURLFmt   = "%s/v2/service_instances/%s/last_operation"
-	bindingURLFmt         = "%s/v2/service_instances/%s/service_bindings/%s"
-	asyncQueryParamKey    = "accepts_incomplete"
+	catalogURL                 = "%s/v2/catalog"
+	serviceInstanceURLFmt      = "%s/v2/service_instances/%s"
+	lastOperationURLFmt        = "%s/v2/service_instances/%s/last_operation"
+	bindingLastOperationURLFmt = "%s/v2/service_instances/%s/service_bindings/%s/last_operation"
+	bindingURLFmt              = "%s/v2/service_instances/%s/service_bindings/%s"
+	asyncQueryParamKey         = "accepts_incomplete"
 )
 
 // NewClient is a CreateFunc for creating a new functional Client and
@@ -236,6 +237,28 @@ func buildOriginatingIdentityHeaderValue(i *OriginatingIdentity) (string, error)
 func isValidJSON(s string) error {
 	var js json.RawMessage
 	return json.Unmarshal([]byte(s), &js)
+}
+
+// validateAlphaAPIMethodsAllowed returns an error if alpha API methods are not
+// allowed for this client.
+func (c *client) validateAlphaAPIMethodsAllowed() error {
+	if !c.EnableAlphaFeatures {
+		return AlphaAPIMethodsNotAllowedError{
+			reason: fmt.Sprintf("alpha features must be enabled"),
+		}
+	}
+
+	if !c.APIVersion.AtLeast(LatestAPIVersion()) {
+		return AlphaAPIMethodsNotAllowedError{
+			reason: fmt.Sprintf(
+				"must have latest API Version. Current: %s, Expected: %s",
+				c.APIVersion.label,
+				LatestAPIVersion().label,
+			),
+		}
+	}
+
+	return nil
 }
 
 // internal message body types

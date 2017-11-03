@@ -70,6 +70,12 @@ type ClusterServiceBrokerSpec struct {
 
 	// RelistDuration is the frequency by which a controller will relist the
 	// broker when the RelistBehavior is set to ServiceBrokerRelistBehaviorDuration.
+	// Users are cautioned against configuring low values for the RelistDuration,
+	// as this can easily overload the controller manager in an environment with
+	// many brokers. The actual interval is intrinsically governed by the
+	// configured resync interval of the controller, which acts as a minimum bound.
+	// For example, with a resync interval of 5m and a RelistDuration of 2m, relists
+	// will occur at the resync interval of 5m.
 	RelistDuration *metav1.Duration
 
 	// RelistRequests is a strictly increasing, non-negative integer counter that
@@ -144,6 +150,10 @@ type ClusterServiceBrokerStatus struct {
 
 	// OperationStartTime is the time at which the current operation began.
 	OperationStartTime *metav1.Time
+
+	// LastCatalogRetrievalTime is the time the Catalog was last fetched from
+	// the Service Broker
+	LastCatalogRetrievalTime *metav1.Time
 }
 
 // ServiceBrokerCondition contains condition information for a Service Broker.
@@ -596,6 +606,10 @@ type ServiceInstancePropertiesState struct {
 	// ServiceInstance to be on. This is the human readable plan name from the
 	// OSB API.
 	ClusterServicePlanExternalName string
+
+	// ClusterServicePlanExternalID is the external ID of the plan that the
+	// broker knows this ServiceInstance to be on.
+	ClusterServicePlanExternalID string
 
 	// Parameters is a blob of the parameters and their values that the broker
 	// knows about for this ServiceInstance.  If a parameter was sourced from
