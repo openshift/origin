@@ -25,6 +25,8 @@ import (
 
 	"github.com/emicklei/go-restful-swagger12"
 
+	"sync"
+
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -193,22 +195,32 @@ func (d *DiscoveryClient) serverResources() ([]*metav1.APIResourceList, error) {
 		return nil, err
 	}
 
+	discoveryThreads := sync.WaitGroup{}
+	lock := sync.Mutex{}
 	result := []*metav1.APIResourceList{}
 	failedGroups := make(map[schema.GroupVersion]error)
 
 	for _, apiGroup := range apiGroups.Groups {
 		for _, version := range apiGroup.Versions {
-			gv := schema.GroupVersion{Group: apiGroup.Name, Version: version.Version}
-			resources, err := d.ServerResourcesForGroupVersion(version.GroupVersion)
-			if err != nil {
-				// TODO: maybe restrict this to NotFound errors
-				failedGroups[gv] = err
-				continue
-			}
+			go func() {
+				discoveryThreads.Add(1)
+				defer discoveryThreads.Done()
+				gv := schema.GroupVersion{Group: apiGroup.Name, Version: version.Version}
+				resources, err := d.ServerResourcesForGroupVersion(version.GroupVersion)
 
-			result = append(result, resources)
+				lock.Lock()
+				defer lock.Unlock()
+				if err != nil {
+					// TODO: maybe restrict this to NotFound errors
+					failedGroups[gv] = err
+					return
+				}
+
+				result = append(result, resources)
+			}()
 		}
 	}
+	discoveryThreads.Wait()
 
 	if len(failedGroups) == 0 {
 		return result, nil
@@ -255,42 +267,52 @@ func (d *DiscoveryClient) serverPreferredResources() ([]*metav1.APIResourceList,
 	result := []*metav1.APIResourceList{}
 	failedGroups := make(map[schema.GroupVersion]error)
 
+	discoveryThreads := sync.WaitGroup{}
+	lock := sync.Mutex{}
 	grVersions := map[schema.GroupResource]string{}                         // selected version of a GroupResource
 	grApiResources := map[schema.GroupResource]*metav1.APIResource{}        // selected APIResource for a GroupResource
 	gvApiResourceLists := map[schema.GroupVersion]*metav1.APIResourceList{} // blueprint for a APIResourceList for later grouping
 
 	for _, apiGroup := range serverGroupList.Groups {
 		for _, version := range apiGroup.Versions {
-			groupVersion := schema.GroupVersion{Group: apiGroup.Name, Version: version.Version}
-			apiResourceList, err := d.ServerResourcesForGroupVersion(version.GroupVersion)
-			if err != nil {
-				// TODO: maybe restrict this to NotFound errors
-				failedGroups[groupVersion] = err
-				continue
-			}
+			go func() {
+				discoveryThreads.Add(1)
+				defer discoveryThreads.Done()
+				groupVersion := schema.GroupVersion{Group: apiGroup.Name, Version: version.Version}
+				apiResourceList, err := d.ServerResourcesForGroupVersion(version.GroupVersion)
 
-			// create empty list which is filled later in another loop
-			emptyApiResourceList := metav1.APIResourceList{
-				GroupVersion: version.GroupVersion,
-			}
-			gvApiResourceLists[groupVersion] = &emptyApiResourceList
-			result = append(result, &emptyApiResourceList)
+				lock.Lock()
+				defer lock.Unlock()
+				if err != nil {
+					// TODO: maybe restrict this to NotFound errors
+					failedGroups[groupVersion] = err
+					return
+				}
 
-			for i := range apiResourceList.APIResources {
-				apiResource := &apiResourceList.APIResources[i]
-				if strings.Contains(apiResource.Name, "/") {
-					continue
+				// create empty list which is filled later in another loop
+				emptyApiResourceList := metav1.APIResourceList{
+					GroupVersion: version.GroupVersion,
 				}
-				gv := schema.GroupResource{Group: apiGroup.Name, Resource: apiResource.Name}
-				if _, ok := grApiResources[gv]; ok && version.Version != apiGroup.PreferredVersion.Version {
-					// only override with preferred version
-					continue
+				gvApiResourceLists[groupVersion] = &emptyApiResourceList
+				result = append(result, &emptyApiResourceList)
+
+				for i := range apiResourceList.APIResources {
+					apiResource := &apiResourceList.APIResources[i]
+					if strings.Contains(apiResource.Name, "/") {
+						continue
+					}
+					gv := schema.GroupResource{Group: apiGroup.Name, Resource: apiResource.Name}
+					if _, ok := grApiResources[gv]; ok && version.Version != apiGroup.PreferredVersion.Version {
+						// only override with preferred version
+						continue
+					}
+					grVersions[gv] = version.Version
+					grApiResources[gv] = apiResource
 				}
-				grVersions[gv] = version.Version
-				grApiResources[gv] = apiResource
-			}
+			}()
 		}
 	}
+	discoveryThreads.Wait()
 
 	// group selected APIResources according to GroupVersion into APIResourceLists
 	for groupResource, apiResource := range grApiResources {
