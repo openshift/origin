@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -47,6 +48,11 @@ func (r ReporterBool) Changed() bool {
 
 func AlwaysRequiresMigration(_ *resource.Info) (Reporter, error) {
 	return ReporterBool(true), nil
+}
+
+// timeStampNow returns the current time in the same format as glog
+func timeStampNow() string {
+	return time.Now().Format("0102 15:04:05.000000")
 }
 
 // NotChanged is a Reporter returned by operations that are guaranteed to be read-only
@@ -397,9 +403,9 @@ func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 		ns = "-n " + ns
 	}
 	if err != nil {
-		fmt.Fprintf(t.out, "%-10s %s %s/%s: %v\n", prefix, ns, info.Mapping.Resource, info.Name, err)
+		fmt.Fprintf(t.out, "E%s %-10s %s %s/%s: %v\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name, err)
 	} else {
-		fmt.Fprintf(t.out, "%-10s %s %s/%s\n", prefix, ns, info.Mapping.Resource, info.Name)
+		fmt.Fprintf(t.out, "I%s %-10s %s %s/%s\n", timeStampNow(), prefix, ns, info.Mapping.Resource, info.Name)
 	}
 }
 
@@ -484,11 +490,13 @@ func canRetry(err error) bool {
 // All other errors are left in their natural state - they will not be retried unless
 // they define a Temporary() method that returns true.
 func DefaultRetriable(info *resource.Info, err error) error {
-	// tolerate the deletion of resources during migration
-	if err == nil || isNotFoundForInfo(info, err) {
-		return nil
-	}
 	switch {
+	case err == nil:
+		return nil
+	case isNotFoundForInfo(info, err):
+		// tolerate the deletion of resources during migration
+		// report unchanged since we did not actually migrate this object
+		return ErrUnchanged
 	case errors.IsMethodNotSupported(err):
 		return ErrNotRetriable{err}
 	case errors.IsConflict(err):
@@ -498,8 +506,9 @@ func DefaultRetriable(info *resource.Info, err error) error {
 		return ErrRetriable{err}
 	case errors.IsServerTimeout(err):
 		return ErrRetriable{err}
+	default:
+		return err
 	}
-	return err
 }
 
 // isNotFoundForInfo returns true iff the error is a not found for the specific info object.
@@ -515,6 +524,11 @@ func isNotFoundForInfo(info *resource.Info, err error) bool {
 	if details == nil {
 		return false
 	}
-	gvk := info.Object.GetObjectKind().GroupVersionKind()
-	return details.Name == info.Name && details.Kind == gvk.Kind && (details.Group == "" || details.Group == gvk.Group)
+	// get schema.GroupKind from the mapping since the actual object may not have type meta filled out
+	gk := info.Mapping.GroupVersionKind.GroupKind()
+	// based on case-insensitive string comparisons, the error matches info iff
+	// the name and kind match
+	// the group match, but only if both the error and info specify a group
+	return strings.EqualFold(details.Name, info.Name) && strings.EqualFold(details.Kind, gk.Kind) &&
+		(len(details.Group) == 0 || len(gk.Group) == 0 || strings.EqualFold(details.Group, gk.Group))
 }
