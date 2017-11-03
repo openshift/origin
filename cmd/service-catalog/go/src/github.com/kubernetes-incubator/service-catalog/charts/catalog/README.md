@@ -40,7 +40,7 @@ chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.1` |
+| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.2` |
 | `imagePullPolicy` | `imagePullPolicy` for the service catalog | `Always` |
 | `apiserver.tls.requestHeaderCA` | Base64-encoded CA used to validate request-header authentication, when receiving delegated authentication from an aggregator. If not set, the service catalog API server will inherit this CA from the `extension-apiserver-authentication` ConfigMap if available. | `nil` |
 | `apiserver.service.type` | Type of service; valid values are `LoadBalancer` and `NodePort` | `NodePort` |

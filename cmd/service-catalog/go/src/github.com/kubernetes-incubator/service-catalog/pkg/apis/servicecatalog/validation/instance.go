@@ -185,6 +185,14 @@ func validateServiceInstanceStatus(status *sc.ServiceInstanceStatus, fldPath *fi
 func validateServiceInstancePropertiesState(propertiesState *sc.ServiceInstancePropertiesState, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
+	if propertiesState.ClusterServicePlanExternalName == "" {
+		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServicePlanExternalName"), "clusterServicePlanExternalName is required"))
+	}
+
+	if propertiesState.ClusterServicePlanExternalID == "" {
+		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServicePlanExternalID"), "clusterServicePlanExternalID is required"))
+	}
+
 	if propertiesState.Parameters == nil {
 		if propertiesState.ParametersChecksum != "" {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("parametersChecksum"), "parametersChecksum must be empty when there are no parameters"))

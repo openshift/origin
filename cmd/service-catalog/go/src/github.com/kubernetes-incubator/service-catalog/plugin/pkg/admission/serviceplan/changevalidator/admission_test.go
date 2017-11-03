@@ -68,9 +68,15 @@ func newFakeServiceCatalogClientForTest(sc *servicecatalog.ClusterServiceClass) 
 func newServiceInstance(namespace string, serviceClassName string, planName string) servicecatalog.ServiceInstance {
 	instance := servicecatalog.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: "instance", Namespace: namespace},
+		Spec: servicecatalog.ServiceInstanceSpec{
+			PlanReference: servicecatalog.PlanReference{
+				ClusterServicePlanExternalName: planName,
+			},
+			ClusterServiceClassRef: &servicecatalog.ClusterObjectReference{
+				Name: serviceClassName,
+			},
+		},
 	}
-	instance.Spec.ClusterServiceClassExternalName = serviceClassName
-	instance.Spec.ClusterServicePlanExternalName = planName
 	return instance
 }
 

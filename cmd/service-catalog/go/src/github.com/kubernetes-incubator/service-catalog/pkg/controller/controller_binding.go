@@ -254,6 +254,14 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			errorNonbindableClusterServiceClassReason,
 			s,
 		)
+		setServiceBindingCondition(
+			toUpdate,
+			v1beta1.ServiceBindingConditionFailed,
+			v1beta1.ConditionTrue,
+			errorNonbindableClusterServiceClassReason,
+			s,
+		)
+		clearServiceBindingCurrentOperation(toUpdate)
 		if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
 			return err
 		}
@@ -461,7 +469,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					v1beta1.ConditionFalse,
 					errorBindCallReason,
 					"Bind call failed. "+s)
-				c.clearServiceBindingCurrentOperation(toUpdate)
+				clearServiceBindingCurrentOperation(toUpdate)
 				if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
 					return err
 				}
@@ -490,7 +498,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 					v1beta1.ConditionTrue,
 					errorReconciliationRetryTimeoutReason,
 					s)
-				c.clearServiceBindingCurrentOperation(toUpdate)
+				clearServiceBindingCurrentOperation(toUpdate)
 				if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
 					return err
 				}
@@ -546,7 +554,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 			return err
 		}
 
-		c.clearServiceBindingCurrentOperation(toUpdate)
+		clearServiceBindingCurrentOperation(toUpdate)
 
 		setServiceBindingCondition(
 			toUpdate,
@@ -662,7 +670,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 						errorUnbindCallReason,
 						"Unbind call failed. "+s)
 				}
-				c.clearServiceBindingCurrentOperation(toUpdate)
+				clearServiceBindingCurrentOperation(toUpdate)
 				if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
 					return err
 				}
@@ -696,7 +704,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 						errorReconciliationRetryTimeoutReason,
 						s)
 				}
-				c.clearServiceBindingCurrentOperation(toUpdate)
+				clearServiceBindingCurrentOperation(toUpdate)
 				if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
 					return err
 				}
@@ -731,7 +739,7 @@ func (c *controller) reconcileServiceBinding(binding *v1beta1.ServiceBinding) er
 		}
 
 		toUpdate.Status.ExternalProperties = nil
-		c.clearServiceBindingCurrentOperation(toUpdate)
+		clearServiceBindingCurrentOperation(toUpdate)
 		if _, err := c.updateServiceBindingStatus(toUpdate); err != nil {
 			return err
 		}
@@ -995,7 +1003,7 @@ func (c *controller) recordStartOfServiceBindingOperation(toUpdate *v1beta1.Serv
 // clearServiceBindingCurrentOperation sets the fields of the binding's
 // Status to indicate that there is no current operation being performed. The
 // Status is *not* recorded in the registry.
-func (c *controller) clearServiceBindingCurrentOperation(toUpdate *v1beta1.ServiceBinding) {
+func clearServiceBindingCurrentOperation(toUpdate *v1beta1.ServiceBinding) {
 	toUpdate.Status.CurrentOperation = ""
 	toUpdate.Status.OperationStartTime = nil
 	toUpdate.Status.ReconciledGeneration = toUpdate.Generation

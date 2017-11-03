@@ -73,7 +73,7 @@ func TestReconcileServiceBindingNonExistingServiceInstance(t *testing.T) {
 	// There should only be one action that says it failed because no such instance exists.
 	updateAction := actions[0].(clientgotesting.UpdateAction)
 	if e, a := "update", updateAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on actions[0]; expected %v, got %v", e, a)
+		t.Fatalf("Unexpected verb on actions[0]; %s", expectedGot(e, a))
 	}
 	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding)
 	assertServiceBindingErrorBeforeRequest(t, updatedServiceBinding, errorNonexistentServiceInstanceReason, binding)
@@ -82,8 +82,11 @@ func TestReconcileServiceBindingNonExistingServiceInstance(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonexistentServiceInstanceReason + " " + "References a non-existent ServiceInstance \"/nothere\""
-	if err := checkEvents(events, []string{expectedEvent}); err != nil {
+	expectedEvent := warningEventBuilder(errorNonexistentServiceInstanceReason).msgf(
+		"References a non-existent ServiceInstance %q",
+		"/"+testNonExistentClusterServiceClassName,
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -241,8 +244,11 @@ func TestReconcileServiceBindingNonExistingClusterServiceClass(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonexistentClusterServiceClassMessage + " " + "References a non-existent ClusterServiceClass (K8S: \"nosuchclassid\" ExternalName: \"" + testNonExistentClusterServiceClassName + "\")"
-	if err := checkEvents(events, []string{expectedEvent}); err != nil {
+	expectedEvent := warningEventBuilder(errorNonexistentClusterServiceClassMessage).msgf(
+		"References a non-existent ClusterServiceClass (K8S: %q ExternalName: %q)",
+		"nosuchclassid", testNonExistentClusterServiceClassName,
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -336,9 +342,9 @@ func TestReconcileServiceBindingWithSecretConflict(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorInjectingBindResultReason
+	expectedEvent := warningEventBuilder(errorInjectingBindResultReason)
 
-	if err := checkEventPrefixes(events, []string{expectedEvent}); err != nil {
+	if err := checkEventPrefixes(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -479,8 +485,8 @@ func TestReconcileServiceBindingWithParameters(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeNormal + " " + successInjectedBindResultReason + " " + successInjectedBindResultMessage
-	if err := checkEvents(events, []string{expectedEvent}); err != nil {
+	expectedEvent := normalEventBuilder(successInjectedBindResultReason).msg(successInjectedBindResultMessage)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -521,14 +527,17 @@ func TestReconcileServiceBindingNonbindableClusterServiceClass(t *testing.T) {
 
 	// There should only be one action that says binding was created
 	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding)
-	assertServiceBindingErrorBeforeRequest(t, updatedServiceBinding, errorNonbindableClusterServiceClassReason, binding)
+	assertServiceBindingFailedBeforeRequest(t, updatedServiceBinding, errorNonbindableClusterServiceClassReason, binding)
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
+	assertServiceBindingReconciledGeneration(t, updatedServiceBinding, binding.Generation)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonbindableClusterServiceClassReason + ` References a non-bindable ClusterServiceClass (K8S: "UNBINDABLE-SERVICE" ExternalName: "test-unbindable-serviceclass") and Plan ("test-unbindable-plan") combination`
-	if err := checkEvents(events, []string{expectedEvent}); err != nil {
+	expectedEvent := warningEventBuilder(errorNonbindableClusterServiceClassReason).msgf(
+		"References a non-bindable ClusterServiceClass (K8S: %q ExternalName: %q) and Plan (%q) combination",
+		"UNBINDABLE-SERVICE", "test-unbindable-serviceclass", "test-unbindable-plan",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -683,14 +692,17 @@ func TestReconcileServiceBindingBindableClusterServiceClassNonbindablePlan(t *te
 
 	// There should only be one action that says binding was created
 	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding)
-	assertServiceBindingErrorBeforeRequest(t, updatedServiceBinding, errorNonbindableClusterServiceClassReason, binding)
+	assertServiceBindingFailedBeforeRequest(t, updatedServiceBinding, errorNonbindableClusterServiceClassReason, binding)
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorNonbindableClusterServiceClassReason + ` References a non-bindable ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") and Plan ("test-unbindable-plan") combination`
-	if err := checkEvents(events, []string{expectedEvent}); err != nil {
+	expectedEvent := warningEventBuilder(errorNonbindableClusterServiceClassReason).msgf(
+		"References a non-bindable ClusterServiceClass (K8S: %q ExternalName: %q) and Plan (%q) combination",
+		"SCGUID", "test-serviceclass", "test-unbindable-plan",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -797,9 +809,12 @@ func TestReconcileServiceBindingServiceInstanceNotReady(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorServiceInstanceNotReadyReason + " " + `ServiceBinding cannot begin because referenced ServiceInstance "test-ns/test-instance" is not ready`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := warningEventBuilder(errorServiceInstanceNotReadyReason).msgf(
+		"ServiceBinding cannot begin because referenced ServiceInstance %q is not ready",
+		"test-ns/test-instance",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -847,9 +862,12 @@ func TestReconcileServiceBindingNamespaceError(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorFindingNamespaceServiceInstanceReason + " " + "Failed to get namespace \"test-ns\" during binding: No namespace"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := warningEventBuilder(errorFindingNamespaceServiceInstanceReason).msgf(
+		"Failed to get namespace %q during binding: %s",
+		"test-ns", "No namespace",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -932,9 +950,9 @@ func TestReconcileServiceBindingDelete(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeNormal + " " + successUnboundReason + " " + "This binding was deleted successfully"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1144,9 +1162,9 @@ func TestReconcileServiceBindingDeleteFailedServiceBinding(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeNormal + " " + successUnboundReason + " " + "This binding was deleted successfully"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1200,12 +1218,13 @@ func TestReconcileServiceBindingWithClusterServiceBrokerError(t *testing.T) {
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + `Error creating ServiceBinding for ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Unexpected action`
-	if 1 != len(events) {
-		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
-	}
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v, expecting: %v", a, e)
+
+	expectedEvent := warningEventBuilder(errorBindCallReason).msgf(
+		"Error creating ServiceBinding for ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
+		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
+	).msg("Unexpected action")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1259,12 +1278,15 @@ func TestReconcileServiceBindingWithClusterServiceBrokerHTTPError(t *testing.T) 
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + `Error creating ServiceBinding for ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Status: 422; ErrorMessage: AsyncRequired; Description: This service plan requires client support for asynchronous service operations.; ResponseError: <nil>`
-	if 1 != len(events) {
-		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
-	}
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: '%v', expecting: '%v'", a, e)
+
+	expectedEvent := warningEventBuilder(errorBindCallReason).msgf(
+		"Error creating ServiceBinding for ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
+		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
+	).msg(
+		"Status: 422; ErrorMessage: AsyncRequired; Description: This service plan requires client support for asynchronous service operations.; ResponseError: <nil>",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1350,12 +1372,13 @@ func TestReconcileServiceBindingWithServiceBindingCallFailure(t *testing.T) {
 	})
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Error creating ServiceBinding for ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass (K8S: \"SCGUID\" ExternalName: \"test-serviceclass\") at ClusterServiceBroker \"test-broker\": fake creation failure"
-
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := warningEventBuilder(errorBindCallReason).msgf(
+		"Error creating ServiceBinding for ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
+		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
+	).msg("fake creation failure")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1416,12 +1439,15 @@ func TestReconcileServiceBindingWithServiceBindingFailure(t *testing.T) {
 	})
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Error creating ServiceBinding for ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass (K8S: \"SCGUID\" ExternalName: \"test-serviceclass\") at ClusterServiceBroker \"test-broker\": Status: 409; ErrorMessage: ServiceBindingExists; Description: Service binding with the same id, for the same service instance already exists.; ResponseError: <nil>"
-
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %s", expectedGot(e, a))
+	expectedEvent := warningEventBuilder(errorBindCallReason).msgf(
+		"Error creating ServiceBinding for ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
+		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
+	).msg(
+		"Status: 409; ErrorMessage: ServiceBindingExists; Description: Service binding with the same id, for the same service instance already exists.; ResponseError: <nil>",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1629,12 +1655,13 @@ func TestReconcileUnbindingWithClusterServiceBrokerError(t *testing.T) {
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + `Error unbinding from ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Unexpected action`
-	if 1 != len(events) {
-		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
-	}
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v, expecting: %v", a, e)
+
+	expectedEvent := warningEventBuilder(errorUnbindCallReason).msgf(
+		"Error unbinding from ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
+		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
+	).msg("Unexpected action")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1693,12 +1720,12 @@ func TestReconcileUnbindingWithClusterServiceBrokerHTTPError(t *testing.T) {
 
 	events := getRecordedEvents(testController)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + `Error unbinding from ServiceInstance "test-ns/test-instance" of ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") at ClusterServiceBroker "test-broker": Status: 410; ErrorMessage: <nil>; Description: <nil>; ResponseError: <nil>`
-	if 1 != len(events) {
-		t.Fatalf("Did not record expected event, expecting: %v", expectedEvent)
-	}
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v, expecting: %v", a, e)
+	expectedEvent := warningEventBuilder(errorUnbindCallReason).msgf(
+		"Error unbinding from ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
+		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
+	).msg("Status: 410; ErrorMessage: <nil>; Description: <nil>; ResponseError: <nil>")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1853,11 +1880,10 @@ func TestReconcileBindingSuccessOnFinalRetry(t *testing.T) {
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeNormal + " " + successInjectedBindResultReason + " " + successInjectedBindResultMessage
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := normalEventBuilder(successInjectedBindResultReason).msg(successInjectedBindResultMessage)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1897,18 +1923,14 @@ func TestReconcileBindingFailureOnFinalRetry(t *testing.T) {
 	assertServiceBindingRequestFailingError(t, updatedServiceBinding, v1beta1.ServiceBindingOperationBind, errorBindCallReason, errorReconciliationRetryTimeoutReason, binding)
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
-	expectedEventPrefixes := []string{
-		corev1.EventTypeWarning + " " + errorBindCallReason,
-		corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason,
-	}
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, len(expectedEventPrefixes))
 
-	for i, e := range expectedEventPrefixes {
-		a := events[i]
-		if !strings.HasPrefix(a, e) {
-			t.Fatalf("Received unexpected event:\n  expected prefix: %v\n  got: %v", e, a)
-		}
+	expectedEventPrefixes := []string{
+		warningEventBuilder(errorBindCallReason).String(),
+		warningEventBuilder(errorReconciliationRetryTimeoutReason).String(),
+	}
+	if err := checkEventPrefixes(events, expectedEventPrefixes); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -1997,17 +2019,15 @@ func TestReconcileBindingWithSecretConflictFailedAfterFinalRetry(t *testing.T) {
 		t.Fatalf("Unexpected resource on action; expected %v, got %v", e, a)
 	}
 
-	expectedEventPrefixes := []string{
-		corev1.EventTypeWarning + " " + errorInjectingBindResultReason,
-		corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason,
-		corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation,
-	}
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, len(expectedEventPrefixes))
-	for i, e := range expectedEventPrefixes {
-		if a := events[i]; !strings.HasPrefix(a, e) {
-			t.Fatalf("Received unexpected event:\n  expected prefix: %v\n  got: %v", e, a)
-		}
+
+	expectedEventPrefixes := []string{
+		warningEventBuilder(errorInjectingBindResultReason).String(),
+		warningEventBuilder(errorReconciliationRetryTimeoutReason).String(),
+		warningEventBuilder(errorServiceBindingOrphanMitigation).String(),
+	}
+	if err := checkEventPrefixes(events, expectedEventPrefixes); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -2182,12 +2202,12 @@ func TestReconcileServiceBindingWithSecretParameters(t *testing.T) {
 	}
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeNormal + " " + successInjectedBindResultReason + " " + successInjectedBindResultMessage
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := normalEventBuilder(successInjectedBindResultReason).msg(successInjectedBindResultMessage)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
+
 }
 
 // TestReconcileBindingWithSetOrphanMitigation tests
@@ -2440,14 +2460,23 @@ func TestReconcileBindingWithOrphanMitigationReconciliationRetryTimeOut(t *testi
 			ExternalID:         testServiceBindingGUID,
 			SecretName:         testServiceBindingSecretName,
 		},
+		Status: v1beta1.ServiceBindingStatus{
+			Conditions: []v1beta1.ServiceBindingCondition{
+				{
+					Type:   v1beta1.ServiceBindingConditionFailed,
+					Status: v1beta1.ConditionTrue,
+					Reason: "reason-orphan-mitigation-began",
+				},
+			},
+		},
 	}
-	startTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+	startTime := metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
 	binding.Status.CurrentOperation = v1beta1.ServiceBindingOperationBind
 	binding.Status.OperationStartTime = &startTime
 	binding.Status.OrphanMitigationInProgress = true
 
-	if err := testController.reconcileServiceBinding(binding); err == nil {
-		t.Fatal("reconciliation shouldn't fully complete due to timeout error")
+	if err := testController.reconcileServiceBinding(binding); err != nil {
+		t.Fatalf("reconciliation should complete since the retry duration has elapsed: %v", err)
 	}
 	kubeActions := fakeKubeClient.Actions()
 	assertNumberOfActions(t, kubeActions, 1)
@@ -2472,14 +2501,213 @@ func TestReconcileBindingWithOrphanMitigationReconciliationRetryTimeOut(t *testi
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding).(*v1beta1.ServiceBinding)
-	assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionReady, v1beta1.ConditionUnknown)
+	assertServiceBindingRequestFailingError(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, errorUnbindCallReason, "reason-orphan-mitigation-began", binding)
+	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
-	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, true)
+	expectedEventPrefixes := []string{
+		corev1.EventTypeWarning + " " + errorUnbindCallReason,
+		corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason,
+	}
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, len(expectedEventPrefixes))
+
+	for i, e := range expectedEventPrefixes {
+		a := events[i]
+		if !strings.HasPrefix(a, e) {
+			t.Fatalf("Received unexpected event:\n  expected prefix: %v\n  got: %v", e, a)
+		}
+	}
+}
+
+// TestReconcileServiceBindingDeleteDuringOngoingOperation tests deleting a
+// binding that has an on-going operation.
+func TestReconcileServiceBindingDeleteDuringOngoingOperation(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
+		UnbindReaction: &fakeosb.UnbindReaction{},
+	})
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ServiceInstances().Informer().GetStore().Add(getTestServiceInstanceWithRefs())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	startTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+	binding := &v1beta1.ServiceBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              testServiceBindingName,
+			Namespace:         testNamespace,
+			DeletionTimestamp: &metav1.Time{},
+			Finalizers:        []string{v1beta1.FinalizerServiceCatalog},
+		},
+		Spec: v1beta1.ServiceBindingSpec{
+			ServiceInstanceRef: v1beta1.LocalObjectReference{Name: testServiceInstanceName},
+			ExternalID:         testServiceBindingGUID,
+			SecretName:         testServiceBindingSecretName,
+		},
+		Status: v1beta1.ServiceBindingStatus{
+			CurrentOperation:   v1beta1.ServiceBindingOperationBind,
+			OperationStartTime: &startTime,
+		},
+	}
+
+	fakeCatalogClient.AddReactor("get", "servicebindings", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, binding, nil
+	})
+
+	timeOfReconciliation := metav1.Now()
+
+	err := testController.reconcileServiceBinding(binding)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	assertUnbind(t, brokerActions[0], &osb.UnbindRequest{
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+	})
+
+	kubeActions := fakeKubeClient.Actions()
+	// The action should be deleting the secret
+	assertNumberOfActions(t, kubeActions, 1)
+
+	deleteAction := kubeActions[0].(clientgotesting.DeleteActionImpl)
+	if e, a := "delete", deleteAction.GetVerb(); e != a {
+		t.Fatalf("Unexpected verb on kubeActions[1]; expected %v, got %v", e, a)
+	}
+
+	if e, a := binding.Spec.SecretName, deleteAction.Name; e != a {
+		t.Fatalf("Unexpected name of secret: expected %v, got %v", e, a)
+	}
+
+	actions := fakeCatalogClient.Actions()
+	// The actions should be:
+	// 0. Updating the current operation
+	// 1. Updating the ready condition
+	assertNumberOfActions(t, actions, 2)
+
+	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding).(*v1beta1.ServiceBinding)
+	assertServiceBindingOperationInProgress(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, binding)
+	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
+
+	// Verify that the operation start time was reset to Now
+	if updatedServiceBinding.Status.OperationStartTime.Before(&timeOfReconciliation) {
+		t.Fatalf(
+			"OperationStartTime should not be before the time that the reconciliation started. OperationStartTime=%v. timeOfReconciliation=%v",
+			updatedServiceBinding.Status.OperationStartTime,
+			timeOfReconciliation,
+		)
+	}
+
+	updatedServiceBinding = assertUpdateStatus(t, actions[1], binding).(*v1beta1.ServiceBinding)
+	assertServiceBindingOperationSuccess(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, binding)
+	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
+
+	events := getRecordedEvents(testController)
+
+	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestReconcileServiceBindingDeleteDuringOrphanMitigation tests deleting a
+// binding that is undergoing orphan mitigation
+func TestReconcileServiceBindingDeleteDuringOrphanMitigation(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, fakeosb.FakeClientConfiguration{
+		UnbindReaction: &fakeosb.UnbindReaction{},
+	})
+
+	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
+	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
+	sharedInformers.ServiceInstances().Informer().GetStore().Add(getTestServiceInstanceWithRefs())
+	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	startTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+	binding := &v1beta1.ServiceBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              testServiceBindingName,
+			Namespace:         testNamespace,
+			DeletionTimestamp: &metav1.Time{},
+			Finalizers:        []string{v1beta1.FinalizerServiceCatalog},
+		},
+		Spec: v1beta1.ServiceBindingSpec{
+			ServiceInstanceRef: v1beta1.LocalObjectReference{Name: testServiceInstanceName},
+			ExternalID:         testServiceBindingGUID,
+			SecretName:         testServiceBindingSecretName,
+		},
+		Status: v1beta1.ServiceBindingStatus{
+			CurrentOperation:           v1beta1.ServiceBindingOperationBind,
+			OperationStartTime:         &startTime,
+			OrphanMitigationInProgress: true,
+		},
+	}
+
+	fakeCatalogClient.AddReactor("get", "servicebindings", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, binding, nil
+	})
+
+	timeOfReconciliation := metav1.Now()
+
+	err := testController.reconcileServiceBinding(binding)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	brokerActions := fakeClusterServiceBrokerClient.Actions()
+	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 1)
+	assertUnbind(t, brokerActions[0], &osb.UnbindRequest{
+		BindingID:  testServiceBindingGUID,
+		InstanceID: testServiceInstanceGUID,
+		ServiceID:  testClusterServiceClassGUID,
+		PlanID:     testClusterServicePlanGUID,
+	})
+
+	kubeActions := fakeKubeClient.Actions()
+	// The action should be deleting the secret
+	assertNumberOfActions(t, kubeActions, 1)
+
+	deleteAction := kubeActions[0].(clientgotesting.DeleteActionImpl)
+	if e, a := "delete", deleteAction.GetVerb(); e != a {
+		t.Fatalf("Unexpected verb on kubeActions[1]; expected %v, got %v", e, a)
+	}
+
+	if e, a := binding.Spec.SecretName, deleteAction.Name; e != a {
+		t.Fatalf("Unexpected name of secret: expected %v, got %v", e, a)
+	}
+
+	actions := fakeCatalogClient.Actions()
+	// The actions should be:
+	// 0. Updating the current operation
+	// 1. Updating the ready condition
+	assertNumberOfActions(t, actions, 2)
+
+	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding).(*v1beta1.ServiceBinding)
+	assertServiceBindingOperationInProgress(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, binding)
+	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
+
+	// Verify that the operation start time was reset to Now
+	if updatedServiceBinding.Status.OperationStartTime.Before(&timeOfReconciliation) {
+		t.Fatalf(
+			"OperationStartTime should not be before the time that the reconciliation started. OperationStartTime=%v. timeOfReconciliation=%v",
+			updatedServiceBinding.Status.OperationStartTime,
+			timeOfReconciliation,
+		)
+	}
+
+	updatedServiceBinding = assertUpdateStatus(t, actions[1], binding).(*v1beta1.ServiceBinding)
+	assertServiceBindingOperationSuccess(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, binding)
+	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
+
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + "Error unbinding from ServiceInstance \"test-ns/test-instance\" of ClusterServiceClass (K8S: \"SCGUID\" ExternalName: \"test-serviceclass\") at ClusterServiceBroker \"test-broker\": timed out"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event, %s", expectedGot(e, a))
+	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
+
 }

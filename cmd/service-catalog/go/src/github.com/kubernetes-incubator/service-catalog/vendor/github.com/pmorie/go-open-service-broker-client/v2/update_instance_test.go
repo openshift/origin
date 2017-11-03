@@ -20,6 +20,8 @@ func defaultAsyncUpdateInstanceRequest() *UpdateInstanceRequest {
 	return r
 }
 
+const successUpdateInstanceRequestBody = `{"service_id":"test-service-id","plan_id":"test-plan-id"}`
+
 const successUpdateInstanceResponseBody = `{}`
 
 func successUpdateInstanceResponse() *UpdateInstanceResponse {
@@ -36,6 +38,8 @@ func successUpdateInstanceResponseAsync() *UpdateInstanceResponse {
 	r.OperationKey = &testOperation
 	return r
 }
+
+const contextUpdateInstanceRequestBody = `{"service_id":"test-service-id","plan_id":"test-plan-id","context":{"foo":"bar"}}`
 
 func TestUpdateInstanceInstance(t *testing.T) {
 	cases := []struct {
@@ -133,6 +137,43 @@ func TestUpdateInstanceInstance(t *testing.T) {
 				body:   conventionalFailureResponseBody,
 			},
 			expectedErr: testHTTPStatusCodeError(),
+		},
+		{
+			name:    "context - 2.12",
+			version: Version2_12(),
+			request: func() *UpdateInstanceRequest {
+				r := defaultUpdateInstanceRequest()
+				r.Context = map[string]interface{}{
+					"foo": "bar",
+				}
+				return r
+			}(),
+			httpChecks: httpChecks{
+				body: contextUpdateInstanceRequestBody,
+			},
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successUpdateInstanceResponseBody,
+			},
+			expectedResponse: successUpdateInstanceResponse(),
+		},
+		{
+			name: "context - 2.11",
+			request: func() *UpdateInstanceRequest {
+				r := defaultUpdateInstanceRequest()
+				r.Context = map[string]interface{}{
+					"foo": "bar",
+				}
+				return r
+			}(),
+			httpChecks: httpChecks{
+				body: successUpdateInstanceRequestBody,
+			},
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successUpdateInstanceResponseBody,
+			},
+			expectedResponse: successUpdateInstanceResponse(),
 		},
 		{
 			name:                "originating identity included",
