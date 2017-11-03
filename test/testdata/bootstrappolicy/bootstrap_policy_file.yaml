@@ -4133,19 +4133,19 @@ items:
     - template.openshift.io
     attributeRestrictions: null
     resources:
-    - brokertemplateinstances/finalizers
-    verbs:
-    - update
-  - apiGroups:
-    - template.openshift.io
-    attributeRestrictions: null
-    resources:
     - templateinstances
     verbs:
     - assign
     - create
     - delete
     - get
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - templateinstances/finalizers
+    verbs:
+    - update
   - apiGroups:
     - template.openshift.io
     attributeRestrictions: null
@@ -4164,6 +4164,7 @@ items:
     - create
     - delete
     - get
+    - update
   - apiGroups:
     - ""
     attributeRestrictions: null

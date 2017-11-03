@@ -3781,18 +3781,18 @@ items:
   - apiGroups:
     - template.openshift.io
     resources:
-    - brokertemplateinstances/finalizers
-    verbs:
-    - update
-  - apiGroups:
-    - template.openshift.io
-    resources:
     - templateinstances
     verbs:
     - assign
     - create
     - delete
     - get
+  - apiGroups:
+    - template.openshift.io
+    resources:
+    - templateinstances/finalizers
+    verbs:
+    - update
   - apiGroups:
     - template.openshift.io
     resources:
@@ -3809,6 +3809,7 @@ items:
     - create
     - delete
     - get
+    - update
   - apiGroups:
     - ""
     resources:

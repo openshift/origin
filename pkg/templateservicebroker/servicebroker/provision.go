@@ -21,22 +21,12 @@ import (
 
 // ensureSecret ensures the existence of a Secret object containing the template
 // configuration parameters.
-func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInstance *templateapi.BrokerTemplateInstance, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
+func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
 	glog.V(4).Infof("Template service broker: ensureSecret")
 
-	blockOwnerDeletion := true
 	secret := &kapi.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: instanceID,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         templateapiv1.SchemeGroupVersion.String(),
-					Kind:               "BrokerTemplateInstance",
-					Name:               brokerTemplateInstance.Name,
-					UID:                brokerTemplateInstance.UID,
-					BlockOwnerDeletion: &blockOwnerDeletion,
-				},
-			},
 		},
 		Data: map[string][]byte{},
 	}
@@ -84,6 +74,59 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInsta
 		return nil, api.Forbidden(err)
 	}
 	return nil, api.InternalServerError(err)
+}
+
+// ensureSecretOwnerRef ensures the Secret has an OwnerRef to the TemplateInstance.
+func (b *Broker) ensureSecretOwnerRef(u user.Info, namespace string, secret *kapi.Secret, templateInstance *templateapi.TemplateInstance, didWork *bool) (*kapi.Secret, *api.Response) {
+	glog.V(4).Infof("Template service broker: ensureSecretOwnerRef")
+
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "get",
+		Group:     kapi.GroupName,
+		Resource:  "secrets",
+		Name:      secret.Name,
+	}); err != nil {
+		return nil, api.Forbidden(err)
+	}
+
+	secret, err := b.kc.Core().Secrets(namespace).Get(secret.Name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsForbidden(err) {
+			return nil, api.Forbidden(err)
+		}
+		return nil, api.InternalServerError(err)
+	}
+
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "update",
+		Group:     kapi.GroupName,
+		Resource:  "secrets",
+		Name:      secret.Name,
+	}); err != nil {
+		return nil, api.Forbidden(err)
+	}
+
+	blockOwnerDeletion := true
+	secret.OwnerReferences = append(secret.OwnerReferences, metav1.OwnerReference{
+		APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+		Kind:               "TemplateInstance",
+		Name:               templateInstance.Name,
+		UID:                templateInstance.UID,
+		BlockOwnerDeletion: &blockOwnerDeletion,
+	})
+
+	secret, err = b.kc.Core().Secrets(namespace).Update(secret)
+	if err != nil {
+		if kerrors.IsForbidden(err) {
+			return nil, api.Forbidden(err)
+		}
+		return nil, api.InternalServerError(err)
+	}
+	*didWork = true
+
+	return secret, nil
 }
 
 // ensureTemplateInstance ensures the existence of a TemplateInstance object
@@ -338,12 +381,17 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 		return resp
 	}
 
-	secret, resp := b.ensureSecret(u, namespace, brokerTemplateInstance, instanceID, preq, &didWork)
+	secret, resp := b.ensureSecret(u, namespace, instanceID, preq, &didWork)
 	if resp != nil {
 		return resp
 	}
 
 	templateInstance, resp := b.ensureTemplateInstance(u, namespace, brokerTemplateInstance, instanceID, template, secret, &didWork)
+	if resp != nil {
+		return resp
+	}
+
+	_, resp = b.ensureSecretOwnerRef(u, namespace, secret, templateInstance, &didWork)
 	if resp != nil {
 		return resp
 	}
