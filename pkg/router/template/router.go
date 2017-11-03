@@ -387,6 +387,9 @@ func (r *templateRouter) writeConfig() error {
 		// called here to make sure we have the actual number of endpoints.
 		cfg.ServiceUnitNames = r.calculateServiceWeights(cfg.ServiceUnits)
 
+		// Calculate the number of active endpoints for the route.
+		cfg.ActiveEndpoints = r.getActiveEndpoints(cfg.ServiceUnits)
+
 		cfg.Status = ServiceAliasConfigStatusSaved
 		r.state[k] = cfg
 	}
@@ -877,26 +880,47 @@ func getServiceUnits(route *routeapi.Route) map[string]int32 {
 
 	// get the weight and number of endpoints for each service
 	key := endpointsKeyFromParts(route.Namespace, route.Spec.To.Name)
-	serviceUnits[key] = 0
-	if route.Spec.To.Weight != nil {
-		serviceUnits[key] = int32(*route.Spec.To.Weight)
-	}
-	if serviceUnits[key] < 0 || serviceUnits[key] > 256 {
-		serviceUnits[key] = 0
-	}
+	serviceUnits[key] = getServiceUnitWeight(route.Spec.To.Weight)
 
 	for _, svc := range route.Spec.AlternateBackends {
 		key = endpointsKeyFromParts(route.Namespace, svc.Name)
-		serviceUnits[key] = 0
-		if svc.Weight != nil {
-			serviceUnits[key] = int32(*svc.Weight)
-		}
-		if serviceUnits[key] < 0 || serviceUnits[key] > 256 {
-			serviceUnits[key] = 0
-		}
+		serviceUnits[key] = getServiceUnitWeight(svc.Weight)
 	}
 
 	return serviceUnits
+}
+
+// getServiceUnitWeight takes a reference to a weight and returns its value or the default.
+// It also checks that it is in the correct range.
+func getServiceUnitWeight(weightRef *int32) int32 {
+	// Default to 1 if there is no weight
+	var weight int32 = 1
+	if weightRef != nil {
+		weight = *weightRef
+	}
+
+	// Do a bounds check
+	if weight < 0 {
+		weight = 0
+	} else if weight > 256 {
+		weight = 256
+	}
+
+	return weight
+}
+
+// getActiveEndpoints calculates the number of endpoints that are not associated
+// with service units with a zero weight and returns the count.
+func (r *templateRouter) getActiveEndpoints(serviceUnits map[string]int32) int {
+	var activeEndpoints int32 = 0
+
+	for key, weight := range serviceUnits {
+		if weight > 0 {
+			activeEndpoints += r.numberOfEndpoints(key)
+		}
+	}
+
+	return int(activeEndpoints)
 }
 
 // calculateServiceWeights returns a map of service keys to their weights.
