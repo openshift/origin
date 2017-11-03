@@ -1,0 +1,38 @@
+{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "ruby",
+    "annotations": {
+      "openshift.io/display-name": "Ruby"
+    }
+  },
+  "spec": {
+    "tags": [
+      {
+        "name": "2.4",
+        "annotations": {
+          "openshift.io/display-name": "Ruby Patched",
+          "openshift.io/provider-display-name": "Red Hat, Inc.",
+          "description": "Build and run Ruby 2.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
+          "iconClass": "icon-ruby",
+          "tags": "builder,ruby",
+          "supports": "ruby:2.4,ruby",
+          "version": "2.4 patched",
+          "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+        },
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-24-centos7:latest"
+        }
+      },
+      {
+        "name": "newtag",
+        "from": {
+          "kind": "DockerImage",
+          "name": "centos/ruby-24-centos7:latest"
+        }
+      }
+    ]
+  }
+}

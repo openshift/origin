@@ -6135,6 +6135,12 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 						"tags": {
+							VendorExtensible: spec.VendorExtensible{
+								Extensions: spec.Extensions{
+									"x-kubernetes-patch-merge-key": "name",
+									"x-kubernetes-patch-strategy":  "merge",
+								},
+							},
 							SchemaProps: spec.SchemaProps{
 								Description: "tags map arbitrary string values to specific image locators",
 								Type:        []string{"array"},
@@ -6173,6 +6179,12 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 						"tags": {
+							VendorExtensible: spec.VendorExtensible{
+								Extensions: spec.Extensions{
+									"x-kubernetes-patch-merge-key": "tag",
+									"x-kubernetes-patch-strategy":  "merge",
+								},
+							},
 							SchemaProps: spec.SchemaProps{
 								Description: "Tags are a historical record of images associated with each tag. The first entry in the TagEvent array is the currently tagged image.",
 								Type:        []string{"array"},
