@@ -446,7 +446,7 @@ func (o *ObserveOptions) Run() error {
 
 	// start the reflector
 	reflector := cache.NewNamedReflector("observer", lw, nil, store, o.resyncPeriod)
-	reflector.Run(stopChan)
+	go reflector.Run(stopChan)
 
 	if o.once {
 		// wait until the reflector reports it has completed the initial list and the

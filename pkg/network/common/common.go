@@ -188,7 +188,7 @@ func newEventQueue(client kcache.Getter, resourceName ResourceName, expectedType
 	eventQueue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
 	// Repopulate event queue every 30 mins
 	// Existing items in the event queue will have watch.Modified event type
-	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run(wait.NeverStop)
+	go kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run(wait.NeverStop)
 	return eventQueue
 }
 

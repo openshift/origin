@@ -29,7 +29,7 @@ func NewListWatchServiceLookup(svcGetter kcoreclient.ServicesGetter, resync time
 			return svcGetter.Services(api.NamespaceAll).Watch(options)
 		},
 	}
-	cache.NewReflector(lw, &api.Service{}, svcStore, resync).Run(wait.NeverStop)
+	go cache.NewReflector(lw, &api.Service{}, svcStore, resync).Run(wait.NeverStop)
 
 	return &serviceLWLookup{
 		store: svcStore,
