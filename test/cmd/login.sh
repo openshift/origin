@@ -49,6 +49,8 @@ os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certi
 # make sure standard login prompt is printed once self-provisioner status is restored
 os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --config='${login_kubeconfig}'"
 os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything" "You don't have any projects. You can try to create a new project, by running"
+# make sure `oc login` fails with unauthorized error
+os::cmd::expect_failure_and_text 'oc login <<< \n' 'Login failed \(401 Unauthorized\)'
 os::cmd::expect_success 'oc logout'
 echo "login and status messages: ok"
 

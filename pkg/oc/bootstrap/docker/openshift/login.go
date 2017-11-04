@@ -18,7 +18,7 @@ import (
 )
 
 // Login logs into the specified server using given credentials and CA file
-func Login(username, password, server, configDir string, f *clientcmd.Factory, c *cobra.Command, out io.Writer) error {
+func Login(username, password, server, configDir string, f *clientcmd.Factory, c *cobra.Command, out, errOut io.Writer) error {
 	existingConfig, err := f.OpenShiftClientConfig().RawConfig()
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -72,6 +72,7 @@ func Login(username, password, server, configDir string, f *clientcmd.Factory, c
 		Username:           username,
 		Password:           password,
 		Out:                output,
+		ErrOut:             errOut,
 		StartingKubeConfig: newConfig,
 		PathOptions:        config.NewPathOptions(c),
 	}

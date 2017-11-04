@@ -46,10 +46,11 @@ var (
 )
 
 // NewCmdLogin implements the OpenShift cli login command
-func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
+func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out, errOut io.Writer) *cobra.Command {
 	options := &LoginOptions{
 		Reader: reader,
 		Out:    out,
+		ErrOut: errOut,
 	}
 
 	cmds := &cobra.Command{

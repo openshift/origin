@@ -310,6 +310,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 		StartingKubeConfig: &clientcmdapi.Config{},
 		Reader:             bytes.NewBufferString("myusername\nmypassword\n"),
 		Out:                loginOutput,
+		ErrOut:             ioutil.Discard,
 	}
 	if err := loginOptions.GatherInfo(); err != nil {
 		t.Fatalf("Error trying to determine server info: %v\n%v", err, loginOutput.String())
