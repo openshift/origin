@@ -23,6 +23,13 @@ func SetDefaults_SCC(scc *SecurityContextConstraints) {
 		scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
 	}
 
+	if scc.Users == nil {
+		scc.Users = []string{}
+	}
+	if scc.Groups == nil {
+		scc.Groups = []string{}
+	}
+
 	var defaultAllowedVolumes sets.String
 	switch {
 	case scc.Volumes == nil:

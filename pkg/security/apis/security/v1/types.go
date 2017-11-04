@@ -79,9 +79,11 @@ type SecurityContextConstraints struct {
 	ReadOnlyRootFilesystem bool `json:"readOnlyRootFilesystem" protobuf:"varint,17,opt,name=readOnlyRootFilesystem"`
 
 	// The users who have permissions to use this security context constraints
-	Users []string `json:"users,omitempty" protobuf:"bytes,18,rep,name=users"`
+	// +optional
+	Users []string `json:"users" protobuf:"bytes,18,rep,name=users"`
 	// The groups that have permission to use this security context constraints
-	Groups []string `json:"groups,omitempty" protobuf:"bytes,19,rep,name=groups"`
+	// +optional
+	Groups []string `json:"groups" protobuf:"bytes,19,rep,name=groups"`
 
 	// SeccompProfiles lists the allowed profiles that may be set for the pod or
 	// container's seccomp annotations.  An unset (nil) or empty value means that no profiles may
