@@ -201,7 +201,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		ScheduledImageImportMinimumIntervalSeconds: options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds,
 	}
 	ret.ImageSignatureImportControllerConfig = ImageSignatureImportControllerConfig{
-		ResyncPeriod:          10 * time.Minute,
+		ResyncPeriod:          1 * time.Hour,
 		SignatureFetchTimeout: 1 * time.Minute,
 		SignatureImportLimit:  3,
 	}

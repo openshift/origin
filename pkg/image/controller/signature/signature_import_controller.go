@@ -106,8 +106,13 @@ func (s *SignatureImportController) work() bool {
 
 	err := s.syncImageSignatures(key.(string))
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("error syncing image %s, it will be retried: %v", key.(string), err))
-		s.queue.AddRateLimited(key)
+		if _, ok := err.(GetSignaturesError); !ok {
+			utilruntime.HandleError(fmt.Errorf("error syncing image %s, it will be retried: %v", key.(string), err))
+		}
+
+		if s.queue.NumRequeues(key) < 5 {
+			s.queue.AddRateLimited(key)
+		}
 		return true
 	}
 
