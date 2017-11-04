@@ -25,7 +25,13 @@ function os::build::image() {
 		# available, falling back to the last commit
 		# if no release commit is recorded
 		local release_commit
-		release_commit="${OS_RELEASE_COMMIT:-"$( git log -1 --pretty=%h )"}"
+		release_commit="${OS_RELEASE_COMMIT-}"
+		if [[ -z "${release_commit}" && -f "${OS_OUTPUT_RELEASEPATH}/.commit" ]]; then
+			release_commit="$( cat "${OS_OUTPUT_RELEASEPATH}/.commit" )"
+		fi
+		if [[ -z "${release_commit}" ]]; then
+			release_commit="$( git log -1 --pretty=%h )"
+		fi
 		extra_tag="${tag}:${release_commit}"
 
 		tag="${tag}:latest"
