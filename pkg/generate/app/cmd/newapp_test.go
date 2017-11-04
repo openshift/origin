@@ -609,7 +609,7 @@ func TestDisallowedNonNumericExposedPorts(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error wasn't returned")
 
-		} else if !strings.Contains(err.Error(), "args are not supported for port numbers") {
+		} else if !strings.Contains(err.Error(), "port number must be in range 0 - 65535") {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
@@ -646,7 +646,7 @@ func TestExposedPortsAreValid(t *testing.T) {
 		},
 		{
 			dockerfile:    "FROM centos\nARG PORT=8080\nEXPOSE $PORT",
-			expectedError: "args are not supported for port numbers",
+			expectedError: "port number must be in range 0 - 65535",
 		},
 		{
 			dockerfile:    "FROM centos\nEXPOSE 8080/xyz",

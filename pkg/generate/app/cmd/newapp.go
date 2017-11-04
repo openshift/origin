@@ -6,12 +6,9 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
-	dockerfileparser "github.com/docker/docker/builder/dockerfile/parser"
-	"github.com/docker/go-connections/nat"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
@@ -43,6 +40,7 @@ import (
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
+	"github.com/openshift/origin/pkg/util/portutils"
 )
 
 const (
@@ -1101,46 +1099,10 @@ func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRe
 	for _, repo := range repositories {
 		if repoInfo := repo.Info(); repoInfo != nil && repoInfo.Dockerfile != nil {
 			node := repoInfo.Dockerfile.AST()
-			if err := exposedPortsAreValid(node); err != nil {
-				return fmt.Errorf("the Dockerfile has an invalid EXPOSE instruction: %v", err)
+			if _, errs := portutils.SplitPortAndProtocolArray(dockerfileutil.LastExposedPorts(node)); len(errs) > 0 {
+				return fmt.Errorf("the Dockerfile has an invalid EXPOSE instruction: %v", errs)
 			}
 		}
-	}
-
-	return nil
-}
-
-func exposedPortsAreValid(node *dockerfileparser.Node) error {
-	allErrs := make([]error, 0)
-
-	for _, port := range dockerfileutil.LastExposedPorts(node) {
-		errs := make([]string, 0)
-
-		if strings.HasPrefix(port, "$") {
-			errs = append(errs, "args are not supported for port numbers")
-		}
-
-		proto, port := nat.SplitProtoPort(port)
-
-		_, err := strconv.ParseUint(port, 10, 16)
-		if err != nil {
-			if numError, ok := err.(*strconv.NumError); ok {
-				if numError.Err == strconv.ErrRange || numError.Err == strconv.ErrSyntax {
-					errs = append(errs, "port number must be in range 0 - 65535")
-				}
-			}
-		}
-		if len(proto) > 0 && !(strings.ToLower(proto) == "tcp" || strings.ToLower(proto) == "udp") {
-			errs = append(errs, "protocol must be tcp or udp")
-		}
-		if len(errs) > 0 {
-			allErrs = append(allErrs, fmt.Errorf("could not parse %q: [%v]", port, strings.Join(errs, ", ")))
-		}
-
-	}
-
-	if len(allErrs) > 0 {
-		return kutilerrors.NewAggregate(allErrs)
 	}
 
 	return nil
