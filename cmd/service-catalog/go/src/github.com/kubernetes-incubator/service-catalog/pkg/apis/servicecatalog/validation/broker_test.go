@@ -344,4 +344,99 @@ func TestValidateClusterServiceBroker(t *testing.T) {
 			t.Errorf("%v: unexpected success", tc.name)
 		}
 	}
+
+	updateCases := []struct {
+		name      string
+		newBroker *servicecatalog.ClusterServiceBroker
+		oldBroker *servicecatalog.ClusterServiceBroker
+		valid     bool
+	}{
+		{
+			name: "valid broker update - equal relistRequests value",
+			newBroker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					RelistRequests: 1,
+				},
+			},
+			oldBroker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					RelistRequests: 1,
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "valid broker update - increasing relistRequests value",
+			newBroker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					RelistRequests: 2,
+				},
+			},
+			oldBroker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					RelistRequests: 1,
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "invalid broker update - nonincreasing relistRequests value",
+			newBroker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					RelistRequests: 1,
+				},
+			},
+			oldBroker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
+					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
+					RelistRequests: 2,
+				},
+			},
+			valid: false,
+		},
+	}
+	for _, tc := range updateCases {
+		errs := ValidateClusterServiceBrokerUpdate(tc.newBroker, tc.oldBroker)
+		if len(errs) != 0 && tc.valid {
+			t.Errorf("%v: unexpected error: %v", tc.name, errs)
+			continue
+		} else if len(errs) == 0 && !tc.valid {
+			t.Errorf("%v: unexpected success", tc.name)
+		}
+	}
 }

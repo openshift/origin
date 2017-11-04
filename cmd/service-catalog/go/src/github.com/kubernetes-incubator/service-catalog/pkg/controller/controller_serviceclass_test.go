@@ -82,9 +82,10 @@ func TestReconcileClusterServiceClassRemovedFromCatalog(t *testing.T) {
 			},
 		},
 		{
-			name: "removed from catalog, no instances left, delete fails", serviceClass: getRemovedServiceClass(),
-			instances:   nil,
-			shouldError: true,
+			name:         "removed from catalog, no instances left, delete fails",
+			serviceClass: getRemovedServiceClass(),
+			instances:    nil,
+			shouldError:  true,
 			catalogClientPrepFunc: func(client *fake.Clientset) {
 				client.AddReactor("delete", "clusterserviceclasses", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					return true, nil, errors.New("oops")

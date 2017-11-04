@@ -86,7 +86,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 
 	f := clientcmd.New(cmds.PersistentFlags())
 
-	loginCmd := login.NewCmdLogin(fullName, f, in, out)
+	loginCmd := login.NewCmdLogin(fullName, f, in, out, errout)
 	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, errout, fullName+" edit")
 
 	groups := ktemplates.CommandGroups{

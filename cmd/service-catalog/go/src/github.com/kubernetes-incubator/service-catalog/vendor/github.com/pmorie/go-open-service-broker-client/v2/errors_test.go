@@ -283,3 +283,40 @@ func TestHttpStatusCodeError(t *testing.T) {
 		}
 	}
 }
+
+func TestAsyncBindingOperationsNotAllowedError(t *testing.T) {
+	err := AsyncBindingOperationsNotAllowedError{
+		reason: "test reason",
+	}
+
+	expectedOutput := "Asynchronous binding operations are not allowed: test reason"
+
+	if e, a := expectedOutput, err.Error(); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+}
+
+func TestIsAsyncBindingOperationsNotAllowedError(t *testing.T) {
+	cases := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "async binding operations not allowed error",
+			err:      AsyncBindingOperationsNotAllowedError{},
+			expected: true,
+		},
+		{
+			name:     "other error",
+			err:      errors.New("other error"),
+			expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		if e, a := tc.expected, IsAsyncBindingOperationsNotAllowedError(tc.err); e != a {
+			t.Errorf("%v: expected %v, got %v", tc.name, e, a)
+		}
+	}
+}

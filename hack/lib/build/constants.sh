@@ -24,13 +24,13 @@ readonly OS_SDN_COMPILE_TARGETS_LINUX=(
   vendor/github.com/containernetworking/cni/plugins/main/loopback
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
-  images/pod
   cmd/dockerregistry
   cmd/gitserver
   vendor/k8s.io/kubernetes/cmd/hyperkube
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
+  images/pod
   examples/hello-openshift
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")

@@ -139,7 +139,8 @@ func newLoginOptions(server string, username string, password string, insecure b
 		Password:           password,
 		InsecureTLS:        insecure,
 
-		Out: ioutil.Discard,
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 
 	return loginOptions

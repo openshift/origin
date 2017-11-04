@@ -67,7 +67,6 @@ func NewFileStore(
 	keyDirectory string,
 	certFile string,
 	keyFile string) (Store, error) {
-
 	s := fileStore{
 		pairNamePrefix: pairNamePrefix,
 		certDirectory:  certDirectory,
@@ -75,6 +74,7 @@ func NewFileStore(
 		certFile:       certFile,
 		keyFile:        keyFile,
 	}
+	glog.Infof("New file store: %#v", s)
 	if err := s.recover(); err != nil {
 		return nil, err
 	}
@@ -266,6 +266,13 @@ func (s *fileStore) updateSymlink(filename string) error {
 		return err
 	} else if !filenameExists {
 		return fmt.Errorf("file %q does not exist so it can not be used as the currently selected cert/key", filename)
+	}
+
+	// Ensure the source path is absolute to ensure the symlink target is
+	// correct when certDirectory is a relative path.
+	filename, err := filepath.Abs(filename)
+	if err != nil {
+		return err
 	}
 
 	// Create the 'updated' symlink pointing to the requested file name.

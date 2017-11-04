@@ -64,6 +64,9 @@ type ServiceAliasConfig struct {
 
 	// ActiveServiceUnits is a count of the service units with a non-zero weight
 	ActiveServiceUnits int
+
+	// ActiveEndpoints is a count of the route endpoints that are part of a service unit with a non-zero weight
+	ActiveEndpoints int
 }
 
 type ServiceAliasConfigStatus string

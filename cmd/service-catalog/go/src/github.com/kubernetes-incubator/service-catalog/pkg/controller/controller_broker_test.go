@@ -126,6 +126,30 @@ func TestShouldReconcileClusterServiceBroker(t *testing.T) {
 			reconcile: true,
 		},
 		{
+			name: "good steady state - ready, interval not elapsed, but last state change was a long time ago",
+			broker: func() *v1beta1.ClusterServiceBroker {
+				lastTransitionTime := metav1.NewTime(time.Now().Add(-30 * time.Minute))
+				lastRelistTime := metav1.NewTime(time.Now().Add(-2 * time.Minute))
+				broker := getTestClusterServiceBrokerWithStatusAndTime(v1beta1.ConditionTrue, lastTransitionTime, lastRelistTime)
+				broker.Spec.RelistDuration = &metav1.Duration{Duration: 3 * time.Minute}
+				return broker
+			}(),
+			now:       time.Now(),
+			reconcile: false,
+		},
+		{
+			name: "good steady state - ready, interval has elapsed, last state change was a long time ago",
+			broker: func() *v1beta1.ClusterServiceBroker {
+				lastTransitionTime := metav1.NewTime(time.Now().Add(-30 * time.Minute))
+				lastRelistTime := metav1.NewTime(time.Now().Add(-4 * time.Minute))
+				broker := getTestClusterServiceBrokerWithStatusAndTime(v1beta1.ConditionTrue, lastTransitionTime, lastRelistTime)
+				broker.Spec.RelistDuration = &metav1.Duration{Duration: 3 * time.Minute}
+				return broker
+			}(),
+			now:       time.Now(),
+			reconcile: true,
+		},
+		{
 			name: "ready, interval not elapsed",
 			broker: func() *v1beta1.ClusterServiceBroker {
 				broker := getTestClusterServiceBrokerWithStatus(v1beta1.ConditionTrue)
@@ -178,7 +202,8 @@ func TestShouldReconcileClusterServiceBroker(t *testing.T) {
 
 		if tc.broker.Spec.RelistDuration != nil {
 			interval := tc.broker.Spec.RelistDuration.Duration
-			t.Logf("%v: now: %v, interval: %v, last transition time: %v", tc.name, tc.now, interval, ltt)
+			lastRelistTime := tc.broker.Status.LastCatalogRetrievalTime
+			t.Logf("%v: now: %v, interval: %v, last transition time: %v, last relist time: %v", tc.name, tc.now, interval, ltt, lastRelistTime)
 		} else {
 			t.Logf("broker.Spec.RelistDuration set to nil")
 		}

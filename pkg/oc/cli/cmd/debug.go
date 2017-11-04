@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -600,6 +601,9 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 	pod.UID = ""
 	pod.CreationTimestamp = metav1.Time{}
 	pod.SelfLink = ""
+
+	// clear pod ownerRefs
+	pod.ObjectMeta.OwnerReferences = []v1.OwnerReference{}
 
 	return pod, originalCommand
 }

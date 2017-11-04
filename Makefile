@@ -251,7 +251,6 @@ official-release: build-images build-cross
 # Example:
 #   make release
 release: build-images
-	hack/extract-release.sh
 .PHONY: release
 
 # Build the cross compiled release binaries
