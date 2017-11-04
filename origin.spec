@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 549a2f24b94b1ec54a31829e56638cce9c69d6bc
+%global commit c9d91ddb6760b6d7416edec9109b17409b94d22e
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.190.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.1 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=549a2f2
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.191.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c9d91dd
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.191.0%{?dist}
+Release:        0.192.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,27 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat Nov 04 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.192.0
+- preserve error type in loginoptions (jvallejo@redhat.com)
+- Network component should refresh certificates if they expire
+  (ccoleman@redhat.com)
+- clear pod ownerRefs before creating debug pod (jvallejo@redhat.com)
+- UPSTREAM: 54979: Certificate store handles rel path incorrectly
+  (ccoleman@redhat.com)
+- UPSTREAM: 54921: rename metric reflector_xx_last_resource_version
+  (ironcladlou@gmail.com)
+- yaml-enable the registry rate limiting config (bparees@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from 892b0368f0..3064247d05 (jaboyd@redhat.com)
+- Skip building release archives during RPM build (ccoleman@redhat.com)
+- Remove the need for release tars in normal code paths (ccoleman@redhat.com)
+- Fix the "supress health checks when only one backing service" logic
+  (bbennett@redhat.com)
+- Revert "Skip health checks when there is one server that backs the route"
+  (bbennett@redhat.com)
+- Avoid compiling all of kube twice for images (ccoleman@redhat.com)
+- merge imagestreamtag list on patch (bparees@redhat.com)
+
 * Fri Nov 03 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.191.0
 - Add timestamps to migration command's reporting (mkhan@redhat.com)
 - Correctly handle NotFound errors during migration (mkhan@redhat.com)
