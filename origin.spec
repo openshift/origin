@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c9d91ddb6760b6d7416edec9109b17409b94d22e
+%global commit 9e75e787cb7b216e56f00b6c528ae8934afbd76d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.191.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c9d91dd
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.192.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=9e75e78
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.192.0%{?dist}
+Release:        0.193.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,10 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Nov 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.193.0
+- UPSTREAM: 55028: kubelet: dockershim: remove orphaned checkpoint files
+  (sjenning@redhat.com)
+
 * Sat Nov 04 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.192.0
 - preserve error type in loginoptions (jvallejo@redhat.com)
 - Network component should refresh certificates if they expire
