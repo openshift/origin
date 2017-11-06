@@ -2,11 +2,13 @@ package servicebroker
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 
@@ -55,9 +57,35 @@ func (b *Broker) Deprovision(u user.Info, instanceID string) *api.Response {
 		return api.Forbidden(err)
 	}
 
-	opts := metav1.NewPreconditionDeleteOptions(string(brokerTemplateInstance.UID))
+	templateInstance := brokerTemplateInstance.Spec.TemplateInstance
+	opts := metav1.NewPreconditionDeleteOptions(string(templateInstance.UID))
 	policy := metav1.DeletePropagationForeground
 	opts.PropagationPolicy = &policy
+	err = b.templateclient.TemplateInstances(templateInstance.Namespace).Delete(templateInstance.Name, opts)
+	if err != nil {
+		if !kerrors.IsNotFound(err) {
+			return api.InternalServerError(err)
+		}
+	}
+	// Wait for the template instance to go away due to foreground GC propagation
+	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
+		v, err := b.templateclient.TemplateInstances(templateInstance.Namespace).Get(templateInstance.Name, metav1.GetOptions{})
+		if err == nil && v == nil {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	})
+	// If we timed out or got another error while waiting for it to go away, abort the deprovision.
+	// (since the broker template instance will still be around, the de-provision can be retried)
+	if err != nil {
+		return api.InternalServerError(err)
+	}
+	opts = metav1.NewPreconditionDeleteOptions(string(brokerTemplateInstance.UID))
+	opts.PropagationPolicy = &policy
+
 	err = b.templateclient.BrokerTemplateInstances().Delete(instanceID, opts)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
