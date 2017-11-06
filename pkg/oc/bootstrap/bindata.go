@@ -13913,6 +13913,8 @@ objects:
     - servicecatalog.k8s.io
     resources:
     - clusterservicebrokers/status
+    - clusterserviceclasses/status
+    - clusterserviceplans/status
     - serviceinstances/status
     - servicebindings/status
     - servicebindings/finalizers
