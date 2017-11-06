@@ -51,6 +51,7 @@ type realFsHandler struct {
 }
 
 const (
+	longOp           = time.Second
 	timeout          = 2 * time.Minute
 	maxBackoffFactor = 20
 )
@@ -110,7 +111,6 @@ func (fh *realFsHandler) update() error {
 
 func (fh *realFsHandler) trackUsage() {
 	fh.update()
-	longOp := time.Second
 	for {
 		select {
 		case <-fh.stopChan:
@@ -128,11 +128,7 @@ func (fh *realFsHandler) trackUsage() {
 			}
 			duration := time.Since(start)
 			if duration > longOp {
-				// adapt longOp time so that message doesn't continue to print
-				// if the long duration is persistent either because of slow
-				// disk or lots of containers.
-				longOp = longOp + time.Second
-				glog.V(2).Infof("du and find on following dirs took %v: %v; will not log again for this container unless duration exceeds %v", duration, []string{fh.rootfs, fh.extraDir}, longOp)
+				glog.V(2).Infof("du and find on following dirs took %v: %v", duration, []string{fh.rootfs, fh.extraDir})
 			}
 		}
 	}
