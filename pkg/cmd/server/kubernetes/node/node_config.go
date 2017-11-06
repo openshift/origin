@@ -5,9 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/types"
-	clientgoclientset "k8s.io/client-go/kubernetes"
-	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/cert"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
@@ -34,6 +31,9 @@ type NodeConfig struct {
 	AllowDisabledDocker bool
 	// Containerized is true if we are expected to be running inside of a container
 	Containerized bool
+	// DNSClient is a client that is only used to lookup default DNS IP addresses on
+	// the cluster. It should not be passed into the Kubelet.
+	DNSClient kclientsetexternal.Interface
 
 	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.Interface
@@ -53,16 +53,7 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 		return nil, err
 	}
 
-	externalKubeClient, kubeConfig, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-	// Make a separate client for event reporting, to avoid event QPS blocking node calls
-	eventClient, err := kclientsetexternal.NewForConfig(kubeConfig)
-	if err != nil {
-		return nil, err
-	}
-	kubeClient, err := clientgoclientset.NewForConfig(kubeConfig)
+	externalKubeClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -78,16 +69,6 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 		return nil, err
 	}
 	deps.Cloud = cloud
-
-	// provide any config overrides
-	//deps.NodeName = options.NodeName
-	deps.KubeClient = externalKubeClient
-	deps.EventClient = kv1core.New(eventClient.CoreV1().RESTClient())
-
-	deps.Auth, err = kubeletapp.BuildAuth(types.NodeName(options.NodeName), kubeClient, server.KubeletConfiguration)
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO: could be cleaner
 	extraCerts, err := configapi.GetNamedCertificateMap(options.ServingInfo.NamedCertificates)
@@ -116,6 +97,7 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 
 		AllowDisabledDocker: options.AllowDisabledDocker,
 		Containerized:       server.Containerized,
+		DNSClient:           externalKubeClient,
 
 		VolumeDir: options.VolumeDirectory,
 
