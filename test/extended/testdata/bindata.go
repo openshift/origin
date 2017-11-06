@@ -65,6 +65,7 @@
 // test/extended/testdata/builds/test-docker-build.json
 // test/extended/testdata/builds/test-docker-no-outputname.json
 // test/extended/testdata/builds/test-env-build.json
+// test/extended/testdata/builds/test-imagechangetriggers.yaml
 // test/extended/testdata/builds/test-imageresolution-custom-build.yaml
 // test/extended/testdata/builds/test-imageresolution-docker-build.yaml
 // test/extended/testdata/builds/test-imageresolution-s2i-build.yaml
@@ -3281,6 +3282,113 @@ func testExtendedTestdataBuildsTestEnvBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-env-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestImagechangetriggersYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: nodejs-ex
+  spec:
+    tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: centos/nodejs-6-centos7:latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-source
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/nodejs-ex.git
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-docker
+  spec:
+    source:
+      type: Dockerfile
+      dockerfile: FROM nodejs
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-custom
+  spec:
+    strategy:
+      type: Custom
+      customStrategy:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-jenkins
+  spec:
+    strategy:
+      type: Jenkins
+      jenkinsPipelineStrategy:
+        jenkinsfile: node {}
+    triggers:
+    - type: ImageChange
+      imageChange:
+        from:
+          kind: ImageStreamTag
+          name: nodejs-ex:latest
+`)
+
+func testExtendedTestdataBuildsTestImagechangetriggersYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestImagechangetriggersYaml, nil
+}
+
+func testExtendedTestdataBuildsTestImagechangetriggersYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestImagechangetriggersYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-imagechangetriggers.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28465,6 +28573,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-docker-build.json": testExtendedTestdataBuildsTestDockerBuildJson,
 	"test/extended/testdata/builds/test-docker-no-outputname.json": testExtendedTestdataBuildsTestDockerNoOutputnameJson,
 	"test/extended/testdata/builds/test-env-build.json": testExtendedTestdataBuildsTestEnvBuildJson,
+	"test/extended/testdata/builds/test-imagechangetriggers.yaml": testExtendedTestdataBuildsTestImagechangetriggersYaml,
 	"test/extended/testdata/builds/test-imageresolution-custom-build.yaml": testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml,
 	"test/extended/testdata/builds/test-imageresolution-docker-build.yaml": testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml,
 	"test/extended/testdata/builds/test-imageresolution-s2i-build.yaml": testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml,
@@ -28868,6 +28977,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-docker-build.json": &bintree{testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
 					"test-docker-no-outputname.json": &bintree{testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},
 					"test-env-build.json": &bintree{testExtendedTestdataBuildsTestEnvBuildJson, map[string]*bintree{}},
+					"test-imagechangetriggers.yaml": &bintree{testExtendedTestdataBuildsTestImagechangetriggersYaml, map[string]*bintree{}},
 					"test-imageresolution-custom-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionCustomBuildYaml, map[string]*bintree{}},
 					"test-imageresolution-docker-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionDockerBuildYaml, map[string]*bintree{}},
 					"test-imageresolution-s2i-build.yaml": &bintree{testExtendedTestdataBuildsTestImageresolutionS2iBuildYaml, map[string]*bintree{}},
