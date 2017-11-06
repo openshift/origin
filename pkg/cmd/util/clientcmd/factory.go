@@ -124,6 +124,9 @@ func (f *Factory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.Env
 		if t.Spec.Strategy.DockerStrategy != nil {
 			return true, fn(&t.Spec.Strategy.DockerStrategy.Env)
 		}
+		if t.Spec.Strategy.JenkinsPipelineStrategy != nil {
+			return true, fn(&t.Spec.Strategy.JenkinsPipelineStrategy.Env)
+		}
 	}
 	return false, fmt.Errorf("object does not contain any environment variables")
 }
