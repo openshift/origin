@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -12,7 +13,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[imageapis][registry][Skipped][Serial] image signature workflow", func() {
+var _ = g.Describe("[imageapis][registry][Serial] image signature workflow", func() {
 
 	defer g.GinkgoRecover()
 
@@ -22,7 +23,6 @@ var _ = g.Describe("[imageapis][registry][Skipped][Serial] image signature workf
 	)
 
 	g.It("can push a signed image to openshift registry and verify it", func() {
-		g.Skip("FIXME: fix oadm verify-image-signature to work with secured registry")
 		g.By("building a signer image that knows how to sign images")
 		output, err := oc.Run("create").Args("-f", signerBuildFixture).Output()
 		if err != nil {
@@ -86,8 +86,17 @@ var _ = g.Describe("[imageapis][registry][Skipped][Serial] image signature workf
 		// Sign and copy the origin-pod image into target image stream tag
 		// TODO: Fix skopeo to pickup the Kubernetes environment variables (remove the $KUBERNETES_MASTER)
 		g.By("signing the origin-pod:latest image and pushing it into openshift registry")
-		_, err = pod.Exec("KUBERNETES_MASTER=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT GNUPGHOME=/var/lib/origin/gnupg " +
-			"skopeo --debug --tls-verify=false copy --sign-by joe@foo.bar --dest-creds " + user + ":" + token + " --dest-tls-verify=false docker://docker.io/openshift/origin-pod:latest atomic:" + signedImage)
+		out, err = pod.Exec(strings.Join([]string{
+			"KUBERNETES_MASTER=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT",
+			"GNUPGHOME=/var/lib/origin/gnupg",
+			"skopeo", "--debug", "copy", "--sign-by", "joe@foo.bar",
+			"--dest-creds=" + user + ":" + token,
+			// TODO: test with this turned to true as well
+			"--dest-tls-verify=false",
+			"docker://docker.io/openshift/origin-pod:latest",
+			"atomic:" + signedImage,
+		}, " "))
+		fmt.Fprintf(g.GinkgoWriter, "output: %s\n", out)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "signed", "latest")
@@ -102,8 +111,16 @@ var _ = g.Describe("[imageapis][registry][Skipped][Serial] image signature workf
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("Unverified"))
 
-		out, err = pod.Exec("GNUPGHOME=/var/lib/origin/gnupg " +
-			"oc adm verify-image-signature " + imageName + " --expected-identity=" + signedImage + " --save")
+		out, err = pod.Exec(strings.Join([]string{
+			"GNUPGHOME=/var/lib/origin/gnupg",
+			"oc", "adm", "verify-image-signature",
+			"--insecure=true", // TODO: import the ca certificate into the signing pod
+			"--loglevel=5",
+			imageName,
+			"--expected-identity=" + signedImage,
+			" --save",
+		}, " "))
+		fmt.Fprintf(g.GinkgoWriter, "output: %s\n", out)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("identity is now confirmed"))
 

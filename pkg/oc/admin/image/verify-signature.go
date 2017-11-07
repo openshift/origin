@@ -256,7 +256,7 @@ func (o *VerifyImageSignatureOptions) getImageManifest(img *imageapi.Image) ([]b
 	if len(o.RegistryURL) > 0 {
 		registryURL = &url.URL{Host: o.RegistryURL, Scheme: "https"}
 		if o.Insecure {
-			registryURL.Scheme = "http"
+			registryURL.Scheme = ""
 		}
 	}
 	return getImageManifestByIDFromRegistry(registryURL, parsed.RepositoryName(), img.Name, o.CurrentUser, o.CurrentUserToken, o.Insecure)
