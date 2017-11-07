@@ -107,7 +107,7 @@ func ValidateOutputArgs(cmd *cobra.Command) error {
 
 // PrinterForCommand returns the default printer for this command.
 // Requires that printer flags have been added to cmd (see AddPrinterFlags).
-func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime.ObjectTyper, decoders []runtime.Decoder) (printers.ResourcePrinter, bool, error) {
+func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime.ObjectTyper, encoder runtime.Encoder, decoders []runtime.Decoder, options printers.PrintOptions) (printers.ResourcePrinter, error) {
 	outputFormat := GetFlagString(cmd, "output")
 
 	// templates are logically optional for specifying a format.
@@ -137,15 +137,15 @@ func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime
 	if cmd.Flags().Lookup("no-headers") != nil {
 		noHeaders = GetFlagBool(cmd, "no-headers")
 	}
-	printer, generic, err := printers.GetStandardPrinter(
+	printer, err := printers.GetStandardPrinter(
 		outputFormat, templateFile, noHeaders, allowMissingTemplateKeys,
-		mapper, typer, decoders,
+		mapper, typer, encoder, decoders, options,
 	)
 	if err != nil {
-		return nil, generic, err
+		return nil, err
 	}
 
-	return maybeWrapSortingPrinter(cmd, printer), generic, nil
+	return maybeWrapSortingPrinter(cmd, printer), nil
 }
 
 // PrintResourceInfoForCommand receives a *cobra.Command and a *resource.Info and
@@ -153,11 +153,11 @@ func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime
 // object passed is non-generic, it attempts to print the object using a HumanReadablePrinter.
 // Requires that printer flags have been added to cmd (see AddPrinterFlags).
 func PrintResourceInfoForCommand(cmd *cobra.Command, info *resource.Info, f Factory, out io.Writer) error {
-	printer, generic, err := f.PrinterForCommand(cmd)
+	printer, err := f.PrinterForCommand(cmd, printers.PrintOptions{})
 	if err != nil {
 		return err
 	}
-	if !generic || printer == nil {
+	if !printer.IsGeneric() {
 		printer, err = f.PrinterForMapping(cmd, nil, false)
 		if err != nil {
 			return err
