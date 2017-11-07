@@ -21,18 +21,40 @@ func EnvInt(key string, defaultValue int32, minValue int32) int32 {
 	return int32(value)
 }
 
-// Env returns an environment variable or a default value if not specified.
+// Env returns the value of an environment variable
+// or a default value if the env var does not exist
 func Env(key string, defaultValue string) string {
-	val := os.Getenv(key)
-	if len(val) == 0 {
-		return defaultValue
+	if val, ok := GetEnv(key); ok {
+		return val
 	}
-	return val
+	return defaultValue
 }
 
-// GetEnv returns an environment value if specified
+// EnvTrim returns the value of an environment variable with
+// any leading/trailing whitespace trimmed, or a default value
+// if the env var does not exist
+func EnvTrim(key string, defaultValue string) string {
+	if val, ok := GetEnvTrim(key); ok {
+		return val
+	}
+	return defaultValue
+}
+
+// GetEnv returns the value of an environment variable
+// or an empty string if the env var does not exist
 func GetEnv(key string) (string, bool) {
 	val := os.Getenv(key)
+	if len(val) == 0 {
+		return "", false
+	}
+	return val, true
+}
+
+// GetEnvTrim returns the value of an environment variable with
+// any leading/trailing whitespace trimmed, or an empty string
+// if the env var does not exist
+func GetEnvTrim(key string) (string, bool) {
+	val := strings.TrimSpace(os.Getenv(key))
 	if len(val) == 0 {
 		return "", false
 	}

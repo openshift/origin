@@ -3,7 +3,6 @@ package admission
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"time"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -11,6 +10,7 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -24,6 +24,7 @@ import (
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -106,7 +107,7 @@ func NewPluginInitializer(
 		kubeExternalClient,
 	)
 
-	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
+	defaultRegistry := cmdutil.EnvTrim("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(kubeInternalClient.Core().Services(metav1.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
 	if err != nil {
@@ -184,13 +185,4 @@ func NewPluginInitializer(
 			return nil
 		},
 		nil
-}
-
-// env returns an environment variable, or the defaultValue if it is not set.
-func env(key string, defaultValue string) string {
-	val := os.Getenv(key)
-	if len(val) == 0 {
-		return defaultValue
-	}
-	return val
 }

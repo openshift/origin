@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/docker/distribution/context"
@@ -74,7 +75,7 @@ func newRepositoryConfig(ctx context.Context, options map[string]interface{}) (r
 	// TODO: Deprecate this environment variable.
 	rc.registryAddr = os.Getenv(DockerRegistryURLEnvVar)
 	if len(rc.registryAddr) == 0 {
-		rc.registryAddr = os.Getenv(OpenShiftDefaultRegistryEnvVar)
+		rc.registryAddr = strings.TrimSpace(os.Getenv(OpenShiftDefaultRegistryEnvVar))
 	} else {
 		context.GetLogger(ctx).Infof("DEPRECATED: %q is deprecated, use the %q instead", DockerRegistryURLEnvVar, OpenShiftDefaultRegistryEnvVar)
 	}
