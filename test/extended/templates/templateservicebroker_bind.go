@@ -26,9 +26,6 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 	defer g.GinkgoRecover()
 
 	var (
-		tsbOC               = exutil.NewCLI("openshift-template-service-broker", exutil.KubeConfigPath())
-		portForwardCmdClose func() error
-
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		instanceID         = "aadda50d-d92c-402d-bd29-5ed2095aad2c"
 		bindingID          = uuid.NewRandom().String()
@@ -45,7 +42,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 
 			var err error
 
-			brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
+			brokercli, err = TSBClient(cli)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
@@ -92,17 +90,17 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
-				exutil.DumpPodStates(tsbOC)
-				exutil.DumpPodLogsStartingWith("", tsbOC)
+				ns := cli.Namespace()
+				cli.SetNamespace("openshift-template-service-broker")
+				exutil.DumpPodStates(cli.AsAdmin())
+				exutil.DumpPodLogsStartingWith("", cli.AsAdmin())
+				cli.SetNamespace(ns)
 			}
 
 			err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			err = portForwardCmdClose()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
