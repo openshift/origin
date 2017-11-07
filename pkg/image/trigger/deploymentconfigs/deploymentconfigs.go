@@ -115,8 +115,14 @@ func (i deploymentConfigTriggerIndexer) Index(obj, old interface{}) (string, *tr
 		change = cache.Added
 	case old != nil && obj == nil:
 		// deleted
-		dc = old.(*appsapi.DeploymentConfig)
-		triggers = calculateDeploymentConfigTriggers(dc)
+		switch deleted := old.(type) {
+		case *appsapi.DeploymentConfig:
+			dc = deleted
+			triggers = calculateDeploymentConfigTriggers(dc)
+		case cache.DeletedFinalStateUnknown:
+			// don't process triggers as the state could be stale
+			glog.V(4).Infof("skipping trigger calculation for deleted deploymentconfig %q", deleted.Key)
+		}
 		change = cache.Deleted
 	default:
 		// updated
