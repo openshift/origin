@@ -22774,7 +22774,9 @@
      "allowHostPorts",
      "allowHostPID",
      "allowHostIPC",
-     "readOnlyRootFilesystem"
+     "readOnlyRootFilesystem",
+     "users",
+     "groups"
     ],
     "properties": {
      "kind": {

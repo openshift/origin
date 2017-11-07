@@ -50,7 +50,27 @@ func (strategy) PrepareForCreate(_ genericapirequest.Context, obj runtime.Object
 func (strategy) PrepareForUpdate(_ genericapirequest.Context, obj, old runtime.Object) {
 }
 
+// Canonicalize removes duplicate user and group values, preserving order.
 func (strategy) Canonicalize(obj runtime.Object) {
+	scc := obj.(*securityapi.SecurityContextConstraints)
+	scc.Users = uniqueStrings(scc.Users)
+	scc.Groups = uniqueStrings(scc.Groups)
+}
+
+func uniqueStrings(values []string) []string {
+	if len(values) < 2 {
+		return values
+	}
+	updated := make([]string, 0, len(values))
+	existing := make(map[string]struct{})
+	for _, value := range values {
+		if _, ok := existing[value]; ok {
+			continue
+		}
+		existing[value] = struct{}{}
+		updated = append(updated, value)
+	}
+	return updated
 }
 
 func (strategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
