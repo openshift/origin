@@ -10,17 +10,11 @@ trap "cleanup" EXIT
 
 os::golang::verify_go_version
 
-govet_blacklist=(
-	"pkg/.*/client/clientset_generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
-	"pkg/.*/client/clientset_generated/release_v1_./fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
-	"pkg/.*/clientset/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
-	"pkg/.*/clientset/release_v3_./fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
-	"cmd/cluster-capacity/.*"
-)
+govet_blacklist=( "${OS_GOVET_BLACKLIST[@]-}" )
 
 function govet_blacklist_contains() {
 	local text=$1
-	for blacklist_entry in "${govet_blacklist[@]}"; do
+	for blacklist_entry in "${govet_blacklist[@]-}"; do
 		if grep -Eqx "${blacklist_entry}" <<<"${text}"; then
 			# the text we got matches this blacklist entry
 			return 0
