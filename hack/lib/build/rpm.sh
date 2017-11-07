@@ -10,13 +10,11 @@
 # Arguments:
 #  - None
 # Exports:
-#  - OS_RPM_NAME
 #  - OS_RPM_VERSION
 #  - OS_RPM_RELEASE
 #  - OS_RPM_ARCHITECTURE
 function os::build::rpm::get_nvra_vars() {
 	# the package name can be overwritten but is normally 'origin'
-	OS_RPM_NAME="${OS_RPM_NAME:-"origin"}"
 	OS_RPM_ARCHITECTURE="$(uname -i)"
 
 	# we can extract the pacakge version from the build version
@@ -66,7 +64,9 @@ function os::build::rpm::get_nvra_vars() {
 		os::log::fatal "Malformed git version metadata: ${metadata}"
 	fi
 
-	export OS_RPM_NAME OS_RPM_VERSION OS_RPM_RELEASE OS_RPM_ARCHITECTURE
+	OS_RPM_GIT_VARS=$( os::build::version::save_vars | tr '\n' ' ' )
+
+	export OS_RPM_VERSION OS_RPM_RELEASE OS_RPM_ARCHITECTURE OS_RPM_GIT_VARS
 }
 
 
@@ -83,8 +83,12 @@ function os::build::rpm::get_nvra_vars() {
 # Returns:
 #  None
 function os::build::rpm::format_nvra() {
-	if [[ -z "${OS_RPM_NAME:-}" || -z "${OS_RPM_VERSION:-}" || -z "${OS_RPM_RELEASE:-}" ]]; then
+	if [[ -z "${OS_RPM_VERSION:-}" || -z "${OS_RPM_RELEASE:-}" ]]; then
 		os::build::rpm::get_nvra_vars
+	fi
+	if [[ -z "${OS_RPM_NAME-}" ]]; then
+		OS_RPM_SPECFILE="$( find "${OS_ROOT}" -name *.spec )"
+		OS_RPM_NAME="$( rpmspec -q --qf '%{name}\n' "${OS_RPM_SPECFILE}" | head -1 )"
 	fi
 
 	echo "${OS_RPM_NAME}-${OS_RPM_VERSION}-${OS_RPM_RELEASE}.${OS_RPM_ARCHITECTURE}"
