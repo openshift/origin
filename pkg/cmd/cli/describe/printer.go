@@ -75,6 +75,11 @@ var (
 	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP", "PRIORITY", "READONLYROOTFS", "VOLUMES"}
 )
 
+func init() {
+	// TODO this should be eliminated
+	kprinters.NewHumanReadablePrinterFn = NewHumanReadablePrinter
+}
+
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
 func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
 	// TODO: support cross namespace listing
