@@ -21,5 +21,27 @@ os::cmd::expect_success_and_text 'oc set env dc/node --env PASS=x,y=z' 'no longe
 # warning is not printed for variables passed as positional arguments
 os::cmd::expect_success_and_not_text 'oc set env dc/node PASS=x,y=z' 'no longer accepts comma-separated list'
 
+# create a build-config object with the JenkinsPipeline strategy
+os::cmd::expect_success 'oc process -p NAMESPACE=openshift -f examples/jenkins/jenkins-ephemeral-template.json | oc create -f -'
+os::cmd::expect_success "echo 'apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: fake-pipeline
+spec:
+  source:
+    git:
+      uri: git://github.com/openshift/ruby-hello-world.git
+  strategy:
+    jenkinsPipelineStrategy: {}
+' | oc create -f -"
+
+# ensure build-config has been created and that its type is "JenkinsPipeline"
+os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.type }'" 'JenkinsPipeline'
+# attempt to set an environment variable
+os::cmd::expect_success_and_text 'oc set env bc/fake-pipeline FOO=BAR' 'buildconfig "fake\-pipeline" updated'
+# ensure environment variable was set
+os::cmd::expect_success_and_text "oc get bc fake-pipeline -o jsonpath='{ .spec.strategy.jenkinsPipelineStrategy.env }'" 'name\:FOO'
+os::cmd::expect_success 'oc delete bc fake-pipeline'
+
 echo "oc set env: ok"
 os::test::junit::declare_suite_end
