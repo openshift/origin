@@ -35,4 +35,8 @@ const (
 	// should wait for the object to be ready before reporting the template
 	// instantiation complete.
 	WaitForReadyAnnotation = "template.alpha.openshift.io/wait-for-ready"
+
+	// BindableAnnotation indicates whether the template service broker should
+	// advertise the template as being bindable (default is true)
+	BindableAnnotation = "template.openshift.io/bindable"
 )
