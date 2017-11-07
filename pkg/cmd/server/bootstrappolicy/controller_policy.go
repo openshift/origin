@@ -47,8 +47,6 @@ const (
 	// This is a special constant which maps to the service account name used by the underlying
 	// Kubernetes code, so that we can build out the extra policy required to scale OpenShift resources.
 	InfraHorizontalPodAutoscalerControllerServiceAccountName = "horizontal-pod-autoscaler"
-
-	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
 )
 
 var (
