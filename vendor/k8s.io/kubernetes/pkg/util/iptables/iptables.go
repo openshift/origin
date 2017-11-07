@@ -571,7 +571,7 @@ func getIPTablesRestoreWaitFlag(exec utilexec.Interface) []string {
 		return nil
 	}
 
-	return []string{"--wait=2"}
+	return []string{WaitSecondsString}
 }
 
 // getIPTablesRestoreVersionString runs "iptables-restore --version" to get the version string
