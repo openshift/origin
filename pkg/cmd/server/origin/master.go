@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -342,15 +341,6 @@ func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocati
 	}
 
 	return factory.Create(plugin)
-}
-
-// env returns an environment variable, or the defaultValue if it is not set.
-func env(key string, defaultValue string) string {
-	val := os.Getenv(key)
-	if len(val) == 0 {
-		return defaultValue
-	}
-	return val
 }
 
 func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler, prefixes ...string) http.Handler {
