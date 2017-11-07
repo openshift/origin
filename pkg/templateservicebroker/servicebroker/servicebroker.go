@@ -1,6 +1,9 @@
 package servicebroker
 
 import (
+	"os"
+	"time"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	restclient "k8s.io/client-go/rest"
@@ -25,6 +28,10 @@ type Broker struct {
 	hasSynced          func() bool
 	templateNamespaces map[string]struct{}
 	restmapper         meta.RESTMapper
+	// TODO - remove this when https://github.com/kubernetes/kubernetes/issues/54940 is fixed
+	// a delay between when we create the brokertemplateinstance and the
+	// templateinstance.
+	gcCreateDelay time.Duration
 }
 
 var _ api.Broker = &Broker{}
@@ -47,6 +54,13 @@ func NewBroker(saKubeClientConfig *restclient.Config, informer templateinformer.
 	configCopy := *saKubeClientConfig
 	configCopy.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: kapi.Codecs}
 
+	delay := 5 * time.Second
+	value := os.Getenv("TEMPLATE_SERVICE_BROKER_GC_DELAY")
+	if len(value) != 0 {
+		if v, err := time.ParseDuration(value); err == nil {
+			delay = v
+		}
+	}
 	b := &Broker{
 		kc:                 internalKubeClient,
 		extconfig:          &configCopy,
@@ -55,6 +69,7 @@ func NewBroker(saKubeClientConfig *restclient.Config, informer templateinformer.
 		hasSynced:          informer.Informer().HasSynced,
 		templateNamespaces: templateNamespaces,
 		restmapper:         restutil.DefaultMultiRESTMapper(),
+		gcCreateDelay:      delay,
 	}
 
 	return b, nil

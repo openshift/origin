@@ -3,6 +3,7 @@ package servicebroker
 import (
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -347,6 +348,9 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 	if resp != nil {
 		return resp
 	}
+
+	// TODO remove this when https://github.com/kubernetes/kubernetes/issues/54940 is fixed
+	time.Sleep(b.gcCreateDelay)
 
 	secret, resp := b.ensureSecret(u, namespace, brokerTemplateInstance, instanceID, preq, &didWork)
 	if resp != nil {
