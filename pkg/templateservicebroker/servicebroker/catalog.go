@@ -55,12 +55,14 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		paramOrdering = append(paramOrdering, param.Name)
 	}
 
+	bindable := strings.ToLower(template.Annotations[templateapi.BindableAnnotation]) != "false"
+
 	plan := api.Plan{
 		ID:          string(template.UID), // TODO: this should be a unique value
 		Name:        "default",
 		Description: "Default plan",
 		Free:        true,
-		Bindable:    true,
+		Bindable:    bindable,
 		Schemas: api.Schema{
 			ServiceInstance: api.ServiceInstances{
 				Create: map[string]*jsschema.Schema{
@@ -106,7 +108,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		ID:          string(template.UID),
 		Description: description,
 		Tags:        strings.Split(template.Annotations["tags"], ","),
-		Bindable:    true,
+		Bindable:    bindable,
 		Metadata:    metadata,
 		Plans:       []api.Plan{plan},
 	}

@@ -1,7 +1,9 @@
 package servicebroker
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -39,6 +41,14 @@ func (b *Broker) Unbind(u user.Info, instanceID, bindingID string) *api.Response
 		Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
 	}); err != nil {
 		return api.Forbidden(err)
+	}
+
+	templateInstance, err := b.templateclient.TemplateInstances(namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.GetOptions{})
+	if err != nil {
+		return api.InternalServerError(err)
+	}
+	if strings.ToLower(templateInstance.Spec.Template.Annotations[templateapi.BindableAnnotation]) == "false" {
+		return api.BadRequest(errors.New("provisioned service is not bindable"))
 	}
 
 	// The OSB API requires this function to be idempotent (restartable).  If
