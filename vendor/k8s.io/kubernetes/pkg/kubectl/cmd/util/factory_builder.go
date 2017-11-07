@@ -49,7 +49,7 @@ func (f *ring2Factory) PrinterForCommand(cmd *cobra.Command) (printers.ResourceP
 	mapper, typer := f.objectMappingFactory.Object()
 	// TODO: used by the custom column implementation and the name implementation, break this dependency
 	decoders := []runtime.Decoder{f.clientAccessFactory.Decoder(true), unstructured.UnstructuredJSONScheme}
-	return PrinterForCommand(cmd, mapper, typer, decoders)
+	return PrinterForCommand(cmd, mapper, typer, f.clientAccessFactory.JSONEncoder(), decoders)
 }
 
 func (f *ring2Factory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (printers.ResourcePrinter, error) {
