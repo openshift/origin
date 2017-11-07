@@ -86,7 +86,7 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.GroupClient = osClient.Groups()
 
-	printer, _, err := f.PrinterForCommand(cmd)
+	printer, err := f.PrinterForCommand(cmd, kprinters.PrintOptions{})
 	if err != nil {
 		return err
 	}
