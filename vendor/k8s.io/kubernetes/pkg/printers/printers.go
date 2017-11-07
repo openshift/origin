@@ -30,7 +30,7 @@ import (
 // is agnostic to schema versions, so you must send arguments to PrintObj in the
 // version you wish them to be shown using a VersionedPrinter (typically when
 // generic is true).
-func GetStandardPrinter(format, formatArgument string, noHeaders, allowMissingTemplateKeys bool, mapper meta.RESTMapper, typer runtime.ObjectTyper, decoders []runtime.Decoder) (ResourcePrinter, bool, error) {
+func GetStandardPrinter(format, formatArgument string, noHeaders, allowMissingTemplateKeys bool, mapper meta.RESTMapper, typer runtime.ObjectTyper, encoder runtime.Encoder, decoders []runtime.Decoder, options PrintOptions) (ResourcePrinter, bool, error) {
 	var printer ResourcePrinter
 	switch format {
 	case "json":
@@ -108,7 +108,7 @@ func GetStandardPrinter(format, formatArgument string, noHeaders, allowMissingTe
 	case "wide":
 		fallthrough
 	case "":
-		return nil, false, nil
+		return NewHumanReadablePrinter(encoder, decoders[0], options), false, nil
 	default:
 		return nil, false, fmt.Errorf("output format %q not recognized", format)
 	}
