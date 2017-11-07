@@ -8,4 +8,4 @@ if [ "$#" -ne 0 ]; then
   opts=""
 fi
 
-exec /usr/bin/openshift start node "--config=${conf}" "${opts}" $@
+exec /usr/bin/openshift start node "--config=${conf}" ${opts} $@
