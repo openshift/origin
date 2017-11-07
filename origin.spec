@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7e79b710660701c29b5f12d73d769595333d4697
+%global commit c8db9499dd3735a9f5f7e8d3598d7ae8ff9c27f8
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.195.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=7e79b71
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.196.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c8db949
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.196.0%{?dist}
+Release:        0.197.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,15 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Nov 07 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.197.0
+- introduce a configurable delay between creating resources to prevent spurious
+  GC (bparees@redhat.com)
+- limit retries of imagesignature import and don't log failures
+  (bparees@redhat.com)
+- Prevent unbounded growth in SCC due to duplicates (ccoleman@redhat.com)
+- SCC can't be patched via JSONPatch because users is nil (ccoleman@redhat.com)
+- catalog: add cluster service broker admin role (jpeeler@redhat.com)
+
 * Mon Nov 06 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.196.0
 - Let the kubelet initialize its own clients (ccoleman@redhat.com)
 
