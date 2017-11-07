@@ -31,6 +31,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"k8s.io/kubernetes/pkg/printers"
 )
 
 // New creates a default Factory for commands that should share identical server
@@ -67,11 +68,11 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
-	printer, generic, err := f.PrinterForCommand(cmd)
+	printer, err := f.PrinterForCommand(cmd, printers.PrintOptions{})
 	if err != nil {
 		return nil
 	}
-	if !generic {
+	if printer.IsGeneric() {
 		for _, info := range infos {
 			mapping := info.ResourceMapping()
 			printer, err := f.PrinterForMapping(cmd, mapping, false)

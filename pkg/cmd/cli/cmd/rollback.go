@@ -149,7 +149,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	o.out = out
 
 	if len(o.Format) > 0 {
-		o.printer, _, err = f.PrinterForCommand(cmd)
+		o.printer, err = f.PrinterForCommand(cmd, kprinters.PrintOptions{})
 		if err != nil {
 			return err
 		}

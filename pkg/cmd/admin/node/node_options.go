@@ -66,7 +66,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 		return err
 	}
 
-	cmdPrinter, output, err := f.PrinterForCommand(c)
+	cmdPrinter, err := f.PrinterForCommand(c, kprinters.PrintOptions{})
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 		return f.PrinterForMapping(c, mapping, printOptions.WithNamespace)
 	}
 
-	if output {
+	if cmdPrinter.IsGeneric() {
 		n.CmdPrinterOutput = true
 	}
 	if len(args) != 0 {

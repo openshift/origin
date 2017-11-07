@@ -111,7 +111,7 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 	o.RESTClientFactory = f.ClientForMapping
 
 	if len(kcmdutil.GetFlagString(cmd, "output")) != 0 {
-		printer, _, err := f.PrinterForCommand(cmd)
+		printer, err := f.PrinterForCommand(cmd, kprinters.PrintOptions{})
 		if err != nil {
 			return err
 		}
