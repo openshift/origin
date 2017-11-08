@@ -98,7 +98,7 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 		ImageClient:     imageFake.Image(),
 		KubeClient:      kFake,
 		DiscoveryClient: fakeDiscovery,
-		Timeout:         time.Millisecond,
+		Timeout:         time.Second,
 		Out:             ioutil.Discard,
 		ErrOut:          errBuf,
 	}
