@@ -112,7 +112,7 @@ func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 		// We may find netid when we check with api server but we will
 		// still treat this as an error if we don't find it in vnid map.
 		// So that we can imply insufficient timeout if we see many VnidNotFoundErrors.
-		VnidNotFoundErrors.Inc()
+		VNIDNotFoundErrors.Inc()
 
 		netns, err := vmap.networkClient.Network().NetNamespaces().Get(name, metav1.GetOptions{})
 		if err != nil {
