@@ -30,6 +30,9 @@ type nodeVNIDMap struct {
 	ids        map[string]uint32
 	mcEnabled  map[string]bool
 	namespaces map[uint32]sets.String
+
+	// maps net-namespace-name :: earliest timestamp when not found
+	notFound map[string]time.Time
 }
 
 func newNodeVNIDMap(policy osdnPolicy, networkClient networkclient.Interface) *nodeVNIDMap {
@@ -39,6 +42,7 @@ func newNodeVNIDMap(policy osdnPolicy, networkClient networkclient.Interface) *n
 		ids:           make(map[string]uint32),
 		mcEnabled:     make(map[string]bool),
 		namespaces:    make(map[uint32]sets.String),
+		notFound:      make(map[string]time.Time),
 	}
 }
 
@@ -131,6 +135,9 @@ func (vmap *nodeVNIDMap) getVNID(name string) (uint32, error) {
 	if id, ok := vmap.ids[name]; ok {
 		return id, nil
 	}
+	if _, found := vmap.notFound[name]; !found {
+		vmap.notFound[name] = time.Now()
+	}
 	return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
 }
 
@@ -145,12 +152,19 @@ func (vmap *nodeVNIDMap) setVNID(name string, id uint32, mcEnabled bool) {
 	vmap.mcEnabled[name] = mcEnabled
 	vmap.addNamespaceToSet(name, id)
 
+	if notFoundTime, found := vmap.notFound[name]; found {
+		VNIDNotFoundLatency.Observe(sinceInMicroseconds(notFoundTime))
+		delete(vmap.notFound, name)
+	}
+
 	glog.Infof("Associate netid %d to namespace %q with mcEnabled %v", id, name, mcEnabled)
 }
 
 func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
+
+	delete(vmap.notFound, name)
 
 	id, found := vmap.ids[name]
 	if !found {
@@ -190,7 +204,26 @@ func (vmap *nodeVNIDMap) Start(networkInformers networkinformers.SharedInformerF
 	}
 
 	vmap.watchNetNamespaces()
+
+	go utilwait.Forever(vmap.cleanNotFoundMap, 0)
 	return nil
+}
+
+// cleanNotFoundMap() removes any VNID-not-found timestamps that are older than one hour
+// to ensure we don't leave stale entries in the map that will never be found
+func (vmap *nodeVNIDMap) cleanNotFoundMap() {
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for {
+		<-t.C
+		vmap.lock.Lock()
+		for name, notFoundTime := range vmap.notFound {
+			if time.Since(notFoundTime) > time.Hour {
+				delete(vmap.notFound, name)
+			}
+		}
+		vmap.lock.Unlock()
+	}
 }
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {

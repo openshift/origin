@@ -26,6 +26,7 @@ const (
 	PodOperationsErrorsKey      = "pod_operations_errors"
 	PodOperationsLatencyKey     = "pod_operations_latency"
 	VNIDNotFoundErrorsKey       = "vnid_not_found_errors"
+	VNIDNotFoundLatencyKey      = "vnid_not_found_latency"
 
 	// Pod Operation types
 	PodOperationSetup    = "setup"
@@ -89,6 +90,15 @@ var (
 		},
 	)
 
+	VNIDNotFoundLatency = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Namespace: SDNNamespace,
+			Subsystem: SDNSubsystem,
+			Name:      VNIDNotFoundLatencyKey,
+			Help:      "Latency from when a VNID-not-found error occurs until the VNID appears",
+		},
+	)
+
 	// num stale OVS flows (flows that reference non-existent ports)
 	// num vnids (in the master)
 	// num netnamespaces (in the master)
@@ -108,6 +118,7 @@ func RegisterMetrics() {
 		prometheus.MustRegister(PodOperationsErrors)
 		prometheus.MustRegister(PodOperationsLatency)
 		prometheus.MustRegister(VNIDNotFoundErrors)
+		prometheus.MustRegister(VNIDNotFoundLatency)
 	})
 }
 
