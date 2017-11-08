@@ -106,6 +106,7 @@ func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 	if err == nil {
 		return id, nil
 	} else {
+		VnidNotFoundErrors.Inc()
 		return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
 	}
 }
