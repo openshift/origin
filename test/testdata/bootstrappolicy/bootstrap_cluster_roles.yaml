@@ -3299,6 +3299,7 @@ items:
     - ""
     - build.openshift.io
     resources:
+    - builds/custom
     - builds/docker
     - builds/jenkinspipeline
     - builds/optimizeddocker

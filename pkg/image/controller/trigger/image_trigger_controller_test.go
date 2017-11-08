@@ -297,9 +297,7 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 			},
 		}
 		inst := fakeBuildConfigInstantiator(test.bc, test.is)
-		reaction := &buildconfigs.BuildConfigReactor{
-			Instantiator: inst,
-		}
+		reaction := buildconfigs.NewBuildConfigReactor(inst, nil)
 		controller := TriggerController{
 			triggerCache: NewTriggerCache(),
 			lister:       lister,
@@ -398,9 +396,7 @@ func TestTriggerControllerSyncBuildConfigResourceErrorHandling(t *testing.T) {
 		if test.err != nil {
 			inst.err = test.err
 		}
-		reaction := &buildconfigs.BuildConfigReactor{
-			Instantiator: inst,
-		}
+		reaction := buildconfigs.NewBuildConfigReactor(inst, nil)
 		controller := TriggerController{
 			triggerCache: NewTriggerCache(),
 			lister:       lister,
