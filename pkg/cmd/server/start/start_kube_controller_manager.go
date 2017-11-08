@@ -277,9 +277,6 @@ func newGenericInformers(informers *informers) genericInformers {
 				return informers.appInformers.ForResource(resource)
 			}),
 			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.authorizationInformers.ForResource(resource)
-			}),
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
 				return informers.buildInformers.ForResource(resource)
 			}),
 			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
