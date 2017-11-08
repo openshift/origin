@@ -16,7 +16,8 @@
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.",
   "labels": {
-    "template": "dancer-mysql-example"
+    "template": "dancer-mysql-example",
+    "app": "dancer-mysql-example"
   },
   "objects": [
     {

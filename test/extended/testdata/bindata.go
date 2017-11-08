@@ -18403,7 +18403,8 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
   "labels": {
-    "template": "cakephp-mysql-persistent"
+    "template": "cakephp-mysql-persistent",
+    "app": "cakephp-mysql-persistent"
   },
   "objects": [
     {
@@ -19008,7 +19009,8 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
   "labels": {
-    "template": "cakephp-mysql-example"
+    "template": "cakephp-mysql-example",
+    "app": "cakephp-mysql-example"
   },
   "objects": [
     {
@@ -19587,7 +19589,8 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.",
   "labels": {
-    "template": "dancer-mysql-persistent"
+    "template": "dancer-mysql-persistent",
+    "app": "dancer-mysql-persistent"
   },
   "objects": [
     {
@@ -20136,7 +20139,8 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.",
   "labels": {
-    "template": "dancer-mysql-example"
+    "template": "dancer-mysql-example",
+    "app": "dancer-mysql-example"
   },
   "objects": [
     {
@@ -20659,7 +20663,8 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
   "labels": {
-    "template": "django-psql-persistent"
+    "template": "django-psql-persistent",
+    "app": "django-psql-persistent"
   },
   "objects": [
     {
@@ -21218,7 +21223,8 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
   "labels": {
-    "template": "django-psql-example"
+    "template": "django-psql-example",
+    "app": "django-psql-example"
   },
   "objects": [
     {
@@ -21751,7 +21757,8 @@ var _examplesQuickstartsHttpdJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/httpd-ex/blob/master/README.md.",
   "labels": {
-    "template": "httpd-example"
+    "template": "httpd-example",
+    "app": "httpd-example"
   },
   "objects": [
     {
@@ -22044,7 +22051,8 @@ var _examplesQuickstartsNodejsMongodbPersistentJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
   "labels": {
-    "template": "nodejs-mongo-persistent"
+    "template": "nodejs-mongo-persistent",
+    "app": "nodejs-mongo-persistent"
   },
   "objects": [
     {
@@ -22612,7 +22620,8 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
   "labels": {
-    "template": "nodejs-mongodb-example"
+    "template": "nodejs-mongodb-example",
+    "app": "nodejs-mongodb-example"
   },
   "objects": [
     {
@@ -23156,7 +23165,8 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.",
   "labels": {
-    "template": "rails-pgsql-persistent"
+    "template": "rails-pgsql-persistent",
+    "app": "rails-pgsql-persistent"
   },
   "objects": [
     {
@@ -23785,7 +23795,8 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.",
   "labels": {
-    "template": "rails-postgresql-example"
+    "template": "rails-postgresql-example",
+    "app": "rails-postgresql-example"
   },
   "objects": [
     {
@@ -25477,6 +25488,9 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
     }
   },
   "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "labels": {
+      "app": "jenkins-ephemeral"
+  },
   "objects": [
     {
       "kind": "Route",
@@ -25778,6 +25792,9 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
     }
   },
   "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "labels": {
+      "app": "jenkins-persistent"
+  },
   "objects": [
     {
       "kind": "Route",
@@ -27472,7 +27489,8 @@ var _examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson = []byte(`{
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/cake-ex/blob/master/README.md.",
   "labels": {
-    "template": "cakephp-mysql-example"
+    "template": "cakephp-mysql-example",
+    "app": "cakephp-mysql-example"
   },
   "objects": [
     {
