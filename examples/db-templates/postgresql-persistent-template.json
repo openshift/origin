@@ -4,7 +4,7 @@
   "metadata": {
     "name": "postgresql-persistent",
     "annotations": {
-      "openshift.io/display-name": "PostgreSQL (Persistent)",
+      "openshift.io/display-name": "PostgreSQL",
       "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql",

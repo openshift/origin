@@ -2198,7 +2198,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "mariadb-persistent",
     "annotations": {
-      "openshift.io/display-name": "MariaDB (Persistent)",
+      "openshift.io/display-name": "MariaDB",
       "description": "MariaDB database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mariadb",
       "tags": "database,mariadb",
@@ -2775,7 +2775,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "mongodb-persistent",
     "annotations": {
-      "openshift.io/display-name": "MongoDB (Persistent)",
+      "openshift.io/display-name": "MongoDB",
       "description": "MongoDB database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mongodb",
       "tags": "database,mongodb",
@@ -3378,7 +3378,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "mysql-persistent",
     "annotations": {
-      "openshift.io/display-name": "MySQL (Persistent)",
+      "openshift.io/display-name": "MySQL",
       "description": "MySQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/5.7/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mysql-database",
       "tags": "database,mysql",
@@ -3943,7 +3943,7 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "postgresql-persistent",
     "annotations": {
-      "openshift.io/display-name": "PostgreSQL (Persistent)",
+      "openshift.io/display-name": "PostgreSQL",
       "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql",
@@ -4470,7 +4470,7 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "redis-persistent",
     "annotations": {
-      "openshift.io/display-name": "Redis (Persistent)",
+      "openshift.io/display-name": "Redis",
       "description": "Redis in-memory data structure store, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-redis",
       "tags": "database,redis",
@@ -5031,7 +5031,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
   "metadata": {
     "name": "jenkins-persistent",
     "annotations": {
-      "openshift.io/display-name": "Jenkins (Persistent)",
+      "openshift.io/display-name": "Jenkins",
       "description": "Jenkins service, with persistent storage.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins",
@@ -6727,7 +6727,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
   "metadata": {
     "name": "cakephp-mysql-persistent",
     "annotations": {
-      "openshift.io/display-name": "CakePHP + MySQL (Persistent)",
+      "openshift.io/display-name": "CakePHP + MySQL",
       "description": "An example CakePHP application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/cakephp-ex/blob/master/README.md.",
       "tags": "quickstart,php,cakephp",
       "iconClass": "icon-php",
@@ -7913,7 +7913,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
   "metadata": {
     "name": "dancer-mysql-persistent",
     "annotations": {
-      "openshift.io/display-name": "Dancer + MySQL (Persistent)",
+      "openshift.io/display-name": "Dancer + MySQL",
       "description": "An example Dancer application with a MySQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/dancer-ex/blob/master/README.md.",
       "tags": "quickstart,perl,dancer",
       "iconClass": "icon-perl",
@@ -8987,7 +8987,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
   "metadata": {
     "name": "django-psql-persistent",
     "annotations": {
-      "openshift.io/display-name": "Django + PostgreSQL (Persistent)",
+      "openshift.io/display-name": "Django + PostgreSQL",
       "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
       "tags": "quickstart,python,django",
       "iconClass": "icon-python",
@@ -10375,7 +10375,7 @@ var _examplesQuickstartsNodejsMongodbPersistentJson = []byte(`{
   "metadata": {
     "name": "nodejs-mongo-persistent",
     "annotations": {
-      "openshift.io/display-name": "Node.js + MongoDB (Persistent)",
+      "openshift.io/display-name": "Node.js + MongoDB",
       "description": "An example Node.js application with a MongoDB database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
       "tags": "quickstart,nodejs",
       "iconClass": "icon-nodejs",
@@ -11489,7 +11489,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
   "metadata": {
     "name": "rails-pgsql-persistent",
     "annotations": {
-      "openshift.io/display-name": "Rails + PostgreSQL (Persistent)",
+      "openshift.io/display-name": "Rails + PostgreSQL",
       "description": "An example Rails application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/rails-ex/blob/master/README.md.",
       "tags": "quickstart,ruby,rails",
       "iconClass": "icon-ruby",
