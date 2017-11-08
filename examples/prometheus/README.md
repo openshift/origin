@@ -8,6 +8,8 @@ To deploy, run:
 $ oc new-app -f prometheus.yaml
 ```
 
+Note: you may want to use prometheus-high-performance.yaml for high resolution granularity.
+
 You may customize where the images (built from `openshift/prometheus` and `openshift/oauth-proxy`) are pulled from via template parameters.
 
 The optional `node-exporter` component may be installed as a daemon set to gather host level metrics. It requires additional
