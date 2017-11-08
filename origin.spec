@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c8db9499dd3735a9f5f7e8d3598d7ae8ff9c27f8
+%global commit d8392fa4aa2a2c5c827a2f8ed944bed9c60777cb
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.196.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c8db949
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.197.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=d8392fa
 }
 
 %if 0%{?skip_build}
@@ -59,7 +59,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.197.0%{?dist}
+Release:        0.198.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -654,6 +654,25 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Nov 08 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.198.0
+- bump(github.com/openshift/origin-web-console):
+  eb4047d1b20a27e162b2abc1ae7d9b225ac69fd9 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  766b9b8347efd4b5c4f7954505bb3d08332ab792 (eparis+openshiftbot@redhat.com)
+- UPSTREAM: 55248: increase iptables max wait from 2 seconds to 5 (fix)
+  (bbennett@redhat.com)
+- fixup extended tests to use bindable template (jminter@redhat.com)
+- remove expose annotations from quickstarts and add bindable: false
+  (jminter@redhat.com)
+- add template.openshift.io/bindable annotation, default is true
+  (jminter@redhat.com)
+- add support for JenkinsPipeline strategy env update (jvallejo@redhat.com)
+- verify that imagechangetriggers trigger all build types (jminter@redhat.com)
+- extended: reenabled image signature workflow test (miminar@redhat.com)
+- verify-signature: fixed insecure fall-back (miminar@redhat.com)
+- add event when build image trigger fails (jminter@redhat.com)
+- allow image trigger controller to create custom builds (jminter@redhat.com)
+
 * Tue Nov 07 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.197.0
 - introduce a configurable delay between creating resources to prevent spurious
   GC (bparees@redhat.com)
