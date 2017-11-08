@@ -178,6 +178,9 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 	if breq.ServiceID != string(templateInstance.Spec.Template.UID) {
 		return api.BadRequest(errors.New("service_id does not match provisioned service"))
 	}
+	if strings.ToLower(templateInstance.Spec.Template.Annotations[templateapi.BindableAnnotation]) == "false" {
+		return api.BadRequest(errors.New("provisioned service is not bindable"))
+	}
 
 	credentials := map[string]interface{}{}
 

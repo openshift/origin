@@ -213,6 +213,7 @@ func init() {
 			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(
 				authorizationapi.SourceBuildResource,
 				authorizationapi.DockerBuildResource,
+				authorizationapi.CustomBuildResource,
 				authorizationapi.OptimizedDockerBuildResource,
 				authorizationapi.JenkinsPipelineBuildResource,
 			).RuleOrDie(),

@@ -11,7 +11,8 @@
       "openshift.io/long-description": "This template defines resources needed to develop a NodeJS application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
       "openshift.io/provider-display-name": "Red Hat, Inc.",
       "openshift.io/documentation-url": "https://github.com/openshift/nodejs-ex",
-      "openshift.io/support-url": "https://access.redhat.com"
+      "openshift.io/support-url": "https://access.redhat.com",
+      "template.openshift.io/bindable": "false"
     }
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/nodejs-ex/blob/master/README.md.",
@@ -58,10 +59,7 @@
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${NAME}",
-        "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
-        }
+        "name": "${NAME}"
       },
       "spec": {
         "host": "${APPLICATION_DOMAIN}",

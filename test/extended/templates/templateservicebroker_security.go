@@ -53,7 +53,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 
 		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
-		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
+		template, err = cli.TemplateClient().Template().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
@@ -122,11 +122,11 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		if err != nil {
 			templateInstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "error getting TemplateInstance after failed provision: %v", err)
+				fmt.Fprintf(g.GinkgoWriter, "error getting TemplateInstance after failed provision: %v\n", err)
 			} else {
 				err := dumpObjectReadiness(cli, templateInstance)
 				if err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "error running dumpObjectReadiness: %v", err)
+					fmt.Fprintf(g.GinkgoWriter, "error running dumpObjectReadiness: %v\n", err)
 				}
 			}
 		}

@@ -68,7 +68,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
 			Store:     ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
 			TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
-			Reactor:   &triggerbuildconfigs.BuildConfigReactor{Instantiator: bcInstantiator},
+			Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
 		})
 	}
 	if !c.HasDeploymentsEnabled {

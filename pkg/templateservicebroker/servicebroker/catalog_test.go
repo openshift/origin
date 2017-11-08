@@ -135,8 +135,15 @@ func TestServiceFromTemplate(t *testing.T) {
 	}
 
 	template.Annotations["description"] = ""
+	template.Annotations[templateapi.BindableAnnotation] = "False"
 	service = serviceFromTemplate(template)
 	if service.Description != noDescriptionProvided {
 		t.Errorf("service.Description incorrectly set to %q", service.Description)
+	}
+	if service.Bindable {
+		t.Errorf("service.Bindable incorrectly set")
+	}
+	if service.Plans[0].Bindable {
+		t.Errorf("service.Plans[0].Bindable incorrectly set")
 	}
 }
