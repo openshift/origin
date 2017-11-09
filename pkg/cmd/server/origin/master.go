@@ -16,6 +16,8 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
+	"io/ioutil"
+
 	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -151,6 +153,19 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (http.Handler, error) {
 	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
 		return http.NotFoundHandler(), nil
+	}
+
+	if WebConsoleProxy() {
+		fmt.Printf("#### installing the webconsole proxy")
+		caBundle, err := ioutil.ReadFile(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile)
+		if err != nil {
+			return nil, err
+		}
+		proxyHandler, err := NewWebConsoleProxyHandler(aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()), caBundle)
+		if err != nil {
+			return nil, err
+		}
+		return proxyHandler, nil
 	}
 
 	config, err := NewAssetServerConfigFromMasterConfig(c.Options)

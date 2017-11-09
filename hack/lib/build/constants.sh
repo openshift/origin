@@ -40,6 +40,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/oc
   cmd/kubefed
   cmd/template-service-broker
+  cmd/origin-web-console
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 

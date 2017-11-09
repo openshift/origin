@@ -824,6 +824,8 @@ type DNSConfig struct {
 }
 
 type AssetConfig struct {
+	metav1.TypeMeta
+
 	ServingInfo HTTPServingInfo
 
 	// PublicURL is where you can find the asset server (TODO do we really need this?)

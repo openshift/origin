@@ -72,7 +72,7 @@ func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, err
 	if err != nil {
 		return nil, err
 	}
-	secureServingOptions := genericapiserveroptions.SecureServingOptions{}
+	secureServingOptions := genericapiserveroptions.NewSecureServingOptions()
 	secureServingOptions.BindPort = port
 	secureServingOptions.ServerCert.CertKey.CertFile = assetConfig.ServingInfo.ServerCert.CertFile
 	secureServingOptions.ServerCert.CertKey.KeyFile = assetConfig.ServingInfo.ServerCert.KeyFile
