@@ -2801,6 +2801,21 @@ items:
     - update
     - watch
   - apiGroups:
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - rolebindings
+    - roles
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - ""
     - authorization.openshift.io
     attributeRestrictions: null
