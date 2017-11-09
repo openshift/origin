@@ -137,7 +137,7 @@ func (SELinuxContextStrategyOptions) SwaggerDoc() map[string]string {
 }
 
 var map_SecurityContextConstraints = map[string]string{
-	"":                         "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container.",
+	"":                         "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container. For historical reasons SCC was exposed under the core Kubernetes API group. That exposure is deprecated and will be removed in a future release - users should instead use the security.openshift.io group to manage SecurityContextConstraints.",
 	"metadata":                 "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
 	"priority":                 "Priority influences the sort order of SCCs when evaluating which SCCs to try first for a given pod request based on access in the Users and Groups fields.  The higher the int, the higher priority. An unset value is considered a 0 priority. If scores for multiple SCCs are equal they will be sorted from most restrictive to least restrictive. If both priorities and restrictions are equal the SCCs will be sorted by name.",
 	"allowPrivilegedContainer": "AllowPrivilegedContainer determines if a container can request to be run as privileged.",

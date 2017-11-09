@@ -16,6 +16,10 @@ var AllowAllCapabilities kapi.Capability = "*"
 
 // SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
 // that will be applied to a container.
+// For historical reasons SCC was exposed under the core Kubernetes API group.
+// That exposure is deprecated and will be removed in a future release - users
+// should instead use the security.openshift.io group to manage
+// SecurityContextConstraints.
 type SecurityContextConstraints struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
