@@ -330,8 +330,7 @@ https://github.com/kubernetes/kubernetes/pull/34624.patch`
 
 If this fails, then it's possible you may need to pick multiple commits.
 
-### For Openshift newcomers: Pick my kubernetes fix into Openshift vs. wait for
-the next rebase?
+### For Openshift newcomers: Pick my kubernetes fix into Openshift vs. wait for the next rebase?
 
 Assuming you read the bullets above... If your patch is really far behind, for
 example, if there have been 5 commits modifying the directory you care about,
