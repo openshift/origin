@@ -16,6 +16,8 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
+	"io/ioutil"
+
 	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -154,22 +156,16 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 	return preparedKubeAPIServer.GenericAPIServer, nil
 }
 
-func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (http.Handler, error) {
-	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
-		return http.NotFoundHandler(), nil
-	}
-
-	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig, genericConfig.SecureServingInfo.Listener)
+func (c *MasterConfig) newWebConsoleProxy() (http.Handler, error) {
+	caBundle, err := ioutil.ReadFile(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile)
 	if err != nil {
 		return nil, err
 	}
-	config.GenericConfig.AuditBackend = genericConfig.AuditBackend
-	config.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
-	assetServer, err := config.Complete().New(apiserver.EmptyDelegate)
+	proxyHandler, err := NewServiceProxyHandler("webconsole", "openshift-web-console", aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()), caBundle)
 	if err != nil {
 		return nil, err
 	}
-	return assetServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
+	return proxyHandler, nil
 }
 
 func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (http.Handler, map[string]apiserver.PostStartHookFunc, error) {
@@ -268,7 +264,7 @@ func (c *MasterConfig) Run(controllerPlug plug.Plug, stopCh <-chan struct{}) err
 }
 
 func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
-	assetServerHandler, err := c.newAssetServerHandler(genericConfig)
+	webconsoleProxyHandler, err := c.newWebConsoleProxy()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -294,7 +290,7 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 			}
 			// these handlers are actually separate API servers which have their own handler chains.
 			// our server embeds these
-			handler = c.withConsoleRedirection(handler, assetServerHandler, c.Options.AssetConfig)
+			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, c.Options.AssetConfig)
 			handler = c.withOAuthRedirection(handler, oauthServerHandler)
 
 			return handler
@@ -305,9 +301,6 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 
 func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, assetConfig *configapi.AssetConfig) http.Handler {
 	if assetConfig == nil {
-		return handler
-	}
-	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
 		return handler
 	}
 
@@ -323,7 +316,6 @@ func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.H
 		prefix = publicURL.Path[0:lastIndex]
 	}
 
-	glog.Infof("Starting Web Console %s", assetConfig.PublicURL)
 	return WithPatternPrefixHandler(handler, assetServerHandler, prefix)
 }
 

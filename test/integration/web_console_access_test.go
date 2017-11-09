@@ -80,39 +80,12 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 	return resp
 }
 
-func TestAccessOriginWebConsole(t *testing.T) {
-	masterOptions, err := testserver.DefaultMasterOptions()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterOptions)
-
-	for endpoint, exp := range map[string]struct {
-		statusCode int
-		location   string
-	}{
-		"":                    {http.StatusFound, masterOptions.AssetConfig.PublicURL},
-		"healthz":             {http.StatusOK, ""},
-		"login?then=%2F":      {http.StatusOK, ""},
-		"oauth/token/request": {http.StatusFound, masterOptions.AssetConfig.MasterPublicURL + "/oauth/authorize"},
-		"console":             {http.StatusMovedPermanently, "/console/"},
-		"console/":            {http.StatusOK, ""},
-		"console/java":        {http.StatusOK, ""},
-	} {
-		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
-		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
-	}
-}
-
 func TestAccessDisabledWebConsole(t *testing.T) {
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	masterOptions.DisabledFeatures.Add(configapi.FeatureWebConsole)
+	masterOptions.DisabledFeatures.Add(configapi.FeatureWebConsole) // this isn't controlling anything but the root redirect now
 	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -136,9 +109,9 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 		"healthz":             {http.StatusOK, ""},
 		"login?then=%2F":      {http.StatusOK, ""},
 		"oauth/token/request": {http.StatusFound, masterOptions.AssetConfig.MasterPublicURL + "/oauth/authorize"},
-		"console":             {http.StatusForbidden, ""},
-		"console/":            {http.StatusForbidden, ""},
-		"console/java":        {http.StatusForbidden, ""},
+		"console":             {http.StatusNotFound, ""}, // without the service, you get a 404
+		"console/":            {http.StatusNotFound, ""}, // without the service, you get a 404
+		"console/java":        {http.StatusNotFound, ""}, // without the service, you get a 404
 	} {
 		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
 		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
@@ -234,42 +207,6 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 	// Test all of these URLs
 	for endpoint, exp := range urlMap {
 		url := masterOptions.AssetConfig.MasterPublicURL + endpoint
-		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
-	}
-}
-
-func TestAccessStandaloneOriginWebConsole(t *testing.T) {
-	masterOptions, err := testserver.DefaultMasterOptions()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	addr, err := testserver.FindAvailableBindAddress(13000, 13999)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	masterOptions.AssetConfig.ServingInfo.BindAddress = addr
-	assetBaseURL := "https://" + addr
-	masterOptions.AssetConfig.PublicURL = assetBaseURL + "/console/"
-	masterOptions.OAuthConfig.AssetPublicURL = assetBaseURL + "/console/"
-
-	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterOptions)
-
-	for endpoint, exp := range map[string]struct {
-		statusCode int
-		location   string
-	}{
-		"":             {http.StatusFound, "/console/"},
-		"blarg":        {http.StatusNotFound, ""},
-		"console":      {http.StatusMovedPermanently, "/console/"},
-		"console/":     {http.StatusOK, ""},
-		"console/java": {http.StatusOK, ""},
-	} {
-		url := assetBaseURL + "/" + endpoint
 		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
 	}
 }

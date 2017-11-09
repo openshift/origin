@@ -259,7 +259,3 @@ func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, name
 func (c *MasterConfig) WebConsoleEnabled() bool {
 	return c.Options.AssetConfig != nil && !c.Options.DisabledFeatures.Has(configapi.FeatureWebConsole)
 }
-
-func (c *MasterConfig) WebConsoleStandalone() bool {
-	return c.Options.AssetConfig.ServingInfo.BindAddress != c.Options.ServingInfo.BindAddress
-}
