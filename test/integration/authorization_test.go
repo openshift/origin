@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -286,6 +287,9 @@ func TestAuthorizationResolution(t *testing.T) {
 		RoleName:            bootstrappolicy.ViewRoleName,
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"valerie"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -300,6 +304,9 @@ func TestAuthorizationResolution(t *testing.T) {
 		RoleName:            bootstrappolicy.EditRoleName,
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"edgar"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -325,6 +332,9 @@ func TestAuthorizationResolution(t *testing.T) {
 		RoleName:            "with-group",
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"build-lister"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addBuildLister.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -523,6 +533,9 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		RoleName:            bootstrappolicy.ViewRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig)),
 		Users:               []string{"valerie"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -533,6 +546,9 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		RoleName:            bootstrappolicy.EditRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig)),
 		Users:               []string{"edgar"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1026,6 +1042,9 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleName:            bootstrappolicy.EditRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"system:anonymous"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addAnonymous.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1036,6 +1055,9 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleName:            bootstrappolicy.ViewRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("default", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"danny"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addDanny.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1091,6 +1113,9 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleName:            bootstrappolicy.ViewRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig)),
 		Users:               []string{"valerie"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -1101,6 +1126,9 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		RoleName:            bootstrappolicy.EditRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig)),
 		Users:               []string{"edgar"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addEdgar.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

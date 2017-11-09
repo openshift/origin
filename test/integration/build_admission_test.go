@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -225,6 +226,9 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 		RoleName:            bootstrappolicy.EditRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace, authorizationclient.NewForConfigOrDie(projectAdminConfig)),
 		Users:               []string{"joe"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addJoe.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -279,6 +283,9 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationCli
 			RoleName:            role,
 			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminAuthorizationClient.Authorization()),
 			Groups:              []string{"system:authenticated"},
+
+			Out:    ioutil.Discard,
+			ErrOut: ioutil.Discard,
 		}
 		if err := options.RemoveRole(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -307,6 +314,9 @@ func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminAuthori
 			RoleName:            role,
 			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminAuthorizationClient.Authorization()),
 			Groups:              []string{"system:authenticated"},
+
+			Out:    ioutil.Discard,
+			ErrOut: ioutil.Discard,
 		}
 		if err := options.AddRole(); err != nil {
 			t.Fatalf("unexpected error: %v", err)

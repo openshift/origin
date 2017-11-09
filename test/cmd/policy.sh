@@ -101,7 +101,7 @@ os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin name
 os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user -o yaml' 'name: namespaced-user'
 
 os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user --dry-run' 'role "admin" removed: "namespaced\-user" \(dry run\)'
-os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user --dry-run' 'role "admin" added: "namespaced\-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user --dry-run' 'role "admin" already bound to users.*namespaced\-user'
 
 # ensure that running an `oc adm policy` sub-command with --output does not actually perform any changes
 os::cmd::expect_success_and_text 'oc adm policy who-can create pods -o yaml' '\- namespaced\-user'

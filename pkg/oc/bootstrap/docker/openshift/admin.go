@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -203,6 +204,8 @@ func AddClusterRole(authorizationClient authorizationtypedclient.ClusterRoleBind
 		RoleName:            role,
 		RoleBindingAccessor: clusterRoleBindingAccessor,
 		Users:               []string{user},
+
+		Out: ioutil.Discard,
 	}
 	return addClusterReaderRole.AddRole()
 }
@@ -219,6 +222,9 @@ func AddRoleToServiceAccount(authorizationClient authorizationtypedclient.RoleBi
 				Kind:      "ServiceAccount",
 			},
 		},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	return addRole.AddRole()
 }

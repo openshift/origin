@@ -81,6 +81,9 @@ func TestServiceAccountAuthorization(t *testing.T) {
 		RoleName:            bootstrappolicy.ClusterAdminRoleName,
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(cluster1AdminConfig)),
 		Users:               []string{saUsername},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addRoleOptions.AddRole(); err != nil {
 		t.Fatal(err)

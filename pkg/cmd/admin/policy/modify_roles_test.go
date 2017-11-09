@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -131,6 +132,9 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			RoleBindingName:     tc.inputRoleBindingName,
 			Users:               tc.inputSubjects,
 			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(fakeauthorizationclient.NewSimpleClientset(tc.existingClusterRoleBindings).Authorization()),
+
+			Out:    ioutil.Discard,
+			ErrOut: ioutil.Discard,
 		}
 
 		addRoleAndCheck(t, o, tcName, tc.expectedRoleBindingName, tc.expectedSubjects)
@@ -265,6 +269,9 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			Users:               tc.inputSubjects,
 			RoleNamespace:       metav1.NamespaceDefault,
 			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(metav1.NamespaceDefault, fakeauthorizationclient.NewSimpleClientset(tc.existingRoleBindings).Authorization()),
+
+			Out:    ioutil.Discard,
+			ErrOut: ioutil.Discard,
 		}
 
 		addRoleAndCheck(t, o, tcName, tc.expectedRoleBindingName, tc.expectedSubjects)
