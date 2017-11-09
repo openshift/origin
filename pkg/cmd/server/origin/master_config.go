@@ -30,6 +30,7 @@ import (
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
+	"github.com/openshift/origin/pkg/cmd/util"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
@@ -38,6 +39,8 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+
+	"strings"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
@@ -258,4 +261,11 @@ func (c *MasterConfig) WebConsoleEnabled() bool {
 
 func (c *MasterConfig) WebConsoleStandalone() bool {
 	return c.Options.AssetConfig.ServingInfo.BindAddress != c.Options.ServingInfo.BindAddress
+}
+
+func WebConsoleProxy() bool {
+	if false {
+		return strings.EqualFold(util.Env("OS_WEB_CONSOLE_PROXY", "false"), "true")
+	}
+	return true
 }
