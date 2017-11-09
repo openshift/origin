@@ -38,6 +38,7 @@ readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
+  cmd/openshift-router
   cmd/kubefed
   cmd/template-service-broker
 )
@@ -49,7 +50,6 @@ readonly OS_TEST_TARGETS=(
 
 #If you update this list, be sure to get the images/origin/Dockerfile
 readonly OPENSHIFT_BINARY_SYMLINKS=(
-  openshift-router
   openshift-deploy
   openshift-recycle
   openshift-sti-build

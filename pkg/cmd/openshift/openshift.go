@@ -13,6 +13,7 @@ import (
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/exec"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
@@ -59,8 +60,6 @@ func CommandFor(basename string) *cobra.Command {
 	}
 
 	switch basename {
-	case "openshift-router":
-		cmd = irouter.NewCommandTemplateRouter(basename)
 	case "openshift-f5-router":
 		cmd = irouter.NewCommandF5Router(basename)
 	case "openshift-deploy":
@@ -138,7 +137,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	}
 
 	infra.AddCommand(
-		irouter.NewCommandTemplateRouter("router"),
+		exec.NewExecShim("router", "openshift-router"),
 		irouter.NewCommandF5Router("f5-router"),
 		deployer.NewCommandDeployer("deploy"),
 		recycle.NewCommandRecycle("recycle", out),
