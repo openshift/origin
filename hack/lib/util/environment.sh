@@ -51,6 +51,7 @@ readonly -f os::util::environment::setup_time_vars
 #  - KUBELET_HOST
 #  - KUBELET_PORT
 #  - BASETMPDIR
+#  - BASEVARTMPDIR
 #  - ETCD_PORT
 #  - ETCD_PEER_PORT
 #  - API_BIND_HOST
@@ -64,6 +65,7 @@ readonly -f os::util::environment::setup_time_vars
 # Returns:
 #  - export PATH
 #  - export BASETMPDIR
+#  - export BASEVARTMPDIR
 #  - export LOG_DIR
 #  - export VOLUME_DIR
 #  - export ARTIFACT_DIR
@@ -123,6 +125,7 @@ readonly -f os::util::environment::update_path_var
 #  - 1: the path under the root temporary directory for OpenShift where these subdirectories should be made
 # Returns:
 #  - export BASETMPDIR
+#  - export BASEVARTMPDIR
 #  - export BASEOUTDIR
 #  - export LOG_DIR
 #  - export VOLUME_DIR
@@ -137,6 +140,9 @@ function os::util::environment::setup_tmpdir_vars() {
     VOLUME_DIR="${BASETMPDIR}/volumes"
     export VOLUME_DIR
 
+    BASEVARTMPDIR="${TMPDIR:-/var/tmp}/openshift/${sub_dir}"
+    export BASEVARTMPDIR
+
     BASEOUTDIR="${OS_OUTPUT_SCRIPTPATH}/${sub_dir}"
     export BASEOUTDIR
     LOG_DIR="${LOG_DIR:-${BASEOUTDIR}/logs}"
@@ -146,7 +152,7 @@ function os::util::environment::setup_tmpdir_vars() {
     FAKE_HOME_DIR="${BASEOUTDIR}/openshift.local.home"
     export FAKE_HOME_DIR
 
-    mkdir -p "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${FAKE_HOME_DIR}"
+    mkdir -p "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${FAKE_HOME_DIR}" "${BASEVARTMPDIR}"
 
     export OS_TMP_ENV_SET="${sub_dir}"
 }

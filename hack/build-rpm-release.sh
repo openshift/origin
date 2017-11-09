@@ -30,7 +30,7 @@ os::build::rpm::get_nvra_vars
 tito tag --use-version="${OS_RPM_VERSION}" \
          --use-release="${OS_RPM_RELEASE}" \
          --no-auto-changelog --offline
-tito_tmp_dir="${BASETMPDIR}/tito"
+tito_tmp_dir="${BASEVARTMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
 tito build --offline --srpm --rpmbuild-options="--define 'dist .el7'" --output="${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
