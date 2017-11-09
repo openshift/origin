@@ -4,7 +4,7 @@
   "metadata": {
     "name": "mariadb-persistent",
     "annotations": {
-      "openshift.io/display-name": "MariaDB (Persistent)",
+      "openshift.io/display-name": "MariaDB",
       "description": "MariaDB database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.1/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-mariadb",
       "tags": "database,mariadb",

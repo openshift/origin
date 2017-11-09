@@ -4,7 +4,7 @@
   "metadata": {
     "name": "redis-persistent",
     "annotations": {
-      "openshift.io/display-name": "Redis (Persistent)",
+      "openshift.io/display-name": "Redis",
       "description": "Redis in-memory data structure store, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-redis",
       "tags": "database,redis",

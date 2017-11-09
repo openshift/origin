@@ -4,7 +4,7 @@
   "metadata": {
     "name": "jenkins-persistent",
     "annotations": {
-      "openshift.io/display-name": "Jenkins (Persistent)",
+      "openshift.io/display-name": "Jenkins",
       "description": "Jenkins service, with persistent storage.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
       "iconClass": "icon-jenkins",
       "tags": "instant-app,jenkins",
@@ -15,6 +15,9 @@
     }
   },
   "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "labels": {
+      "app": "jenkins-persistent"
+  },
   "objects": [
     {
       "kind": "Route",
