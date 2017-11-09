@@ -255,8 +255,11 @@ of docker.  Exclude those versions of docker.
 %ifarch ppc64le
   BUILD_PLATFORM="linux/ppc64le"
 %endif
-%ifarch %{arm} aarch64
+%ifarch aarch64
   BUILD_PLATFORM="linux/arm64"
+%endif
+%ifarch %{arm}
+  BUILD_PLATFORM="linux/arm"
 %endif
 %ifarch s390x
   BUILD_PLATFORM="linux/s390x"
