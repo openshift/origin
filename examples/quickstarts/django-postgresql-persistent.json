@@ -4,7 +4,7 @@
   "metadata": {
     "name": "django-psql-persistent",
     "annotations": {
-      "openshift.io/display-name": "Django + PostgreSQL (Persistent)",
+      "openshift.io/display-name": "Django + PostgreSQL",
       "description": "An example Django application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
       "tags": "quickstart,python,django",
       "iconClass": "icon-python",
@@ -17,7 +17,8 @@
   },
   "message": "The following service(s) have been created in your project: ${NAME}, ${DATABASE_SERVICE_NAME}.\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/openshift/django-ex/blob/master/README.md.",
   "labels": {
-    "template": "django-psql-persistent"
+    "template": "django-psql-persistent",
+    "app": "django-psql-persistent"
   },
   "objects": [
     {
