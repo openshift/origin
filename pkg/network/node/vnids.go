@@ -93,10 +93,11 @@ func (vmap *nodeVNIDMap) GetMulticastEnabled(id uint32) bool {
 // retry vnid lookup before giving up.
 func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 	var id uint32
+	// ~5 sec timeout
 	backoff := utilwait.Backoff{
-		Duration: 100 * time.Millisecond,
+		Duration: 400 * time.Millisecond,
 		Factor:   1.5,
-		Steps:    5,
+		Steps:    6,
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
@@ -106,8 +107,18 @@ func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 	if err == nil {
 		return id, nil
 	} else {
+		// We may find netid when we check with api server but we will
+		// still treat this as an error if we don't find it in vnid map.
+		// So that we can imply insufficient timeout if we see many VnidNotFoundErrors.
 		VnidNotFoundErrors.Inc()
-		return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
+
+		netns, err := vmap.networkClient.Network().NetNamespaces().Get(name, metav1.GetOptions{})
+		if err != nil {
+			return 0, fmt.Errorf("failed to find netid for namespace: %s, %v", name, err)
+		}
+		glog.Warningf("Netid for namespace: %s exists but not found in vnid map", name)
+		vmap.setVNID(netns.Name, netns.NetID, netnsIsMulticastEnabled(netns))
+		return netns.NetID, nil
 	}
 }
 
