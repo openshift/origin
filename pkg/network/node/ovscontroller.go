@@ -288,22 +288,11 @@ func getPodNote(sandboxID string) (string, error) {
 }
 
 func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC, sandboxID string, vnid uint32) (int, error) {
-	var (
-		err    error
-		note   string
-		ofport int
-	)
-	defer func() {
-		if err != nil {
-			PodSetupErrors.Inc()
-		}
-	}()
-
-	note, err = getPodNote(sandboxID)
+	note, err := getPodNote(sandboxID)
 	if err != nil {
 		return -1, err
 	}
-	ofport, err = oc.ensureOvsPort(hostVeth)
+	ofport, err := oc.ensureOvsPort(hostVeth)
 	if err != nil {
 		return -1, err
 	}
@@ -422,15 +411,7 @@ func (oc *ovsController) TearDownPod(hostVeth, podIP, sandboxID string) error {
 		podIP = ip
 	}
 
-	var err error
-	defer func() {
-		if err != nil {
-			PodTeardownErrors.Inc()
-		}
-	}()
-
-	err = oc.cleanupPodFlows(podIP)
-	if err != nil {
+	if err := oc.cleanupPodFlows(podIP); err != nil {
 		return err
 	}
 	_ = oc.SetPodBandwidth(hostVeth, -1, -1)
