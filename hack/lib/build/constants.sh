@@ -82,6 +82,7 @@ readonly OC_BINARY_COPY=(
 )
 readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
   oc.exe
+  oc.msi
   README.md
   ./LICENSE
 )
