@@ -37,7 +37,7 @@ We generally cut a release before disruptive changes land.
 
 ### Building on Non-Linux Systems
 
-We provide the `openshift/release` container in which all of our build
+We provide the `openshift/origin-release` container in which all of our build
 dependencies live, so that one can build a full release of OpenShift without
 having to install anything other than a container runtime on their local system.
 To run scripts or `make` targets from the Origin repo inside of the container,
