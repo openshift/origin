@@ -112,7 +112,7 @@ type repositoryRetriever struct {
 }
 
 func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
-	named, err := reference.ParseNamed(repoName)
+	named, err := reference.WithName(repoName)
 	if err != nil {
 		return nil, err
 	}
