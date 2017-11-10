@@ -64,7 +64,7 @@ func (l Listener) authorizeHandler(protected http.Handler) http.Handler {
 		user, ok, err := l.Authenticator.AuthenticateRequest(req)
 		if err != nil {
 			glog.V(3).Infof("Unable to authenticate: %v", err)
-			http.Error(w, "Unable to authenticate due to an error", http.StatusInternalServerError)
+			http.Error(w, "Unable to authenticate due to an error", http.StatusUnauthorized)
 			return
 		}
 		scopedRecord := l.Record
