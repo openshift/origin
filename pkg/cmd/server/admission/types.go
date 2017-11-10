@@ -7,8 +7,8 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/clientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/cache"

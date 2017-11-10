@@ -8,8 +8,8 @@ import (
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/clientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"

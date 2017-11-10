@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/clientset"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"

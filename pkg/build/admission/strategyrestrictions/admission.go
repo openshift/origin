@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
@@ -17,7 +18,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/clientset"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 )
@@ -182,13 +183,21 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
-		return a.checkBuildAuthorization(build, attr)
+		internalBuild := &buildapi.Build{}
+		if err := kapi.Scheme.Convert(build, internalBuild, nil); err != nil {
+			return admission.NewForbidden(attr, err)
+		}
+		return a.checkBuildAuthorization(internalBuild, attr)
 	case buildapi.IsResourceOrLegacy("buildconfigs", gr):
-		build, err := a.buildClient.Build().BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
+		buildConfig, err := a.buildClient.Build().BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
-		return a.checkBuildConfigAuthorization(build, attr)
+		internalBuildConfig := &buildapi.BuildConfig{}
+		if err := kapi.Scheme.Convert(buildConfig, internalBuildConfig, nil); err != nil {
+			return admission.NewForbidden(attr, err)
+		}
+		return a.checkBuildConfigAuthorization(internalBuildConfig, attr)
 	default:
 		return admission.NewForbidden(attr, fmt.Errorf("Unknown resource type %s for BuildRequest", attr.GetResource()))
 	}
@@ -206,5 +215,19 @@ func (a *buildByStrategy) checkAccess(strategy buildapi.BuildStrategy, subjectAc
 }
 
 func notAllowed(strategy buildapi.BuildStrategy, attr admission.Attributes) error {
-	return admission.NewForbidden(attr, fmt.Errorf("build strategy %s is not allowed", buildapi.StrategyType(strategy)))
+	return admission.NewForbidden(attr, fmt.Errorf("build strategy %s is not allowed", strategyTypeString(strategy)))
+}
+
+func strategyTypeString(strategy buildapi.BuildStrategy) string {
+	switch {
+	case strategy.DockerStrategy != nil:
+		return "Docker"
+	case strategy.CustomStrategy != nil:
+		return "Custom"
+	case strategy.SourceStrategy != nil:
+		return "Source"
+	case strategy.JenkinsPipelineStrategy != nil:
+		return "JenkinsPipeline"
+	}
+	return ""
 }

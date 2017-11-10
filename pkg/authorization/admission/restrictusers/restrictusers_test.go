@@ -15,8 +15,8 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	fakeauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	fakeauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset/fake"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	fakeuserclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"

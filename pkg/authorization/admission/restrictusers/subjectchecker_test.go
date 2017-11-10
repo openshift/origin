@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	fakeuserclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )

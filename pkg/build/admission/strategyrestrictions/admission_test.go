@@ -11,13 +11,17 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clientgotesting "k8s.io/client-go/testing"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	fakekubeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	fakebuildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	fakebuildclient "github.com/openshift/origin/pkg/build/generated/clientset/fake"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+
+	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 )
 
 func TestBuildAdmission(t *testing.T) {
@@ -48,7 +52,7 @@ func TestBuildAdmission(t *testing.T) {
 		{
 			name:                "allowed source build clone",
 			object:              testBuildRequest("test-build"),
-			responseObject:      testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}}),
+			responseObject:      asV1Build(testBuild(buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{}})),
 			kind:                buildapi.Kind("Build"),
 			resource:            buildapi.Resource("builds"),
 			subResource:         "clone",
@@ -70,7 +74,7 @@ func TestBuildAdmission(t *testing.T) {
 		{
 			name:                "denied docker build clone",
 			object:              testBuildRequest("buildname"),
-			responseObject:      testBuild(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
+			responseObject:      asV1Build(testBuild(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}})),
 			kind:                buildapi.Kind("Build"),
 			resource:            buildapi.Resource("builds"),
 			subResource:         "clone",
@@ -101,7 +105,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:                "allowed build config instantiate",
-			responseObject:      testBuildConfig(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}}),
+			responseObject:      asV1BuildConfig(testBuildConfig(buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{}})),
 			object:              testBuildRequest("test-buildconfig"),
 			kind:                buildapi.Kind("Build"),
 			resource:            buildapi.Resource("buildconfigs"),
@@ -123,7 +127,7 @@ func TestBuildAdmission(t *testing.T) {
 		},
 		{
 			name:                "forbidden build config instantiate",
-			responseObject:      testBuildConfig(buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{}}),
+			responseObject:      asV1BuildConfig(testBuildConfig(buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{}})),
 			object:              testBuildRequest("buildname"),
 			kind:                buildapi.Kind("Build"),
 			resource:            buildapi.Resource("buildconfigs"),
@@ -164,7 +168,7 @@ func TestBuildAdmission(t *testing.T) {
 		{
 			name:                "allowed jenkins pipeline build clone",
 			object:              testBuildRequest("test-build"),
-			responseObject:      testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}}),
+			responseObject:      asV1Build(testBuild(buildapi.BuildStrategy{JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{}})),
 			kind:                buildapi.Kind("Build"),
 			resource:            buildapi.Resource("builds"),
 			subResource:         "clone",
@@ -250,6 +254,15 @@ func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 	}
 }
 
+func asV1Build(in *buildapi.Build) *buildapiv1.Build {
+	out := &buildapiv1.Build{}
+	err := kapi.Scheme.Convert(in, out, nil)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
 func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -262,6 +275,15 @@ func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 			},
 		},
 	}
+}
+
+func asV1BuildConfig(in *buildapi.BuildConfig) *buildapiv1.BuildConfig {
+	out := &buildapiv1.BuildConfig{}
+	err := kapi.Scheme.Convert(in, out, nil)
+	if err != nil {
+		panic(err)
+	}
+	return out
 }
 
 func reviewResponse(allowed bool, msg string) *authorization.SubjectAccessReview {
