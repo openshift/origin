@@ -8,6 +8,9 @@
 function os::build::binaries_from_targets() {
   local target
   for target; do
+    if [[ -z "${target}" ]]; then
+      continue
+    fi
     echo "${OS_GO_PACKAGE}/${target}"
   done
 }
@@ -82,9 +85,9 @@ function os::build::setup_env() {
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.8" ]]; then
+    if [[ "${go_version[2]}" < "${OS_REQUIRED_GO_VERSION}" ]]; then
       os::log::fatal "Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.8 or greater."
+Builds require Go version ${OS_REQUIRED_GO_VERSION} or greater."
     fi
   fi
   # For any tools that expect this to be set (it is default in golang 1.6),
@@ -187,15 +190,24 @@ os::build::internal::build_binaries() {
 
     os::build::export_targets "$@"
 
+    if [[ ! "${targets[@]:+${targets[@]}}" || ! "${binaries[@]:+${binaries[@]}}" ]]; then
+      return 0
+    fi
+
     local -a nonstatics=()
     local -a tests=()
-    for binary in "${binaries[@]}"; do
+    for binary in "${binaries[@]-}"; do
       if [[ "${binary}" =~ ".test"$ ]]; then
         tests+=($binary)
       else
         nonstatics+=($binary)
       fi
     done
+
+    local pkgdir="${OS_OUTPUT_PKGDIR}"
+    if [[ "${CGO_ENABLED-}" == "0" ]]; then
+      pkgdir+="/static"
+    fi
 
     local host_platform=$(os::build::host_platform)
     local platform
@@ -226,7 +238,7 @@ os::build::internal::build_binaries() {
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
-          -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
+          -pkgdir "${pkgdir}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
           -ldflags="${local_ldflags}" \
           "${goflags[@]:+${goflags[@]}}" \
@@ -240,14 +252,14 @@ os::build::internal::build_binaries() {
       fi
 
       if [[ "$platform" == "windows/amd64" ]]; then
-        rm ${OS_ROOT}/cmd/oc/oc.syso
+        os::build::clean_windows_versioninfo
       fi
 
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         # disabling cgo allows use of delve
         CGO_ENABLED="${OS_TEST_CGO_ENABLED:-}" GOOS=${platform%/*} GOARCH=${platform##*/} go test \
-          -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
+          -pkgdir "${pkgdir}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
           -ldflags "${local_ldflags}" \
           -i -c -o "${outfile}" \
@@ -258,66 +270,12 @@ os::build::internal::build_binaries() {
 }
 readonly -f os::build::build_binaries
 
-# Generates the .syso file used to add compile-time VERSIONINFO metadata to the
-# Windows binary.
-function os::build::generate_windows_versioninfo() {
-  os::build::version::get_vars
-  local major="${OS_GIT_MAJOR}"
-  local minor="${OS_GIT_MINOR%+}"
-  local patch="${OS_GIT_PATCH}"
-  local windows_versioninfo_file=`mktemp --suffix=".versioninfo.json"`
-  cat <<EOF >"${windows_versioninfo_file}"
-{
-	"FixedFileInfo":
-	{
-		"FileVersion": {
-			"Major": ${major},
-			"Minor": ${minor},
-			"Patch": ${patch}
-		},
-		"ProductVersion": {
-			"Major": ${major},
-			"Minor": ${minor},
-			"Patch": ${patch}
-		},
-		"FileFlagsMask": "3f",
-		"FileFlags ": "00",
-		"FileOS": "040004",
-		"FileType": "01",
-		"FileSubType": "00"
-	},
-	"StringFileInfo":
-	{
-		"Comments": "",
-		"CompanyName": "Red Hat, Inc.",
-		"InternalName": "openshift client",
-		"FileVersion": "${OS_GIT_VERSION}",
-		"InternalName": "oc",
-		"LegalCopyright": "© Red Hat, Inc. Licensed under the Apache License, Version 2.0",
-		"LegalTrademarks": "",
-		"OriginalFilename": "oc.exe",
-		"PrivateBuild": "",
-		"ProductName": "OpenShift Client",
-		"ProductVersion": "${OS_GIT_VERSION}",
-		"SpecialBuild": ""
-	},
-	"VarFileInfo":
-	{
-		"Translation": {
-			"LangID": "0409",
-			"CharsetID": "04B0"
-		}
-	}
-}
-EOF
-  goversioninfo -o ${OS_ROOT}/cmd/oc/oc.syso ${windows_versioninfo_file} 
-}
-readonly -f os::build::generate_windows_versioninfo
-
  # Generates the set of target packages, binaries, and platforms to build for.
 # Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
 # the current platform.
 function os::build::export_targets() {
+  platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
+
   targets=()
   local arg
   for arg; do
@@ -325,15 +283,8 @@ function os::build::export_targets() {
       targets+=("${arg}")
     fi
   done
-
-  if [[ ${#targets[@]} -eq 0 ]]; then
-    echo "No targets to export!"
-    exit 1
-  fi
-
-  binaries=($(os::build::binaries_from_targets "${targets[@]}"))
-
-  platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
+  
+  binaries=($(os::build::binaries_from_targets "${targets[@]-}"))
 }
 readonly -f os::build::export_targets
 
@@ -470,67 +421,14 @@ function os::build::make_openshift_binary_symlinks() {
 }
 readonly -f os::build::make_openshift_binary_symlinks
 
-# os::build::get_product_vars exports variables that we expect to change
-# depending on the distribution of Origin
-function os::build::get_product_vars() {
-  export OS_BUILD_LDFLAGS_IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
-  export OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS="${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS:-"centos7"}"
-  export OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME="${OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME:-"${OS_BUILD_LDFLAGS_IMAGE_PREFIX}-federation"}"
-  export OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE="${OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE:-"quay.io/coreos/etcd:v3.1.7"}"
-}
-
-# golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
+# DEPRECATED: will be removed
 function os::build::ldflag() {
   local key=${1}
   local val=${2}
 
-  GO_VERSION=($(go version))
-  if [[ -n $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') ]]; then
-    echo "-X ${key} ${val}"
-  else
-    echo "-X ${key}=${val}"
-  fi
+  echo "-X ${key}=${val}"
 }
 readonly -f os::build::ldflag
-
-# os::build::ldflags calculates the -ldflags argument for building OpenShift
-function os::build::ldflags() {
-  # Run this in a subshell to prevent settings/variables from leaking.
-  set -o errexit
-  set -o nounset
-  set -o pipefail
-
-  cd "${OS_ROOT}"
-
-  os::build::version::get_vars
-  os::build::get_product_vars
-
-  local buildDate="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-
-  declare -a ldflags=()
-
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/oc/bootstrap/docker.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.DefaultImagePrefix" "${OS_BUILD_LDFLAGS_IMAGE_PREFIX}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.buildDate" "${buildDate}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.buildDate" "${buildDate}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/kubernetes/pkg/version.gitTreeState" "clean"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.buildDate" "${buildDate}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitTreeState" "clean"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/federation/kubefed.serverImageName" "${OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/federation/kubefed.defaultEtcdImage" "${OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE}"))
-
-  # The -ldflags parameter takes a single string, so join the output.
-  echo "${ldflags[*]-}"
-}
-readonly -f os::build::ldflags
 
 # os::build::require_clean_tree exits if the current Git tree is not clean.
 function os::build::require_clean_tree() {
