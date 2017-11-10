@@ -2,12 +2,14 @@ package image_ecosystem
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/conditions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -44,10 +46,19 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 			}
 
 			g.By("checking the log of the pod")
-			log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw()
+			err = wait.Poll(1*time.Second, 10*time.Second, func() (bool, error) {
+				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw()
+				if err != nil {
+					return false, err
+				}
+				e2e.Logf("got log %v from pod %v", string(log), pod.Name)
+				if strings.Contains(string(log), "Sample invocation") {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			o.Expect(string(log)).To(o.ContainSubstring("Sample invocation"))
 		})
 	})
 	g.Describe("using the SCL in s2i images", func() {
