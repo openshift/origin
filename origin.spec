@@ -348,8 +348,6 @@ do
     ln -s openshift %{buildroot}%{_bindir}/$cmd
 done
 
-ln -s oc %{buildroot}%{_bindir}/kubectl
-
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
 # different service for origin vs aos
@@ -593,7 +591,6 @@ fi
 %files clients
 %license LICENSE
 %{_bindir}/oc
-%{_bindir}/kubectl
 %{_bindir}/kubefed
 %{_sysconfdir}/bash_completion.d/oc
 %{_mandir}/man1/oc*

@@ -42,21 +42,13 @@ os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API
 
 # variants I know I have to worry about
 # 1. oc (kube and openshift resources)
-# 2. openshift kubectl (kube and openshift resources)
-# 3. oadm and oc adm (kube and openshift resources)
-# 4  openshift cli (kube and openshift resources)
+# 2. oadm and oc adm (kube and openshift resources)
+# 3  openshift cli (kube and openshift resources)
 
 # example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
 os::cmd::expect_success_and_text 'oc get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "oc/${kube_git_regex} .* kubernetes/"
 # example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
 os::cmd::expect_success_and_text 'oc get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "oc/${kube_git_regex} .* kubernetes/"
-# example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
-# this is probably broken and should be `kubectl/<kube version> kubernetes/...`
-os::cmd::expect_success_and_text 'openshift kubectl get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "openshift/${kube_git_regex} .* kubernetes/"
-# example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
-# this is probably broken and should be `kubectl/<kube version> kubernetes/...`
-os::cmd::expect_success_and_text 'openshift kubectl get dc --loglevel=7  2>&1 | grep -A4 "deploymentconfig" | grep User-Agent' "openshift/${kube_git_regex} .* kubernetes/"
-# example User-Agent: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
 # this is probably broken and should be `oadm/<oc version>... openshift/...`
 os::cmd::expect_success_and_text 'oadm policy reconcile-sccs --loglevel=7  2>&1 | grep -A4 "securitycontextconstraints" | grep User-Agent' "oadm/${kube_git_regex} .* kubernetes/"
 # example User-Agent: oc/v1.1.3 (linux/amd64) openshift/b348c2f
@@ -154,7 +146,7 @@ os::cmd::expect_success 'oc get nodes'
   # subshell so we can unset kubeconfig
   cfg="${KUBECONFIG}"
   unset KUBECONFIG
-  os::cmd::expect_success "kubectl get nodes --kubeconfig='${cfg}'"
+  os::cmd::expect_success "oc get nodes --config='${cfg}'"
 )
 echo "nodes: ok"
 os::test::junit::declare_suite_end

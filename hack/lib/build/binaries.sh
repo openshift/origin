@@ -353,12 +353,6 @@ function os::build::place_bins() {
           ln "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
         fi
       done
-      for linkname in "${OC_BINARY_COPY[@]}"; do
-        local src="${release_binpath}/oc${suffix}"
-        if [[ -f "${src}" ]]; then
-          ln "${release_binpath}/oc${suffix}" "${release_binpath}/${linkname}${suffix}"
-        fi
-      done
 
       # Create the release archive.
       platform="$( os::build::host_platform_friendly "${platform}" )"

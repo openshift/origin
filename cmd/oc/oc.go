@@ -3,10 +3,10 @@ package main
 import (
 	"math/rand"
 	"os"
-	"path/filepath"
 	"runtime"
 	"time"
 
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	"k8s.io/kubernetes/pkg/util/logs"
 
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
@@ -14,6 +14,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	_ "k8s.io/kubernetes/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
@@ -31,9 +32,12 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	basename := filepath.Base(os.Args[0])
-	command := cli.CommandFor(basename)
-	if err := command.Execute(); err != nil {
+	cmd := cli.NewCommandCLI("oc", "oc", os.Stdin, os.Stdout, os.Stderr)
+	if cmd.UsageFunc() == nil {
+		templates.ActsAsRootCommand(cmd, []string{"options"})
+	}
+	flagtypes.GLog(cmd.PersistentFlags())
+	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

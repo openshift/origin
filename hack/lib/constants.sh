@@ -76,7 +76,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   osc
   oadm
   osadm
-  kubectl
   kubernetes
   kubelet
   kube-proxy
@@ -91,9 +90,6 @@ readonly OPENSHIFT_BINARY_COPY=(
   kube-apiserver
   kube-controller-manager
   kube-scheduler
-)
-readonly OC_BINARY_COPY=(
-  kubectl
 )
 readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
   oc.exe
