@@ -82,7 +82,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList) {
 				}
 				glog.V(4).Infof("Adding edge from %q to %q", imageStreamNode.UniqueName(), imageNode.UniqueName())
 				edgeKind := ImageStreamImageEdgeKind
-				if i > 1 {
+				if i > 0 {
 					edgeKind = HistoricImageStreamImageEdgeKind
 				}
 				g.AddEdge(imageStreamNode, imageNode, edgeKind)
