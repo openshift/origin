@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/create"
 	cmdconfig "github.com/openshift/origin/pkg/oc/cli/config"
@@ -783,7 +784,7 @@ func NewCmdCp(fullName string, f *clientcmd.Factory, in io.Reader, out, errout i
 }
 
 func NewCmdAuth(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
-	cmd := kcmdauth.NewCmdAuth(f, out, errout)
+	cmd := cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kcmdauth.NewCmdAuth(f, out, errout)))
 	return cmd
 }
 
