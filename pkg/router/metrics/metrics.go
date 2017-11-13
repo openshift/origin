@@ -14,6 +14,7 @@ import (
 
 	"k8s.io/apiserver/pkg/server/healthz"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 )
@@ -62,9 +63,16 @@ func (l Listener) authorizeHandler(protected http.Handler) http.Handler {
 		}
 
 		user, ok, err := l.Authenticator.AuthenticateRequest(req)
-		if err != nil {
-			glog.V(3).Infof("Unable to authenticate: %v", err)
-			http.Error(w, "Unable to authenticate due to an error", http.StatusInternalServerError)
+		if !ok || err != nil {
+			// older routers will not have permission to check token access review, so treat this
+			// as an authorization denied if so
+			if !ok || errors.IsUnauthorized(err) {
+				glog.V(5).Infof("Unable to authenticate: %v", err)
+				http.Error(w, "Unable to authenticate due to an error", http.StatusUnauthorized)
+			} else {
+				glog.V(3).Infof("Unable to authenticate: %v", err)
+				http.Error(w, "Unable to authenticate due to an error", http.StatusInternalServerError)
+			}
 			return
 		}
 		scopedRecord := l.Record
@@ -90,13 +98,14 @@ func (l Listener) authorizeHandler(protected http.Handler) http.Handler {
 		}
 		scopedRecord.User = user
 		ok, reason, err := l.Authorizer.Authorize(scopedRecord)
-		if err != nil {
-			glog.V(3).Infof("Unable to authenticate: %v", err)
-			http.Error(w, "Unable to authenticate due to an error", http.StatusInternalServerError)
-			return
-		}
-		if !ok {
-			http.Error(w, fmt.Sprintf("Unauthorized %s", reason), http.StatusUnauthorized)
+		if !ok || err != nil {
+			if !ok || errors.IsUnauthorized(err) {
+				glog.V(5).Infof("Unable to authorize: %v", err)
+				http.Error(w, fmt.Sprintf("Forbidden: %s", reason), http.StatusForbidden)
+			} else {
+				glog.V(3).Infof("Unable to authorize: %v", err)
+				http.Error(w, "Unable to authorize the user due to an error", http.StatusInternalServerError)
+			}
 			return
 		}
 		protected.ServeHTTP(w, req)
