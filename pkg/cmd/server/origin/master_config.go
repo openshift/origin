@@ -37,7 +37,7 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
@@ -91,7 +91,6 @@ type MasterConfig struct {
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
-	UserInformers          userinformer.SharedInformerFactory
 }
 
 type InformerAccess interface {
@@ -203,7 +202,6 @@ func BuildMasterConfig(
 		AuthorizationInformers: informers.GetAuthorizationInformers(),
 		QuotaInformers:         informers.GetQuotaInformers(),
 		SecurityInformers:      informers.GetSecurityInformers(),
-		UserInformers:          informers.GetUserInformers(),
 	}
 
 	// ensure that the limit range informer will be started

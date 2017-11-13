@@ -17,8 +17,8 @@ import (
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	userclient "github.com/openshift/origin/pkg/user/generated/clientset"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"
 )
 
 type WantsOpenshiftInternalAuthorizationClient interface {

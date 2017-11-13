@@ -10,8 +10,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
+	userclient "github.com/openshift/origin/pkg/user/generated/clientset/typed/user/v1"
 )
 
 // SubjectChecker determines whether rolebindings on a subject (user, group, or
@@ -47,7 +47,7 @@ func (checkers UnionSubjectChecker) Allowed(subject rbac.Subject, ctx *RoleBindi
 // RoleBindingRestrictionContext holds context that is used when determining
 // whether a RoleBindingRestriction allows rolebindings on a particular subject.
 type RoleBindingRestrictionContext struct {
-	userClient userclient.UserInterface
+	userClient userclient.UserV1Interface
 	kclient    kclientset.Interface
 
 	// groupCache maps user name to groups.
@@ -66,7 +66,7 @@ type RoleBindingRestrictionContext struct {
 
 // NewRoleBindingRestrictionContext returns a new RoleBindingRestrictionContext
 // object.
-func NewRoleBindingRestrictionContext(ns string, kc kclientset.Interface, userClient userclient.UserInterface, groupCache GroupCache) (*RoleBindingRestrictionContext, error) {
+func NewRoleBindingRestrictionContext(ns string, kc kclientset.Interface, userClient userclient.UserV1Interface, groupCache GroupCache) (*RoleBindingRestrictionContext, error) {
 	return &RoleBindingRestrictionContext{
 		namespace:       ns,
 		kclient:         kc,
