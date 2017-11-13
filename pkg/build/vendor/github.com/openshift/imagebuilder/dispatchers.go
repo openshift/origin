@@ -23,6 +23,10 @@ import (
 	"github.com/openshift/imagebuilder/strslice"
 )
 
+var (
+	orig = regexp.MustCompile(`(?i)^\s*ONBUILD\s*`)
+)
+
 // dispatch with no layer / parsing. This is effectively not a command.
 func nullDispatch(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	return nil
@@ -192,7 +196,7 @@ func onbuild(b *Builder, args []string, attributes map[string]bool, flagArgs []s
 		return fmt.Errorf("%s isn't allowed as an ONBUILD trigger", triggerInstruction)
 	}
 
-	original = regexp.MustCompile(`(?i)^\s*ONBUILD\s*`).ReplaceAllString(original, "")
+	original = orig.ReplaceAllString(original, "")
 
 	b.RunConfig.OnBuild = append(b.RunConfig.OnBuild, original)
 	return nil

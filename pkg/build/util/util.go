@@ -26,6 +26,10 @@ const (
 	NoBuildLogsMessage = "No logs are available."
 )
 
+var (
+	proxyRegex = regexp.MustCompile("(?i)proxy")
+)
+
 // GetBuildName returns name of the build pod.
 func GetBuildName(pod metav1.Object) string {
 	if pod == nil {
@@ -266,7 +270,6 @@ func SafeForLoggingURL(u *url.URL) *url.URL {
 func SafeForLoggingEnvVar(env []kapi.EnvVar) []kapi.EnvVar {
 	newEnv := make([]kapi.EnvVar, len(env))
 	copy(newEnv, env)
-	proxyRegex := regexp.MustCompile("(?i)proxy")
 	for i, env := range newEnv {
 		if proxyRegex.MatchString(env.Name) {
 			newEnv[i].Value, _ = s2iutil.SafeForLoggingURL(env.Value)
@@ -320,7 +323,6 @@ func SafeForLoggingBuild(build *buildapi.Build) *buildapi.Build {
 func SafeForLoggingEnvironmentList(env s2iapi.EnvironmentList) s2iapi.EnvironmentList {
 	newEnv := make(s2iapi.EnvironmentList, len(env))
 	copy(newEnv, env)
-	proxyRegex := regexp.MustCompile("(?i)proxy")
 	for i, env := range newEnv {
 		if proxyRegex.MatchString(env.Name) {
 			newEnv[i].Value, _ = s2iutil.SafeForLoggingURL(env.Value)

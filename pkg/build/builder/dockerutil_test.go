@@ -38,7 +38,65 @@ func NewFakeDockerClient() *FakeDocker {
 	return &FakeDocker{}
 }
 
-var fooBarRunTimes = 0
+var (
+	fooBarRunTimes = 0
+	credsRegex     = regexp.MustCompile("user:password")
+	redactedRegex  = regexp.MustCompile("redacted")
+	tests = []struct {
+		Filename  string
+		Expected  string
+		ExpectErr bool
+	}{
+		{
+			Filename: "docker-push-1.10.txt",
+			Expected: "(?ms)The push.*Preparing.*Waiting.*Layer.*Pushing.*Pushed.*digest",
+		},
+		{
+			Filename: "docker-push-1.12.txt",
+			Expected: "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
+		},
+		{
+			Filename: "docker-push-exists.txt",
+			Expected: "(?ms)The push.*Preparing.*Layer.*digest",
+		},
+		{
+			Filename: "docker-push-0digests.txt",
+			Expected: "(?ms)The push.*Preparing.*Pushing.*Pushed",
+		},
+		{
+			Filename: "docker-push-2digests.txt",
+			Expected: "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
+		},
+		{
+			Filename:  "docker-push-malformed1.txt",
+			Expected:  "(?ms)The push",
+			ExpectErr: true,
+		},
+		{
+			Filename:  "docker-push-malformed2.txt",
+			Expected:  "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
+			ExpectErr: true,
+		},
+		{
+			Filename:  "docker-push-malformed3.txt",
+			Expected:  "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
+			ExpectErr: true,
+		},
+		{
+			Filename: "empty.txt",
+			Expected: "^$",
+		},
+	}
+	regexTestSet = evaluateMustCompile()
+)
+
+func evaluateMustCompile() []regexp.Regexp {
+	regexMap := make(map[string]*regexp.Regexp)
+	for _, t :=  range tests {
+		regexMap[t.Expected] = regexp.MustCompile(t.Expected)
+	}
+	return regexMap
+}
 
 func fakePushImageFunc(opts docker.PushImageOptions, auth docker.AuthConfiguration) error {
 	switch opts.Tag {
@@ -173,9 +231,13 @@ func TestPushImage(t *testing.T) {
 
 	//make test quickly, and recover the value after testing
 	DefaultPushOrPullRetryCount = 2
-	defer func() { DefaultPushOrPullRetryCount = bakRetryCount }()
+	defer func() {
+		DefaultPushOrPullRetryCount = bakRetryCount
+	}()
 	DefaultPushOrPullRetryDelay = 1
-	defer func() { DefaultPushOrPullRetryDelay = bakRetryDelay }()
+	defer func() {
+		DefaultPushOrPullRetryDelay = bakRetryDelay
+	}()
 
 	//expect succ
 	testImageName = "repo_foo_bar:tag_test_succ_foo_bar"
@@ -199,7 +261,9 @@ func TestPushImage(t *testing.T) {
 	if _, err := pushImage(fakeDocker, testImageName, testAuth); err == nil {
 		t.Errorf("Unexpect push image : %v, want error", err)
 	}
-	defer func() { fooBarRunTimes = 0 }()
+	defer func() {
+		fooBarRunTimes = 0
+	}()
 }
 
 func TestPullImage(t *testing.T) {
@@ -219,9 +283,13 @@ func TestPullImage(t *testing.T) {
 
 	//make test quickly, and recover the value after testing
 	DefaultPushOrPullRetryCount = 2
-	defer func() { DefaultPushOrPullRetryCount = bakRetryCount }()
+	defer func() {
+		DefaultPushOrPullRetryCount = bakRetryCount
+	}()
 	DefaultPushOrPullRetryDelay = 1
-	defer func() { DefaultPushOrPullRetryDelay = bakRetryDelay }()
+	defer func() {
+		DefaultPushOrPullRetryDelay = bakRetryDelay
+	}()
 
 	//expect succ
 	testImageName = "repo_test_succ_foo_bar"
@@ -245,7 +313,9 @@ func TestPullImage(t *testing.T) {
 	if err := pullImage(fakeDocker, testImageName, testAuth); err == nil {
 		t.Errorf("Unexpect pull image : %v, want error", err)
 	}
-	defer func() { fooBarRunTimes = 0 }()
+	defer func() {
+		fooBarRunTimes = 0
+	}()
 }
 
 func TestGetContainerNameOrID(t *testing.T) {
@@ -452,51 +522,6 @@ func TestPushImageDigests(t *testing.T) {
 }
 
 func TestSimpleProgress(t *testing.T) {
-	tests := []struct {
-		Filename  string
-		Expected  string
-		ExpectErr bool
-	}{
-		{
-			Filename: "docker-push-1.10.txt",
-			Expected: "(?ms)The push.*Preparing.*Waiting.*Layer.*Pushing.*Pushed.*digest",
-		},
-		{
-			Filename: "docker-push-1.12.txt",
-			Expected: "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
-		},
-		{
-			Filename: "docker-push-exists.txt",
-			Expected: "(?ms)The push.*Preparing.*Layer.*digest",
-		},
-		{
-			Filename: "docker-push-0digests.txt",
-			Expected: "(?ms)The push.*Preparing.*Pushing.*Pushed",
-		},
-		{
-			Filename: "docker-push-2digests.txt",
-			Expected: "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
-		},
-		{
-			Filename:  "docker-push-malformed1.txt",
-			Expected:  "(?ms)The push",
-			ExpectErr: true,
-		},
-		{
-			Filename:  "docker-push-malformed2.txt",
-			Expected:  "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
-			ExpectErr: true,
-		},
-		{
-			Filename:  "docker-push-malformed3.txt",
-			Expected:  "(?ms)The push.*Preparing.*Pushing.*Pushed.*digest",
-			ExpectErr: true,
-		},
-		{
-			Filename: "empty.txt",
-			Expected: "^$",
-		},
-	}
 
 	for _, tc := range tests {
 		fh, err := os.Open(filepath.Join("testdata", tc.Filename))
@@ -516,15 +541,12 @@ func TestSimpleProgress(t *testing.T) {
 			t.Errorf("Expected error for %q, got success", tc.Filename)
 		}
 
-		if outputStr := output.String(); !regexp.MustCompile(tc.Expected).MatchString(outputStr) {
+		if outputStr := output.String(); !regexTestSet[tests[tc].Expected].MatchString(outputStr) {
 			t.Errorf("%s: expected %q, got:\n%s\n", tc.Filename, tc.Expected, outputStr)
 			continue
 		}
 	}
 }
-
-var credsRegex = regexp.MustCompile("user:password")
-var redactedRegex = regexp.MustCompile("redacted")
 
 func TestSafeForLoggingDockerCreateOptions(t *testing.T) {
 	opts := &docker.CreateContainerOptions{
