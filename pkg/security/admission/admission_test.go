@@ -939,16 +939,16 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 
 	// create the admission plugin
 	plugin := NewTestAdmission(cache, tc)
-	// match the restricted SCC
-	testSCCAdmission(goodPod(), plugin, restricted.Name, t)
-	// match matchingPrioritySCCOne by setting RunAsUser to 5
+
+	testSCCAdmission(goodPod(), plugin, restricted.Name, "match the restricted SCC", t)
+
 	matchingPrioritySCCOnePod := goodPod()
 	matchingPrioritySCCOnePod.Spec.Containers[0].SecurityContext.RunAsUser = &uidFive
-	testSCCAdmission(matchingPrioritySCCOnePod, plugin, matchingPrioritySCCOne.Name, t)
-	// match matchingPriorityAndScoreSCCOne by setting RunAsUser to 6
+	testSCCAdmission(matchingPrioritySCCOnePod, plugin, matchingPrioritySCCOne.Name, "match matchingPrioritySCCOne by setting RunAsUser to 5", t)
+
 	matchingPriorityAndScoreSCCOnePod := goodPod()
 	matchingPriorityAndScoreSCCOnePod.Spec.Containers[0].SecurityContext.RunAsUser = &uidSix
-	testSCCAdmission(matchingPriorityAndScoreSCCOnePod, plugin, matchingPriorityAndScoreSCCOne.Name, t)
+	testSCCAdmission(matchingPriorityAndScoreSCCOnePod, plugin, matchingPriorityAndScoreSCCOne.Name, "match matchingPriorityAndScoreSCCOne by setting RunAsUser to 6", t)
 }
 
 func TestAdmitSeccomp(t *testing.T) {
@@ -1064,21 +1064,21 @@ func TestAdmitSeccomp(t *testing.T) {
 
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
 // SCC.
-func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC string, t *testing.T) {
+func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, testName string, t *testing.T) {
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 	if err != nil {
-		t.Errorf("error admitting pod: %v", err)
+		t.Errorf("%s error admitting pod: %v", testName, err)
 		return
 	}
 
 	validatedSCC, ok := pod.Annotations[allocator.ValidatedSCCAnnotation]
 	if !ok {
-		t.Errorf("expected to find the validated annotation on the pod for the scc but found none")
+		t.Errorf("expected %q to find the validated annotation on the pod for the scc but found none", testName)
 		return
 	}
 	if validatedSCC != expectedSCC {
-		t.Errorf("should have validated against %s but found %s", expectedSCC, validatedSCC)
+		t.Errorf("%q should have validated against %s but found %s", testName, expectedSCC, validatedSCC)
 	}
 }
 
