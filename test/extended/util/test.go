@@ -66,7 +66,7 @@ func InitTest() {
 	if len(TestContext.KubeVolumeDir) == 0 {
 		TestContext.KubeVolumeDir = "/var/lib/origin/volumes"
 	}
-	TestContext.KubectlPath = "kubectl"
+	TestContext.KubectlPath = "oc"
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
 
