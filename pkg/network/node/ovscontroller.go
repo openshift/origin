@@ -58,10 +58,11 @@ func (oc *ovsController) AlreadySetUp() bool {
 		return false
 	}
 	expectedVersionNote := oc.getVersionNote()
-	for _, flow := range flows {
-		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
-		if err == nil && parsed.Table == ruleVersionTable && parsed.NoteHasPrefix(expectedVersionNote) {
-			return true
+	// The "version" flow should be the last one, so scan from the end
+	for i := len(flows) - 1; i >= 0; i-- {
+		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flows[i])
+		if err == nil && parsed.Table == ruleVersionTable {
+			return parsed.NoteHasPrefix(expectedVersionNote)
 		}
 	}
 	return false
