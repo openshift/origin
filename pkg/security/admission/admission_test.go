@@ -532,30 +532,8 @@ func TestAdmitFailure(t *testing.T) {
 
 	// now add an escalated scc to the group and re-run the cases that expected failure, they should
 	// now pass by validating against the escalated scc.
-	adminSCC := &securityapi.SecurityContextConstraints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "scc-admin",
-		},
-		AllowPrivilegedContainer: true,
-		AllowHostNetwork:         true,
-		AllowHostPorts:           true,
-		AllowHostPID:             true,
-		AllowHostIPC:             true,
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyRunAsAny,
-		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyRunAsAny,
-		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyRunAsAny,
-		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyRunAsAny,
-		},
-		Groups: []string{"system:serviceaccounts"},
-	}
-
+	adminSCC := laxSCC()
+	adminSCC.Name = "scc-admin"
 	indexer.Add(adminSCC)
 
 	for i := 0; i < 2; i++ {
@@ -1141,6 +1119,11 @@ func laxSCC() *securityapi.SecurityContextConstraints {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "lax",
 		},
+		AllowPrivilegedContainer: true,
+		AllowHostNetwork:         true,
+		AllowHostPorts:           true,
+		AllowHostPID:             true,
+		AllowHostIPC:             true,
 		RunAsUser: securityapi.RunAsUserStrategyOptions{
 			Type: securityapi.RunAsUserStrategyRunAsAny,
 		},
