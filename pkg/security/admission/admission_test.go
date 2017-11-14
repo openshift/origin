@@ -179,24 +179,8 @@ func TestAdmitSuccess(t *testing.T) {
 	defaultGroup := int64(2)
 
 	// create scc that requires allocation retrieval
-	saSCC := &securityapi.SecurityContextConstraints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "scc-sa",
-		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAsRange,
-		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyMustRunAs,
-		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-		},
-		Groups: []string{"system:serviceaccounts"},
-	}
+	saSCC := saSCC()
+
 	// create scc that has specific requirements that shouldn't match but is permissioned to
 	// service accounts to test that even though this has matching priorities (0) and a
 	// lower point value score (which will cause it to be sorted in front of scc-sa) it should not
@@ -337,24 +321,8 @@ func TestAdmitFailure(t *testing.T) {
 	tc := setupClientSet()
 
 	// create scc that requires allocation retrieval
-	saSCC := &securityapi.SecurityContextConstraints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "scc-sa",
-		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAsRange,
-		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyMustRunAs,
-		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-		},
-		Groups: []string{"system:serviceaccounts"},
-	}
+	saSCC := saSCC()
+
 	// create scc that has specific requirements that shouldn't match but is permissioned to
 	// service accounts to test that even though this has matching priorities (0) and a
 	// lower point value score (which will cause it to be sorted in front of scc-sa) it should not
@@ -1078,6 +1046,27 @@ func restrictiveSCC() *securityapi.SecurityContextConstraints {
 			Ranges: []securityapi.IDRange{
 				{Min: 999, Max: 999},
 			},
+		},
+		Groups: []string{"system:serviceaccounts"},
+	}
+}
+
+func saSCC() *securityapi.SecurityContextConstraints {
+	return &securityapi.SecurityContextConstraints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "scc-sa",
+		},
+		RunAsUser: securityapi.RunAsUserStrategyOptions{
+			Type: securityapi.RunAsUserStrategyMustRunAsRange,
+		},
+		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+			Type: securityapi.SELinuxStrategyMustRunAs,
+		},
+		FSGroup: securityapi.FSGroupStrategyOptions{
+			Type: securityapi.FSGroupStrategyMustRunAs,
+		},
+		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
+			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
