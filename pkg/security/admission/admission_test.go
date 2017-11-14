@@ -417,11 +417,10 @@ func TestAdmitFailure(t *testing.T) {
 		Groups: []string{"system:serviceaccounts"},
 	}
 
-	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	lister := securitylisters.NewSecurityContextConstraintsLister(indexer)
-
-	indexer.Add(saExactSCC)
-	indexer.Add(saSCC)
+	lister, indexer := createSCCListerAndIndexer(t, []*securityapi.SecurityContextConstraints{
+		saExactSCC,
+		saSCC,
+	})
 
 	// create the admission plugin
 	p := NewTestAdmission(lister, tc)
@@ -1169,7 +1168,7 @@ func setupClientSet() *clientsetfake.Clientset {
 	return clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 }
 
-func createSCCLister(t *testing.T, sccs []*securityapi.SecurityContextConstraints) securitylisters.SecurityContextConstraintsLister {
+func createSCCListerAndIndexer(t *testing.T, sccs []*securityapi.SecurityContextConstraints) (securitylisters.SecurityContextConstraintsLister, cache.Indexer) {
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 	lister := securitylisters.NewSecurityContextConstraintsLister(indexer)
 	for _, scc := range sccs {
@@ -1177,5 +1176,10 @@ func createSCCLister(t *testing.T, sccs []*securityapi.SecurityContextConstraint
 			t.Fatalf("error adding SCC to store: %v", err)
 		}
 	}
+	return lister, indexer
+}
+
+func createSCCLister(t *testing.T, sccs []*securityapi.SecurityContextConstraints) securitylisters.SecurityContextConstraintsLister {
+	lister, _ := createSCCListerAndIndexer(t, sccs)
 	return lister
 }
