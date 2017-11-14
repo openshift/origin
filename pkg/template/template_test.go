@@ -339,6 +339,48 @@ func TestEvaluateLabels(t *testing.T) {
 			}`,
 			Labels: map[string]string{"key2": "v3"},
 		},
+		"parameterised labels": {
+			Input: `{
+				"kind":"Template", "apiVersion":"v1",
+				"objects": [
+					{
+						"kind": "Service", "apiVersion": "v1",
+						"metadata": {"labels": {"key1": "v1", "key2": "v2"}}
+					}
+				],
+				"parameters": [
+					{
+						"name": "KEY",
+						"value": "key"
+					},
+					{
+						"name": "VALUE",
+						"value": "value"
+					}
+				]
+			}`,
+			Output: `{
+				"kind":"Template","apiVersion":"template.openshift.io/v1","metadata":{"creationTimestamp":null},
+				"objects":[
+					{
+						"apiVersion":"v1","kind":"Service","metadata":{
+						"labels":{"key":"value","key1":"v1","key2":"v2"}}
+					}
+				],
+				"parameters":[
+					{
+						"name":"KEY",
+						"value":"key"
+					},
+					{
+						"name":"VALUE",
+						"value":"value"
+					}
+				],
+				"labels":{"key":"value"}
+			}`,
+			Labels: map[string]string{"${KEY}": "${VALUE}"},
+		},
 	}
 
 	for k, testCase := range testCases {

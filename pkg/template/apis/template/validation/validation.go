@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 
-	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
@@ -52,7 +51,6 @@ func validateTemplateBody(template *templateapi.Template) (allErrs field.ErrorLi
 	for i := range template.Parameters {
 		allErrs = append(allErrs, ValidateParameter(&template.Parameters[i], field.NewPath("parameters").Index(i))...)
 	}
-	allErrs = append(allErrs, unversionedvalidation.ValidateLabels(template.ObjectLabels, field.NewPath("labels"))...)
 	return
 }
 
