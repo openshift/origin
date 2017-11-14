@@ -53,11 +53,11 @@ readonly OS_TEST_TARGETS=(
 )
 
 readonly OS_GOVET_BLACKLIST=(
-	"pkg/.*/client/clientset_generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
-	"pkg/.*/client/clientset_generated/release_v1_./fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
-	"pkg/.*/clientset/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
-	"pkg/.*/clientset/release_v3_./fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
+	"pkg/.*/generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
+	"pkg/.*/generated/clientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
+	"pkg/build/vendor/github.com/docker/engine-api/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"cmd/cluster-capacity/.*"
+	"pkg/build/builder/vendor/.*"
 )
 
 #If you update this list, be sure to get the images/origin/Dockerfile
@@ -212,13 +212,13 @@ readonly -f os::util::list_go_src_dirs
 
 # os::util::list_go_deps outputs the list of dependencies for the project.
 function os::util::list_go_deps() {
-  go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... | tr '[]' '  ' | 
+  go list -f '{{.ImportPath}}{{.Imports}}' ./pkg/... ./cmd/... | tr '[]' '  ' |
     grep -vE '^github.com/openshift/origin/cmd/(service-catalog|cluster-capacity)' |
-    sed -e 's|github.com/openshift/origin/vendor/||g' | 
+    sed -e 's|github.com/openshift/origin/vendor/||g' |
     sed -e 's|github.com/openshift/origin/pkg/build/vendor/||g'
 }
 
-# os::util::list_test_packages_under lists all packages containing Golang test files that we 
+# os::util::list_test_packages_under lists all packages containing Golang test files that we
 # want to run as unit tests under the given base dir in the source tree
 function os::util::list_test_packages_under() {
     local basedir=$*

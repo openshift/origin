@@ -86,7 +86,7 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 		}
 		for name, value := range defaultResources.Limits {
 			if _, ok := pod.Spec.Containers[i].Resources.Limits[v1.ResourceName(name)]; !ok {
-				glog.V(5).Infof("Setting default resource limit %s for pod %s/%s to %s", name, pod.Namespace, pod.Name, value)
+				glog.V(5).Infof("Setting default resource limit %s for pod %s/%s to %v", name, pod.Namespace, pod.Name, value)
 				pod.Spec.Containers[i].Resources.Limits[v1.ResourceName(name)] = value
 			}
 		}
@@ -95,7 +95,7 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 		}
 		for name, value := range defaultResources.Requests {
 			if _, ok := pod.Spec.Containers[i].Resources.Requests[v1.ResourceName(name)]; !ok {
-				glog.V(5).Infof("Setting default resource request %s for pod %s/%s to %s", name, pod.Namespace, pod.Name, value)
+				glog.V(5).Infof("Setting default resource request %s for pod %s/%s to %v", name, pod.Namespace, pod.Name, value)
 				pod.Spec.Containers[i].Resources.Requests[v1.ResourceName(name)] = value
 			}
 		}
@@ -159,7 +159,7 @@ func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	}
 	for name, value := range defaultResources.Limits {
 		if _, ok := build.Spec.Resources.Limits[name]; !ok {
-			glog.V(5).Infof("Setting default resource limit %s for build %s/%s to %s", name, build.Namespace, build.Name, value)
+			glog.V(5).Infof("Setting default resource limit %s for build %s/%s to %v", name, build.Namespace, build.Name, value)
 			build.Spec.Resources.Limits[name] = value
 		}
 	}
@@ -168,7 +168,7 @@ func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	}
 	for name, value := range defaultResources.Requests {
 		if _, ok := build.Spec.Resources.Requests[name]; !ok {
-			glog.V(5).Infof("Setting default resource request %s for build %s/%s to %s", name, build.Namespace, build.Name, value)
+			glog.V(5).Infof("Setting default resource request %s for build %s/%s to %v", name, build.Namespace, build.Name, value)
 			build.Spec.Resources.Requests[name] = value
 		}
 	}

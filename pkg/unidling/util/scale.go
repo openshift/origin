@@ -169,7 +169,7 @@ func (c *ScaleAnnotater) UpdateObjectScale(updater ScaleUpdater, namespace strin
 	case *deployapi.DeploymentConfig, *kapi.ReplicationController:
 		return updater.Update(c, obj, scale)
 	default:
-		glog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations")
+		glog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations", obj)
 		_, err = c.scales.Scales(namespace).Update(ref.Kind, scale)
 	}
 
