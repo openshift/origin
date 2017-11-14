@@ -13786,7 +13786,7 @@ metadata:
   name: service-catalog
 objects:
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
     name: servicecatalog-serviceclass-viewer
@@ -13801,14 +13801,18 @@ objects:
     - watch
     - get
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: servicecatalog-serviceclass-viewer-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
     name: servicecatalog-serviceclass-viewer
-  groupNames:
-  - system:authenticated
+    kind: ClusterRole
+  subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: system:authenticated
 
 - kind: ServiceAccount
   apiVersion: v1
@@ -13820,7 +13824,7 @@ objects:
   metadata:
     name: service-catalog-apiserver
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
     name: sar-creator
@@ -13832,18 +13836,20 @@ objects:
     verbs:
     - create
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-sar-creator-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
     name: sar-creator
+    kind: ClusterRole
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
     name: namespace-viewer
@@ -13857,29 +13863,33 @@ objects:
     - watch
     - get
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-namespace-viewer-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
     name: namespace-viewer
+    kind: ClusterRole
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-namespace-viewer-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
     name: namespace-viewer
+    kind: ClusterRole
   subjects:
   - kind: ServiceAccount
     name: service-catalog-controller
-    namespace: kube-service-catalog
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
     name: service-catalog-controller
@@ -13950,21 +13960,24 @@ objects:
     - list
     - watch
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
     name: service-catalog-controller
+    kind: ClusterRole
   subjects:
   - kind: ServiceAccount
     name: service-catalog-controller
-    namespace: kube-service-catalog
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
   
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: Role
   metadata:
     name: endpoint-accessor
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
   rules:
   - apiGroups:
     - ""
@@ -13977,41 +13990,46 @@ objects:
     - create
     - update
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: RoleBinding
   metadata:
     name: endpointer-accessor-binding
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
     name: endpoint-accessor
-    namespace: kube-service-catalog
+    kind: Role
   subjects:
   - kind: ServiceAccount
-    namespace: kube-service-catalog
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
     name: service-catalog-controller
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: RoleBinding
   metadata:
     name: extension-apiserver-authentication-reader-binding
     namespace: ${KUBE_SYSTEM_NAMESPACE}
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
     name: extension-apiserver-authentication-reader
-    namespace: ${KUBE_SYSTEM_NAMESPACE}
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
 
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: system:auth-delegator-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
     name: system:auth-delegator
+    kind: ClusterRole
   subjects:
   - kind: ServiceAccount
     name: service-catalog-apiserver
-    namespace: kube-service-catalog
+    namespace: ${SERVICE_CATALOG_NAMESPACE}
 
 
 - kind: Deployment
@@ -14207,6 +14225,11 @@ parameters:
   name: KUBE_SYSTEM_NAMESPACE
   required: true
   value: kube-system
+- description: Do not change this value.
+  displayName: Name of the service catalog namespace
+  name: SERVICE_CATALOG_NAMESPACE
+  required: true
+  value: kube-service-catalog
 `)
 
 func examplesServiceCatalogServiceCatalogYamlBytes() ([]byte, error) {
