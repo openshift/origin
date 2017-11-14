@@ -265,19 +265,10 @@ func TestAdmitSuccess(t *testing.T) {
 			if i == 0 {
 				containers = v.pod.Spec.InitContainers
 			}
-			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-			err := p.Admit(attrs)
 
-			if err != nil {
-				t.Fatalf("%s expected no errors but received %v", k, err)
-			}
-
-			validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
-			if !ok {
-				t.Errorf("%s expected to find the validated annotation on the pod for the scc but found none", k)
-			}
-			if validatedSCC != saSCC.Name {
-				t.Errorf("%s should have validated against %s but found %s", k, saSCC.Name, validatedSCC)
+			hasErrors := testSCCAdmission(v.pod, p, saSCC.Name, k, t)
+			if hasErrors {
+				continue
 			}
 
 			if !reflect.DeepEqual(v.expectedPodSC, v.pod.Spec.SecurityContext) {
@@ -939,23 +930,25 @@ func TestAdmitSeccomp(t *testing.T) {
 }
 
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
-// SCC.
-func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, testName string, t *testing.T) {
+// SCC. Returns true when errors have been encountered.
+func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, testName string, t *testing.T) bool {
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
 	if err != nil {
 		t.Errorf("%s error admitting pod: %v", testName, err)
-		return
+		return true
 	}
 
 	validatedSCC, ok := pod.Annotations[allocator.ValidatedSCCAnnotation]
 	if !ok {
 		t.Errorf("expected %q to find the validated annotation on the pod for the scc but found none", testName)
-		return
+		return true
 	}
 	if validatedSCC != expectedSCC {
 		t.Errorf("%q should have validated against %s but found %s", testName, expectedSCC, validatedSCC)
+		return true
 	}
+	return false
 }
 
 func laxSCC() *securityapi.SecurityContextConstraints {
