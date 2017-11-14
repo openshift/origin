@@ -201,35 +201,7 @@ func TestAdmitSuccess(t *testing.T) {
 	// service accounts to test that even though this has matching priorities (0) and a
 	// lower point value score (which will cause it to be sorted in front of scc-sa) it should not
 	// validate the requests so we should try scc-sa.
-	var exactUID int64 = 999
-	saExactSCC := &securityapi.SecurityContextConstraints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "scc-sa-exact",
-		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAs,
-			UID:  &exactUID,
-		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyMustRunAs,
-			SELinuxOptions: &kapi.SELinuxOptions{
-				Level: "s9:z0,z1",
-			},
-		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
-				{Min: 999, Max: 999},
-			},
-		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
-				{Min: 999, Max: 999},
-			},
-		},
-		Groups: []string{"system:serviceaccounts"},
-	}
+	saExactSCC := saExactSCC()
 
 	lister := createSCCLister(t, []*securityapi.SecurityContextConstraints{
 		saExactSCC,
@@ -387,35 +359,7 @@ func TestAdmitFailure(t *testing.T) {
 	// service accounts to test that even though this has matching priorities (0) and a
 	// lower point value score (which will cause it to be sorted in front of scc-sa) it should not
 	// validate the requests so we should try scc-sa.
-	var exactUID int64 = 999
-	saExactSCC := &securityapi.SecurityContextConstraints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "scc-sa-exact",
-		},
-		RunAsUser: securityapi.RunAsUserStrategyOptions{
-			Type: securityapi.RunAsUserStrategyMustRunAs,
-			UID:  &exactUID,
-		},
-		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
-			Type: securityapi.SELinuxStrategyMustRunAs,
-			SELinuxOptions: &kapi.SELinuxOptions{
-				Level: "s9:z0,z1",
-			},
-		},
-		FSGroup: securityapi.FSGroupStrategyOptions{
-			Type: securityapi.FSGroupStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
-				{Min: 999, Max: 999},
-			},
-		},
-		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
-			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
-			Ranges: []securityapi.IDRange{
-				{Min: 999, Max: 999},
-			},
-		},
-		Groups: []string{"system:serviceaccounts"},
-	}
+	saExactSCC := saExactSCC()
 
 	lister, indexer := createSCCListerAndIndexer(t, []*securityapi.SecurityContextConstraints{
 		saExactSCC,
@@ -1112,6 +1056,38 @@ func restrictiveSCC() *securityapi.SecurityContextConstraints {
 	return &securityapi.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "restrictive",
+		},
+		RunAsUser: securityapi.RunAsUserStrategyOptions{
+			Type: securityapi.RunAsUserStrategyMustRunAs,
+			UID:  &exactUID,
+		},
+		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+			Type: securityapi.SELinuxStrategyMustRunAs,
+			SELinuxOptions: &kapi.SELinuxOptions{
+				Level: "s9:z0,z1",
+			},
+		},
+		FSGroup: securityapi.FSGroupStrategyOptions{
+			Type: securityapi.FSGroupStrategyMustRunAs,
+			Ranges: []securityapi.IDRange{
+				{Min: 999, Max: 999},
+			},
+		},
+		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
+			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+			Ranges: []securityapi.IDRange{
+				{Min: 999, Max: 999},
+			},
+		},
+		Groups: []string{"system:serviceaccounts"},
+	}
+}
+
+func saExactSCC() *securityapi.SecurityContextConstraints {
+	var exactUID int64 = 999
+	return &securityapi.SecurityContextConstraints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "scc-sa-exact",
 		},
 		RunAsUser: securityapi.RunAsUserStrategyOptions{
 			Type: securityapi.RunAsUserStrategyMustRunAs,
