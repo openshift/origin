@@ -3123,14 +3123,6 @@ items:
   - apiGroups:
     - template.openshift.io
     resources:
-    - subjectaccessreviews
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - template.openshift.io
-    resources:
     - templateinstances/status
     verbs:
     - update

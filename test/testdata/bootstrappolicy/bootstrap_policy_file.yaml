@@ -3408,15 +3408,6 @@ items:
     - template.openshift.io
     attributeRestrictions: null
     resources:
-    - subjectaccessreviews
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - template.openshift.io
-    attributeRestrictions: null
-    resources:
     - templateinstances/status
     verbs:
     - update
