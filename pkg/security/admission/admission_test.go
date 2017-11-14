@@ -157,9 +157,7 @@ func TestAdmitCaps(t *testing.T) {
 }
 
 func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
-	namespace := admissiontesting.CreateNamespaceForTest()
-	serviceAccount := admissiontesting.CreateSAForTest()
-	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
+	tc := setupClientSet()
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 	cache := securitylisters.NewSecurityContextConstraintsLister(indexer)
 	for _, scc := range sccs {
@@ -180,14 +178,10 @@ func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstr
 }
 
 func TestAdmitSuccess(t *testing.T) {
-	// create the annotated namespace and add it to the fake client
-	namespace := admissiontesting.CreateNamespaceForTest()
-	serviceAccount := admissiontesting.CreateSAForTest()
+	tc := setupClientSet()
 
 	// used for cases where things are preallocated
 	defaultGroup := int64(2)
-
-	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
 	// create scc that requires allocation retrieval
 	saSCC := &securityapi.SecurityContextConstraints{
@@ -374,11 +368,7 @@ func TestAdmitSuccess(t *testing.T) {
 }
 
 func TestAdmitFailure(t *testing.T) {
-	// create the annotated namespace and add it to the fake client
-	namespace := admissiontesting.CreateNamespaceForTest()
-	serviceAccount := admissiontesting.CreateSAForTest()
-
-	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
+	tc := setupClientSet()
 
 	// create scc that requires allocation retrieval
 	saSCC := &securityapi.SecurityContextConstraints{
@@ -954,10 +944,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	// SCCs and ensure that they come out with the right annotation.  This means admission
 	// is using the sort strategy we expect.
 
-	namespace := admissiontesting.CreateNamespaceForTest()
-	serviceAccount := admissiontesting.CreateSAForTest()
-	serviceAccount.Namespace = namespace.Name
-	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
+	tc := setupClientSet()
 
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 	cache := securitylisters.NewSecurityContextConstraintsLister(indexer)
@@ -1190,4 +1177,13 @@ func goodPod() *kapi.Pod {
 			},
 		},
 	}
+}
+
+func setupClientSet() *clientsetfake.Clientset {
+	// create the annotated namespace and add it to the fake client
+	namespace := admissiontesting.CreateNamespaceForTest()
+	serviceAccount := admissiontesting.CreateSAForTest()
+	serviceAccount.Namespace = namespace.Name
+
+	return clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 }
