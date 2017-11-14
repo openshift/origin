@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 // +k8s:conversion-gen=k8s.io/kubernetes/pkg/api
-// +k8s:conversion-gen-external-types=../../../vendor/k8s.io/api/core/v1
+// +k8s:conversion-gen-external-types=k8s.io/api/core/v1
 // +k8s:defaulter-gen=TypeMeta
-// +k8s:defaulter-gen-input=../../../vendor/k8s.io/api/core/v1
+// +k8s:defaulter-gen-input=k8s.io/api/core/v1
 
 // Package v1 is the v1 version of the API.
 package v1 // import "k8s.io/kubernetes/pkg/api/v1"
