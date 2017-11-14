@@ -158,12 +158,7 @@ func TestAdmitCaps(t *testing.T) {
 
 func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
 	tc := setupClientSet()
-	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	cache := securitylisters.NewSecurityContextConstraintsLister(indexer)
-	for _, scc := range sccs {
-		indexer.Add(scc)
-	}
-
+	cache := createSCCLister(t, sccs)
 	plugin := NewTestAdmission(cache, tc)
 
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
@@ -236,11 +231,10 @@ func TestAdmitSuccess(t *testing.T) {
 		Groups: []string{"system:serviceaccounts"},
 	}
 
-	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	cache := securitylisters.NewSecurityContextConstraintsLister(indexer)
-
-	indexer.Add(saExactSCC)
-	indexer.Add(saSCC)
+	cache := createSCCLister(t, []*securityapi.SecurityContextConstraints{
+		saExactSCC,
+		saSCC,
+	})
 
 	// create the admission plugin
 	p := NewTestAdmission(cache, tc)
@@ -810,11 +804,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		},
 	}
 
-	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	cache := securitylisters.NewSecurityContextConstraintsLister(indexer)
-	for _, scc := range sccs {
-		indexer.Add(scc)
-	}
+	cache := createSCCLister(t, sccs)
 
 	// single match cases
 	testCases := map[string]struct {
@@ -945,16 +935,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	// is using the sort strategy we expect.
 
 	tc := setupClientSet()
-
-	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	cache := securitylisters.NewSecurityContextConstraintsLister(indexer)
-
-	for _, scc := range sccsToSort {
-		err := indexer.Add(scc)
-		if err != nil {
-			t.Fatalf("error adding sccs to store: %v", err)
-		}
-	}
+	cache := createSCCLister(t, sccsToSort)
 
 	// create the admission plugin
 	plugin := NewTestAdmission(cache, tc)
@@ -1186,4 +1167,15 @@ func setupClientSet() *clientsetfake.Clientset {
 	serviceAccount.Namespace = namespace.Name
 
 	return clientsetfake.NewSimpleClientset(namespace, serviceAccount)
+}
+
+func createSCCLister(t *testing.T, sccs []*securityapi.SecurityContextConstraints) securitylisters.SecurityContextConstraintsLister {
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	lister := securitylisters.NewSecurityContextConstraintsLister(indexer)
+	for _, scc := range sccs {
+		if err := indexer.Add(scc); err != nil {
+			t.Fatalf("error adding SCC to store: %v", err)
+		}
+	}
+	return lister
 }
