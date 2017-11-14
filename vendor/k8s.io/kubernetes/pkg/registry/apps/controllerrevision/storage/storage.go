@@ -36,14 +36,13 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &apps.ControllerRevision{} },
 		NewListFunc:              func() runtime.Object { return &apps.ControllerRevisionList{} },
-		PredicateFunc:            controllerrevision.MatchControllerRevision,
 		DefaultQualifiedResource: apps.Resource("controllerrevisions"),
 
 		CreateStrategy: controllerrevision.Strategy,
 		UpdateStrategy: controllerrevision.Strategy,
 		DeleteStrategy: controllerrevision.Strategy,
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: controllerrevision.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err)
 	}

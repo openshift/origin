@@ -56,8 +56,9 @@ var (
 		prometheus.SummaryOpts{
 			Name: "apiserver_request_latencies_summary",
 			Help: "Response latency summary in microseconds for each verb, resource and subresource.",
-			// Make the sliding window of 1h.
-			MaxAge: time.Hour,
+			// Make the sliding window of 5h.
+			// TODO: The value for this should be based on our SLI definition (medium term).
+			MaxAge: 5 * time.Hour,
 		},
 		[]string{"verb", "resource", "subresource", "scope"},
 	)
@@ -106,9 +107,9 @@ func MonitorRequest(request *http.Request, verb, resource, subresource, scope, c
 			}
 		}
 	}
-	// normalize this for metrics gathering to avoid accidental elision of relevant metrics
+	// normalize the legacy WATCHLIST to WATCH to ensure users aren't surprised by metrics
 	if verb == "WATCHLIST" {
-		verb = "WATCH"
+		reportedVerb = "WATCH"
 	}
 
 	client := cleanUserAgent(utilnet.GetHTTPClient(request))

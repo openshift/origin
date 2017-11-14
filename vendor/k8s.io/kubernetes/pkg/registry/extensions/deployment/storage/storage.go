@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
@@ -65,14 +66,13 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *Rollbac
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &extensions.Deployment{} },
 		NewListFunc:              func() runtime.Object { return &extensions.DeploymentList{} },
-		PredicateFunc:            deployment.MatchDeployment,
 		DefaultQualifiedResource: extensions.Resource("deployments"),
 
 		CreateStrategy: deployment.Strategy,
 		UpdateStrategy: deployment.Strategy,
 		DeleteStrategy: deployment.Strategy,
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: deployment.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}
@@ -145,6 +145,7 @@ func (r *RollbackREST) Create(ctx genericapirequest.Context, obj runtime.Object,
 		return nil, err
 	}
 	return &metav1.Status{
+		Status:  metav1.StatusSuccess,
 		Message: fmt.Sprintf("rollback request for deployment %q succeeded", rollback.Name),
 		Code:    http.StatusOK,
 	}, nil
@@ -192,6 +193,11 @@ type ScaleREST struct {
 
 // ScaleREST implements Patcher
 var _ = rest.Patcher(&ScaleREST{})
+var _ = rest.GroupVersionKindProvider(&ScaleREST{})
+
+func (r *ScaleREST) GroupVersionKind() schema.GroupVersionKind {
+	return schema.GroupVersionKind{Group: "extensions", Version: "v1beta1", Kind: "Scale"}
+}
 
 // New creates a new Scale object
 func (r *ScaleREST) New() runtime.Object {

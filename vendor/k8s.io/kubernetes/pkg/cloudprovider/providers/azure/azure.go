@@ -131,6 +131,7 @@ type Cloud struct {
 	DisksClient              disk.DisksClient
 	operationPollRateLimiter flowcontrol.RateLimiter
 	resourceRequestBackoff   wait.Backoff
+	metadata                 *InstanceMetadata
 
 	*BlobDiskController
 	*ManagedDiskController
@@ -320,6 +321,8 @@ func NewCloud(configReader io.Reader) (cloudprovider.Interface, error) {
 			az.CloudProviderBackoffJitter)
 	}
 
+	az.metadata = NewInstanceMetadata()
+
 	if err := initDiskControllers(&az); err != nil {
 		return nil, err
 	}
@@ -329,6 +332,11 @@ func NewCloud(configReader io.Reader) (cloudprovider.Interface, error) {
 // ParseConfig returns a parsed configuration and azure.Environment for an Azure cloudprovider config file
 func ParseConfig(configReader io.Reader) (*Config, *azure.Environment, error) {
 	var config Config
+	var env azure.Environment
+
+	if configReader == nil {
+		return &config, &env, nil
+	}
 
 	configContents, err := ioutil.ReadAll(configReader)
 	if err != nil {
@@ -339,7 +347,6 @@ func ParseConfig(configReader io.Reader) (*Config, *azure.Environment, error) {
 		return nil, nil, err
 	}
 
-	var env azure.Environment
 	if config.Cloud == "" {
 		env = azure.PublicCloud
 	} else {

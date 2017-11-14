@@ -36,7 +36,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &extensions.PodSecurityPolicy{} },
 		NewListFunc:              func() runtime.Object { return &extensions.PodSecurityPolicyList{} },
-		PredicateFunc:            podsecuritypolicy.MatchPodSecurityPolicy,
 		DefaultQualifiedResource: extensions.Resource("podsecuritypolicies"),
 
 		CreateStrategy:      podsecuritypolicy.Strategy,
@@ -44,7 +43,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		DeleteStrategy:      podsecuritypolicy.Strategy,
 		ReturnDeletedObject: true,
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: podsecuritypolicy.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

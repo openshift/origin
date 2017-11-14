@@ -28,9 +28,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	federationapi "k8s.io/kubernetes/federation/apis/federation"
+	fedv1beta1 "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	fedclient "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacv1 "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	rbacv1alpha1 "k8s.io/kubernetes/pkg/apis/rbac/v1alpha1"
 	rbacv1beta1 "k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
 	client "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -209,7 +211,7 @@ func GetClientsetFromSecret(secret *api.Secret, serverAddress string) (*client.C
 	return nil, err
 }
 
-func GetServerAddress(c *federationapi.Cluster) (string, error) {
+func GetServerAddress(c *fedv1beta1.Cluster) (string, error) {
 	hostIP, err := utilnet.ChooseHostInterface()
 	if err != nil {
 		return "", err
@@ -260,7 +262,7 @@ func buildConfigFromSecret(secret *api.Secret, serverAddress string) (*restclien
 
 // GetVersionedClientForRBACOrFail discovers the versioned rbac APIs and gets the versioned
 // clientset for either the preferred version or the first listed version (if no preference listed)
-// TODO: We need to evaluate the usage of RESTMapper interface to achieve te same functionality
+// TODO: We need to evaluate the usage of RESTMapper interface to achieve the same functionality
 func GetVersionedClientForRBACOrFail(hostFactory cmdutil.Factory) (client.Interface, error) {
 	discoveryclient, err := hostFactory.DiscoveryClient()
 	if err != nil {
@@ -288,6 +290,7 @@ func getRBACVersion(discoveryclient discovery.CachedDiscoveryInterface) (*schema
 
 	// These are the RBAC versions we can speak
 	knownVersions := map[schema.GroupVersion]bool{
+		rbacv1.SchemeGroupVersion:       true,
 		rbacv1alpha1.SchemeGroupVersion: true,
 		rbacv1beta1.SchemeGroupVersion:  true,
 	}

@@ -200,7 +200,7 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 		sw.Do(patchTemplate, m)
 	}
 
-	// generate expansion methods
+	// generate extended client methods
 	for _, e := range tags.Extensions {
 		inputType := *t
 		resultType := *t
@@ -358,7 +358,7 @@ func (c *Fake$.type|publicPlural$) List(opts $.ListOptions|raw$) (result *$.type
 `
 
 var getTemplate = `
-// Get takes name of the $.inputType|private$, and returns the corresponding $.type|private$ object, and an error if there is any.
+// Get takes name of the $.type|private$, and returns the corresponding $.resultType|private$ object, and an error if there is any.
 func (c *Fake$.type|publicPlural$) Get(name string, options $.GetOptions|raw$) (result *$.resultType|raw$, err error) {
 	obj, err := c.Fake.
 		$if .namespaced$Invokes($.NewGetAction|raw$($.type|allLowercasePlural$Resource, c.ns, name), &$.resultType|raw${})
@@ -371,7 +371,7 @@ func (c *Fake$.type|publicPlural$) Get(name string, options $.GetOptions|raw$) (
 `
 
 var getSubresourceTemplate = `
-// Get takes name of the $.inputType|private$, and returns the corresponding $.type|private$ object, and an error if there is any.
+// Get takes name of the $.type|private$, and returns the corresponding $.resultType|private$ object, and an error if there is any.
 func (c *Fake$.type|publicPlural$) Get($.type|private$Name string, options $.GetOptions|raw$) (result *$.resultType|raw$, err error) {
 	obj, err := c.Fake.
 		$if .namespaced$Invokes($.NewGetSubresourceAction|raw$($.type|allLowercasePlural$Resource, c.ns, "$.subresourcePath$", $.type|private$Name), &$.resultType|raw${})

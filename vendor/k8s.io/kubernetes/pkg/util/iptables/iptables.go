@@ -27,8 +27,8 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
-	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	utilversion "k8s.io/kubernetes/pkg/util/version"
+	utilexec "k8s.io/utils/exec"
 )
 
 type RulePosition string
@@ -340,7 +340,7 @@ func (runner *runner) RestoreAll(data []byte, flush FlushFlag, counters RestoreC
 }
 
 type iptablesLocker interface {
-	Close()
+	Close() error
 }
 
 // restoreInternal is the shared part of Restore/RestoreAll
@@ -363,7 +363,11 @@ func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFla
 		if err != nil {
 			return err
 		}
-		defer locker.Close()
+		defer func(locker iptablesLocker) {
+			if err := locker.Close(); err != nil {
+				glog.Errorf("Failed to close iptables locks: %v", err)
+			}
+		}(locker)
 	}
 
 	// run the command and return the output or an error including the output and error
@@ -567,7 +571,7 @@ func getIPTablesRestoreWaitFlag(exec utilexec.Interface) []string {
 		return nil
 	}
 
-	return []string{WaitSecondsString}
+	return []string{"--wait=2"}
 }
 
 // getIPTablesRestoreVersionString runs "iptables-restore --version" to get the version string

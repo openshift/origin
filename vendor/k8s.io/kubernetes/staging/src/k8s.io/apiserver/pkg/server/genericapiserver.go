@@ -18,22 +18,18 @@ package server
 
 import (
 	"fmt"
-	"mime"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	systemd "github.com/coreos/go-systemd/daemon"
-	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-swagger12"
 	"github.com/golang/glog"
 
-	"github.com/go-openapi/spec"
 	"k8s.io/apimachinery/pkg/apimachinery"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	openapicommon "k8s.io/apimachinery/pkg/openapi"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -45,9 +41,9 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/server/healthz"
-	"k8s.io/apiserver/pkg/server/openapi"
 	"k8s.io/apiserver/pkg/server/routes"
 	restclient "k8s.io/client-go/rest"
+	openapicommon "k8s.io/kube-openapi/pkg/common"
 )
 
 // Info about an API group.
@@ -112,15 +108,12 @@ type GenericAPIServer struct {
 	// external (public internet) URLs for this GenericAPIServer.
 	ExternalAddress string
 
-	// storage contains the RESTful endpoints exposed by this GenericAPIServer
-	storage map[string]rest.Storage
-
 	// Serializer controls how common API objects not in a group/version prefix are serialized for this server.
 	// Individual APIGroups may define their own serializers.
 	Serializer runtime.NegotiatedSerializer
 
 	// "Outputs"
-	// Handler holdes the handlers being used by this API server
+	// Handler holds the handlers being used by this API server
 	Handler *APIServerHandler
 
 	// listedPathProvider is a lister which provides the set of paths to show at /
@@ -132,12 +125,6 @@ type GenericAPIServer struct {
 	// Enable swagger and/or OpenAPI if these configs are non-nil.
 	swaggerConfig *swagger.Config
 	openAPIConfig *openapicommon.Config
-
-	// Enables updating OpenAPI spec using update method.
-	OpenAPIService *openapi.OpenAPIService
-
-	// delegationTarget only exists
-	openAPIDelegationTarget OpenAPIDelegationTarget
 
 	// PostStartHooks are each called after the server has started listening, in a separate go func for each
 	// with no guarantee of ordering between them.  The map key is a name used for error reporting.
@@ -154,13 +141,18 @@ type GenericAPIServer struct {
 
 	// auditing. The backend is started after the server starts listening.
 	AuditBackend audit.Backend
+
+	// enableAPIResponseCompression indicates whether API Responses should support compression
+	// if the client requests it via Accept-Encoding
+	enableAPIResponseCompression bool
+
+	// delegationTarget is the next delegate in the chain or nil
+	delegationTarget DelegationTarget
 }
 
 // DelegationTarget is an interface which allows for composition of API servers with top level handling that works
 // as expected.
 type DelegationTarget interface {
-	OpenAPIDelegationTarget
-
 	// UnprotectedHandler returns a handler that is NOT protected by a normal chain
 	UnprotectedHandler() http.Handler
 
@@ -176,26 +168,14 @@ type DelegationTarget interface {
 
 	// ListedPaths returns the paths for supporting an index
 	ListedPaths() []string
-}
 
-// OpenAPIDelegationTarget provides methods for access the openapi and swagger bits of the delegate server
-// so that they can be later unioned.  This is the only post-construction side-effect we know of
-type OpenAPIDelegationTarget interface {
-	// SwaggerAPIContainer gives all the restful containers involved in this API server to be used to aggregate swagger
-	// It must include all containers it delegates to as well.  Individual entries may be nil an order must be most recent to
-	// least recent.
-	SwaggerAPIContainers() []*restful.Container
-
-	// OpenAPISpec returns the OpenAPI spec of the delegation target if exists, nil otherwise.
-	OpenAPISpec() *spec.Swagger
+	// NextDelegate returns the next delegationTarget in the chain of delegations
+	NextDelegate() DelegationTarget
 }
 
 func (s *GenericAPIServer) UnprotectedHandler() http.Handler {
 	// when we delegate, we need the server we're delegating to choose whether or not to use gorestful
 	return s.Handler.Director
-}
-func (s *GenericAPIServer) SwaggerAPIContainers() []*restful.Container {
-	return append([]*restful.Container{s.Handler.GoRestfulContainer}, s.openAPIDelegationTarget.SwaggerAPIContainers()...)
 }
 func (s *GenericAPIServer) PostStartHooks() map[string]postStartHookEntry {
 	return s.postStartHooks
@@ -206,11 +186,9 @@ func (s *GenericAPIServer) HealthzChecks() []healthz.HealthzChecker {
 func (s *GenericAPIServer) ListedPaths() []string {
 	return s.listedPathProvider.ListedPaths()
 }
-func (s *GenericAPIServer) OpenAPISpec() *spec.Swagger {
-	if s.OpenAPIService == nil {
-		return nil
-	}
-	return s.OpenAPIService.GetSpec()
+
+func (s *GenericAPIServer) NextDelegate() DelegationTarget {
+	return s.delegationTarget
 }
 
 var EmptyDelegate = emptyDelegate{
@@ -224,9 +202,6 @@ type emptyDelegate struct {
 func (s emptyDelegate) UnprotectedHandler() http.Handler {
 	return nil
 }
-func (s emptyDelegate) SwaggerAPIContainers() []*restful.Container {
-	return []*restful.Container{}
-}
 func (s emptyDelegate) PostStartHooks() map[string]postStartHookEntry {
 	return map[string]postStartHookEntry{}
 }
@@ -239,15 +214,8 @@ func (s emptyDelegate) ListedPaths() []string {
 func (s emptyDelegate) RequestContextMapper() apirequest.RequestContextMapper {
 	return s.requestContextMapper
 }
-func (s emptyDelegate) OpenAPISpec() *spec.Swagger {
+func (s emptyDelegate) NextDelegate() DelegationTarget {
 	return nil
-}
-
-func init() {
-	// Send correct mime type for .svg files.
-	// TODO: remove when https://github.com/golang/go/commit/21e47d831bafb59f22b1ea8098f709677ec8ce33
-	// makes it into all of our supported go versions (only in v1.7.1 now).
-	mime.AddExtensionType(".svg", "image/svg+xml")
 }
 
 // RequestContextMapper is exposed so that third party resource storage can be build in a different location.
@@ -269,44 +237,17 @@ type preparedGenericAPIServer struct {
 // PrepareRun does post API installation setup steps.
 func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 	if s.swaggerConfig != nil {
-		routes.Swagger{Config: s.swaggerConfig}.Install(s.SwaggerAPIContainers(), s.Handler.GoRestfulContainer)
+		routes.Swagger{Config: s.swaggerConfig}.Install(s.Handler.GoRestfulContainer)
 	}
-	if err := s.PrepareOpenAPIService(); err != nil {
-		panic(err)
+	if s.openAPIConfig != nil {
+		routes.OpenAPI{
+			Config: s.openAPIConfig,
+		}.Install(s.Handler.GoRestfulContainer, s.Handler.NonGoRestfulMux)
 	}
 
 	s.installHealthz()
 
 	return preparedGenericAPIServer{s}
-}
-
-// PrepareOpenAPIService installs OpenAPI handler if it does not exists.
-func (s *GenericAPIServer) PrepareOpenAPIService() error {
-	if s.openAPIConfig != nil && s.OpenAPIService == nil {
-		openAPIService := routes.OpenAPI{
-			Config: s.openAPIConfig,
-		}.Install(s.Handler.GoRestfulContainer, s.Handler.NonGoRestfulMux)
-
-		// if we have delegate, we now need to merge it in
-		delegateOpenAPISpec := s.openAPIDelegationTarget.OpenAPISpec()
-		if delegateOpenAPISpec != nil {
-			currentOpenAPISpec := openAPIService.GetSpec()
-
-			openAPISpecCopy, err := openapi.CloneSpec(currentOpenAPISpec)
-			if err != nil {
-				return err
-			}
-			if err := openapi.MergeSpecs(openAPISpecCopy, delegateOpenAPISpec); err != nil {
-				return err
-			}
-
-			openAPIService.UpdateSpec(openAPISpecCopy)
-		}
-
-		s.OpenAPIService = openAPIService
-	}
-
-	return nil
 }
 
 // Run spawns the secure http server. It only returns if stopCh is closed
@@ -318,6 +259,11 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	}
 
 	<-stopCh
+
+	if s.GenericAPIServer.AuditBackend != nil {
+		s.GenericAPIServer.AuditBackend.Shutdown()
+	}
+
 	return nil
 }
 
@@ -477,9 +423,10 @@ func (s *GenericAPIServer) newAPIGroupVersion(apiGroupInfo *APIGroupInfo, groupV
 		Linker: apiGroupInfo.GroupMeta.SelfLinker,
 		Mapper: apiGroupInfo.GroupMeta.RESTMapper,
 
-		Admit:             s.admissionControl,
-		Context:           s.RequestContextMapper(),
-		MinRequestTimeout: s.minRequestTimeout,
+		Admit:                        s.admissionControl,
+		Context:                      s.RequestContextMapper(),
+		MinRequestTimeout:            s.minRequestTimeout,
+		EnableAPIResponseCompression: s.enableAPIResponseCompression,
 	}
 }
 

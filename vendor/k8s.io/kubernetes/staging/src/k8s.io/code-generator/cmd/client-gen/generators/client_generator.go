@@ -22,16 +22,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/gengo/args"
-	"k8s.io/gengo/generator"
-	"k8s.io/gengo/namer"
-	"k8s.io/gengo/types"
 	clientgenargs "k8s.io/code-generator/cmd/client-gen/args"
 	"k8s.io/code-generator/cmd/client-gen/generators/fake"
 	"k8s.io/code-generator/cmd/client-gen/generators/scheme"
 	"k8s.io/code-generator/cmd/client-gen/generators/util"
 	"k8s.io/code-generator/cmd/client-gen/path"
 	clientgentypes "k8s.io/code-generator/cmd/client-gen/types"
+	"k8s.io/gengo/args"
+	"k8s.io/gengo/generator"
+	"k8s.io/gengo/namer"
+	"k8s.io/gengo/types"
 
 	"github.com/golang/glog"
 )
@@ -47,6 +47,9 @@ func NameSystems() namer.NameSystems {
 	publicNamer := &ExceptionNamer{
 		Exceptions: map[string]string{
 			// these exceptions are used to deconflict the generated code
+			// you can put your fully qualified package like
+			// to generate a name that doesn't conflict with your group.
+			// "k8s.io/apis/events/v1alpha1.Event": "EventResource"
 			"github.com/openshift/origin/pkg/build/apis/build/v1.Build":          "BuildResource",
 			"github.com/openshift/origin/pkg/build/apis/build.Build":             "BuildResource",
 			"github.com/openshift/origin/pkg/image/apis/image/v1.Image":          "ImageResource",
@@ -68,6 +71,9 @@ func NameSystems() namer.NameSystems {
 	privateNamer := &ExceptionNamer{
 		Exceptions: map[string]string{
 			// these exceptions are used to deconflict the generated code
+			// you can put your fully qualified package like
+			// to generate a name that doesn't conflict with your group.
+			// "k8s.io/apis/events/v1alpha1.Event": "eventResource"
 			"github.com/openshift/origin/pkg/build/apis/build/v1.Build":          "buildResource",
 			"github.com/openshift/origin/pkg/build/apis/build.Build":             "buildResource",
 			"github.com/openshift/origin/pkg/image/apis/image/v1.Image":          "imageResource",
@@ -99,6 +105,8 @@ func NameSystems() namer.NameSystems {
 	}
 }
 
+// ExceptionNamer allows you specify exceptional cases with exact names.  This allows you to have control
+// for handling various conflicts, like group and resource names for instance.
 type ExceptionNamer struct {
 	Exceptions map[string]string
 	KeyFunc    func(*types.Type) string
@@ -106,12 +114,12 @@ type ExceptionNamer struct {
 	Delegate namer.Namer
 }
 
+// Name provides the requested name for a type.
 func (n *ExceptionNamer) Name(t *types.Type) string {
 	key := n.KeyFunc(t)
 	if exception, ok := n.Exceptions[key]; ok {
 		return exception
 	}
-
 	return n.Delegate.Name(t)
 }
 
@@ -359,7 +367,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 				}
 			} else {
 				// User has not specified any override for this group version.
-				// filter out types which dont have genclient=true.
+				// filter out types which dont have genclient.
 				if tags := util.MustParseClientGenTags(t.SecondClosestCommentLines); !tags.GenerateClient {
 					continue
 				}

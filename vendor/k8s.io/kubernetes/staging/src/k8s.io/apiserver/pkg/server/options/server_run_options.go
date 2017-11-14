@@ -86,6 +86,26 @@ func (s *ServerRunOptions) DefaultAdvertiseAddress(secure *SecureServingOptions)
 	return nil
 }
 
+// Validate checks validation of ServerRunOptions
+func (s *ServerRunOptions) Validate() []error {
+	errors := []error{}
+	if s.TargetRAMMB < 0 {
+		errors = append(errors, fmt.Errorf("--target-ram-mb can not be negative value"))
+	}
+	if s.MaxRequestsInFlight < 0 {
+		errors = append(errors, fmt.Errorf("--max-requests-inflight can not be negative value"))
+	}
+	if s.MaxMutatingRequestsInFlight < 0 {
+		errors = append(errors, fmt.Errorf("--max-mutating-requests-inflight can not be negative value"))
+	}
+
+	if s.RequestTimeout.Nanoseconds() < 0 {
+		errors = append(errors, fmt.Errorf("--request-timeout can not be negative value"))
+	}
+
+	return errors
+}
+
 // AddFlags adds flags for a specific APIServer to the specified FlagSet
 func (s *ServerRunOptions) AddUniversalFlags(fs *pflag.FlagSet) {
 	// Note: the weird ""+ in below lines seems to be the only way to get gofmt to
@@ -106,12 +126,6 @@ func (s *ServerRunOptions) AddUniversalFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&s.ExternalHost, "external-hostname", s.ExternalHost,
 		"The hostname to use when generating externalized URLs for this master (e.g. Swagger API Docs).")
-
-	// TODO: remove post-1.6
-	fs.String("long-running-request-regexp", "", ""+
-		"A regular expression matching long running requests which should "+
-		"be excluded from maximum inflight request handling.")
-	fs.MarkDeprecated("long-running-request-regexp", "regular expression matching of long-running requests is no longer supported")
 
 	deprecatedMasterServiceNamespace := metav1.NamespaceDefault
 	fs.StringVar(&deprecatedMasterServiceNamespace, "master-service-namespace", deprecatedMasterServiceNamespace, ""+

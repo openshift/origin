@@ -102,15 +102,6 @@ func (f *ring2Factory) PrinterForMapping(cmd *cobra.Command, isLocal bool, outpu
 
 		printer = printers.NewVersionedPrinter(printer, mapping.ObjectConvertor, version, mapping.GroupVersionKind.GroupVersion())
 
-	} else {
-		// We add handlers to the printer in case it is printers.HumanReadablePrinter.
-		// printers.AddHandlers expects concrete type of printers.HumanReadablePrinter
-		// as its parameter because of this we have to do a type check on printer and
-		// extract out concrete HumanReadablePrinter from it. We are then able to attach
-		// handlers on it.
-		if humanReadablePrinter, ok := printer.(*printers.HumanReadablePrinter); ok {
-			printer = humanReadablePrinter
-		}
 	}
 
 	return printer, nil

@@ -25,6 +25,9 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/batch"
+	"k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	"k8s.io/kubernetes/pkg/registry/batch/cronjob"
 )
 
@@ -39,14 +42,15 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &batch.CronJob{} },
 		NewListFunc:              func() runtime.Object { return &batch.CronJobList{} },
-		PredicateFunc:            cronjob.MatchCronJob,
 		DefaultQualifiedResource: batch.Resource("cronjobs"),
 
 		CreateStrategy: cronjob.Strategy,
 		UpdateStrategy: cronjob.Strategy,
 		DeleteStrategy: cronjob.Strategy,
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: cronjob.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

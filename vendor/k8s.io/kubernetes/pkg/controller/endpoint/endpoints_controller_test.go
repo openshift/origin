@@ -23,20 +23,20 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
+	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	utiltesting "k8s.io/client-go/util/testing"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/api/v1"
 	endptspkg "k8s.io/kubernetes/pkg/api/v1/endpoints"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 )
 
@@ -68,6 +68,38 @@ func addPods(store cache.Store, namespace string, nPods int, nPorts int, nNotRea
 		}
 		if i >= nPods {
 			p.Status.Conditions[0].Status = v1.ConditionFalse
+		}
+		for j := 0; j < nPorts; j++ {
+			p.Spec.Containers[0].Ports = append(p.Spec.Containers[0].Ports,
+				v1.ContainerPort{Name: fmt.Sprintf("port%d", i), ContainerPort: int32(8080 + j)})
+		}
+		store.Add(p)
+	}
+}
+
+func addNotReadyPodsWithSpecifiedRestartPolicyAndPhase(store cache.Store, namespace string, nPods int, nPorts int, restartPolicy v1.RestartPolicy, podPhase v1.PodPhase) {
+	for i := 0; i < nPods; i++ {
+		p := &v1.Pod{
+			TypeMeta: metav1.TypeMeta{APIVersion: api.Registry.GroupOrDie(v1.GroupName).GroupVersion.String()},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      fmt.Sprintf("pod%d", i),
+				Labels:    map[string]string{"foo": "bar"},
+			},
+			Spec: v1.PodSpec{
+				RestartPolicy: restartPolicy,
+				Containers:    []v1.Container{{Ports: []v1.ContainerPort{}}},
+			},
+			Status: v1.PodStatus{
+				PodIP: fmt.Sprintf("1.2.3.%d", 4+i),
+				Phase: podPhase,
+				Conditions: []v1.PodCondition{
+					{
+						Type:   v1.PodReady,
+						Status: v1.ConditionFalse,
+					},
+				},
+			},
 		}
 		for j := 0; j < nPorts; j++ {
 			p.Spec.Containers[0].Ports = append(p.Spec.Containers[0].Ports,
@@ -686,6 +718,246 @@ func TestWaitsForAllInformersToBeSynced2(t *testing.T) {
 	}
 }
 
+func TestSyncEndpointsHeadlessService(t *testing.T) {
+	ns := "headless"
+	testServer, endpointsHandler := makeTestServer(t, ns)
+	defer testServer.Close()
+	endpoints := newController(testServer.URL)
+	endpoints.endpointsStore.Add(&v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+		},
+		Subsets: []v1.EndpointSubset{{
+			Addresses: []v1.EndpointAddress{{IP: "6.7.8.9", NodeName: &emptyNodeName}},
+			Ports:     []v1.EndpointPort{{Port: 1000, Protocol: "TCP"}},
+		}},
+	})
+	addPods(endpoints.podStore, ns, 1, 1, 0)
+	endpoints.serviceStore.Add(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ns},
+		Spec: v1.ServiceSpec{
+			Selector:  map[string]string{},
+			ClusterIP: api.ClusterIPNone,
+			Ports:     []v1.ServicePort{},
+		},
+	})
+	endpoints.syncService(ns + "/foo")
+	data := runtime.EncodeOrDie(testapi.Default.Codec(), &v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+		},
+		Subsets: []v1.EndpointSubset{{
+			Addresses: []v1.EndpointAddress{{IP: "1.2.3.4", NodeName: &emptyNodeName, TargetRef: &v1.ObjectReference{Kind: "Pod", Name: "pod0", Namespace: ns}}},
+			Ports:     []v1.EndpointPort{{Port: 0, Protocol: "TCP"}},
+		}},
+	})
+	endpointsHandler.ValidateRequestCount(t, 1)
+	endpointsHandler.ValidateRequest(t, testapi.Default.ResourcePath("endpoints", ns, "foo"), "PUT", &data)
+}
+
+func TestSyncEndpointsItemsExcludeNotReadyPodsWithRestartPolicyNeverAndPhaseFailed(t *testing.T) {
+	ns := "other"
+	testServer, endpointsHandler := makeTestServer(t, ns)
+	defer testServer.Close()
+	endpoints := newController(testServer.URL)
+	endpoints.endpointsStore.Add(&v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+			Labels: map[string]string{
+				"foo": "bar",
+			},
+		},
+		Subsets: []v1.EndpointSubset{},
+	})
+	addNotReadyPodsWithSpecifiedRestartPolicyAndPhase(endpoints.podStore, ns, 1, 1, v1.RestartPolicyNever, v1.PodFailed)
+	endpoints.serviceStore.Add(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ns},
+		Spec: v1.ServiceSpec{
+			Selector: map[string]string{"foo": "bar"},
+			Ports:    []v1.ServicePort{{Port: 80, Protocol: "TCP", TargetPort: intstr.FromInt(8080)}},
+		},
+	})
+	endpoints.syncService(ns + "/foo")
+	data := runtime.EncodeOrDie(testapi.Default.Codec(), &v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+		},
+		Subsets: []v1.EndpointSubset{},
+	})
+	endpointsHandler.ValidateRequest(t, testapi.Default.ResourcePath("endpoints", ns, "foo"), "PUT", &data)
+}
+
+func TestSyncEndpointsItemsExcludeNotReadyPodsWithRestartPolicyNeverAndPhaseSucceeded(t *testing.T) {
+	ns := "other"
+	testServer, endpointsHandler := makeTestServer(t, ns)
+	defer testServer.Close()
+	endpoints := newController(testServer.URL)
+	endpoints.endpointsStore.Add(&v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+			Labels: map[string]string{
+				"foo": "bar",
+			},
+		},
+		Subsets: []v1.EndpointSubset{},
+	})
+	addNotReadyPodsWithSpecifiedRestartPolicyAndPhase(endpoints.podStore, ns, 1, 1, v1.RestartPolicyNever, v1.PodSucceeded)
+	endpoints.serviceStore.Add(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ns},
+		Spec: v1.ServiceSpec{
+			Selector: map[string]string{"foo": "bar"},
+			Ports:    []v1.ServicePort{{Port: 80, Protocol: "TCP", TargetPort: intstr.FromInt(8080)}},
+		},
+	})
+	endpoints.syncService(ns + "/foo")
+	data := runtime.EncodeOrDie(testapi.Default.Codec(), &v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+		},
+		Subsets: []v1.EndpointSubset{},
+	})
+	endpointsHandler.ValidateRequest(t, testapi.Default.ResourcePath("endpoints", ns, "foo"), "PUT", &data)
+}
+
+func TestSyncEndpointsItemsExcludeNotReadyPodsWithRestartPolicyOnFailureAndPhaseSucceeded(t *testing.T) {
+	ns := "other"
+	testServer, endpointsHandler := makeTestServer(t, ns)
+	defer testServer.Close()
+	endpoints := newController(testServer.URL)
+	endpoints.endpointsStore.Add(&v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+			Labels: map[string]string{
+				"foo": "bar",
+			},
+		},
+		Subsets: []v1.EndpointSubset{},
+	})
+	addNotReadyPodsWithSpecifiedRestartPolicyAndPhase(endpoints.podStore, ns, 1, 1, v1.RestartPolicyOnFailure, v1.PodSucceeded)
+	endpoints.serviceStore.Add(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ns},
+		Spec: v1.ServiceSpec{
+			Selector: map[string]string{"foo": "bar"},
+			Ports:    []v1.ServicePort{{Port: 80, Protocol: "TCP", TargetPort: intstr.FromInt(8080)}},
+		},
+	})
+	endpoints.syncService(ns + "/foo")
+	data := runtime.EncodeOrDie(testapi.Default.Codec(), &v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "foo",
+			Namespace:       ns,
+			ResourceVersion: "1",
+		},
+		Subsets: []v1.EndpointSubset{},
+	})
+	endpointsHandler.ValidateRequest(t, testapi.Default.ResourcePath("endpoints", ns, "foo"), "PUT", &data)
+}
+
+// There are 3*5 possibilities(3 types of RestartPolicy by 5 types of PodPhase). Not list them all here.
+// Just list all of the 3 false cases and 3 of the 12 true cases.
+func TestShouldPodBeInEndpoints(t *testing.T) {
+	testCases := []struct {
+		name     string
+		pod      *v1.Pod
+		expected bool
+	}{
+		// Pod should not be in endpoints cases:
+		{
+			name: "Failed pod with Never RestartPolicy",
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					RestartPolicy: v1.RestartPolicyNever,
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodFailed,
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Succeeded pod with Never RestartPolicy",
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					RestartPolicy: v1.RestartPolicyNever,
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodSucceeded,
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Succeeded pod with OnFailure RestartPolicy",
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					RestartPolicy: v1.RestartPolicyOnFailure,
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodSucceeded,
+				},
+			},
+			expected: false,
+		},
+		// Pod should be in endpoints cases:
+		{
+			name: "Failed pod with Always RestartPolicy",
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					RestartPolicy: v1.RestartPolicyAlways,
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodFailed,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Pending pod with Never RestartPolicy",
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					RestartPolicy: v1.RestartPolicyNever,
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodPending,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Unknown pod with OnFailure RestartPolicy",
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					RestartPolicy: v1.RestartPolicyOnFailure,
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodUnknown,
+				},
+			},
+			expected: true,
+		},
+	}
+	for _, test := range testCases {
+		result := shouldPodBeInEndpoints(test.pod)
+		if result != test.expected {
+			t.Errorf("%s: expected : %t, got: %t", test.name, test.expected, result)
+		}
+	}
+}
+
 func TestPodToEndpointAddress(t *testing.T) {
 	podStore := cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc)
 	ns := "test"
@@ -730,15 +1002,7 @@ func TestPodChanged(t *testing.T) {
 		return
 	}
 	oldPod := pods[0].(*v1.Pod)
-	objCopy, err := api.Scheme.DeepCopy(oldPod)
-	if err != nil {
-		t.Errorf("error copying Pod: %v ", err)
-	}
-	copied, ok := objCopy.(*v1.Pod)
-	if !ok {
-		t.Errorf("expected pod, got %#v", objCopy)
-	}
-	newPod := copied
+	newPod := oldPod.DeepCopy()
 
 	if podChanged(oldPod, newPod) {
 		t.Errorf("Expected pod to be unchanged for copied pod")
@@ -775,13 +1039,12 @@ func TestPodChanged(t *testing.T) {
 	}
 	oldPod.Status.Conditions = saveConditions
 
-	oldTimestamp := newPod.ObjectMeta.DeletionTimestamp
 	now := metav1.NewTime(time.Now().UTC())
 	newPod.ObjectMeta.DeletionTimestamp = &now
 	if !podChanged(oldPod, newPod) {
 		t.Errorf("Expected pod to be changed with DeletionTimestamp change")
 	}
-	newPod.ObjectMeta.DeletionTimestamp = oldTimestamp
+	newPod.ObjectMeta.DeletionTimestamp = oldPod.ObjectMeta.DeletionTimestamp.DeepCopy()
 }
 
 func TestDetermineNeededServiceUpdates(t *testing.T) {

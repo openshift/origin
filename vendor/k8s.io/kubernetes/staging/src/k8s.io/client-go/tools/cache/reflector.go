@@ -197,21 +197,10 @@ func extractStackCreator() (string, int, bool) {
 }
 
 // Run starts a watch and handles watch events. Will restart the watch if it is closed.
-// Run starts a goroutine and returns immediately.
-func (r *Reflector) Run() {
+// Run will exit when stopCh is closed.
+func (r *Reflector) Run(stopCh <-chan struct{}) {
 	glog.V(3).Infof("Starting reflector %v (%s) from %s", r.expectedType, r.resyncPeriod, r.name)
-	go wait.Until(func() {
-		if err := r.ListAndWatch(wait.NeverStop); err != nil {
-			utilruntime.HandleError(err)
-		}
-	}, r.period, wait.NeverStop)
-}
-
-// RunUntil starts a watch and handles watch events. Will restart the watch if it is closed.
-// RunUntil starts a goroutine and returns immediately. It will exit when stopCh is closed.
-func (r *Reflector) RunUntil(stopCh <-chan struct{}) {
-	glog.V(3).Infof("Starting reflector %v (%s) from %s", r.expectedType, r.resyncPeriod, r.name)
-	go wait.Until(func() {
+	wait.Until(func() {
 		if err := r.ListAndWatch(stopCh); err != nil {
 			utilruntime.HandleError(err)
 		}
@@ -250,8 +239,6 @@ func (r *Reflector) resyncChan() (<-chan time.Time, func() bool) {
 func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 	glog.V(3).Infof("Listing and watching %v from %s", r.expectedType, r.name)
 	var resourceVersion string
-	resyncCh, cleanup := r.resyncChan()
-	defer cleanup()
 
 	// Explicitly set "0" as resource version - it's fine for the List()
 	// to be served from cache and potentially be delayed relative to
@@ -283,6 +270,10 @@ func (r *Reflector) ListAndWatch(stopCh <-chan struct{}) error {
 	cancelCh := make(chan struct{})
 	defer close(cancelCh)
 	go func() {
+		resyncCh, cleanup := r.resyncChan()
+		defer func() {
+			cleanup() // Call the last one written into cleanup
+		}()
 		for {
 			select {
 			case <-resyncCh:

@@ -38,14 +38,13 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &autoscaling.HorizontalPodAutoscaler{} },
 		NewListFunc:              func() runtime.Object { return &autoscaling.HorizontalPodAutoscalerList{} },
-		PredicateFunc:            horizontalpodautoscaler.MatchAutoscaler,
 		DefaultQualifiedResource: autoscaling.Resource("horizontalpodautoscalers"),
 
 		CreateStrategy: horizontalpodautoscaler.Strategy,
 		UpdateStrategy: horizontalpodautoscaler.Strategy,
 		DeleteStrategy: horizontalpodautoscaler.Strategy,
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: horizontalpodautoscaler.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

@@ -19,8 +19,8 @@ package main
 import (
 	"path/filepath"
 
-	"k8s.io/gengo/args"
 	"k8s.io/code-generator/cmd/informer-gen/generators"
+	"k8s.io/gengo/args"
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -31,6 +31,7 @@ func main() {
 		VersionedClientSetPackage: "k8s.io/kubernetes/pkg/client/clientset_generated/clientset",
 		InternalClientSetPackage:  "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset",
 		ListersPackage:            "k8s.io/kubernetes/pkg/client/listers",
+		SingleDirectory:           false,
 	}
 	arguments := &args.GeneratorArgs{
 		OutputBase:        args.DefaultSourceTree(),

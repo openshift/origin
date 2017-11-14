@@ -20,10 +20,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
-	dockertypes "github.com/docker/engine-api/types"
-	dockercontainer "github.com/docker/engine-api/types/container"
-	dockerfilters "github.com/docker/engine-api/types/filters"
+	dockertypes "github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	dockerfilters "github.com/docker/docker/api/types/filters"
 	"github.com/golang/glog"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -41,11 +42,13 @@ const (
 	// Various default sandbox resources requests/limits.
 	defaultSandboxCPUshares int64 = 2
 
-	// Termination grace period
-	defaultSandboxGracePeriod int = 10
-
 	// Name of the underlying container runtime
 	runtimeName = "docker"
+)
+
+var (
+	// Termination grace period
+	defaultSandboxGracePeriod = time.Duration(10) * time.Second
 )
 
 // Returns whether the sandbox network is ready, and whether the sandbox is known
@@ -224,9 +227,7 @@ func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 	// since it is stopped. With empty network namespcae, CNI bridge plugin will conduct best
 	// effort clean up and will not return error.
 	errList := []error{}
-	ready, ok := ds.getNetworkReady(podSandboxID)
-	if !hostNetwork && (ready || !ok) {
-		// Only tear down the pod network if we haven't done so already
+	if !hostNetwork {
 		cID := kubecontainer.BuildContainerID(runtimeName, podSandboxID)
 		err := ds.network.TearDownPod(namespace, name, cID)
 		if err == nil {
@@ -255,8 +256,8 @@ func (ds *dockerService) RemovePodSandbox(podSandboxID string) error {
 	var errs []error
 	opts := dockertypes.ContainerListOptions{All: true}
 
-	opts.Filter = dockerfilters.NewArgs()
-	f := newDockerFilter(&opts.Filter)
+	opts.Filters = dockerfilters.NewArgs()
+	f := newDockerFilter(&opts.Filters)
 	f.AddLabel(sandboxIDLabelKey, podSandboxID)
 
 	containers, err := ds.client.ListContainers(opts)
@@ -272,14 +273,11 @@ func (ds *dockerService) RemovePodSandbox(podSandboxID string) error {
 	}
 
 	// Remove the sandbox container.
-	err = ds.client.RemoveContainer(podSandboxID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true, Force: true})
-	if err == nil || libdocker.IsContainerNotFoundError(err) {
-		// Only clear network ready when the sandbox has actually been
-		// removed from docker or doesn't exist
-		ds.clearNetworkReady(podSandboxID)
-	} else {
+	if err := ds.client.RemoveContainer(podSandboxID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true, Force: true}); err != nil && !libdocker.IsContainerNotFoundError(err) {
 		errs = append(errs, err)
 	}
+
+	ds.clearNetworkReady(podSandboxID)
 
 	// Remove the checkpoint of the sandbox.
 	if err := ds.checkpointHandler.RemoveCheckpoint(podSandboxID); err != nil {
@@ -422,8 +420,8 @@ func (ds *dockerService) ListPodSandbox(filter *runtimeapi.PodSandboxFilter) ([]
 	opts := dockertypes.ContainerListOptions{All: true}
 	filterOutReadySandboxes := false
 
-	opts.Filter = dockerfilters.NewArgs()
-	f := newDockerFilter(&opts.Filter)
+	opts.Filters = dockerfilters.NewArgs()
+	f := newDockerFilter(&opts.Filters)
 	// Add filter to select only sandbox containers.
 	f.AddLabel(containerTypeLabelKey, containerTypeLabelSandbox)
 
@@ -593,7 +591,7 @@ func (ds *dockerService) makeSandboxDockerConfig(c *runtimeapi.PodSandboxConfig,
 	}
 
 	// Set security options.
-	securityOpts, err := ds.getSecurityOpts(sandboxContainerName, c, securityOptSep)
+	securityOpts, err := ds.getSecurityOpts(c.GetLinux().GetSecurityContext().GetSeccompProfilePath(), securityOptSep)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate sandbox security options for sandbox %q: %v", c.Metadata.Name, err)
 	}

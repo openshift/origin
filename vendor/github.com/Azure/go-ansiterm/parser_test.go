@@ -6,18 +6,18 @@ import (
 )
 
 func TestStateTransitions(t *testing.T) {
-	stateTransitionHelper(t, "CsiEntry", "Ground", Alphabetics)
-	stateTransitionHelper(t, "CsiEntry", "CsiParam", CsiCollectables)
+	stateTransitionHelper(t, "CsiEntry", "Ground", alphabetics)
+	stateTransitionHelper(t, "CsiEntry", "CsiParam", csiCollectables)
 	stateTransitionHelper(t, "Escape", "CsiEntry", []byte{ANSI_ESCAPE_SECONDARY})
 	stateTransitionHelper(t, "Escape", "OscString", []byte{0x5D})
-	stateTransitionHelper(t, "Escape", "Ground", EscapeToGroundBytes)
-	stateTransitionHelper(t, "Escape", "EscapeIntermediate", Intermeds)
-	stateTransitionHelper(t, "EscapeIntermediate", "EscapeIntermediate", Intermeds)
-	stateTransitionHelper(t, "EscapeIntermediate", "EscapeIntermediate", Executors)
-	stateTransitionHelper(t, "EscapeIntermediate", "Ground", EscapeIntermediateToGroundBytes)
+	stateTransitionHelper(t, "Escape", "Ground", escapeToGroundBytes)
+	stateTransitionHelper(t, "Escape", "EscapeIntermediate", intermeds)
+	stateTransitionHelper(t, "EscapeIntermediate", "EscapeIntermediate", intermeds)
+	stateTransitionHelper(t, "EscapeIntermediate", "EscapeIntermediate", executors)
+	stateTransitionHelper(t, "EscapeIntermediate", "Ground", escapeIntermediateToGroundBytes)
 	stateTransitionHelper(t, "OscString", "Ground", []byte{ANSI_BEL})
 	stateTransitionHelper(t, "OscString", "Ground", []byte{0x5C})
-	stateTransitionHelper(t, "Ground", "Ground", Executors)
+	stateTransitionHelper(t, "Ground", "Ground", executors)
 }
 
 func TestAnyToX(t *testing.T) {
@@ -25,27 +25,27 @@ func TestAnyToX(t *testing.T) {
 	anyToXHelper(t, []byte{DCS_ENTRY}, "DcsEntry")
 	anyToXHelper(t, []byte{OSC_STRING}, "OscString")
 	anyToXHelper(t, []byte{CSI_ENTRY}, "CsiEntry")
-	anyToXHelper(t, ToGroundBytes, "Ground")
+	anyToXHelper(t, toGroundBytes, "Ground")
 }
 
 func TestCollectCsiParams(t *testing.T) {
 	parser, _ := createTestParser("CsiEntry")
-	parser.Parse(CsiCollectables)
+	parser.Parse(csiCollectables)
 
 	buffer := parser.context.paramBuffer
 	bufferCount := len(buffer)
 
-	if bufferCount != len(CsiCollectables) {
+	if bufferCount != len(csiCollectables) {
 		t.Errorf("Buffer:    %v", buffer)
-		t.Errorf("CsiParams: %v", CsiCollectables)
-		t.Errorf("Buffer count failure: %d != %d", bufferCount, len(CsiParams))
+		t.Errorf("CsiParams: %v", csiCollectables)
+		t.Errorf("Buffer count failure: %d != %d", bufferCount, len(csiParams))
 		return
 	}
 
-	for i, v := range CsiCollectables {
+	for i, v := range csiCollectables {
 		if v != buffer[i] {
 			t.Errorf("Buffer:    %v", buffer)
-			t.Errorf("CsiParams: %v", CsiParams)
+			t.Errorf("CsiParams: %v", csiParams)
 			t.Errorf("Mismatch at buffer[%d] = %d", i, buffer[i])
 		}
 	}
@@ -105,10 +105,10 @@ func TestScroll(t *testing.T) {
 
 func TestPrint(t *testing.T) {
 	parser, evtHandler := createTestParser("Ground")
-	parser.Parse(Printables)
+	parser.Parse(printables)
 	validateState(t, parser.currState, "Ground")
 
-	for i, v := range Printables {
+	for i, v := range printables {
 		expectedCall := fmt.Sprintf("Print([%s])", string(v))
 		actualCall := evtHandler.FunctionCalls[i]
 		if actualCall != expectedCall {
