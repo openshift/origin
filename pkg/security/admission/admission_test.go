@@ -497,18 +497,8 @@ func TestAdmit(t *testing.T) {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
 
 			if !v.shouldAdmit {
-				attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-				err := p.Admit(attrs)
-				if err != nil {
-					t.Errorf("Expected %s to pass with escalated scc but got error %v", k, err)
-				}
-				validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
-				if !ok {
-					t.Errorf("%s expected to find the validated annotation on the pod for the scc but found none", k)
-				}
-				if validatedSCC != adminSCC.Name {
-					t.Errorf("%s should have validated against %s but found %s", k, adminSCC.Name, validatedSCC)
-				}
+				// pods that were rejected by strict SCC, should pass with relaxed SCC
+				testSCCAdmission(v.pod, p, adminSCC.Name, k, t)
 			}
 		}
 	}
