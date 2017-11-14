@@ -333,11 +333,35 @@ backend be_secure:{{$cfgIdx}}
   option redispatch
   option forwardfor
 
-    {{- with $balanceAlgo := firstMatch "roundrobin|leastconn|source" (index $cfg.Annotations "haproxy.router.openshift.io/balance") (env "ROUTER_LOAD_BALANCE_ALGORITHM") }}
+    {{- with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
+      {{- with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" "uri" ) }}
+        {{- if (eq $balanceAlgo "uri")}}
+          {{- with $balanceUriDepthValue := index $cfg.Annotations "haproxy.router.openshift.io/balanceUriDepth"}}
+            {{- if (matchPattern "[1-9][0-9]?" $balanceUriDepthValue) }}
+  balance {{ $balanceAlgo }} depth {{$balanceUriDepthValue}}  
+            {{- else }}
+  balance {{ $balanceAlgo }} whole  
+            {{- end }}
+          {{- else }} 
+  balance {{ $balanceAlgo }} whole
+          {{- end }} 
+  hash-type consistent
+        {{- else }}
   balance {{ $balanceAlgo }}
+        {{- end }}          
+      {{- end }}
     {{- else }}
+      {{- if (matchPattern "roundrobin|leastconn|source|uri" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
+        {{- if (eq (env "ROUTER_LOAD_BALANCE_ALGORITHM" "") "uri")}}
+  balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" ""}} depth {{ env "ROUTER_LOAD_BALANCE_URI_DEPTH" "0"}}
+        {{- else }}
+  balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}  
+        {{- end }}            
+      {{- else }}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
-    {{- end }}
+      {{- end }}
+    {{- end }} 
+    
     {{- with $ip_whiteList := firstMatch $cidrListPattern (index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist") }}
   acl whitelist src {{ $ip_whiteList }}
   tcp-request content reject if !whitelist
