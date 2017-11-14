@@ -223,48 +223,38 @@ func TestAdmitSuccess(t *testing.T) {
 		Level: "s0:c1,c0",
 	}
 
+	// level matches a value from namespace (see CreateNamespaceForTest())
+	seLinuxLevelFromNamespace := "s0:c1,c0"
+
 	testCases := map[string]struct {
-		pod               *kapi.Pod
-		expectedUID       int64
-		expectedLevel     string
-		expectedFSGroup   int64
-		expectedSupGroups []int64
-		expectedPriv      bool
+		pod                 *kapi.Pod
+		expectedPodSC       *kapi.PodSecurityContext
+		expectedContainerSC *kapi.SecurityContext
 	}{
 		"specifyUIDInRange": {
-			pod:               specifyUIDInRange,
-			expectedUID:       *specifyUIDInRange.Spec.Containers[0].SecurityContext.RunAsUser,
-			expectedLevel:     "s0:c1,c0",
-			expectedFSGroup:   defaultGroup,
-			expectedSupGroups: []int64{defaultGroup},
+			pod:                 specifyUIDInRange,
+			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, defaultGroup),
+			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, goodUID),
 		},
 		"specifyLabels": {
-			pod:               specifyLabels,
-			expectedUID:       1,
-			expectedLevel:     specifyLabels.Spec.Containers[0].SecurityContext.SELinuxOptions.Level,
-			expectedFSGroup:   defaultGroup,
-			expectedSupGroups: []int64{defaultGroup},
+			pod:                 specifyLabels,
+			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, defaultGroup),
+			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
 		},
 		"specifyFSGroup": {
-			pod:               specifyFSGroupInRange,
-			expectedUID:       1,
-			expectedLevel:     "s0:c1,c0",
-			expectedFSGroup:   *specifyFSGroupInRange.Spec.SecurityContext.FSGroup,
-			expectedSupGroups: []int64{defaultGroup},
+			pod:                 specifyFSGroupInRange,
+			expectedPodSC:       podSC(seLinuxLevelFromNamespace, goodFSGroup, defaultGroup),
+			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
 		},
 		"specifySupGroup": {
-			pod:               specifySupGroup,
-			expectedUID:       1,
-			expectedLevel:     "s0:c1,c0",
-			expectedFSGroup:   defaultGroup,
-			expectedSupGroups: []int64{specifySupGroup.Spec.SecurityContext.SupplementalGroups[0]},
+			pod:                 specifySupGroup,
+			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, 3),
+			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
 		},
 		"specifyPodLevelSELinuxLevel": {
-			pod:               specifyPodLevelSELinux,
-			expectedUID:       1,
-			expectedLevel:     "s0:c1,c0",
-			expectedFSGroup:   defaultGroup,
-			expectedSupGroups: []int64{defaultGroup},
+			pod:                 specifyPodLevelSELinux,
+			expectedPodSC:       podSC(seLinuxLevelFromNamespace, defaultGroup, defaultGroup),
+			expectedContainerSC: containerSC(seLinuxLevelFromNamespace, 1),
 		},
 	}
 
@@ -290,28 +280,12 @@ func TestAdmitSuccess(t *testing.T) {
 				t.Errorf("%s should have validated against %s but found %s", k, saSCC.Name, validatedSCC)
 			}
 
-			// ensure anything we expected to be defaulted on the container level is set
-			if *containers[0].SecurityContext.RunAsUser != v.expectedUID {
-				t.Errorf("%s expected UID %d but found %d", k, v.expectedUID, *containers[0].SecurityContext.RunAsUser)
-			}
-			if containers[0].SecurityContext.SELinuxOptions.Level != v.expectedLevel {
-				t.Errorf("%s expected Level %s but found %s", k, v.expectedLevel, containers[0].SecurityContext.SELinuxOptions.Level)
+			if !reflect.DeepEqual(v.expectedPodSC, v.pod.Spec.SecurityContext) {
+				t.Errorf("%s unexpected pod SecurityContext diff:\n%s", k, diff.ObjectGoPrintSideBySide(v.expectedPodSC, v.pod.Spec.SecurityContext))
 			}
 
-			// ensure anything we expected to be defaulted on the pod level is set
-			if v.pod.Spec.SecurityContext.SELinuxOptions.Level != v.expectedLevel {
-				t.Errorf("%s expected pod level SELinux Level %s but found %s", k, v.expectedLevel, v.pod.Spec.SecurityContext.SELinuxOptions.Level)
-			}
-			if *v.pod.Spec.SecurityContext.FSGroup != v.expectedFSGroup {
-				t.Errorf("%s expected fsgroup %d but found %d", k, v.expectedFSGroup, *v.pod.Spec.SecurityContext.FSGroup)
-			}
-			if len(v.pod.Spec.SecurityContext.SupplementalGroups) != len(v.expectedSupGroups) {
-				t.Errorf("%s found unexpected supplemental groups.  Expected: %v, actual %v", k, v.expectedSupGroups, v.pod.Spec.SecurityContext.SupplementalGroups)
-			}
-			for _, g := range v.expectedSupGroups {
-				if !hasSupGroup(g, v.pod.Spec.SecurityContext.SupplementalGroups) {
-					t.Errorf("%s expected sup group %d", k, g)
-				}
+			if !reflect.DeepEqual(v.expectedContainerSC, containers[0].SecurityContext) {
+				t.Errorf("%s unexpected container SecurityContext diff:\n%s", k, diff.ObjectGoPrintSideBySide(v.expectedContainerSC, containers[0].SecurityContext))
 			}
 		}
 	}
@@ -439,15 +413,6 @@ func TestAdmitFailure(t *testing.T) {
 			testSCCAdmission(v.pod, p, adminSCC.Name, k, t)
 		}
 	}
-}
-
-func hasSupGroup(group int64, groups []int64) bool {
-	for _, g := range groups {
-		if g == group {
-			return true
-		}
-	}
-	return false
 }
 
 func TestCreateProvidersFromConstraints(t *testing.T) {
@@ -1121,6 +1086,27 @@ func goodPod() *kapi.Pod {
 				},
 			},
 		},
+	}
+}
+
+func containerSC(seLinuxLevel string, uid int64) *kapi.SecurityContext {
+	no := false
+	return &kapi.SecurityContext{
+		Privileged: &no,
+		RunAsUser:  &uid,
+		SELinuxOptions: &kapi.SELinuxOptions{
+			Level: seLinuxLevel,
+		},
+	}
+}
+
+func podSC(seLinuxLevel string, fsGroup, supGroup int64) *kapi.PodSecurityContext {
+	return &kapi.PodSecurityContext{
+		SELinuxOptions: &kapi.SELinuxOptions{
+			Level: seLinuxLevel,
+		},
+		SupplementalGroups: []int64{supGroup},
+		FSGroup:            &fsGroup,
 	}
 }
 
