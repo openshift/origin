@@ -183,24 +183,24 @@ func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kprinters.Resourc
 	if err != nil {
 		return nil, err
 	}
-	return n.GetPrinters(gvk[0])
+	return n.GetPrinters(gvk[0], kprinters.PrintOptions{})
 }
 
-func (n *NodeOptions) GetPrintersByResource(resource schema.GroupVersionResource) (kprinters.ResourcePrinter, error) {
+func (n *NodeOptions) GetPrintersByResource(resource schema.GroupVersionResource, options kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
 	gvks, err := n.Mapper.KindsFor(resource)
 	if err != nil {
 		return nil, err
 	}
-	return n.GetPrinters(gvks[0])
+	return n.GetPrinters(gvks[0], options)
 }
 
-func (n *NodeOptions) GetPrinters(gvk schema.GroupVersionKind) (kprinters.ResourcePrinter, error) {
+func (n *NodeOptions) GetPrinters(gvk schema.GroupVersionKind, options kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
 	mapping, err := n.Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.Printer(mapping, kprinters.PrintOptions{})
+	return n.Printer(mapping, options)
 }
 
 func GetPodHostFieldLabel(apiVersion string) string {

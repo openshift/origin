@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/printers"
 )
 
 const (
@@ -118,7 +119,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		return err
 	}
 
-	printer, err := e.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"})
+	printer, err := e.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"}, printers.PrintOptions{})
 	if err != nil {
 		return err
 	}
