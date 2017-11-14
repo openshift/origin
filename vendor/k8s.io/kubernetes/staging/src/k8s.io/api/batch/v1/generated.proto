@@ -170,3 +170,4 @@ message JobStatus {
   // +optional
   optional int32 failed = 6;
 }
+

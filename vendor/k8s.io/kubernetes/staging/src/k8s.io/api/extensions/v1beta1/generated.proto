@@ -45,7 +45,7 @@ message AllowedHostPath {
   // is the path prefix that the host volume must match.
   // It does not support `*`.
   // Trailing slashes are trimmed when validating the path prefix with a host path.
-  //
+  // 
   // Examples:
   // `/foo` would allow `/foo`, `/foo/` and `/foo/bar`
   // `/foo` would not allow `/food` or `/etc/foo`
@@ -1121,3 +1121,4 @@ message ThirdPartyResourceList {
   // Items is the list of ThirdPartyResources.
   repeated ThirdPartyResource items = 2;
 }
+

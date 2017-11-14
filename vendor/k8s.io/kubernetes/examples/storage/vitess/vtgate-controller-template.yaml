@@ -42,3 +42,4 @@ spec:
           hostPath: {path: /dev/log}
         - name: vtdataroot
           emptyDir: {}
+

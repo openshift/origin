@@ -38,3 +38,4 @@ spec:
   - 'configMap'
   - 'persistentVolumeClaim'
   - 'projected'
+

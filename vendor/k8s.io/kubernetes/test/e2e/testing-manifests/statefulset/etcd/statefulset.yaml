@@ -175,3 +175,4 @@ spec:
         requests:
           # upstream recommended max is 700M
           storage: 1Gi
+

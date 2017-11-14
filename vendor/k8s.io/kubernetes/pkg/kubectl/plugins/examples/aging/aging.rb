@@ -48,7 +48,7 @@ pods_parsed['items'].each { |pod|
   if age < min_age
     min_age = age
   end
-}
+} 
 
 data = data.sort_by{ |name, age| age }
 
@@ -57,7 +57,7 @@ if data.length > 0
   data.each { |name, age|
     output = ""
     output += name.rjust(max_name_length, ' ') + ": "
-    bar_size = (age*80/max_age).ceil
+    bar_size = (age*80/max_age).ceil 
     bar_size.times{ output += "▒" }
     output += " " + age.duration
     puts output
@@ -66,3 +66,4 @@ if data.length > 0
 else
   puts "No pods"
 end
+

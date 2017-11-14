@@ -111,3 +111,4 @@ message PodDisruptionBudgetStatus {
   // total number of pods counted by this disruption budget
   optional int32 expectedPods = 6;
 }
+

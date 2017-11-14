@@ -49,7 +49,7 @@ virbr0	007AA8C0	00000000	0001	0	0	0	00FFFFFF	0	0	0
 `
 const nothing = `Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT                                                            
 `
-const badDestination = `Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
+const badDestination = `Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT                                                       
 eth3	00000000	0100FE0A	0003	0	0	1024	00000000	0	0	0                                                                   
 eth3	0000FE0AA1	00000000	0001	0	0	0	0080FFFF	0	0	0                                                                      
 docker0	000011AC	00000000	0001	0	0	0	0000FFFF	0	0	0                                                                            

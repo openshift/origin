@@ -92,3 +92,4 @@ message AdmissionReviewStatus {
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.Status status = 2;
 }
+

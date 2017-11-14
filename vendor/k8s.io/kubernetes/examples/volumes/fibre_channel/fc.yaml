@@ -4,7 +4,7 @@ metadata:
  name: fc
 spec:
  containers:
-   - image: kubernetes/pause
+   - image: kubernetes/pause 
      name: fc
      volumeMounts:
        - name: fc-vol

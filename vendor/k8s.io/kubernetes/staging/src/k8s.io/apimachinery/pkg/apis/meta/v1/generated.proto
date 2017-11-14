@@ -382,7 +382,7 @@ message ListOptions {
   // more results are available. Servers may choose not to support the limit argument and will return
   // all of the available results. If limit is specified and the continue field is empty, clients may
   // assume that no more results are available. This field is not supported if watch is true.
-  //
+  // 
   // The server guarantees that the objects returned when using continue will be identical to issuing
   // a single list call without a limit - that is, no objects created, modified, or deleted after the
   // first request is issued will be included in any subsequent continued requests. This is sometimes
@@ -781,7 +781,7 @@ message Timestamp {
 // TypeMeta describes an individual object in an API response or request
 // with strings representing the type of the object and its API schema version.
 // Structures that are versioned or persisted should inline TypeMeta.
-//
+// 
 // +k8s:deepcopy-gen=false
 message TypeMeta {
   // Kind is a string value representing the REST resource this object represents.

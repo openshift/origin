@@ -217,3 +217,4 @@ message PolicyRule {
   // An empty list means no restrictions will apply.
   repeated string omitStages = 8;
 }
+

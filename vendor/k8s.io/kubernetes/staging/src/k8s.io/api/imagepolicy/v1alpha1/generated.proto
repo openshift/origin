@@ -77,3 +77,4 @@ message ImageReviewStatus {
   // +optional
   optional string reason = 2;
 }
+

@@ -123,3 +123,4 @@ message ServiceReference {
   // Name is the name of the service
   optional string name = 2;
 }
+

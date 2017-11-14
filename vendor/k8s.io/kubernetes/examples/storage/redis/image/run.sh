@@ -59,7 +59,7 @@ function launchslave() {
       echo "Failed to find master."
       sleep 60
       exit 1
-    fi
+    fi 
     redis-cli -h ${master} INFO
     if [[ "$?" == "0" ]]; then
       break

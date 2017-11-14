@@ -13,3 +13,4 @@ spec:
     component: guestbook
     app: vitess
   type: LoadBalancer
+

@@ -187,3 +187,4 @@ message NetworkPolicySpec {
   // +optional
   repeated string policyTypes = 4;
 }
+
