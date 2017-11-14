@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
 const conflictRetries = 3
@@ -259,8 +258,8 @@ func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.B
 	// Add labels and annotations from the buildrequest.  Existing
 	// label/annotations will take precedence because we don't want system
 	// annotations/labels (eg buildname) to get stomped on.
-	newBuild.Annotations = policy.MergeMaps(request.Annotations, newBuild.Annotations)
-	newBuild.Labels = policy.MergeMaps(request.Labels, newBuild.Labels)
+	newBuild.Annotations = mergeMaps(request.Annotations, newBuild.Annotations)
+	newBuild.Labels = mergeMaps(request.Labels, newBuild.Labels)
 
 	// Copy build trigger information and build arguments to the build object.
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
@@ -919,4 +918,25 @@ func setBuildAnnotationAndLabel(bcCopy *buildapi.BuildConfig, build *buildapi.Bu
 	build.Labels[buildapi.BuildConfigLabelDeprecated] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildConfigLabel] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
+}
+
+// mergeMaps will merge to map[string]string instances, with
+// keys from the second argument overwriting keys from the
+// first argument, in case of duplicates.
+func mergeMaps(a, b map[string]string) map[string]string {
+	if a == nil && b == nil {
+		return nil
+	}
+
+	res := make(map[string]string)
+
+	for k, v := range a {
+		res[k] = v
+	}
+
+	for k, v := range b {
+		res[k] = v
+	}
+
+	return res
 }
