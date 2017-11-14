@@ -212,9 +212,12 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 			return nil
 		}
 		// filter openshift infra images
-		if strings.HasPrefix(i.RepoTags[0], "registry.ops.openshift.com/openshift3") ||
-			strings.HasPrefix(i.RepoTags[0], "docker.io/openshift") {
-			fmt.Println("skipping infra image", i.RepoTags[0])
+		if len(i.RepoTags) > 0 {
+			if strings.HasPrefix(i.RepoTags[0], "registry.ops.openshift.com/openshift3") ||
+				strings.HasPrefix(i.RepoTags[0], "docker.io/openshift") {
+				fmt.Println("skipping infra image", i.RepoTags[0])
+				continue
+			}
 		}
 		// filter young images
 		age := time.Now().Sub(time.Unix(i.Created, 0))
