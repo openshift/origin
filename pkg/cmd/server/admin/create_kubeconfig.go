@@ -17,7 +17,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	"github.com/openshift/origin/pkg/oc/cli/config"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -178,7 +177,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 	}
 
 	// normalize the provided server to a format expected by config
-	o.APIServerURL, err = config.NormalizeServerURL(o.APIServerURL)
+	o.APIServerURL, err = cliconfig.NormalizeServerURL(o.APIServerURL)
 	if err != nil {
 		return nil, err
 	}
