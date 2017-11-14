@@ -25,26 +25,31 @@ type templateInstanceInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newTemplateInstanceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewTemplateInstanceInformer constructs a new informer for TemplateInstance type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewTemplateInstanceInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.TemplateV1().TemplateInstances(meta_v1.NamespaceAll).List(options)
+				return client.TemplateV1().TemplateInstances(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.TemplateV1().TemplateInstances(meta_v1.NamespaceAll).Watch(options)
+				return client.TemplateV1().TemplateInstances(namespace).Watch(options)
 			},
 		},
 		&template_v1.TemplateInstance{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultTemplateInstanceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewTemplateInstanceInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *templateInstanceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&template_v1.TemplateInstance{}, newTemplateInstanceInformer)
+	return f.factory.InformerFor(&template_v1.TemplateInstance{}, defaultTemplateInstanceInformer)
 }
 
 func (f *templateInstanceInformer) Lister() v1.TemplateInstanceLister {

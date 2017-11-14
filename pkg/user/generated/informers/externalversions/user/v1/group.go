@@ -25,8 +25,11 @@ type groupInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newGroupInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewGroupInformer constructs a new informer for Group type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewGroupInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.UserV1().Groups().List(options)
@@ -37,14 +40,16 @@ func newGroupInformer(client clientset.Interface, resyncPeriod time.Duration) ca
 		},
 		&user_v1.Group{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultGroupInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewGroupInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *groupInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&user_v1.Group{}, newGroupInformer)
+	return f.factory.InformerFor(&user_v1.Group{}, defaultGroupInformer)
 }
 
 func (f *groupInformer) Lister() v1.GroupLister {

@@ -5,10 +5,10 @@
 package oauth
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -17,261 +17,466 @@ func init() {
 
 // RegisterDeepCopies adds deep-copy functions to the given scheme. Public
 // to allow building arbitrary schemes.
+//
+// Deprecated: deepcopy registration will go away when static deepcopy is fully implemented.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_ClusterRoleScopeRestriction, InType: reflect.TypeOf(&ClusterRoleScopeRestriction{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthAccessToken, InType: reflect.TypeOf(&OAuthAccessToken{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthAccessTokenList, InType: reflect.TypeOf(&OAuthAccessTokenList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthAuthorizeToken, InType: reflect.TypeOf(&OAuthAuthorizeToken{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthAuthorizeTokenList, InType: reflect.TypeOf(&OAuthAuthorizeTokenList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthClient, InType: reflect.TypeOf(&OAuthClient{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthClientAuthorization, InType: reflect.TypeOf(&OAuthClientAuthorization{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthClientAuthorizationList, InType: reflect.TypeOf(&OAuthClientAuthorizationList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthClientList, InType: reflect.TypeOf(&OAuthClientList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_OAuthRedirectReference, InType: reflect.TypeOf(&OAuthRedirectReference{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_RedirectReference, InType: reflect.TypeOf(&RedirectReference{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_oauth_ScopeRestriction, InType: reflect.TypeOf(&ScopeRestriction{})},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterRoleScopeRestriction).DeepCopyInto(out.(*ClusterRoleScopeRestriction))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterRoleScopeRestriction))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*GrantHandlerType).DeepCopyInto(out.(*GrantHandlerType))
+			return nil
+		}, InType: reflect.TypeOf(new(GrantHandlerType))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthAccessToken).DeepCopyInto(out.(*OAuthAccessToken))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthAccessToken))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthAccessTokenList).DeepCopyInto(out.(*OAuthAccessTokenList))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthAccessTokenList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthAuthorizeToken).DeepCopyInto(out.(*OAuthAuthorizeToken))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthAuthorizeToken))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthAuthorizeTokenList).DeepCopyInto(out.(*OAuthAuthorizeTokenList))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthAuthorizeTokenList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthClient).DeepCopyInto(out.(*OAuthClient))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthClient))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthClientAuthorization).DeepCopyInto(out.(*OAuthClientAuthorization))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthClientAuthorization))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthClientAuthorizationList).DeepCopyInto(out.(*OAuthClientAuthorizationList))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthClientAuthorizationList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthClientList).DeepCopyInto(out.(*OAuthClientList))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthClientList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*OAuthRedirectReference).DeepCopyInto(out.(*OAuthRedirectReference))
+			return nil
+		}, InType: reflect.TypeOf(new(OAuthRedirectReference))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RedirectReference).DeepCopyInto(out.(*RedirectReference))
+			return nil
+		}, InType: reflect.TypeOf(new(RedirectReference))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ScopeRestriction).DeepCopyInto(out.(*ScopeRestriction))
+			return nil
+		}, InType: reflect.TypeOf(new(ScopeRestriction))},
 	)
 }
 
-// DeepCopy_oauth_ClusterRoleScopeRestriction is an autogenerated deepcopy function.
-func DeepCopy_oauth_ClusterRoleScopeRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterRoleScopeRestriction) DeepCopyInto(out *ClusterRoleScopeRestriction) {
+	*out = *in
+	if in.RoleNames != nil {
+		in, out := &in.RoleNames, &out.RoleNames
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterRoleScopeRestriction.
+func (in *ClusterRoleScopeRestriction) DeepCopy() *ClusterRoleScopeRestriction {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterRoleScopeRestriction)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *GrantHandlerType) DeepCopyInto(out *GrantHandlerType) {
 	{
-		in := in.(*ClusterRoleScopeRestriction)
-		out := out.(*ClusterRoleScopeRestriction)
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
 		*out = *in
-		if in.RoleNames != nil {
-			in, out := &in.RoleNames, &out.RoleNames
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Namespaces != nil {
-			in, out := &in.Namespaces, &out.Namespaces
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new GrantHandlerType.
+func (in *GrantHandlerType) DeepCopy() *GrantHandlerType {
+	if in == nil {
+		return nil
+	}
+	out := new(GrantHandlerType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthAccessToken) DeepCopyInto(out *OAuthAccessToken) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthAccessToken.
+func (in *OAuthAccessToken) DeepCopy() *OAuthAccessToken {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthAccessToken)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthAccessToken) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_oauth_OAuthAccessToken is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthAccessToken(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthAccessToken)
-		out := out.(*OAuthAccessToken)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthAccessTokenList) DeepCopyInto(out *OAuthAccessTokenList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]OAuthAccessToken, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthAccessTokenList.
+func (in *OAuthAccessTokenList) DeepCopy() *OAuthAccessTokenList {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthAccessTokenList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthAccessTokenList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthAuthorizeToken) DeepCopyInto(out *OAuthAuthorizeToken) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthAuthorizeToken.
+func (in *OAuthAuthorizeToken) DeepCopy() *OAuthAuthorizeToken {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthAuthorizeToken)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthAuthorizeToken) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthAuthorizeTokenList) DeepCopyInto(out *OAuthAuthorizeTokenList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]OAuthAuthorizeToken, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthAuthorizeTokenList.
+func (in *OAuthAuthorizeTokenList) DeepCopy() *OAuthAuthorizeTokenList {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthAuthorizeTokenList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthAuthorizeTokenList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthClient) DeepCopyInto(out *OAuthClient) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.AdditionalSecrets != nil {
+		in, out := &in.AdditionalSecrets, &out.AdditionalSecrets
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.RedirectURIs != nil {
+		in, out := &in.RedirectURIs, &out.RedirectURIs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ScopeRestrictions != nil {
+		in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
+		*out = make([]ScopeRestriction, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.AccessTokenMaxAgeSeconds != nil {
+		in, out := &in.AccessTokenMaxAgeSeconds, &out.AccessTokenMaxAgeSeconds
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Scopes != nil {
-			in, out := &in.Scopes, &out.Scopes
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_OAuthAccessTokenList is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthAccessTokenList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthAccessTokenList)
-		out := out.(*OAuthAccessTokenList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]OAuthAccessToken, len(*in))
-			for i := range *in {
-				if err := DeepCopy_oauth_OAuthAccessToken(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_OAuthAuthorizeToken is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthAuthorizeToken(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthAuthorizeToken)
-		out := out.(*OAuthAuthorizeToken)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Scopes != nil {
-			in, out := &in.Scopes, &out.Scopes
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_OAuthAuthorizeTokenList is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthAuthorizeTokenList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthAuthorizeTokenList)
-		out := out.(*OAuthAuthorizeTokenList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]OAuthAuthorizeToken, len(*in))
-			for i := range *in {
-				if err := DeepCopy_oauth_OAuthAuthorizeToken(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_OAuthClient is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthClient(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthClient)
-		out := out.(*OAuthClient)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.AdditionalSecrets != nil {
-			in, out := &in.AdditionalSecrets, &out.AdditionalSecrets
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.RedirectURIs != nil {
-			in, out := &in.RedirectURIs, &out.RedirectURIs
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.ScopeRestrictions != nil {
-			in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
-			*out = make([]ScopeRestriction, len(*in))
-			for i := range *in {
-				if err := DeepCopy_oauth_ScopeRestriction(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.AccessTokenMaxAgeSeconds != nil {
-			in, out := &in.AccessTokenMaxAgeSeconds, &out.AccessTokenMaxAgeSeconds
 			*out = new(int32)
 			**out = **in
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthClient.
+func (in *OAuthClient) DeepCopy() *OAuthClient {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthClient)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthClient) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_oauth_OAuthClientAuthorization is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthClientAuthorization(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthClientAuthorization)
-		out := out.(*OAuthClientAuthorization)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthClientAuthorization) DeepCopyInto(out *OAuthClientAuthorization) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthClientAuthorization.
+func (in *OAuthClientAuthorization) DeepCopy() *OAuthClientAuthorization {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthClientAuthorization)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthClientAuthorization) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthClientAuthorizationList) DeepCopyInto(out *OAuthClientAuthorizationList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]OAuthClientAuthorization, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthClientAuthorizationList.
+func (in *OAuthClientAuthorizationList) DeepCopy() *OAuthClientAuthorizationList {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthClientAuthorizationList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthClientAuthorizationList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthClientList) DeepCopyInto(out *OAuthClientList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]OAuthClient, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthClientList.
+func (in *OAuthClientList) DeepCopy() *OAuthClientList {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthClientList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthClientList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *OAuthRedirectReference) DeepCopyInto(out *OAuthRedirectReference) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	out.Reference = in.Reference
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new OAuthRedirectReference.
+func (in *OAuthRedirectReference) DeepCopy() *OAuthRedirectReference {
+	if in == nil {
+		return nil
+	}
+	out := new(OAuthRedirectReference)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *OAuthRedirectReference) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RedirectReference) DeepCopyInto(out *RedirectReference) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RedirectReference.
+func (in *RedirectReference) DeepCopy() *RedirectReference {
+	if in == nil {
+		return nil
+	}
+	out := new(RedirectReference)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ScopeRestriction) DeepCopyInto(out *ScopeRestriction) {
+	*out = *in
+	if in.ExactValues != nil {
+		in, out := &in.ExactValues, &out.ExactValues
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ClusterRole != nil {
+		in, out := &in.ClusterRole, &out.ClusterRole
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Scopes != nil {
-			in, out := &in.Scopes, &out.Scopes
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_OAuthClientAuthorizationList is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthClientAuthorizationList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthClientAuthorizationList)
-		out := out.(*OAuthClientAuthorizationList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]OAuthClientAuthorization, len(*in))
-			for i := range *in {
-				if err := DeepCopy_oauth_OAuthClientAuthorization(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_OAuthClientList is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthClientList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthClientList)
-		out := out.(*OAuthClientList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]OAuthClient, len(*in))
-			for i := range *in {
-				if err := DeepCopy_oauth_OAuthClient(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_OAuthRedirectReference is an autogenerated deepcopy function.
-func DeepCopy_oauth_OAuthRedirectReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*OAuthRedirectReference)
-		out := out.(*OAuthRedirectReference)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_oauth_RedirectReference is an autogenerated deepcopy function.
-func DeepCopy_oauth_RedirectReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RedirectReference)
-		out := out.(*RedirectReference)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_oauth_ScopeRestriction is an autogenerated deepcopy function.
-func DeepCopy_oauth_ScopeRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ScopeRestriction)
-		out := out.(*ScopeRestriction)
-		*out = *in
-		if in.ExactValues != nil {
-			in, out := &in.ExactValues, &out.ExactValues
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.ClusterRole != nil {
-			in, out := &in.ClusterRole, &out.ClusterRole
 			*out = new(ClusterRoleScopeRestriction)
-			if err := DeepCopy_oauth_ClusterRoleScopeRestriction(*in, *out, c); err != nil {
-				return err
-			}
+			(*in).DeepCopyInto(*out)
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ScopeRestriction.
+func (in *ScopeRestriction) DeepCopy() *ScopeRestriction {
+	if in == nil {
 		return nil
 	}
+	out := new(ScopeRestriction)
+	in.DeepCopyInto(out)
+	return out
 }

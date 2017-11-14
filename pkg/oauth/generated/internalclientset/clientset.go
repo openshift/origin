@@ -17,15 +17,12 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*oauthinternalversion.OauthClient
+	oauth *oauthinternalversion.OauthClient
 }
 
 // Oauth retrieves the OauthClient
 func (c *Clientset) Oauth() oauthinternalversion.OauthInterface {
-	if c == nil {
-		return nil
-	}
-	return c.OauthClient
+	return c.oauth
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -44,7 +41,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.OauthClient, err = oauthinternalversion.NewForConfig(&configShallowCopy)
+	cs.oauth, err = oauthinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +58,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.OauthClient = oauthinternalversion.NewForConfigOrDie(c)
+	cs.oauth = oauthinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -70,7 +67,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.OauthClient = oauthinternalversion.New(c)
+	cs.oauth = oauthinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

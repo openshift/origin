@@ -5,11 +5,11 @@
 package security
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api "k8s.io/kubernetes/pkg/api"
 	reflect "reflect"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -18,352 +18,664 @@ func init() {
 
 // RegisterDeepCopies adds deep-copy functions to the given scheme. Public
 // to allow building arbitrary schemes.
+//
+// Deprecated: deepcopy registration will go away when static deepcopy is fully implemented.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_AllowedFlexVolume, InType: reflect.TypeOf(&AllowedFlexVolume{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_FSGroupStrategyOptions, InType: reflect.TypeOf(&FSGroupStrategyOptions{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_IDRange, InType: reflect.TypeOf(&IDRange{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicyReview, InType: reflect.TypeOf(&PodSecurityPolicyReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicyReviewSpec, InType: reflect.TypeOf(&PodSecurityPolicyReviewSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicyReviewStatus, InType: reflect.TypeOf(&PodSecurityPolicyReviewStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicySelfSubjectReview, InType: reflect.TypeOf(&PodSecurityPolicySelfSubjectReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicySelfSubjectReviewSpec, InType: reflect.TypeOf(&PodSecurityPolicySelfSubjectReviewSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicySubjectReview, InType: reflect.TypeOf(&PodSecurityPolicySubjectReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicySubjectReviewSpec, InType: reflect.TypeOf(&PodSecurityPolicySubjectReviewSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_PodSecurityPolicySubjectReviewStatus, InType: reflect.TypeOf(&PodSecurityPolicySubjectReviewStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_RunAsUserStrategyOptions, InType: reflect.TypeOf(&RunAsUserStrategyOptions{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_SELinuxContextStrategyOptions, InType: reflect.TypeOf(&SELinuxContextStrategyOptions{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_SecurityContextConstraints, InType: reflect.TypeOf(&SecurityContextConstraints{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_SecurityContextConstraintsList, InType: reflect.TypeOf(&SecurityContextConstraintsList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_ServiceAccountPodSecurityPolicyReviewStatus, InType: reflect.TypeOf(&ServiceAccountPodSecurityPolicyReviewStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_security_SupplementalGroupsStrategyOptions, InType: reflect.TypeOf(&SupplementalGroupsStrategyOptions{})},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*AllowedFlexVolume).DeepCopyInto(out.(*AllowedFlexVolume))
+			return nil
+		}, InType: reflect.TypeOf(new(AllowedFlexVolume))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*FSGroupStrategyOptions).DeepCopyInto(out.(*FSGroupStrategyOptions))
+			return nil
+		}, InType: reflect.TypeOf(new(FSGroupStrategyOptions))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*FSGroupStrategyType).DeepCopyInto(out.(*FSGroupStrategyType))
+			return nil
+		}, InType: reflect.TypeOf(new(FSGroupStrategyType))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*FSType).DeepCopyInto(out.(*FSType))
+			return nil
+		}, InType: reflect.TypeOf(new(FSType))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*IDRange).DeepCopyInto(out.(*IDRange))
+			return nil
+		}, InType: reflect.TypeOf(new(IDRange))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicyReview).DeepCopyInto(out.(*PodSecurityPolicyReview))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicyReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicyReviewSpec).DeepCopyInto(out.(*PodSecurityPolicyReviewSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicyReviewSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicyReviewStatus).DeepCopyInto(out.(*PodSecurityPolicyReviewStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicyReviewStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicySelfSubjectReview).DeepCopyInto(out.(*PodSecurityPolicySelfSubjectReview))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicySelfSubjectReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicySelfSubjectReviewSpec).DeepCopyInto(out.(*PodSecurityPolicySelfSubjectReviewSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicySelfSubjectReviewSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicySubjectReview).DeepCopyInto(out.(*PodSecurityPolicySubjectReview))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicySubjectReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicySubjectReviewSpec).DeepCopyInto(out.(*PodSecurityPolicySubjectReviewSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicySubjectReviewSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PodSecurityPolicySubjectReviewStatus).DeepCopyInto(out.(*PodSecurityPolicySubjectReviewStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(PodSecurityPolicySubjectReviewStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RunAsUserStrategyOptions).DeepCopyInto(out.(*RunAsUserStrategyOptions))
+			return nil
+		}, InType: reflect.TypeOf(new(RunAsUserStrategyOptions))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RunAsUserStrategyType).DeepCopyInto(out.(*RunAsUserStrategyType))
+			return nil
+		}, InType: reflect.TypeOf(new(RunAsUserStrategyType))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SELinuxContextStrategyOptions).DeepCopyInto(out.(*SELinuxContextStrategyOptions))
+			return nil
+		}, InType: reflect.TypeOf(new(SELinuxContextStrategyOptions))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SELinuxContextStrategyType).DeepCopyInto(out.(*SELinuxContextStrategyType))
+			return nil
+		}, InType: reflect.TypeOf(new(SELinuxContextStrategyType))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SecurityContextConstraints).DeepCopyInto(out.(*SecurityContextConstraints))
+			return nil
+		}, InType: reflect.TypeOf(new(SecurityContextConstraints))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SecurityContextConstraintsList).DeepCopyInto(out.(*SecurityContextConstraintsList))
+			return nil
+		}, InType: reflect.TypeOf(new(SecurityContextConstraintsList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ServiceAccountPodSecurityPolicyReviewStatus).DeepCopyInto(out.(*ServiceAccountPodSecurityPolicyReviewStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(ServiceAccountPodSecurityPolicyReviewStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SupplementalGroupsStrategyOptions).DeepCopyInto(out.(*SupplementalGroupsStrategyOptions))
+			return nil
+		}, InType: reflect.TypeOf(new(SupplementalGroupsStrategyOptions))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SupplementalGroupsStrategyType).DeepCopyInto(out.(*SupplementalGroupsStrategyType))
+			return nil
+		}, InType: reflect.TypeOf(new(SupplementalGroupsStrategyType))},
 	)
 }
 
-// DeepCopy_security_AllowedFlexVolume is an autogenerated deepcopy function.
-func DeepCopy_security_AllowedFlexVolume(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *AllowedFlexVolume) DeepCopyInto(out *AllowedFlexVolume) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new AllowedFlexVolume.
+func (in *AllowedFlexVolume) DeepCopy() *AllowedFlexVolume {
+	if in == nil {
+		return nil
+	}
+	out := new(AllowedFlexVolume)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *FSGroupStrategyOptions) DeepCopyInto(out *FSGroupStrategyOptions) {
+	*out = *in
+	if in.Ranges != nil {
+		in, out := &in.Ranges, &out.Ranges
+		*out = make([]IDRange, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new FSGroupStrategyOptions.
+func (in *FSGroupStrategyOptions) DeepCopy() *FSGroupStrategyOptions {
+	if in == nil {
+		return nil
+	}
+	out := new(FSGroupStrategyOptions)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *FSGroupStrategyType) DeepCopyInto(out *FSGroupStrategyType) {
 	{
-		in := in.(*AllowedFlexVolume)
-		out := out.(*AllowedFlexVolume)
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
 		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new FSGroupStrategyType.
+func (in *FSGroupStrategyType) DeepCopy() *FSGroupStrategyType {
+	if in == nil {
+		return nil
+	}
+	out := new(FSGroupStrategyType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *FSType) DeepCopyInto(out *FSType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new FSType.
+func (in *FSType) DeepCopy() *FSType {
+	if in == nil {
+		return nil
+	}
+	out := new(FSType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *IDRange) DeepCopyInto(out *IDRange) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new IDRange.
+func (in *IDRange) DeepCopy() *IDRange {
+	if in == nil {
+		return nil
+	}
+	out := new(IDRange)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicyReview) DeepCopyInto(out *PodSecurityPolicyReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicyReview.
+func (in *PodSecurityPolicyReview) DeepCopy() *PodSecurityPolicyReview {
+	if in == nil {
+		return nil
+	}
+	out := new(PodSecurityPolicyReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *PodSecurityPolicyReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_security_FSGroupStrategyOptions is an autogenerated deepcopy function.
-func DeepCopy_security_FSGroupStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*FSGroupStrategyOptions)
-		out := out.(*FSGroupStrategyOptions)
-		*out = *in
-		if in.Ranges != nil {
-			in, out := &in.Ranges, &out.Ranges
-			*out = make([]IDRange, len(*in))
-			copy(*out, *in)
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicyReviewSpec) DeepCopyInto(out *PodSecurityPolicyReviewSpec) {
+	*out = *in
+	in.Template.DeepCopyInto(&out.Template)
+	if in.ServiceAccountNames != nil {
+		in, out := &in.ServiceAccountNames, &out.ServiceAccountNames
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicyReviewSpec.
+func (in *PodSecurityPolicyReviewSpec) DeepCopy() *PodSecurityPolicyReviewSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(PodSecurityPolicyReviewSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicyReviewStatus) DeepCopyInto(out *PodSecurityPolicyReviewStatus) {
+	*out = *in
+	if in.AllowedServiceAccounts != nil {
+		in, out := &in.AllowedServiceAccounts, &out.AllowedServiceAccounts
+		*out = make([]ServiceAccountPodSecurityPolicyReviewStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicyReviewStatus.
+func (in *PodSecurityPolicyReviewStatus) DeepCopy() *PodSecurityPolicyReviewStatus {
+	if in == nil {
+		return nil
+	}
+	out := new(PodSecurityPolicyReviewStatus)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicySelfSubjectReview) DeepCopyInto(out *PodSecurityPolicySelfSubjectReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicySelfSubjectReview.
+func (in *PodSecurityPolicySelfSubjectReview) DeepCopy() *PodSecurityPolicySelfSubjectReview {
+	if in == nil {
+		return nil
+	}
+	out := new(PodSecurityPolicySelfSubjectReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *PodSecurityPolicySelfSubjectReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_security_IDRange is an autogenerated deepcopy function.
-func DeepCopy_security_IDRange(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*IDRange)
-		out := out.(*IDRange)
-		*out = *in
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicySelfSubjectReviewSpec) DeepCopyInto(out *PodSecurityPolicySelfSubjectReviewSpec) {
+	*out = *in
+	in.Template.DeepCopyInto(&out.Template)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicySelfSubjectReviewSpec.
+func (in *PodSecurityPolicySelfSubjectReviewSpec) DeepCopy() *PodSecurityPolicySelfSubjectReviewSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(PodSecurityPolicySelfSubjectReviewSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicySubjectReview) DeepCopyInto(out *PodSecurityPolicySubjectReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicySubjectReview.
+func (in *PodSecurityPolicySubjectReview) DeepCopy() *PodSecurityPolicySubjectReview {
+	if in == nil {
+		return nil
+	}
+	out := new(PodSecurityPolicySubjectReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *PodSecurityPolicySubjectReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_security_PodSecurityPolicyReview is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicyReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicyReview)
-		out := out.(*PodSecurityPolicyReview)
-		*out = *in
-		if err := DeepCopy_security_PodSecurityPolicyReviewSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_security_PodSecurityPolicyReviewStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicySubjectReviewSpec) DeepCopyInto(out *PodSecurityPolicySubjectReviewSpec) {
+	*out = *in
+	in.Template.DeepCopyInto(&out.Template)
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
+	return
 }
 
-// DeepCopy_security_PodSecurityPolicyReviewSpec is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicyReviewSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicyReviewSpec)
-		out := out.(*PodSecurityPolicyReviewSpec)
-		*out = *in
-		if err := api.DeepCopy_api_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
-			return err
-		}
-		if in.ServiceAccountNames != nil {
-			in, out := &in.ServiceAccountNames, &out.ServiceAccountNames
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicySubjectReviewSpec.
+func (in *PodSecurityPolicySubjectReviewSpec) DeepCopy() *PodSecurityPolicySubjectReviewSpec {
+	if in == nil {
 		return nil
 	}
+	out := new(PodSecurityPolicySubjectReviewSpec)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_security_PodSecurityPolicyReviewStatus is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicyReviewStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicyReviewStatus)
-		out := out.(*PodSecurityPolicyReviewStatus)
-		*out = *in
-		if in.AllowedServiceAccounts != nil {
-			in, out := &in.AllowedServiceAccounts, &out.AllowedServiceAccounts
-			*out = make([]ServiceAccountPodSecurityPolicyReviewStatus, len(*in))
-			for i := range *in {
-				if err := DeepCopy_security_ServiceAccountPodSecurityPolicyReviewStatus(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_security_PodSecurityPolicySelfSubjectReview is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicySelfSubjectReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicySelfSubjectReview)
-		out := out.(*PodSecurityPolicySelfSubjectReview)
-		*out = *in
-		if err := DeepCopy_security_PodSecurityPolicySelfSubjectReviewSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_security_PodSecurityPolicySubjectReviewStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_security_PodSecurityPolicySelfSubjectReviewSpec is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicySelfSubjectReviewSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicySelfSubjectReviewSpec)
-		out := out.(*PodSecurityPolicySelfSubjectReviewSpec)
-		*out = *in
-		if err := api.DeepCopy_api_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_security_PodSecurityPolicySubjectReview is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicySubjectReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicySubjectReview)
-		out := out.(*PodSecurityPolicySubjectReview)
-		*out = *in
-		if err := DeepCopy_security_PodSecurityPolicySubjectReviewSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_security_PodSecurityPolicySubjectReviewStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_security_PodSecurityPolicySubjectReviewSpec is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicySubjectReviewSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicySubjectReviewSpec)
-		out := out.(*PodSecurityPolicySubjectReviewSpec)
-		*out = *in
-		if err := api.DeepCopy_api_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
-			return err
-		}
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_security_PodSecurityPolicySubjectReviewStatus is an autogenerated deepcopy function.
-func DeepCopy_security_PodSecurityPolicySubjectReviewStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PodSecurityPolicySubjectReviewStatus)
-		out := out.(*PodSecurityPolicySubjectReviewStatus)
-		*out = *in
-		if in.AllowedBy != nil {
-			in, out := &in.AllowedBy, &out.AllowedBy
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PodSecurityPolicySubjectReviewStatus) DeepCopyInto(out *PodSecurityPolicySubjectReviewStatus) {
+	*out = *in
+	if in.AllowedBy != nil {
+		in, out := &in.AllowedBy, &out.AllowedBy
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(api.ObjectReference)
 			**out = **in
 		}
-		if err := api.DeepCopy_api_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
-			return err
-		}
-		return nil
 	}
+	in.Template.DeepCopyInto(&out.Template)
+	return
 }
 
-// DeepCopy_security_RunAsUserStrategyOptions is an autogenerated deepcopy function.
-func DeepCopy_security_RunAsUserStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RunAsUserStrategyOptions)
-		out := out.(*RunAsUserStrategyOptions)
-		*out = *in
-		if in.UID != nil {
-			in, out := &in.UID, &out.UID
-			*out = new(int64)
-			**out = **in
-		}
-		if in.UIDRangeMin != nil {
-			in, out := &in.UIDRangeMin, &out.UIDRangeMin
-			*out = new(int64)
-			**out = **in
-		}
-		if in.UIDRangeMax != nil {
-			in, out := &in.UIDRangeMax, &out.UIDRangeMax
-			*out = new(int64)
-			**out = **in
-		}
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PodSecurityPolicySubjectReviewStatus.
+func (in *PodSecurityPolicySubjectReviewStatus) DeepCopy() *PodSecurityPolicySubjectReviewStatus {
+	if in == nil {
 		return nil
 	}
+	out := new(PodSecurityPolicySubjectReviewStatus)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_security_SELinuxContextStrategyOptions is an autogenerated deepcopy function.
-func DeepCopy_security_SELinuxContextStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RunAsUserStrategyOptions) DeepCopyInto(out *RunAsUserStrategyOptions) {
+	*out = *in
+	if in.UID != nil {
+		in, out := &in.UID, &out.UID
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int64)
+			**out = **in
+		}
+	}
+	if in.UIDRangeMin != nil {
+		in, out := &in.UIDRangeMin, &out.UIDRangeMin
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int64)
+			**out = **in
+		}
+	}
+	if in.UIDRangeMax != nil {
+		in, out := &in.UIDRangeMax, &out.UIDRangeMax
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int64)
+			**out = **in
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RunAsUserStrategyOptions.
+func (in *RunAsUserStrategyOptions) DeepCopy() *RunAsUserStrategyOptions {
+	if in == nil {
+		return nil
+	}
+	out := new(RunAsUserStrategyOptions)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RunAsUserStrategyType) DeepCopyInto(out *RunAsUserStrategyType) {
 	{
-		in := in.(*SELinuxContextStrategyOptions)
-		out := out.(*SELinuxContextStrategyOptions)
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
 		*out = *in
-		if in.SELinuxOptions != nil {
-			in, out := &in.SELinuxOptions, &out.SELinuxOptions
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RunAsUserStrategyType.
+func (in *RunAsUserStrategyType) DeepCopy() *RunAsUserStrategyType {
+	if in == nil {
+		return nil
+	}
+	out := new(RunAsUserStrategyType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SELinuxContextStrategyOptions) DeepCopyInto(out *SELinuxContextStrategyOptions) {
+	*out = *in
+	if in.SELinuxOptions != nil {
+		in, out := &in.SELinuxOptions, &out.SELinuxOptions
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(api.SELinuxOptions)
 			**out = **in
 		}
-		return nil
 	}
+	return
 }
 
-// DeepCopy_security_SecurityContextConstraints is an autogenerated deepcopy function.
-func DeepCopy_security_SecurityContextConstraints(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SELinuxContextStrategyOptions.
+func (in *SELinuxContextStrategyOptions) DeepCopy() *SELinuxContextStrategyOptions {
+	if in == nil {
+		return nil
+	}
+	out := new(SELinuxContextStrategyOptions)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SELinuxContextStrategyType) DeepCopyInto(out *SELinuxContextStrategyType) {
 	{
-		in := in.(*SecurityContextConstraints)
-		out := out.(*SecurityContextConstraints)
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
 		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SELinuxContextStrategyType.
+func (in *SELinuxContextStrategyType) DeepCopy() *SELinuxContextStrategyType {
+	if in == nil {
+		return nil
+	}
+	out := new(SELinuxContextStrategyType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SecurityContextConstraints) DeepCopyInto(out *SecurityContextConstraints) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Priority != nil {
+		in, out := &in.Priority, &out.Priority
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Priority != nil {
-			in, out := &in.Priority, &out.Priority
 			*out = new(int32)
 			**out = **in
 		}
-		if in.DefaultAddCapabilities != nil {
-			in, out := &in.DefaultAddCapabilities, &out.DefaultAddCapabilities
-			*out = make([]api.Capability, len(*in))
-			copy(*out, *in)
-		}
-		if in.RequiredDropCapabilities != nil {
-			in, out := &in.RequiredDropCapabilities, &out.RequiredDropCapabilities
-			*out = make([]api.Capability, len(*in))
-			copy(*out, *in)
-		}
-		if in.AllowedCapabilities != nil {
-			in, out := &in.AllowedCapabilities, &out.AllowedCapabilities
-			*out = make([]api.Capability, len(*in))
-			copy(*out, *in)
-		}
-		if in.Volumes != nil {
-			in, out := &in.Volumes, &out.Volumes
-			*out = make([]FSType, len(*in))
-			copy(*out, *in)
-		}
-		if in.AllowedFlexVolumes != nil {
-			in, out := &in.AllowedFlexVolumes, &out.AllowedFlexVolumes
-			*out = make([]AllowedFlexVolume, len(*in))
-			copy(*out, *in)
-		}
-		if err := DeepCopy_security_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_security_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_security_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_security_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, c); err != nil {
-			return err
-		}
-		if in.SeccompProfiles != nil {
-			in, out := &in.SeccompProfiles, &out.SeccompProfiles
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Users != nil {
-			in, out := &in.Users, &out.Users
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
+	}
+	if in.DefaultAddCapabilities != nil {
+		in, out := &in.DefaultAddCapabilities, &out.DefaultAddCapabilities
+		*out = make([]api.Capability, len(*in))
+		copy(*out, *in)
+	}
+	if in.RequiredDropCapabilities != nil {
+		in, out := &in.RequiredDropCapabilities, &out.RequiredDropCapabilities
+		*out = make([]api.Capability, len(*in))
+		copy(*out, *in)
+	}
+	if in.AllowedCapabilities != nil {
+		in, out := &in.AllowedCapabilities, &out.AllowedCapabilities
+		*out = make([]api.Capability, len(*in))
+		copy(*out, *in)
+	}
+	if in.Volumes != nil {
+		in, out := &in.Volumes, &out.Volumes
+		*out = make([]FSType, len(*in))
+		copy(*out, *in)
+	}
+	if in.AllowedFlexVolumes != nil {
+		in, out := &in.AllowedFlexVolumes, &out.AllowedFlexVolumes
+		*out = make([]AllowedFlexVolume, len(*in))
+		copy(*out, *in)
+	}
+	in.SELinuxContext.DeepCopyInto(&out.SELinuxContext)
+	in.RunAsUser.DeepCopyInto(&out.RunAsUser)
+	in.SupplementalGroups.DeepCopyInto(&out.SupplementalGroups)
+	in.FSGroup.DeepCopyInto(&out.FSGroup)
+	if in.SeccompProfiles != nil {
+		in, out := &in.SeccompProfiles, &out.SeccompProfiles
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Users != nil {
+		in, out := &in.Users, &out.Users
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SecurityContextConstraints.
+func (in *SecurityContextConstraints) DeepCopy() *SecurityContextConstraints {
+	if in == nil {
+		return nil
+	}
+	out := new(SecurityContextConstraints)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *SecurityContextConstraints) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_security_SecurityContextConstraintsList is an autogenerated deepcopy function.
-func DeepCopy_security_SecurityContextConstraintsList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SecurityContextConstraintsList)
-		out := out.(*SecurityContextConstraintsList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]SecurityContextConstraints, len(*in))
-			for i := range *in {
-				if err := DeepCopy_security_SecurityContextConstraints(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SecurityContextConstraintsList) DeepCopyInto(out *SecurityContextConstraintsList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]SecurityContextConstraints, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SecurityContextConstraintsList.
+func (in *SecurityContextConstraintsList) DeepCopy() *SecurityContextConstraintsList {
+	if in == nil {
+		return nil
+	}
+	out := new(SecurityContextConstraintsList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *SecurityContextConstraintsList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_security_ServiceAccountPodSecurityPolicyReviewStatus is an autogenerated deepcopy function.
-func DeepCopy_security_ServiceAccountPodSecurityPolicyReviewStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ServiceAccountPodSecurityPolicyReviewStatus)
-		out := out.(*ServiceAccountPodSecurityPolicyReviewStatus)
-		*out = *in
-		if err := DeepCopy_security_PodSecurityPolicySubjectReviewStatus(&in.PodSecurityPolicySubjectReviewStatus, &out.PodSecurityPolicySubjectReviewStatus, c); err != nil {
-			return err
-		}
-		return nil
-	}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ServiceAccountPodSecurityPolicyReviewStatus) DeepCopyInto(out *ServiceAccountPodSecurityPolicyReviewStatus) {
+	*out = *in
+	in.PodSecurityPolicySubjectReviewStatus.DeepCopyInto(&out.PodSecurityPolicySubjectReviewStatus)
+	return
 }
 
-// DeepCopy_security_SupplementalGroupsStrategyOptions is an autogenerated deepcopy function.
-func DeepCopy_security_SupplementalGroupsStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SupplementalGroupsStrategyOptions)
-		out := out.(*SupplementalGroupsStrategyOptions)
-		*out = *in
-		if in.Ranges != nil {
-			in, out := &in.Ranges, &out.Ranges
-			*out = make([]IDRange, len(*in))
-			copy(*out, *in)
-		}
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ServiceAccountPodSecurityPolicyReviewStatus.
+func (in *ServiceAccountPodSecurityPolicyReviewStatus) DeepCopy() *ServiceAccountPodSecurityPolicyReviewStatus {
+	if in == nil {
 		return nil
 	}
+	out := new(ServiceAccountPodSecurityPolicyReviewStatus)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SupplementalGroupsStrategyOptions) DeepCopyInto(out *SupplementalGroupsStrategyOptions) {
+	*out = *in
+	if in.Ranges != nil {
+		in, out := &in.Ranges, &out.Ranges
+		*out = make([]IDRange, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SupplementalGroupsStrategyOptions.
+func (in *SupplementalGroupsStrategyOptions) DeepCopy() *SupplementalGroupsStrategyOptions {
+	if in == nil {
+		return nil
+	}
+	out := new(SupplementalGroupsStrategyOptions)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SupplementalGroupsStrategyType) DeepCopyInto(out *SupplementalGroupsStrategyType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SupplementalGroupsStrategyType.
+func (in *SupplementalGroupsStrategyType) DeepCopy() *SupplementalGroupsStrategyType {
+	if in == nil {
+		return nil
+	}
+	out := new(SupplementalGroupsStrategyType)
+	in.DeepCopyInto(out)
+	return out
 }

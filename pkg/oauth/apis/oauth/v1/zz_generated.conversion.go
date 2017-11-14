@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -59,16 +59,8 @@ func Convert_v1_ClusterRoleScopeRestriction_To_oauth_ClusterRoleScopeRestriction
 }
 
 func autoConvert_oauth_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(in *oauth.ClusterRoleScopeRestriction, out *ClusterRoleScopeRestriction, s conversion.Scope) error {
-	if in.RoleNames == nil {
-		out.RoleNames = make([]string, 0)
-	} else {
-		out.RoleNames = *(*[]string)(unsafe.Pointer(&in.RoleNames))
-	}
-	if in.Namespaces == nil {
-		out.Namespaces = make([]string, 0)
-	} else {
-		out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
-	}
+	out.RoleNames = *(*[]string)(unsafe.Pointer(&in.RoleNames))
+	out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
 	out.AllowEscalation = in.AllowEscalation
 	return nil
 }
@@ -127,11 +119,7 @@ func Convert_v1_OAuthAccessTokenList_To_oauth_OAuthAccessTokenList(in *OAuthAcce
 
 func autoConvert_oauth_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *oauth.OAuthAccessTokenList, out *OAuthAccessTokenList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthAccessToken, 0)
-	} else {
-		out.Items = *(*[]OAuthAccessToken)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthAccessToken)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -191,11 +179,7 @@ func Convert_v1_OAuthAuthorizeTokenList_To_oauth_OAuthAuthorizeTokenList(in *OAu
 
 func autoConvert_oauth_OAuthAuthorizeTokenList_To_v1_OAuthAuthorizeTokenList(in *oauth.OAuthAuthorizeTokenList, out *OAuthAuthorizeTokenList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthAuthorizeToken, 0)
-	} else {
-		out.Items = *(*[]OAuthAuthorizeToken)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthAuthorizeToken)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -279,11 +263,7 @@ func Convert_v1_OAuthClientAuthorizationList_To_oauth_OAuthClientAuthorizationLi
 
 func autoConvert_oauth_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList(in *oauth.OAuthClientAuthorizationList, out *OAuthClientAuthorizationList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthClientAuthorization, 0)
-	} else {
-		out.Items = *(*[]OAuthClientAuthorization)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthClientAuthorization)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -305,11 +285,7 @@ func Convert_v1_OAuthClientList_To_oauth_OAuthClientList(in *OAuthClientList, ou
 
 func autoConvert_oauth_OAuthClientList_To_v1_OAuthClientList(in *oauth.OAuthClientList, out *OAuthClientList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthClient, 0)
-	} else {
-		out.Items = *(*[]OAuthClient)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthClient)(unsafe.Pointer(&in.Items))
 	return nil
 }
 

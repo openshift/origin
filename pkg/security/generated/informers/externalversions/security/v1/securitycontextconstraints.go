@@ -25,8 +25,11 @@ type securityContextConstraintsInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newSecurityContextConstraintsInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewSecurityContextConstraintsInformer constructs a new informer for SecurityContextConstraints type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewSecurityContextConstraintsInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.SecurityV1().SecurityContextConstraints().List(options)
@@ -37,14 +40,16 @@ func newSecurityContextConstraintsInformer(client clientset.Interface, resyncPer
 		},
 		&security_v1.SecurityContextConstraints{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultSecurityContextConstraintsInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewSecurityContextConstraintsInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *securityContextConstraintsInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&security_v1.SecurityContextConstraints{}, newSecurityContextConstraintsInformer)
+	return f.factory.InformerFor(&security_v1.SecurityContextConstraints{}, defaultSecurityContextConstraintsInformer)
 }
 
 func (f *securityContextConstraintsInformer) Lister() v1.SecurityContextConstraintsLister {

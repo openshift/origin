@@ -5,11 +5,9 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.template.apis.template.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -37,11 +35,11 @@ message BrokerTemplateInstanceList {
 message BrokerTemplateInstanceSpec {
   // templateinstance is a reference to a TemplateInstance object residing
   // in a namespace.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference templateInstance = 1;
+  optional k8s.io.api.core.v1.ObjectReference templateInstance = 1;
 
   // secret is a reference to a Secret object residing in a namespace,
   // containing the necessary template parameters.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference secret = 2;
+  optional k8s.io.api.core.v1.ObjectReference secret = 2;
 
   // bindingids is a list of 'binding_id's provided during successive bind
   // calls to the template service broker.
@@ -180,7 +178,7 @@ message TemplateInstanceObject {
   // ref is a reference to the created object.  When used under .spec, only
   // name and namespace are used; these can contain references to parameters
   // which will be substituted following the usual rules.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference ref = 1;
+  optional k8s.io.api.core.v1.ObjectReference ref = 1;
 }
 
 // TemplateInstanceRequester holds the identity of an agent requesting a
@@ -208,7 +206,7 @@ message TemplateInstanceSpec {
 
   // secret is a reference to a Secret object containing the necessary
   // template parameters.
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference secret = 2;
+  optional k8s.io.api.core.v1.LocalObjectReference secret = 2;
 
   // requester holds the identity of the agent requesting the template
   // instantiation.

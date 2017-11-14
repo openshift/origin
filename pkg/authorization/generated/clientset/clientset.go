@@ -19,24 +19,18 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*authorizationv1.AuthorizationV1Client
+	authorizationV1 *authorizationv1.AuthorizationV1Client
 }
 
 // AuthorizationV1 retrieves the AuthorizationV1Client
 func (c *Clientset) AuthorizationV1() authorizationv1.AuthorizationV1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.AuthorizationV1Client
+	return c.authorizationV1
 }
 
 // Deprecated: Authorization retrieves the default version of AuthorizationClient.
 // Please explicitly pick a version.
 func (c *Clientset) Authorization() authorizationv1.AuthorizationV1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.AuthorizationV1Client
+	return c.authorizationV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -55,7 +49,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.AuthorizationV1Client, err = authorizationv1.NewForConfig(&configShallowCopy)
+	cs.authorizationV1, err = authorizationv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +66,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.AuthorizationV1Client = authorizationv1.NewForConfigOrDie(c)
+	cs.authorizationV1 = authorizationv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -81,7 +75,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.AuthorizationV1Client = authorizationv1.New(c)
+	cs.authorizationV1 = authorizationv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -25,8 +25,11 @@ type clusterPolicyInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newClusterPolicyInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewClusterPolicyInformer constructs a new informer for ClusterPolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewClusterPolicyInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.AuthorizationV1().ClusterPolicies().List(options)
@@ -37,14 +40,16 @@ func newClusterPolicyInformer(client clientset.Interface, resyncPeriod time.Dura
 		},
 		&authorization_v1.ClusterPolicy{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultClusterPolicyInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewClusterPolicyInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *clusterPolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization_v1.ClusterPolicy{}, newClusterPolicyInformer)
+	return f.factory.InformerFor(&authorization_v1.ClusterPolicy{}, defaultClusterPolicyInformer)
 }
 
 func (f *clusterPolicyInformer) Lister() v1.ClusterPolicyLister {

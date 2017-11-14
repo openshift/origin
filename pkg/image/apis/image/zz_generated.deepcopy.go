@@ -10,6 +10,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api "k8s.io/kubernetes/pkg/api"
 	reflect "reflect"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -18,897 +19,1433 @@ func init() {
 
 // RegisterDeepCopies adds deep-copy functions to the given scheme. Public
 // to allow building arbitrary schemes.
+//
+// Deprecated: deepcopy registration will go away when static deepcopy is fully implemented.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_Descriptor, InType: reflect.TypeOf(&Descriptor{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerConfig, InType: reflect.TypeOf(&DockerConfig{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerConfigHistory, InType: reflect.TypeOf(&DockerConfigHistory{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerConfigRootFS, InType: reflect.TypeOf(&DockerConfigRootFS{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerFSLayer, InType: reflect.TypeOf(&DockerFSLayer{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerHistory, InType: reflect.TypeOf(&DockerHistory{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerImage, InType: reflect.TypeOf(&DockerImage{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerImageConfig, InType: reflect.TypeOf(&DockerImageConfig{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerImageManifest, InType: reflect.TypeOf(&DockerImageManifest{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerImageReference, InType: reflect.TypeOf(&DockerImageReference{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerV1CompatibilityImage, InType: reflect.TypeOf(&DockerV1CompatibilityImage{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_DockerV1CompatibilityImageSize, InType: reflect.TypeOf(&DockerV1CompatibilityImageSize{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_Image, InType: reflect.TypeOf(&Image{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageImportSpec, InType: reflect.TypeOf(&ImageImportSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageImportStatus, InType: reflect.TypeOf(&ImageImportStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageLayer, InType: reflect.TypeOf(&ImageLayer{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageList, InType: reflect.TypeOf(&ImageList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageLookupPolicy, InType: reflect.TypeOf(&ImageLookupPolicy{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageSignature, InType: reflect.TypeOf(&ImageSignature{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStream, InType: reflect.TypeOf(&ImageStream{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamImage, InType: reflect.TypeOf(&ImageStreamImage{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamImport, InType: reflect.TypeOf(&ImageStreamImport{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamImportSpec, InType: reflect.TypeOf(&ImageStreamImportSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamImportStatus, InType: reflect.TypeOf(&ImageStreamImportStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamList, InType: reflect.TypeOf(&ImageStreamList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamMapping, InType: reflect.TypeOf(&ImageStreamMapping{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamSpec, InType: reflect.TypeOf(&ImageStreamSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamStatus, InType: reflect.TypeOf(&ImageStreamStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamTag, InType: reflect.TypeOf(&ImageStreamTag{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_ImageStreamTagList, InType: reflect.TypeOf(&ImageStreamTagList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_RepositoryImportSpec, InType: reflect.TypeOf(&RepositoryImportSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_RepositoryImportStatus, InType: reflect.TypeOf(&RepositoryImportStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_SignatureCondition, InType: reflect.TypeOf(&SignatureCondition{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_SignatureGenericEntity, InType: reflect.TypeOf(&SignatureGenericEntity{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_SignatureIssuer, InType: reflect.TypeOf(&SignatureIssuer{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_SignatureSubject, InType: reflect.TypeOf(&SignatureSubject{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_TagEvent, InType: reflect.TypeOf(&TagEvent{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_TagEventCondition, InType: reflect.TypeOf(&TagEventCondition{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_TagEventList, InType: reflect.TypeOf(&TagEventList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_TagImportPolicy, InType: reflect.TypeOf(&TagImportPolicy{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_TagReference, InType: reflect.TypeOf(&TagReference{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_image_TagReferencePolicy, InType: reflect.TypeOf(&TagReferencePolicy{})},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*Descriptor).DeepCopyInto(out.(*Descriptor))
+			return nil
+		}, InType: reflect.TypeOf(new(Descriptor))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerConfig).DeepCopyInto(out.(*DockerConfig))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerConfig))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerConfigHistory).DeepCopyInto(out.(*DockerConfigHistory))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerConfigHistory))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerConfigRootFS).DeepCopyInto(out.(*DockerConfigRootFS))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerConfigRootFS))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerFSLayer).DeepCopyInto(out.(*DockerFSLayer))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerFSLayer))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerHistory).DeepCopyInto(out.(*DockerHistory))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerHistory))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerImage).DeepCopyInto(out.(*DockerImage))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerImage))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerImageConfig).DeepCopyInto(out.(*DockerImageConfig))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerImageConfig))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerImageManifest).DeepCopyInto(out.(*DockerImageManifest))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerImageManifest))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerImageReference).DeepCopyInto(out.(*DockerImageReference))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerImageReference))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerV1CompatibilityImage).DeepCopyInto(out.(*DockerV1CompatibilityImage))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerV1CompatibilityImage))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DockerV1CompatibilityImageSize).DeepCopyInto(out.(*DockerV1CompatibilityImageSize))
+			return nil
+		}, InType: reflect.TypeOf(new(DockerV1CompatibilityImageSize))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*Image).DeepCopyInto(out.(*Image))
+			return nil
+		}, InType: reflect.TypeOf(new(Image))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageImportSpec).DeepCopyInto(out.(*ImageImportSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageImportSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageImportStatus).DeepCopyInto(out.(*ImageImportStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageImportStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageLayer).DeepCopyInto(out.(*ImageLayer))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageLayer))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageList).DeepCopyInto(out.(*ImageList))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageLookupPolicy).DeepCopyInto(out.(*ImageLookupPolicy))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageLookupPolicy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageSignature).DeepCopyInto(out.(*ImageSignature))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageSignature))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStream).DeepCopyInto(out.(*ImageStream))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStream))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamImage).DeepCopyInto(out.(*ImageStreamImage))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamImage))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamImport).DeepCopyInto(out.(*ImageStreamImport))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamImport))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamImportSpec).DeepCopyInto(out.(*ImageStreamImportSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamImportSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamImportStatus).DeepCopyInto(out.(*ImageStreamImportStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamImportStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamList).DeepCopyInto(out.(*ImageStreamList))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamMapping).DeepCopyInto(out.(*ImageStreamMapping))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamMapping))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamSpec).DeepCopyInto(out.(*ImageStreamSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamStatus).DeepCopyInto(out.(*ImageStreamStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamTag).DeepCopyInto(out.(*ImageStreamTag))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamTag))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ImageStreamTagList).DeepCopyInto(out.(*ImageStreamTagList))
+			return nil
+		}, InType: reflect.TypeOf(new(ImageStreamTagList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RepositoryImportSpec).DeepCopyInto(out.(*RepositoryImportSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(RepositoryImportSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RepositoryImportStatus).DeepCopyInto(out.(*RepositoryImportStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(RepositoryImportStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SignatureCondition).DeepCopyInto(out.(*SignatureCondition))
+			return nil
+		}, InType: reflect.TypeOf(new(SignatureCondition))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SignatureConditionType).DeepCopyInto(out.(*SignatureConditionType))
+			return nil
+		}, InType: reflect.TypeOf(new(SignatureConditionType))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SignatureGenericEntity).DeepCopyInto(out.(*SignatureGenericEntity))
+			return nil
+		}, InType: reflect.TypeOf(new(SignatureGenericEntity))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SignatureIssuer).DeepCopyInto(out.(*SignatureIssuer))
+			return nil
+		}, InType: reflect.TypeOf(new(SignatureIssuer))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SignatureSubject).DeepCopyInto(out.(*SignatureSubject))
+			return nil
+		}, InType: reflect.TypeOf(new(SignatureSubject))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagEvent).DeepCopyInto(out.(*TagEvent))
+			return nil
+		}, InType: reflect.TypeOf(new(TagEvent))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagEventCondition).DeepCopyInto(out.(*TagEventCondition))
+			return nil
+		}, InType: reflect.TypeOf(new(TagEventCondition))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagEventConditionType).DeepCopyInto(out.(*TagEventConditionType))
+			return nil
+		}, InType: reflect.TypeOf(new(TagEventConditionType))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagEventList).DeepCopyInto(out.(*TagEventList))
+			return nil
+		}, InType: reflect.TypeOf(new(TagEventList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagImportPolicy).DeepCopyInto(out.(*TagImportPolicy))
+			return nil
+		}, InType: reflect.TypeOf(new(TagImportPolicy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagReference).DeepCopyInto(out.(*TagReference))
+			return nil
+		}, InType: reflect.TypeOf(new(TagReference))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagReferencePolicy).DeepCopyInto(out.(*TagReferencePolicy))
+			return nil
+		}, InType: reflect.TypeOf(new(TagReferencePolicy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagReferencePolicyType).DeepCopyInto(out.(*TagReferencePolicyType))
+			return nil
+		}, InType: reflect.TypeOf(new(TagReferencePolicyType))},
 	)
 }
 
-// DeepCopy_image_Descriptor is an autogenerated deepcopy function.
-func DeepCopy_image_Descriptor(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*Descriptor)
-		out := out.(*Descriptor)
-		*out = *in
-		return nil
-	}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *Descriptor) DeepCopyInto(out *Descriptor) {
+	*out = *in
+	return
 }
 
-// DeepCopy_image_DockerConfig is an autogenerated deepcopy function.
-func DeepCopy_image_DockerConfig(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerConfig)
-		out := out.(*DockerConfig)
-		*out = *in
-		if in.PortSpecs != nil {
-			in, out := &in.PortSpecs, &out.PortSpecs
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.ExposedPorts != nil {
-			in, out := &in.ExposedPorts, &out.ExposedPorts
-			*out = make(map[string]struct{})
-			for key := range *in {
-				(*out)[key] = struct{}{}
-			}
-		}
-		if in.Env != nil {
-			in, out := &in.Env, &out.Env
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Cmd != nil {
-			in, out := &in.Cmd, &out.Cmd
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.DNS != nil {
-			in, out := &in.DNS, &out.DNS
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Volumes != nil {
-			in, out := &in.Volumes, &out.Volumes
-			*out = make(map[string]struct{})
-			for key := range *in {
-				(*out)[key] = struct{}{}
-			}
-		}
-		if in.Entrypoint != nil {
-			in, out := &in.Entrypoint, &out.Entrypoint
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.SecurityOpts != nil {
-			in, out := &in.SecurityOpts, &out.SecurityOpts
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.OnBuild != nil {
-			in, out := &in.OnBuild, &out.OnBuild
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Labels != nil {
-			in, out := &in.Labels, &out.Labels
-			*out = make(map[string]string)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new Descriptor.
+func (in *Descriptor) DeepCopy() *Descriptor {
+	if in == nil {
 		return nil
 	}
+	out := new(Descriptor)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_image_DockerConfigHistory is an autogenerated deepcopy function.
-func DeepCopy_image_DockerConfigHistory(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerConfigHistory)
-		out := out.(*DockerConfigHistory)
-		*out = *in
-		out.Created = in.Created.DeepCopy()
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerConfig) DeepCopyInto(out *DockerConfig) {
+	*out = *in
+	if in.PortSpecs != nil {
+		in, out := &in.PortSpecs, &out.PortSpecs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ExposedPorts != nil {
+		in, out := &in.ExposedPorts, &out.ExposedPorts
+		*out = make(map[string]struct{}, len(*in))
+		for key := range *in {
+			(*out)[key] = struct{}{}
+		}
+	}
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Cmd != nil {
+		in, out := &in.Cmd, &out.Cmd
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.DNS != nil {
+		in, out := &in.DNS, &out.DNS
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Volumes != nil {
+		in, out := &in.Volumes, &out.Volumes
+		*out = make(map[string]struct{}, len(*in))
+		for key := range *in {
+			(*out)[key] = struct{}{}
+		}
+	}
+	if in.Entrypoint != nil {
+		in, out := &in.Entrypoint, &out.Entrypoint
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.SecurityOpts != nil {
+		in, out := &in.SecurityOpts, &out.SecurityOpts
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.OnBuild != nil {
+		in, out := &in.OnBuild, &out.OnBuild
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Labels != nil {
+		in, out := &in.Labels, &out.Labels
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerConfig.
+func (in *DockerConfig) DeepCopy() *DockerConfig {
+	if in == nil {
 		return nil
 	}
+	out := new(DockerConfig)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_image_DockerConfigRootFS is an autogenerated deepcopy function.
-func DeepCopy_image_DockerConfigRootFS(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerConfigRootFS)
-		out := out.(*DockerConfigRootFS)
-		*out = *in
-		if in.DiffIDs != nil {
-			in, out := &in.DiffIDs, &out.DiffIDs
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerConfigHistory) DeepCopyInto(out *DockerConfigHistory) {
+	*out = *in
+	in.Created.DeepCopyInto(&out.Created)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerConfigHistory.
+func (in *DockerConfigHistory) DeepCopy() *DockerConfigHistory {
+	if in == nil {
 		return nil
 	}
+	out := new(DockerConfigHistory)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_image_DockerFSLayer is an autogenerated deepcopy function.
-func DeepCopy_image_DockerFSLayer(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerFSLayer)
-		out := out.(*DockerFSLayer)
-		*out = *in
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerConfigRootFS) DeepCopyInto(out *DockerConfigRootFS) {
+	*out = *in
+	if in.DiffIDs != nil {
+		in, out := &in.DiffIDs, &out.DiffIDs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerConfigRootFS.
+func (in *DockerConfigRootFS) DeepCopy() *DockerConfigRootFS {
+	if in == nil {
 		return nil
 	}
+	out := new(DockerConfigRootFS)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_image_DockerHistory is an autogenerated deepcopy function.
-func DeepCopy_image_DockerHistory(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerHistory)
-		out := out.(*DockerHistory)
-		*out = *in
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerFSLayer) DeepCopyInto(out *DockerFSLayer) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerFSLayer.
+func (in *DockerFSLayer) DeepCopy() *DockerFSLayer {
+	if in == nil {
 		return nil
 	}
+	out := new(DockerFSLayer)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_image_DockerImage is an autogenerated deepcopy function.
-func DeepCopy_image_DockerImage(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerImage)
-		out := out.(*DockerImage)
-		*out = *in
-		out.Created = in.Created.DeepCopy()
-		if err := DeepCopy_image_DockerConfig(&in.ContainerConfig, &out.ContainerConfig, c); err != nil {
-			return err
-		}
-		if in.Config != nil {
-			in, out := &in.Config, &out.Config
-			*out = new(DockerConfig)
-			if err := DeepCopy_image_DockerConfig(*in, *out, c); err != nil {
-				return err
-			}
-		}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerHistory) DeepCopyInto(out *DockerHistory) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerHistory.
+func (in *DockerHistory) DeepCopy() *DockerHistory {
+	if in == nil {
 		return nil
 	}
+	out := new(DockerHistory)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_image_DockerImageConfig is an autogenerated deepcopy function.
-func DeepCopy_image_DockerImageConfig(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerImageConfig)
-		out := out.(*DockerImageConfig)
-		*out = *in
-		out.Created = in.Created.DeepCopy()
-		if err := DeepCopy_image_DockerConfig(&in.ContainerConfig, &out.ContainerConfig, c); err != nil {
-			return err
-		}
-		if in.Config != nil {
-			in, out := &in.Config, &out.Config
-			*out = new(DockerConfig)
-			if err := DeepCopy_image_DockerConfig(*in, *out, c); err != nil {
-				return err
-			}
-		}
-		if in.RootFS != nil {
-			in, out := &in.RootFS, &out.RootFS
-			*out = new(DockerConfigRootFS)
-			if err := DeepCopy_image_DockerConfigRootFS(*in, *out, c); err != nil {
-				return err
-			}
-		}
-		if in.History != nil {
-			in, out := &in.History, &out.History
-			*out = make([]DockerConfigHistory, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_DockerConfigHistory(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.OSFeatures != nil {
-			in, out := &in.OSFeatures, &out.OSFeatures
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_DockerImageManifest is an autogenerated deepcopy function.
-func DeepCopy_image_DockerImageManifest(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerImageManifest)
-		out := out.(*DockerImageManifest)
-		*out = *in
-		if in.FSLayers != nil {
-			in, out := &in.FSLayers, &out.FSLayers
-			*out = make([]DockerFSLayer, len(*in))
-			copy(*out, *in)
-		}
-		if in.History != nil {
-			in, out := &in.History, &out.History
-			*out = make([]DockerHistory, len(*in))
-			copy(*out, *in)
-		}
-		if in.Layers != nil {
-			in, out := &in.Layers, &out.Layers
-			*out = make([]Descriptor, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_DockerImageReference is an autogenerated deepcopy function.
-func DeepCopy_image_DockerImageReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerImageReference)
-		out := out.(*DockerImageReference)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_image_DockerV1CompatibilityImage is an autogenerated deepcopy function.
-func DeepCopy_image_DockerV1CompatibilityImage(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerV1CompatibilityImage)
-		out := out.(*DockerV1CompatibilityImage)
-		*out = *in
-		out.Created = in.Created.DeepCopy()
-		if err := DeepCopy_image_DockerConfig(&in.ContainerConfig, &out.ContainerConfig, c); err != nil {
-			return err
-		}
-		if in.Config != nil {
-			in, out := &in.Config, &out.Config
-			*out = new(DockerConfig)
-			if err := DeepCopy_image_DockerConfig(*in, *out, c); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_DockerV1CompatibilityImageSize is an autogenerated deepcopy function.
-func DeepCopy_image_DockerV1CompatibilityImageSize(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*DockerV1CompatibilityImageSize)
-		out := out.(*DockerV1CompatibilityImageSize)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_image_Image is an autogenerated deepcopy function.
-func DeepCopy_image_Image(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*Image)
-		out := out.(*Image)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerImage) DeepCopyInto(out *DockerImage) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Created.DeepCopyInto(&out.Created)
+	in.ContainerConfig.DeepCopyInto(&out.ContainerConfig)
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
+			*out = new(DockerConfig)
+			(*in).DeepCopyInto(*out)
 		}
-		if err := DeepCopy_image_DockerImage(&in.DockerImageMetadata, &out.DockerImageMetadata, c); err != nil {
-			return err
-		}
-		if in.DockerImageLayers != nil {
-			in, out := &in.DockerImageLayers, &out.DockerImageLayers
-			*out = make([]ImageLayer, len(*in))
-			copy(*out, *in)
-		}
-		if in.Signatures != nil {
-			in, out := &in.Signatures, &out.Signatures
-			*out = make([]ImageSignature, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_ImageSignature(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.DockerImageSignatures != nil {
-			in, out := &in.DockerImageSignatures, &out.DockerImageSignatures
-			*out = make([][]byte, len(*in))
-			for i := range *in {
-				if (*in)[i] != nil {
-					in, out := &(*in)[i], &(*out)[i]
-					*out = make([]byte, len(*in))
-					copy(*out, *in)
-				}
-			}
-		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerImage.
+func (in *DockerImage) DeepCopy() *DockerImage {
+	if in == nil {
+		return nil
+	}
+	out := new(DockerImage)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *DockerImage) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_image_ImageImportSpec is an autogenerated deepcopy function.
-func DeepCopy_image_ImageImportSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageImportSpec)
-		out := out.(*ImageImportSpec)
-		*out = *in
-		if in.To != nil {
-			in, out := &in.To, &out.To
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerImageConfig) DeepCopyInto(out *DockerImageConfig) {
+	*out = *in
+	in.Created.DeepCopyInto(&out.Created)
+	in.ContainerConfig.DeepCopyInto(&out.ContainerConfig)
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(DockerConfig)
+			(*in).DeepCopyInto(*out)
+		}
+	}
+	if in.RootFS != nil {
+		in, out := &in.RootFS, &out.RootFS
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(DockerConfigRootFS)
+			(*in).DeepCopyInto(*out)
+		}
+	}
+	if in.History != nil {
+		in, out := &in.History, &out.History
+		*out = make([]DockerConfigHistory, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.OSFeatures != nil {
+		in, out := &in.OSFeatures, &out.OSFeatures
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerImageConfig.
+func (in *DockerImageConfig) DeepCopy() *DockerImageConfig {
+	if in == nil {
+		return nil
+	}
+	out := new(DockerImageConfig)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerImageManifest) DeepCopyInto(out *DockerImageManifest) {
+	*out = *in
+	if in.FSLayers != nil {
+		in, out := &in.FSLayers, &out.FSLayers
+		*out = make([]DockerFSLayer, len(*in))
+		copy(*out, *in)
+	}
+	if in.History != nil {
+		in, out := &in.History, &out.History
+		*out = make([]DockerHistory, len(*in))
+		copy(*out, *in)
+	}
+	if in.Layers != nil {
+		in, out := &in.Layers, &out.Layers
+		*out = make([]Descriptor, len(*in))
+		copy(*out, *in)
+	}
+	out.Config = in.Config
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerImageManifest.
+func (in *DockerImageManifest) DeepCopy() *DockerImageManifest {
+	if in == nil {
+		return nil
+	}
+	out := new(DockerImageManifest)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerImageReference) DeepCopyInto(out *DockerImageReference) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerImageReference.
+func (in *DockerImageReference) DeepCopy() *DockerImageReference {
+	if in == nil {
+		return nil
+	}
+	out := new(DockerImageReference)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerV1CompatibilityImage) DeepCopyInto(out *DockerV1CompatibilityImage) {
+	*out = *in
+	in.Created.DeepCopyInto(&out.Created)
+	in.ContainerConfig.DeepCopyInto(&out.ContainerConfig)
+	if in.Config != nil {
+		in, out := &in.Config, &out.Config
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(DockerConfig)
+			(*in).DeepCopyInto(*out)
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerV1CompatibilityImage.
+func (in *DockerV1CompatibilityImage) DeepCopy() *DockerV1CompatibilityImage {
+	if in == nil {
+		return nil
+	}
+	out := new(DockerV1CompatibilityImage)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DockerV1CompatibilityImageSize) DeepCopyInto(out *DockerV1CompatibilityImageSize) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DockerV1CompatibilityImageSize.
+func (in *DockerV1CompatibilityImageSize) DeepCopy() *DockerV1CompatibilityImageSize {
+	if in == nil {
+		return nil
+	}
+	out := new(DockerV1CompatibilityImageSize)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *Image) DeepCopyInto(out *Image) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.DockerImageMetadata.DeepCopyInto(&out.DockerImageMetadata)
+	if in.DockerImageLayers != nil {
+		in, out := &in.DockerImageLayers, &out.DockerImageLayers
+		*out = make([]ImageLayer, len(*in))
+		copy(*out, *in)
+	}
+	if in.Signatures != nil {
+		in, out := &in.Signatures, &out.Signatures
+		*out = make([]ImageSignature, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.DockerImageSignatures != nil {
+		in, out := &in.DockerImageSignatures, &out.DockerImageSignatures
+		*out = make([][]byte, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = make([]byte, len(*in))
+				copy(*out, *in)
+			}
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new Image.
+func (in *Image) DeepCopy() *Image {
+	if in == nil {
+		return nil
+	}
+	out := new(Image)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *Image) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageImportSpec) DeepCopyInto(out *ImageImportSpec) {
+	*out = *in
+	out.From = in.From
+	if in.To != nil {
+		in, out := &in.To, &out.To
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(api.LocalObjectReference)
 			**out = **in
 		}
-		return nil
 	}
+	out.ImportPolicy = in.ImportPolicy
+	out.ReferencePolicy = in.ReferencePolicy
+	return
 }
 
-// DeepCopy_image_ImageImportStatus is an autogenerated deepcopy function.
-func DeepCopy_image_ImageImportStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageImportStatus)
-		out := out.(*ImageImportStatus)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.Status); err != nil {
-			return err
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageImportSpec.
+func (in *ImageImportSpec) DeepCopy() *ImageImportSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageImportSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageImportStatus) DeepCopyInto(out *ImageImportStatus) {
+	*out = *in
+	in.Status.DeepCopyInto(&out.Status)
+	if in.Image != nil {
+		in, out := &in.Image, &out.Image
+		if *in == nil {
+			*out = nil
 		} else {
-			out.Status = *newVal.(*v1.Status)
-		}
-		if in.Image != nil {
-			in, out := &in.Image, &out.Image
 			*out = new(Image)
-			if err := DeepCopy_image_Image(*in, *out, c); err != nil {
-				return err
-			}
+			(*in).DeepCopyInto(*out)
 		}
-		return nil
 	}
+	return
 }
 
-// DeepCopy_image_ImageLayer is an autogenerated deepcopy function.
-func DeepCopy_image_ImageLayer(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageLayer)
-		out := out.(*ImageLayer)
-		*out = *in
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageImportStatus.
+func (in *ImageImportStatus) DeepCopy() *ImageImportStatus {
+	if in == nil {
 		return nil
 	}
+	out := new(ImageImportStatus)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_image_ImageList is an autogenerated deepcopy function.
-func DeepCopy_image_ImageList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageList)
-		out := out.(*ImageList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]Image, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_Image(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageLayer) DeepCopyInto(out *ImageLayer) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageLayer.
+func (in *ImageLayer) DeepCopy() *ImageLayer {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageLayer)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageList) DeepCopyInto(out *ImageList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Image, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageList.
+func (in *ImageList) DeepCopy() *ImageList {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_image_ImageLookupPolicy is an autogenerated deepcopy function.
-func DeepCopy_image_ImageLookupPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageLookupPolicy)
-		out := out.(*ImageLookupPolicy)
-		*out = *in
-		return nil
-	}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageLookupPolicy) DeepCopyInto(out *ImageLookupPolicy) {
+	*out = *in
+	return
 }
 
-// DeepCopy_image_ImageSignature is an autogenerated deepcopy function.
-func DeepCopy_image_ImageSignature(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageSignature)
-		out := out.(*ImageSignature)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageLookupPolicy.
+func (in *ImageLookupPolicy) DeepCopy() *ImageLookupPolicy {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageLookupPolicy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageSignature) DeepCopyInto(out *ImageSignature) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Content != nil {
+		in, out := &in.Content, &out.Content
+		*out = make([]byte, len(*in))
+		copy(*out, *in)
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]SignatureCondition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.SignedClaims != nil {
+		in, out := &in.SignedClaims, &out.SignedClaims
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.Created != nil {
+		in, out := &in.Created, &out.Created
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Content != nil {
-			in, out := &in.Content, &out.Content
-			*out = make([]byte, len(*in))
-			copy(*out, *in)
-		}
-		if in.Conditions != nil {
-			in, out := &in.Conditions, &out.Conditions
-			*out = make([]SignatureCondition, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_SignatureCondition(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.SignedClaims != nil {
-			in, out := &in.SignedClaims, &out.SignedClaims
-			*out = make(map[string]string)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		if in.Created != nil {
-			in, out := &in.Created, &out.Created
 			*out = new(v1.Time)
-			**out = (*in).DeepCopy()
+			(*in).DeepCopyInto(*out)
 		}
-		if in.IssuedBy != nil {
-			in, out := &in.IssuedBy, &out.IssuedBy
+	}
+	if in.IssuedBy != nil {
+		in, out := &in.IssuedBy, &out.IssuedBy
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(SignatureIssuer)
 			**out = **in
 		}
-		if in.IssuedTo != nil {
-			in, out := &in.IssuedTo, &out.IssuedTo
+	}
+	if in.IssuedTo != nil {
+		in, out := &in.IssuedTo, &out.IssuedTo
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(SignatureSubject)
 			**out = **in
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageSignature.
+func (in *ImageSignature) DeepCopy() *ImageSignature {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageSignature)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageSignature) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_image_ImageStream is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStream(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStream)
-		out := out.(*ImageStream)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStream) DeepCopyInto(out *ImageStream) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStream.
+func (in *ImageStream) DeepCopy() *ImageStream {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStream)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageStream) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamImage) DeepCopyInto(out *ImageStreamImage) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Image.DeepCopyInto(&out.Image)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamImage.
+func (in *ImageStreamImage) DeepCopy() *ImageStreamImage {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamImage)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageStreamImage) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamImport) DeepCopyInto(out *ImageStreamImport) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamImport.
+func (in *ImageStreamImport) DeepCopy() *ImageStreamImport {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamImport)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageStreamImport) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamImportSpec) DeepCopyInto(out *ImageStreamImportSpec) {
+	*out = *in
+	if in.Repository != nil {
+		in, out := &in.Repository, &out.Repository
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if err := DeepCopy_image_ImageStreamSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_image_ImageStreamStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_ImageStreamImage is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamImage(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamImage)
-		out := out.(*ImageStreamImage)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if err := DeepCopy_image_Image(&in.Image, &out.Image, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_ImageStreamImport is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamImport(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamImport)
-		out := out.(*ImageStreamImport)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if err := DeepCopy_image_ImageStreamImportSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_image_ImageStreamImportStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_ImageStreamImportSpec is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamImportSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamImportSpec)
-		out := out.(*ImageStreamImportSpec)
-		*out = *in
-		if in.Repository != nil {
-			in, out := &in.Repository, &out.Repository
 			*out = new(RepositoryImportSpec)
 			**out = **in
 		}
-		if in.Images != nil {
-			in, out := &in.Images, &out.Images
-			*out = make([]ImageImportSpec, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_ImageImportSpec(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
 	}
+	if in.Images != nil {
+		in, out := &in.Images, &out.Images
+		*out = make([]ImageImportSpec, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
 }
 
-// DeepCopy_image_ImageStreamImportStatus is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamImportStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamImportStatus)
-		out := out.(*ImageStreamImportStatus)
-		*out = *in
-		if in.Import != nil {
-			in, out := &in.Import, &out.Import
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamImportSpec.
+func (in *ImageStreamImportSpec) DeepCopy() *ImageStreamImportSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamImportSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamImportStatus) DeepCopyInto(out *ImageStreamImportStatus) {
+	*out = *in
+	if in.Import != nil {
+		in, out := &in.Import, &out.Import
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(ImageStream)
-			if err := DeepCopy_image_ImageStream(*in, *out, c); err != nil {
-				return err
-			}
+			(*in).DeepCopyInto(*out)
 		}
-		if in.Repository != nil {
-			in, out := &in.Repository, &out.Repository
+	}
+	if in.Repository != nil {
+		in, out := &in.Repository, &out.Repository
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(RepositoryImportStatus)
-			if err := DeepCopy_image_RepositoryImportStatus(*in, *out, c); err != nil {
-				return err
-			}
+			(*in).DeepCopyInto(*out)
 		}
-		if in.Images != nil {
-			in, out := &in.Images, &out.Images
-			*out = make([]ImageImportStatus, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_ImageImportStatus(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
+	}
+	if in.Images != nil {
+		in, out := &in.Images, &out.Images
+		*out = make([]ImageImportStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamImportStatus.
+func (in *ImageStreamImportStatus) DeepCopy() *ImageStreamImportStatus {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamImportStatus)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamList) DeepCopyInto(out *ImageStreamList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ImageStream, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamList.
+func (in *ImageStreamList) DeepCopy() *ImageStreamList {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageStreamList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_image_ImageStreamList is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamList)
-		out := out.(*ImageStreamList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]ImageStream, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_ImageStream(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamMapping) DeepCopyInto(out *ImageStreamMapping) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Image.DeepCopyInto(&out.Image)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamMapping.
+func (in *ImageStreamMapping) DeepCopy() *ImageStreamMapping {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamMapping)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageStreamMapping) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_image_ImageStreamMapping is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamMapping(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamMapping)
-		out := out.(*ImageStreamMapping)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamSpec) DeepCopyInto(out *ImageStreamSpec) {
+	*out = *in
+	out.LookupPolicy = in.LookupPolicy
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make(map[string]TagReference, len(*in))
+		for key, val := range *in {
+			newVal := new(TagReference)
+			val.DeepCopyInto(newVal)
+			(*out)[key] = *newVal
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamSpec.
+func (in *ImageStreamSpec) DeepCopy() *ImageStreamSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamStatus) DeepCopyInto(out *ImageStreamStatus) {
+	*out = *in
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make(map[string]TagEventList, len(*in))
+		for key, val := range *in {
+			newVal := new(TagEventList)
+			val.DeepCopyInto(newVal)
+			(*out)[key] = *newVal
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamStatus.
+func (in *ImageStreamStatus) DeepCopy() *ImageStreamStatus {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamStatus)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamTag) DeepCopyInto(out *ImageStreamTag) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Tag != nil {
+		in, out := &in.Tag, &out.Tag
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if err := DeepCopy_image_Image(&in.Image, &out.Image, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_ImageStreamSpec is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamSpec)
-		out := out.(*ImageStreamSpec)
-		*out = *in
-		if in.Tags != nil {
-			in, out := &in.Tags, &out.Tags
-			*out = make(map[string]TagReference)
-			for key, val := range *in {
-				newVal := new(TagReference)
-				if err := DeepCopy_image_TagReference(&val, newVal, c); err != nil {
-					return err
-				}
-				(*out)[key] = *newVal
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_ImageStreamStatus is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamStatus)
-		out := out.(*ImageStreamStatus)
-		*out = *in
-		if in.Tags != nil {
-			in, out := &in.Tags, &out.Tags
-			*out = make(map[string]TagEventList)
-			for key, val := range *in {
-				newVal := new(TagEventList)
-				if err := DeepCopy_image_TagEventList(&val, newVal, c); err != nil {
-					return err
-				}
-				(*out)[key] = *newVal
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_ImageStreamTag is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamTag(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamTag)
-		out := out.(*ImageStreamTag)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Tag != nil {
-			in, out := &in.Tag, &out.Tag
 			*out = new(TagReference)
-			if err := DeepCopy_image_TagReference(*in, *out, c); err != nil {
-				return err
-			}
+			(*in).DeepCopyInto(*out)
 		}
-		if in.Conditions != nil {
-			in, out := &in.Conditions, &out.Conditions
-			*out = make([]TagEventCondition, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_TagEventCondition(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]TagEventCondition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
-		if err := DeepCopy_image_Image(&in.Image, &out.Image, c); err != nil {
-			return err
-		}
+	}
+	out.LookupPolicy = in.LookupPolicy
+	in.Image.DeepCopyInto(&out.Image)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamTag.
+func (in *ImageStreamTag) DeepCopy() *ImageStreamTag {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamTag)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageStreamTag) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_image_ImageStreamTagList is an autogenerated deepcopy function.
-func DeepCopy_image_ImageStreamTagList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ImageStreamTagList)
-		out := out.(*ImageStreamTagList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]ImageStreamTag, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_ImageStreamTag(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ImageStreamTagList) DeepCopyInto(out *ImageStreamTagList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ImageStreamTag, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ImageStreamTagList.
+func (in *ImageStreamTagList) DeepCopy() *ImageStreamTagList {
+	if in == nil {
+		return nil
+	}
+	out := new(ImageStreamTagList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ImageStreamTagList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_image_RepositoryImportSpec is an autogenerated deepcopy function.
-func DeepCopy_image_RepositoryImportSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RepositoryImportSpec)
-		out := out.(*RepositoryImportSpec)
-		*out = *in
-		return nil
-	}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RepositoryImportSpec) DeepCopyInto(out *RepositoryImportSpec) {
+	*out = *in
+	out.From = in.From
+	out.ImportPolicy = in.ImportPolicy
+	out.ReferencePolicy = in.ReferencePolicy
+	return
 }
 
-// DeepCopy_image_RepositoryImportStatus is an autogenerated deepcopy function.
-func DeepCopy_image_RepositoryImportStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RepositoryImportSpec.
+func (in *RepositoryImportSpec) DeepCopy() *RepositoryImportSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(RepositoryImportSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RepositoryImportStatus) DeepCopyInto(out *RepositoryImportStatus) {
+	*out = *in
+	in.Status.DeepCopyInto(&out.Status)
+	if in.Images != nil {
+		in, out := &in.Images, &out.Images
+		*out = make([]ImageImportStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.AdditionalTags != nil {
+		in, out := &in.AdditionalTags, &out.AdditionalTags
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RepositoryImportStatus.
+func (in *RepositoryImportStatus) DeepCopy() *RepositoryImportStatus {
+	if in == nil {
+		return nil
+	}
+	out := new(RepositoryImportStatus)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SignatureCondition) DeepCopyInto(out *SignatureCondition) {
+	*out = *in
+	in.LastProbeTime.DeepCopyInto(&out.LastProbeTime)
+	in.LastTransitionTime.DeepCopyInto(&out.LastTransitionTime)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SignatureCondition.
+func (in *SignatureCondition) DeepCopy() *SignatureCondition {
+	if in == nil {
+		return nil
+	}
+	out := new(SignatureCondition)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SignatureConditionType) DeepCopyInto(out *SignatureConditionType) {
 	{
-		in := in.(*RepositoryImportStatus)
-		out := out.(*RepositoryImportStatus)
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
 		*out = *in
-		if newVal, err := c.DeepCopy(&in.Status); err != nil {
-			return err
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SignatureConditionType.
+func (in *SignatureConditionType) DeepCopy() *SignatureConditionType {
+	if in == nil {
+		return nil
+	}
+	out := new(SignatureConditionType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SignatureGenericEntity) DeepCopyInto(out *SignatureGenericEntity) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SignatureGenericEntity.
+func (in *SignatureGenericEntity) DeepCopy() *SignatureGenericEntity {
+	if in == nil {
+		return nil
+	}
+	out := new(SignatureGenericEntity)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SignatureIssuer) DeepCopyInto(out *SignatureIssuer) {
+	*out = *in
+	out.SignatureGenericEntity = in.SignatureGenericEntity
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SignatureIssuer.
+func (in *SignatureIssuer) DeepCopy() *SignatureIssuer {
+	if in == nil {
+		return nil
+	}
+	out := new(SignatureIssuer)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SignatureSubject) DeepCopyInto(out *SignatureSubject) {
+	*out = *in
+	out.SignatureGenericEntity = in.SignatureGenericEntity
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SignatureSubject.
+func (in *SignatureSubject) DeepCopy() *SignatureSubject {
+	if in == nil {
+		return nil
+	}
+	out := new(SignatureSubject)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagEvent) DeepCopyInto(out *TagEvent) {
+	*out = *in
+	in.Created.DeepCopyInto(&out.Created)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagEvent.
+func (in *TagEvent) DeepCopy() *TagEvent {
+	if in == nil {
+		return nil
+	}
+	out := new(TagEvent)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagEventCondition) DeepCopyInto(out *TagEventCondition) {
+	*out = *in
+	in.LastTransitionTime.DeepCopyInto(&out.LastTransitionTime)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagEventCondition.
+func (in *TagEventCondition) DeepCopy() *TagEventCondition {
+	if in == nil {
+		return nil
+	}
+	out := new(TagEventCondition)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagEventConditionType) DeepCopyInto(out *TagEventConditionType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagEventConditionType.
+func (in *TagEventConditionType) DeepCopy() *TagEventConditionType {
+	if in == nil {
+		return nil
+	}
+	out := new(TagEventConditionType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagEventList) DeepCopyInto(out *TagEventList) {
+	*out = *in
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]TagEvent, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]TagEventCondition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagEventList.
+func (in *TagEventList) DeepCopy() *TagEventList {
+	if in == nil {
+		return nil
+	}
+	out := new(TagEventList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagImportPolicy) DeepCopyInto(out *TagImportPolicy) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagImportPolicy.
+func (in *TagImportPolicy) DeepCopy() *TagImportPolicy {
+	if in == nil {
+		return nil
+	}
+	out := new(TagImportPolicy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagReference) DeepCopyInto(out *TagReference) {
+	*out = *in
+	if in.Annotations != nil {
+		in, out := &in.Annotations, &out.Annotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.From != nil {
+		in, out := &in.From, &out.From
+		if *in == nil {
+			*out = nil
 		} else {
-			out.Status = *newVal.(*v1.Status)
-		}
-		if in.Images != nil {
-			in, out := &in.Images, &out.Images
-			*out = make([]ImageImportStatus, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_ImageImportStatus(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.AdditionalTags != nil {
-			in, out := &in.AdditionalTags, &out.AdditionalTags
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_SignatureCondition is an autogenerated deepcopy function.
-func DeepCopy_image_SignatureCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SignatureCondition)
-		out := out.(*SignatureCondition)
-		*out = *in
-		out.LastProbeTime = in.LastProbeTime.DeepCopy()
-		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
-		return nil
-	}
-}
-
-// DeepCopy_image_SignatureGenericEntity is an autogenerated deepcopy function.
-func DeepCopy_image_SignatureGenericEntity(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SignatureGenericEntity)
-		out := out.(*SignatureGenericEntity)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_image_SignatureIssuer is an autogenerated deepcopy function.
-func DeepCopy_image_SignatureIssuer(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SignatureIssuer)
-		out := out.(*SignatureIssuer)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_image_SignatureSubject is an autogenerated deepcopy function.
-func DeepCopy_image_SignatureSubject(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SignatureSubject)
-		out := out.(*SignatureSubject)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_image_TagEvent is an autogenerated deepcopy function.
-func DeepCopy_image_TagEvent(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*TagEvent)
-		out := out.(*TagEvent)
-		*out = *in
-		out.Created = in.Created.DeepCopy()
-		return nil
-	}
-}
-
-// DeepCopy_image_TagEventCondition is an autogenerated deepcopy function.
-func DeepCopy_image_TagEventCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*TagEventCondition)
-		out := out.(*TagEventCondition)
-		*out = *in
-		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
-		return nil
-	}
-}
-
-// DeepCopy_image_TagEventList is an autogenerated deepcopy function.
-func DeepCopy_image_TagEventList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*TagEventList)
-		out := out.(*TagEventList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]TagEvent, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_TagEvent(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.Conditions != nil {
-			in, out := &in.Conditions, &out.Conditions
-			*out = make([]TagEventCondition, len(*in))
-			for i := range *in {
-				if err := DeepCopy_image_TagEventCondition(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_image_TagImportPolicy is an autogenerated deepcopy function.
-func DeepCopy_image_TagImportPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*TagImportPolicy)
-		out := out.(*TagImportPolicy)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_image_TagReference is an autogenerated deepcopy function.
-func DeepCopy_image_TagReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*TagReference)
-		out := out.(*TagReference)
-		*out = *in
-		if in.Annotations != nil {
-			in, out := &in.Annotations, &out.Annotations
-			*out = make(map[string]string)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		if in.From != nil {
-			in, out := &in.From, &out.From
 			*out = new(api.ObjectReference)
 			**out = **in
 		}
-		if in.Generation != nil {
-			in, out := &in.Generation, &out.Generation
+	}
+	if in.Generation != nil {
+		in, out := &in.Generation, &out.Generation
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(int64)
 			**out = **in
 		}
-		return nil
 	}
+	out.ImportPolicy = in.ImportPolicy
+	out.ReferencePolicy = in.ReferencePolicy
+	return
 }
 
-// DeepCopy_image_TagReferencePolicy is an autogenerated deepcopy function.
-func DeepCopy_image_TagReferencePolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*TagReferencePolicy)
-		out := out.(*TagReferencePolicy)
-		*out = *in
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagReference.
+func (in *TagReference) DeepCopy() *TagReference {
+	if in == nil {
 		return nil
 	}
+	out := new(TagReference)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagReferencePolicy) DeepCopyInto(out *TagReferencePolicy) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagReferencePolicy.
+func (in *TagReferencePolicy) DeepCopy() *TagReferencePolicy {
+	if in == nil {
+		return nil
+	}
+	out := new(TagReferencePolicy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagReferencePolicyType) DeepCopyInto(out *TagReferencePolicyType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagReferencePolicyType.
+func (in *TagReferencePolicyType) DeepCopy() *TagReferencePolicyType {
+	if in == nil {
+		return nil
+	}
+	out := new(TagReferencePolicyType)
+	in.DeepCopyInto(out)
+	return out
 }

@@ -25,26 +25,31 @@ type buildConfigInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newBuildConfigInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewBuildConfigInformer constructs a new informer for BuildConfig type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewBuildConfigInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.BuildV1().BuildConfigs(meta_v1.NamespaceAll).List(options)
+				return client.BuildV1().BuildConfigs(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.BuildV1().BuildConfigs(meta_v1.NamespaceAll).Watch(options)
+				return client.BuildV1().BuildConfigs(namespace).Watch(options)
 			},
 		},
 		&build_v1.BuildConfig{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultBuildConfigInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewBuildConfigInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *buildConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&build_v1.BuildConfig{}, newBuildConfigInformer)
+	return f.factory.InformerFor(&build_v1.BuildConfig{}, defaultBuildConfigInformer)
 }
 
 func (f *buildConfigInformer) Lister() v1.BuildConfigLister {

@@ -5,12 +5,9 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.apps.apis.apps.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/apis/policy/v1beta1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -21,7 +18,7 @@ message CustomDeploymentStrategyParams {
   optional string image = 1;
 
   // Environment holds the environment which will be given to the container for Image.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar environment = 2;
+  repeated k8s.io.api.core.v1.EnvVar environment = 2;
 
   // Command is optional and overrides CMD in the container Image.
   repeated string command = 3;
@@ -41,7 +38,7 @@ message DeploymentCause {
 message DeploymentCauseImageTrigger {
   // From is a reference to the changed object which triggered a deployment. The field may have
   // the kinds DockerImage, ImageStreamTag, or ImageStreamImage.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 }
 
 // DeploymentCondition describes the state of a deployment config at a certain point.
@@ -109,7 +106,7 @@ message DeploymentConfigRollback {
 // DeploymentConfigRollbackSpec represents the options for rollback generation.
 message DeploymentConfigRollbackSpec {
   // From points to a ReplicationController which is a deployment.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // Revision to rollback to. If set to 0, rollback to the last revision.
   optional int64 revision = 2;
@@ -168,7 +165,7 @@ message DeploymentConfigSpec {
 
   // Template is the object that describes the pod that will be created if
   // insufficient replicas are detected.
-  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 8;
+  optional k8s.io.api.core.v1.PodTemplateSpec template = 8;
 }
 
 // DeploymentConfigStatus represents the current deployment state.
@@ -300,7 +297,7 @@ message DeploymentStrategy {
   optional RollingDeploymentStrategyParams rollingParams = 4;
 
   // Resources contains resource requirements to execute the deployment and any hooks.
-  optional k8s.io.kubernetes.pkg.api.v1.ResourceRequirements resources = 5;
+  optional k8s.io.api.core.v1.ResourceRequirements resources = 5;
 
   // Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.
   map<string, string> labels = 6;
@@ -328,7 +325,7 @@ message DeploymentTriggerImageChangeParams {
   // From is a reference to an image stream tag to watch for changes. From.Name is the only
   // required subfield - if From.Namespace is blank, the namespace of the current deployment
   // trigger will be used.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 3;
+  optional k8s.io.api.core.v1.ObjectReference from = 3;
 
   // LastTriggeredImage is the last image to be triggered.
   optional string lastTriggeredImage = 4;
@@ -360,7 +357,7 @@ message ExecNewPodHook {
   repeated string command = 1;
 
   // Env is a set of environment variables to supply to the hook pod's container.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 2;
+  repeated k8s.io.api.core.v1.EnvVar env = 2;
 
   // ContainerName is the name of a container in the deployment pod template
   // whose Docker image will be used for the hook pod's container.
@@ -464,6 +461,6 @@ message TagImageHook {
   optional string containerName = 1;
 
   // To is the target ImageStreamTag to set the container's image onto.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference to = 2;
+  optional k8s.io.api.core.v1.ObjectReference to = 2;
 }
 

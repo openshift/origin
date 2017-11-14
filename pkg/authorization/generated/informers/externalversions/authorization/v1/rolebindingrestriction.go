@@ -25,26 +25,31 @@ type roleBindingRestrictionInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newRoleBindingRestrictionInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewRoleBindingRestrictionInformer constructs a new informer for RoleBindingRestriction type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewRoleBindingRestrictionInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.AuthorizationV1().RoleBindingRestrictions(meta_v1.NamespaceAll).List(options)
+				return client.AuthorizationV1().RoleBindingRestrictions(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.AuthorizationV1().RoleBindingRestrictions(meta_v1.NamespaceAll).Watch(options)
+				return client.AuthorizationV1().RoleBindingRestrictions(namespace).Watch(options)
 			},
 		},
 		&authorization_v1.RoleBindingRestriction{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultRoleBindingRestrictionInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewRoleBindingRestrictionInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *roleBindingRestrictionInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization_v1.RoleBindingRestriction{}, newRoleBindingRestrictionInformer)
+	return f.factory.InformerFor(&authorization_v1.RoleBindingRestriction{}, defaultRoleBindingRestrictionInformer)
 }
 
 func (f *roleBindingRestrictionInformer) Lister() v1.RoleBindingRestrictionLister {

@@ -17,15 +17,12 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*quotainternalversion.QuotaClient
+	quota *quotainternalversion.QuotaClient
 }
 
 // Quota retrieves the QuotaClient
 func (c *Clientset) Quota() quotainternalversion.QuotaInterface {
-	if c == nil {
-		return nil
-	}
-	return c.QuotaClient
+	return c.quota
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -44,7 +41,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.QuotaClient, err = quotainternalversion.NewForConfig(&configShallowCopy)
+	cs.quota, err = quotainternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +58,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.QuotaClient = quotainternalversion.NewForConfigOrDie(c)
+	cs.quota = quotainternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -70,7 +67,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.QuotaClient = quotainternalversion.New(c)
+	cs.quota = quotainternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

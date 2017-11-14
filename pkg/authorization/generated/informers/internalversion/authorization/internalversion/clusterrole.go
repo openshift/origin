@@ -25,8 +25,11 @@ type clusterRoleInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newClusterRoleInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewClusterRoleInformer constructs a new informer for ClusterRole type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewClusterRoleInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				return client.Authorization().ClusterRoles().List(options)
@@ -37,14 +40,16 @@ func newClusterRoleInformer(client internalclientset.Interface, resyncPeriod tim
 		},
 		&authorization.ClusterRole{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultClusterRoleInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewClusterRoleInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *clusterRoleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization.ClusterRole{}, newClusterRoleInformer)
+	return f.factory.InformerFor(&authorization.ClusterRole{}, defaultClusterRoleInformer)
 }
 
 func (f *clusterRoleInformer) Lister() internalversion.ClusterRoleLister {

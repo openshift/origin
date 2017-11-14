@@ -19,24 +19,18 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*buildv1.BuildV1Client
+	buildV1 *buildv1.BuildV1Client
 }
 
 // BuildV1 retrieves the BuildV1Client
 func (c *Clientset) BuildV1() buildv1.BuildV1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.BuildV1Client
+	return c.buildV1
 }
 
 // Deprecated: Build retrieves the default version of BuildClient.
 // Please explicitly pick a version.
 func (c *Clientset) Build() buildv1.BuildV1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.BuildV1Client
+	return c.buildV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -55,7 +49,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.BuildV1Client, err = buildv1.NewForConfig(&configShallowCopy)
+	cs.buildV1, err = buildv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +66,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.BuildV1Client = buildv1.NewForConfigOrDie(c)
+	cs.buildV1 = buildv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -81,7 +75,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.BuildV1Client = buildv1.New(c)
+	cs.buildV1 = buildv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

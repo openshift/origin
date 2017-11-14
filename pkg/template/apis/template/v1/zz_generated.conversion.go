@@ -6,6 +6,7 @@ package v1
 
 import (
 	template "github.com/openshift/origin/pkg/template/apis/template"
+	core_v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api "k8s.io/kubernetes/pkg/api"
@@ -14,7 +15,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -108,7 +109,7 @@ func autoConvert_template_BrokerTemplateInstanceList_To_v1_BrokerTemplateInstanc
 			}
 		}
 	} else {
-		out.Items = make([]BrokerTemplateInstance, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -219,7 +220,7 @@ func autoConvert_template_Template_To_v1_Template(in *template.Template, out *Te
 			}
 		}
 	} else {
-		out.Objects = make([]runtime.RawExtension, 0)
+		out.Objects = nil
 	}
 	out.ObjectLabels = *(*map[string]string)(unsafe.Pointer(&in.ObjectLabels))
 	return nil
@@ -278,7 +279,7 @@ func Convert_v1_TemplateInstanceCondition_To_template_TemplateInstanceCondition(
 
 func autoConvert_template_TemplateInstanceCondition_To_v1_TemplateInstanceCondition(in *template.TemplateInstanceCondition, out *TemplateInstanceCondition, s conversion.Scope) error {
 	out.Type = TemplateInstanceConditionType(in.Type)
-	out.Status = api_v1.ConditionStatus(in.Status)
+	out.Status = core_v1.ConditionStatus(in.Status)
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
@@ -322,7 +323,7 @@ func autoConvert_template_TemplateInstanceList_To_v1_TemplateInstanceList(in *te
 			}
 		}
 	} else {
-		out.Items = make([]TemplateInstance, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -410,7 +411,7 @@ func autoConvert_template_TemplateInstanceSpec_To_v1_TemplateInstanceSpec(in *te
 	}
 	if in.Secret != nil {
 		in, out := &in.Secret, &out.Secret
-		*out = new(api_v1.LocalObjectReference)
+		*out = new(core_v1.LocalObjectReference)
 		if err := api_v1.Convert_api_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
@@ -500,7 +501,7 @@ func autoConvert_template_TemplateList_To_v1_TemplateList(in *template.TemplateL
 			}
 		}
 	} else {
-		out.Items = make([]Template, 0)
+		out.Items = nil
 	}
 	return nil
 }

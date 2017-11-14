@@ -5,11 +5,8 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.user.apis.user.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -49,7 +46,7 @@ message Identity {
 
   // User is a reference to the user this identity is associated with
   // Both Name and UID must be set
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference user = 4;
+  optional k8s.io.api.core.v1.ObjectReference user = 4;
 
   // Extra holds extra information about this identity
   map<string, string> extra = 5;
@@ -100,10 +97,10 @@ message UserIdentityMapping {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Identity is a reference to an identity
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference identity = 2;
+  optional k8s.io.api.core.v1.ObjectReference identity = 2;
 
   // User is a reference to a user
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference user = 3;
+  optional k8s.io.api.core.v1.ObjectReference user = 3;
 }
 
 // UserList is a collection of Users

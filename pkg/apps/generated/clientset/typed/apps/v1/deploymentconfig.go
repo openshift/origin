@@ -3,11 +3,11 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	scheme "github.com/openshift/origin/pkg/apps/generated/clientset/scheme"
+	v1beta1 "k8s.io/api/extensions/v1beta1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
-	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 )
 
 // DeploymentConfigsGetter has a method to return a DeploymentConfigInterface.

@@ -5,11 +5,8 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.security.apis.security.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -55,7 +52,7 @@ message PodSecurityPolicyReviewSpec {
   // if serviceAccountNames is empty, unless the template.spec.serviceAccountName is empty,
   // in which case "default" is used.
   // If serviceAccountNames is specified, template.spec.serviceAccountName is ignored.
-  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 1;
+  optional k8s.io.api.core.v1.PodTemplateSpec template = 1;
 
   // serviceAccountNames is an optional set of ServiceAccounts to run the check with.
   // If serviceAccountNames is empty, the template.spec.serviceAccountName is used,
@@ -82,7 +79,7 @@ message PodSecurityPolicySelfSubjectReview {
 // PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.
 message PodSecurityPolicySelfSubjectReviewSpec {
   // template is the PodTemplateSpec to check.
-  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 1;
+  optional k8s.io.api.core.v1.PodTemplateSpec template = 1;
 }
 
 // PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.
@@ -98,7 +95,7 @@ message PodSecurityPolicySubjectReview {
 message PodSecurityPolicySubjectReviewSpec {
   // template is the PodTemplateSpec to check. If template.spec.serviceAccountName is empty it will not be defaulted.
   // If its non-empty, it will be checked.
-  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 1;
+  optional k8s.io.api.core.v1.PodTemplateSpec template = 1;
 
   // user is the user you're testing for.
   // If you specify "user" but not "group", then is it interpreted as "What if user were not a member of any groups.
@@ -114,7 +111,7 @@ message PodSecurityPolicySubjectReviewStatus {
   // allowedBy is a reference to the rule that allows the PodTemplateSpec.
   // A rule can be a SecurityContextConstraint or a PodSecurityPolicy
   // A `nil`, indicates that it was denied.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference allowedBy = 1;
+  optional k8s.io.api.core.v1.ObjectReference allowedBy = 1;
 
   // A machine-readable description of why this operation is in the
   // "Failure" status. If this value is empty there
@@ -122,7 +119,7 @@ message PodSecurityPolicySubjectReviewStatus {
   optional string reason = 2;
 
   // template is the PodTemplateSpec after the defaulting is applied.
-  optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 3;
+  optional k8s.io.api.core.v1.PodTemplateSpec template = 3;
 }
 
 // RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
@@ -147,7 +144,7 @@ message SELinuxContextStrategyOptions {
   optional string type = 1;
 
   // seLinuxOptions required to run as; required for MustRunAs
-  optional k8s.io.kubernetes.pkg.api.v1.SELinuxOptions seLinuxOptions = 2;
+  optional k8s.io.api.core.v1.SELinuxOptions seLinuxOptions = 2;
 }
 
 // SecurityContextConstraints governs the ability to make requests that affect the SecurityContext

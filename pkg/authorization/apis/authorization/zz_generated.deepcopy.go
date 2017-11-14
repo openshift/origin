@@ -11,6 +11,7 @@ import (
 	sets "k8s.io/apimachinery/pkg/util/sets"
 	api "k8s.io/kubernetes/pkg/api"
 	reflect "reflect"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -19,836 +20,1588 @@ func init() {
 
 // RegisterDeepCopies adds deep-copy functions to the given scheme. Public
 // to allow building arbitrary schemes.
+//
+// Deprecated: deepcopy registration will go away when static deepcopy is fully implemented.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_Action, InType: reflect.TypeOf(&Action{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterPolicy, InType: reflect.TypeOf(&ClusterPolicy{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterPolicyBinding, InType: reflect.TypeOf(&ClusterPolicyBinding{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterPolicyBindingList, InType: reflect.TypeOf(&ClusterPolicyBindingList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterPolicyList, InType: reflect.TypeOf(&ClusterPolicyList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterRole, InType: reflect.TypeOf(&ClusterRole{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterRoleBinding, InType: reflect.TypeOf(&ClusterRoleBinding{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterRoleBindingList, InType: reflect.TypeOf(&ClusterRoleBindingList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ClusterRoleList, InType: reflect.TypeOf(&ClusterRoleList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_GroupRestriction, InType: reflect.TypeOf(&GroupRestriction{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_IsPersonalSubjectAccessReview, InType: reflect.TypeOf(&IsPersonalSubjectAccessReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_LocalResourceAccessReview, InType: reflect.TypeOf(&LocalResourceAccessReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_LocalSubjectAccessReview, InType: reflect.TypeOf(&LocalSubjectAccessReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_Policy, InType: reflect.TypeOf(&Policy{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_PolicyBinding, InType: reflect.TypeOf(&PolicyBinding{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_PolicyBindingList, InType: reflect.TypeOf(&PolicyBindingList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_PolicyList, InType: reflect.TypeOf(&PolicyList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_PolicyRule, InType: reflect.TypeOf(&PolicyRule{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_PolicyRuleBuilder, InType: reflect.TypeOf(&PolicyRuleBuilder{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ResourceAccessReview, InType: reflect.TypeOf(&ResourceAccessReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ResourceAccessReviewResponse, InType: reflect.TypeOf(&ResourceAccessReviewResponse{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_Role, InType: reflect.TypeOf(&Role{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_RoleBinding, InType: reflect.TypeOf(&RoleBinding{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_RoleBindingList, InType: reflect.TypeOf(&RoleBindingList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_RoleBindingRestriction, InType: reflect.TypeOf(&RoleBindingRestriction{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_RoleBindingRestrictionList, InType: reflect.TypeOf(&RoleBindingRestrictionList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_RoleBindingRestrictionSpec, InType: reflect.TypeOf(&RoleBindingRestrictionSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_RoleList, InType: reflect.TypeOf(&RoleList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_SelfSubjectRulesReview, InType: reflect.TypeOf(&SelfSubjectRulesReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_SelfSubjectRulesReviewSpec, InType: reflect.TypeOf(&SelfSubjectRulesReviewSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ServiceAccountReference, InType: reflect.TypeOf(&ServiceAccountReference{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_ServiceAccountRestriction, InType: reflect.TypeOf(&ServiceAccountRestriction{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_SubjectAccessReview, InType: reflect.TypeOf(&SubjectAccessReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_SubjectAccessReviewResponse, InType: reflect.TypeOf(&SubjectAccessReviewResponse{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_SubjectRulesReview, InType: reflect.TypeOf(&SubjectRulesReview{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_SubjectRulesReviewSpec, InType: reflect.TypeOf(&SubjectRulesReviewSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_SubjectRulesReviewStatus, InType: reflect.TypeOf(&SubjectRulesReviewStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_authorization_UserRestriction, InType: reflect.TypeOf(&UserRestriction{})},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*Action).DeepCopyInto(out.(*Action))
+			return nil
+		}, InType: reflect.TypeOf(new(Action))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterPolicy).DeepCopyInto(out.(*ClusterPolicy))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterPolicy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterPolicyBinding).DeepCopyInto(out.(*ClusterPolicyBinding))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterPolicyBinding))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterPolicyBindingList).DeepCopyInto(out.(*ClusterPolicyBindingList))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterPolicyBindingList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterPolicyList).DeepCopyInto(out.(*ClusterPolicyList))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterPolicyList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterRole).DeepCopyInto(out.(*ClusterRole))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterRole))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterRoleBinding).DeepCopyInto(out.(*ClusterRoleBinding))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterRoleBinding))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterRoleBindingList).DeepCopyInto(out.(*ClusterRoleBindingList))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterRoleBindingList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterRoleBindingsByName).DeepCopyInto(out.(*ClusterRoleBindingsByName))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterRoleBindingsByName))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterRoleList).DeepCopyInto(out.(*ClusterRoleList))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterRoleList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ClusterRolesByName).DeepCopyInto(out.(*ClusterRolesByName))
+			return nil
+		}, InType: reflect.TypeOf(new(ClusterRolesByName))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*GroupRestriction).DeepCopyInto(out.(*GroupRestriction))
+			return nil
+		}, InType: reflect.TypeOf(new(GroupRestriction))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*IsPersonalSubjectAccessReview).DeepCopyInto(out.(*IsPersonalSubjectAccessReview))
+			return nil
+		}, InType: reflect.TypeOf(new(IsPersonalSubjectAccessReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*LocalResourceAccessReview).DeepCopyInto(out.(*LocalResourceAccessReview))
+			return nil
+		}, InType: reflect.TypeOf(new(LocalResourceAccessReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*LocalSubjectAccessReview).DeepCopyInto(out.(*LocalSubjectAccessReview))
+			return nil
+		}, InType: reflect.TypeOf(new(LocalSubjectAccessReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*Policy).DeepCopyInto(out.(*Policy))
+			return nil
+		}, InType: reflect.TypeOf(new(Policy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PolicyBinding).DeepCopyInto(out.(*PolicyBinding))
+			return nil
+		}, InType: reflect.TypeOf(new(PolicyBinding))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PolicyBindingList).DeepCopyInto(out.(*PolicyBindingList))
+			return nil
+		}, InType: reflect.TypeOf(new(PolicyBindingList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PolicyBindingSorter).DeepCopyInto(out.(*PolicyBindingSorter))
+			return nil
+		}, InType: reflect.TypeOf(new(PolicyBindingSorter))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PolicyList).DeepCopyInto(out.(*PolicyList))
+			return nil
+		}, InType: reflect.TypeOf(new(PolicyList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PolicyRule).DeepCopyInto(out.(*PolicyRule))
+			return nil
+		}, InType: reflect.TypeOf(new(PolicyRule))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*PolicyRuleBuilder).DeepCopyInto(out.(*PolicyRuleBuilder))
+			return nil
+		}, InType: reflect.TypeOf(new(PolicyRuleBuilder))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ResourceAccessReview).DeepCopyInto(out.(*ResourceAccessReview))
+			return nil
+		}, InType: reflect.TypeOf(new(ResourceAccessReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ResourceAccessReviewResponse).DeepCopyInto(out.(*ResourceAccessReviewResponse))
+			return nil
+		}, InType: reflect.TypeOf(new(ResourceAccessReviewResponse))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*Role).DeepCopyInto(out.(*Role))
+			return nil
+		}, InType: reflect.TypeOf(new(Role))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleBinding).DeepCopyInto(out.(*RoleBinding))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleBinding))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleBindingList).DeepCopyInto(out.(*RoleBindingList))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleBindingList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleBindingRestriction).DeepCopyInto(out.(*RoleBindingRestriction))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleBindingRestriction))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleBindingRestrictionList).DeepCopyInto(out.(*RoleBindingRestrictionList))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleBindingRestrictionList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleBindingRestrictionSpec).DeepCopyInto(out.(*RoleBindingRestrictionSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleBindingRestrictionSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleBindingSorter).DeepCopyInto(out.(*RoleBindingSorter))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleBindingSorter))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleBindingsByName).DeepCopyInto(out.(*RoleBindingsByName))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleBindingsByName))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RoleList).DeepCopyInto(out.(*RoleList))
+			return nil
+		}, InType: reflect.TypeOf(new(RoleList))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*RolesByName).DeepCopyInto(out.(*RolesByName))
+			return nil
+		}, InType: reflect.TypeOf(new(RolesByName))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SelfSubjectRulesReview).DeepCopyInto(out.(*SelfSubjectRulesReview))
+			return nil
+		}, InType: reflect.TypeOf(new(SelfSubjectRulesReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SelfSubjectRulesReviewSpec).DeepCopyInto(out.(*SelfSubjectRulesReviewSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(SelfSubjectRulesReviewSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ServiceAccountReference).DeepCopyInto(out.(*ServiceAccountReference))
+			return nil
+		}, InType: reflect.TypeOf(new(ServiceAccountReference))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ServiceAccountRestriction).DeepCopyInto(out.(*ServiceAccountRestriction))
+			return nil
+		}, InType: reflect.TypeOf(new(ServiceAccountRestriction))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SortableRuleSlice).DeepCopyInto(out.(*SortableRuleSlice))
+			return nil
+		}, InType: reflect.TypeOf(new(SortableRuleSlice))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SubjectAccessReview).DeepCopyInto(out.(*SubjectAccessReview))
+			return nil
+		}, InType: reflect.TypeOf(new(SubjectAccessReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SubjectAccessReviewResponse).DeepCopyInto(out.(*SubjectAccessReviewResponse))
+			return nil
+		}, InType: reflect.TypeOf(new(SubjectAccessReviewResponse))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SubjectRulesReview).DeepCopyInto(out.(*SubjectRulesReview))
+			return nil
+		}, InType: reflect.TypeOf(new(SubjectRulesReview))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SubjectRulesReviewSpec).DeepCopyInto(out.(*SubjectRulesReviewSpec))
+			return nil
+		}, InType: reflect.TypeOf(new(SubjectRulesReviewSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SubjectRulesReviewStatus).DeepCopyInto(out.(*SubjectRulesReviewStatus))
+			return nil
+		}, InType: reflect.TypeOf(new(SubjectRulesReviewStatus))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*UserRestriction).DeepCopyInto(out.(*UserRestriction))
+			return nil
+		}, InType: reflect.TypeOf(new(UserRestriction))},
 	)
 }
 
-// DeepCopy_authorization_Action is an autogenerated deepcopy function.
-func DeepCopy_authorization_Action(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*Action)
-		out := out.(*Action)
-		*out = *in
-		// in.Content is kind 'Interface'
-		if in.Content != nil {
-			if newVal, err := c.DeepCopy(&in.Content); err != nil {
-				return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *Action) DeepCopyInto(out *Action) {
+	*out = *in
+	if in.Content == nil {
+		out.Content = nil
+	} else {
+		out.Content = in.Content.DeepCopyObject()
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new Action.
+func (in *Action) DeepCopy() *Action {
+	if in == nil {
+		return nil
+	}
+	out := new(Action)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterPolicy) DeepCopyInto(out *ClusterPolicy) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.LastModified.DeepCopyInto(&out.LastModified)
+	if in.Roles != nil {
+		in, out := &in.Roles, &out.Roles
+		*out = make(ClusterRolesByName, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
 			} else {
-				out.Content = *newVal.(*runtime.Object)
+				(*out)[key] = new(ClusterRole)
+				val.DeepCopyInto((*out)[key])
 			}
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterPolicy.
+func (in *ClusterPolicy) DeepCopy() *ClusterPolicy {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterPolicy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterPolicy) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_ClusterPolicy is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterPolicy)
-		out := out.(*ClusterPolicy)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		out.LastModified = in.LastModified.DeepCopy()
-		if in.Roles != nil {
-			in, out := &in.Roles, &out.Roles
-			*out = make(ClusterRolesByName)
-			for key, val := range *in {
-				if newVal, err := c.DeepCopy(&val); err != nil {
-					return err
-				} else {
-					(*out)[key] = *newVal.(**ClusterRole)
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_ClusterPolicyBinding is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterPolicyBinding(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterPolicyBinding)
-		out := out.(*ClusterPolicyBinding)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		out.LastModified = in.LastModified.DeepCopy()
-		if in.RoleBindings != nil {
-			in, out := &in.RoleBindings, &out.RoleBindings
-			*out = make(ClusterRoleBindingsByName)
-			for key, val := range *in {
-				if newVal, err := c.DeepCopy(&val); err != nil {
-					return err
-				} else {
-					(*out)[key] = *newVal.(**ClusterRoleBinding)
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_ClusterPolicyBindingList is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterPolicyBindingList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterPolicyBindingList)
-		out := out.(*ClusterPolicyBindingList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]ClusterPolicyBinding, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_ClusterPolicyBinding(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_ClusterPolicyList is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterPolicyList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterPolicyList)
-		out := out.(*ClusterPolicyList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]ClusterPolicy, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_ClusterPolicy(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_ClusterRole is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterRole(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterRole)
-		out := out.(*ClusterRole)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Rules != nil {
-			in, out := &in.Rules, &out.Rules
-			*out = make([]PolicyRule, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_PolicyRule(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_ClusterRoleBinding is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterRoleBinding(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterRoleBinding)
-		out := out.(*ClusterRoleBinding)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Subjects != nil {
-			in, out := &in.Subjects, &out.Subjects
-			*out = make([]api.ObjectReference, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_ClusterRoleBindingList is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterRoleBindingList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterRoleBindingList)
-		out := out.(*ClusterRoleBindingList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]ClusterRoleBinding, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_ClusterRoleBinding(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_ClusterRoleList is an autogenerated deepcopy function.
-func DeepCopy_authorization_ClusterRoleList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ClusterRoleList)
-		out := out.(*ClusterRoleList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]ClusterRole, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_ClusterRole(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_GroupRestriction is an autogenerated deepcopy function.
-func DeepCopy_authorization_GroupRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*GroupRestriction)
-		out := out.(*GroupRestriction)
-		*out = *in
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Selectors != nil {
-			in, out := &in.Selectors, &out.Selectors
-			*out = make([]v1.LabelSelector, len(*in))
-			for i := range *in {
-				if newVal, err := c.DeepCopy(&(*in)[i]); err != nil {
-					return err
-				} else {
-					(*out)[i] = *newVal.(*v1.LabelSelector)
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_IsPersonalSubjectAccessReview is an autogenerated deepcopy function.
-func DeepCopy_authorization_IsPersonalSubjectAccessReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*IsPersonalSubjectAccessReview)
-		out := out.(*IsPersonalSubjectAccessReview)
-		*out = *in
-		return nil
-	}
-}
-
-// DeepCopy_authorization_LocalResourceAccessReview is an autogenerated deepcopy function.
-func DeepCopy_authorization_LocalResourceAccessReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*LocalResourceAccessReview)
-		out := out.(*LocalResourceAccessReview)
-		*out = *in
-		if err := DeepCopy_authorization_Action(&in.Action, &out.Action, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_LocalSubjectAccessReview is an autogenerated deepcopy function.
-func DeepCopy_authorization_LocalSubjectAccessReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*LocalSubjectAccessReview)
-		out := out.(*LocalSubjectAccessReview)
-		*out = *in
-		if err := DeepCopy_authorization_Action(&in.Action, &out.Action, c); err != nil {
-			return err
-		}
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		if in.Scopes != nil {
-			in, out := &in.Scopes, &out.Scopes
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_Policy is an autogenerated deepcopy function.
-func DeepCopy_authorization_Policy(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*Policy)
-		out := out.(*Policy)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		out.LastModified = in.LastModified.DeepCopy()
-		if in.Roles != nil {
-			in, out := &in.Roles, &out.Roles
-			*out = make(RolesByName)
-			for key, val := range *in {
-				if newVal, err := c.DeepCopy(&val); err != nil {
-					return err
-				} else {
-					(*out)[key] = *newVal.(**Role)
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_PolicyBinding is an autogenerated deepcopy function.
-func DeepCopy_authorization_PolicyBinding(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PolicyBinding)
-		out := out.(*PolicyBinding)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		out.LastModified = in.LastModified.DeepCopy()
-		if in.RoleBindings != nil {
-			in, out := &in.RoleBindings, &out.RoleBindings
-			*out = make(RoleBindingsByName)
-			for key, val := range *in {
-				if newVal, err := c.DeepCopy(&val); err != nil {
-					return err
-				} else {
-					(*out)[key] = *newVal.(**RoleBinding)
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_PolicyBindingList is an autogenerated deepcopy function.
-func DeepCopy_authorization_PolicyBindingList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PolicyBindingList)
-		out := out.(*PolicyBindingList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]PolicyBinding, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_PolicyBinding(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_PolicyList is an autogenerated deepcopy function.
-func DeepCopy_authorization_PolicyList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PolicyList)
-		out := out.(*PolicyList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]Policy, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_Policy(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_PolicyRule is an autogenerated deepcopy function.
-func DeepCopy_authorization_PolicyRule(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PolicyRule)
-		out := out.(*PolicyRule)
-		*out = *in
-		if in.Verbs != nil {
-			in, out := &in.Verbs, &out.Verbs
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		// in.AttributeRestrictions is kind 'Interface'
-		if in.AttributeRestrictions != nil {
-			if newVal, err := c.DeepCopy(&in.AttributeRestrictions); err != nil {
-				return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterPolicyBinding) DeepCopyInto(out *ClusterPolicyBinding) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.LastModified.DeepCopyInto(&out.LastModified)
+	out.PolicyRef = in.PolicyRef
+	if in.RoleBindings != nil {
+		in, out := &in.RoleBindings, &out.RoleBindings
+		*out = make(ClusterRoleBindingsByName, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
 			} else {
-				out.AttributeRestrictions = *newVal.(*runtime.Object)
+				(*out)[key] = new(ClusterRoleBinding)
+				val.DeepCopyInto((*out)[key])
 			}
 		}
-		if in.APIGroups != nil {
-			in, out := &in.APIGroups, &out.APIGroups
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Resources != nil {
-			in, out := &in.Resources, &out.Resources
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		if in.ResourceNames != nil {
-			in, out := &in.ResourceNames, &out.ResourceNames
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		if in.NonResourceURLs != nil {
-			in, out := &in.NonResourceURLs, &out.NonResourceURLs
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterPolicyBinding.
+func (in *ClusterPolicyBinding) DeepCopy() *ClusterPolicyBinding {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterPolicyBinding)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterPolicyBinding) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_PolicyRuleBuilder is an autogenerated deepcopy function.
-func DeepCopy_authorization_PolicyRuleBuilder(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*PolicyRuleBuilder)
-		out := out.(*PolicyRuleBuilder)
-		*out = *in
-		if err := DeepCopy_authorization_PolicyRule(&in.PolicyRule, &out.PolicyRule, c); err != nil {
-			return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterPolicyBindingList) DeepCopyInto(out *ClusterPolicyBindingList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ClusterPolicyBinding, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterPolicyBindingList.
+func (in *ClusterPolicyBindingList) DeepCopy() *ClusterPolicyBindingList {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterPolicyBindingList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterPolicyBindingList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_ResourceAccessReview is an autogenerated deepcopy function.
-func DeepCopy_authorization_ResourceAccessReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ResourceAccessReview)
-		out := out.(*ResourceAccessReview)
-		*out = *in
-		if err := DeepCopy_authorization_Action(&in.Action, &out.Action, c); err != nil {
-			return err
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterPolicyList) DeepCopyInto(out *ClusterPolicyList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ClusterPolicy, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterPolicyList.
+func (in *ClusterPolicyList) DeepCopy() *ClusterPolicyList {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterPolicyList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterPolicyList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_ResourceAccessReviewResponse is an autogenerated deepcopy function.
-func DeepCopy_authorization_ResourceAccessReviewResponse(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterRole) DeepCopyInto(out *ClusterRole) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Rules != nil {
+		in, out := &in.Rules, &out.Rules
+		*out = make([]PolicyRule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterRole.
+func (in *ClusterRole) DeepCopy() *ClusterRole {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterRole)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterRole) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterRoleBinding) DeepCopyInto(out *ClusterRoleBinding) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Subjects != nil {
+		in, out := &in.Subjects, &out.Subjects
+		*out = make([]api.ObjectReference, len(*in))
+		copy(*out, *in)
+	}
+	out.RoleRef = in.RoleRef
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterRoleBinding.
+func (in *ClusterRoleBinding) DeepCopy() *ClusterRoleBinding {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterRoleBinding)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterRoleBinding) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterRoleBindingList) DeepCopyInto(out *ClusterRoleBindingList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ClusterRoleBinding, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterRoleBindingList.
+func (in *ClusterRoleBindingList) DeepCopy() *ClusterRoleBindingList {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterRoleBindingList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterRoleBindingList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterRoleBindingsByName) DeepCopyInto(out *ClusterRoleBindingsByName) {
 	{
-		in := in.(*ResourceAccessReviewResponse)
-		out := out.(*ResourceAccessReviewResponse)
-		*out = *in
-		if in.Users != nil {
-			in, out := &in.Users, &out.Users
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
+		in := (*map[string]*ClusterRoleBinding)(unsafe.Pointer(in))
+		out := (*map[string]*ClusterRoleBinding)(unsafe.Pointer(out))
+		*out = make(map[string]*ClusterRoleBinding, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				(*out)[key] = new(ClusterRoleBinding)
+				val.DeepCopyInto((*out)[key])
 			}
 		}
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterRoleBindingsByName.
+func (in *ClusterRoleBindingsByName) DeepCopy() *ClusterRoleBindingsByName {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterRoleBindingsByName)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterRoleList) DeepCopyInto(out *ClusterRoleList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]ClusterRole, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterRoleList.
+func (in *ClusterRoleList) DeepCopy() *ClusterRoleList {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterRoleList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ClusterRoleList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_Role is an autogenerated deepcopy function.
-func DeepCopy_authorization_Role(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ClusterRolesByName) DeepCopyInto(out *ClusterRolesByName) {
 	{
-		in := in.(*Role)
-		out := out.(*Role)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
+		in := (*map[string]*ClusterRole)(unsafe.Pointer(in))
+		out := (*map[string]*ClusterRole)(unsafe.Pointer(out))
+		*out = make(map[string]*ClusterRole, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				(*out)[key] = new(ClusterRole)
+				val.DeepCopyInto((*out)[key])
+			}
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ClusterRolesByName.
+func (in *ClusterRolesByName) DeepCopy() *ClusterRolesByName {
+	if in == nil {
+		return nil
+	}
+	out := new(ClusterRolesByName)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *GroupRestriction) DeepCopyInto(out *GroupRestriction) {
+	*out = *in
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Selectors != nil {
+		in, out := &in.Selectors, &out.Selectors
+		*out = make([]v1.LabelSelector, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new GroupRestriction.
+func (in *GroupRestriction) DeepCopy() *GroupRestriction {
+	if in == nil {
+		return nil
+	}
+	out := new(GroupRestriction)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *IsPersonalSubjectAccessReview) DeepCopyInto(out *IsPersonalSubjectAccessReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new IsPersonalSubjectAccessReview.
+func (in *IsPersonalSubjectAccessReview) DeepCopy() *IsPersonalSubjectAccessReview {
+	if in == nil {
+		return nil
+	}
+	out := new(IsPersonalSubjectAccessReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *IsPersonalSubjectAccessReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *LocalResourceAccessReview) DeepCopyInto(out *LocalResourceAccessReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Action.DeepCopyInto(&out.Action)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new LocalResourceAccessReview.
+func (in *LocalResourceAccessReview) DeepCopy() *LocalResourceAccessReview {
+	if in == nil {
+		return nil
+	}
+	out := new(LocalResourceAccessReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *LocalResourceAccessReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *LocalSubjectAccessReview) DeepCopyInto(out *LocalSubjectAccessReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Action.DeepCopyInto(&out.Action)
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new LocalSubjectAccessReview.
+func (in *LocalSubjectAccessReview) DeepCopy() *LocalSubjectAccessReview {
+	if in == nil {
+		return nil
+	}
+	out := new(LocalSubjectAccessReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *LocalSubjectAccessReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *Policy) DeepCopyInto(out *Policy) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.LastModified.DeepCopyInto(&out.LastModified)
+	if in.Roles != nil {
+		in, out := &in.Roles, &out.Roles
+		*out = make(RolesByName, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				(*out)[key] = new(Role)
+				val.DeepCopyInto((*out)[key])
+			}
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new Policy.
+func (in *Policy) DeepCopy() *Policy {
+	if in == nil {
+		return nil
+	}
+	out := new(Policy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *Policy) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PolicyBinding) DeepCopyInto(out *PolicyBinding) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.LastModified.DeepCopyInto(&out.LastModified)
+	out.PolicyRef = in.PolicyRef
+	if in.RoleBindings != nil {
+		in, out := &in.RoleBindings, &out.RoleBindings
+		*out = make(RoleBindingsByName, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				(*out)[key] = new(RoleBinding)
+				val.DeepCopyInto((*out)[key])
+			}
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PolicyBinding.
+func (in *PolicyBinding) DeepCopy() *PolicyBinding {
+	if in == nil {
+		return nil
+	}
+	out := new(PolicyBinding)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *PolicyBinding) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PolicyBindingList) DeepCopyInto(out *PolicyBindingList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]PolicyBinding, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PolicyBindingList.
+func (in *PolicyBindingList) DeepCopy() *PolicyBindingList {
+	if in == nil {
+		return nil
+	}
+	out := new(PolicyBindingList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *PolicyBindingList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PolicyBindingSorter) DeepCopyInto(out *PolicyBindingSorter) {
+	{
+		in := (*[]PolicyBinding)(unsafe.Pointer(in))
+		out := (*[]PolicyBinding)(unsafe.Pointer(out))
+		*out = make([]PolicyBinding, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PolicyBindingSorter.
+func (in *PolicyBindingSorter) DeepCopy() *PolicyBindingSorter {
+	if in == nil {
+		return nil
+	}
+	out := new(PolicyBindingSorter)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PolicyList) DeepCopyInto(out *PolicyList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Policy, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PolicyList.
+func (in *PolicyList) DeepCopy() *PolicyList {
+	if in == nil {
+		return nil
+	}
+	out := new(PolicyList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *PolicyList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PolicyRule) DeepCopyInto(out *PolicyRule) {
+	*out = *in
+	if in.Verbs != nil {
+		in, out := &in.Verbs, &out.Verbs
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.AttributeRestrictions == nil {
+		out.AttributeRestrictions = nil
+	} else {
+		out.AttributeRestrictions = in.AttributeRestrictions.DeepCopyObject()
+	}
+	if in.APIGroups != nil {
+		in, out := &in.APIGroups, &out.APIGroups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Resources != nil {
+		in, out := &in.Resources, &out.Resources
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.ResourceNames != nil {
+		in, out := &in.ResourceNames, &out.ResourceNames
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.NonResourceURLs != nil {
+		in, out := &in.NonResourceURLs, &out.NonResourceURLs
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PolicyRule.
+func (in *PolicyRule) DeepCopy() *PolicyRule {
+	if in == nil {
+		return nil
+	}
+	out := new(PolicyRule)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PolicyRuleBuilder) DeepCopyInto(out *PolicyRuleBuilder) {
+	*out = *in
+	in.PolicyRule.DeepCopyInto(&out.PolicyRule)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PolicyRuleBuilder.
+func (in *PolicyRuleBuilder) DeepCopy() *PolicyRuleBuilder {
+	if in == nil {
+		return nil
+	}
+	out := new(PolicyRuleBuilder)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ResourceAccessReview) DeepCopyInto(out *ResourceAccessReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Action.DeepCopyInto(&out.Action)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ResourceAccessReview.
+func (in *ResourceAccessReview) DeepCopy() *ResourceAccessReview {
+	if in == nil {
+		return nil
+	}
+	out := new(ResourceAccessReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ResourceAccessReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ResourceAccessReviewResponse) DeepCopyInto(out *ResourceAccessReviewResponse) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	if in.Users != nil {
+		in, out := &in.Users, &out.Users
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ResourceAccessReviewResponse.
+func (in *ResourceAccessReviewResponse) DeepCopy() *ResourceAccessReviewResponse {
+	if in == nil {
+		return nil
+	}
+	out := new(ResourceAccessReviewResponse)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *ResourceAccessReviewResponse) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *Role) DeepCopyInto(out *Role) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Rules != nil {
+		in, out := &in.Rules, &out.Rules
+		*out = make([]PolicyRule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new Role.
+func (in *Role) DeepCopy() *Role {
+	if in == nil {
+		return nil
+	}
+	out := new(Role)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *Role) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleBinding) DeepCopyInto(out *RoleBinding) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Subjects != nil {
+		in, out := &in.Subjects, &out.Subjects
+		*out = make([]api.ObjectReference, len(*in))
+		copy(*out, *in)
+	}
+	out.RoleRef = in.RoleRef
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleBinding.
+func (in *RoleBinding) DeepCopy() *RoleBinding {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleBinding)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *RoleBinding) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleBindingList) DeepCopyInto(out *RoleBindingList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]RoleBinding, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleBindingList.
+func (in *RoleBindingList) DeepCopy() *RoleBindingList {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleBindingList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *RoleBindingList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleBindingRestriction) DeepCopyInto(out *RoleBindingRestriction) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Spec.DeepCopyInto(&out.Spec)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleBindingRestriction.
+func (in *RoleBindingRestriction) DeepCopy() *RoleBindingRestriction {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleBindingRestriction)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *RoleBindingRestriction) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleBindingRestrictionList) DeepCopyInto(out *RoleBindingRestrictionList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]RoleBindingRestriction, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleBindingRestrictionList.
+func (in *RoleBindingRestrictionList) DeepCopy() *RoleBindingRestrictionList {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleBindingRestrictionList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *RoleBindingRestrictionList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
+		return nil
+	}
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleBindingRestrictionSpec) DeepCopyInto(out *RoleBindingRestrictionSpec) {
+	*out = *in
+	if in.UserRestriction != nil {
+		in, out := &in.UserRestriction, &out.UserRestriction
+		if *in == nil {
+			*out = nil
 		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Rules != nil {
-			in, out := &in.Rules, &out.Rules
-			*out = make([]PolicyRule, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_PolicyRule(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_RoleBinding is an autogenerated deepcopy function.
-func DeepCopy_authorization_RoleBinding(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RoleBinding)
-		out := out.(*RoleBinding)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if in.Subjects != nil {
-			in, out := &in.Subjects, &out.Subjects
-			*out = make([]api.ObjectReference, len(*in))
-			copy(*out, *in)
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_RoleBindingList is an autogenerated deepcopy function.
-func DeepCopy_authorization_RoleBindingList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RoleBindingList)
-		out := out.(*RoleBindingList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]RoleBinding, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_RoleBinding(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_RoleBindingRestriction is an autogenerated deepcopy function.
-func DeepCopy_authorization_RoleBindingRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RoleBindingRestriction)
-		out := out.(*RoleBindingRestriction)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
-		}
-		if err := DeepCopy_authorization_RoleBindingRestrictionSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_RoleBindingRestrictionList is an autogenerated deepcopy function.
-func DeepCopy_authorization_RoleBindingRestrictionList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RoleBindingRestrictionList)
-		out := out.(*RoleBindingRestrictionList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]RoleBindingRestriction, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_RoleBindingRestriction(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_authorization_RoleBindingRestrictionSpec is an autogenerated deepcopy function.
-func DeepCopy_authorization_RoleBindingRestrictionSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*RoleBindingRestrictionSpec)
-		out := out.(*RoleBindingRestrictionSpec)
-		*out = *in
-		if in.UserRestriction != nil {
-			in, out := &in.UserRestriction, &out.UserRestriction
 			*out = new(UserRestriction)
-			if err := DeepCopy_authorization_UserRestriction(*in, *out, c); err != nil {
-				return err
-			}
+			(*in).DeepCopyInto(*out)
 		}
-		if in.GroupRestriction != nil {
-			in, out := &in.GroupRestriction, &out.GroupRestriction
+	}
+	if in.GroupRestriction != nil {
+		in, out := &in.GroupRestriction, &out.GroupRestriction
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(GroupRestriction)
-			if err := DeepCopy_authorization_GroupRestriction(*in, *out, c); err != nil {
-				return err
-			}
+			(*in).DeepCopyInto(*out)
 		}
-		if in.ServiceAccountRestriction != nil {
-			in, out := &in.ServiceAccountRestriction, &out.ServiceAccountRestriction
+	}
+	if in.ServiceAccountRestriction != nil {
+		in, out := &in.ServiceAccountRestriction, &out.ServiceAccountRestriction
+		if *in == nil {
+			*out = nil
+		} else {
 			*out = new(ServiceAccountRestriction)
-			if err := DeepCopy_authorization_ServiceAccountRestriction(*in, *out, c); err != nil {
-				return err
+			(*in).DeepCopyInto(*out)
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleBindingRestrictionSpec.
+func (in *RoleBindingRestrictionSpec) DeepCopy() *RoleBindingRestrictionSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleBindingRestrictionSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleBindingSorter) DeepCopyInto(out *RoleBindingSorter) {
+	{
+		in := (*[]RoleBinding)(unsafe.Pointer(in))
+		out := (*[]RoleBinding)(unsafe.Pointer(out))
+		*out = make([]RoleBinding, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleBindingSorter.
+func (in *RoleBindingSorter) DeepCopy() *RoleBindingSorter {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleBindingSorter)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleBindingsByName) DeepCopyInto(out *RoleBindingsByName) {
+	{
+		in := (*map[string]*RoleBinding)(unsafe.Pointer(in))
+		out := (*map[string]*RoleBinding)(unsafe.Pointer(out))
+		*out = make(map[string]*RoleBinding, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				(*out)[key] = new(RoleBinding)
+				val.DeepCopyInto((*out)[key])
 			}
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleBindingsByName.
+func (in *RoleBindingsByName) DeepCopy() *RoleBindingsByName {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleBindingsByName)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RoleList) DeepCopyInto(out *RoleList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	out.ListMeta = in.ListMeta
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Role, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RoleList.
+func (in *RoleList) DeepCopy() *RoleList {
+	if in == nil {
+		return nil
+	}
+	out := new(RoleList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *RoleList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_RoleList is an autogenerated deepcopy function.
-func DeepCopy_authorization_RoleList(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *RolesByName) DeepCopyInto(out *RolesByName) {
 	{
-		in := in.(*RoleList)
-		out := out.(*RoleList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]Role, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_Role(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
+		in := (*map[string]*Role)(unsafe.Pointer(in))
+		out := (*map[string]*Role)(unsafe.Pointer(out))
+		*out = make(map[string]*Role, len(*in))
+		for key, val := range *in {
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				(*out)[key] = new(Role)
+				val.DeepCopyInto((*out)[key])
 			}
 		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new RolesByName.
+func (in *RolesByName) DeepCopy() *RolesByName {
+	if in == nil {
+		return nil
+	}
+	out := new(RolesByName)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SelfSubjectRulesReview) DeepCopyInto(out *SelfSubjectRulesReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SelfSubjectRulesReview.
+func (in *SelfSubjectRulesReview) DeepCopy() *SelfSubjectRulesReview {
+	if in == nil {
+		return nil
+	}
+	out := new(SelfSubjectRulesReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *SelfSubjectRulesReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_SelfSubjectRulesReview is an autogenerated deepcopy function.
-func DeepCopy_authorization_SelfSubjectRulesReview(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SelfSubjectRulesReviewSpec) DeepCopyInto(out *SelfSubjectRulesReviewSpec) {
+	*out = *in
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SelfSubjectRulesReviewSpec.
+func (in *SelfSubjectRulesReviewSpec) DeepCopy() *SelfSubjectRulesReviewSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(SelfSubjectRulesReviewSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ServiceAccountReference) DeepCopyInto(out *ServiceAccountReference) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ServiceAccountReference.
+func (in *ServiceAccountReference) DeepCopy() *ServiceAccountReference {
+	if in == nil {
+		return nil
+	}
+	out := new(ServiceAccountReference)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ServiceAccountRestriction) DeepCopyInto(out *ServiceAccountRestriction) {
+	*out = *in
+	if in.ServiceAccounts != nil {
+		in, out := &in.ServiceAccounts, &out.ServiceAccounts
+		*out = make([]ServiceAccountReference, len(*in))
+		copy(*out, *in)
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ServiceAccountRestriction.
+func (in *ServiceAccountRestriction) DeepCopy() *ServiceAccountRestriction {
+	if in == nil {
+		return nil
+	}
+	out := new(ServiceAccountRestriction)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SortableRuleSlice) DeepCopyInto(out *SortableRuleSlice) {
 	{
-		in := in.(*SelfSubjectRulesReview)
-		out := out.(*SelfSubjectRulesReview)
-		*out = *in
-		if err := DeepCopy_authorization_SelfSubjectRulesReviewSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
+		in := (*[]PolicyRule)(unsafe.Pointer(in))
+		out := (*[]PolicyRule)(unsafe.Pointer(out))
+		*out = make([]PolicyRule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
-		if err := DeepCopy_authorization_SubjectRulesReviewStatus(&in.Status, &out.Status, c); err != nil {
-			return err
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SortableRuleSlice.
+func (in *SortableRuleSlice) DeepCopy() *SortableRuleSlice {
+	if in == nil {
+		return nil
+	}
+	out := new(SortableRuleSlice)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SubjectAccessReview) DeepCopyInto(out *SubjectAccessReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Action.DeepCopyInto(&out.Action)
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make(sets.String, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
+	}
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SubjectAccessReview.
+func (in *SubjectAccessReview) DeepCopy() *SubjectAccessReview {
+	if in == nil {
+		return nil
+	}
+	out := new(SubjectAccessReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *SubjectAccessReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_SelfSubjectRulesReviewSpec is an autogenerated deepcopy function.
-func DeepCopy_authorization_SelfSubjectRulesReviewSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SelfSubjectRulesReviewSpec)
-		out := out.(*SelfSubjectRulesReviewSpec)
-		*out = *in
-		if in.Scopes != nil {
-			in, out := &in.Scopes, &out.Scopes
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SubjectAccessReviewResponse) DeepCopyInto(out *SubjectAccessReviewResponse) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SubjectAccessReviewResponse.
+func (in *SubjectAccessReviewResponse) DeepCopy() *SubjectAccessReviewResponse {
+	if in == nil {
+		return nil
+	}
+	out := new(SubjectAccessReviewResponse)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *SubjectAccessReviewResponse) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_ServiceAccountReference is an autogenerated deepcopy function.
-func DeepCopy_authorization_ServiceAccountReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ServiceAccountReference)
-		out := out.(*ServiceAccountReference)
-		*out = *in
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SubjectRulesReview) DeepCopyInto(out *SubjectRulesReview) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.Spec.DeepCopyInto(&out.Spec)
+	in.Status.DeepCopyInto(&out.Status)
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SubjectRulesReview.
+func (in *SubjectRulesReview) DeepCopy() *SubjectRulesReview {
+	if in == nil {
+		return nil
+	}
+	out := new(SubjectRulesReview)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *SubjectRulesReview) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	} else {
 		return nil
 	}
 }
 
-// DeepCopy_authorization_ServiceAccountRestriction is an autogenerated deepcopy function.
-func DeepCopy_authorization_ServiceAccountRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ServiceAccountRestriction)
-		out := out.(*ServiceAccountRestriction)
-		*out = *in
-		if in.ServiceAccounts != nil {
-			in, out := &in.ServiceAccounts, &out.ServiceAccounts
-			*out = make([]ServiceAccountReference, len(*in))
-			copy(*out, *in)
-		}
-		if in.Namespaces != nil {
-			in, out := &in.Namespaces, &out.Namespaces
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SubjectRulesReviewSpec) DeepCopyInto(out *SubjectRulesReviewSpec) {
+	*out = *in
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
+	if in.Scopes != nil {
+		in, out := &in.Scopes, &out.Scopes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
 }
 
-// DeepCopy_authorization_SubjectAccessReview is an autogenerated deepcopy function.
-func DeepCopy_authorization_SubjectAccessReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SubjectAccessReview)
-		out := out.(*SubjectAccessReview)
-		*out = *in
-		if err := DeepCopy_authorization_Action(&in.Action, &out.Action, c); err != nil {
-			return err
-		}
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make(sets.String)
-			for key, val := range *in {
-				(*out)[key] = val
-			}
-		}
-		if in.Scopes != nil {
-			in, out := &in.Scopes, &out.Scopes
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SubjectRulesReviewSpec.
+func (in *SubjectRulesReviewSpec) DeepCopy() *SubjectRulesReviewSpec {
+	if in == nil {
 		return nil
 	}
+	out := new(SubjectRulesReviewSpec)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_authorization_SubjectAccessReviewResponse is an autogenerated deepcopy function.
-func DeepCopy_authorization_SubjectAccessReviewResponse(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SubjectAccessReviewResponse)
-		out := out.(*SubjectAccessReviewResponse)
-		*out = *in
-		return nil
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SubjectRulesReviewStatus) DeepCopyInto(out *SubjectRulesReviewStatus) {
+	*out = *in
+	if in.Rules != nil {
+		in, out := &in.Rules, &out.Rules
+		*out = make([]PolicyRule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
+	return
 }
 
-// DeepCopy_authorization_SubjectRulesReview is an autogenerated deepcopy function.
-func DeepCopy_authorization_SubjectRulesReview(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SubjectRulesReview)
-		out := out.(*SubjectRulesReview)
-		*out = *in
-		if err := DeepCopy_authorization_SubjectRulesReviewSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_authorization_SubjectRulesReviewStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SubjectRulesReviewStatus.
+func (in *SubjectRulesReviewStatus) DeepCopy() *SubjectRulesReviewStatus {
+	if in == nil {
 		return nil
 	}
+	out := new(SubjectRulesReviewStatus)
+	in.DeepCopyInto(out)
+	return out
 }
 
-// DeepCopy_authorization_SubjectRulesReviewSpec is an autogenerated deepcopy function.
-func DeepCopy_authorization_SubjectRulesReviewSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SubjectRulesReviewSpec)
-		out := out.(*SubjectRulesReviewSpec)
-		*out = *in
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Scopes != nil {
-			in, out := &in.Scopes, &out.Scopes
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		return nil
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *UserRestriction) DeepCopyInto(out *UserRestriction) {
+	*out = *in
+	if in.Users != nil {
+		in, out := &in.Users, &out.Users
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
+	if in.Groups != nil {
+		in, out := &in.Groups, &out.Groups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Selectors != nil {
+		in, out := &in.Selectors, &out.Selectors
+		*out = make([]v1.LabelSelector, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
 }
 
-// DeepCopy_authorization_SubjectRulesReviewStatus is an autogenerated deepcopy function.
-func DeepCopy_authorization_SubjectRulesReviewStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SubjectRulesReviewStatus)
-		out := out.(*SubjectRulesReviewStatus)
-		*out = *in
-		if in.Rules != nil {
-			in, out := &in.Rules, &out.Rules
-			*out = make([]PolicyRule, len(*in))
-			for i := range *in {
-				if err := DeepCopy_authorization_PolicyRule(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new UserRestriction.
+func (in *UserRestriction) DeepCopy() *UserRestriction {
+	if in == nil {
 		return nil
 	}
-}
-
-// DeepCopy_authorization_UserRestriction is an autogenerated deepcopy function.
-func DeepCopy_authorization_UserRestriction(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*UserRestriction)
-		out := out.(*UserRestriction)
-		*out = *in
-		if in.Users != nil {
-			in, out := &in.Users, &out.Users
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Groups != nil {
-			in, out := &in.Groups, &out.Groups
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
-		if in.Selectors != nil {
-			in, out := &in.Selectors, &out.Selectors
-			*out = make([]v1.LabelSelector, len(*in))
-			for i := range *in {
-				if newVal, err := c.DeepCopy(&(*in)[i]); err != nil {
-					return err
-				} else {
-					(*out)[i] = *newVal.(*v1.LabelSelector)
-				}
-			}
-		}
-		return nil
-	}
+	out := new(UserRestriction)
+	in.DeepCopyInto(out)
+	return out
 }

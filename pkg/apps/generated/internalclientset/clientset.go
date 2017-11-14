@@ -17,15 +17,12 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*appsinternalversion.AppsClient
+	apps *appsinternalversion.AppsClient
 }
 
 // Apps retrieves the AppsClient
 func (c *Clientset) Apps() appsinternalversion.AppsInterface {
-	if c == nil {
-		return nil
-	}
-	return c.AppsClient
+	return c.apps
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -44,7 +41,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.AppsClient, err = appsinternalversion.NewForConfig(&configShallowCopy)
+	cs.apps, err = appsinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +58,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.AppsClient = appsinternalversion.NewForConfigOrDie(c)
+	cs.apps = appsinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -70,7 +67,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.AppsClient = appsinternalversion.New(c)
+	cs.apps = appsinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

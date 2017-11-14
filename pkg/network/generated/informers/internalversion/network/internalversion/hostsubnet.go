@@ -25,8 +25,11 @@ type hostSubnetInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newHostSubnetInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewHostSubnetInformer constructs a new informer for HostSubnet type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewHostSubnetInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				return client.Network().HostSubnets().List(options)
@@ -37,14 +40,16 @@ func newHostSubnetInformer(client internalclientset.Interface, resyncPeriod time
 		},
 		&network.HostSubnet{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultHostSubnetInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewHostSubnetInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *hostSubnetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&network.HostSubnet{}, newHostSubnetInformer)
+	return f.factory.InformerFor(&network.HostSubnet{}, defaultHostSubnetInformer)
 }
 
 func (f *hostSubnetInformer) Lister() internalversion.HostSubnetLister {

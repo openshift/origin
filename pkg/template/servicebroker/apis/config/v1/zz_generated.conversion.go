@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -35,11 +35,7 @@ func Convert_v1_TemplateServiceBrokerConfig_To_config_TemplateServiceBrokerConfi
 }
 
 func autoConvert_config_TemplateServiceBrokerConfig_To_v1_TemplateServiceBrokerConfig(in *config.TemplateServiceBrokerConfig, out *TemplateServiceBrokerConfig, s conversion.Scope) error {
-	if in.TemplateNamespaces == nil {
-		out.TemplateNamespaces = make([]string, 0)
-	} else {
-		out.TemplateNamespaces = *(*[]string)(unsafe.Pointer(&in.TemplateNamespaces))
-	}
+	out.TemplateNamespaces = *(*[]string)(unsafe.Pointer(&in.TemplateNamespaces))
 	return nil
 }
 
