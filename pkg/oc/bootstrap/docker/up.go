@@ -222,6 +222,7 @@ type CommonStartConfig struct {
 	HTTPSProxy               string
 	NoProxy                  []string
 	CACert                   string
+	PVCount                  int
 
 	dockerClient    dockerhelper.Interface
 	dockerHelper    *dockerhelper.Helper
@@ -910,7 +911,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		return err
 	}
 
-	err = c.OpenShiftHelper().SetupPersistentStorage(authorizationClient.Authorization(), kClient, securityClient, c.HostPersistentVolumesDir)
+	err = c.OpenShiftHelper().SetupPersistentStorage(authorizationClient.Authorization(), kClient, securityClient, c.HostPersistentVolumesDir, c.HostPersistentVolumesDir)
 	if err != nil {
 		return err
 	}
