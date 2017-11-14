@@ -95,7 +95,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), 401)
+			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking for the expected metrics")
@@ -180,7 +180,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, statsPort), 401)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, statsPort), 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("at /debug/pprof")
@@ -263,16 +263,18 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 	return result
 }
 
-func expectURLStatusCodeExec(ns, execPodName, url string, statusCode int) error {
+func expectURLStatusCodeExec(ns, execPodName, url string, statusCodes ...int) error {
 	cmd := fmt.Sprintf("curl -s -o /dev/null -w '%%{http_code}' %q", url)
 	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
 		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
-	if output != strconv.Itoa(statusCode) {
-		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
+	for _, statusCode := range statusCodes {
+		if output == strconv.Itoa(statusCode) {
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("last response from server was not any of %v: %s", statusCodes, output)
 }
 
 func getAuthenticatedURLViaPod(ns, execPodName, url, user, pass string) (string, error) {
