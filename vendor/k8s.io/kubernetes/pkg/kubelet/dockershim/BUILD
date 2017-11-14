@@ -38,7 +38,6 @@ go_library(
         "//pkg/kubelet/cm:go_default_library",
         "//pkg/kubelet/container:go_default_library",
         "//pkg/kubelet/dockershim/cm:go_default_library",
-        "//pkg/kubelet/dockershim/errors:go_default_library",
         "//pkg/kubelet/dockershim/libdocker:go_default_library",
         "//pkg/kubelet/dockershim/securitycontext:go_default_library",
         "//pkg/kubelet/leaky:go_default_library",
@@ -133,7 +132,6 @@ filegroup(
     srcs = [
         ":package-srcs",
         "//pkg/kubelet/dockershim/cm:all-srcs",
-        "//pkg/kubelet/dockershim/errors:all-srcs",
         "//pkg/kubelet/dockershim/libdocker:all-srcs",
         "//pkg/kubelet/dockershim/remote:all-srcs",
         "//pkg/kubelet/dockershim/securitycontext:all-srcs",
