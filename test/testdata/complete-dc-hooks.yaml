@@ -34,7 +34,8 @@ spec:
         name: complete-dc-hooks
     spec:
       containers:
-      - image: "docker.io/busybox"
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
         name: myapp
         command:
         - "/bin/sleep"
