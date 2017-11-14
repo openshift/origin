@@ -24,8 +24,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"k8s.io/kubernetes/pkg/kubelet/dockershim/errors"
 )
 
 const (
@@ -106,7 +104,7 @@ func (fstore *FileStore) Read(key string) ([]byte, error) {
 	}
 	bytes, err := ioutil.ReadFile(fstore.getCheckpointPath(key))
 	if os.IsNotExist(err) {
-		return bytes, errors.CheckpointNotFoundError
+		return bytes, fmt.Errorf("checkpoint is not found.")
 	}
 	return bytes, err
 }
