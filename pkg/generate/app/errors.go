@@ -104,3 +104,13 @@ type CircularOutputReferenceError struct {
 func (e CircularOutputReferenceError) Error() string {
 	return fmt.Sprintf("output image of %q should be different than input", e.Reference)
 }
+
+// CircularReferenceError is the error returned by new-app when either the input
+// or output image stream tags employ circular loops
+type CircularReferenceError struct {
+	Reference string
+}
+
+func (e CircularReferenceError) Error() string {
+	return fmt.Sprintf("image stream tag reference %q is a circular loop of image stream tags", e.Reference)
+}

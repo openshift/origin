@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -816,7 +817,8 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		return nil, err
 	}
 
-	acceptors := app.Acceptors{app.NewAcceptUnique(c.Typer), app.AcceptNew}
+	acceptors := app.Acceptors{app.NewAcceptUnique(c.Typer), app.AcceptNew,
+		app.NewAcceptNonExistentImageStream(c.Typer, c.ImageClient, c.OriginNamespace), app.NewAcceptNonExistentImageStreamTag(c.Typer, c.ImageClient, c.OriginNamespace)}
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
 	for _, p := range pipelines {
@@ -914,6 +916,113 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	}, nil
 }
 
+func (c *AppConfig) findImageStreamInObjectList(objects app.Objects, name, namespace string) *imageapi.ImageStream {
+	for _, check := range objects {
+		if is, ok := check.(*imageapi.ImageStream); ok {
+			nsToCompare := is.Namespace
+			if len(nsToCompare) == 0 {
+				nsToCompare = c.OriginNamespace
+			}
+			if is.Name == name && nsToCompare == namespace {
+				return is
+			}
+		}
+	}
+	return nil
+}
+
+// crossStreamCircularTagReference inherits some logic from imageapi.FollowTagReference, but differs in that a) it is only concerned
+// with whether we can definitively say the IST chain is circular, and b) can cross image stream boundaries;
+// not in imageapi pkg (see imports above) like other helpers cause of import cycle with the image client
+func (c *AppConfig) crossStreamCircularTagReference(stream *imageapi.ImageStream, tag string, objects app.Objects) bool {
+	if stream == nil {
+		return false
+	}
+	seen := sets.NewString()
+	for {
+		if seen.Has(stream.ObjectMeta.Namespace + ":" + stream.ObjectMeta.Name + ":" + tag) {
+			// circular reference
+			return true
+		}
+		seen.Insert(stream.ObjectMeta.Namespace + ":" + stream.ObjectMeta.Name + ":" + tag)
+		tagRef, ok := stream.Spec.Tags[tag]
+		if !ok {
+			// no tag at the end of the rainbow
+			return false
+		}
+		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
+			// terminating tag
+			return false
+		}
+		if strings.Contains(tagRef.From.Name, ":") {
+			// another stream
+			fromstream, fromtag, ok := imageapi.SplitImageStreamTag(tagRef.From.Name)
+			if !ok {
+				return false
+			}
+			stream, err := c.ImageClient.ImageStreams(tagRef.From.Namespace).Get(fromstream, metav1.GetOptions{})
+			if err != nil && !kerrors.IsNotFound(err) {
+				return false
+			}
+			if stream == nil || kerrors.IsNotFound(err) {
+				// in case we are creating with this generate run, check the list of objects provided before
+				// giving up
+				if stream = c.findImageStreamInObjectList(objects, fromstream, tagRef.From.Namespace); stream == nil {
+					return false
+				}
+			}
+			tag = fromtag
+		} else {
+			tag = tagRef.From.Name
+		}
+	}
+}
+
+// crossStreamInputToOutputTagReference inherits some logic from crossStreamCircularTagReference, but differs in that a) it is only concerned
+// with whether we can definitively say the input IST from/follow chain lands at the output IST;
+// this method currently assumes that crossStreamCircularTagReference was called on both in/out stream:tag combinations prior to entering this method
+// not in imageapi pkg (see imports above) like other helpers cause of import cycle with the image client
+func (c *AppConfig) crossStreamInputToOutputTagReference(instream, outstream *imageapi.ImageStream, intag, outtag string, objects app.Objects) bool {
+	if instream == nil || outstream == nil {
+		return false
+	}
+	for {
+		if instream.ObjectMeta.Namespace == outstream.ObjectMeta.Namespace &&
+			instream.ObjectMeta.Name == outstream.ObjectMeta.Name &&
+			intag == outtag {
+			return true
+		}
+		tagRef, ok := instream.Spec.Tags[intag]
+		if !ok {
+			// no tag at the end of the rainbow
+			return false
+		}
+		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
+			// terminating tag
+			return false
+		}
+		if strings.Contains(tagRef.From.Name, ":") {
+			// another stream
+			fromstream, fromtag, ok := imageapi.SplitImageStreamTag(tagRef.From.Name)
+			if !ok {
+				return false
+			}
+			instream, err := c.ImageClient.ImageStreams(tagRef.From.Namespace).Get(fromstream, metav1.GetOptions{})
+			if err != nil && !kerrors.IsNotFound(err) {
+				return false
+			}
+			if instream == nil || kerrors.IsNotFound(err) {
+				if instream = c.findImageStreamInObjectList(objects, fromstream, tagRef.From.Namespace); instream == nil {
+					return false
+				}
+			}
+			intag = fromtag
+		} else {
+			intag = tagRef.From.Name
+		}
+	}
+}
+
 // followRefToDockerImage follows a buildconfig...To/From reference until it
 // terminates in docker image information. This can include dereferencing chains
 // of ImageStreamTag references that already exist or which are being created.
@@ -979,27 +1088,29 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 
 		// The imagestream is usually being created alongside the buildconfig
 		// when new-build is being used, so scan objects being created for it.
-		for _, check := range objects {
-			if is2, ok := check.(*imageapi.ImageStream); ok {
-				if is2.Name == isName {
-					isContext = is2
-					break
-				}
-			}
-		}
-
-		if isContext == nil {
+		if isContext = c.findImageStreamInObjectList(objects, isName, isNS); isContext == nil {
 			var err error
 			isContext, err = c.ImageClient.ImageStreams(isNS).Get(isName, metav1.GetOptions{})
 			if err != nil {
 				return nil, fmt.Errorf("Unable to check for circular build input/outputs: %v", err)
 			}
+			if isContext == nil {
+				return nil, nil
+			}
 		}
+	}
+
+	// protect our recursion by leveraging a non-recursive IST -> IST traversal check
+	// to warn us about circular problems with the tag so we can bail
+	circular := c.crossStreamCircularTagReference(isContext, isTag, objects)
+	if circular {
+		return nil, app.CircularReferenceError{Reference: ref.Name}
 	}
 
 	// Dereference ImageStreamTag to see what it is pointing to
 	target := isContext.Spec.Tags[isTag].From
 
+	// From can still be nil even with the call to FollowTagReference returning OK
 	if target == nil {
 		if isContext.Spec.DockerImageRepository == "" {
 			// Otherwise, this appears to be a new IS, created by new-app, with very little information
@@ -1038,6 +1149,9 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 
 			dockerInput, err := c.followRefToDockerImage(input, nil, objects)
 			if err != nil {
+				if _, ok := err.(app.CircularReferenceError); ok {
+					return err
+				}
 				glog.Warningf("Unable to check for circular build input: %v", err)
 				return nil
 			}
@@ -1045,10 +1159,56 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 
 			dockerOutput, err := c.followRefToDockerImage(output, nil, objects)
 			if err != nil {
+				if _, ok := err.(app.CircularReferenceError); ok {
+					return err
+				}
 				glog.Warningf("Unable to check for circular build output: %v", err)
 				return nil
 			}
 			glog.V(5).Infof("Post follow:\n%#v\n", dockerOutput)
+
+			// with reuse of existing image streams, some scenarios have arisen where
+			// comparisons of input/output prior to following the ref to the docker image
+			// are necessary;
+			// we still cite errors with circular IST chains;
+			// however, if the output IST points to the same
+			// image as the input IST because its referential chain takes it to the input IST (i.e. From refs),
+			// where one of the ISTs has a direct docker ref, we are allowing that;
+			// thus, invocations like `oc new-build --binary php`,
+			// where "php" is a image stream with such a structure, do not require
+			// the `--to` option
+			// otherwise, we are deferring to the docker image resolution path
+			if output.Kind == "ImageStreamTag" && input.Kind == "ImageStreamTag" {
+				iname, itag, iok := imageapi.SplitImageStreamTag(input.Name)
+				oname, otag, ook := imageapi.SplitImageStreamTag(output.Name)
+				if iok && ook {
+					inamespace := input.Namespace
+					if len(inamespace) == 0 {
+						inamespace = c.OriginNamespace
+					}
+					onamespace := output.Namespace
+					if len(onamespace) == 0 {
+						onamespace = c.OriginNamespace
+					}
+					istream, err := c.ImageClient.ImageStreams(inamespace).Get(iname, metav1.GetOptions{})
+					if istream == nil || kerrors.IsNotFound(err) {
+						istream = c.findImageStreamInObjectList(objects, iname, inamespace)
+					}
+					ostream, err := c.ImageClient.ImageStreams(onamespace).Get(oname, metav1.GetOptions{})
+					if ostream == nil || kerrors.IsNotFound(err) {
+						ostream = c.findImageStreamInObjectList(objects, oname, onamespace)
+					}
+					if istream != nil && ostream != nil {
+						if circularOutput := c.crossStreamInputToOutputTagReference(istream, ostream, itag, otag, objects); circularOutput {
+							if dockerInput != nil {
+								return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s", dockerInput.Name)}
+							}
+							return app.CircularOutputReferenceError{Reference: fmt.Sprintf("%s", input.Name)}
+						}
+						return nil
+					}
+				}
+			}
 
 			if dockerInput != nil && dockerOutput != nil {
 				if reflect.DeepEqual(dockerInput, dockerOutput) {
