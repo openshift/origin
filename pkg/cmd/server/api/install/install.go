@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
@@ -29,14 +30,18 @@ var accessor = meta.NewAccessor()
 var availableVersions = []schema.GroupVersion{configapiv1.SchemeGroupVersion}
 
 func init() {
-	configapi.AddToScheme(configapi.Scheme)
-	configapiv1.AddToScheme(configapi.Scheme)
+	AddToScheme(configapi.Scheme)
+}
+
+func AddToScheme(scheme *runtime.Scheme) {
+	configapi.AddToScheme(scheme)
+	configapiv1.AddToScheme(scheme)
 	// we additionally need to enable audit versions, since we embed the audit
 	// policy file inside master-config.yaml
-	audit.AddToScheme(configapi.Scheme)
-	auditv1alpha1.AddToScheme(configapi.Scheme)
-	apiserver.AddToScheme(configapi.Scheme)
-	apiserverv1alpha1.AddToScheme(configapi.Scheme)
+	audit.AddToScheme(scheme)
+	auditv1alpha1.AddToScheme(scheme)
+	apiserver.AddToScheme(scheme)
+	apiserverv1alpha1.AddToScheme(scheme)
 }
 
 func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
