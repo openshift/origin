@@ -5,6 +5,9 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
+
+	"github.com/docker/go-units"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -14,7 +17,6 @@ import (
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/oc/cli/describe"
 )
 
 func displayName(meta metav1.ObjectMeta) string {
@@ -60,7 +62,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 		if image := match.Image; image != nil {
 			shortID := imageapi.ShortDockerImageID(image, 7)
 			if !image.Created.IsZero() {
-				shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
+				shortID = fmt.Sprintf("%s (%s old)", shortID, formatRelativeTime(image.Created.Time))
 			}
 			return fmt.Sprintf("Found image %s in image stream %q under tag %q for %q", shortID, localOrRemoteName(match.ImageStream.ObjectMeta, baseNamespace), match.ImageTag, refInput)
 		}
@@ -69,7 +71,7 @@ func describeLocatedImage(refInput *app.ComponentInput, baseNamespace string) st
 		image := match.Image
 		shortID := imageapi.ShortDockerImageID(image, 7)
 		if !image.Created.IsZero() {
-			shortID = fmt.Sprintf("%s (%s old)", shortID, describe.FormatRelativeTime(image.Created.Time))
+			shortID = fmt.Sprintf("%s (%s old)", shortID, formatRelativeTime(image.Created.Time))
 		}
 		return fmt.Sprintf("Found Docker image %s from %s for %q", shortID, match.Meta["registry"], refInput)
 	default:
@@ -294,4 +296,9 @@ func describeGeneratedJob(out io.Writer, ref app.ComponentReference, pod *kapi.P
 			fmt.Fprintf(out, "      action you can take on the cluster.\n")
 		}
 	}
+}
+
+// formatRelativeTime converts a time field into a human readable age string (hours, minutes, days).
+func formatRelativeTime(t time.Time) string {
+	return units.HumanDuration(time.Now().Sub(t))
 }

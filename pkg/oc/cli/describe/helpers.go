@@ -8,7 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -76,7 +76,7 @@ func formatString(out *tabwriter.Writer, label string, v interface{}) {
 }
 
 func formatTime(out *tabwriter.Writer, label string, t time.Time) {
-	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s ago\n", label, formatRelativeTime(t)))
+	fmt.Fprintf(out, fmt.Sprintf("%s:\t%s ago\n", label, units.HumanDuration(timeNowFn().Sub(t))))
 }
 
 func formatLabels(labelMap map[string]string) string {
@@ -133,12 +133,7 @@ func formatToHumanDuration(dur time.Duration) string {
 }
 
 func formatRelativeTime(t time.Time) string {
-	return units.HumanDuration(timeNowFn().Sub(t))
-}
-
-// FormatRelativeTime converts a time field into a human readable age string (hours, minutes, days).
-func FormatRelativeTime(t time.Time) string {
-	return formatRelativeTime(t)
+	return units.HumanDuration(time.Now().Sub(t))
 }
 
 func formatMeta(out *tabwriter.Writer, m metav1.ObjectMeta) {
