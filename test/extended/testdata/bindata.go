@@ -14889,7 +14889,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "annotations": {
               "openshift.io/display-name": "Python (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "description": "Build and run Python applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major versions updates.",
+              "description": "Build and run Python applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major versions updates.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python",
@@ -14897,7 +14897,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.5"
+              "name": "3.6"
             }
           },
           {
@@ -14966,6 +14966,23 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "centos/python-35-centos7:latest"
+            }
+          },
+          {
+            "name": "3.6",
+            "annotations": {
+              "openshift.io/display-name": "Python 3.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "description": "Build and run Python 3.6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.6,python",
+              "version": "3.6",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/python-36-centos7:latest"
             }
           }
         ]
@@ -15860,7 +15877,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "annotations": {
               "openshift.io/display-name": "Python (Latest)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "description": "Build and run Python applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.5/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major versions updates.",
+              "description": "Build and run Python applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Python available on OpenShift, including major versions updates.",
               "iconClass": "icon-python",
               "tags": "builder,python",
               "supports":"python",
@@ -15868,7 +15885,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "3.5"
+              "name": "3.6"
             }
           },
           {
@@ -15937,6 +15954,23 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/python-35-rhel7:latest"
+            }
+          },
+          {
+            "name": "3.6",
+            "annotations": {
+              "openshift.io/display-name": "Python 3.6",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "description": "Build and run Python 3.6 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md.",
+              "iconClass": "icon-python",
+              "tags": "builder,python",
+              "supports":"python:3.6,python",
+              "version": "3.6",
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/python-36-rhel7:latest"
             }
           }
         ]
