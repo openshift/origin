@@ -1,6 +1,10 @@
 Replicated ZooKeeper Template
 =============================
 
+WARNING: This is a toy example and is NOT SUITABLE FOR PRODUCTION USE.  It
+instantiates Pods directly rather than through a StatefulSet object, therefore
+the Pods are not resilient in face of an application crash or eviction.
+
 ZooKeeper is a distributed, open-source coordination service for distributed
 applications. It exposes a simple set of primitives that distributed
 applications can build upon to implement higher level services for
