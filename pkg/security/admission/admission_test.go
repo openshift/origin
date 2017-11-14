@@ -158,8 +158,8 @@ func TestAdmitCaps(t *testing.T) {
 
 func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
 	tc := setupClientSet()
-	cache := createSCCLister(t, sccs)
-	plugin := NewTestAdmission(cache, tc)
+	lister := createSCCLister(t, sccs)
+	plugin := NewTestAdmission(lister, tc)
 
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
 	err := plugin.Admit(attrs)
@@ -231,13 +231,13 @@ func TestAdmitSuccess(t *testing.T) {
 		Groups: []string{"system:serviceaccounts"},
 	}
 
-	cache := createSCCLister(t, []*securityapi.SecurityContextConstraints{
+	lister := createSCCLister(t, []*securityapi.SecurityContextConstraints{
 		saExactSCC,
 		saSCC,
 	})
 
 	// create the admission plugin
-	p := NewTestAdmission(cache, tc)
+	p := NewTestAdmission(lister, tc)
 
 	// specifies a UID in the range of the preallocated UID annotation
 	specifyUIDInRange := goodPod()
@@ -418,13 +418,13 @@ func TestAdmitFailure(t *testing.T) {
 	}
 
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	cache := securitylisters.NewSecurityContextConstraintsLister(indexer)
+	lister := securitylisters.NewSecurityContextConstraintsLister(indexer)
 
 	indexer.Add(saExactSCC)
 	indexer.Add(saSCC)
 
 	// create the admission plugin
-	p := NewTestAdmission(cache, tc)
+	p := NewTestAdmission(lister, tc)
 
 	// setup test data
 	uidNotInRange := goodPod()
@@ -804,7 +804,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		},
 	}
 
-	cache := createSCCLister(t, sccs)
+	lister := createSCCLister(t, sccs)
 
 	// single match cases
 	testCases := map[string]struct {
@@ -834,7 +834,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		sccMatcher := oscc.NewDefaultSCCMatcher(cache)
+		sccMatcher := oscc.NewDefaultSCCMatcher(lister)
 		sccs, err := sccMatcher.FindApplicableSCCs(v.userInfo)
 		if err != nil {
 			t.Errorf("%s received error %v", k, err)
@@ -861,7 +861,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		Name:   "user",
 		Groups: []string{"group"},
 	}
-	sccMatcher := oscc.NewDefaultSCCMatcher(cache)
+	sccMatcher := oscc.NewDefaultSCCMatcher(lister)
 	sccs, err := sccMatcher.FindApplicableSCCs(userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
@@ -935,10 +935,10 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	// is using the sort strategy we expect.
 
 	tc := setupClientSet()
-	cache := createSCCLister(t, sccsToSort)
+	lister := createSCCLister(t, sccsToSort)
 
 	// create the admission plugin
-	plugin := NewTestAdmission(cache, tc)
+	plugin := NewTestAdmission(lister, tc)
 
 	testSCCAdmission(goodPod(), plugin, restricted.Name, "match the restricted SCC", t)
 
