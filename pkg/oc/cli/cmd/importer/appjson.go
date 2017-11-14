@@ -24,8 +24,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
-	appcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/appjson"
+	appcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )

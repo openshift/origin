@@ -37,9 +37,9 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate"
 	newapp "github.com/openshift/origin/pkg/generate/app"
-	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	newcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/util"
 )

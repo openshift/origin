@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
-	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	newcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 )
 
 // NewBuildRecommendedCommandName is the recommended command name.
