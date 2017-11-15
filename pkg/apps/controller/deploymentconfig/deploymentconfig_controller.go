@@ -128,12 +128,8 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			return err
 		}
 	}
+	configCopy := config.DeepCopy()
 	// Process triggers and start an initial rollouts
-	configCopy, err := deployutil.DeploymentConfigDeepCopy(config)
-	if err != nil {
-		glog.Errorf("Unable to copy deployment config: %v", err)
-		return c.updateStatus(config, existingDeployments)
-	}
 	shouldTrigger, shouldSkip := triggerActivated(configCopy, latestIsDeployed, latestDeployment, c.codec)
 	if !shouldSkip && shouldTrigger {
 		configCopy.Status.LatestVersion++
@@ -277,10 +273,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 					)
 				}
 
-				copied, err = deployutil.DeploymentDeepCopyV1(rc)
-				if err != nil {
-					return err
-				}
+				copied = rc.DeepCopy()
 				copied.Spec.Replicas = &newReplicaCount
 				copied, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
 				return err
@@ -317,11 +310,7 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 		return nil
 	}
 
-	copied, err := deployutil.DeploymentConfigDeepCopy(config)
-	if err != nil {
-		return err
-	}
-
+	copied := config.DeepCopy()
 	copied.Status = newStatus
 	// TODO: Retry update conficts
 	if _, err := c.dn.DeploymentConfigs(copied.Namespace).UpdateStatus(copied); err != nil {
@@ -371,10 +360,7 @@ func (c *DeploymentConfigController) cancelRunningRollouts(config *deployapi.Dep
 				return nil
 			}
 
-			copied, err := deployutil.DeploymentDeepCopyV1(rc)
-			if err != nil {
-				return err
-			}
+			copied := rc.DeepCopy()
 			copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 			updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)

@@ -269,42 +269,6 @@ func RecordImageChangeCauses(config *deployapi.DeploymentConfig, imageNames []st
 	}
 }
 
-func DeploymentConfigDeepCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
-	objCopy, err := api.Scheme.DeepCopy(dc)
-	if err != nil {
-		return nil, err
-	}
-	copied, ok := objCopy.(*deployapi.DeploymentConfig)
-	if !ok {
-		return nil, fmt.Errorf("expected DeploymentConfig, got %#v", objCopy)
-	}
-	return copied, nil
-}
-
-func DeploymentDeepCopy(rc *api.ReplicationController) (*api.ReplicationController, error) {
-	objCopy, err := api.Scheme.DeepCopy(rc)
-	if err != nil {
-		return nil, err
-	}
-	copied, ok := objCopy.(*api.ReplicationController)
-	if !ok {
-		return nil, fmt.Errorf("expected ReplicationController, got %#v", objCopy)
-	}
-	return copied, nil
-}
-
-func DeploymentDeepCopyV1(rc *v1.ReplicationController) (*v1.ReplicationController, error) {
-	objCopy, err := api.Scheme.DeepCopy(rc)
-	if err != nil {
-		return nil, err
-	}
-	copied, ok := objCopy.(*v1.ReplicationController)
-	if !ok {
-		return nil, fmt.Errorf("expected ReplicationController, got %#v", objCopy)
-	}
-	return copied, nil
-}
-
 func CopyApiResourcesToV1Resources(in *api.ResourceRequirements) v1.ResourceRequirements {
 	copied, err := api.Scheme.DeepCopy(in)
 	if err != nil {

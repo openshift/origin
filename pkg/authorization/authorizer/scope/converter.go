@@ -421,9 +421,6 @@ func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterRol
 	return []string{}, nil
 }
 
-// TODO: direct deep copy needing a cloner is something that should be fixed upstream
-var localCloner = conversion.NewCloner()
-
 func remove(array []string, item string) []string {
 	newar := array[:0]
 	for _, element := range array {
@@ -449,8 +446,7 @@ func removeEscalatingResources(in rbac.PolicyRule) rbac.PolicyRule {
 		if ruleCopy == nil {
 			// we're using a cache of cache of an object that uses pointers to data.  I'm pretty sure we need to do a copy to avoid
 			// muddying the cache
-			ruleCopy = &rbac.PolicyRule{}
-			rbac.DeepCopy_rbac_PolicyRule(&in, ruleCopy, localCloner)
+			ruleCopy = in.DeepCopy()
 		}
 
 		ruleCopy.Resources = remove(ruleCopy.Resources, resource.Resource)

@@ -1124,6 +1124,15 @@ func (obj *metaObject) GetObjectKind() schema.ObjectKind {
 	return schema.EmptyObjectKind
 }
 
+func (obj *metaObject) DeepCopyObject() runtime.Object {
+	out := new(metaObject)
+	out.Kind = obj.Kind
+	out.APIVersion = obj.APIVersion
+	out.Metadata.Name = obj.Metadata.Name
+	out.Metadata.Namespace = obj.Metadata.Namespace
+	return out
+}
+
 type prerequisite struct {
 	gvrData schema.GroupVersionResource
 	stub    string

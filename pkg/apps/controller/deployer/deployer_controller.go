@@ -266,32 +266,29 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		}
 	}
 
+	deploymentCopy := deployment.DeepCopy()
+
 	// Update only if we need to transition to a new phase.
 	if deployutil.CanTransitionPhase(currentStatus, nextStatus) {
-		deployment, err := deployutil.DeploymentDeepCopyV1(deployment)
-		if err != nil {
-			return err
-		}
-
 		updatedAnnotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
-		deployment.Annotations = updatedAnnotations
+		deploymentCopy.Annotations = updatedAnnotations
 
 		// If we are going to transition to failed or complete and scale is non-zero, we'll check one more
 		// time to see if we are a test deployment to guarantee that we maintain the test invariant.
-		if *deployment.Spec.Replicas != 0 && deployutil.IsTerminatedDeployment(deployment) {
-			if config, err := deployutil.DecodeDeploymentConfig(deployment, c.codec); err == nil && config.Spec.Test {
+		if *deploymentCopy.Spec.Replicas != 0 && deployutil.IsTerminatedDeployment(deploymentCopy) {
+			if config, err := deployutil.DecodeDeploymentConfig(deploymentCopy, c.codec); err == nil && config.Spec.Test {
 				zero := int32(0)
-				deployment.Spec.Replicas = &zero
+				deploymentCopy.Spec.Replicas = &zero
 			}
 		}
 
-		if _, err := c.rn.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
-			return fmt.Errorf("couldn't update rollout status for %q to %s: %v", deployutil.LabelForDeploymentV1(deployment), nextStatus, err)
+		if _, err := c.rn.ReplicationControllers(deploymentCopy.Namespace).Update(deploymentCopy); err != nil {
+			return fmt.Errorf("couldn't update rollout status for %q to %s: %v", deployutil.LabelForDeploymentV1(deploymentCopy), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", deployutil.LabelForDeploymentV1(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
+		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", deployutil.LabelForDeploymentV1(deploymentCopy), currentStatus, nextStatus, deploymentCopy.Spec.Replicas)
 
-		if deployutil.IsDeploymentCancelled(deployment) && deployutil.IsFailedDeployment(deployment) {
-			c.emitDeploymentEvent(deployment, v1.EventTypeNormal, "RolloutCancelled", fmt.Sprintf("Rollout for %q cancelled", deployutil.LabelForDeploymentV1(deployment)))
+		if deployutil.IsDeploymentCancelled(deploymentCopy) && deployutil.IsFailedDeployment(deploymentCopy) {
+			c.emitDeploymentEvent(deploymentCopy, v1.EventTypeNormal, "RolloutCancelled", fmt.Sprintf("Rollout for %q cancelled", deployutil.LabelForDeploymentV1(deploymentCopy)))
 		}
 	}
 	return nil
