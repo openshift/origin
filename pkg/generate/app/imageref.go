@@ -95,7 +95,7 @@ func (g *imageRefGenerator) FromDockerfile(name string, dir string, context stri
 	if err != nil {
 		return nil, err
 	}
-	ports := dockerfile.LastExposedPorts(node)
+	ports := dockerfile.LastExposedPorts(node.AST)
 
 	return g.FromNameAndPorts(name, ports)
 }

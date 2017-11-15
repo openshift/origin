@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
-	"github.com/docker/docker/cliconfig"
+	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types/versions"
 	"github.com/golang/glog"
@@ -602,7 +602,7 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
 	dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
 	if len(dockerTLSVerify) > 0 && len(dockerCertPath) == 0 {
-		dockerCertPath = cliconfig.ConfigDir()
+		dockerCertPath = cliconfig.Dir()
 		os.Setenv("DOCKER_CERT_PATH", dockerCertPath)
 	}
 
