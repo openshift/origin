@@ -169,6 +169,11 @@ func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, po
 
 		// virtual resource
 		componentconfig.GroupResource{Group: "project.openshift.io", Resource: "projects"},
+		// virtual and unwatchable resource, surfaced via rbac.authorization.k8s.io objects
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "clusterroles"},
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "clusterrolebindings"},
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "roles"},
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindings"},
 		// these resources contain security information in their names, and we don't need to track them
 		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"},
 		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
