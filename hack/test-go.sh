@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script runs Go language unit tests for the Origin repository. Arguments to this script
+# This script runs Go language unit tests for the repository. Arguments to this script
 # are parsed as a list of packages to test until the first argument starting with '-' or '--' is
 # found. That argument and all following arguments are interpreted as flags to be passed directly
 # to `go test`. If no arguments are given, then "all" packages are tested.
@@ -41,7 +41,6 @@ os::cleanup::tmpdir
 
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"
-test_kube="${TEST_KUBE:-}"
 test_timeout="${TIMEOUT:-120s}"
 detect_races="${DETECT_RACES:-true}"
 coverage_output_dir="${COVERAGE_OUTPUT_DIR:-}"
@@ -85,28 +84,6 @@ if [[ -n "${test_timeout}" ]]; then
     gotest_flags+=" -timeout ${test_timeout}"
 fi
 
-# list_test_packages_under lists all packages containing Golang test files that we want to run as unit tests
-# under the given base dir in the OpenShift Origin tree
-function list_test_packages_under() {
-    local basedir=$*
-
-    # we do not quote ${basedir} to allow for multiple arguments to be passed in as well as to allow for
-    # arguments that use expansion, e.g. paths containing brace expansion or wildcards
-    find ${basedir} -not \(                   \
-        \(                                    \
-              -path 'vendor'                  \
-              -o -path '*_output'             \
-              -o -path '*.git'                \
-              -o -path '*openshift.local.*'   \
-              -o -path '*vendor/*'            \
-              -o -path '*assets/node_modules' \
-              -o -path '*test/*'              \
-              -o -path '*cmd/cluster-capacity' \
-              -o -path '*cmd/service-catalog' \
-              -o -path '*pkg/proxy' \
-        \) -prune                             \
-    \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
-}
 
 # Break up the positional arguments into packages that need to be tested and arguments that need to be passed to `go test`
 package_args=
@@ -136,29 +113,7 @@ if [[ -n "${package_args}" ]]; then
     done
 else
     # If no packages are given to test, we need to generate a list of all packages with unit tests
-    openshift_test_packages="$(list_test_packages_under '*')"
-    test_packages="${openshift_test_packages}"
-
-    kubernetes_path="vendor/k8s.io/kubernetes"
-
-    if [[ -n "${test_kube}" ]]; then
-        # we need to find all of the kubernetes test suites, excluding those we directly whitelisted before, the end-to-end suite, and
-        # the go2idl tests which we currently do not support
-        # etcd3 isn't supported yet and that test flakes upstream
-        optional_kubernetes_packages="$(find -L vendor/k8s.io/{apimachinery,apiserver,client-go,kube-aggregator,kubernetes} -not \( \
-          \(                                                                                          \
-            -path "${kubernetes_path}/staging"                                                        \
-            -o -path "${kubernetes_path}/test"                                                        \
-            -o -path "${kubernetes_path}/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned" \
-            -o -path "${kubernetes_path}/pkg/storage/etcd3"                                           \
-            -o -path "${kubernetes_path}/third_party/golang/go/build"                                 \
-          \) -prune                                                                                   \
-        \) -name '*_test.go' | cut -f 2- -d / | xargs -n1 dirname | sort -u | xargs -n1 printf "./vendor/%s\n")"
-
-        test_packages="${test_packages} ${optional_kubernetes_packages}"
-    else
-        test_packages="${test_packages} ./vendor/k8s.io/kubernetes/pkg/api/... ./vendor/k8s.io/kubernetes/pkg/apis/..."
-    fi
+    test_packages="$(os::util::list_test_packages_under '*')"
 fi
 
 if [[ -n "${dry_run}" ]]; then

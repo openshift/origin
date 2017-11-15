@@ -151,6 +151,10 @@ function os::test::extended::setup () {
 
 	os::log::info "Creating db-templates templates"
 	oc create -n openshift -f "${OS_ROOT}/examples/db-templates" --config="${ADMIN_KUBECONFIG}"
+
+	os::log::info "Creating jenkins templates"
+	oc create -n openshift -f "${OS_ROOT}/examples/jenkins/jenkins-ephemeral-template.json" --config="${ADMIN_KUBECONFIG}"
+
 }
 
 # Run extended tests or print out a list of tests that need to be run

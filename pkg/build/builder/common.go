@@ -22,8 +22,8 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/timing"
+	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	utilglog "github.com/openshift/origin/pkg/util/glog"

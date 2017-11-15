@@ -112,6 +112,51 @@ func TestFormatResourceName(t *testing.T) {
 	}
 }
 
+func mockRoleBindingRestriction() []*authorizationapi.RoleBindingRestriction {
+	return []*authorizationapi.RoleBindingRestriction{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "match-serviceaccount"},
+			Spec: authorizationapi.RoleBindingRestrictionSpec{
+				ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+					Namespaces: []string{""},
+				},
+			},
+		},
+	}
+}
+
+func TestPrintRoleBindingRestriction(t *testing.T) {
+	buf := bytes.NewBuffer([]byte{})
+	rbrs := mockRoleBindingRestriction()
+
+	tests := []struct {
+		name        string
+		rbr         *authorizationapi.RoleBindingRestriction
+		expectedOut string
+		expectedErr error
+	}{
+		{
+			name:        "output check",
+			rbr:         rbrs[0],
+			expectedOut: "match-serviceaccount\tServiceAccount\t/*\n",
+		},
+	}
+
+	for _, test := range tests {
+		if err := printRoleBindingRestriction(test.rbr, buf, kprinters.PrintOptions{}); err != test.expectedErr {
+			t.Errorf("error mismatch: expected %v, got %v", test.expectedErr, err)
+			continue
+		}
+		got := buf.String()
+		buf.Reset()
+
+		if !strings.Contains(got, test.expectedOut) {
+			t.Errorf("unexpected output:\n%s\nexpected to contain: %s", got, test.expectedOut)
+			continue
+		}
+	}
+}
+
 func TestPrintImageStream(t *testing.T) {
 	buf := bytes.NewBuffer([]byte{})
 	streams := mockStreams()

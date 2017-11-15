@@ -80,6 +80,7 @@ os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=f
 os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
 # ensure correct serialization of podList output
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector= -o jsonpath='{ .kind }'" 'List'
+os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector=" 'NAMESPACE'
 echo "manage-node: ok"
 os::test::junit::declare_suite_end
 

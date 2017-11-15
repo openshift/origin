@@ -22,9 +22,9 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
+	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/build/util/dockerfile"
 
 	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 )

@@ -37,7 +37,7 @@ We generally cut a release before disruptive changes land.
 
 ### Building on Non-Linux Systems
 
-We provide the `openshift/release` container in which all of our build
+We provide the `openshift/origin-release` container in which all of our build
 dependencies live, so that one can build a full release of OpenShift without
 having to install anything other than a container runtime on their local system.
 To run scripts or `make` targets from the Origin repo inside of the container,
@@ -330,8 +330,7 @@ https://github.com/kubernetes/kubernetes/pull/34624.patch`
 
 If this fails, then it's possible you may need to pick multiple commits.
 
-### For Openshift newcomers: Pick my kubernetes fix into Openshift vs. wait for
-the next rebase?
+### For Openshift newcomers: Pick my kubernetes fix into Openshift vs. wait for the next rebase?
 
 Assuming you read the bullets above... If your patch is really far behind, for
 example, if there have been 5 commits modifying the directory you care about,

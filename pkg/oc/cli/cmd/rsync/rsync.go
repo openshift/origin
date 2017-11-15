@@ -186,22 +186,33 @@ func (o *RsyncOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return kcmdutil.UsageError(cmd, "only SOURCE_DIR and POD:DESTINATION_DIR should be specified as arguments")
 	}
 
-	// Set main command arguments
 	var err error
-	o.Source, err = parsePathSpec(args[0])
-	if err != nil {
-		return err
-	}
-	o.Destination, err = parsePathSpec(args[1])
-	if err != nil {
-		return err
-	}
-
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 	o.Namespace = namespace
+
+	// allow and parse resources specified in the <kind>/<name> format
+	parsedSourcePath, err := resolveResourceKindPath(f, args[0], namespace)
+	if err != nil {
+		return err
+	}
+
+	parsedDestPath, err := resolveResourceKindPath(f, args[1], namespace)
+	if err != nil {
+		return err
+	}
+
+	// Set main command arguments
+	o.Source, err = parsePathSpec(parsedSourcePath)
+	if err != nil {
+		return err
+	}
+	o.Destination, err = parsePathSpec(parsedDestPath)
+	if err != nil {
+		return err
+	}
 
 	o.Strategy, err = o.determineStrategy(f, cmd, o.StrategyName)
 	if err != nil {

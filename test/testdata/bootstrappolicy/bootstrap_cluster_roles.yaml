@@ -2561,6 +2561,20 @@ items:
     - update
     - watch
   - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - rolebindings
+    - roles
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - ""
     - authorization.openshift.io
     resources:
@@ -3106,14 +3120,6 @@ items:
     - subjectaccessreviews
     verbs:
     - create
-  - apiGroups:
-    - template.openshift.io
-    resources:
-    - subjectaccessreviews
-    verbs:
-    - get
-    - list
-    - watch
   - apiGroups:
     - template.openshift.io
     resources:

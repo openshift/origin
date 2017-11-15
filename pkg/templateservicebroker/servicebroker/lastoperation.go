@@ -9,12 +9,13 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/authorization"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 
-	"github.com/openshift/origin/pkg/authorization/util"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	"github.com/openshift/origin/pkg/templateservicebroker/util"
 )
 
 // LastOperation returns the status of an asynchronous operation.  Currently
@@ -45,7 +46,7 @@ func (b *Broker) lastOperationProvisioning(u user.Info, instanceID string) *api.
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "get",
 		Group:     templateapi.GroupName,
@@ -63,11 +64,11 @@ func (b *Broker) lastOperationProvisioning(u user.Info, instanceID string) *api.
 	state := api.LastOperationStateInProgress
 	var description string
 	for _, condition := range templateInstance.Status.Conditions {
-		if condition.Type == templateapi.TemplateInstanceReady && condition.Status == kapi.ConditionTrue {
+		if condition.Type == templateapiv1.TemplateInstanceReady && condition.Status == kapiv1.ConditionTrue {
 			state = api.LastOperationStateSucceeded
 			break
 		}
-		if condition.Type == templateapi.TemplateInstanceInstantiateFailure && condition.Status == kapi.ConditionTrue {
+		if condition.Type == templateapiv1.TemplateInstanceInstantiateFailure && condition.Status == kapiv1.ConditionTrue {
 			state = api.LastOperationStateFailed
 			description = condition.Message
 			break
@@ -90,7 +91,7 @@ func (b *Broker) lastOperationDeprovisioning(u user.Info, instanceID string) *ap
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "get",
 		Group:     templateapi.GroupName,

@@ -9,11 +9,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 
 func TestServiceFromTemplate(t *testing.T) {
-	template := &templateapi.Template{
+	template := &templateapiv1.Template{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "name",
 			UID:  "ee33151d-a34d-442d-a0ca-6353b73a58fd",
@@ -28,7 +29,7 @@ func TestServiceFromTemplate(t *testing.T) {
 				"openshift.io/support-url":           "supportURL",
 			},
 		},
-		Parameters: []templateapi.Parameter{
+		Parameters: []templateapiv1.Parameter{
 			{
 				Name:     "param1",
 				Required: true,

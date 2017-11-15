@@ -46,7 +46,7 @@ https://github.com/openshift/origin[origin repo].
 
 You can develop OpenShift on Windows, Mac, or Linux, but you'll need Docker
 installed on Linux to actually launch containers. Client and server binaries
-can be built locally or in the `openshift/release` container environment. The
+can be built locally or in the `openshift/origin-release` container environment. The
 http://golang.org/[Go] programming language is only necessary for building on
 the local host.
 

@@ -485,63 +485,145 @@ func TestBuildOutputCycleResilience(t *testing.T) {
 	}
 }
 
-func TestBuildOutputCycleWithFollowingTag(t *testing.T) {
-
-	config := &AppConfig{}
-
-	mockIS := &image.ImageStream{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mockimagestream",
-		},
-		Spec: image.ImageStreamSpec{
-			Tags: make(map[string]image.TagReference),
-		},
-	}
-	mockIS.Spec.Tags["latest"] = image.TagReference{
-		From: &kapi.ObjectReference{
-			Kind: "ImageStreamTag",
-			Name: "10.0",
-		},
-	}
-	mockIS.Spec.Tags["10.0"] = image.TagReference{
-		From: &kapi.ObjectReference{
-			Kind: "DockerImage",
-			Name: "mockimage:latest",
-		},
-	}
+func TestBuildOutputCycleWithCircularTag(t *testing.T) {
 
 	dfn := "mockdockerfilename"
-	followingTagCycleBC := &buildapi.BuildConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "buildCfgWithWeirdOutputObjectRef",
-		},
-		Spec: buildapi.BuildConfigSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Dockerfile: &dfn,
+
+	tests := []struct {
+		bc       *buildapi.BuildConfig
+		is       []runtime.Object
+		expected string
+	}{
+		{
+			bc: &buildapi.BuildConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "buildCfgWithWeirdOutputObjectRef",
 				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "mockimagestream:latest",
+				Spec: buildapi.BuildConfigSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Dockerfile: &dfn,
+						},
+						Strategy: buildapi.BuildStrategy{
+							DockerStrategy: &buildapi.DockerBuildStrategy{
+								From: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "mockimagestream:latest",
+								},
+							},
+						},
+						Output: buildapi.BuildOutput{
+							To: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "mockimagestream:10.0",
+							},
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: "mockimagestream:10.0",
+			},
+			is: []runtime.Object{
+				&image.ImageStream{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mockimagestream",
+					},
+					Spec: image.ImageStreamSpec{
+						Tags: map[string]image.TagReference{
+							"latest": {
+								From: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "10.0",
+								},
+							},
+							"10.0": {
+								From: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "latest",
+								},
+							},
+						},
 					},
 				},
 			},
+			expected: "image stream tag reference \"mockimagestream:latest\" is a circular loop of image stream tags",
+		},
+		{
+			bc: &buildapi.BuildConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "buildCfgWithWeirdOutputObjectRef",
+				},
+				Spec: buildapi.BuildConfigSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Dockerfile: &dfn,
+						},
+						Strategy: buildapi.BuildStrategy{
+							DockerStrategy: &buildapi.DockerBuildStrategy{
+								From: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "mockimagestream:latest",
+								},
+							},
+						},
+						Output: buildapi.BuildOutput{
+							To: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "fakeimagestream:latest",
+							},
+						},
+					},
+				},
+			},
+			is: []runtime.Object{
+				&image.ImageStream{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mockimagestream",
+					},
+					Spec: image.ImageStreamSpec{
+						Tags: map[string]image.TagReference{
+							"latest": {
+								From: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "fakeimagestream:latest",
+								},
+							},
+						},
+					},
+				},
+				&image.ImageStream{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "fakeimagestream",
+					},
+					Spec: image.ImageStreamSpec{
+						Tags: map[string]image.TagReference{
+							"latest": {
+								From: &kapi.ObjectReference{
+									Kind: "ImageStreamTag",
+									Name: "mockimagestream:latest",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: "image stream tag reference \"mockimagestream:latest\" is a circular loop of image stream tags",
 		},
 	}
 
-	expected := "output image of \"mockimage:latest\" should be different than input"
-	err := config.checkCircularReferences([]runtime.Object{followingTagCycleBC, mockIS})
-	if err == nil || err.Error() != expected {
-		t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, expected)
+	config := &AppConfig{}
+	for _, test := range tests {
+		objs := append(test.is, test.bc)
+		// so we test both with the fake image client seeded with the image streams, i.e. existing image streams
+		// and without, i.e. the generate flow is creating the image streams as well
+		config.ImageClient = imagefakeclient.NewSimpleClientset().Image()
+		err := config.checkCircularReferences(objs)
+		if err == nil || err.Error() != test.expected {
+			t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, test.expected)
+		}
+		config.ImageClient = imagefakeclient.NewSimpleClientset(test.is...).Image()
+		err = config.checkCircularReferences(objs)
+		if err == nil || err.Error() != test.expected {
+			t.Errorf("Expected error from followRefToDockerImage: got \"%v\" versus expected %q", err, test.expected)
+		}
 	}
 }
 
@@ -609,7 +691,7 @@ func TestDisallowedNonNumericExposedPorts(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error wasn't returned")
 
-		} else if !strings.Contains(err.Error(), "args are not supported for port numbers") {
+		} else if !strings.Contains(err.Error(), "port number must be in range 0 - 65535") {
 			t.Errorf("Unexpected error: %v", err)
 		}
 	}
@@ -646,7 +728,7 @@ func TestExposedPortsAreValid(t *testing.T) {
 		},
 		{
 			dockerfile:    "FROM centos\nARG PORT=8080\nEXPOSE $PORT",
-			expectedError: "args are not supported for port numbers",
+			expectedError: "port number must be in range 0 - 65535",
 		},
 		{
 			dockerfile:    "FROM centos\nEXPOSE 8080/xyz",

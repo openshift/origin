@@ -3,6 +3,7 @@ package pod
 import (
 	"fmt"
 	"math/rand"
+	"net"
 
 	"github.com/miekg/dns"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -47,14 +48,35 @@ func (d PodCheckDns) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(PodCheckDnsName)
 
 	if resolvConf, err := getResolvConf(r); err == nil {
-		connectAndResolve(resolvConf, r)
-		resolveSearch(resolvConf, r)
+		dnsServers := sanitizeDNSServers(resolvConf.Servers)
+		connectAndResolve(resolvConf, dnsServers, r)
+		resolveSearch(resolvConf, dnsServers, r)
 	}
 	return r
 }
 
-func connectAndResolve(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
-	for serverIndex, server := range resolvConf.Servers {
+// sanitizeDNSServers does these things:
+// - Reorder dns servers: ipv4 servers are ahead of ipv6 servers as we only support ipv4 addrs at this time
+// - Put all dns servers in square brackets: This will disambiguate addr and port when there are many colons in the addr
+func sanitizeDNSServers(servers []string) []string {
+	ipv4Servers := []string{}
+	ipv6Servers := []string{}
+
+	for _, server := range servers {
+		if ip := net.ParseIP(server); ip != nil {
+			if ip.To4() != nil {
+				ipv4Servers = append(ipv4Servers, fmt.Sprintf("[%s]", server))
+			} else {
+				ipv6Servers = append(ipv6Servers, fmt.Sprintf("[%s]", server))
+			}
+		}
+	}
+
+	return append(ipv4Servers, ipv6Servers...)
+}
+
+func connectAndResolve(resolvConf *dns.ClientConfig, dnsServers []string, r types.DiagnosticResult) {
+	for serverIndex, server := range dnsServers {
 		// put together a DNS query to configured nameservers for kubernetes.default
 		msg := new(dns.Msg)
 		msg.SetQuestion("kubernetes.default.svc.cluster.local.", dns.TypeA)
@@ -92,7 +114,7 @@ func connectAndResolve(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz0123456789"
 
-func resolveSearch(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
+func resolveSearch(resolvConf *dns.ClientConfig, dnsServers []string, r types.DiagnosticResult) {
 	foundDomain := false
 	randomString := func() string {
 		b := make([]byte, 20)
@@ -111,7 +133,7 @@ func resolveSearch(resolvConf *dns.ClientConfig, r types.DiagnosticResult) {
 		msg := new(dns.Msg)
 		msg.SetQuestion("wildcard."+randomString+"."+domain+".", dns.TypeA)
 		msg.RecursionDesired = true // otherwise we just get the authority section for the TLD
-		for _, server := range resolvConf.Servers {
+		for _, server := range dnsServers {
 			result, completed := dnsQueryWithTimeout(msg, server, 2)
 			switch {
 			case !completed:

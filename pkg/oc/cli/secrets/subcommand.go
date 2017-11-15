@@ -7,7 +7,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -15,15 +14,15 @@ const SecretsRecommendedName = "secrets"
 
 const (
 	// SourceUsername is the key of the optional username for basic authentication subcommand
-	SourceUsername = scmauth.UsernameSecret
+	SourceUsername = "username"
 	// SourcePassword is the key of the optional password or token for basic authentication subcommand
-	SourcePassword = scmauth.PasswordSecret
+	SourcePassword = "password"
 	// SourceCertificate is the key of the optional certificate authority for basic authentication subcommand
-	SourceCertificate = scmauth.CACertName
+	SourceCertificate = "ca.crt"
 	// SourcePrivateKey is the key of the required SSH private key for SSH authentication subcommand
-	SourcePrivateKey = scmauth.SSHPrivateKeyMethodName
+	SourcePrivateKey = "ssh-privatekey"
 	// SourceGitconfig is the key of the optional gitconfig content for both basic and SSH authentication subcommands
-	SourceGitConfig = scmauth.GitConfigName
+	SourceGitConfig = ".gitconfig"
 )
 
 var (

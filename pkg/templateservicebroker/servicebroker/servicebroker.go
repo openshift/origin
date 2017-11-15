@@ -8,12 +8,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 
-	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
-	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
-	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
+	templateclientset "github.com/openshift/origin/pkg/template/generated/clientset"
+	v1template "github.com/openshift/origin/pkg/template/generated/clientset/typed/template/v1"
+	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/externalversions/template/v1"
+	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	restutil "github.com/openshift/origin/pkg/util/rest"
 )
@@ -23,7 +23,7 @@ import (
 type Broker struct {
 	kc                 kclientset.Interface
 	extconfig          *restclient.Config
-	templateclient     internalversiontemplate.TemplateInterface
+	templateclient     v1template.TemplateV1Interface
 	lister             templatelister.TemplateLister
 	hasSynced          func() bool
 	templateNamespaces map[string]struct{}

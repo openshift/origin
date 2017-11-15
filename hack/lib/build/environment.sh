@@ -10,14 +10,17 @@ function os::build::environment::create() {
   set -o errexit
   local release_image="${OS_BUILD_ENV_IMAGE}"
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
+
+  local workingdir
+  workingdir=$( os::build::environment::release::workingdir )
+  additional_context+=" -w ${workingdir}"
+
   if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
     additional_context+=" --privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
     if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
       # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
       # and set the running user to the current user
-      local workingdir
-      workingdir=$( os::build::environment::release::workingdir )
       additional_context+=" -v ${OS_ROOT}:${workingdir} -u $(id -u)"
     elif [[ -n "${OS_BUILD_ENV_VOLUME:-}" ]]; then
       if docker volume inspect "${OS_BUILD_ENV_VOLUME}" >/dev/null 2>&1; then
@@ -40,9 +43,6 @@ function os::build::environment::create() {
         fi
         additional_context+=" -v ${OS_BUILD_ENV_TMP_VOLUME}:/tmp"
       fi
-
-      local workingdir
-      workingdir=$( os::build::environment::release::workingdir )
       additional_context+=" -v ${OS_BUILD_ENV_VOLUME}:${workingdir}"
     fi
   fi
@@ -89,6 +89,10 @@ readonly -f os::build::environment::create
 # os::build::environment::release::workingdir calculates the working directory for the current
 # release image.
 function os::build::environment::release::workingdir() {
+  if [[ -n "${OS_BUILD_ENV_WORKINGDIR-}" ]]; then
+    echo "${OS_BUILD_ENV_WORKINGDIR}"
+    return 0
+  fi
   set -o errexit
   # get working directory
   local container
@@ -185,7 +189,7 @@ function os::build::environment::withsource() {
   if [[ -n "${OS_BUILD_ENV_FROM_ARCHIVE-}" ]]; then
     # Generate version definitions. Tree state is clean because we are pulling from git directly.
     OS_GIT_TREE_STATE=clean os::build::version::get_vars
-    os::build::version::save_vars "/tmp/os-version-defs"
+    os::build::version::save_vars > "/tmp/os-version-defs"
 
     os::log::debug "Generating source code archive"
     tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:/tmp"

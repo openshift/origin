@@ -34,28 +34,7 @@ if [[ -z "${source_tag}" ]]; then
   fi
 fi
 
-images=(
-  openshift/origin
-  openshift/origin-base
-  openshift/origin-pod
-  openshift/origin-deployer
-  openshift/origin-docker-builder
-  openshift/origin-docker-registry
-  openshift/origin-keepalived-ipfailover
-  openshift/origin-sti-builder
-  openshift/origin-haproxy-router
-  openshift/origin-f5-router
-  openshift/origin-egress-router
-  openshift/origin-egress-http-proxy
-  openshift/origin-recycler
-  openshift/origin-gitserver
-  openshift/origin-cluster-capacity
-  openshift/origin-service-catalog
-  openshift/origin-template-service-broker
-  openshift/hello-openshift
-  openshift/openvswitch
-  openshift/node
-)
+images=( "${OS_ALL_IMAGES[@]}" )
 
 PUSH_OPTS=""
 if docker push --help | grep -q force; then

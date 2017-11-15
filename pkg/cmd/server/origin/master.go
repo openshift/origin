@@ -153,7 +153,7 @@ func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil
 	}
 
-	config, err := NewAssetServerConfigFromMasterConfig(c.Options)
+	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig)
 	if err != nil {
 		return nil, err
 	}
