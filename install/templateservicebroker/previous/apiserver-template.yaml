@@ -4,7 +4,7 @@ metadata:
   name: template-service-broker-apiserver
 parameters:
 - name: IMAGE
-  value: openshift/origin-template-service-broker:latest
+  value: openshift/origin:latest
 - name: NAMESPACE
   value: openshift-template-service-broker
 - name: LOGLEVEL
@@ -40,14 +40,14 @@ objects:
           image: ${IMAGE}
           imagePullPolicy: IfNotPresent
           command:
-          - "/usr/bin/template-service-broker"
+          - "/usr/bin/openshift"
           - "start"
           - "template-service-broker"
           - "--secure-port=8443"
           - "--audit-log-path=-"
           - "--tls-cert-file=/var/serving-cert/tls.crt"
           - "--tls-private-key-file=/var/serving-cert/tls.key"
-          - "-v=${LOGLEVEL}"
+          - "--loglevel=${LOGLEVEL}"
           - "--config=/var/apiserver-config/apiserver-config.yaml"
           ports:
           - containerPort: 8443

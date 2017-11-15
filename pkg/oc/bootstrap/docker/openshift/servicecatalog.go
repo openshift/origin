@@ -70,7 +70,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	glog.V(2).Infof("instantiating service catalog template with parameters %v", params)
 
 	// Stands up the service catalog apiserver, etcd, and controller manager
-	err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, catalogTemplate, catalogNamespace, params, true)
+	err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, catalogTemplate, catalogNamespace, params, true)
 	if err != nil {
 		return errors.NewError("cannot instantiate service catalog template").WithCause(err)
 	}
