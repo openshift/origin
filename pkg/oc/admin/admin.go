@@ -15,7 +15,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/admin/cert"
-	diagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics"
 	"github.com/openshift/origin/pkg/oc/admin/groups"
 	"github.com/openshift/origin/pkg/oc/admin/image"
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
@@ -69,7 +69,6 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out, errout),
 				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, out, errout),
 				cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, out, errout),
-				admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, f, out),
 				kubecmd.NewCmdCertificate(f, out),
 			},
 		},
