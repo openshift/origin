@@ -11,11 +11,11 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/Azure/go-ansiterm",
-			"Rev": "70b2c90b260171e829f1ebd7c17f600c11858dbe"
+			"Rev": "7e0a0b69f76673d5d2f451ee59d9d02cfa006527"
 		},
 		{
 			"ImportPath": "github.com/Azure/go-ansiterm/winterm",
-			"Rev": "70b2c90b260171e829f1ebd7c17f600c11858dbe"
+			"Rev": "7e0a0b69f76673d5d2f451ee59d9d02cfa006527"
 		},
 		{
 			"ImportPath": "github.com/Microsoft/go-winio",
