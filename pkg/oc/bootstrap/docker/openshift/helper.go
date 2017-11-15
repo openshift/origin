@@ -49,16 +49,22 @@ const (
 	aggregatorCAKey             = "front-proxy-ca.key"
 	aggregatorCASerial          = "frontend-proxy-ca.serial.txt"
 	aggregatorKeyPath           = serverConfigPath + "/master/" + aggregatorKey
+	serverCAPath                = serverConfigPath + "/master/ca.crt"
 	aggregatorCertPath          = serverConfigPath + "/master/" + aggregatorCert
 	aggregatorCACertPath        = serverConfigPath + "/master/" + aggregatorCACert
 	aggregatorCAKeyPath         = serverConfigPath + "/master/" + aggregatorCAKey
 	aggregatorCASerialPath      = serverConfigPath + "/master/" + aggregatorCASerial
+	hostDockerCertPath          = "/etc/docker/certs.d"
+	hostDockerLatestCertPath    = "/etc/docker-latest/certs.d"
+	hostDockerCertName          = "registry.crt"
+	hostDockerCertPermissions   = 644
 	DefaultDNSPort              = 53
 	AlternateDNSPort            = 8053
 	cmdDetermineNodeHost        = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 	OpenShiftContainer          = "origin"
 	OpenshiftNamespace          = "openshift"
 	OpenshiftInfraNamespace     = "openshift-infra"
+	DefaultDNSWildCardProvider  = "nip.io"
 )
 
 var (
@@ -68,6 +74,10 @@ var (
 		"/sys:/sys:rw",
 		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
 		"/dev:/dev",
+	}
+	dockerConfigBinds = []string{
+		"/etc:/etc:rw",
+		"/var:/var:rw",
 	}
 	BasePorts             = []int{4001, 7001, 8443, 10250}
 	RouterPorts           = []int{80, 443}
@@ -133,6 +143,7 @@ type StartOptions struct {
 	KubeconfigContents       string
 	DockerRoot               string
 	ServiceCatalog           bool
+	ExternalRegistryHostname string
 }
 
 // NewHelper creates a new OpenShift helper
@@ -358,6 +369,13 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		if err != nil {
 			return "", errors.NewError("could not copy OpenShift configuration").WithCause(err)
 		}
+		//Update host container runtime certs for trust. We do this ONLY if user do not specify keep-config
+		opt, err = h.configureHostDocker(opt)
+		if err != nil {
+			fmt.Printf("Warrning: Can't configure docker daemon with registry certificates with error: %s\n", err)
+		}
+
+		//We update configuration only once. So any config changes need to be done before.
 		if err := h.updateConfig(configDir, opt); err != nil {
 			cleanupConfig()
 			return "", errors.NewError("could not update OpenShift configuration").WithCause(err)
@@ -715,11 +733,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	}
 	cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/admissionregistration.k8s.io/v1alpha1=true")
 
-	if len(opt.RoutingSuffix) > 0 {
-		cfg.RoutingConfig.Subdomain = opt.RoutingSuffix
-	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.nip.io", opt.ServerIP)
-	}
+	cfg.RoutingConfig.Subdomain = GetRoutingConfigSubdomain(opt)
 
 	if len(opt.MetricsHost) > 0 && cfg.AssetConfig != nil {
 		cfg.AssetConfig.MetricsPublicURL = fmt.Sprintf("https://%s/hawkular/metrics", opt.MetricsHost)
@@ -761,6 +775,10 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 			})
 		}
 		cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin] = buildDefaultsConfig
+	}
+
+	if len(cfg.ImagePolicyConfig.ExternalRegistryHostname) == 0 && len(opt.ExternalRegistryHostname) > 0 {
+		cfg.ImagePolicyConfig.ExternalRegistryHostname = opt.ExternalRegistryHostname
 	}
 
 	version, err := h.ServerVersion()
@@ -976,4 +994,56 @@ kubelet --help | grep -- "--cgroup-driver"
 		Run()
 
 	return rc == 0 && err == nil
+}
+
+// configureHostDocker configures oc cluster up underlying host container runtime
+func (h *Helper) configureHostDocker(opt *StartOptions) (*StartOptions, error) {
+	registryURL := GetRegistryHost(GetRoutingConfigSubdomain(opt), opt.ServerIP)
+	glog.V(1).Info("Copy master CA to host docker certificates location")
+	dockerConfigBinds = append(dockerConfigBinds, fmt.Sprintf("%s:%s:rw", opt.HostConfigDir, serverConfigPath))
+	script := `#!/bin/bash
+		# Exit with an error
+		set -e
+		if [[ -d ` + hostDockerCertPath + ` ]]; then
+	      	mkdir -p ` + fmt.Sprintf("%s/%s", hostDockerCertPath, registryURL) + `
+		    cp ` + fmt.Sprintf("%s %s/%s/%s", serverCAPath, hostDockerCertPath, registryURL, hostDockerCertName) + `
+		elif [[ -d ` + hostDockerLatestCertPath + ` ]]; then
+		  	mkdir -p ` + fmt.Sprintf("%s/%s", hostDockerLatestCertPath, registryURL) + `
+			cp ` + fmt.Sprintf("%s %s/%s/%s", serverCAPath, hostDockerLatestCertPath, registryURL, hostDockerCertName) + `
+		else 
+			echo ERROR: Internal image registry configuration error. Failed to find ` + hostDockerCertPath + ` or ` + hostDockerLatestCertPath + ` directories.
+	    	exit 1
+	    fi
+		`
+	id, err := h.runHelper.New().Image(h.image).
+		DiscardContainer().
+		HostPid().
+		Privileged().
+		Bind(dockerConfigBinds...).
+		Entrypoint("/bin/bash").
+		Command("-c", script).
+		Run()
+	if err != nil || id != 0 {
+		return opt, errors.NewError("cannot copy registry ca to host docker trust folder").WithCause(err)
+	}
+
+	//set registry values in master-config
+	opt.ExternalRegistryHostname = registryURL
+	return opt, err
+}
+
+// GetRegistryHost returns registry url with suffix
+func GetRegistryHost(routingSuffix, serverIP string) string {
+	if len(routingSuffix) > 0 {
+		return fmt.Sprintf("%s-%s.%s", SvcDockerRegistry, DefaultNamespace, routingSuffix)
+	}
+	return fmt.Sprintf("%s-%s.%s.%s", SvcDockerRegistry, DefaultNamespace, serverIP, DefaultDNSWildCardProvider)
+}
+
+// GetRoutingConfigSubdomain return RoutingConfig: Subdomain string based either on args or nio.io
+func GetRoutingConfigSubdomain(opt *StartOptions) string {
+	if len(opt.RoutingSuffix) > 0 {
+		return opt.RoutingSuffix
+	}
+	return fmt.Sprintf("%s.%s", opt.ServerIP, DefaultDNSWildCardProvider)
 }
