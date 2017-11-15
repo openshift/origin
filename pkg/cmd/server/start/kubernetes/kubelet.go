@@ -20,7 +20,7 @@ starting from a configuration file.`
 
 // NewKubeletCommand provides a CLI handler for the 'kubelet' command
 func NewKubeletCommand(name, fullName string, out io.Writer) *cobra.Command {
-	kubeletOptions := kubeletoptions.NewKubeletServer()
+	kubeletOptions, _ := kubeletoptions.NewKubeletServer()
 
 	cmd := &cobra.Command{
 		Use:   name,

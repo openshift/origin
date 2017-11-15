@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	dockertypes "github.com/docker/engine-api/types"
+	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 

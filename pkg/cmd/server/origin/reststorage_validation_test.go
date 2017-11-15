@@ -88,19 +88,22 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 	sccStorage := sccstorage.NewREST(restOptionsGetter)
 
 	ret := &OpenshiftAPIConfig{
-		GenericConfig: &apiserver.Config{
-			LoopbackClientConfig: &restclient.Config{},
-			RESTOptionsGetter:    restOptionsGetter,
+		GenericConfig: &apiserver.RecommendedConfig{
+			Config: apiserver.Config{
+				LoopbackClientConfig: &restclient.Config{},
+				RESTOptionsGetter:    restOptionsGetter,
+			},
 		},
-
-		KubeClientInternal:            &kclientsetinternal.Clientset{},
-		KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
-		KubeInternalInformers:         internalkubeInformerFactory,
-		QuotaInformers:                quotaInformerFactory,
-		SecurityInformers:             securityInformerFactory,
-		SCCStorage:                    sccStorage,
-		EnableBuilds:                  true,
-		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
+		ExtraConfig: OpenshiftAPIExtraConfig{
+			KubeClientInternal:            &kclientsetinternal.Clientset{},
+			KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
+			KubeInternalInformers:         internalkubeInformerFactory,
+			QuotaInformers:                quotaInformerFactory,
+			SecurityInformers:             securityInformerFactory,
+			SCCStorage:                    sccStorage,
+			EnableBuilds:                  true,
+			ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
+		},
 	}
 	return ret
 }

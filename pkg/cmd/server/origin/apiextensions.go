@@ -11,17 +11,21 @@ import (
 func createAPIExtensionsConfig(kubeAPIServerConfig genericapiserver.Config, kubeEtcdOptions *genericoptions.EtcdOptions) (*apiextensionsapiserver.Config, error) {
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items related to the particulars of the apiextensions
-	genericConfig := kubeAPIServerConfig
+	recommendedConfig := genericapiserver.RecommendedConfig{
+		Config: kubeAPIServerConfig,
+	}
 
 	// copy the etcd options so we don't mutate originals.
 	etcdOptions := *kubeEtcdOptions
 	etcdOptions.StorageConfig.Codec = apiextensionsapiserver.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion)
 	etcdOptions.StorageConfig.Copier = apiextensionsapiserver.Scheme
-	genericConfig.RESTOptionsGetter = &genericoptions.SimpleRestOptionsFactory{Options: etcdOptions}
+	recommendedConfig.RESTOptionsGetter = &genericoptions.SimpleRestOptionsFactory{Options: etcdOptions}
 
 	apiextensionsConfig := &apiextensionsapiserver.Config{
-		GenericConfig:        &genericConfig,
-		CRDRESTOptionsGetter: apiextensionscmd.NewCRDRESTOptionsGetter(etcdOptions),
+		GenericConfig: &recommendedConfig,
+		ExtraConfig: apiextensionsapiserver.ExtraConfig{
+			CRDRESTOptionsGetter: apiextensionscmd.NewCRDRESTOptionsGetter(etcdOptions),
+		},
 	}
 
 	return apiextensionsConfig, nil

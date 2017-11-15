@@ -35,6 +35,11 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 
 	"PodPreset",                // alpha in kube 1.6, not on by default
 	"DefaultTolerationSeconds", // alpha, not on by default
+
+	// TODO do we want these:
+	"EventRateLimit",
+	"PersistentVolumeClaimResize",
+	"Priority",
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {

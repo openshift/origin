@@ -43,6 +43,7 @@ import (
 )
 
 func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Config) (*aggregatorapiserver.Config, error) {
+
 	// this is a shallow copy so let's twiddle a few things
 	// the aggregator doesn't wire these up.  It just delegates them to the kubeapiserver
 	genericConfig.EnableSwaggerUI = false
@@ -72,13 +73,18 @@ func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Con
 	}
 
 	aggregatorConfig := &aggregatorapiserver.Config{
-		GenericConfig:     &genericConfig,
-		CoreKubeInformers: c.ClientGoKubeInformers,
-		ProxyClientCert:   certBytes,
-		ProxyClientKey:    keyBytes,
-		ServiceResolver:   serviceResolver,
-		ProxyTransport:    utilnet.SetTransportDefaults(&http.Transport{}),
+		GenericConfig: &genericapiserver.RecommendedConfig{
+			Config:                genericConfig,
+			SharedInformerFactory: c.ClientGoKubeInformers,
+		},
+		ExtraConfig: aggregatorapiserver.ExtraConfig{
+			ProxyClientCert: certBytes,
+			ProxyClientKey:  keyBytes,
+			ServiceResolver: serviceResolver,
+			ProxyTransport:  utilnet.SetTransportDefaults(&http.Transport{}),
+		},
 	}
+
 	return aggregatorConfig, nil
 }
 
@@ -96,7 +102,6 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 	autoRegistrationController := autoregister.NewAutoRegisterController(aggregatorServer.APIRegistrationInformers.Apiregistration().InternalVersion().APIServices(), apiRegistrationClient)
 	apiServices := apiServicesToRegister(delegateAPIServer, autoRegistrationController)
 	tprRegistrationController := crdregistration.NewAutoRegistrationController(
-		kubeInformers.Extensions().InternalVersion().ThirdPartyResources(),
 		apiExtensionInformers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
 		autoRegistrationController)
 

@@ -16,6 +16,7 @@ import (
 	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/cert"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -61,7 +62,7 @@ func NewAuthenticator(
 		options,
 		oauthClient.OAuthAccessTokens(),
 		serviceAccountTokenGetter,
-		userClient.Users(),
+		userClient.User().Users(),
 		apiClientCAs,
 		usercache.NewGroupCache(informers.GetUserInformers().User().InternalVersion().Groups()),
 	)
@@ -75,7 +76,7 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
 		publicKeys := []interface{}{}
 		for _, keyFile := range config.ServiceAccountConfig.PublicKeyFiles {
-			readPublicKeys, err := serviceaccount.ReadPublicKeys(keyFile)
+			readPublicKeys, err := cert.PublicKeysFromFile(keyFile)
 			if err != nil {
 				return nil, fmt.Errorf("Error reading service account key file %s: %v", keyFile, err)
 			}

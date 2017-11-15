@@ -13,9 +13,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
-type OpenshiftNonAPIConfig struct {
-	GenericConfig *genericapiserver.Config
-
+type NonAPIExtraConfig struct {
 	// these are only needed for the controller endpoint which should be moved out and made an optional
 	// add-on in the chain (as the final delegate) when running an all-in-one
 	ControllerPlug plug.Plug
@@ -24,29 +22,38 @@ type OpenshiftNonAPIConfig struct {
 	EnableOAuth     bool
 }
 
+type OpenshiftNonAPIConfig struct {
+	GenericConfig *genericapiserver.RecommendedConfig
+	ExtraConfig   NonAPIExtraConfig
+}
+
 // OpenshiftNonAPIServer serves non-API endpoints for openshift.
 type OpenshiftNonAPIServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 }
 
 type completedOpenshiftNonAPIConfig struct {
-	*OpenshiftNonAPIConfig
+	GenericConfig genericapiserver.CompletedConfig
+	ExtraConfig   *NonAPIExtraConfig
+}
+
+type CompletedOpenshiftNonAPIConfig struct {
+	// Embed a private pointer that cannot be instantiated outside of this package.
+	*completedOpenshiftNonAPIConfig
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (c *OpenshiftNonAPIConfig) Complete() completedOpenshiftNonAPIConfig {
-	c.GenericConfig.Complete()
+	cfg := completedOpenshiftNonAPIConfig{
+		c.GenericConfig.Complete(),
+		&c.ExtraConfig,
+	}
 
-	return completedOpenshiftNonAPIConfig{c}
-}
-
-// SkipComplete provides a way to construct a server instance without config completion.
-func (c *OpenshiftNonAPIConfig) SkipComplete() completedOpenshiftNonAPIConfig {
-	return completedOpenshiftNonAPIConfig{c}
+	return cfg
 }
 
 func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftNonAPIServer, error) {
-	genericServer, err := c.OpenshiftNonAPIConfig.GenericConfig.SkipComplete().New("openshift-non-api-routes", delegationTarget) // completion is done in Complete, no need for a second time
+	genericServer, err := c.GenericConfig.New("openshift-non-api-routes", delegationTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +63,12 @@ func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.De
 	}
 
 	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
-	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.ControllerPlug)
+	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.ExtraConfig.ControllerPlug)
 
 	// TODO move this up to the spot where we wire the oauth endpoint
 	// Set up OAuth metadata only if we are configured to use OAuth
-	if c.EnableOAuth {
-		initOAuthAuthorizationServerMetadataRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, oauthMetadataEndpoint, c.MasterPublicURL)
+	if c.ExtraConfig.EnableOAuth {
+		initOAuthAuthorizationServerMetadataRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, oauthMetadataEndpoint, c.ExtraConfig.MasterPublicURL)
 	}
 
 	return s, nil

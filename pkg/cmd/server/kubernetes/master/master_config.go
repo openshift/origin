@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	auditinternal "k8s.io/apiserver/pkg/apis/audit"
+	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 	"k8s.io/apiserver/pkg/audit"
 	auditpolicy "k8s.io/apiserver/pkg/audit/policy"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -271,9 +272,6 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	if err := s.Etcd.ApplyTo(genericConfig); err != nil {
-		return nil, err
-	}
 	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
@@ -399,7 +397,6 @@ func buildKubeApiserverConfig(
 	genericConfig.PublicAddress = publicAddress
 	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
 	genericConfig.Authorizer = kubeAuthorizer         // this is used to fulfill the kube SAR endpoints
-	genericConfig.SharedInformerFactory = clientGoInformers
 	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
@@ -470,43 +467,45 @@ func buildKubeApiserverConfig(
 
 	kubeApiserverConfig := &master.Config{
 		GenericConfig: genericConfig,
-		MasterCount:   apiserverOptions.MasterCount,
+		ExtraConfig: master.ExtraConfig{
+			MasterCount: apiserverOptions.MasterCount,
 
-		// Set the TLS options for proxying to pods and services
-		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
-		ProxyTransport: knet.SetTransportDefaults(&http.Transport{
-			TLSClientConfig: &tls.Config{
-				// Proxying to pods and services cannot verify hostnames, since they are contacted on randomly allocated IPs
-				InsecureSkipVerify: true,
-				Certificates:       proxyClientCerts,
-			},
-		}),
+			// Set the TLS options for proxying to pods and services
+			// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
+			ProxyTransport: knet.SetTransportDefaults(&http.Transport{
+				TLSClientConfig: &tls.Config{
+					// Proxying to pods and services cannot verify hostnames, since they are contacted on randomly allocated IPs
+					InsecureSkipVerify: true,
+					Certificates:       proxyClientCerts,
+				},
+			}),
 
-		ClientCARegistrationHook: clientCARegistrationHook,
+			ClientCARegistrationHook: clientCARegistrationHook,
 
-		APIServerServicePort:      443,
-		ServiceNodePortRange:      apiserverOptions.ServiceNodePortRange,
-		KubernetesServiceNodePort: apiserverOptions.KubernetesServiceNodePort,
-		ServiceIPRange:            apiserverOptions.ServiceClusterIPRange,
+			APIServerServicePort:      443,
+			ServiceNodePortRange:      apiserverOptions.ServiceNodePortRange,
+			KubernetesServiceNodePort: apiserverOptions.KubernetesServiceNodePort,
+			ServiceIPRange:            apiserverOptions.ServiceClusterIPRange,
 
-		StorageFactory:          storageFactory,
-		APIResourceConfigSource: getAPIResourceConfig(masterConfig),
+			StorageFactory:          storageFactory,
+			APIResourceConfigSource: getAPIResourceConfig(masterConfig),
 
-		EventTTL: apiserverOptions.EventTTL,
+			EventTTL: apiserverOptions.EventTTL,
 
-		KubeletClientConfig: *configapi.GetKubeletClientConfig(masterConfig),
+			KubeletClientConfig: *configapi.GetKubeletClientConfig(masterConfig),
 
-		EnableLogsSupport:     false, // don't expose server logs
-		EnableCoreControllers: true,
+			EnableLogsSupport:     false, // don't expose server logs
+			EnableCoreControllers: true,
+		},
 	}
 
-	if kubeApiserverConfig.EnableCoreControllers {
+	if kubeApiserverConfig.ExtraConfig.EnableCoreControllers {
 		ttl := masterConfig.KubernetesMasterConfig.MasterEndpointReconcileTTL
 		interval := ttl * 2 / 3
 
 		glog.V(2).Infof("Using the lease endpoint reconciler with TTL=%ds and interval=%ds", ttl, interval)
 
-		config, err := kubeApiserverConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
+		config, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
 		if err != nil {
 			return nil, err
 		}
@@ -517,7 +516,7 @@ func buildKubeApiserverConfig(
 
 		masterLeases := newMasterLeases(leaseStorage, ttl)
 
-		endpointConfig, err := kubeApiserverConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
+		endpointConfig, err := kubeApiserverConfig.ExtraConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
 		if err != nil {
 			return nil, err
 		}
@@ -525,12 +524,12 @@ func buildKubeApiserverConfig(
 			StorageConfig:           endpointConfig,
 			Decorator:               generic.UndecoratedStorage,
 			DeleteCollectionWorkers: 0,
-			ResourcePrefix:          kubeApiserverConfig.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
+			ResourcePrefix:          kubeApiserverConfig.ExtraConfig.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
 		})
 
 		endpointRegistry := endpoint.NewRegistry(endpointsStorage)
 
-		kubeApiserverConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
+		kubeApiserverConfig.ExtraConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
 			Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
 			Interval:   time.Duration(interval) * time.Second,
 		}
@@ -545,11 +544,11 @@ func buildKubeApiserverConfig(
 		if err != nil {
 			return nil, fmt.Errorf("invalid DNS port: %v", err)
 		}
-		kubeApiserverConfig.ExtraServicePorts = append(kubeApiserverConfig.ExtraServicePorts,
+		kubeApiserverConfig.ExtraConfig.ExtraServicePorts = append(kubeApiserverConfig.ExtraConfig.ExtraServicePorts,
 			kapi.ServicePort{Name: "dns", Port: 53, Protocol: kapi.ProtocolUDP, TargetPort: intstr.FromInt(dnsPort)},
 			kapi.ServicePort{Name: "dns-tcp", Port: 53, Protocol: kapi.ProtocolTCP, TargetPort: intstr.FromInt(dnsPort)},
 		)
-		kubeApiserverConfig.ExtraEndpointPorts = append(kubeApiserverConfig.ExtraEndpointPorts,
+		kubeApiserverConfig.ExtraConfig.ExtraEndpointPorts = append(kubeApiserverConfig.ExtraConfig.ExtraEndpointPorts,
 			kapi.EndpointPort{Name: "dns", Port: int32(dnsPort), Protocol: kapi.ProtocolUDP},
 			kapi.EndpointPort{Name: "dns-tcp", Port: int32(dnsPort), Protocol: kapi.ProtocolTCP},
 		)
@@ -786,7 +785,7 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 		// backwards compatible writer to regular log
 		writer = cmdutil.NewGLogWriterV(0)
 	}
-	backend = auditlog.NewBackend(writer, auditlog.FormatLegacy)
+	backend = auditlog.NewBackend(writer, auditlog.FormatJson, auditv1beta1.SchemeGroupVersion)
 	policyChecker = auditpolicy.NewChecker(&auditinternal.Policy{
 		// This is for backwards compatibility maintaining the old visibility, ie. just
 		// raw overview of the requests comming in.
@@ -806,12 +805,12 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 
 		// log configuration, only when file path was provided
 		if len(auditConfig.AuditFilePath) > 0 {
-			backend = auditlog.NewBackend(writer, string(auditConfig.LogFormat))
+			backend = auditlog.NewBackend(writer, string(auditConfig.LogFormat), auditv1beta1.SchemeGroupVersion)
 		}
 
 		// webhook configuration, only when config file was provided
 		if len(auditConfig.WebHookKubeConfig) > 0 {
-			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, string(auditConfig.WebHookMode))
+			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, string(auditConfig.WebHookMode), auditv1beta1.SchemeGroupVersion)
 			if err != nil {
 				glog.Fatalf("Audit webhook initialization failed: %v", err)
 			}

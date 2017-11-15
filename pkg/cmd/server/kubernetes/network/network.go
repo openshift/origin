@@ -79,7 +79,13 @@ func (c *NetworkConfig) RunProxy() {
 	var endpointsHandler pconfig.EndpointsHandler
 	var healthzServer *healthcheck.HealthzServer
 	if len(c.ProxyConfig.HealthzBindAddress) > 0 {
-		healthzServer = healthcheck.NewDefaultHealthzServer(c.ProxyConfig.HealthzBindAddress, 2*c.ProxyConfig.IPTables.SyncPeriod.Duration)
+		nodeRef := &v1.ObjectReference{
+			Kind:      "Node",
+			Name:      hostname,
+			UID:       types.UID(hostname),
+			Namespace: "",
+		}
+		healthzServer = healthcheck.NewDefaultHealthzServer(c.ProxyConfig.HealthzBindAddress, 2*c.ProxyConfig.IPTables.SyncPeriod.Duration, recorder, nodeRef)
 	}
 
 	switch c.ProxyConfig.Mode {
