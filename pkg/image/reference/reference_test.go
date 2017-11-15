@@ -2,6 +2,7 @@ package reference
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -15,60 +16,71 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 		{
 			From: "foo",
 			Name: "foo",
+			Err:  true,
 		},
 		{
 			From: "foo:tag",
 			Name: "foo",
 			Tag:  "tag",
+			Err:  true,
 		},
 		{
 			From: "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Name: "sha256",
 			Tag:  "3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Err:  true,
 		},
 		{
 			From: "foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Name: "foo",
 			ID:   "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Err:  true,
 		},
 		{
 			From:      "bar/foo",
 			Namespace: "bar",
 			Name:      "foo",
+			Err:       true,
 		},
 		{
 			From:      "bar/foo:tag",
 			Namespace: "bar",
 			Name:      "foo",
 			Tag:       "tag",
+			Err:       true,
 		},
 		{
 			From:      "bar/foo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Namespace: "bar",
 			Name:      "foo",
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Err:       true,
 		},
 		{
 			From:      "bar/foo/baz",
 			Namespace: "bar",
 			Name:      "foo/baz",
+			Err:       true,
 		},
 		{
 			From:      "bar/library/baz",
 			Namespace: "bar",
 			Name:      "library/baz",
+			Err:       true,
 		},
 		{
 			From:      "bar/foo/baz:tag",
 			Namespace: "bar",
 			Name:      "foo/baz",
 			Tag:       "tag",
+			Err:       true,
 		},
 		{
 			From:      "bar/foo/baz@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 			Namespace: "bar",
 			Name:      "foo/baz",
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Err:       true,
 		},
 		{
 			From:      "bar:5000/foo/baz",
@@ -100,6 +112,7 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 			Namespace: "foo",
 			Name:      "baz",
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Err:       true,
 		},
 		{
 			From:     "myregistry.io/foo",
@@ -121,6 +134,7 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 			From:     "docker.io/myapp",
 			Registry: "docker.io",
 			Name:     "myapp",
+			Err:      true,
 		},
 		{
 			From:      "docker.io/user/myapp",
@@ -138,6 +152,7 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 			From:     "index.docker.io/bar",
 			Registry: "index.docker.io",
 			Name:     "bar",
+			Err:      true,
 		},
 		{
 			// registry/namespace/name == 255 chars
@@ -161,6 +176,7 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 			Registry: "docker.io",
 			Name:     strings.Repeat("b", 231),
 			Tag:      "tag",
+			Err:      true,
 		},
 		{
 			// registry/namespace/name > 255 chars
@@ -212,6 +228,7 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 			From:      "bar/foo/baz/biz",
 			Namespace: "bar",
 			Name:      "foo/baz/biz",
+			Err:       true,
 		},
 		{
 			From: "bar/foo/baz////biz",
@@ -231,32 +248,34 @@ func TestParseNamedDockerImageReference(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		ref, err := ParseNamedDockerImageReference(testCase.From)
-		switch {
-		case err != nil && !testCase.Err:
-			t.Errorf("%s: unexpected error: %v", testCase.From, err)
-			continue
-		case err == nil && testCase.Err:
-			t.Errorf("%s: unexpected non-error: %#+v", testCase.From, ref)
-			continue
-		case err != nil && testCase.Err:
-			continue
-		}
-		if e, a := testCase.Registry, ref.Registry; e != a {
-			t.Errorf("%s: registry: expected %q, got %q", testCase.From, e, a)
-		}
-		if e, a := testCase.Namespace, ref.Namespace; e != a {
-			t.Errorf("%s: namespace: expected %q, got %q", testCase.From, e, a)
-		}
-		if e, a := testCase.Name, ref.Name; e != a {
-			t.Errorf("%s: name: expected %q, got %q", testCase.From, e, a)
-		}
-		if e, a := testCase.Tag, ref.Tag; e != a {
-			t.Errorf("%s: tag: expected %q, got %q", testCase.From, e, a)
-		}
-		if e, a := testCase.ID, ref.ID; e != a {
-			t.Errorf("%s: id: expected %q, got %q", testCase.From, e, a)
-		}
+	for i, testCase := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			ref, err := ParseNamedDockerImageReference(testCase.From)
+			switch {
+			case err != nil && !testCase.Err:
+				t.Errorf("%s: unexpected error: %v", testCase.From, err)
+				return
+			case err == nil && testCase.Err:
+				t.Errorf("%s: unexpected non-error: %#+v", testCase.From, ref)
+				return
+			case err != nil && testCase.Err:
+				return
+			}
+			if e, a := testCase.Registry, ref.Registry; e != a {
+				t.Errorf("%s: registry: expected %q, got %q", testCase.From, e, a)
+			}
+			if e, a := testCase.Namespace, ref.Namespace; e != a {
+				t.Errorf("%s: namespace: expected %q, got %q", testCase.From, e, a)
+			}
+			if e, a := testCase.Name, ref.Name; e != a {
+				t.Errorf("%s: name: expected %q, got %q", testCase.From, e, a)
+			}
+			if e, a := testCase.Tag, ref.Tag; e != a {
+				t.Errorf("%s: tag: expected %q, got %q", testCase.From, e, a)
+			}
+			if e, a := testCase.ID, ref.ID; e != a {
+				t.Errorf("%s: id: expected %q, got %q", testCase.From, e, a)
+			}
+		})
 	}
 }

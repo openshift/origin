@@ -22,10 +22,10 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/transport"
+	godigest "github.com/opencontainers/go-digest"
 )
 
 type s3Driver struct {
@@ -170,7 +170,7 @@ func (r *s3Repository) attemptCopy(id string, bucket, key string) bool {
 		var sourceKey string
 		if strings.HasSuffix(copyFrom, "[store]") {
 			sourceKey = strings.TrimSuffix(copyFrom, "[store]")
-			d, err := digest.ParseDigest(id)
+			d, err := godigest.Parse(id)
 			if err != nil {
 				glog.V(4).Infof("Object %q is not a valid digest, cannot perform [store] copy: %v", id, err)
 				continue
@@ -232,17 +232,17 @@ type s3ManifestService struct {
 }
 
 // Exists returns true if the manifest exists.
-func (s *s3ManifestService) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
+func (s *s3ManifestService) Exists(ctx context.Context, dgst godigest.Digest) (bool, error) {
 	return false, fmt.Errorf("unimplemented")
 }
 
 // Get retrieves the manifest specified by the given digest
-func (s *s3ManifestService) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+func (s *s3ManifestService) Get(ctx context.Context, dgst godigest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
 // Put creates or updates the given manifest returning the manifest digest
-func (s *s3ManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+func (s *s3ManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (godigest.Digest, error) {
 	if err := s.r.init(); err != nil {
 		return "", err
 	}
@@ -250,7 +250,7 @@ func (s *s3ManifestService) Put(ctx context.Context, manifest distribution.Manif
 	if err != nil {
 		return "", err
 	}
-	dgst := digest.FromBytes(payload)
+	dgst := godigest.FromBytes(payload)
 	blob := fmt.Sprintf("/v2/%s/blobs/%s", s.r.repoName, dgst)
 
 	if err := s.r.conditionalUpload(&s3manager.UploadInput{
@@ -284,7 +284,7 @@ func (s *s3ManifestService) Put(ctx context.Context, manifest distribution.Manif
 
 // Delete removes the manifest specified by the given digest. Deleting
 // a manifest that doesn't exist will return ErrManifestNotFound
-func (s *s3ManifestService) Delete(ctx context.Context, dgst digest.Digest) error {
+func (s *s3ManifestService) Delete(ctx context.Context, dgst godigest.Digest) error {
 	return fmt.Errorf("unimplemented")
 }
 
@@ -292,23 +292,23 @@ type s3BlobStore struct {
 	r *s3Repository
 }
 
-func (s *s3BlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+func (s *s3BlobStore) Stat(ctx context.Context, dgst godigest.Digest) (distribution.Descriptor, error) {
 	return distribution.Descriptor{}, fmt.Errorf("unimplemented")
 }
 
-func (s *s3BlobStore) Delete(ctx context.Context, dgst digest.Digest) error {
+func (s *s3BlobStore) Delete(ctx context.Context, dgst godigest.Digest) error {
 	return fmt.Errorf("unimplemented")
 }
 
-func (s *s3BlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
+func (s *s3BlobStore) Get(ctx context.Context, dgst godigest.Digest) ([]byte, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (s *s3BlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
+func (s *s3BlobStore) Open(ctx context.Context, dgst godigest.Digest) (distribution.ReadSeekCloser, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (s *s3BlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, r *http.Request, dgst digest.Digest) error {
+func (s *s3BlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, r *http.Request, dgst godigest.Digest) error {
 	return fmt.Errorf("unimplemented")
 }
 
@@ -316,7 +316,7 @@ func (s *s3BlobStore) Put(ctx context.Context, mediaType string, p []byte) (dist
 	if err := s.r.init(); err != nil {
 		return distribution.Descriptor{}, err
 	}
-	d := digest.FromBytes(p)
+	d := godigest.FromBytes(p)
 	if err := s.r.conditionalUpload(&s3manager.UploadInput{
 		Bucket:      aws.String(s.r.bucket),
 		ContentType: aws.String(mediaType),

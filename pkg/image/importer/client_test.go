@@ -14,10 +14,10 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
+	godigest "github.com/opencontainers/go-digest"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -55,10 +55,10 @@ func (r *mockRepository) Manifests(ctx context.Context, options ...distribution.
 	return r, r.repoErr
 }
 func (r *mockRepository) Blobs(ctx context.Context) distribution.BlobStore { return r.blobs }
-func (r *mockRepository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
+func (r *mockRepository) Exists(ctx context.Context, dgst godigest.Digest) (bool, error) {
 	return false, r.getErr
 }
-func (r *mockRepository) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+func (r *mockRepository) Get(ctx context.Context, dgst godigest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	for _, option := range options {
 		if _, ok := option.(distribution.WithTagOption); ok {
 			return r.manifest, r.getByTagErr
@@ -66,10 +66,10 @@ func (r *mockRepository) Get(ctx context.Context, dgst digest.Digest, options ..
 	}
 	return r.manifest, r.getErr
 }
-func (r *mockRepository) Delete(ctx context.Context, dgst digest.Digest) error {
+func (r *mockRepository) Delete(ctx context.Context, dgst godigest.Digest) error {
 	return fmt.Errorf("not implemented")
 }
-func (r *mockRepository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+func (r *mockRepository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (godigest.Digest, error) {
 	return "", fmt.Errorf("not implemented")
 }
 func (r *mockRepository) Tags(ctx context.Context) distribution.TagService {
@@ -79,24 +79,24 @@ func (r *mockRepository) Tags(ctx context.Context) distribution.TagService {
 type mockBlobStore struct {
 	distribution.BlobStore
 
-	blobs map[digest.Digest][]byte
+	blobs map[godigest.Digest][]byte
 
 	statErr, serveErr, openErr error
 }
 
-func (r *mockBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+func (r *mockBlobStore) Stat(ctx context.Context, dgst godigest.Digest) (distribution.Descriptor, error) {
 	return distribution.Descriptor{}, r.statErr
 }
 
-func (r *mockBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
+func (r *mockBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst godigest.Digest) error {
 	return r.serveErr
 }
 
-func (r *mockBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
+func (r *mockBlobStore) Open(ctx context.Context, dgst godigest.Digest) (distribution.ReadSeekCloser, error) {
 	return nil, r.openErr
 }
 
-func (r *mockBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
+func (r *mockBlobStore) Get(ctx context.Context, dgst godigest.Digest) ([]byte, error) {
 	b, exists := r.blobs[dgst]
 	if !exists {
 		return nil, distribution.ErrBlobUnknown
@@ -115,7 +115,7 @@ func (r *mockTagService) Get(ctx context.Context, tag string) (distribution.Desc
 	if !ok {
 		return distribution.Descriptor{}, r.repo.getTagErr
 	}
-	dgst, err := digest.ParseDigest(v)
+	dgst, err := godigest.Parse(v)
 	if err != nil {
 		panic(err)
 	}
@@ -151,7 +151,7 @@ func TestSchema1ToImage(t *testing.T) {
 	if err := json.Unmarshal([]byte(etcdManifest), m); err != nil {
 		t.Fatal(err)
 	}
-	image, err := schema1ToImage(m, digest.Digest("sha256:test"))
+	image, err := schema1ToImage(m, godigest.Digest("sha256:test"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +405,7 @@ func TestRetryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 4 {
+	if _, err := m.Get(nil, godigest.Digest("foo")); err != repo.getErr || r.retries != 4 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
@@ -423,7 +423,7 @@ func TestRetryFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.retries = 2
-	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 0 {
+	if _, err := m.Get(nil, godigest.Digest("foo")); err != repo.getErr || r.retries != 0 {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
@@ -436,15 +436,15 @@ func TestRetryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.Stat(nil, digest.Digest("x")); err != repo.blobs.statErr || r.retries != 0 {
+	if _, err := b.Stat(nil, godigest.Digest("x")); err != repo.blobs.statErr || r.retries != 0 {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if err := b.ServeBlob(nil, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr || r.retries != 0 {
+	if err := b.ServeBlob(nil, nil, nil, godigest.Digest("foo")); err != repo.blobs.serveErr || r.retries != 0 {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if _, err := b.Open(nil, digest.Digest("foo")); err != repo.blobs.openErr || r.retries != 0 {
+	if _, err := b.Open(nil, godigest.Digest("foo")); err != repo.blobs.openErr || r.retries != 0 {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 }

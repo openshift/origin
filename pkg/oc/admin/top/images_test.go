@@ -6,8 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/docker/distribution/digest"
-
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -300,7 +298,7 @@ func TestImagesTop(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1"},
-							{Name: digest.DigestSha256EmptyTar},
+							{Name: digestSHA256EmptyTar},
 							{Name: "layer2"},
 						},
 						DockerImageManifest: "non empty metadata",

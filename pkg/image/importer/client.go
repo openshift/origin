@@ -14,7 +14,6 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
@@ -23,6 +22,7 @@ import (
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/auth/challenge"
 	"github.com/docker/distribution/registry/client/transport"
+	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -209,7 +209,7 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 	return nil, nil
 }
 
-func schema1ToImage(manifest *schema1.SignedManifest, d digest.Digest) (*imageapi.Image, error) {
+func schema1ToImage(manifest *schema1.SignedManifest, d godigest.Digest) (*imageapi.Image, error) {
 	if len(manifest.History) == 0 {
 		return nil, fmt.Errorf("image has no v1Compatibility history and cannot be used")
 	}
@@ -225,7 +225,7 @@ func schema1ToImage(manifest *schema1.SignedManifest, d digest.Digest) (*imageap
 	if len(d) > 0 {
 		dockerImage.ID = d.String()
 	} else {
-		dockerImage.ID = digest.FromBytes(manifest.Canonical).String()
+		dockerImage.ID = godigest.FromBytes(manifest.Canonical).String()
 	}
 	image := &imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{
@@ -240,7 +240,7 @@ func schema1ToImage(manifest *schema1.SignedManifest, d digest.Digest) (*imageap
 	return image, nil
 }
 
-func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, d digest.Digest) (*imageapi.Image, error) {
+func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, d godigest.Digest) (*imageapi.Image, error) {
 	mediatype, payload, err := manifest.Payload()
 	if err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, 
 	if len(d) > 0 {
 		dockerImage.ID = d.String()
 	} else {
-		dockerImage.ID = digest.FromBytes(payload).String()
+		dockerImage.ID = godigest.FromBytes(payload).String()
 	}
 
 	image := &imageapi.Image{
@@ -413,7 +413,7 @@ type retryManifest struct {
 }
 
 // Exists returns true if the manifest exists.
-func (r retryManifest) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
+func (r retryManifest) Exists(ctx context.Context, dgst godigest.Digest) (bool, error) {
 	for {
 		if exists, err := r.ManifestService.Exists(ctx, dgst); r.repo.shouldRetry(err) {
 			continue
@@ -424,7 +424,7 @@ func (r retryManifest) Exists(ctx context.Context, dgst digest.Digest) (bool, er
 }
 
 // Get retrieves the manifest identified by the digest, if it exists.
-func (r retryManifest) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+func (r retryManifest) Get(ctx context.Context, dgst godigest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	for {
 		if m, err := r.ManifestService.Get(ctx, dgst, options...); r.repo.shouldRetry(err) {
 			continue
@@ -440,7 +440,7 @@ type retryBlobStore struct {
 	repo *retryRepository
 }
 
-func (r retryBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+func (r retryBlobStore) Stat(ctx context.Context, dgst godigest.Digest) (distribution.Descriptor, error) {
 	for {
 		if d, err := r.BlobStore.Stat(ctx, dgst); r.repo.shouldRetry(err) {
 			continue
@@ -450,7 +450,7 @@ func (r retryBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribut
 	}
 }
 
-func (r retryBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
+func (r retryBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst godigest.Digest) error {
 	for {
 		if err := r.BlobStore.ServeBlob(ctx, w, req, dgst); r.repo.shouldRetry(err) {
 			continue
@@ -460,7 +460,7 @@ func (r retryBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, re
 	}
 }
 
-func (r retryBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
+func (r retryBlobStore) Open(ctx context.Context, dgst godigest.Digest) (distribution.ReadSeekCloser, error) {
 	for {
 		if rsc, err := r.BlobStore.Open(ctx, dgst); r.repo.shouldRetry(err) {
 			continue

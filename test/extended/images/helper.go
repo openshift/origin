@@ -18,7 +18,7 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	g "github.com/onsi/ginkgo"
 
-	"github.com/docker/distribution/digest"
+	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -29,7 +29,6 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypedclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	registryutil "github.com/openshift/origin/test/extended/registry/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -39,8 +38,8 @@ const (
 	layerSizeMultiplierForDocker18     = 2.0
 	layerSizeMultiplierForLatestDocker = 0.8
 	defaultLayerSize                   = 1024
-	digestSHA256GzippedEmptyTar        = digest.Digest("sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4")
-	digestSha256EmptyTar               = digest.Digest("sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+	digestSHA256GzippedEmptyTar        = godigest.Digest("sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4")
+	digestSha256EmptyTar               = godigest.Digest("sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 
 	dockerRegistryBinary     = "dockerregistry"
 	registryGCLauncherScript = `#!/bin/sh
@@ -114,12 +113,12 @@ func repoToPath(root, repository string) string {
 	return path.Join(root, fmt.Sprintf("repositories/%s", repository))
 }
 func repoLinkToPath(root, fileType, repository, dgst string) string {
-	d := digest.Digest(dgst)
+	d := godigest.Digest(dgst)
 	return path.Join(root, fmt.Sprintf("repositories/%s/_%ss/%s/%s/link",
 		repository, fileType, d.Algorithm(), d.Hex()))
 }
 func blobToPath(root, dgst string) string {
-	d := digest.Digest(dgst)
+	d := godigest.Digest(dgst)
 	return path.Join(root, fmt.Sprintf("blobs/%s/%s/%s/data",
 		d.Algorithm(), d.Hex()[0:2], d.Hex()))
 }
@@ -314,7 +313,7 @@ func buildImageOfSizeWithDocker(
 	numberOfLayers int,
 	outSink io.Writer,
 ) (string, *dockerclient.Image, error) {
-	registryURL, err := registryutil.GetDockerRegistryURL(oc)
+	registryURL, err := GetDockerRegistryURL(oc)
 	if err != nil {
 		return "", nil, err
 	}
@@ -384,7 +383,7 @@ func pushImageWithDocker(
 	}
 	token := strings.TrimSpace(out)
 
-	registryURL, err := registryutil.GetDockerRegistryURL(oc)
+	registryURL, err := GetDockerRegistryURL(oc)
 	if err != nil {
 		return "", err
 	}
@@ -507,7 +506,7 @@ func calculateRoughDataSize(logger io.Writer, wantedImageSize uint64, numberOfLa
 // MirrorBlobInRegistry forces a blob of external image to be mirrored in the registry. The function expects
 // the blob not to exist before a GET request is issued. The function blocks until the blob is mirrored or the
 // given timeout passes.
-func MirrorBlobInRegistry(oc *exutil.CLI, dgst digest.Digest, repository string, timeout time.Duration) error {
+func MirrorBlobInRegistry(oc *exutil.CLI, dgst godigest.Digest, repository string, timeout time.Duration) error {
 	presentGlobally, inRepository, err := IsBlobStoredInRegistry(oc, dgst, repository)
 	if err != nil {
 		return err
@@ -515,7 +514,7 @@ func MirrorBlobInRegistry(oc *exutil.CLI, dgst digest.Digest, repository string,
 	if presentGlobally || inRepository {
 		return fmt.Errorf("blob %q is already present in the registry", dgst.String())
 	}
-	registryURL, err := registryutil.GetDockerRegistryURL(oc)
+	registryURL, err := GetDockerRegistryURL(oc)
 	if err != nil {
 		return err
 	}
@@ -568,7 +567,7 @@ func MirrorBlobInRegistry(oc *exutil.CLI, dgst digest.Digest, repository string,
 }
 
 // IsEmptyDigest returns true if the given digest matches one of empty blobs.
-func IsEmptyDigest(dgst digest.Digest) bool {
+func IsEmptyDigest(dgst godigest.Digest) bool {
 	return dgst == digestSha256EmptyTar || dgst == digestSHA256GzippedEmptyTar
 }
 
@@ -590,7 +589,7 @@ func pathExistsInRegistry(oc *exutil.CLI, pthComponents ...string) (bool, error)
 // globally in the registry's storage. The second says whether the blob is linked in the given repository.
 func IsBlobStoredInRegistry(
 	oc *exutil.CLI,
-	dgst digest.Digest,
+	dgst godigest.Digest,
 	repository string,
 ) (bool, bool, error) {
 	present, err := pathExistsInRegistry(
@@ -621,7 +620,7 @@ func IsBlobStoredInRegistry(
 // assumed to be in a read-only mode and using filesystem as a storage driver. It returns lists of deleted
 // files.
 func RunHardPrune(oc *exutil.CLI, dryRun bool) (*RegistryStorageFiles, error) {
-	pod, err := registryutil.GetRegistryPod(oc.AsAdmin().KubeClient().Core())
+	pod, err := GetRegistryPod(oc.AsAdmin().KubeClient().Core())
 	if err != nil {
 		return nil, err
 	}
