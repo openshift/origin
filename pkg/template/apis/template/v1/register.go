@@ -17,11 +17,13 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, RegisterDeepCopies, RegisterDeepCopies, RegisterDefaults, RegisterConversions)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 	AddToScheme   = SchemeBuilder.AddToScheme
+
+	localSchemeBuilder = &SchemeBuilder
 )
 
 func Resource(resource string) schema.GroupResource {
