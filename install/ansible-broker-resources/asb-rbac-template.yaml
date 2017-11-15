@@ -1,0 +1,134 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: asb-rbac-template
+parameters:
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+- name: BROKER_URL_PREFIX
+  value: "/ansible-service-broker"
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: ansibleservicebroker-client
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: asb-deployer
+    namespace: ${NAMESPACE}
+  roleRef:
+    name: admin
+    kind: ClusterRole
+    apiGroup: rbac.authorization.k8s.io
+  subjects:
+  - kind: ServiceAccount
+    name: deployer
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+  roleRef:
+    name: admin
+    kind: ClusterRole
+    apiGroup: rbac.authorization.k8s.io
+  subjects:
+  - kind: ServiceAccount
+    name: asb
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: asb-auth
+    namespace: ${NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - create
+    - delete
+  - apiGroups:
+    - authorization.openshift.io
+    resources:
+    - subjectrulesreview
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+  - apiGroups:
+    - image.openshift.io"
+    resources:
+    - images
+    verbs:
+    - get
+    - list
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: asb-auth-bind
+    namespace: ${NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: asb
+    namespace: ${NAMESPACE}
+  roleRef:
+    kind: ClusterRole
+    name: asb-auth
+    apiGroup: rbac.authorization.k8s.io
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: access-asb-role
+    namespace: ${NAMESPACE}
+  rules:
+  - nonResourceURLs:
+    - "${BROKER_URL_PREFIX}"
+    - "${BROKER_URL_PREFIX}/*"
+    verbs:
+    - get
+    - post
+    - put
+    - patch
+    - delete
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: ansibleservicebroker-client
+    namespace: ${NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: ansibleservicebroker-client
+    namespace: ${NAMESPACE}
+  roleRef:
+    kind: ClusterRole
+    name: access-asb-role
+    apiGroup: rbac.authorization.k8s.io

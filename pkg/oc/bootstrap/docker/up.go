@@ -121,6 +121,9 @@ var (
 		"template service broker apiserver":    "install/templateservicebroker/apiserver-template.yaml",
 		"template service broker rbac":         "install/templateservicebroker/rbac-template.yaml",
 		"template service broker registration": "install/service-catalog-broker-resources/template-service-broker-registration.yaml",
+		"asb template":                         "install/ansible-broker-resources/asb-template.yaml",
+		"asb rbac template":                    "install/ansible-broker-resources/asb-rbac-template.yaml",
+		"ansible broker registration":          "install/service-catalog-broker-resources/ansible-broker-registration.yaml",
 	}
 	// loggingTemplateLocations are templates that will be registered in an internal namespace
 	// when logging is requested
@@ -435,9 +438,18 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
 	}))
 
-	// Register the TSB w/ the SC if requested.  This is done even when reusing a config because
-	// the TSB registration is not persisted.
+	// Install ansible broker if our version is high enough
+	c.addTask(conditionalTask("Installing ansible broker", c.InstallAnsibleBroker, func() bool {
+		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
+	}))
+
+	// Register the TSB and ASB w/ the SC if requested.  This is done even when reusing a config because
+	// the TSB and ASB registrations are not persisted.
 	c.addTask(conditionalTask("Registering template service broker with service catalog", c.RegisterTemplateServiceBroker, func() bool {
+		return c.ShouldInstallServiceCatalog
+	}))
+
+	c.addTask(conditionalTask("Registering ansible broker with service catalog", c.RegisterAnsibleBroker, func() bool {
 		return c.ShouldInstallServiceCatalog
 	}))
 
@@ -1100,6 +1112,20 @@ func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
 	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, fmt.Sprintf("%s:%s", c.Image, c.ImageVersion), c.ServerLogLevel)
 }
 
+// InstallAnsibleBroker will start the installation of ansible broker
+func (c *ClientStartConfig) InstallAnsibleBroker(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	publicMaster := c.PublicHostname
+	if len(publicMaster) == 0 {
+		publicMaster = c.ServerIP
+	}
+	imageFormat := fmt.Sprintf("%s-${component}:%s", "docker.io/ansibleplaybookbundle/origin", c.ImageVersion)
+	return c.OpenShiftHelper().InstallAnsibleBroker(f, imageFormat, c.ServerLogLevel)
+}
+
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
 func (c *ClientStartConfig) RegisterTemplateServiceBroker(out io.Writer) error {
 	f, err := c.Factory()
@@ -1107,6 +1133,15 @@ func (c *ClientStartConfig) RegisterTemplateServiceBroker(out io.Writer) error {
 		return err
 	}
 	return c.OpenShiftHelper().RegisterTemplateServiceBroker(f, c.LocalConfigDir)
+}
+
+// RegisterAnsibleBroker will register the asb with the service catalog
+func (c *ClientStartConfig) RegisterAnsibleBroker(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	return c.OpenShiftHelper().RegisterAnsibleBroker(f, c.LocalConfigDir)
 }
 
 // Login logs into the new server and sets up a default user and project
