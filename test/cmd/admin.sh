@@ -522,8 +522,8 @@ os::test::junit::declare_suite_start "cmd/admin/images"
 
 # import image and check its information
 os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/stable-busybox.yaml"
-os::cmd::expect_success_and_text "oc adm top images" "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6\W+default/busybox \(latest\)\W+<none>\W+<none>\W+yes\W+653\.4 KiB"
-os::cmd::expect_success_and_text "oc adm top imagestreams" "default/busybox\W+653\.4 KiB\W+1\W+1"
+os::cmd::expect_success_and_text "oc adm top images" "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6\W+default/busybox \(latest\)\W+<none>\W+<none>\W+yes\W+653\.4KiB"
+os::cmd::expect_success_and_text "oc adm top imagestreams" "default/busybox\W+653\.4KiB\W+1\W+1"
 os::cmd::expect_success "oc delete is/busybox -n default"
 
 # log in as an image-pruner and test that oc adm prune images works against the atomic binary
