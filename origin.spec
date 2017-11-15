@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit fd44c459eadae8cc4d9268a2a43ac283474fba87
+%global commit 1164437848dc31ec61bfb47ec78aa77d3980d745
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.4 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=fd44c45
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.5 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1164437
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.0.0%{?dist}
+Release:        0.1.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -666,6 +666,65 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Nov 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.1.0
+- Adding 3.8 releaser (jupierce@redhat.com)
+- tsb: use external clients (jminter@redhat.com)
+- generated (deads@redhat.com)
+- Remove pre CNI docker cleanup code from openshift SDN (rpenta@redhat.com)
+- make assetconfig a top level type (deads@redhat.com)
+- always install the jenkins sample template (bparees@redhat.com)
+- Delegated auth for router metrics allows anonymous (ccoleman@redhat.com)
+- add warning to Zookeeper example (jminter@redhat.com)
+- remove cors from webconsole (deads@redhat.com)
+- Fix push-release (ccoleman@redhat.com)
+- UPSTREAM: 50390: Admit sysctls for other runtime. (runcom@redhat.com)
+- fix up template instance controller permissions (bparees@redhat.com)
+- Improve the `oc auth` subcommands CLI example usage: Replaced the `kubectl`
+  to `oc` (teleyic@gmail.com)
+- retry build watch on error/expiration (bparees@redhat.com)
+- Old routers may not have permission to do SAR checks for metrics
+  (ccoleman@redhat.com)
+- fix off by one error in oc adm top images edge creation (bparees@redhat.com)
+- add toleration for slow logs in scl tests (bparees@redhat.com)
+- check RepoTags len before accessing (sjenning@redhat.com)
+- Bumping origin.spec for 3.8 (jupierce@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  721cde05fe8c386935adc209638700b2476dd228 (eparis+openshiftbot@redhat.com)
+- TestPrintRoleBindingRestriction output check test enhance
+  (shiywang@redhat.com)
+- don't create output imagestrem if already exists with newapp; better circular
+  tag detection (gmontero@redhat.com)
+- Allow registry-admin to manage RBAC roles/bindings (mkhan@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  76b140d4ccf2f2025c25c2ad0ec9ed89a521d063 (eparis+openshiftbot@redhat.com)
+- Bump origin spec files to be consistent with shared code
+  (ccoleman@redhat.com)
+- Handle OPTIONS as additional argments (nakayamakenjiro@gmail.com)
+- include namespace in --list-pods for node output (jvallejo@redhat.com)
+- Remove double quotations from docker env to run node
+  (nakayamakenjiro@gmail.com)
+- Cleaning up port/protocol split/validation code (cdaley@redhat.com)
+- tighten secondary build vendors (deads@redhat.com)
+- allow rsrs/kind format in oc rsync (jvallejo@redhat.com)
+- prevent err message when removing env vars (jvallejo@redhat.com)
+- Adding describer for TemplateInstances (cdaley@redhat.com)
+- move error cause to top of err message (jvallejo@redhat.com)
+- UPSTREAM: 49885: Ignore UDP metrics in kubelet (runcom@redhat.com)
+- remove bad builder dependencies (deads@redhat.com)
+- Fix dns lookup in PodCheckDns diagnostic (rpenta@redhat.com)
+- Since the 'oc deploy' is deprecated. It is better for providing usage 'oc set
+  trigger'. Forgetting the 'oc deploy'. (teleyic@gmail.com)
+- Fixed the wrong name of building image. According to the implementation and
+  running behavior. the building image is openshift/origin-release
+  (teleyic@gmail.com)
+- Fixed the typo of the image name. According to the definition in constants.sh
+  and running behavior, default image name is 1.8. (teleyic@gmail.com)
+- Fixed the type definition (teleyic@gmail.com)
+- docs(HACKING.md): fix formatting of heading (surajd.service@gmail.com)
+- Change image for complete-dc-hooks.yaml to centos7 which will be already pre-
+  pulled (tnozicka@gmail.com)
+- allow template labels to be parameterised (jminter@redhat.com)
+
 * Thu Nov 09 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.5-1
 - clean up use of persistent in template display names (ux review)
   (gmontero@redhat.com)
