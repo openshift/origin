@@ -18,6 +18,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -35,6 +36,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -186,6 +188,39 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*kapi.
 			t.Spec.Template = template
 			template = &kapi.PodTemplateSpec{}
 		}
+		return true, fn(&template.Spec)
+	case *buildapi.BuildConfig:
+		kc, err := f.ClientSet()
+		if err != nil {
+			return false, err
+		}
+
+		labels.NewSelector()
+		pods, err := kc.Core().Pods(t.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(t.ObjectMeta.Labels).String()})
+		if err != nil {
+			return false, err
+		}
+
+		var template *kapi.PodTemplateSpec
+
+		// If we have any pods available, find the newest
+		// pod with regards to our most recent deployment.
+		// If the fallback PodTemplateSpec is nil, prefer
+		// the newest pod available.
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+			if template == nil || pod.CreationTimestamp.Before(template.CreationTimestamp) {
+				template = &kapi.PodTemplateSpec{
+					ObjectMeta: pod.ObjectMeta,
+					Spec:       pod.Spec,
+				}
+			}
+		}
+
+		if template == nil {
+			return false, fmt.Errorf("the object is not a pod or does not have a pod template")
+		}
+
 		return true, fn(&template.Spec)
 	default:
 		return f.kubeClientAccessFactory.UpdatePodSpecForObject(obj, fn)
