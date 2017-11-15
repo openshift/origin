@@ -113,8 +113,8 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		localReview:       askCanClusterAdminsCreateProject,
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		kubeNamespace:     "openshift",
-		err:               `User "valerie" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "openshift"`,
-		kubeErr:           `User "valerie" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "openshift"`,
+		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "valerie" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "openshift"`,
+		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "valerie" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "openshift"`,
 	}.run(t)
 
 }
