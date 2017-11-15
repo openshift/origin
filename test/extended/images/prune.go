@@ -103,7 +103,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 			}
 		})
 
-		g.It("should prune both internally managed and external images", func() { testPruneAllImages(oc, true, 2) })
+		g.It("should prune both internally managed and external images", func() { testPruneAllImages(oc, true, 2, false) })
 	})
 
 	g.Describe("with --all=false flag", func() {
@@ -122,7 +122,26 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 			}
 		})
 
-		g.It("should prune only internally managed images", func() { testPruneAllImages(oc, false, 2) })
+		g.It("should prune only internally managed images", func() { testPruneAllImages(oc, false, 2, false) })
+	})
+
+	g.Describe("with --all flag, but exclude external image", func() {
+		g.JustBeforeEach(func() {
+			if !*originalAcceptSchema2 {
+				g.By("ensure the registry accepts schema 2")
+				err := registryutil.EnsureRegistryAcceptsSchema2(oc, true)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		})
+
+		g.AfterEach(func() {
+			if !*originalAcceptSchema2 {
+				err := registryutil.EnsureRegistryAcceptsSchema2(oc, false)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		})
+
+		g.It("should prune only internally managed images and ignore external images", func() { testPruneAllImages(oc, false, 2, true) })
 	})
 })
 
@@ -240,7 +259,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(imgPrune.DockerImageMetadata.Size <= keepSize-confirmSize).To(o.BeTrue())
 }
 
-func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion int) {
+func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion int, excludeExternalImage bool) {
 	isName := fmt.Sprintf("prune-schema%d-all-images-%t", schemaVersion, setAllImagesToFalse)
 	repository := oc.Namespace() + "/" + isName
 
@@ -282,14 +301,14 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 			o.Expect(inRepository).To(o.Equal(dryRun))
 		}
 
-		if setAllImagesToFalse {
+		if setAllImagesToFalse || excludeExternalImage {
 			o.Expect(output).NotTo(o.ContainSubstring(externalImage.Name))
 		} else {
 			o.Expect(output).To(o.ContainSubstring(externalImage.Name))
 		}
 
 		for _, layer := range externalImage.DockerImageLayers {
-			if setAllImagesToFalse {
+			if setAllImagesToFalse || excludeExternalImage {
 				o.Expect(output).NotTo(o.ContainSubstring(layer.Name))
 			} else {
 				o.Expect(output).To(o.ContainSubstring(layer.Name))
@@ -300,7 +319,7 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 			}
 			globally, inRepository, err := IsBlobStoredInRegistry(oc, digest.Digest(layer.Name), repository)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(globally).To(o.Equal(dryRun || setAllImagesToFalse))
+			o.Expect(globally).To(o.Equal(dryRun || setAllImagesToFalse || excludeExternalImage))
 			// mirrored blobs are not linked into any repository/_layers directory
 			o.Expect(inRepository).To(o.BeFalse())
 		}
@@ -309,6 +328,10 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 	args := []string{"prune", "images", "--keep-tag-revisions=0", "--keep-younger-than=0"}
 	if setAllImagesToFalse {
 		args = append(args, "--all=false")
+	}
+
+	if excludeExternalImage {
+		args = append(args, "--exclude-imagestreamtag=/origin-release:latest")
 	}
 
 	g.By(fmt.Sprintf("dry-running oc adm %s", strings.Join(args, " ")))
