@@ -9942,7 +9942,8 @@ items:
   apiVersion: v1
   metadata:
     name: configsecret
-
+  stringData:
+    NAME: template
 - kind: TemplateInstance
   apiVersion: template.openshift.io/v1
   metadata:
@@ -9953,7 +9954,6 @@ items:
       apiVersion: v1
       metadata:
         name: template
-        namespace: default
       objects:
       - kind: Secret
         apiVersion: v1
@@ -9990,7 +9990,9 @@ items:
         spec:
           to:
             name: foo
-
+      parameters:
+        - name: NAME
+          value: ${NAME}
     secret:
       name: configsecret
 `)
