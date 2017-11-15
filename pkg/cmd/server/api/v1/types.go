@@ -713,8 +713,12 @@ type DNSConfig struct {
 	AllowRecursiveQueries bool `json:"allowRecursiveQueries"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // AssetConfig holds the necessary configuration options for serving assets
 type AssetConfig struct {
+	metav1.TypeMeta `json:",inline"`
+
 	// ServingInfo is the HTTP serving information for these assets
 	ServingInfo HTTPServingInfo `json:"servingInfo"`
 

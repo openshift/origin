@@ -823,7 +823,11 @@ type DNSConfig struct {
 	AllowRecursiveQueries bool
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type AssetConfig struct {
+	metav1.TypeMeta
+
 	ServingInfo HTTPServingInfo
 
 	// PublicURL is where you can find the asset server (TODO do we really need this?)

@@ -20,6 +20,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&MasterConfig{},
 		&NodeConfig{},
+		&AssetConfig{},
 		&SessionSecrets{},
 
 		&BasicAuthPasswordIdentityProvider{},
