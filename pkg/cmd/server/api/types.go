@@ -62,6 +62,7 @@ var (
 	APIGroupComponentConfig       = "componentconfig"
 	APIGroupAuthorizationRbac     = "rbac.authorization.k8s.io"
 	APIGroupSettings              = "settings.k8s.io"
+	APIGroupScheduling            = "scheduling.k8s.io"
 
 	OriginAPIGroupCore                = ""
 	OriginAPIGroupAuthorization       = "authorization.openshift.io"
@@ -96,6 +97,7 @@ var (
 		APIGroupPolicy:                {"v1beta1"},
 		APIGroupStorage:               {"v1", "v1beta1"},
 		APIGroupSettings:              {}, // list the group, but don't enable any versions.  alpha disabled by default, but enablable via arg
+		APIGroupScheduling:            {}, // alpha disabled by default
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
@@ -126,6 +128,7 @@ var (
 		APIGroupAdmissionRegistration: {"v1alpha1"},
 		APIGroupAuthorizationRbac:     {"v1alpha1"},
 		APIGroupSettings:              {"v1alpha1"},
+		APIGroupScheduling:            {"v1alpha1"},
 	}
 	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)
