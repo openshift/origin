@@ -8,8 +8,8 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
-	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	newcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
 
