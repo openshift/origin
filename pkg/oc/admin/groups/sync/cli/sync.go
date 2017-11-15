@@ -143,11 +143,11 @@ func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		Example: fmt.Sprintf(syncExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(typeArg, whitelistFile, blacklistFile, configFile, args, f); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
 			}
 
 			if err := options.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
 			}
 
 			err := options.Run(c, f)

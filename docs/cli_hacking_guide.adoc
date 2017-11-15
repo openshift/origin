@@ -33,7 +33,7 @@ Commands are organized in the package structure as:
 
 === Command Structure
 
-For every command we have a `NewCmd<CommandName>` function that creates the command and returns a pointer to a `cobra.Command`, which can later be added to other parent commands to compose the structure tree. 
+For every command we have a `NewCmd<CommandName>` function that creates the command and returns a pointer to a `cobra.Command`, which can later be added to other parent commands to compose the structure tree.
 
 We usually have a struct with a variable to every flag and argument declared by the command (and any other variable required for the command to run). This makes tests and mocking easier. The struct exposes three functions:
 
@@ -59,7 +59,7 @@ var (
     Some long description
     for my command.`)
 
-  mineExample = templates.Examples(`  
+  mineExample = templates.Examples(`
     # Run my command's first action
     %[1]s first
 
@@ -80,7 +80,7 @@ func NewCmdMine(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
         cmdutil.CheckErr(err)
       }
       if err := options.Validate(args); err != nil { (7)
-        cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+        cmdutil.CheckErr(cmdutil.UsageErrorf(cmd, err.Error()))
       }
       if err := options.RunDeploy(); err != nil { (8)
         cmdutil.CheckErr(err) (9)
@@ -140,7 +140,7 @@ Example:
 ====
 [source,go,numbered,options="nowrap"]
 ----
-  deployExample = templates.Examples(`  
+  deployExample = templates.Examples(`
     # Display the latest deployment for the 'database' deployment config
     %[1]s database
 
@@ -225,12 +225,12 @@ Examples:
 |=======
 |`kcmdutil.CheckErr(err error)`                                |handles an error (check for `nil` and exit the program accordingly), this should always be used instead of handling the `err` manually.
 |`kcmdutil.GetFlag<Type>(cmd *cobra.Command, flagName string)` |gets the instance of a declared flag, by type. If possible, use the link:#command-structure[struct var binding] to get flag values instead.
-|`cmdutil.IsTerminal(r io.Reader)`                             |checks if the given `io.Reader` is a terminal. 
+|`cmdutil.IsTerminal(r io.Reader)`                             |checks if the given `io.Reader` is a terminal.
 |=======
 
 === Commented Example
 
-Taking the `oc deploy` command as an example, the code structure for a command will usually look like the one below. 
+Taking the `oc deploy` command as an example, the code structure for a command will usually look like the one below.
 
 ====
 [source,go,numbered,options="nowrap"]
@@ -245,11 +245,11 @@ type DeployOptions struct {
 var (
   // 2.
   deployLong = templates.LongDesc(`
-    Some long description 
-    for the deploy command.`) 
+    Some long description
+    for the deploy command.`)
 
   // 3.
-  deployExample = templates.Examples(`  
+  deployExample = templates.Examples(`
     # Display the latest deployment for the 'database' DeploymentConfig
     %[1]s database
 
@@ -275,7 +275,7 @@ func NewCmdDeploy(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 
       // 7.
       if err := options.Validate(); err != nil {
-        cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+        cmdutil.CheckErr(cmdutil.UsageErrorf(cmd, err.Error()))
       }
 
       // 8.

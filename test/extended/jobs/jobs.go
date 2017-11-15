@@ -8,8 +8,8 @@ import (
 	o "github.com/onsi/gomega"
 	exeutil "github.com/openshift/origin/test/extended/util"
 
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 )
 
 var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {

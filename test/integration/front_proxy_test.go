@@ -77,7 +77,7 @@ func TestFrontProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	proxyHTTPHandler, err := newFrontProxyHandler(clusterAdminClientConfig.Host, masterConfig.ServingInfo.ClientCA, proxyUserHeader, proxyGroupHeader, proxyCert)
 	if err != nil {
@@ -87,7 +87,7 @@ func TestFrontProxy(t *testing.T) {
 	defer proxyServer.Close()
 	t.Logf("front proxy server is on %v\n", proxyServer.URL)
 
-	w, err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Watch(metav1.ListOptions{})
+	w, err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

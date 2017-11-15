@@ -13,10 +13,11 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -176,28 +177,28 @@ func BuildDeepCopy(build *buildapi.Build) (*buildapi.Build, error) {
 	return copied, nil
 }
 
-func CopyApiResourcesToV1Resources(in *kapi.ResourceRequirements) v1.ResourceRequirements {
+func CopyApiResourcesToV1Resources(in *kapi.ResourceRequirements) corev1.ResourceRequirements {
 	copied, err := kapi.Scheme.DeepCopy(in)
 	if err != nil {
 		panic(err)
 	}
 	in = copied.(*kapi.ResourceRequirements)
-	out := v1.ResourceRequirements{}
-	if err := v1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
+	out := corev1.ResourceRequirements{}
+	if err := kapiv1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
 		panic(err)
 	}
 	return out
 }
 
-func CopyApiEnvVarToV1EnvVar(in []kapi.EnvVar) []v1.EnvVar {
+func CopyApiEnvVarToV1EnvVar(in []kapi.EnvVar) []corev1.EnvVar {
 	copied, err := kapi.Scheme.DeepCopy(in)
 	if err != nil {
 		panic(err)
 	}
 	in = copied.([]kapi.EnvVar)
-	out := make([]v1.EnvVar, len(in))
+	out := make([]corev1.EnvVar, len(in))
 	for i := range in {
-		if err := v1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
+		if err := kapiv1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
 			panic(err)
 		}
 	}
@@ -209,7 +210,7 @@ func CopyApiEnvVarToV1EnvVar(in []kapi.EnvVar) []v1.EnvVar {
 // such that only whitelisted environment variables are merged into the
 // output list.  If sourcePrecedence is true, keys in the source list
 // will override keys in the output list.
-func MergeTrustedEnvWithoutDuplicates(source []v1.EnvVar, output *[]v1.EnvVar, sourcePrecedence bool) {
+func MergeTrustedEnvWithoutDuplicates(source []corev1.EnvVar, output *[]corev1.EnvVar, sourcePrecedence bool) {
 	// filter out all environment variables except trusted/well known
 	// values, because we do not want random environment variables being
 	// fed into the privileged STI container via the BuildConfig definition.
@@ -220,7 +221,7 @@ func MergeTrustedEnvWithoutDuplicates(source []v1.EnvVar, output *[]v1.EnvVar, s
 
 	index := 0
 	filteredSourceMap := make(map[string]sourceMapItem)
-	filteredSource := []v1.EnvVar{}
+	filteredSource := []corev1.EnvVar{}
 	for _, env := range source {
 		for _, acceptable := range buildapi.WhitelistEnvVarNames {
 			if env.Name == acceptable {
@@ -439,8 +440,8 @@ func UpdateBuildEnv(build *buildapi.Build, env []kapi.EnvVar) {
 func FindDockerSecretAsReference(secrets []kapi.Secret, image string) *kapi.LocalObjectReference {
 	emptyKeyring := credentialprovider.BasicDockerKeyring{}
 	for _, secret := range secrets {
-		secretsv1 := make([]v1.Secret, 1)
-		err := v1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
+		secretsv1 := make([]corev1.Secret, 1)
+		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
 		if err != nil {
 			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue

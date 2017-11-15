@@ -33,7 +33,7 @@ func TestPatchConflicts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminTemplateClient := templateclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminTemplateClient := templateclient.NewForConfigOrDie(clusterAdminClientConfig).Template()
 
 	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestPatchConflicts(t *testing.T) {
 			resource: "secrets",
 		},
 		{
-			client:   clusterAdminTemplateClient.Template().RESTClient(),
+			client:   clusterAdminTemplateClient.RESTClient(),
 			resource: "templates",
 		},
 	}

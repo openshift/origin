@@ -7,8 +7,8 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
+	"k8s.io/api/core/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )

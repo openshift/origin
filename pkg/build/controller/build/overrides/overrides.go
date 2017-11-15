@@ -2,7 +2,7 @@ package overrides
 
 import (
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/api/core/v1"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"

@@ -70,7 +70,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminConfig, fn := setup(t)
 	defer fn()
 
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig))
+	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
 	subjects := []kapi.ObjectReference{
 		{
 			Kind: authorizationapi.SystemGroupKind,
@@ -100,7 +100,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 	clusterAdminClientConfig, projectAdminKubeClient, projectAdminConfig, fn := setup(t)
 	defer fn()
 
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig))
+	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
 	subjects := []kapi.ObjectReference{
 		{
 			Kind: authorizationapi.SystemGroupKind,
@@ -251,8 +251,8 @@ func setup(t *testing.T) (*rest.Config, kclientset.Interface, *rest.Config, func
 }
 
 func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Config, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
-	projectAdminBuildClient := buildclient.NewForConfigOrDie(projectAdminClientConfig)
-	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig)
+	projectAdminBuildClient := buildclient.NewForConfigOrDie(projectAdminClientConfig).Build()
+	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig).Image()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {
@@ -499,8 +499,8 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 			tag:          "tag3",
 		},
 	}
-	projectAdminBuildClient := buildclient.NewForConfigOrDie(projectAdminConfig)
-	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminConfig)
+	projectAdminBuildClient := buildclient.NewForConfigOrDie(projectAdminConfig).Build()
+	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminConfig).Image()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {

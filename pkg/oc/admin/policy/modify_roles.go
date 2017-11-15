@@ -68,7 +68,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 		Long:  `Add a role to groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.AddRole(); err != nil {
@@ -102,7 +102,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 		Example: fmt.Sprintf(addRoleToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.AddRole(); err != nil {
@@ -134,7 +134,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 		Long:  `Remove a role from groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.RemoveRole(); err != nil {
@@ -165,7 +165,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 		Long:  `Remove a role from users for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.RemoveRole(); err != nil {
@@ -196,7 +196,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 		Long:  `Add a role to groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.AddRole(); err != nil {
@@ -226,7 +226,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 		Long:  `Add a role to users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.AddRole(); err != nil {
@@ -257,7 +257,7 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 		Long:  `Remove a role from groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.RemoveRole(); err != nil {
@@ -286,7 +286,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 		Long:  `Remove a role from users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.RemoveRole(); err != nil {

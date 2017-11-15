@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	gocontext "golang.org/x/net/context"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -181,12 +182,12 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	}
 
 	// only load secrets if we need them
-	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapiv1.Secret, error) {
+	credentials := importer.NewLazyCredentialsForSecrets(func() ([]corev1.Secret, error) {
 		secrets, err := r.isClient.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		secretsv1 := make([]kapiv1.Secret, len(secrets.Items))
+		secretsv1 := make([]corev1.Secret, len(secrets.Items))
 		for i, secret := range secrets.Items {
 			err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
 			if err != nil {

@@ -403,7 +403,7 @@ func TestApiGroups(t *testing.T) {
 
 	t.Logf("Creating a Build")
 	originalBuild := testBuild()
-	_, err = buildclient.NewForConfigOrDie(clusterAdminClientConfig).Builds(ns).Create(originalBuild)
+	_, err = buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build().Builds(ns).Create(originalBuild)
 	if err != nil {
 		t.Fatalf("Unexpected BuildConfig create error: %v", err)
 	}

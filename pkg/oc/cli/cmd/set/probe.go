@@ -170,7 +170,7 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		o.Command = args[i:]
 	}
 	if len(o.Filenames) == 0 && len(args) < 1 {
-		return kcmdutil.UsageError(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
+		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
 	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()

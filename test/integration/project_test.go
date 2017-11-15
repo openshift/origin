@@ -43,7 +43,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminProjectClient := projectclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminProjectClient := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project()
 	kubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -115,7 +115,7 @@ func TestProjectLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
 	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -232,7 +232,7 @@ func TestProjectWatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	bobProjectClient := projectclient.NewForConfigOrDie(bobConfig)
+	bobProjectClient := projectclient.NewForConfigOrDie(bobConfig).Project()
 	w, err := bobProjectClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -251,7 +251,7 @@ func TestProjectWatch(t *testing.T) {
 	addBob := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("ns-02", authorizationclient.NewForConfigOrDie(joeConfig)),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("ns-02", authorizationclient.NewForConfigOrDie(joeConfig).Authorization()),
 		Users:               []string{"bob"},
 	}
 	if err := addBob.AddRole(); err != nil {
@@ -400,7 +400,7 @@ func TestScopedProjectAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fullBobClient := projectclient.NewForConfigOrDie(fullBobConfig)
+	fullBobClient := projectclient.NewForConfigOrDie(fullBobConfig).Project()
 
 	_, oneTwoBobConfig, err := testutil.GetScopedClientForUser(clusterAdminClientConfig, "bob", []string{
 		scope.UserListScopedProjects,
@@ -410,14 +410,14 @@ func TestScopedProjectAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	oneTwoBobClient := projectclient.NewForConfigOrDie(oneTwoBobConfig)
+	oneTwoBobClient := projectclient.NewForConfigOrDie(oneTwoBobConfig).Project()
 
 	_, twoThreeBobConfig, err := testutil.GetScopedClientForUser(clusterAdminClientConfig, "bob", []string{
 		scope.UserListScopedProjects,
 		scope.ClusterRoleIndicator + "view:two",
 		scope.ClusterRoleIndicator + "view:three",
 	})
-	twoThreeBobClient := projectclient.NewForConfigOrDie(twoThreeBobConfig)
+	twoThreeBobClient := projectclient.NewForConfigOrDie(twoThreeBobConfig).Project()
 
 	_, allBobConfig, err := testutil.GetScopedClientForUser(clusterAdminClientConfig, "bob", []string{
 		scope.UserListScopedProjects,
@@ -426,7 +426,7 @@ func TestScopedProjectAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	allBobClient := projectclient.NewForConfigOrDie(allBobConfig)
+	allBobClient := projectclient.NewForConfigOrDie(allBobConfig).Project()
 
 	oneTwoWatch, err := oneTwoBobClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
@@ -516,7 +516,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	_, bobConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "bob")
 	if err != nil {
@@ -540,17 +540,17 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 	modifyRole := &policy.RoleModificationOptions{RoleName: roleName, Users: []string{"someuser"}}
 	// mess up rolebindings in "foo"
-	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("foo", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig))
+	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("foo", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// mess up rolebindings in "bar"
-	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("bar", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig))
+	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("bar", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// mess up clusterrolebindings
-	modifyRole.RoleBindingAccessor = policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig))
+	modifyRole.RoleBindingAccessor = policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -580,15 +580,15 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 
 	// Make sure bob still sees his project (and only his project)
-	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(bobConfig).Projects(), sets.NewString("foo")); hasErr != nil {
+	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(bobConfig).Project().Projects(), sets.NewString("foo")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure alice still sees her project (and only her project)
-	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(aliceConfig).Projects(), sets.NewString("bar")); hasErr != nil {
+	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(aliceConfig).Project().Projects(), sets.NewString("bar")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure cluster admin still sees all projects
-	if projects, err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().List(metav1.ListOptions{}); err != nil {
+	if projects, err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else {
 		projectNames := sets.NewString()

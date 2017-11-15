@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 
 	kflag "k8s.io/apiserver/pkg/util/flag"
+	"k8s.io/apiserver/pkg/util/logs"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	"k8s.io/kubernetes/pkg/util/logs"
 )
 
 const kubeletLog = `Start Kubelet

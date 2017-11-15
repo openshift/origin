@@ -10,8 +10,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/features"
+	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 

@@ -9,10 +9,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 
+	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kcorelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )

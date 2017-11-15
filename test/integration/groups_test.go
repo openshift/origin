@@ -37,7 +37,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	valerieProjectClient := projectclient.NewForConfigOrDie(valerieConfig)
+	valerieProjectClient := projectclient.NewForConfigOrDie(valerieConfig).Project()
 
 	// make sure we don't get back system groups
 	firstValerie, err := clusterAdminUserClient.Users().Get("valerie", metav1.GetOptions{})
@@ -81,7 +81,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 
 	emptyProject := &projectapi.Project{}
 	emptyProject.Name = "empty"
-	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Create(emptyProject)
+	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Create(emptyProject)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
 	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, valerieGroups)
-	_, err = authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).RoleBindings("empty").Create(roleBinding)
+	_, err = authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization().RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	valerieProjectClient := projectclient.NewForConfigOrDie(valerieConfig)
+	valerieProjectClient := projectclient.NewForConfigOrDie(valerieConfig).Project()
 
 	theGroup := &userapi.Group{}
 	theGroup.Name = "thegroup"
@@ -139,7 +139,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 
 	emptyProject := &projectapi.Project{}
 	emptyProject.Name = "empty"
-	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Create(emptyProject)
+	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Create(emptyProject)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
 	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name})
-	_, err = authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).RoleBindings("empty").Create(roleBinding)
+	_, err = authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization().RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = projectclient.NewForConfigOrDie(victorConfig).Projects().Get("empty", metav1.GetOptions{})
+	_, err = projectclient.NewForConfigOrDie(victorConfig).Project().Projects().Get("empty", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

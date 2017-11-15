@@ -129,7 +129,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	addUser := &policy.RoleModificationOptions{
 		RoleNamespace:       ns.Name,
 		RoleName:            bootstrappolicy.AdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()),
 		Users:               []string{user},
 	}
 	if err := addUser.AddRole(); err != nil {

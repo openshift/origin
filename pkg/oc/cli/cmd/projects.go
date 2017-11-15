@@ -69,7 +69,7 @@ func NewCmdProjects(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 			options.PathOptions = cliconfig.NewPathOptions(cmd)
 
 			if err := options.Complete(f, args, fullName, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.RunProjects(); err != nil {

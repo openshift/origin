@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
-	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
+	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )

@@ -8,8 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/retry"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -43,7 +43,7 @@ func TestTriggers_manual(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace
@@ -116,8 +116,8 @@ func TestTriggers_imageChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig)
-	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig)
+	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig).Apps()
+	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig).Image()
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 
@@ -219,8 +219,8 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
-	adminImageClient := imageclient.NewForConfigOrDie(adminConfig)
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
+	adminImageClient := imageclient.NewForConfigOrDie(adminConfig).Image()
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 
@@ -396,8 +396,8 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
-	adminImageClient := imageclient.NewForConfigOrDie(adminConfig)
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
+	adminImageClient := imageclient.NewForConfigOrDie(adminConfig).Image()
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 	secondImageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
@@ -562,7 +562,7 @@ func TestTriggers_configChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace

@@ -43,8 +43,8 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieTemplateClient := templateclient.NewForConfigOrDie(&valerieClientConfig)
-	valerieImageClient := imageclient.NewForConfigOrDie(&valerieClientConfig)
+	valerieTemplateClient := templateclient.NewForConfigOrDie(&valerieClientConfig).Template()
+	valerieImageClient := imageclient.NewForConfigOrDie(&valerieClientConfig).Image()
 
 	openshiftSharedResourcesNamespace := "openshift"
 
@@ -86,7 +86,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	valerieAuthorizationClient := authorizationclient.NewForConfigOrDie(valerieClientConfig)
+	valerieAuthorizationClient := authorizationclient.NewForConfigOrDie(valerieClientConfig).Authorization()
 
 	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.Action{Verb: "create", Resource: "policybindings"},
@@ -143,7 +143,7 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "ensure SAR for non-existing namespace does not leak namespace info",
-		localInterface:    authorizationclient.NewForConfigOrDie(valerieClientConfig).LocalSubjectAccessReviews("foo"),
+		localInterface:    authorizationclient.NewForConfigOrDie(valerieClientConfig).Authorization().LocalSubjectAccessReviews("foo"),
 		localReview:       askCanICreatePodsInNonExistingNamespace,
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{

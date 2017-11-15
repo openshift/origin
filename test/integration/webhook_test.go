@@ -37,7 +37,7 @@ func TestWebhook(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to get osClient: %v", err)
 	}
-	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
 	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
@@ -109,7 +109,7 @@ func TestWebhook(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			body := postFile(clusterAdminBuildClient.Build().RESTClient(), test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, http.StatusOK, t)
+			body := postFile(clusterAdminBuildClient.RESTClient(), test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, http.StatusOK, t)
 			if len(body) == 0 {
 				t.Fatalf("%s: Webhook did not return expected Build object.", test.Name)
 			}
@@ -144,8 +144,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig)
-	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
@@ -208,7 +208,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	} {
 
 		// trigger build event sending push notification
-		body := postFile(clusterAdminBuildClient.Build().RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		body := postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 		if len(body) == 0 {
 			t.Errorf("Webhook did not return Build in body")
 		}
@@ -254,8 +254,8 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig)
-	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -320,7 +320,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	s := "/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
 
 	// trigger build event sending push notification
-	postFile(clusterAdminBuildClient.Build().RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+	postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 	var build *buildapi.Build
 
@@ -359,7 +359,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to get osClient: %v", err)
 	}
-	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
 	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
@@ -388,7 +388,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		postFile(clusterAdminBuildClient.Build().RESTClient(), githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second * 5)

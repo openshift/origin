@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 // PodConfig holds configuration for a pod.

@@ -9,7 +9,7 @@ func (b BuildSliceByCreationTimestamp) Len() int {
 }
 
 func (b BuildSliceByCreationTimestamp) Less(i, j int) bool {
-	return b[i].CreationTimestamp.Before(b[j].CreationTimestamp)
+	return b[i].CreationTimestamp.Before(&b[j].CreationTimestamp)
 }
 
 func (b BuildSliceByCreationTimestamp) Swap(i, j int) {
@@ -25,7 +25,7 @@ func (b BuildPtrSliceByCreationTimestamp) Len() int {
 }
 
 func (b BuildPtrSliceByCreationTimestamp) Less(i, j int) bool {
-	return b[i].CreationTimestamp.Before(b[j].CreationTimestamp)
+	return b[i].CreationTimestamp.Before(&b[j].CreationTimestamp)
 }
 
 func (b BuildPtrSliceByCreationTimestamp) Swap(i, j int) {

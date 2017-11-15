@@ -204,14 +204,14 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 
 	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 	if outputFormat != "name" && outputFormat != "" {
-		return kcmdutil.UsageError(cmd, "Unsupported output format: %s", outputFormat)
+		return kcmdutil.UsageErrorf(cmd, "Unsupported output format: %s", outputFormat)
 	}
 	o.ShortOutput = outputFormat == "name"
 
 	switch {
 	case len(webhook) > 0:
 		if len(args) > 0 || len(buildName) > 0 || o.AsBinary {
-			return kcmdutil.UsageError(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
+			return kcmdutil.UsageErrorf(cmd, "The '--from-webhook' flag is incompatible with arguments and all '--from-*' flags")
 		}
 		if !strings.HasSuffix(webhook, "/generic") {
 			fmt.Fprintf(errout, "warning: the '--from-webhook' flag should be called with a generic webhook URL.\n")
@@ -219,13 +219,13 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		return nil
 
 	case len(args) != 1 && len(buildName) == 0:
-		return kcmdutil.UsageError(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", cmdFullName)
+		return kcmdutil.UsageErrorf(cmd, "Must pass a name of a build config or specify build name with '--from-build' flag.\nUse \"%s get bc\" to list all available build configs.", cmdFullName)
 	}
 
 	if len(buildName) != 0 && o.AsBinary {
 		// TODO: we should support this, it should be possible to clone a build to run again with new uploaded artifacts.
 		// Doing so requires introducing a new clonebinary endpoint.
-		return kcmdutil.UsageError(cmd, "Cannot use '--from-build' flag with binary builds")
+		return kcmdutil.UsageErrorf(cmd, "Cannot use '--from-build' flag with binary builds")
 	}
 
 	namespace, _, err := f.DefaultNamespace()

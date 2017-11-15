@@ -11,8 +11,8 @@ import (
 
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
-	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
+	kexec "k8s.io/utils/exec"
 )
 
 type NodeIPTables struct {

@@ -106,9 +106,9 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case clustdiags.ClusterRouterName:
 			d = &clustdiags.ClusterRouter{KubeClient: kclusterClient, DCClient: appsClient.Apps()}
 		case clustdiags.ClusterRolesName:
-			d = &clustdiags.ClusterRoles{ClusterRolesClient: oauthorizationClient.ClusterRoles(), SARClient: kclusterClient.Authorization()}
+			d = &clustdiags.ClusterRoles{ClusterRolesClient: oauthorizationClient.Authorization().ClusterRoles(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.ClusterRoleBindingsName:
-			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: oauthorizationClient.ClusterRoleBindings(), SARClient: kclusterClient.Authorization()}
+			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: oauthorizationClient.Authorization().ClusterRoleBindings(), SARClient: kclusterClient.Authorization()}
 		case clustdiags.MetricsApiProxyName:
 			d = &clustdiags.MetricsApiProxy{KubeClient: kclusterClient}
 		case clustdiags.ServiceExternalIPsName:

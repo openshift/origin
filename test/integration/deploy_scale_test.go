@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	internalextensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -36,7 +37,7 @@ func TestDeployScale(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace
@@ -71,7 +72,7 @@ func TestDeployScale(t *testing.T) {
 	scaleUpdate := deployapi.ScaleFromConfig(dc)
 	scaleUpdate.Spec.Replicas = 3
 	scaleUpdatev1beta1 := &extensionsv1beta1.Scale{}
-	if err := extensionsv1beta1.Convert_extensions_Scale_To_v1beta1_Scale(scaleUpdate, scaleUpdatev1beta1, nil); err != nil {
+	if err := internalextensionsv1beta1.Convert_extensions_Scale_To_v1beta1_Scale(scaleUpdate, scaleUpdatev1beta1, nil); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	updatedScale, err := adminAppsClient.DeploymentConfigs(namespace).UpdateScale(config.Name, scaleUpdatev1beta1)

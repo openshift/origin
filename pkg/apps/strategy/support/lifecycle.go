@@ -467,7 +467,7 @@ func newPodWatch(client kcoreclient.PodInterface, namespace, name, resourceVersi
 	}
 
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).RunUntil(stopChannel)
+	cache.NewReflector(podLW, &kapi.Pod{}, queue, 1*time.Minute).Run(stopChannel)
 
 	return func() *kapi.Pod {
 		obj := cache.Pop(queue)

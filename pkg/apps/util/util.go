@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -18,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
@@ -311,7 +312,7 @@ func CopyApiResourcesToV1Resources(in *api.ResourceRequirements) v1.ResourceRequ
 	}
 	in = copied.(*api.ResourceRequirements)
 	out := v1.ResourceRequirements{}
-	if err := v1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
+	if err := kapiv1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
 		panic(err)
 	}
 	return out
@@ -325,7 +326,7 @@ func CopyApiEnvVarToV1EnvVar(in []api.EnvVar) []v1.EnvVar {
 	in = copied.([]api.EnvVar)
 	out := make([]v1.EnvVar, len(in))
 	for i := range in {
-		if err := v1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
+		if err := kapiv1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
 			panic(err)
 		}
 	}
@@ -339,7 +340,7 @@ func CopyPodTemplateSpecToV1PodTemplateSpec(spec *api.PodTemplateSpec) *v1.PodTe
 	}
 	in := copied.(*api.PodTemplateSpec)
 	out := &v1.PodTemplateSpec{}
-	if err := v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
+	if err := kapiv1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
 		panic(err)
 	}
 	return out
@@ -430,7 +431,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	if err != nil {
 		return nil, err
 	}
-	v1.SetObjectDefaults_ReplicationController(obj)
+	kapiv1.SetObjectDefaults_ReplicationController(obj)
 	converted, err := api.Scheme.ConvertToVersion(obj, api.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
@@ -899,5 +900,5 @@ type ByMostRecent []*api.ReplicationController
 func (s ByMostRecent) Len() int      { return len(s) }
 func (s ByMostRecent) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s ByMostRecent) Less(i, j int) bool {
-	return !s[i].CreationTimestamp.Before(s[j].CreationTimestamp)
+	return !s[i].CreationTimestamp.Before(&s[j].CreationTimestamp)
 }

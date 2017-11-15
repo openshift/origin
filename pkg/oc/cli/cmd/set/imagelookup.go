@@ -172,7 +172,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	switch {
 	case o.Local && len(args) > 0:
-		return kcmdutil.UsageError(cmd, "Pass files with -f when using --local")
+		return kcmdutil.UsageErrorf(cmd, "Pass files with -f when using --local")
 	case o.Local:
 		// perform no lookups on the server
 		// TODO: discovery still requires a running server, doesn't fall back correctly

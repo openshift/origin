@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -187,7 +188,7 @@ func newEventQueue(client kcache.Getter, resourceName ResourceName, expectedType
 	eventQueue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
 	// Repopulate event queue every 30 mins
 	// Existing items in the event queue will have watch.Modified event type
-	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
+	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run(wait.NeverStop)
 	return eventQueue
 }
 

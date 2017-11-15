@@ -54,7 +54,7 @@ func NewCommandValidateNodeConfig(name, fullName string, out io.Writer) *cobra.C
 		Deprecated: validateNodeConfigDeprecationMessage,
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(args); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				cmdutil.CheckErr(cmdutil.UsageErrorf(c, err.Error()))
 			}
 
 			ok, err := options.Run()

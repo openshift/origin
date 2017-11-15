@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 const expectedDevice = "/dev/sdb2"

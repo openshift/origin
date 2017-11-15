@@ -95,11 +95,11 @@ func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *co
 		Example: fmt.Sprintf(pruneExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(whitelistFile, blacklistFile, configFile, args, f); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				cmdutil.CheckErr(cmdutil.UsageErrorf(c, err.Error()))
 			}
 
 			if err := options.Validate(); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
+				cmdutil.CheckErr(cmdutil.UsageErrorf(c, err.Error()))
 			}
 
 			err := options.Run(c, f)

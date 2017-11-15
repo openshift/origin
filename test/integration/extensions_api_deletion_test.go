@@ -86,7 +86,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 		t.Fatalf("unexpected error creating the job object: %v", err)
 	}
 
-	if err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Delete(projName, nil); err != nil {
+	if err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Delete(projName, nil); err != nil {
 		t.Fatalf("unexpected error deleting the project: %v", err)
 	}
 	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {

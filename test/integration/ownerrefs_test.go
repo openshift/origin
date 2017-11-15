@@ -26,7 +26,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clientConfig)
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clientConfig).Authorization()
 
 	_, err = clusterAdminAuthorizationClient.ClusterRoles().Create(&authorizationapi.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{

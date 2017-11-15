@@ -74,7 +74,7 @@ func TestNodeAuth(t *testing.T) {
 	// Grant Bob system:node-reader, which should let them read metrics and stats
 	addBob := &policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.NodeReaderRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig)),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig).Authorization()),
 		Subjects:            []kapi.ObjectReference{{Kind: "User", Name: "bob"}},
 	}
 	if err := addBob.AddRole(); err != nil {
@@ -103,7 +103,7 @@ func TestNodeAuth(t *testing.T) {
 	// Grant sa1 system:cluster-reader, which should let them read metrics and stats
 	addSA1 := &policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.ClusterReaderRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig)),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig).Authorization()),
 		Subjects:            []kapi.ObjectReference{{Kind: "ServiceAccount", Namespace: "default", Name: "sa1"}},
 	}
 	if err := addSA1.AddRole(); err != nil {

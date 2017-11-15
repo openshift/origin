@@ -10,15 +10,15 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/retry"
-	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -49,8 +49,8 @@ func updateConfigWithRetries(dn appstypedclientset.DeploymentConfigsGetter, name
 	return config, resultErr
 }
 
-func deploymentPods(pods []kapiv1.Pod) (map[string][]*kapiv1.Pod, error) {
-	deployers := make(map[string][]*kapiv1.Pod)
+func deploymentPods(pods []corev1.Pod) (map[string][]*corev1.Pod, error) {
+	deployers := make(map[string][]*corev1.Pod)
 	for i := range pods {
 		name, ok := pods[i].Labels[deployapi.DeployerPodForDeploymentLabel]
 		if !ok {
@@ -63,7 +63,7 @@ func deploymentPods(pods []kapiv1.Pod) (map[string][]*kapiv1.Pod, error) {
 
 var completedStatuses = sets.NewString(string(deployapi.DeploymentStatusComplete), string(deployapi.DeploymentStatusFailed))
 
-func checkDeployerPodInvariants(deploymentName string, pods []*kapiv1.Pod) (isRunning, isCompleted bool, err error) {
+func checkDeployerPodInvariants(deploymentName string, pods []*corev1.Pod) (isRunning, isCompleted bool, err error) {
 	running := false
 	completed := false
 	succeeded := false
@@ -79,10 +79,10 @@ func checkDeployerPodInvariants(deploymentName string, pods []*kapiv1.Pod) (isRu
 			hasDeployer = true
 
 			switch pod.Status.Phase {
-			case kapiv1.PodSucceeded:
+			case corev1.PodSucceeded:
 				succeeded = true
 				completed = true
-			case kapiv1.PodFailed:
+			case corev1.PodFailed:
 				completed = true
 			default:
 				running = true
@@ -98,8 +98,8 @@ func checkDeployerPodInvariants(deploymentName string, pods []*kapiv1.Pod) (isRu
 		switch {
 		case strings.HasSuffix(pod.Name, "-pre"), strings.HasSuffix(pod.Name, "-mid"), strings.HasSuffix(pod.Name, "-post"):
 			switch pod.Status.Phase {
-			case kapiv1.PodSucceeded:
-			case kapiv1.PodFailed:
+			case corev1.PodSucceeded:
+			case corev1.PodFailed:
 				if succeeded {
 					return false, false, fmt.Errorf("deployer hook pod %q failed but the deployment %q pod succeeded", pod.Name, deploymentName)
 				}
@@ -118,7 +118,7 @@ func checkDeployerPodInvariants(deploymentName string, pods []*kapiv1.Pod) (isRu
 	return running, completed, nil
 }
 
-func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, pods []kapiv1.Pod) error {
+func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) error {
 	deployers, err := deploymentPods(pods)
 	if err != nil {
 		return err
@@ -187,7 +187,7 @@ func checkDeploymentInvariants(dc *deployapi.DeploymentConfig, rcs []*kapiv1.Rep
 	return nil
 }
 
-func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, pods []kapiv1.Pod) (bool, error) {
+func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
@@ -221,7 +221,7 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []*kapiv1.R
 	return true, nil
 }
 
-func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, _ []kapiv1.Pod) (bool, error) {
+func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, _ []corev1.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
@@ -239,7 +239,7 @@ func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationC
 	return cond != nil && cond.Reason == deployapi.TimedOutReason, nil
 }
 
-func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, pods []kapiv1.Pod) (bool, error) {
+func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error) {
 	if len(rcs) == 0 {
 		return false, nil
 	}
@@ -270,8 +270,8 @@ func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []*kapiv1.Replication
 	}
 }
 
-func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, pods []kapiv1.Pod) (bool, error) {
-	var preHook *kapiv1.Pod
+func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error) {
+	var preHook *corev1.Pod
 	for i := range pods {
 		pod := pods[i]
 		if !strings.HasSuffix(pod.Name, "-pre") {
@@ -288,8 +288,8 @@ func deploymentPreHookRetried(dc *deployapi.DeploymentConfig, rcs []*kapiv1.Repl
 	return preHook.Status.ContainerStatuses[0].RestartCount > 0, nil
 }
 
-func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, pods []kapiv1.Pod) (bool, error) {
-	return func(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, pods []kapiv1.Pod) (bool, error) {
+func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error) {
+	return func(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error) {
 		expect := 0
 		for _, t := range dc.Spec.Triggers {
 			if t.Type != deployapi.DeploymentTriggerOnImageChange {
@@ -310,7 +310,7 @@ func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.Depl
 	}
 }
 
-func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []*kapiv1.ReplicationController, []kapiv1.Pod, error) {
+func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []*corev1.ReplicationController, []corev1.Pod, error) {
 	dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, nil, err
@@ -329,7 +329,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, [
 		return nil, nil, nil, err
 	}
 
-	deployments := make([]*kapiv1.ReplicationController, 0, len(rcs.Items))
+	deployments := make([]*corev1.ReplicationController, 0, len(rcs.Items))
 	for i := range rcs.Items {
 		deployments = append(deployments, &rcs.Items[i])
 	}
@@ -339,7 +339,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, [
 	return dc, deployments, pods.Items, nil
 }
 
-type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []*kapiv1.ReplicationController, pods []kapiv1.Pod) (bool, error)
+type deploymentConditionFunc func(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error)
 
 func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, fn deploymentConditionFunc) error {
 	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
@@ -411,7 +411,7 @@ func isControllerRefChange(controllee metav1.Object, old *metav1.OwnerReference)
 	if old != nil && old.Controller != nil && *old.Controller == false {
 		return false, fmt.Errorf("old ownerReference is not a controllerRef")
 	}
-	return !reflect.DeepEqual(old, kcontroller.GetControllerOf(controllee)), nil
+	return !reflect.DeepEqual(old, metav1.GetControllerOf(controllee)), nil
 }
 
 func controllerRefChangeCondition(old *metav1.OwnerReference) func(controllee metav1.Object) (bool, error) {
@@ -420,13 +420,13 @@ func controllerRefChangeCondition(old *metav1.OwnerReference) func(controllee me
 	}
 }
 
-func rCConditionFromMeta(condition func(metav1.Object) (bool, error)) func(rc *kapiv1.ReplicationController) (bool, error) {
-	return func(rc *kapiv1.ReplicationController) (bool, error) {
+func rCConditionFromMeta(condition func(metav1.Object) (bool, error)) func(rc *corev1.ReplicationController) (bool, error) {
+	return func(rc *corev1.ReplicationController) (bool, error) {
 		return condition(rc)
 	}
 }
 
-func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *kapiv1.ReplicationController) (bool, error)) (*kapiv1.ReplicationController, error) {
+func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *corev1.ReplicationController) (bool, error)) (*corev1.ReplicationController, error) {
 	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
 	if err != nil {
 		return nil, err
@@ -436,7 +436,7 @@ func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeou
 		if event.Type != watch.Modified {
 			return false, fmt.Errorf("different kind of event appeared while waiting for modification: event: %#v", event)
 		}
-		return condition(event.Object.(*kapiv1.ReplicationController))
+		return condition(event.Object.(*corev1.ReplicationController))
 	})
 	if err != nil {
 		return nil, err
@@ -444,7 +444,7 @@ func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeou
 	if event.Type != watch.Modified {
 		return nil, fmt.Errorf("waiting for RC modification failed: event: %v", event)
 	}
-	return event.Object.(*kapiv1.ReplicationController), nil
+	return event.Object.(*corev1.ReplicationController), nil
 }
 
 func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *deployapi.DeploymentConfig) (bool, error)) (*deployapi.DeploymentConfig, error) {
@@ -591,7 +591,7 @@ func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
 // Checks controllerRef from controllee to DC.
 // Return true is the controllerRef is valid, false otherwise
 func HasValidDCControllerRef(dc metav1.Object, controllee metav1.Object) bool {
-	ref := kcontroller.GetControllerOf(controllee)
+	ref := metav1.GetControllerOf(controllee)
 	return ref != nil &&
 		ref.UID == dc.GetUID() &&
 		ref.APIVersion == deployutil.DeploymentConfigControllerRefKind.GroupVersion().String() &&

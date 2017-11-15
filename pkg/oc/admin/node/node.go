@@ -115,18 +115,18 @@ func (n *ManageNodeOptions) Complete(c *cobra.Command, f *clientcmd.Factory, arg
 
 func (n *ManageNodeOptions) Validate(c *cobra.Command) error {
 	if err := ValidOperation(c); err != nil {
-		return kcmdutil.UsageError(c, err.Error())
+		return kcmdutil.UsageErrorf(c, err.Error())
 	}
 
 	checkNodeSelector := c.Flag("selector").Changed
 	if err := n.nodeOptions.Validate(checkNodeSelector); err != nil {
-		return kcmdutil.UsageError(c, err.Error())
+		return kcmdutil.UsageErrorf(c, err.Error())
 	}
 
 	// Cross op validations
 	if n.evacuateOptions.DryRun && !evacuate {
 		err := errors.New("--dry-run is only applicable for --evacuate")
-		return kcmdutil.UsageError(c, err.Error())
+		return kcmdutil.UsageErrorf(c, err.Error())
 	}
 
 	return nil

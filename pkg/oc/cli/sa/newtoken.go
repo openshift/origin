@@ -92,7 +92,7 @@ func NewCommandNewServiceAccountToken(name, fullname string, f *clientcmd.Factor
 
 func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels string, f *clientcmd.Factory, cmd *cobra.Command) error {
 	if len(args) != 1 {
-		return cmdutil.UsageError(cmd, fmt.Sprintf("expected one service account name as an argument, got %q", args))
+		return cmdutil.UsageErrorf(cmd, fmt.Sprintf("expected one service account name as an argument, got %q", args))
 	}
 
 	o.SAName = args[0]
@@ -100,7 +100,7 @@ func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels 
 	if len(requestedLabels) > 0 {
 		labels, err := kubectl.ParseLabels(requestedLabels)
 		if err != nil {
-			return cmdutil.UsageError(cmd, err.Error())
+			return cmdutil.UsageErrorf(cmd, err.Error())
 		}
 		o.Labels = labels
 	}

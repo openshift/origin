@@ -34,7 +34,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/kubelet/certificate"
+	"k8s.io/client-go/util/certificate"
 )
 
 // RefreshCertificateAfterExpiry instruments a restconfig with a transport that checks

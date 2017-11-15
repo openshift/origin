@@ -8,7 +8,7 @@ import (
 	spec "github.com/go-openapi/spec"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	openapi "k8s.io/apimachinery/pkg/openapi"
+	openapi "k8s.io/kube-openapi/pkg/common"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -12399,13 +12399,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						"user": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Authenticated user information.",
-								Ref:         ref("k8s.io/client-go/pkg/apis/authentication/v1.UserInfo"),
+								Ref:         ref("k8s.io/apis/authentication/v1.UserInfo"),
 							},
 						},
 						"impersonatedUser": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Impersonated user information.",
-								Ref:         ref("k8s.io/client-go/pkg/apis/authentication/v1.UserInfo"),
+								Ref:         ref("k8s.io/apis/authentication/v1.UserInfo"),
 							},
 						},
 						"sourceIPs": {
@@ -12451,7 +12451,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Status", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/apimachinery/pkg/runtime.Unknown", "k8s.io/apiserver/pkg/apis/audit/v1alpha1.ObjectReference", "k8s.io/client-go/pkg/apis/authentication/v1.UserInfo"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Status", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/apimachinery/pkg/runtime.Unknown", "k8s.io/apiserver/pkg/apis/audit/v1alpha1.ObjectReference", "k8s.io/apis/authentication/v1.UserInfo"},
 		},
 		"k8s.io/apiserver/pkg/apis/audit/v1alpha1.EventList": {
 			Schema: spec.Schema{
@@ -30934,7 +30934,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						"describedObject": {
 							SchemaProps: spec.SchemaProps{
 								Description: "a reference to the described object",
-								Ref:         ref("k8s.io/client-go/pkg/api/v1.ObjectReference"),
+								Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 							},
 						},
 						"metricName": {
@@ -30968,7 +30968,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/api/resource.Quantity", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/client-go/pkg/api/v1.ObjectReference"},
+				"k8s.io/apimachinery/pkg/api/resource.Quantity", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/api/core/v1.ObjectReference"},
 		},
 		"k8s.io/metrics/pkg/apis/custom_metrics/v1alpha1.MetricValueList": {
 			Schema: spec.Schema{

@@ -1,9 +1,9 @@
 package v1
 
 import (
+	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -111,7 +111,7 @@ type SignatureCondition struct {
 	// Type of signature condition, Complete or Failed.
 	Type SignatureConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=SignatureConditionType"`
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
+	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/api/core/v1.ConditionStatus"`
 	// Last time the condition was checked.
 	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
 	// Last time the condition transit from one status to another.
@@ -158,7 +158,7 @@ type ImageStreamList struct {
 }
 
 // +genclient
-// +genclient:method=Secrets,verb=list,subresource=secrets,result=k8s.io/kubernetes/pkg/api/v1.Secret
+// +genclient:method=Secrets,verb=list,subresource=secrets,result=k8s.io/api/core/v1.Secret
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
@@ -316,7 +316,7 @@ type TagEventCondition struct {
 	// Type of tag event condition, currently only ImportSuccess
 	Type TagEventConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=TagEventConditionType"`
 	// Status of the condition, one of True, False, Unknown.
-	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
+	Status kapi.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/api/core/v1.ConditionStatus"`
 	// LastTransitionTIme is the time the condition transitioned from one status to another.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// Reason is a brief machine readable explanation for the condition's last transition.

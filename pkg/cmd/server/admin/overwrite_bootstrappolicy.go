@@ -66,7 +66,7 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f))
 			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 			kcmdutil.CheckErr(options.OverwriteBootstrapPolicy())
 		},

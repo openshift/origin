@@ -15,8 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/api"
-	externalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
@@ -26,7 +26,7 @@ import (
 
 type NodeOptions struct {
 	DefaultNamespace   string
-	ExternalKubeClient externalclientset.Interface
+	ExternalKubeClient kubernetes.Interface
 	KubeClient         kclientset.Interface
 	Writer             io.Writer
 	ErrWriter          io.Writer
@@ -64,7 +64,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
-	externalkc, err := externalclientset.NewForConfig(config)
+	externalkc, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}

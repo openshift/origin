@@ -7,14 +7,14 @@ import (
 	"strings"
 	"testing"
 
+	kapps "k8s.io/api/apps/v1beta1"
+	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/util/jsonpath"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kapps "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 )

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/api/core/v1"
 
 	v1buildapi "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client/clientset_generated/release_v1_5"

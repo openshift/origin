@@ -48,7 +48,7 @@ func NewCommandCreateKeyPair(commandName string, fullName string, out io.Writer)
 		Long:  fmt.Sprintf(createKeyPairLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			err := options.CreateKeyPair()

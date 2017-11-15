@@ -247,7 +247,7 @@ func TestOpenshiftAdmissionPluginOrderOverride(t *testing.T) {
 	})
 	defer fn()
 
-	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err != nil {
 		t.Errorf("Unexpected error creating build: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 		}
 	})
 	defer fn()
-	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "plugin2configvalue"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -289,7 +289,7 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 		}
 	})
 	defer fn()
-	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Build().Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "embeddedvalue2"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}

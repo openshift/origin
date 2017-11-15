@@ -145,7 +145,7 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 		o.Command = args[i:]
 	}
 	if len(o.Filenames) == 0 && len(args) < 1 {
-		return kcmdutil.UsageError(cmd, "one or more deployment configs must be specified as <name> or dc/<name>")
+		return kcmdutil.UsageErrorf(cmd, "one or more deployment configs must be specified as <name> or dc/<name>")
 	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
@@ -191,7 +191,7 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 		case "retry":
 			o.FailurePolicy = deployapi.LifecycleHookFailurePolicyRetry
 		default:
-			return kcmdutil.UsageError(cmd, "valid values for --failure-policy are: abort, retry, ignore")
+			return kcmdutil.UsageErrorf(cmd, "valid values for --failure-policy are: abort, retry, ignore")
 		}
 	}
 

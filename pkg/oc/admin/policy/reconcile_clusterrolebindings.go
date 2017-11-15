@@ -97,7 +97,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 			}
 
 			if err := o.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := o.RunReconcileClusterRoleBindings(cmd, f); err != nil {

@@ -367,7 +367,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/api/v1
+	// k8s.io/api/core/v1
 	gvr("", "v1", "configmaps"): {
 		stub:             `{"data": {"foo": "bar"}, "metadata": {"name": "cm1"}}`,
 		expectedEtcdPath: "kubernetes.io/configmaps/etcdstoragepathtestnamespace/cm1",
@@ -452,7 +452,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/apps/v1beta1
+	// k8s.io/api/apps/v1beta1
 	gvr("apps", "v1beta1", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment2"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment2",
@@ -483,7 +483,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/batch/v1
+	// k8s.io/api/batch/v1
 	gvr("batch", "v1", "jobs"): {
 		stub:             `{"metadata": {"name": "job1"}, "spec": {"manualSelector": true, "selector": {"matchLabels": {"controller-uid": "uid1"}}, "template": {"metadata": {"labels": {"controller-uid": "uid1"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container1"}], "dnsPolicy": "ClusterFirst", "restartPolicy": "Never"}}}}`,
 		expectedEtcdPath: "kubernetes.io/jobs/etcdstoragepathtestnamespace/job1",
@@ -509,7 +509,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/extensions/v1beta1
+	// k8s.io/api/extensions/v1beta1
 	gvr("extensions", "v1beta1", "daemonsets"): {
 		stub:             `{"metadata": {"name": "ds1"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds1",
@@ -578,7 +578,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/rbac/v1beta1
+	// k8s.io/api/rbac/v1beta1
 	gvr("rbac.authorization.k8s.io", "v1beta1", "roles"): {
 		stub:             `{"metadata": {"name": "r1b1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1",
@@ -604,7 +604,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/storage/v1beta1
+	// k8s.io/api/storage/v1beta1
 	gvr("storage.k8s.io", "v1beta1", "storageclasses"): {
 		stub:             `{"metadata": {"name": "sc1"}, "provisioner": "aws"}`,
 		expectedEtcdPath: "kubernetes.io/storageclasses/sc1",
@@ -612,7 +612,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/storage/v1
+	// k8s.io/api/storage/v1
 	gvr("storage.k8s.io", "v1", "storageclasses"): {
 		stub:             `{"metadata": {"name": "sc2"}, "provisioner": "aws"}`,
 		expectedEtcdPath: "kubernetes.io/storageclasses/sc2",
@@ -743,7 +743,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("federation", "v1beta1", "clusters"), // we cannot create this  // TODO but we should be able to create it in kube
 	// --
 
-	// k8s.io/kubernetes/pkg/api/v1
+	// k8s.io/api/core/v1
 	gvr("", "v1", "bindings"),             // annotation on pod, not stored in etcd
 	gvr("", "v1", "rangeallocations"),     // stored in various places in etcd but cannot be directly created // TODO maybe possible in kube
 	gvr("", "v1", "componentstatuses"),    // status info not stored in etcd
@@ -763,7 +763,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("authentication.k8s.io", "v1", "tokenreviews"), // not stored in etcd
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/authorization/v1beta1
+	// k8s.io/api/authorization/v1beta1
 
 	// SAR objects that are not stored in etcd
 	gvr("authorization.k8s.io", "v1beta1", "selfsubjectaccessreviews"),
@@ -771,7 +771,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("authorization.k8s.io", "v1beta1", "subjectaccessreviews"),
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/authorization/v1
+	// k8s.io/api/authorization/v1
 
 	// SAR objects that are not stored in etcd
 	gvr("authorization.k8s.io", "v1", "selfsubjectaccessreviews"),
@@ -793,14 +793,14 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("componentconfig", "v1alpha1", "kubeproxyconfigurations"),     // not stored in etcd
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/extensions/v1beta1
+	// k8s.io/api/extensions/v1beta1
 	gvr("extensions", "v1beta1", "deploymentrollbacks"),          // used to rollback deployment, not stored in etcd
 	gvr("extensions", "v1beta1", "replicationcontrollerdummies"), // not stored in etcd
 	gvr("extensions", "v1beta1", "scales"),                       // not stored in etcd, part of kapiv1.ReplicationController
 	gvr("extensions", "v1beta1", "thirdpartyresourcedatas"),      // we cannot create this  // TODO but we should be able to create it in kube
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/apps/v1beta1
+	// k8s.io/api/apps/v1beta1
 	gvr("apps", "v1beta1", "deploymentrollbacks"), // used to rollback deployment, not stored in etcd
 	gvr("apps", "v1beta1", "scales"),              // not stored in etcd, part of kapiv1.ReplicationController
 	// --
@@ -822,7 +822,7 @@ var kindWhiteList = sets.NewString(
 	"Status",
 	// --
 
-	// k8s.io/kubernetes/pkg/api/v1
+	// k8s.io/api/core/v1
 	"DeleteOptions",
 	"ExportOptions",
 	"GetOptions",

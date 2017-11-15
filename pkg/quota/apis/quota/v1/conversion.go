@@ -1,6 +1,7 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -29,7 +30,7 @@ func Convert_quota_ResourceQuotasStatusByNamespace_To_v1_ResourceQuotasStatusByN
 		namespace := e.Value.(string)
 		status, _ := in.Get(namespace)
 
-		versionedStatus := &kapiv1.ResourceQuotaStatus{}
+		versionedStatus := &corev1.ResourceQuotaStatus{}
 		kapiv1.Convert_api_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(&status, versionedStatus, s)
 
 		if out == nil {

@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"k8s.io/apimachinery/pkg/labels"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
+	kcorelisters "k8s.io/client-go/listers/core/v1"
 
 	"github.com/openshift/origin/pkg/apps/util"
 )

@@ -4,9 +4,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapiv1 "k8s.io/api/core/v1"
+	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kextensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
