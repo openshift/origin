@@ -205,13 +205,25 @@ func (tx *ovsFakeTx) EndTransaction() error {
 	return err
 }
 
-func (fake *ovsFake) DumpFlows() ([]string, error) {
+func (fake *ovsFake) DumpFlows(flow string, args ...interface{}) ([]string, error) {
 	if err := fake.ensureExists(); err != nil {
 		return nil, err
 	}
 
+	// "ParseForFilter", because "ParseForDump" is for the *results* of DumpFlows,
+	// not the input
+	filter, err := ParseFlow(ParseForFilter, flow, args...)
+	if err != nil {
+		return nil, err
+	}
+	fixFlowFields(filter)
+
 	flows := make([]string, 0, len(fake.flows))
 	for _, flow := range fake.flows {
+		if !FlowMatches(&flow, filter) {
+			continue
+		}
+
 		str := fmt.Sprintf(" cookie=%s, table=%d", flow.Cookie, flow.Table)
 		if flow.Priority != defaultPriority {
 			str += fmt.Sprintf(", priority=%d", flow.Priority)

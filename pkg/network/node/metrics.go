@@ -123,7 +123,7 @@ func gatherPeriodicMetrics(ovs ovs.Interface) {
 }
 
 func updateOVSMetrics(ovs ovs.Interface) {
-	flows, err := ovs.DumpFlows()
+	flows, err := ovs.DumpFlows("")
 	if err == nil {
 		OVSFlows.Set(float64(len(flows)))
 	} else {

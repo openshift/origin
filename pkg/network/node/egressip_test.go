@@ -44,7 +44,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -209,7 +209,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -230,7 +230,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -255,7 +255,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}

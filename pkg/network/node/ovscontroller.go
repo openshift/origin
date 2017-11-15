@@ -53,17 +53,12 @@ func (oc *ovsController) getVersionNote() string {
 }
 
 func (oc *ovsController) AlreadySetUp() bool {
-	flows, err := oc.ovs.DumpFlows()
-	if err != nil {
+	flows, err := oc.ovs.DumpFlows("table=%d", ruleVersionTable)
+	if err != nil || len(flows) != 1 {
 		return false
 	}
-	expectedVersionNote := oc.getVersionNote()
-	// The "version" flow should be the last one, so scan from the end
-	for i := len(flows) - 1; i >= 0; i-- {
-		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flows[i])
-		if err == nil && parsed.Table == ruleVersionTable {
-			return parsed.NoteHasPrefix(expectedVersionNote)
-		}
+	if parsed, err := ovs.ParseFlow(ovs.ParseForDump, flows[0]); err == nil {
+		return parsed.NoteHasPrefix(oc.getVersionNote())
 	}
 	return false
 }
@@ -343,18 +338,18 @@ func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, string
 	if err != nil {
 		return 0, "", "", "", err
 	}
-	flows, err := oc.ovs.DumpFlows()
+	flows, err := oc.ovs.DumpFlows("table=20,arp")
 	if err != nil {
 		return 0, "", "", "", err
 	}
 
-	// Find the table=20 flow with the given note and extract the podIP, ofport, and MAC from them
+	// Find the flow with the given note and extract the podIP, ofport, and MAC from them
 	for _, flow := range flows {
 		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
 		if err != nil {
 			return 0, "", "", "", err
 		}
-		if parsed.Table != 20 || !parsed.NoteHasPrefix(note) {
+		if !parsed.NoteHasPrefix(note) {
 			continue
 		}
 
@@ -615,7 +610,7 @@ func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
 // pod/service-specific rules before they call policy.EnsureVNIDRules(), then there is no
 // race condition.
 func (oc *ovsController) FindUnusedVNIDs() []int {
-	flows, err := oc.ovs.DumpFlows()
+	flows, err := oc.ovs.DumpFlows("")
 	if err != nil {
 		glog.Errorf("FindUnusedVNIDs: could not DumpFlows: %v", err)
 		return nil

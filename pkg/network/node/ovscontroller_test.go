@@ -25,7 +25,7 @@ func setupOVSController(t *testing.T) (ovs.Interface, *ovsController, []string) 
 		t.Fatalf("Unexpected error setting up OVS: %v", err)
 	}
 
-	origFlows, err := ovsif.DumpFlows()
+	origFlows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestOVSHostSubnet(t *testing.T) {
 		t.Fatalf("Unexpected error adding HostSubnet rules: %v", err)
 	}
 
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestOVSHostSubnet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error deleting HostSubnet rules: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestOVSService(t *testing.T) {
 		t.Fatalf("Unexpected error adding service rules: %v", err)
 	}
 
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestOVSService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error deleting service rules: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestOVSPod(t *testing.T) {
 		t.Fatalf("Unexpected error adding pod rules: %v", err)
 	}
 
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestOVSPod(t *testing.T) {
 		t.Fatalf("Unexpected error adding pod rules: %v", err)
 	}
 
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -307,7 +307,7 @@ func TestOVSPod(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error deleting pod rules: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -378,7 +378,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -401,7 +401,7 @@ func TestOVSMulticast(t *testing.T) {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
 	lastFlows := flows
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -414,7 +414,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -428,7 +428,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -451,7 +451,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -475,7 +475,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -615,7 +615,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -639,7 +639,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -667,7 +667,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -695,7 +695,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -719,7 +719,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -743,7 +743,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -769,7 +769,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -793,7 +793,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -821,7 +821,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -854,7 +854,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -881,7 +881,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
