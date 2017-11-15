@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -75,8 +74,6 @@ func NewKubeFedCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	templates.ActsAsRootCommand(cmds, filters, groups...)
 
 	// Use the openshift-specific version command
-	cmds.AddCommand(cmd.NewCmdVersion("kubefed", f, out, cmd.VersionOptions{PrintClientFeatures: true}))
-
 	cmds.AddCommand(kubectl.NewCmdOptions(out))
 
 	return cmds

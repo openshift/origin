@@ -24,8 +24,9 @@ import (
 	"github.com/openshift/origin/pkg/apps/strategy/rolling"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util"
+	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
+	"github.com/openshift/origin/pkg/version"
 )
 
 var (
@@ -81,7 +82,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
+	cmd.AddCommand(cmdversion.NewCmdVersion(name, version.Get(), os.Stdout))
 
 	flag := cmd.Flags()
 	flag.StringVar(&cfg.rcName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")

@@ -30,7 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
+	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router"
@@ -160,7 +160,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
+	cmd.AddCommand(cmdversion.NewCmdVersion(name, version.Get(), os.Stdout))
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)
