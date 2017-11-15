@@ -1,0 +1,249 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: asb-template
+parameters:
+- name: NAMESPACE
+  value: openshift-ansible-service-broker
+- name: BROKER_IMAGE
+  value: ansibleplaybookbundle/origin-ansible-service-broker:latest
+- name: BROKER_CONFIG
+  value: /etc/ansible-service-broker/config.yaml
+- name: ETCD_IMAGE
+  value: quay.io/coreos/etcd:latest
+- name: ETCD_PATH
+  value: /usr/local/bin/etcd
+- name: LOG_LEVEL
+  value: debug
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+    labels:
+      app: ansible-service-broker
+      service: asb
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: asb-tls
+  spec:
+    ports:
+      - name: port-1338
+        port: 1338
+        targetPort: 1338
+        protocol: TCP
+    selector:
+      app: ansible-service-broker
+      service: asb
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: asb-etcd
+    namespace: ${NAMESPACE}
+    labels:
+      app: etcd
+      service: asb-etcd
+  spec:
+    ports:
+      - name: port-2379
+        port: 2379
+        targetPort: 2379
+        protocol: TCP
+    selector:
+      app: etcd
+      service: asb-etcd
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: etcd
+    namespace: ${NAMESPACE}
+  spec:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1Gi
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+    labels:
+      app: ansible-service-broker
+      service: asb
+  spec:
+    replicas: 1
+    selector:
+      app: ansible-service-broker
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ansible-service-broker
+          service: asb
+      spec:
+        serviceAccount: asb
+        containers:
+        - image: ${BROKER_IMAGE}
+          name: asb
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/ansible-service-broker
+            - name: asb-tls
+              mountPath: /etc/tls/private
+          ports:
+            - containerPort: 1338
+              protocol: TCP
+          env:
+          - name: BROKER_CONFIG
+            value: ${BROKER_CONFIG}
+          resources: {}
+          terminationMessagePath: /tmp/termination-log
+          readinesProbe:
+            httpGet:
+              path: /healthz
+              port: 1338
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 1338
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+        volumes:
+          - name: config-volume
+            configMap:
+              name: broker-config
+              items:
+              - key: broker-config
+                path: config.yaml
+          - name: asb-tls
+            secret:
+              secretName: asb-tls
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: asb-etcd
+    namespace: ${NAMESPACE}
+    labels:
+      app: etcd
+      service: asb-etcd
+  spec:
+    replicas: 1
+    selector:
+      app: etcd
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: etcd
+          service: asb-etcd
+      spec:
+        serviceAccount: asb
+        containers:
+        - image: ${ETCD_IMAGE}
+          name: etcd
+          volumeMounts:
+            - name: etcd
+              mountPath: /data
+          imagePullPolicy: IfNotPresent
+          terminationMessagePath: /tmp/termination-log
+          workingDir: /etcd
+          args:
+            - ${ETCD_PATH}
+            - --data-dir=/data
+            - --listen-client-urls=http://0.0.0.0:2379
+            - --advertise-client-urls=http://0.0.0.0:2379
+          ports:
+            - containerPort: 2379
+              protocol: TCP
+          env:
+          - name: ETCDCTL_API
+            value: "3"
+        volumes:
+          - name: etcd
+            persistentVolumeClaim:
+              claimName: etcd
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: broker-config
+    namespace: ${NAMESPACE}
+    labels:
+      app: ansible-service-broker
+  data:
+    broker-config: |
+      registry:
+        - type: "dockerhub"
+          name: "dh"
+          org: "ansibleplaybookbundle"
+          white_list:
+            - ".*apb$"
+        - type: "local_openshift"
+          name: "localregistry"
+          namespaces:
+            - 'openshift'
+          white_list:
+            - ".*apb$"
+      dao:
+        etcd_host: asb-etcd.${NAMESPACE}.svc
+        etcd_port: 2379
+      log:
+        logfile: /var/log/ansible-service-broker/asb.log
+        stdout: true
+        level: ${LOG_LEVEL}
+        color: true
+      openshift:
+        image_pull_policy: IfNotPresent
+        sandbox_role: edit
+        keep_namespace_on_error: true
+        keep_namespace: false
+      broker:
+        dev_broker: true
+        bootstrap_on_startup: true
+        refresh_interval: 600s
+        launch_apb_on_bind: false
+        output_request: true
+        recovery: true
+        ssl_cert_key: /etc/tls/private/tls.key
+        ssl_cert: /etc/tls/private/tls.crt
+        auto_escalate: false
+        auth:
+          - type: basic
+            enabled: false
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: asb-1338
+    labels:
+      app: ansible-service-broker
+      service: asb
+  spec:
+    to:
+      kind: Service
+      name: asb
+    port:
+      targetPort: port-1338
+    tls:
+      termination: reencrypt
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ansibleservicebroker-client
+    annotations:
+      kubernetes.io/service-account.name: ansibleservicebroker-client
+  type: kubernetes.io/service-account-token
+

@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ansible-broker-registration
+parameters:
+- name: ASB_NAMESPACE
+  value: openshift-ansible-service-broker
+- name: BROKER_PREFIX
+  value: ansible-service-broker
+- name: CA_BUNDLE
+  required: true
+objects:
+# register the tsb with the service catalog
+- apiVersion: servicecatalog.k8s.io/v1beta1
+  kind: ClusterServiceBroker
+  metadata:
+    name: ansible-service-broker
+  spec:
+    url: https://asb.${ASB_NAMESPACE}.svc:1338/${BROKER_PREFIX}/
+    insecureSkipTLSVerify: false
+    caBundle: ${CA_BUNDLE}
+    authInfo:
+      bearer:
+        secretRef:
+          kind:      Secret
+          name:      ansibleservicebroker-client
+          namespace: ${ASB_NAMESPACE}

@@ -242,6 +242,9 @@
 // examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 // examples/jenkins/pipeline/samplepipeline.yaml
 // examples/quickstarts/cakephp-mysql.json
+// install/ansible-broker-resources/asb-rbac-template.yaml
+// install/ansible-broker-resources/asb-template.yaml
+// install/service-catalog-broker-resources/ansible-broker-registration.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
@@ -28129,6 +28132,467 @@ func examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson() (*asset, error) {
 	return a, nil
 }
 
+var _installAnsibleBrokerResourcesAsbRbacTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: asb-rbac-template
+parameters:
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+- name: BROKER_URL_PREFIX
+  value: "/ansible-service-broker"
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: ansibleservicebroker-client
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: asb-deployer
+    namespace: ${NAMESPACE}
+  roleRef:
+    name: admin
+    kind: ClusterRole
+    apiGroup: rbac.authorization.k8s.io
+  subjects:
+  - kind: ServiceAccount
+    name: deployer
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+  roleRef:
+    name: admin
+    kind: ClusterRole
+    apiGroup: rbac.authorization.k8s.io
+  subjects:
+  - kind: ServiceAccount
+    name: asb
+    namespace: ${NAMESPACE}
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: asb-auth
+    namespace: ${NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - create
+    - delete
+  - apiGroups:
+    - authorization.openshift.io
+    resources:
+    - subjectrulesreview
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+    - tokenreviews
+    verbs:
+    - create
+  - apiGroups:
+    - image.openshift.io"
+    resources:
+    - images
+    verbs:
+    - get
+    - list
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: asb-auth-bind
+    namespace: ${NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: asb
+    namespace: ${NAMESPACE}
+  roleRef:
+    kind: ClusterRole
+    name: asb-auth
+    apiGroup: rbac.authorization.k8s.io
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: access-asb-role
+    namespace: ${NAMESPACE}
+  rules:
+  - nonResourceURLs:
+    - "${BROKER_URL_PREFIX}"
+    - "${BROKER_URL_PREFIX}/*"
+    verbs:
+    - get
+    - post
+    - put
+    - patch
+    - delete
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: ansibleservicebroker-client
+    namespace: ${NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: ansibleservicebroker-client
+    namespace: ${NAMESPACE}
+  roleRef:
+    kind: ClusterRole
+    name: access-asb-role
+    apiGroup: rbac.authorization.k8s.io
+`)
+
+func installAnsibleBrokerResourcesAsbRbacTemplateYamlBytes() ([]byte, error) {
+	return _installAnsibleBrokerResourcesAsbRbacTemplateYaml, nil
+}
+
+func installAnsibleBrokerResourcesAsbRbacTemplateYaml() (*asset, error) {
+	bytes, err := installAnsibleBrokerResourcesAsbRbacTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/ansible-broker-resources/asb-rbac-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installAnsibleBrokerResourcesAsbTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: asb-template
+parameters:
+- name: NAMESPACE
+  value: openshift-ansible-service-broker
+- name: BROKER_IMAGE
+  value: ansibleplaybookbundle/origin-ansible-service-broker:latest
+- name: BROKER_CONFIG
+  value: /etc/ansible-service-broker/config.yaml
+- name: ETCD_IMAGE
+  value: quay.io/coreos/etcd:latest
+- name: ETCD_PATH
+  value: /usr/local/bin/etcd
+- name: LOG_LEVEL
+  value: debug
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+    labels:
+      app: ansible-service-broker
+      service: asb
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: asb-tls
+  spec:
+    ports:
+      - name: port-1338
+        port: 1338
+        targetPort: 1338
+        protocol: TCP
+    selector:
+      app: ansible-service-broker
+      service: asb
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: asb-etcd
+    namespace: ${NAMESPACE}
+    labels:
+      app: etcd
+      service: asb-etcd
+  spec:
+    ports:
+      - name: port-2379
+        port: 2379
+        targetPort: 2379
+        protocol: TCP
+    selector:
+      app: etcd
+      service: asb-etcd
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: etcd
+    namespace: ${NAMESPACE}
+  spec:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1Gi
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: asb
+    namespace: ${NAMESPACE}
+    labels:
+      app: ansible-service-broker
+      service: asb
+  spec:
+    replicas: 1
+    selector:
+      app: ansible-service-broker
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ansible-service-broker
+          service: asb
+      spec:
+        serviceAccount: asb
+        containers:
+        - image: ${BROKER_IMAGE}
+          name: asb
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/ansible-service-broker
+            - name: asb-tls
+              mountPath: /etc/tls/private
+          ports:
+            - containerPort: 1338
+              protocol: TCP
+          env:
+          - name: BROKER_CONFIG
+            value: ${BROKER_CONFIG}
+          resources: {}
+          terminationMessagePath: /tmp/termination-log
+          readinesProbe:
+            httpGet:
+              path: /healthz
+              port: 1338
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 1338
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+        volumes:
+          - name: config-volume
+            configMap:
+              name: broker-config
+              items:
+              - key: broker-config
+                path: config.yaml
+          - name: asb-tls
+            secret:
+              secretName: asb-tls
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: asb-etcd
+    namespace: ${NAMESPACE}
+    labels:
+      app: etcd
+      service: asb-etcd
+  spec:
+    replicas: 1
+    selector:
+      app: etcd
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: etcd
+          service: asb-etcd
+      spec:
+        serviceAccount: asb
+        containers:
+        - image: ${ETCD_IMAGE}
+          name: etcd
+          volumeMounts:
+            - name: etcd
+              mountPath: /data
+          imagePullPolicy: IfNotPresent
+          terminationMessagePath: /tmp/termination-log
+          workingDir: /etcd
+          args:
+            - ${ETCD_PATH}
+            - --data-dir=/data
+            - --listen-client-urls=http://0.0.0.0:2379
+            - --advertise-client-urls=http://0.0.0.0:2379
+          ports:
+            - containerPort: 2379
+              protocol: TCP
+          env:
+          - name: ETCDCTL_API
+            value: "3"
+        volumes:
+          - name: etcd
+            persistentVolumeClaim:
+              claimName: etcd
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: broker-config
+    namespace: ${NAMESPACE}
+    labels:
+      app: ansible-service-broker
+  data:
+    broker-config: |
+      registry:
+        - type: "dockerhub"
+          name: "dh"
+          org: "ansibleplaybookbundle"
+          white_list:
+            - ".*apb$"
+        - type: "local_openshift"
+          name: "localregistry"
+          namespaces:
+            - 'openshift'
+          white_list:
+            - ".*apb$"
+      dao:
+        etcd_host: asb-etcd.${NAMESPACE}.svc
+        etcd_port: 2379
+      log:
+        logfile: /var/log/ansible-service-broker/asb.log
+        stdout: true
+        level: ${LOG_LEVEL}
+        color: true
+      openshift:
+        image_pull_policy: IfNotPresent
+        sandbox_role: edit
+        keep_namespace_on_error: true
+        keep_namespace: false
+      broker:
+        dev_broker: true
+        bootstrap_on_startup: true
+        refresh_interval: 600s
+        launch_apb_on_bind: false
+        output_request: true
+        recovery: true
+        ssl_cert_key: /etc/tls/private/tls.key
+        ssl_cert: /etc/tls/private/tls.crt
+        auto_escalate: false
+        auth:
+          - type: basic
+            enabled: false
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: asb-1338
+    labels:
+      app: ansible-service-broker
+      service: asb
+  spec:
+    to:
+      kind: Service
+      name: asb
+    port:
+      targetPort: port-1338
+    tls:
+      termination: reencrypt
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ansibleservicebroker-client
+    annotations:
+      kubernetes.io/service-account.name: ansibleservicebroker-client
+  type: kubernetes.io/service-account-token
+
+`)
+
+func installAnsibleBrokerResourcesAsbTemplateYamlBytes() ([]byte, error) {
+	return _installAnsibleBrokerResourcesAsbTemplateYaml, nil
+}
+
+func installAnsibleBrokerResourcesAsbTemplateYaml() (*asset, error) {
+	bytes, err := installAnsibleBrokerResourcesAsbTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/ansible-broker-resources/asb-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installServiceCatalogBrokerResourcesAnsibleBrokerRegistrationYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ansible-broker-registration
+parameters:
+- name: ASB_NAMESPACE
+  value: openshift-ansible-service-broker
+- name: BROKER_PREFIX
+  value: ansible-service-broker
+- name: CA_BUNDLE
+  required: true
+objects:
+# register the tsb with the service catalog
+- apiVersion: servicecatalog.k8s.io/v1beta1
+  kind: ClusterServiceBroker
+  metadata:
+    name: ansible-service-broker
+  spec:
+    url: https://asb.${ASB_NAMESPACE}.svc:1338/${BROKER_PREFIX}/
+    insecureSkipTLSVerify: false
+    caBundle: ${CA_BUNDLE}
+    authInfo:
+      bearer:
+        secretRef:
+          kind:      Secret
+          name:      ansibleservicebroker-client
+          namespace: ${ASB_NAMESPACE}
+`)
+
+func installServiceCatalogBrokerResourcesAnsibleBrokerRegistrationYamlBytes() ([]byte, error) {
+	return _installServiceCatalogBrokerResourcesAnsibleBrokerRegistrationYaml, nil
+}
+
+func installServiceCatalogBrokerResourcesAnsibleBrokerRegistrationYaml() (*asset, error) {
+	bytes, err := installServiceCatalogBrokerResourcesAnsibleBrokerRegistrationYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/service-catalog-broker-resources/ansible-broker-registration.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -28738,6 +29202,9 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
 	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
 	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
+	"install/ansible-broker-resources/asb-rbac-template.yaml": installAnsibleBrokerResourcesAsbRbacTemplateYaml,
+	"install/ansible-broker-resources/asb-template.yaml": installAnsibleBrokerResourcesAsbTemplateYaml,
+	"install/service-catalog-broker-resources/ansible-broker-registration.yaml": installServiceCatalogBrokerResourcesAnsibleBrokerRegistrationYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
@@ -28849,7 +29316,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 	}},
 	"install": &bintree{nil, map[string]*bintree{
+		"ansible-broker-resources": &bintree{nil, map[string]*bintree{
+			"asb-rbac-template.yaml": &bintree{installAnsibleBrokerResourcesAsbRbacTemplateYaml, map[string]*bintree{}},
+			"asb-template.yaml": &bintree{installAnsibleBrokerResourcesAsbTemplateYaml, map[string]*bintree{}},
+		}},
 		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
+			"ansible-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesAnsibleBrokerRegistrationYaml, map[string]*bintree{}},
 			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
 		}},
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
