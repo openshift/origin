@@ -26,9 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type OAuthAPIServerConfig struct {
-	GenericConfig *genericapiserver.Config
-
+type ExtraConfig struct {
 	CoreAPIServerClientConfig *restclient.Config
 	ServiceAccountMethod      configapi.GrantHandlerType
 
@@ -41,30 +39,38 @@ type OAuthAPIServerConfig struct {
 	v1Storage     map[string]rest.Storage
 	v1StorageErr  error
 }
+type OAuthAPIServerConfig struct {
+	GenericConfig *genericapiserver.RecommendedConfig
+	ExtraConfig   ExtraConfig
+}
 
 type OAuthAPIServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 }
 
 type completedConfig struct {
-	*OAuthAPIServerConfig
+	GenericConfig genericapiserver.CompletedConfig
+	ExtraConfig   *ExtraConfig
+}
+
+type CompletedConfig struct {
+	// Embed a private pointer that cannot be instantiated outside of this package.
+	*completedConfig
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (c *OAuthAPIServerConfig) Complete() completedConfig {
-	c.GenericConfig.Complete()
+	cfg := completedConfig{
+		c.GenericConfig.Complete(),
+		&c.ExtraConfig,
+	}
 
-	return completedConfig{c}
-}
-
-// SkipComplete provides a way to construct a server instance without config completion.
-func (c *OAuthAPIServerConfig) SkipComplete() completedConfig {
-	return completedConfig{c}
+	return cfg
 }
 
 // New returns a new instance of OAuthAPIServer from the given config.
 func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OAuthAPIServer, error) {
-	genericServer, err := c.OAuthAPIServerConfig.GenericConfig.SkipComplete().New("oauth.openshift.io-apiserver", delegationTarget) // completion is done in Complete, no need for a second time
+	genericServer, err := c.GenericConfig.New("oauth.openshift.io-apiserver", delegationTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +84,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(oauthapiv1.GroupName, c.Registry, c.Scheme, metav1.ParameterCodec, c.Codecs)
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(oauthapiv1.GroupName, c.ExtraConfig.Registry, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.GroupMeta.GroupVersion = oauthapiv1.SchemeGroupVersion
 	apiGroupInfo.VersionedResourcesStorageMap[oauthapiv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
@@ -88,16 +94,15 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	return s, nil
 }
 
-func (c *OAuthAPIServerConfig) V1RESTStorage() (map[string]rest.Storage, error) {
-	c.makeV1Storage.Do(func() {
-		c.v1Storage, c.v1StorageErr = c.newV1RESTStorage()
+func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
+	c.ExtraConfig.makeV1Storage.Do(func() {
+		c.ExtraConfig.v1Storage, c.ExtraConfig.v1StorageErr = c.newV1RESTStorage()
 	})
 
-	return c.v1Storage, c.v1StorageErr
+	return c.ExtraConfig.v1Storage, c.ExtraConfig.v1StorageErr
 }
 
-func (c *OAuthAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-
+func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	clientStorage, err := clientetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -105,24 +110,24 @@ func (c *OAuthAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 
 	// If OAuth is disabled, set the strategy to Deny
 	saAccountGrantMethod := oauthapi.GrantHandlerDeny
-	if len(c.ServiceAccountMethod) > 0 {
+	if len(c.ExtraConfig.ServiceAccountMethod) > 0 {
 		// Otherwise, take the value provided in master-config.yaml
-		saAccountGrantMethod = oauthapi.GrantHandlerType(c.ServiceAccountMethod)
+		saAccountGrantMethod = oauthapi.GrantHandlerType(c.ExtraConfig.ServiceAccountMethod)
 	}
 
 	oauthClient, err := oauthclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	coreClient, err := coreclient.NewForConfig(c.CoreAPIServerClientConfig)
+	coreClient, err := coreclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	routeClient, err := routeclient.NewForConfig(c.CoreAPIServerClientConfig)
+	routeClient, err := routeclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	coreV1Client, err := corev1.NewForConfig(c.CoreAPIServerClientConfig)
+	coreV1Client, err := corev1.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +136,7 @@ func (c *OAuthAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 		coreClient,
 		coreClient,
 		coreV1Client.Events(""),
-		routeClient,
+		routeClient.Route(),
 		oauthClient.OAuthClients(),
 		saAccountGrantMethod,
 	)

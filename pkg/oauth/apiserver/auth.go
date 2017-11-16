@@ -81,12 +81,12 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 	mux.Handle("/", handler)
 
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(
-		c.KubeClient.Core(),
-		c.KubeClient.Core(),
-		c.EventsClient,
-		c.RouteClient.Route(),
-		c.OAuthClientClient,
-		oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod),
+		c.ExtraOAuthConfig.KubeClient.Core(),
+		c.ExtraOAuthConfig.KubeClient.Core(),
+		c.ExtraOAuthConfig.EventsClient,
+		c.ExtraOAuthConfig.RouteClient.Route(),
+		c.ExtraOAuthConfig.OAuthClientClient,
+		oauthapi.GrantHandlerType(c.ExtraOAuthConfig.Options.GrantConfig.ServiceAccountMethod),
 	)
 
 	errorPageHandler, err := c.getErrorHandler()
@@ -99,17 +99,17 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 		glog.Fatal(err)
 	}
 
-	storage := registrystorage.New(c.OAuthAccessTokenClient, c.OAuthAuthorizeTokenClient, combinedOAuthClientGetter, registry.NewUserConversion())
+	storage := registrystorage.New(c.ExtraOAuthConfig.OAuthAccessTokenClient, c.ExtraOAuthConfig.OAuthAuthorizeTokenClient, combinedOAuthClientGetter, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
-	if c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
-		config.AuthorizationExpiration = c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
+	if c.ExtraOAuthConfig.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
+		config.AuthorizationExpiration = c.ExtraOAuthConfig.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
 	}
-	if c.Options.TokenConfig.AccessTokenMaxAgeSeconds > 0 {
-		config.AccessExpiration = c.Options.TokenConfig.AccessTokenMaxAgeSeconds
+	if c.ExtraOAuthConfig.Options.TokenConfig.AccessTokenMaxAgeSeconds > 0 {
+		config.AccessExpiration = c.ExtraOAuthConfig.Options.TokenConfig.AccessTokenMaxAgeSeconds
 	}
 
-	grantChecker := registry.NewClientAuthorizationGrantChecker(c.OAuthClientAuthorizationClient)
-	grantHandler := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, c.OAuthClientAuthorizationClient)
+	grantChecker := registry.NewClientAuthorizationGrantChecker(c.ExtraOAuthConfig.OAuthClientAuthorizationClient)
+	grantHandler := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, c.ExtraOAuthConfig.OAuthClientAuthorizationClient)
 
 	server := osinserver.New(
 		config,
@@ -134,7 +134,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 	)
 	server.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, c.getOsinOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.ExtraOAuthConfig.Options.MasterPublicURL, c.getOsinOAuthClient)
 	tokenRequestEndpoints.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
@@ -147,21 +147,21 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 }
 
 func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
-	browserClient, err := c.OAuthClientClient.Get(OpenShiftBrowserClientID, metav1.GetOptions{})
+	browserClient, err := c.ExtraOAuthConfig.OAuthClientClient.Get(OpenShiftBrowserClientID, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	osOAuthClientConfig := newOpenShiftOAuthClientConfig(browserClient.Name, browserClient.Secret, c.Options.MasterPublicURL, c.Options.MasterURL)
-	osOAuthClientConfig.RedirectUrl = oauthutil.OpenShiftOAuthTokenDisplayURL(c.Options.MasterPublicURL)
+	osOAuthClientConfig := newOpenShiftOAuthClientConfig(browserClient.Name, browserClient.Secret, c.ExtraOAuthConfig.Options.MasterPublicURL, c.ExtraOAuthConfig.Options.MasterURL)
+	osOAuthClientConfig.RedirectUrl = oauthutil.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)
 
 	osOAuthClient, err := osincli.NewClient(osOAuthClientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(*c.Options.MasterCA) > 0 {
-		rootCAs, err := cmdutil.CertPoolFromFile(*c.Options.MasterCA)
+	if len(*c.ExtraOAuthConfig.Options.MasterCA) > 0 {
+		rootCAs, err := cmdutil.CertPoolFromFile(*c.ExtraOAuthConfig.Options.MasterCA)
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +176,7 @@ func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
 
 func (c *OAuthServerConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
 	// Register directly into the given mux
-	if c.HandlerWrapper == nil {
+	if c.ExtraOAuthConfig.HandlerWrapper == nil {
 		return mux
 	}
 
@@ -184,14 +184,14 @@ func (c *OAuthServerConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
 	// This lets us do things like defer session clearing to the end of a request
 	return &handlerWrapperMux{
 		mux:     mux,
-		wrapper: c.HandlerWrapper,
+		wrapper: c.ExtraOAuthConfig.HandlerWrapper,
 	}
 }
 
 func (c *OAuthServerConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
 	errorTemplate := ""
-	if c.Options.Templates != nil {
-		errorTemplate = c.Options.Templates.Error
+	if c.ExtraOAuthConfig.Options.Templates != nil {
+		errorTemplate = c.ExtraOAuthConfig.Options.Templates.Error
 	}
 	errorPageRenderer, err := errorpage.NewErrorPageTemplateRenderer(errorTemplate)
 	if err != nil {
@@ -261,7 +261,7 @@ func ensureOAuthClient(client oauthapi.OAuthClient, oauthClients oauthclient.OAu
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
 func (c *OAuthServerConfig) getCSRF() csrf.CSRF {
-	secure := isHTTPS(c.Options.MasterPublicURL)
+	secure := isHTTPS(c.ExtraOAuthConfig.Options.MasterPublicURL)
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
@@ -282,8 +282,8 @@ func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
 func (c *OAuthServerConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) handlers.GrantHandler {
 	// check that the global default strategy is something we honor
-	if !configapi.ValidGrantHandlerTypes.Has(string(c.Options.GrantConfig.Method)) {
-		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.Options.GrantConfig.Method)
+	if !configapi.ValidGrantHandlerTypes.Has(string(c.ExtraOAuthConfig.Options.GrantConfig.Method)) {
+		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.ExtraOAuthConfig.Options.GrantConfig.Method)
 	}
 
 	// Since any OAuth client could require prompting, we will unconditionally
@@ -294,16 +294,16 @@ func (c *OAuthServerConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.
 	// Set defaults for standard clients. These can be overridden.
 	return handlers.NewPerClientGrant(
 		handlers.NewRedirectGrant(openShiftApproveSubpath),
-		oauthapi.GrantHandlerType(c.Options.GrantConfig.Method),
+		oauthapi.GrantHandlerType(c.ExtraOAuthConfig.Options.GrantConfig.Method),
 	)
 }
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request
 func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
-	if c.SessionAuth != nil {
+	if c.ExtraOAuthConfig.SessionAuth != nil {
 		// The session needs to know the authorize flow is done so it can invalidate the session
 		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
-			_ = c.SessionAuth.InvalidateAuthentication(w, ar.HttpRequest)
+			_ = c.ExtraOAuthConfig.SessionAuth.InvalidateAuthentication(w, ar.HttpRequest)
 			return false, nil
 		})
 	}
@@ -323,7 +323,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 	// Determine if we have more than one password-based Identity Provider
 	multiplePasswordProviders := false
 	passwordProviderCount := 0
-	for _, identityProvider := range c.Options.IdentityProviders {
+	for _, identityProvider := range c.ExtraOAuthConfig.Options.IdentityProviders {
 		if configapi.IsPasswordAuthenticator(identityProvider) && identityProvider.UseAsLogin {
 			passwordProviderCount++
 			if passwordProviderCount > 1 {
@@ -333,8 +333,8 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 		}
 	}
 
-	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityClient, c.UserClient, c.UserIdentityMappingClient, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+	for _, identityProvider := range c.ExtraOAuthConfig.Options.IdentityProviders {
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.ExtraOAuthConfig.IdentityClient, c.ExtraOAuthConfig.UserClient, c.ExtraOAuthConfig.UserIdentityMappingClient, identitymapper.MappingMethodType(identityProvider.MappingMethod))
 		if err != nil {
 			return nil, err
 		}
@@ -350,10 +350,10 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 				// Password auth requires:
 				// 1. a session success handler (to remember you logged in)
 				// 2. a redirectSuccessHandler (to go back to the "then" param)
-				if c.SessionAuth == nil {
+				if c.ExtraOAuthConfig.SessionAuth == nil {
 					return nil, errors.New("SessionAuth is required for password-based login")
 				}
-				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
+				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.ExtraOAuthConfig.SessionAuth, redirectSuccessHandler{}}
 
 				var (
 					// loginPath is unescaped, the way the mux will see it once URL-decoding is done
@@ -375,8 +375,8 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 				redirectors.Add(identityProvider.Name, redirector.NewRedirector(nil, redirectLoginPath+"?then=${url}"))
 
 				var loginTemplateFile string
-				if c.Options.Templates != nil {
-					loginTemplateFile = c.Options.Templates.Login
+				if c.ExtraOAuthConfig.Options.Templates != nil {
+					loginTemplateFile = c.ExtraOAuthConfig.Options.Templates.Login
 				}
 				loginFormRenderer, err := login.NewLoginFormRenderer(loginTemplateFile)
 				if err != nil {
@@ -402,16 +402,16 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 			// OAuth auth requires
 			// 1. a session success handler (to remember you logged in)
 			// 2. a state success handler (to go back to the URL encoded in the state)
-			if c.SessionAuth == nil {
+			if c.ExtraOAuthConfig.SessionAuth == nil {
 				return nil, errors.New("SessionAuth is required for OAuth-based login")
 			}
-			oauthSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, state}
+			oauthSuccessHandler := handlers.AuthenticationSuccessHandlers{c.ExtraOAuthConfig.SessionAuth, state}
 
 			// If the specified errorHandler doesn't handle the login error, let the state error handler attempt to propagate specific errors back to the token requester
 			oauthErrorHandler := handlers.AuthenticationErrorHandlers{errorHandler, state}
 
 			callbackPath := path.Join(OpenShiftOAuthCallbackPrefix, identityProvider.Name)
-			oauthRedirector, oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
+			oauthRedirector, oauthHandler, err := external.NewExternalOAuthRedirector(oauthProvider, state, c.ExtraOAuthConfig.Options.MasterPublicURL+callbackPath, oauthSuccessHandler, oauthErrorHandler, identityMapper)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected error: %v", err)
 			}
@@ -426,7 +426,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 			}
 		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
 			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
-			baseRequestURL, err := url.Parse(oauthutil.OpenShiftOAuthAuthorizeURL(c.Options.MasterPublicURL))
+			baseRequestURL, err := url.Parse(oauthutil.OpenShiftOAuthAuthorizeURL(c.ExtraOAuthConfig.Options.MasterPublicURL))
 			if err != nil {
 				return nil, err
 			}
@@ -441,19 +441,19 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 
 	if redirectors.Count() > 0 && len(challengers) == 0 {
 		// Add a default challenger that will warn and give a link to the web browser token-granting location
-		challengers["placeholder"] = placeholderchallenger.New(oauthutil.OpenShiftOAuthTokenRequestURL(c.Options.MasterPublicURL))
+		challengers["placeholder"] = placeholderchallenger.New(oauthutil.OpenShiftOAuthTokenRequestURL(c.ExtraOAuthConfig.Options.MasterPublicURL))
 	}
 
 	var selectProviderTemplateFile string
-	if c.Options.Templates != nil {
-		selectProviderTemplateFile = c.Options.Templates.ProviderSelection
+	if c.ExtraOAuthConfig.Options.Templates != nil {
+		selectProviderTemplateFile = c.ExtraOAuthConfig.Options.Templates.ProviderSelection
 	}
 	selectProviderRenderer, err := selectprovider.NewSelectProviderRenderer(selectProviderTemplateFile)
 	if err != nil {
 		return nil, err
 	}
 
-	selectProvider := selectprovider.NewSelectProvider(selectProviderRenderer, c.Options.AlwaysShowProviderSelection)
+	selectProvider := selectprovider.NewSelectProvider(selectProviderRenderer, c.ExtraOAuthConfig.Options.AlwaysShowProviderSelection)
 
 	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler, selectProvider, requestContextMapper)
 	return authHandler, nil
@@ -528,7 +528,7 @@ func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.Identity
 }
 
 func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
-	identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityClient, c.UserClient, c.UserIdentityMappingClient, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+	identityMapper, err := identitymapper.NewIdentityUserMapper(c.ExtraOAuthConfig.IdentityClient, c.ExtraOAuthConfig.UserClient, c.ExtraOAuthConfig.UserIdentityMappingClient, identitymapper.MappingMethodType(identityProvider.MappingMethod))
 	if err != nil {
 		return nil, err
 	}
@@ -609,12 +609,12 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 func (c *OAuthServerConfig) getAuthenticationRequestHandler() (authenticator.Request, error) {
 	var authRequestHandlers []authenticator.Request
 
-	if c.SessionAuth != nil {
-		authRequestHandlers = append(authRequestHandlers, c.SessionAuth)
+	if c.ExtraOAuthConfig.SessionAuth != nil {
+		authRequestHandlers = append(authRequestHandlers, c.ExtraOAuthConfig.SessionAuth)
 	}
 
-	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityClient, c.UserClient, c.UserIdentityMappingClient, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+	for _, identityProvider := range c.ExtraOAuthConfig.Options.IdentityProviders {
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.ExtraOAuthConfig.IdentityClient, c.ExtraOAuthConfig.UserClient, c.ExtraOAuthConfig.UserIdentityMappingClient, identitymapper.MappingMethodType(identityProvider.MappingMethod))
 		if err != nil {
 			return nil, err
 		}
