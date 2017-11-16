@@ -160,10 +160,10 @@ func Run(s *options.CMServer) error {
 
 		if StartInformers == nil {
 			ctx.InformerFactory.Start(ctx.Stop)
-			close(ctx.InformersStarted)
 		} else {
 			StartInformers(ctx.Stop)
 		}
+		close(ctx.InformersStarted)
 
 		select {}
 	}
