@@ -300,6 +300,14 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		binds = append(binds, fmt.Sprintf("%s:/usr/bin/openshift:z", opt.OpenShiftBinaryPath))
 	}
 
+	// Use the host registries configuration in openshift container to allow
+	// signature verification.
+	// NOTE: This only allow external signature stores because local stores will
+	// require more bind mounts.
+	if _, err := os.Stat("/etc/containers/registries.d"); err == nil {
+		binds = append(binds, "/etc/containers/registries.d:/etc/containers/registries.d")
+	}
+
 	// Kubelet needs to be able to write to
 	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
 	binds = append(binds, "/sys/devices/virtual/net:/sys/devices/virtual/net:rw")
