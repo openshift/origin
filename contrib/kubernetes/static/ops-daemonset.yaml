@@ -1,0 +1,136 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: ops
+  annotations:
+    kubernetes.io/description: |
+      This daemon set manages the operational configuration for a cluster and ensures all nodes have
+      a concrete set of config in place. It could also use a local ansible run against the /host directory.
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: ops
+        type: infra
+        openshift.io/role: ops
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      serviceAccountName: ops
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      containers:
+      - name: config
+        image: centos:7
+        env:
+        - name: RESYNC_INTERVAL
+          value: "300"
+        command: 
+        - /bin/bash
+        - -c
+        - |
+          #!/bin/sh
+          set -o errexit
+
+          # move authorized keys to the node
+          cat /opt/config/auth-users-1 > /host/root/TEST_authorized_keys
+          cat /opt/config/auth-users-2 >> /host/root/TEST_authorized_keys
+
+          # copy secrets to the appropriate places
+          mkdir -p /host/etc/docker/certs.d/registry.access.redhat.com
+          cat /opt/secrets/cert-for-registry > /host/etc/docker/certs.d/registry.access.redhat.com/extra-ca.crt
+
+          # sleep for 5 minutes, then exit, and Kubelet will restart us again
+          echo "Success, sleeping for ${RESYNC_INTERVAL}s"
+          exec sleep ${RESYNC_INTERVAL}
+
+        securityContext:
+          # Must be root to modify /root/authorized_keys
+          runAsUser: 0
+          # Permission could be reduced by selecting an appropriate SELinux policy that allows
+          # us to update the named directories
+          privileged: true
+
+        volumeMounts:
+        # Directory which contains the host volume.
+        - mountPath: /host
+          name: host
+        # Our node configuration
+        - mountPath: /opt/config
+          name: config
+        # Our delivered secrets
+        - mountPath: /opt/secrets
+          name: secrets
+
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+
+      - name: monitoring
+        image: openshifttools/oso-centos7-host-monitoring:latest
+        securityContext:
+          # Must be root to read content
+          runAsUser: 0
+          privileged: true
+
+        volumeMounts:
+        - mountPath: /host
+          name: host
+          readOnly: true
+        - mountPath: /etc/localtime
+          subPath: etc/localtime
+          name: host
+          readOnly: true
+        - mountPath: /sys
+          subPath: sys
+          name: host
+          readOnly: true
+        - mountPath: /var/run/docker.sock
+          subPath: var/run/docker.sock
+          name: host
+          readOnly: true
+        - mountPath: /var/run/openvswitch
+          subPath: var/run/openvswitch
+          name: host
+          readOnly: true
+        - mountPath: /etc/origin
+          subPath: etc/origin
+          name: host
+          readOnly: true
+        - mountPath: /usr/bin/oc
+          subPath: usr/bin/oc
+          name: host
+          readOnly: true
+        - mountPath: /usr/bin/oadm
+          subPath: usr/bin/oadm
+          name: host
+          readOnly: true
+        - mountPath: /host/var/cache/yum
+          subPath: var/cache/yum
+          name: host
+        - mountPath: /container_setup/monitoring-config.yml
+          subPath: monitoring-config.yaml
+          name: config
+
+        - mountPath: /opt/config
+          name: config
+
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+
+      volumes:
+      - name: config
+        configMap:
+          name: ops-node
+      - name: secrets
+        secret:
+          secretName: ops-node
+      - name: host
+        hostPath:
+          path: /
