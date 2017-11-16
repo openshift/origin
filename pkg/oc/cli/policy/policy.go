@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/cobra"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	adminpolicy "github.com/openshift/origin/pkg/oc/admin/policy"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const PolicyRecommendedName = "policy"

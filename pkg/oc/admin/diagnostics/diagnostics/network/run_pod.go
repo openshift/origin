@@ -15,10 +15,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (

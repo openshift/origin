@@ -18,7 +18,7 @@ import (
 
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // tarStrategy implements the tar copy strategy.

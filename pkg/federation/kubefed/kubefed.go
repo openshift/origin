@@ -14,7 +14,7 @@ import (
 	kubectl "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
 

@@ -12,9 +12,9 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	"github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // Login logs into the specified server using given credentials and CA file

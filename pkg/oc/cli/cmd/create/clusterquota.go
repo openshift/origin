@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 )

@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // CreateProject creates a project

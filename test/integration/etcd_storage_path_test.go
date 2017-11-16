@@ -25,7 +25,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 

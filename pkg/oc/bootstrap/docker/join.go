@@ -12,8 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // CmdJoinRecommendedName is the recommended command name

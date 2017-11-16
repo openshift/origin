@@ -24,7 +24,7 @@ import (
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // ReconcileClusterRoleBindingsRecommendedName is the recommended command name

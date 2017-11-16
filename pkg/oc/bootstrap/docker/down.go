@@ -11,9 +11,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const CmdDownRecommendedName = "down"

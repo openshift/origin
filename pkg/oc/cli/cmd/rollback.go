@@ -20,8 +20,8 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	describe "github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (

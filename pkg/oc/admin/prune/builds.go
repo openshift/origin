@@ -17,7 +17,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/build/prune"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const PruneBuildsRecommendedName = "builds"

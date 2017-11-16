@@ -15,9 +15,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (

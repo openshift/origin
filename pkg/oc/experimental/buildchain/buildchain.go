@@ -15,11 +15,11 @@ import (
 
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 

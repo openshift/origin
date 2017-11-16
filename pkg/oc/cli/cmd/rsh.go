@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (

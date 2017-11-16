@@ -21,7 +21,7 @@ import (
 
 	securityapiv1 "github.com/openshift/api/security/v1"
 	ometa "github.com/openshift/origin/pkg/api/meta"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )

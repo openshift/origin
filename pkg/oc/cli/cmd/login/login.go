@@ -17,8 +17,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/cli/config"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (

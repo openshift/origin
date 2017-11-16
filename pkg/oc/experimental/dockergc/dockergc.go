@@ -19,8 +19,8 @@ import (
 	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
 	dockerfilters "github.com/docker/engine-api/types/filters"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

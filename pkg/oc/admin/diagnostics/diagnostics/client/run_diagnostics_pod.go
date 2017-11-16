@@ -14,9 +14,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
