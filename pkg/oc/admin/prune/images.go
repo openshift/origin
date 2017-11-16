@@ -1,7 +1,6 @@
 package prune
 
 import (
-	"bufio"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -87,10 +86,6 @@ var (
 	  # To actually perform the prune operation, the confirm flag must be appended
 	  %[1]s %[2]s --keep-tag-revisions=3 --keep-younger-than=60m --confirm
 
-	  # To exclude an imagestream from pruning you can specify a regular expression
-	  # which will be applied to the '<namespace>/<name>:<tag>' string.
-	  %[1]s %[2]s --exclude-imagestreamtag='^myproject/hello-openshift:.*$'
-
 	  # See, what the prune command would delete if we're interested in removing images
 	  # exceeding currently set limit ranges ('openshift.io/Image')
 	  %[1]s %[2]s --prune-over-size-limit
@@ -113,17 +108,15 @@ var (
 
 // PruneImagesOptions holds all the required options for pruning images.
 type PruneImagesOptions struct {
-	Confirm                   bool
-	KeepYoungerThan           *time.Duration
-	KeepTagRevisions          *int
-	PruneOverSizeLimit        *bool
-	AllImages                 *bool
-	CABundle                  string
-	RegistryUrlOverride       string
-	Namespace                 string
-	ForceInsecure             bool
-	ExcludeImageStreamTag     string
-	ExcludeImageStreamTagFile string
+	Confirm             bool
+	KeepYoungerThan     *time.Duration
+	KeepTagRevisions    *int
+	PruneOverSizeLimit  *bool
+	AllImages           *bool
+	CABundle            string
+	RegistryUrlOverride string
+	Namespace           string
+	ForceInsecure       bool
 
 	ClientConfig    *restclient.Config
 	AppsClient      appsclient.AppsInterface
@@ -165,8 +158,6 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd.Flags().BoolVar(opts.AllImages, "all", *opts.AllImages, "Include images that were imported from external registries as candidates for pruning.  If pruned, all the mirrored objects associated with them will also be removed from the integrated registry.")
 	cmd.Flags().DurationVar(opts.KeepYoungerThan, "keep-younger-than", *opts.KeepYoungerThan, "Specify the minimum age of an image and its referrers for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(opts.KeepTagRevisions, "keep-tag-revisions", *opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
-	cmd.Flags().StringVar(&opts.ExcludeImageStreamTag, "exclude-imagestreamtag", "", "The regular expression matching ImageStreamTags excluded from pruning.")
-	cmd.Flags().StringVar(&opts.ExcludeImageStreamTagFile, "exclude-imagestreamtag-file", "", "The filename that contains the regular expressions matching ImageStreamTags excluded from pruning.")
 	cmd.Flags().BoolVar(opts.PruneOverSizeLimit, "prune-over-size-limit", *opts.PruneOverSizeLimit, "Specify if images which are exceeding LimitRanges (see 'openshift.io/Image'), specified in the same namespace, should be considered for pruning. This flag cannot be combined with --keep-younger-than nor --keep-tag-revisions.")
 	cmd.Flags().StringVar(&opts.CABundle, "certificate-authority", opts.CABundle, "The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file. It cannot be used together with --force-insecure.")
 	cmd.Flags().StringVar(&opts.RegistryUrlOverride, "registry-url", opts.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works. Particular transport protocol can be enforced using '<scheme>://' prefix.")
@@ -395,19 +386,6 @@ func (o PruneImagesOptions) Run() error {
 	}
 	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace
-	}
-	if len(o.ExcludeImageStreamTagFile) > 0 {
-		options.ExcludeImageStreamTagPatterns, err = parsePatternsFile(o.ExcludeImageStreamTagFile)
-		if err != nil {
-			return err
-		}
-	}
-	if len(o.ExcludeImageStreamTag) > 0 {
-		pattern, err := regexp.Compile(o.ExcludeImageStreamTag)
-		if err != nil {
-			return fmt.Errorf("bad regular expression %q: %v", o.ExcludeImageStreamTag, err)
-		}
-		options.ExcludeImageStreamTagPatterns = append(options.ExcludeImageStreamTagPatterns, pattern)
 	}
 	pruner, errs := prune.NewPruner(options)
 	if errs != nil {
@@ -791,42 +769,4 @@ func getClientAndMasterVersions(client discovery.DiscoveryInterface, timeout tim
 	clientVersion = &v
 
 	return
-}
-
-func parsePatternsFile(filename string) ([]*regexp.Regexp, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var (
-		patterns  []*regexp.Regexp
-		line      string
-		readerErr error
-	)
-
-	reader := bufio.NewReader(file)
-	for readerErr == nil {
-		line, readerErr = reader.ReadString('\n')
-
-		if readerErr != nil && readerErr != io.EOF {
-			return nil, readerErr
-		}
-
-		line = strings.TrimSuffix(line, "\n")
-
-		if len(line) == 0 {
-			continue
-		}
-
-		pattern, err := regexp.Compile(line)
-		if err != nil {
-			return nil, fmt.Errorf("%s: bad regular expression %q: %v", filename, line, err)
-		}
-
-		patterns = append(patterns, pattern)
-	}
-
-	return patterns, nil
 }

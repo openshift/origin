@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"regexp"
 	"time"
 
 	"github.com/docker/distribution/manifest/schema2"
@@ -60,12 +59,11 @@ const (
 // pruneAlgorithm contains the various settings to use when evaluating images
 // and layers for pruning.
 type pruneAlgorithm struct {
-	keepYoungerThan               time.Time
-	keepTagRevisions              int
-	pruneOverSizeLimit            bool
-	namespace                     string
-	allImages                     bool
-	excludeImageStreamTagPatterns []*regexp.Regexp
+	keepYoungerThan    time.Time
+	keepTagRevisions   int
+	pruneOverSizeLimit bool
+	namespace          string
+	allImages          bool
 }
 
 // ImageDeleter knows how to remove images from OpenShift.
@@ -155,8 +153,6 @@ type PrunerOptions struct {
 	RegistryClient *http.Client
 	// RegistryURL is the URL of the integrated Docker registry.
 	RegistryURL *url.URL
-	// ExcludeImageStreamTagPatterns is the list of regular expressions to exclude an imagesteam tag from pruning.
-	ExcludeImageStreamTagPatterns []*regexp.Regexp
 }
 
 // Pruner knows how to prune istags, images, layers and image configs.
@@ -244,7 +240,6 @@ func NewPruner(options PrunerOptions) (Pruner, kerrors.Aggregate) {
 		algorithm.allImages = *options.AllImages
 	}
 	algorithm.namespace = options.Namespace
-	algorithm.excludeImageStreamTagPatterns = options.ExcludeImageStreamTagPatterns
 
 	p := &pruner{
 		algorithm:      algorithm,
@@ -356,30 +351,8 @@ func (p *pruner) addImageStreamsToGraph(streams *imageapi.ImageStreamList, limit
 					continue
 				}
 
-				istExcluded := false
-				dockerImageReference := ""
-
-				if p.algorithm.excludeImageStreamTagPatterns != nil {
-					dockerImageReference = imageapi.DockerImageReference{
-						Namespace: stream.Namespace,
-						Name:      stream.Name,
-						Tag:       tag,
-					}.Exact()
-
-					for _, pattern := range p.algorithm.excludeImageStreamTagPatterns {
-						if pattern.MatchString(dockerImageReference) {
-							istExcluded = true
-							break
-						}
-					}
-				}
-
 				kind := oldImageRevisionReferenceKind
-
-				if istExcluded {
-					glog.V(4).Infof("ImageStreamTag %q is excluded by the regular expression", dockerImageReference)
-					kind = ReferencedImageEdgeKind
-				} else if p.algorithm.pruneOverSizeLimit {
+				if p.algorithm.pruneOverSizeLimit {
 					if exceedsLimits(stream, imageNode.Image, limits) {
 						kind = WeakReferencedImageEdgeKind
 					} else {
