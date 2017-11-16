@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/cosiner/argv"
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/homedir"
@@ -36,29 +37,30 @@ import (
 )
 
 const (
-	defaultNodeName             = "localhost"
-	initialStatusCheckWait      = 4 * time.Second
-	serverUpTimeout             = 35
-	serverConfigPath            = "/var/lib/origin/openshift.local.config"
-	serverMasterConfig          = serverConfigPath + "/master/master-config.yaml"
-	serverNodeConfig            = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
-	serviceCatalogExtensionPath = serverConfigPath + "/master/servicecatalog-extension.js"
-	aggregatorKey               = "aggregator-front-proxy.key"
-	aggregatorCert              = "aggregator-front-proxy.crt"
-	aggregatorCACert            = "front-proxy-ca.crt"
-	aggregatorCAKey             = "front-proxy-ca.key"
-	aggregatorCASerial          = "frontend-proxy-ca.serial.txt"
-	aggregatorKeyPath           = serverConfigPath + "/master/" + aggregatorKey
-	aggregatorCertPath          = serverConfigPath + "/master/" + aggregatorCert
-	aggregatorCACertPath        = serverConfigPath + "/master/" + aggregatorCACert
-	aggregatorCAKeyPath         = serverConfigPath + "/master/" + aggregatorCAKey
-	aggregatorCASerialPath      = serverConfigPath + "/master/" + aggregatorCASerial
-	DefaultDNSPort              = 53
-	AlternateDNSPort            = 8053
-	cmdDetermineNodeHost        = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
-	OpenShiftContainer          = "origin"
-	OpenshiftNamespace          = "openshift"
-	OpenshiftInfraNamespace     = "openshift-infra"
+	defaultNodeName                = "localhost"
+	initialStatusCheckWait         = 4 * time.Second
+	serverUpTimeout                = 35
+	serverConfigPath               = "/var/lib/origin/openshift.local.config"
+	serverMasterConfig             = serverConfigPath + "/master/master-config.yaml"
+	serverNodeConfig               = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
+	serviceCatalogExtensionPath    = serverConfigPath + "/master/servicecatalog-extension.js"
+	aggregatorKey                  = "aggregator-front-proxy.key"
+	aggregatorCert                 = "aggregator-front-proxy.crt"
+	aggregatorCACert               = "front-proxy-ca.crt"
+	aggregatorCAKey                = "front-proxy-ca.key"
+	aggregatorCASerial             = "frontend-proxy-ca.serial.txt"
+	aggregatorKeyPath              = serverConfigPath + "/master/" + aggregatorKey
+	aggregatorCertPath             = serverConfigPath + "/master/" + aggregatorCert
+	aggregatorCACertPath           = serverConfigPath + "/master/" + aggregatorCACert
+	aggregatorCAKeyPath            = serverConfigPath + "/master/" + aggregatorCAKey
+	aggregatorCASerialPath         = serverConfigPath + "/master/" + aggregatorCASerial
+	DefaultDNSPort                 = 53
+	AlternateDNSPort               = 8053
+	cmdDetermineNodeHost           = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
+	OpenShiftContainer             = "origin"
+	OpenshiftNamespace             = "openshift"
+	OpenshiftInfraNamespace        = "openshift-infra"
+	openshiftMasterExtendedArgsVar = "OPENSHIFT_MASTER_EXTENDED_ARGS"
 )
 
 var (
@@ -384,6 +386,18 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	}
 	if opt.LogLevel > 0 {
 		startCmd = append(startCmd, fmt.Sprintf("--loglevel=%d", opt.LogLevel))
+	}
+
+	if extendedArgs := os.Getenv(openshiftMasterExtendedArgsVar); len(extendedArgs) > 0 {
+		args, err := argv.Argv([]rune(extendedArgs), map[string]string{}, argv.Run)
+		if err != nil {
+			return "", errors.NewError(fmt.Sprintf("could not parse %s", openshiftMasterExtendedArgsVar)).WithCause(err)
+		}
+		if len(args) > 0 {
+			for _, arg := range args[0] {
+				startCmd = append(startCmd, arg)
+			}
+		}
 	}
 
 	if opt.PortForwarding {
