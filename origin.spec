@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1164437848dc31ec61bfb47ec78aa77d3980d745
+%global commit 473a4c6493954a72dbe2b5c719cd368d2927594c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.5 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1164437
+%global os_git_vars OS_GIT_MINOR=8+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.1.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=473a4c6
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.1.0%{?dist}
+Release:        0.2.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -666,6 +666,16 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Nov 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.2.0
+- Revert "Imagestream tag exclude from pruning" (mfojtik@mfojtik.io)
+- dockergc: storage driver support limited to overlay2 (sjenning@redhat.com)
+- Avoid parsing the whole dump-flows output in the OVS health check
+  (danw@redhat.com)
+- Add new option to exclude imagestream tag from pruning by regular expression
+  (agladkov@redhat.com)
+- Add python 3.6 S2I image (alexandre.lossent@cern.ch)
+- Print the namespace in the endpoints change log message (bbennett@redhat.com)
+
 * Wed Nov 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.1.0
 - Adding 3.8 releaser (jupierce@redhat.com)
 - tsb: use external clients (jminter@redhat.com)
