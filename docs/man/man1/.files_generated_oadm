@@ -54,7 +54,6 @@ oadm-migrate-storage.1
 oadm-migrate.1
 oadm-new-project.1
 oadm-options.1
-oadm-overwrite-policy.1
 oadm-pod-network-isolate-projects.1
 oadm-pod-network-join-projects.1
 oadm-pod-network-make-projects-global.1
