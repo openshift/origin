@@ -418,6 +418,11 @@ function os::build::make_openshift_binary_symlinks() {
       ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
     done
   fi
+  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
+    for linkname in "${OC_BINARY_COPY[@]}"; do
+      ln -sf oc "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
+    done
+  fi
 }
 readonly -f os::build::make_openshift_binary_symlinks
 
