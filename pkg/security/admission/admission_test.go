@@ -173,7 +173,13 @@ func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstr
 }
 
 func TestAdmitSuccess(t *testing.T) {
-	tc := setupClientSet()
+	// create the annotated namespace and add it to the fake client
+	namespace := admissiontesting.CreateNamespaceForTest()
+
+	serviceAccount := admissiontesting.CreateSAForTest()
+	serviceAccount.Namespace = namespace.Name
+
+	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
 	// used for cases where things are preallocated
 	defaultGroup := int64(2)
@@ -223,8 +229,7 @@ func TestAdmitSuccess(t *testing.T) {
 		Level: "s0:c1,c0",
 	}
 
-	// level matches a value from namespace (see CreateNamespaceForTest())
-	seLinuxLevelFromNamespace := "s0:c1,c0"
+	seLinuxLevelFromNamespace := namespace.Annotations[allocator.MCSAnnotation]
 
 	testCases := map[string]struct {
 		pod                 *kapi.Pod
