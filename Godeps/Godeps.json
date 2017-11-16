@@ -1105,6 +1105,10 @@
 			"Rev": "ec37f3cb649bfb72408906e7cbf330e4aeda1075"
 		},
 		{
+			"ImportPath": "github.com/cosiner/argv",
+			"Rev": "13bacc38a0a5e0eba18b6f03cbb15dc5d4243b04"
+		},
+		{
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
 			"Comment": "v1.0.4",
 			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
