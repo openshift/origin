@@ -63,6 +63,7 @@ function os::build::version::git_vars() {
 			if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(\.[0-9]+)*([-].*)?$ ]]; then
 				OS_GIT_MAJOR=${BASH_REMATCH[1]}
 				OS_GIT_MINOR=${BASH_REMATCH[2]}
+				OS_GIT_RELEASE=${OS_GIT_MAJOR}.${OS_GIT_MINOR}
 				OS_GIT_PATCH=${BASH_REMATCH[3]}
 				if [[ -n "${BASH_REMATCH[5]}" ]]; then
 					OS_GIT_MINOR+="+"
