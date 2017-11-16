@@ -17,7 +17,7 @@ function os::build::rpm::get_nvra_vars() {
 	# the package name can be overwritten but is normally 'origin'
 	OS_RPM_ARCHITECTURE="$(uname -i)"
 
-	# we can extract the pacakge version from the build version
+	# we can extract the package version from the build version
 	os::build::version::get_vars
 	if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
 		OS_RPM_VERSION="${BASH_REMATCH[1]}"
@@ -25,6 +25,8 @@ function os::build::rpm::get_nvra_vars() {
 	else
 		os::log::fatal "Malformed \$OS_GIT_VERSION: ${OS_GIT_VERSION}"
 	fi
+
+	OS_RPM_GIT_RELEASE="${OS_GIT_RELEASE}"
 
 	# we can generate the package release from the git version metadata
 	# OS_GIT_VERSION will always have metadata, but either contain
@@ -66,7 +68,7 @@ function os::build::rpm::get_nvra_vars() {
 
 	OS_RPM_GIT_VARS=$( os::build::version::save_vars | tr '\n' ' ' )
 
-	export OS_RPM_VERSION OS_RPM_RELEASE OS_RPM_ARCHITECTURE OS_RPM_GIT_VARS
+	export OS_RPM_VERSION OS_RPM_RELEASE OS_RPM_ARCHITECTURE OS_RPM_GIT_VARS OS_RPM_GIT_RELEASE
 }
 
 
