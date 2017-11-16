@@ -5,8 +5,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	autoscalingapi "k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	expapi "k8s.io/kubernetes/pkg/apis/extensions"
 
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -48,7 +48,7 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), projName, "get", expapi.Resource("horizontalpodautoscalers"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), projName, "get", autoscalingapi.Resource("horizontalpodautoscalers"), true); err != nil {
 		t.Fatalf("unexpected error waiting for policy update: %v", err)
 	}
 
@@ -85,7 +85,7 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), projName, "get", expapi.Resource("horizontalpodautoscalers"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), projName, "get", autoscalingapi.Resource("horizontalpodautoscalers"), true); err != nil {
 		t.Fatalf("unexpected error waiting for policy update: %v", err)
 	}
 

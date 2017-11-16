@@ -854,11 +854,11 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 
 	// SAR honors API Group
 	subjectAccessReviewTest{
-		description:    "cluster admin told harold can get extensions.horizontalpodautoscalers in project hammer-project",
+		description:    "cluster admin told harold can get autoscaling.horizontalpodautoscalers in project hammer-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
-			Action: authorizationapi.Action{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -912,10 +912,10 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 
 	// SAR honors API Group for cluster admin self SAR
 	subjectAccessReviewTest{
-		description:    "cluster admin told they can get extensions.horizontalpodautoscalers in project hammer-project",
+		description:    "cluster admin told they can get autoscaling.horizontalpodautoscalers in project hammer-project",
 		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
+			Action: authorizationapi.Action{Verb: "get", Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 		},
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
