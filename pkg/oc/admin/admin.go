@@ -108,12 +108,12 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 				admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out),
 				admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out),
 
-				admin.NewCommandCreateBootstrapProjectTemplate(f, admin.CreateBootstrapProjectTemplateCommand, fullName+" "+admin.CreateBootstrapProjectTemplateCommand, out),
+				NewCommandCreateBootstrapProjectTemplate(f, CreateBootstrapProjectTemplateCommand, fullName+" "+CreateBootstrapProjectTemplateCommand, out),
 				admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
 
-				admin.NewCommandCreateLoginTemplate(f, admin.CreateLoginTemplateCommand, fullName+" "+admin.CreateLoginTemplateCommand, out),
-				admin.NewCommandCreateProviderSelectionTemplate(f, admin.CreateProviderSelectionTemplateCommand, fullName+" "+admin.CreateProviderSelectionTemplateCommand, out),
-				admin.NewCommandCreateErrorTemplate(f, admin.CreateErrorTemplateCommand, fullName+" "+admin.CreateErrorTemplateCommand, out),
+				NewCommandCreateLoginTemplate(f, CreateLoginTemplateCommand, fullName+" "+CreateLoginTemplateCommand, out),
+				NewCommandCreateProviderSelectionTemplate(f, CreateProviderSelectionTemplateCommand, fullName+" "+CreateProviderSelectionTemplateCommand, out),
+				NewCommandCreateErrorTemplate(f, CreateErrorTemplateCommand, fullName+" "+CreateErrorTemplateCommand, out),
 			},
 		},
 	}
