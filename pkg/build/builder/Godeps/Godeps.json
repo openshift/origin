@@ -32,6 +32,226 @@
 			"Rev": "aaf92c95712104318fc35409745f1533aa5ff327"
 		},
 		{
+			"ImportPath": "github.com/docker/distribution",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/configuration",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/context",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/digest",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/health",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/health/checks",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/manifest",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/manifest/manifestlist",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/manifest/schema1",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/manifest/schema2",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/notifications",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/reference",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/api/errcode",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/api/v2",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/auth",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/auth/htpasswd",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/auth/token",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/client",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/client/auth",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/client/auth/challenge",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/client/transport",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/handlers",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/middleware/registry",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/middleware/repository",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/proxy",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/proxy/scheduler",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/cache",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/cache/memory",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/cache/redis",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/azure",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/base",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/factory",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/filesystem",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/gcs",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/inmemory",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/middleware",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/middleware/cloudfront",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/oss",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/s3-aws",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/registry/storage/driver/swift",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/uuid",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
+			"ImportPath": "github.com/docker/distribution/version",
+			"Comment": "v2.6.2-7-g729840c",
+			"Rev": "1e2bbed6e09c6c8047f52af965a6e301f346d04e"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/api/types",
 			"Comment": "docs-v1.12.0-rc4-2016-07-15-5445-ga2bf823",
 			"Rev": "a2bf823a94f77bb041a5ef336c689adb09a593b6"
