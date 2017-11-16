@@ -420,6 +420,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 				Labels: opts.label,
 			},
 			Spec: extensions.DaemonSetSpec{
+				Selector: &metav1.LabelSelector{MatchLabels: opts.label},
 				Template: kapi.PodTemplateSpec{
 					ObjectMeta: podTemplate.ObjectMeta,
 					Spec:       podTemplate.Spec,
