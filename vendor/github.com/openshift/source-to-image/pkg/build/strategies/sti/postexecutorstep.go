@@ -411,6 +411,7 @@ func commitContainer(docker dockerpkg.Docker, containerID, cmd, user, tag string
 		Labels:      labels,
 	}
 
+	glog.Errorf("debug: commitContainer with opts: %#v", opts)
 	imageID, err := docker.CommitContainer(opts)
 	if err != nil {
 		return "", s2ierr.NewCommitError(tag, err)
