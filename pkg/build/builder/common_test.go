@@ -69,7 +69,7 @@ func TestRandomBuildTag(t *testing.T) {
 		namespace, name string
 		want            string
 	}{
-		{"test", "build-1", "test/build-1:f1f85ff5"},
+		{"test", "build-1", "docker.io/test/build-1:f1f85ff5"},
 		// For long build namespace + build name, the returned random build tag
 		// would be longer than the limit of reference.NameTotalLengthMax (255
 		// chars). We do not truncate the repository name because it could create an
@@ -80,7 +80,7 @@ func TestRandomBuildTag(t *testing.T) {
 		{
 			"namespace" + strings.Repeat(".namespace", 20),
 			"name" + strings.Repeat(".name", 20),
-			"47c1d5c686ce4563521c625457e79ca23c07bc27:f1f85ff5",
+			"3250b1b251c90df3963d8faf6525732f56c44f8e:f1f85ff5",
 		},
 	}
 	for _, tt := range tests {

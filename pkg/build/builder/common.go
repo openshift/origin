@@ -92,7 +92,7 @@ func buildInfo(build *buildapi.Build, sourceInfo *git.SourceInfo) []KeyValue {
 // that the built image can be referred to unambiguously even in the face of
 // concurrent builds with the same name in the same namespace.
 func randomBuildTag(namespace, name string) string {
-	repo := fmt.Sprintf("%s/%s", namespace, name)
+	repo := fmt.Sprintf("docker.io/%s/%s", namespace, name)
 	randomTag := fmt.Sprintf("%08x", rand.Uint32())
 	maxRepoLen := reference.NameTotalLengthMax - len(randomTag) - 1
 	if len(repo) > maxRepoLen {
