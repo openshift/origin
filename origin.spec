@@ -290,7 +290,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry kubefed template-service-broker
+for bin in oc openshift dockerregistry kubefed template-service-broker openshift-sti-build openshift-docker-build
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -335,8 +335,6 @@ for cmd in \
     kubernetes \
     oadm \
     openshift-deploy \
-    openshift-docker-build \
-    openshift-sti-build \
     openshift-git-clone \
     openshift-manage-dockerfile \
     openshift-extract-image-content \
