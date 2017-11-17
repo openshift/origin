@@ -1156,7 +1156,6 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 		msg += "To login as administrator:\n" +
 			"    oc login -u system:admin\n\n"
 	}
-
 	msg += c.checkProxySettings()
 
 	fmt.Fprintf(out, msg)

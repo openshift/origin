@@ -207,7 +207,10 @@ func status(container *types.ContainerJSON, config *api.MasterConfig) string {
 		status += fmt.Sprintf("The OpenShift cluster was started %s ago\n\n", duration)
 	}
 
-	status = status + fmt.Sprintf("Web console URL: %s\n", config.AssetConfig.MasterPublicURL)
+	status = status + fmt.Sprintf("Web console URL:    %s\n", config.AssetConfig.MasterPublicURL)
+	status = status + fmt.Sprintf("Image Registry URL: %[1]s\n"+
+		"    To login using docker:\n"+
+		"    docker login %[1]s -u developer -p $(oc whoami -t)\n", config.ImagePolicyConfig.ExternalRegistryHostname)
 	if config.AssetConfig.MetricsPublicURL != "" {
 		status = status + fmt.Sprintf("Metrics URL:     %s\n", config.AssetConfig.MetricsPublicURL)
 	}

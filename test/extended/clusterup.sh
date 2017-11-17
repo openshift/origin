@@ -263,6 +263,44 @@ function os::test::extended::clusterup::portinuse () {
     os::cmd::expect_success "oc cluster up --version=$ORIGIN_COMMIT"
 }
 
+# Verify that we can push and pull to exposed container registry from host to oc cluster up
+function os::test::extended::clusterup::registryconfig () {
+    # Start registry with localhost ip
+    os::cmd::expect_success "oc cluster up"
+    os::cmd::expect_success "oc login -u system:admin"
+    os::cmd::expect_success_and_text "oc get route -n default" "docker-registry"
+    os::cmd::try_until_text "oc get pods -n default" "docker-registry-1-deploy" $(( 2*minute )) 1
+    os::cmd::expect_success "oc login -u developer -p developer"
+    token="$( oc whoami -t )"
+    os::cmd::try_until_text "docker login docker-registry-default.127.0.0.1.nip.io -u developer -p ${token}" "Login Succeeded" $(( 5*minute )) 1
+    docker pull docker.io/busybox
+    os::cmd::expect_success "docker tag docker.io/busybox docker-registry-default.127.0.0.1.nip.io/myproject/busybox"
+    os::cmd::expect_success "docker push docker-registry-default.127.0.0.1.nip.io/myproject/busybox"
+    os::cmd::expect_success_and_text "docker exec origin cat /var/lib/origin/openshift.local.config/master/master-config.yaml" "externalRegistryHostname: docker-registry-default.127.0.0.1.nip.io"
+    os::test::extended::clusterup::registryconfig_cleanup
+    #start registry with test server ip. Docker registry behaves differently if it uses localhost
+    ipaddr="$(hostname -I | cut -d' ' -f1)"
+    os::cmd::expect_success "oc cluster up --routing-suffix=${ipaddr}.nip.io"
+    os::cmd::expect_success "oc login -u system:admin"
+    os::cmd::expect_success_and_text "oc get route -n default" "docker-registry"
+    os::cmd::try_until_text "oc get pods -n default" "docker-registry-1-deploy" $(( 2*minute )) 1
+    os::cmd::expect_success "oc login -u developer -p developer"
+    token="$( oc whoami -t )"
+    os::cmd::try_until_text "docker login docker-registry-default.${ipaddr}.nip.io -u developer -p ${token}" "Login Succeeded" $(( 5*minute )) 1
+    docker pull docker.io/busybox
+    os::cmd::expect_success "docker tag docker.io/busybox docker-registry-default.${ipaddr}.nip.io/myproject/busybox"
+    os::cmd::expect_success "docker push docker-registry-default.${ipaddr}.nip.io/myproject/busybox"
+    os::cmd::expect_success_and_text "docker exec origin cat /var/lib/origin/openshift.local.config/master/master-config.yaml" "externalRegistryHostname: docker-registry-default.${ipaddr}.nip.io"
+    os::test::extended::clusterup::registryconfig_cleanup
+}
+
+function os::test::extended::clusterup::registryconfig_cleanup () {
+    os::test::extended::clusterup::cleanup
+    local sudo="${USE_SUDO:+sudo}"
+    ${sudo} rm -rf /etc/docker/certs.d/docker-registry-default*
+}
+ 		
+
 function os::test::extended::clusterup::portinuse_cleanup () {
     os::test::extended::clusterup::cleanup
     docker rm -f port53
@@ -277,6 +315,7 @@ readonly default_tests=(
     "numerichostname"
     "portinuse"
     "svcaccess"
+    "registryconfig"
 
 # enable once https://github.com/openshift/origin/issues/16995 is fixed
 #    "default"
