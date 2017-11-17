@@ -290,7 +290,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry kubefed template-service-broker
+for bin in oc openshift dockerregistry kubefed template-service-broker kube-apiserver
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -327,7 +327,6 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in \
-    kube-apiserver \
     kube-controller-manager \
     kube-proxy \
     kube-scheduler \
