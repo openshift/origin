@@ -321,12 +321,6 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in \
-    kube-apiserver \
-    kube-controller-manager \
-    kube-proxy \
-    kube-scheduler \
-    kubelet \
-    kubernetes \
     oadm \
     openshift-deploy \
     openshift-docker-build \
@@ -421,12 +415,7 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/kube-apiserver
-%{_bindir}/kube-controller-manager
-%{_bindir}/kube-proxy
-%{_bindir}/kube-scheduler
-%{_bindir}/kubelet
-%{_bindir}/kubernetes
+%{_bindir}/hyperkube
 %{_bindir}/oadm
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-f5-router
