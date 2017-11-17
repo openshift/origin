@@ -481,7 +481,6 @@ openshift-kube-version.1
 openshift-kube.1
 openshift-options.1
 openshift-start-etcd.1
-openshift-start-kubernetes-apiserver.1
 openshift-start-kubernetes-controller-manager.1
 openshift-start-kubernetes-kube-proxy.1
 openshift-start-kubernetes-kubelet.1
