@@ -15,6 +15,7 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
 
+	clientcmd "github.com/openshift/origin/pkg/client/cmd"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
