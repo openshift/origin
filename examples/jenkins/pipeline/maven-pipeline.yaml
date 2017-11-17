@@ -148,7 +148,7 @@ objects:
           kind: ImageStreamTag
           name: wildfly:latest
       type: Docker
-    triggers: {}
+    triggers: []
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
