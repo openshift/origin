@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 473a4c6493954a72dbe2b5c719cd368d2927594c
+%global commit f109b952701fe9916a62d5258c53e69a3349cc12
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=8+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.1.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=473a4c6
+%global os_git_vars OS_GIT_MINOR=8+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.2.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f109b95
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.2.0%{?dist}
+Release:        0.3.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -666,6 +666,9 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Nov 17 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.3.0
+- 
+
 * Thu Nov 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.2.0
 - Revert "Imagestream tag exclude from pruning" (mfojtik@mfojtik.io)
 - dockergc: storage driver support limited to overlay2 (sjenning@redhat.com)
