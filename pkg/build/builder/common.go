@@ -18,6 +18,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
 
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -263,6 +264,22 @@ func buildEnv(build *buildapi.Build, sourceInfo *git.SourceInfo) []dockerfile.Ke
 	return kv
 }
 
+// TODO: remove this shim (required to adapt vendored types)
+func toS2ISourceInfo(sourceInfo *git.SourceInfo) *s2igit.SourceInfo {
+	return &s2igit.SourceInfo{
+		Ref:            sourceInfo.Ref,
+		CommitID:       sourceInfo.CommitID,
+		Date:           sourceInfo.Date,
+		AuthorName:     sourceInfo.AuthorName,
+		AuthorEmail:    sourceInfo.AuthorEmail,
+		CommitterName:  sourceInfo.CommitterName,
+		CommitterEmail: sourceInfo.CommitterEmail,
+		Message:        sourceInfo.Message,
+		Location:       sourceInfo.Location,
+		ContextDir:     sourceInfo.ContextDir,
+	}
+}
+
 // buildLabels returns a slice of KeyValue pairs in a format that appendLabel can
 // consume.
 func buildLabels(build *buildapi.Build, sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
@@ -273,7 +290,7 @@ func buildLabels(build *buildapi.Build, sourceInfo *git.SourceInfo) []dockerfile
 	if len(build.Spec.Source.ContextDir) > 0 {
 		sourceInfo.ContextDir = build.Spec.Source.ContextDir
 	}
-	labels = util.GenerateLabelsFromSourceInfo(labels, &sourceInfo.SourceInfo, buildapi.DefaultDockerLabelNamespace)
+	labels = util.GenerateLabelsFromSourceInfo(labels, toS2ISourceInfo(sourceInfo), buildapi.DefaultDockerLabelNamespace)
 	addBuildLabels(labels, build)
 
 	kv := make([]dockerfile.KeyValue, 0, len(labels)+len(build.Spec.Output.ImageLabels))
