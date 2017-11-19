@@ -31,12 +31,13 @@ def get_os_git_vars():
     shell utilities. The git tree state is spoofed.
     """
     git_vars = {}
-    for var in ["COMMIT", "VERSION", "MAJOR", "MINOR", "CATALOG_VERSION"]:
-        var_name = "OS_GIT_{}".format(var)
+    for var_name in ["OS_GIT_COMMIT", "OS_GIT_VERSION", "OS_GIT_MAJOR", "OS_GIT_MINOR",
+                     "OS_GIT_CATALOG_VERSION",
+                     "ETCD_GIT_VERSION", "ETCD_GIT_COMMIT",
+                     "KUBE_GIT_VERSION", "KUBE_GIT_COMMIT"]:
         git_vars[var_name] = run_command(
             "bash -c 'source ./hack/lib/init.sh; os::build::version::git_vars; echo ${}'".format(var_name)
         )
-
     # we hard-code this to a clean state as tito will have dirtied up the tree
     # but that will not have changed any of the source used for the product
     # release and we therefore don't want that reflected in the release version

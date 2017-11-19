@@ -4,9 +4,9 @@ reviewers:
   - liggitt
   - bparees
   - soltysh
-  - knbounc
+  - knobunc
   - dcbw
-  - rchopra
+  - rajatchopra
   - danwinship
   - marun
 approvers:
@@ -14,8 +14,8 @@ approvers:
   - stevekuznetsov
   - liggitt
   - bparees
-  - knbounc
+  - knobunc
   - dcbw
-  - rchopra
+  - rajatchopra
   - danwinship
   - marun

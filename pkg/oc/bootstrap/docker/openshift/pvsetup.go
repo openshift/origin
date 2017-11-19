@@ -3,6 +3,7 @@ package openshift
 import (
 	"bytes"
 	"fmt"
+	"os"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,10 +18,11 @@ import (
 )
 
 const (
-	pvCount          = 100
-	pvSetupJobName   = "persistent-volume-setup"
-	pvInstallerSA    = "pvinstaller"
-	pvSetupNamespace = "default"
+	pvCount            = 100
+	pvSetupJobName     = "persistent-volume-setup"
+	pvInstallerSA      = "pvinstaller"
+	pvSetupNamespace   = "default"
+	pvIgnoreMarkerFile = ".skip_pv"
 )
 
 const createPVScript = `#/bin/bash
@@ -81,7 +83,8 @@ for i in $(seq -f "%%04g" 1 %[1]d); do
 done
 `
 
-func (h *Helper) SetupPersistentStorage(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, kclient kclientset.Interface, securityClient securityclient.Interface, dir string) error {
+// SetupPersistentStorage sets up persistent storage
+func (h *Helper) SetupPersistentStorage(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, kclient kclientset.Interface, securityClient securityclient.Interface, dir, HostPersistentVolumesDir string) error {
 	err := h.ensurePVInstallerSA(authorizationClient, kclient, securityClient)
 	if err != nil {
 		return err
@@ -96,11 +99,16 @@ func (h *Helper) SetupPersistentStorage(authorizationClient authorizationtypedcl
 		return errors.NewError("error retrieving job to setup persistent volumes (%s/%s)", pvSetupNamespace, pvSetupJobName).WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	setupJob := persistentStorageSetupJob(pvSetupJobName, dir, h.image)
-	if _, err = kclient.Batch().Jobs(pvSetupNamespace).Create(setupJob); err != nil {
-		return errors.NewError("cannot create job to setup persistent volumes (%s/%s)", pvSetupNamespace, pvSetupJobName).WithCause(err).WithDetails(h.OriginLog())
+	// check if we need to create pv's
+	_, err = os.Stat(fmt.Sprintf("%s/%s", HostPersistentVolumesDir, pvIgnoreMarkerFile))
+	if !os.IsNotExist(err) {
+		fmt.Printf("Skip persistent volume creation \n")
+	} else {
+		setupJob := persistentStorageSetupJob(pvSetupJobName, dir, h.image, pvCount)
+		if _, err = kclient.Batch().Jobs(pvSetupNamespace).Create(setupJob); err != nil {
+			return errors.NewError("cannot create job to setup persistent volumes (%s/%s)", pvSetupNamespace, pvSetupJobName).WithCause(err).WithDetails(h.OriginLog())
+		}
 	}
-
 	return nil
 }
 
@@ -138,7 +146,7 @@ func (h *Helper) ensurePVInstallerSA(authorizationClient authorizationtypedclien
 	return nil
 }
 
-func persistentStorageSetupJob(name, dir, image string) *kbatch.Job {
+func persistentStorageSetupJob(name, dir, image string, pvCount int) *kbatch.Job {
 	// Job volume
 	volume := kapi.Volume{}
 	volume.Name = "pvdir"

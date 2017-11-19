@@ -13,7 +13,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/oc/cli/cmd"
 )
 
 const kubernetesLong = `
@@ -36,9 +35,6 @@ func NewCommand(name, fullName string, out, errOut io.Writer) *cobra.Command {
 	cmds.AddCommand(NewKubeletCommand("kubelet", fullName+" kubelet", out))
 	cmds.AddCommand(proxyapp.NewProxyCommand())
 	cmds.AddCommand(NewSchedulerCommand("scheduler", fullName+" scheduler", out))
-	if "hyperkube" == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, nil, out, cmd.VersionOptions{}))
-	}
 
 	return cmds
 }

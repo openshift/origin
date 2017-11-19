@@ -53,6 +53,14 @@ function os::test::extended::clusterup::verify_persistent_volumes () {
     os::cmd::expect_success "oc login -u developer"
 }
 
+function os::test::extended::clusterup::skip_persistent_volumes () {
+    mkdir -p /tmp/pv
+    touch /tmp/pv/.skip_pv
+    os::cmd::expect_success_and_text "oc cluster up --host-pv-dir=/tmp/pv/" "Skip persistent volume creation"
+    os::cmd::expect_success "oc login -u system:admin"
+    os::cmd::expect_success_and_text "oc get pv | wc -l" "0"
+}
+
 function os::test::extended::clusterup::verify_metrics () {
     os::cmd::expect_success "oc login -u system:admin"
     os::cmd::expect_success_and_text "oc get pods -n openshift-infra" "metrics-deployer"
@@ -269,6 +277,12 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 }
 
 
+# Verifies that clusterup handle different scenarios with persistent volumes setup
+function os::test::extended::clusterup::persistentvolumes () {
+    os::test::extended::clusterup::skip_persistent_volumes
+    rm -rf /tmp/pv
+}
+
 readonly default_tests=(
     "service_catalog"
     "noargs"
@@ -277,6 +291,7 @@ readonly default_tests=(
     "numerichostname"
     "portinuse"
     "svcaccess"
+    "persistentvolumes"
 
 # enable once https://github.com/openshift/origin/issues/16995 is fixed
 #    "default"
