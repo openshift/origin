@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f109b952701fe9916a62d5258c53e69a3349cc12
+%global commit 1f05845e08700ce201977d2406348f9fdef1867c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=8+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.2.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_CATALOG_VERSION=v0.1.2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f109b95
+%global os_git_vars OS_GIT_MINOR=8+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.3.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.7.6+a08f5eeb62 OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=c84beff OS_GIT_COMMIT=1f05845 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.3.0%{?dist}
+Release:        0.4.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -666,6 +666,20 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Nov 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.4.0
+- Removing gitserver from build images (jupierce@redhat.com)
+- Adding new commit vars to RPM spec build (jupierce@redhat.com)
+- Fixed a typo in OWNERS (rajatchopra and knobunc were wrong)
+  (bbennett@redhat.com)
+- break dependency on version cmd for non-cli pkgs (jvallejo@redhat.com)
+- update images being tested (bparees@redhat.com)
+- Allow assign-macvlan annotation to specify an interface (danw@redhat.com)
+- add skip_pv marker to skip PV creation (m.judeikis@gmail.com)
+- Bug 1509799 - Fix WaitAndGetVNID() in sdn node (rpenta@redhat.com)
+- Fix project sync interval in router (rpenta@redhat.com)
+- Router: Changed default resource resync interval from 10mins to 30mins
+  (rpenta@redhat.com)
+
 * Fri Nov 17 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.3.0
 - 
 
