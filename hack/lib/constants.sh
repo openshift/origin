@@ -32,7 +32,6 @@ readonly OS_SDN_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   cmd/dockerregistry
-  cmd/gitserver
   vendor/k8s.io/kubernetes/cmd/hyperkube
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
 )
@@ -344,7 +343,6 @@ readonly OS_ALL_IMAGES=(
   openshift/origin-egress-router
   openshift/origin-egress-http-proxy
   openshift/origin-recycler
-  openshift/origin-gitserver
   openshift/origin-cluster-capacity
   openshift/origin-service-catalog
   openshift/origin-template-service-broker
@@ -368,7 +366,6 @@ function os::build::images() {
 
   # Link or copy image binaries to the appropriate locations.
   ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
-  ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/gitserver"       examples/gitserver/bin
 
   # determine the correct tag prefix
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
@@ -394,7 +391,6 @@ function os::build::images() {
   # images that depend on "${tag_prefix}
   ( os::build::image "${tag_prefix}-haproxy-router"        images/router/haproxy ) &
   ( os::build::image "${tag_prefix}-keepalived-ipfailover" images/ipfailover/keepalived ) &
-  ( os::build::image "${tag_prefix}-gitserver"             examples/gitserver ) &
   ( os::build::image "${tag_prefix}-deployer"              images/deployer ) &
   ( os::build::image "${tag_prefix}-recycler"              images/recycler ) &
   ( os::build::image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder ) &
