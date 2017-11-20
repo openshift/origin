@@ -1,0 +1,74 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    router: router
+  name: router
+spec:
+  replicas: 1
+  selector:
+    router: router
+  strategy:
+    rollingParams:
+      maxSurge: 0
+      maxUnavailable: 25%
+    type: Rolling
+  triggers:
+  - type: ConfigChange
+  template:
+    metadata:
+      labels:
+        router: router
+    spec:
+      containers:
+      - env:
+        - name: DEFAULT_CERTIFICATE_DIR
+          value: /etc/pki/tls/private
+        - name: ROUTER_CIPHERS
+        - name: ROUTER_SERVICE_HTTPS_PORT
+          value: "443"
+        - name: ROUTER_SERVICE_HTTP_PORT
+          value: "80"
+        - name: ROUTER_SERVICE_NAME
+          value: router
+        - name: ROUTER_SERVICE_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ROUTER_METRICS_TYPE
+          value: haproxy
+        - name: ROUTER_LISTEN_ADDR
+          value: 0.0.0.0:1936
+        - name: ROUTER_SUBDOMAIN
+        image: openshift/origin-haproxy-router:v3.7.0-rc.0
+        livenessProbe:
+          httpGet:
+            host: localhost
+            path: /healthz
+            port: 1936
+          initialDelaySeconds: 10
+        name: router
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        - containerPort: 1936
+          name: stats
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            host: localhost
+            path: /healthz
+            port: 1936
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /etc/pki/tls/private
+          name: server-certificate
+          readOnly: true
+      serviceAccountName: router
+      volumes:
+      - name: server-certificate
+        secret:
+          secretName: router-certs

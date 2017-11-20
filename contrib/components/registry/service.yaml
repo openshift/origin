@@ -1,0 +1,21 @@
+kind: List
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: registry
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      registry: default
+    annotations:
+      "service.alpha.openshift.io/serving-cert-secret-name": registry-tls
+    name: registry
+  spec:
+    ports:
+    - port: 5000
+      targetPort: 5000
+    selector:
+      registry: default

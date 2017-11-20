@@ -1,0 +1,18 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+- name: IMAGE_TAG
+  value: v3.7.0-alpha.1
+- name: IMAGE_PREFIX
+  value: openshift/origin-
+objects:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: registry
+  spec:
+    tags:
+    - name: stable
+      from:
+        kind: DockerImage
+        name: ${IMAGE_PREFIX}docker-registry:${IMAGE_TAG}
