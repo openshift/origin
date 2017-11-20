@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8840cc01cfaaa3b6bb30e6da7936fe65fb466257
+%global commit c8bd21c85346f34c75e935de2d20bfecd46d5ba2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=8+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.4.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 KUBE_GIT_VERSION=v1.7.6+a08f5eeb62 OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=c84beff OS_GIT_COMMIT=8840cc0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=8+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.5.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.7.6+a08f5eeb62 OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=c84beff OS_GIT_COMMIT=c8bd21c OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.5.0%{?dist}
+Release:        0.6.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -666,6 +666,12 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Nov 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.6.0
+- Adding OS_GIT_PATCH env var for build (jupierce@redhat.com)
+- poll for log output in extended tests (bparees@redhat.com)
+- Allow '-n none' for the dind to set up no network plugin
+  (bbennett@redhat.com)
+
 * Sun Nov 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.5.0
 - 
 
