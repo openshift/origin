@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c8bd21c85346f34c75e935de2d20bfecd46d5ba2
+%global commit 58edba57241bb2b553bf3203f41ec875d064a473
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=8+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.5.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.7.6+a08f5eeb62 OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=c84beff OS_GIT_COMMIT=c8bd21c OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=8+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.6.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.8.1+0d5291c OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=0d5291c OS_GIT_COMMIT=58edba5 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.6.0%{?dist}
+Release:        0.7.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -657,6 +657,138 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Nov 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.7.0
+- fixme: use openshift/origin-docker-registry:latest as registry image
+  (mfojtik@redhat.com)
+- Generated files (jliggitt@redhat.com)
+- interesting: restore ability to start with swap on by default
+  (jliggitt@redhat.com)
+- interesting: buildconfig/instantiate spdy executor change
+  (maszulik@redhat.com)
+- interesting: remove double printer handler registration (mfojtik@redhat.com)
+- interesting: Master and node changes (maszulik@redhat.com)
+- interesting: API server changes (maszulik@redhat.com)
+- interesting: fixup template data types (jliggitt@redhat.com)
+- interesting: generate canonical temporary build tag (jliggitt@redhat.com)
+- interesting: remove bad tests from test/cmd/certs.sh (mfojtik@redhat.com)
+- interesting: bump reconcile qps (jliggitt@redhat.com)
+- interesting: run reflectors in a goroutine (maszulik@redhat.com)
+- interesting: make 'oc registry' generate valid DaemonSet
+  (jliggitt@redhat.com)
+- interesting: ApproximatePodTemplateForObject (jliggitt@redhat.com)
+- interesting: etcd_storage_path test updates (maszulik@redhat.com)
+- interesting: add cohabitating resources for daemonsets/replicasets, bump
+  cronjob storage (jliggitt@redhat.com)
+- interesting: ignore authorization.openshift.io role/binding objects for GC
+  (jliggitt@redhat.com)
+- interesting: default the triggers in dc integration test
+  (jliggitt@redhat.com)
+- interesting: replace ParseNormalizedNamed with reference.WithName
+  (maszulik@redhat.com)
+- interesting: switch dockerutils to deal with two auth config types
+  (jliggitt@redhat.com)
+- interesting: drop scheduled jobs support (maszulik@redhat.com)
+- interesting: oc: fix forwarder (mfojtik@redhat.com)
+- interesting: HPA v2alpha1 removed (jliggitt@redhat.com)
+- interesting: NetworkPolicy moved from extensions to networking
+  (maszulik@redhat.com)
+- interesting: errors are structured now, fixup TestFrontProxy test
+  (jliggitt@redhat.com)
+- boring: avoid spurious diff of nil/[] in extended test (jliggitt@redhat.com)
+- boring: update integration tests to check hpa permissions in autoscaling
+  group (jliggitt@redhat.com)
+- boring: fix error messages in authorization test (mfojtik@redhat.com)
+- boring: update TestRootRedirect paths, re-enable openapi in integration,
+  update preferred RBAC version (jliggitt@redhat.com)
+- boring: Update registered aggregated APIs with new versions
+  (jliggitt@redhat.com)
+- boring: govet fixes (maszulik@redhat.com)
+- boring: define localSchemeBuilder, ensure LegacySchemeBuilder has
+  RegisterDeepCopies/RegisterDefaults/RegisterConversions (jliggitt@redhat.com)
+- boring: test-cmd fixes (maszulik@redhat.com)
+- boring: regenerate policy (maszulik@redhat.com)
+- boring: exclude new alpha kubectl command (maszulik@redhat.com)
+- boring: quota conversions error return (maszulik@redhat.com)
+- boring: Admission interface changes (maszulik@redhat.com)
+- boring: update clientgen type annotations (maszulik@redhat.com)
+- boring: docker API changes (jliggitt@redhat.com)
+- boring: deepcopy calls (jliggitt@redhat.com)
+- boring (maszulik@redhat.com)
+- boring: k8s.io/api import restrictions changes (jliggitt@redhat.com)
+- hack/update-generated-clientsets.sh: remove shortGroup and version from
+  generator (mfojtik@redhat.com)
+- hack/update-generated-protobuf.sh: reuse upstream proto generator
+  (maszulik@redhat.com)
+- genconversion: add k8s.io/api/core/v1 (jliggitt@redhat.com)
+- gendeepcopy: omit k8s packages (maszulik@redhat.com)
+- UPSTREAM: k8s.io/gengo: 73: handle aliases (maszulik@redhat.com)
+- UPSTREAM: <drop>: disable flaky InitFederation unit test (deads@redhat.com)
+- UPSTREAM: <drop>: etcd testing (maszulik@redhat.com)
+- UPSTREAM: <carry>: allow controller context injection to share informers
+  (jliggitt@redhat.com)
+- UPSTREAM: <carry>: allow multiple containers to union for swagger
+  (maszulik@redhat.com)
+- UPSTREAM: <carry>: switch back to use encode/json to avoid serialization
+  errors (mfojtik@redhat.com)
+- UPSTREAM: 55974: Allow constructing spdy executor from existing transports
+  (jliggitt@redhat.com)
+- UPSTREAM: 55772: Only attempt to construct GC informers for watchable
+  resources (jliggitt@redhat.com)
+- UPSTREAM: 53576: Revert "Validate if service has duplicate targetPort"
+  (jliggitt@redhat.com)
+- UPSTREAM: 55703: use full gopath for externalTypes (maszulik@redhat.com)
+- UPSTREAM: 55704: Return original error instead of negotiation one
+  (maszulik@redhat.com)
+- UPSTREAM: 55248: increase iptables max wait from 2 seconds to 5 (fix)
+  (bbennett@redhat.com)
+- UPSTREAM: google/cadvisor: 1785: fix long du duration message
+  (sjenning@redhat.com)
+- UPSTREAM: google/cadvisor: 1766: adaptive longOp for du operation
+  (sjenning@redhat.com)
+- UPSTREAM: docker/distribution: 2384: Fallback to GET for manifest
+  (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: 2402: Allow manifest specification
+  (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: 2382: Don't double add scopes
+  (ccoleman@redhat.com)
+- UPSTREAM: containers/image: <carry>: Disable gpgme on windows/mac
+  (ccoleman@redhat.com)
+- UPSTREAM: <drop>: run hack/copy-kube-artifacts.sh (jliggitt@redhat.com)
+- bump(k8s.io/kubernetes): 0d5291cc63b7b3655b11bc15e8afb9a078049d09 - v1.8.1
+  (jliggitt@redhat.com)
+- bump(github.com/Sirupsen/logrus) - drop in favor of
+  github.com/sirupsen/logrus (maszulik@redhat.com)
+- bump(github.com/containers/image): 8df46f076f47521cef216839d04202e89471da2e
+  (maszulik@redhat.com)
+- bump(github.com/google/cadvisor): cda62a43857256fbc95dd31e7c810888f00f8ec7 -
+  this needs to be revisit, if all the patches we have are in place
+  (maszulik@redhat.com)
+- bump(github.com/docker/docker): 4f3616fb1c112e206b88cb7a9922bf49067a7756 -
+  this is a potential source of problems, be careful (maszulik@redhat.com)
+- bump(github.com/docker/distribution):
+  edc3ab29cdff8694dd6feb85cfeb4b5f1b38ed9c (maszulik@redhat.com)
+- bump(github.com/aws/aws-sdk-go): 63ce630574a5ec05ecd8e8de5cea16332a5a684d
+  (maszulik@redhat.com)
+- bump(github.com/openshift/imagebuilder):
+  b6a142b9d7f3d57a2bf86ae9c9342f98e0c97c5b (maszulik@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  e3140d019517368c7c3f72476f9cae7a8b1269d0 (maszulik@redhat.com)
+- Update copy-kube-artifacts (maszulik@redhat.com)
+- Update godep-save.sh to current state (maszulik@redhat.com)
+- shim pkg/build/builder source-to-image types (jliggitt@redhat.com)
+- lock pkg/build/builder to github.com/openshift/source-to-image
+  e3140d019517368c7c3f72476f9cae7a8b1269d0 (jliggitt@redhat.com)
+- lock pkg/build/builder to github.com/docker/distribution
+  1e2bbed6e09c6c8047f52af965a6e301f346d04e (jliggitt@redhat.com)
+- lock pkg/build/builder to github.com/docker/engine-api
+  dea108d3aa0c67d7162a3fd8aa65f38a430019fd (mfojtik@redhat.com)
+- lock pkg/build/builder to github.com/Azure/go-ansiterm
+  7e0a0b69f76673d5d2f451ee59d9d02cfa006527 (jliggitt@redhat.com)
+- lock pkg/build/builder to github.com/Sirupsen/logrus
+  aaf92c95712104318fc35409745f1533aa5ff327 (maszulik@redhat.com)
+- interesting: remove registry as it now lives in external repo
+  (jliggitt@redhat.com)
+
 * Mon Nov 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.6.0
 - Adding OS_GIT_PATCH env var for build (jupierce@redhat.com)
 - poll for log output in extended tests (bparees@redhat.com)
