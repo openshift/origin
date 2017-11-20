@@ -82,10 +82,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
 	server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
 
-	// TODO: check/warn/fail in setup instead?
-	// allows kubelet to continue to start in swap environments
-	server.FailSwapOn = false
-
 	// prevents kube from generating certs
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
