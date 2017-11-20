@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
@@ -69,6 +70,8 @@ type DeploymentController struct {
 
 	// queue contains replication controllers that need to be synced.
 	queue workqueue.RateLimitingInterface
+	// A TTLCache of deployer pod creates and deletes.
+	expectations *kcontroller.ControllerExpectations
 
 	// rcLister can list/get replication controllers from a shared informer's cache
 	rcLister kcorelisters.ReplicationControllerLister
@@ -97,6 +100,12 @@ type DeploymentController struct {
 // to a terminal deployment status. Since this controller started using caches,
 // the provided rc MUST be deep-copied beforehand (see work() in factory.go).
 func (c *DeploymentController) handle(deployment *v1.ReplicationController, willBeDropped bool) error {
+	key, err := getKeyForReplicationController(deployment)
+	if err != nil {
+		utilruntime.HandleError(err)
+		return nil
+	}
+
 	// Copy all the annotations from the deployment.
 	updatedAnnotations := make(map[string]string)
 	for key, value := range deployment.Annotations {
@@ -109,7 +118,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 	deployer, deployerErr := c.podLister.Pods(deployment.Namespace).Get(deployerPodName)
 	if deployerErr == nil {
-		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
+		nextStatus = c.nextStatus(currentStatus, deployer, deployment, updatedAnnotations)
 	}
 
 	switch currentStatus {
@@ -149,27 +158,34 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 				return nil
 			}
 
-			// Generate a deployer pod spec.
-			deployerPod, err := c.makeDeployerPod(deployment)
-			if err != nil {
-				return fatalError(fmt.Sprintf("couldn't make deployer pod for %q: %v", deployutil.LabelForDeploymentV1(deployment), err))
+			// We need to check the cache if we haven't already created deployer pod.
+			// In case the caches wouldn't be synced yet and we would receive the same RC with state New
+			// and the deployer pod would have been deleted (by user or otherwise) we would have recreated it again.
+			// Also a newer deployment might be already running so we would have 2 active deployer pods.
+			if c.expectations.SatisfiedExpectations(key) {
+				// Generate a deployer pod spec.
+				deployerPod, err := c.makeDeployerPod(deployment)
+				if err != nil {
+					return fatalError(fmt.Sprintf("couldn't make deployer pod for %q: %v", deployutil.LabelForDeploymentV1(deployment), err))
+				}
+				// Create the deployer pod.
+				deployerPod, err = c.pn.Pods(deployment.Namespace).Create(deployerPod)
+				// Retry on error.
+				if err != nil {
+					// if we cannot create a deployment pod (i.e lack of quota), match normal replica set experience and
+					// emit an event.
+					c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod: %v", err))
+					return actionableError(fmt.Sprintf("couldn't create deployer pod for %q: %v", deployutil.LabelForDeploymentV1(deployment), err))
+				}
+				c.expectations.ExpectDeletions(key, 1)
+				updatedAnnotations[deployapi.DeploymentPodAnnotation] = deployerPod.Name
+				updatedAnnotations[deployapi.DeployerPodCreatedAtAnnotation] = deployerPod.CreationTimestamp.String()
+				if deployerPod.Status.StartTime != nil {
+					updatedAnnotations[deployapi.DeployerPodStartedAtAnnotation] = deployerPod.Status.StartTime.String()
+				}
+				nextStatus = deployapi.DeploymentStatusPending
+				glog.V(4).Infof("Created deployer pod %q for %q (RV: %s)", deployerPod.Name, deployutil.LabelForDeploymentV1(deployment), deployment.ResourceVersion)
 			}
-			// Create the deployer pod.
-			deploymentPod, err := c.pn.Pods(deployment.Namespace).Create(deployerPod)
-			// Retry on error.
-			if err != nil {
-				// if we cannot create a deployment pod (i.e lack of quota), match normal replica set experience and
-				// emit an event.
-				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod: %v", err))
-				return actionableError(fmt.Sprintf("couldn't create deployer pod for %q: %v", deployutil.LabelForDeploymentV1(deployment), err))
-			}
-			updatedAnnotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
-			updatedAnnotations[deployapi.DeployerPodCreatedAtAnnotation] = deploymentPod.CreationTimestamp.String()
-			if deploymentPod.Status.StartTime != nil {
-				updatedAnnotations[deployapi.DeployerPodStartedAtAnnotation] = deploymentPod.Status.StartTime.String()
-			}
-			nextStatus = deployapi.DeploymentStatusPending
-			glog.V(4).Infof("Created deployer pod %q for %q", deploymentPod.Name, deployutil.LabelForDeploymentV1(deployment))
 
 		// Most likely dead code since we never get an error different from 404 back from the cache.
 		case deployerErr != nil:
@@ -188,7 +204,8 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// to ensure that changes to 'unrelated' pods don't result in updates to
 			// the deployment. So, the image check will have to be done in other areas
 			// of the code as well.
-			if deployutil.DeploymentNameFor(deployer) != deployment.Name {
+			controllerRef := kcontroller.GetControllerOf(deployer)
+			if deployutil.DeploymentNameFor(deployer) != deployment.Name || (controllerRef != nil && controllerRef.UID != deployment.UID) {
 				nextStatus = deployapi.DeploymentStatusFailed
 				updatedAnnotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnrelatedDeploymentExists
 				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod since another pod with the same name (%q) exists", deployer.Name))
@@ -246,6 +263,8 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		}
 
 	case deployapi.DeploymentStatusFailed:
+		c.expectations.ExpectDeletions(key, 0)
+
 		// Try to cleanup once more a cancelled deployment in case hook pods
 		// were created just after we issued the first cleanup request.
 		if deployutil.IsDeploymentCancelled(deployment) {
@@ -261,6 +280,8 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		}
 
 	case deployapi.DeploymentStatusComplete:
+		c.expectations.ExpectDeletions(key, 0)
+
 		if err := c.cleanupDeployerPods(deployment); err != nil {
 			return err
 		}
@@ -297,7 +318,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 	return nil
 }
 
-func (c *DeploymentController) nextStatus(pod *v1.Pod, deployment *v1.ReplicationController, updatedAnnotations map[string]string) deployapi.DeploymentStatus {
+func (c *DeploymentController) nextStatus(current deployapi.DeploymentStatus, pod *v1.Pod, deployment *v1.ReplicationController, updatedAnnotations map[string]string) deployapi.DeploymentStatus {
 	switch pod.Status.Phase {
 	case v1.PodPending:
 		return deployapi.DeploymentStatusPending
@@ -330,8 +351,12 @@ func (c *DeploymentController) nextStatus(pod *v1.Pod, deployment *v1.Replicatio
 			updatedAnnotations[deployapi.DeployerPodCompletedAtAnnotation] = completedTimestamp.String()
 		}
 		return deployapi.DeploymentStatusFailed
+
+	case v1.PodUnknown:
+		fallthrough
+	default:
+		return current
 	}
-	return deployapi.DeploymentStatusNew
 }
 
 // getPodTerminatedTimestamp gets the first terminated container in a pod and
