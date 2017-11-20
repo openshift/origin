@@ -9248,7 +9248,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 		"github.com/openshift/origin/pkg/security/apis/security/v1.SecurityContextConstraints": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container.",
+					Description: "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container. For historical reasons SCC was exposed under the core Kubernetes API group. That exposure is deprecated and will be removed in a future release - users should instead use the security.openshift.io group to manage SecurityContextConstraints.",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
