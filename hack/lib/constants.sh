@@ -46,6 +46,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/oc
   cmd/kubefed
   cmd/template-service-broker
+  vendor/k8s.io/kubernetes/cmd/kube-apiserver
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -79,7 +80,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   kubernetes
   kubelet
   kube-proxy
-  kube-apiserver
   kube-controller-manager
   kube-scheduler
 )
@@ -87,7 +87,6 @@ readonly OPENSHIFT_BINARY_COPY=(
   oadm
   kubelet
   kube-proxy
-  kube-apiserver
   kube-controller-manager
   kube-scheduler
 )

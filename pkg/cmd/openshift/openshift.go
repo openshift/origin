@@ -83,8 +83,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
 	case "kubectl":
 		cmd = cli.NewCmdKubectl(basename, out)
-	case "kube-apiserver":
-		cmd = kubernetes.NewAPIServerCommand(basename, basename, out)
 	case "kube-controller-manager":
 		cmd = kubernetes.NewControllersCommand(basename, basename, out)
 	case "kubelet":

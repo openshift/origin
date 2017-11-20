@@ -30,7 +30,6 @@ func NewCommand(name, fullName string, out, errOut io.Writer) *cobra.Command {
 		Run:   kcmdutil.DefaultSubCommandRun(errOut),
 	}
 
-	cmds.AddCommand(NewAPIServerCommand("apiserver", fullName+" apiserver", out))
 	cmds.AddCommand(NewControllersCommand("controller-manager", fullName+" controller-manager", out))
 	cmds.AddCommand(NewKubeletCommand("kubelet", fullName+" kubelet", out))
 	cmds.AddCommand(proxyapp.NewProxyCommand())
