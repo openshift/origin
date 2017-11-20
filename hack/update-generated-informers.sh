@@ -7,7 +7,6 @@ os::util::ensure::built_binary_exists 'informer-gen' 'vendor/k8s.io/kubernetes/s
 
 # list of package to generate informers for
 packages=(
-  github.com/openshift/origin/pkg/authorization/apis/authorization
   github.com/openshift/origin/pkg/build/apis/build
   github.com/openshift/origin/pkg/apps/apis/apps
   github.com/openshift/origin/pkg/image/apis/image

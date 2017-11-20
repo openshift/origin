@@ -25,7 +25,6 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
-	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
@@ -86,19 +85,17 @@ type MasterConfig struct {
 	AuditBackend audit.Backend
 
 	// TODO inspect uses to eliminate them
-	InternalKubeInformers  kinternalinformers.SharedInformerFactory
-	ClientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
-	AuthorizationInformers authorizationinformer.SharedInformerFactory
-	QuotaInformers         quotainformer.SharedInformerFactory
-	SecurityInformers      securityinformer.SharedInformerFactory
-	UserInformers          userinformer.SharedInformerFactory
+	InternalKubeInformers kinternalinformers.SharedInformerFactory
+	ClientGoKubeInformers kubeclientgoinformers.SharedInformerFactory
+	QuotaInformers        quotainformer.SharedInformerFactory
+	SecurityInformers     securityinformer.SharedInformerFactory
+	UserInformers         userinformer.SharedInformerFactory
 }
 
 type InformerAccess interface {
 	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
 	GetExternalKubeInformers() kinformers.SharedInformerFactory
 	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
-	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
 	GetImageInformers() imageinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
@@ -198,12 +195,11 @@ func BuildMasterConfig(
 		PrivilegedLoopbackKubernetesClientsetInternal: kubeInternalClient,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 
-		InternalKubeInformers:  informers.GetInternalKubeInformers(),
-		ClientGoKubeInformers:  informers.GetClientGoKubeInformers(),
-		AuthorizationInformers: informers.GetAuthorizationInformers(),
-		QuotaInformers:         informers.GetQuotaInformers(),
-		SecurityInformers:      informers.GetSecurityInformers(),
-		UserInformers:          informers.GetUserInformers(),
+		InternalKubeInformers: informers.GetInternalKubeInformers(),
+		ClientGoKubeInformers: informers.GetClientGoKubeInformers(),
+		QuotaInformers:        informers.GetQuotaInformers(),
+		SecurityInformers:     informers.GetSecurityInformers(),
+		UserInformers:         informers.GetUserInformers(),
 	}
 
 	// ensure that the limit range informer will be started
