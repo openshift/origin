@@ -205,13 +205,14 @@ func (ImageStreamStatus) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamTag = map[string]string{
-	"":             "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
-	"metadata":     "Standard object's metadata.",
-	"tag":          "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
-	"generation":   "generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or conditions will be filled out indicating any error.",
-	"lookupPolicy": "lookupPolicy indicates whether this tag will handle image references in this namespace.",
-	"conditions":   "conditions is an array of conditions that apply to the image stream tag.",
-	"image":        "image associated with the ImageStream and tag.",
+	"":                     "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
+	"metadata":             "Standard object's metadata.",
+	"tag":                  "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
+	"generation":           "generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or conditions will be filled out indicating any error.",
+	"lookupPolicy":         "lookupPolicy indicates whether this tag will handle image references in this namespace.",
+	"conditions":           "conditions is an array of conditions that apply to the image stream tag.",
+	"image":                "image associated with the ImageStream and tag.",
+	"publicImageReference": "publicImageReference is the pull spec that can be used to acccess this image from outside of the cluster. It may be empty if the cluster is not configured to expose an external image reference.",
 }
 
 func (ImageStreamTag) SwaggerDoc() map[string]string {

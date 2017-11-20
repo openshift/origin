@@ -90398,6 +90398,10 @@
       "description": "Standard object's metadata.",
       "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
      },
+     "publicImageReference": {
+      "description": "publicImageReference is the pull spec that can be used to acccess this image from outside of the cluster. It may be empty if the cluster is not configured to expose an external image reference.",
+      "type": "string"
+     },
      "tag": {
       "description": "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
       "$ref": "#/definitions/com.github.openshift.origin.pkg.image.apis.image.v1.TagReference"

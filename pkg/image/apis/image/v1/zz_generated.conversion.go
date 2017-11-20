@@ -711,6 +711,7 @@ func autoConvert_v1_ImageStreamTag_To_image_ImageStreamTag(in *ImageStreamTag, o
 	if err := Convert_v1_Image_To_image_Image(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
+	out.PublicImageReference = in.PublicImageReference
 	return nil
 }
 
@@ -738,6 +739,7 @@ func autoConvert_image_ImageStreamTag_To_v1_ImageStreamTag(in *image.ImageStream
 	if err := Convert_image_Image_To_v1_Image(&in.Image, &out.Image, s); err != nil {
 		return err
 	}
+	out.PublicImageReference = in.PublicImageReference
 	return nil
 }
 

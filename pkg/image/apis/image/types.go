@@ -439,6 +439,12 @@ type ImageStreamTag struct {
 
 	// The Image associated with the ImageStream and tag.
 	Image Image
+
+	// PublicImageReference is the pull spec that can be used to acccess this
+	// image from outside of the cluster. It may be empty if the cluster is not
+	// configured to expose an external image reference.
+	// +optional
+	PublicImageReference string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
