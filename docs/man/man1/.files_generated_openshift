@@ -380,12 +380,6 @@ openshift-infra-sti-build.1
 openshift-infra.1
 openshift-options.1
 openshift-start-etcd.1
-openshift-start-kubernetes-apiserver.1
-openshift-start-kubernetes-controller-manager.1
-openshift-start-kubernetes-kube-proxy.1
-openshift-start-kubernetes-kubelet.1
-openshift-start-kubernetes-scheduler.1
-openshift-start-kubernetes.1
 openshift-start-master-api.1
 openshift-start-master-controllers.1
 openshift-start-master.1
