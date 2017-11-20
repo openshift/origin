@@ -8,7 +8,6 @@ import (
 	"net"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -357,7 +356,7 @@ func getVethInfo(netns, containerIfname string) (string, string, string, error) 
 		}
 		peerIfindex = contVeth.Attrs().ParentIndex
 
-		addrs, err := netlink.AddrList(contVeth, syscall.AF_INET)
+		addrs, err := netlink.AddrList(contVeth, netlink.FAMILY_V4)
 		if err != nil {
 			return fmt.Errorf("failed to get container IP addresses: %v", err)
 		}
