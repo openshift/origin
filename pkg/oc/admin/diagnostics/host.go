@@ -5,9 +5,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	hostdiags "github.com/openshift/origin/pkg/diagnostics/host"
-	systemddiags "github.com/openshift/origin/pkg/diagnostics/systemd"
-	"github.com/openshift/origin/pkg/diagnostics/types"
+	hostdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/host"
+	systemddiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/systemd"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
 var (

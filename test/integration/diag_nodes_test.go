@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	clusterdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
-	diagtype "github.com/openshift/origin/pkg/diagnostics/types"
+	clusterdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster"
+	diagtype "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
