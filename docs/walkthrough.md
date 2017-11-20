@@ -67,28 +67,34 @@ We should see something like:
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ClusterServiceBroker
 metadata:
-  creationTimestamp: 2017-03-03T04:11:17Z
+  creationTimestamp: 2017-11-01T14:11:29Z
   finalizers:
   - kubernetes-incubator/service-catalog
+  generation: 1
   name: ups-broker
   resourceVersion: "6"
   selfLink: /apis/servicecatalog.k8s.io/v1beta1/clusterservicebrokers/ups-broker
-  uid: 72fa629b-ffc7-11e6-b111-0242ac110005
+  uid: 8df4e501-bf0e-11e7-9e29-0242ac110004
 spec:
+  relistBehavior: Duration
+  relistDuration: 15m0s
+  relistRequests: 0
   url: http://ups-broker-ups-broker.ups-broker.svc.cluster.local
 status:
   conditions:
-  - message: Successfully fetched catalog entries from broker.
+  - lastTransitionTime: 2017-11-01T14:12:30Z
+    message: Successfully fetched catalog entries from broker.
     reason: FetchedCatalog
     status: "True"
     type: Ready
+  reconciledGeneration: 1
 ```
 
 Notice that the `status` field has been set to reflect that the broker server's
 catalog of service offerings has been successfully added to our cluster's
 service catalog.
 
-# Step 3 - Viewing `ClusterServiceClass`es
+# Step 3 - Viewing `ClusterServiceClass`es and `ClusterServicePlan`s
 
 The controller created a `ClusterServiceClass` for each service that the UPS broker
 provides. We can view the `ClusterServiceClass` resources available in the cluster by
@@ -106,7 +112,7 @@ NAME                                   EXTERNAL NAME
 ```
 
 **NOTE:** The above command uses a custom set of columns.  The `NAME` field is
-the Kubernetes name of the ClusterServiceClass and the `EXTERNAL NAME` field is the
+the Kubernetes name of the `ClusterServiceClass` and the `EXTERNAL NAME` field is the
 human-readable name for the service that the broker returns.
 
 The UPS broker provides a service with the external name
@@ -123,19 +129,69 @@ We should see something like:
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ClusterServiceClass
 metadata:
-  creationTimestamp: 2017-03-03T04:11:17Z
-  name: user-provided-service
-  resourceVersion: "7"
-  selfLink: /apis/servicecatalog.k8s.io/v1beta1/clusterserviceclasses/user-provided-service
-  uid: 72fef5ce-ffc7-11e6-b111-0242ac110005
-brokerName: ups-broker
-externalID: 4F6E6CF6-FFDD-425F-A2C7-3C9258AD2468
-bindable: false
-planUpdatable: false
-plans:
-- name: default
-  free: true
+  creationTimestamp: 2017-11-01T14:12:29Z
+  name: 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468
+  resourceVersion: "4"
+  selfLink: /apis/servicecatalog.k8s.io/v1beta1/clusterserviceclasses/4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468
+  uid: b1e764ba-bf0e-11e7-9e29-0242ac110004
+spec:
+  bindable: true
+  clusterServiceBrokerName: ups-broker
+  description: A user provided service
+  externalID: 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468
+  externalName: user-provided-service
+  planUpdatable: false
+status:
+  removedFromBrokerCatalog: false
+```
+
+Additionally, the controller created a `ClusterServicePlan` for each of the
+plans for the broker's services. We can view the `ClusterServicePlan`
+resources available in the cluster by executing:
+
+```console
+$ kubectl get clusterserviceplans -o=custom-columns=NAME:.metadata.name,EXTERNAL\ NAME:.spec.externalName
+```
+
+We should see something like:
+
+```console
+NAME                                   EXTERNAL NAME
+86064792-7ea2-467b-af93-ac9694d96d52   default
+```
+
+**NOTE:** Just like in the command above, we used a custom set of columns.
+The `NAME` field is the Kubernetes name of the `ClusterServicePlan` and the
+`EXTERNAL NAME` field is the human-readable name for the service that the
+broker returns.
+
+You can view the details of this `ClusterServicePlan` with this command:
+
+```console
+kubectl get clusterserviceplans 86064792-7ea2-467b-af93-ac9694d96d52 -o yaml
+```
+
+We should see something like:
+
+```yaml
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ClusterServicePlan
+metadata:
+  creationTimestamp: 2017-11-01T14:12:29Z
+  name: 86064792-7ea2-467b-af93-ac9694d96d52
+  resourceVersion: "5"
+  selfLink: /apis/servicecatalog.k8s.io/v1beta1/clusterserviceplans/86064792-7ea2-467b-af93-ac9694d96d52
+  uid: b1e7f049-bf0e-11e7-9e29-0242ac110004
+spec:
+  clusterServiceBrokerName: ups-broker
+  clusterServiceClassRef:
+    name: 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468
+  description: Sample plan description
   externalID: 86064792-7ea2-467b-af93-ac9694d96d52
+  externalName: default
+  free: true
+status:
+  removedFromBrokerCatalog: false
 ```
 
 # Step 4 - Creating a New `ServiceInstance`
@@ -178,7 +234,7 @@ We should see something like:
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
-  creationTimestamp: 2017-10-02T14:50:28Z
+  creationTimestamp: 2017-11-01T14:21:46Z
   finalizers:
   - kubernetes-incubator/service-catalog
   generation: 1
@@ -186,23 +242,29 @@ metadata:
   namespace: test-ns
   resourceVersion: "12"
   selfLink: /apis/servicecatalog.k8s.io/v1beta1/namespaces/test-ns/serviceinstances/ups-instance
-  uid: 07ecf19d-a781-11e7-8b18-0242ac110005
+  uid: fe143fee-bf0f-11e7-9e29-0242ac110004
 spec:
-  externalID: 7f2c176a-ae67-4b5e-a826-58591d85a1d7
   clusterServiceClassExternalName: user-provided-service
+  clusterServiceClassRef:
+    name: 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468
   clusterServicePlanExternalName: default
+  clusterServicePlanRef:
+    name: 86064792-7ea2-467b-af93-ac9694d96d52
+  externalID: 10ca3610-8200-4b5d-b788-897365f191fa
   parameters:
     credentials:
       param-1: value-1
       param-2: value-2
+  updateRequests: 0
 status:
   asyncOpInProgress: false
   conditions:
-  - lastTransitionTime: 2017-10-02T14:50:28Z
+  - lastTransitionTime: 2017-11-01T14:21:46Z
     message: The instance was provisioned successfully
     reason: ProvisionedSuccessfully
     status: "True"
     type: Ready
+  deprovisionStatus: Required
   externalProperties:
     clusterServicePlanExternalName: default
     parameterChecksum: e65c764db8429f9afef45f1e8f71bcbf9fdbe9a13306b86fd5dcc3c5d11e5dd3
@@ -212,7 +274,6 @@ status:
         param-2: value-2
   orphanMitigationInProgress: false
   reconciledGeneration: 1
-
 ```
 
 # Step 5 - Requesting a `ServiceBinding` to use the `ServiceInstance`
@@ -247,26 +308,30 @@ We should see something like:
 apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceBinding
 metadata:
-  creationTimestamp: 2017-03-07T01:44:36Z
+  creationTimestamp: 2017-11-01T14:26:29Z
   finalizers:
   - kubernetes-incubator/service-catalog
+  generation: 1
   name: ups-binding
   namespace: test-ns
-  resourceVersion: "29"
+  resourceVersion: "16"
   selfLink: /apis/servicecatalog.k8s.io/v1beta1/namespaces/test-ns/servicebindings/ups-binding
-  uid: 9eb2cdce-02d7-11e7-8edb-0242ac110005
+  uid: a6823f15-bf10-11e7-9e29-0242ac110004
 spec:
+  externalID: a8bb795a-711d-4854-adbb-5654428274f9
   instanceRef:
     name: ups-instance
-  externalID: b041db94-a5a0-41a2-87ae-1025ba760918
   secretName: ups-binding
 status:
   conditions:
-  - lastTransitionTime: 2017-03-03T01:44:37Z
+  - lastTransitionTime: 2017-11-01T14:26:29Z
     message: Injected bind result
     reason: InjectedBindResult
     status: "True"
     type: Ready
+  externalProperties: {}
+  orphanMitigationInProgress: false
+  reconciledGeneration: 1
 ```
 
 Notice that the status has a `Ready` condition set.  This means our binding is

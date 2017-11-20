@@ -52,6 +52,9 @@ var (
 		"snapshot",
 		"v",
 		"vv",
+		// for coverage testing
+		"test.coverprofile",
+		"test.outputdir",
 	}
 )
 
@@ -155,6 +158,7 @@ func newConfig() *config {
 		plog.Panicf("unexpected error setting up clusterStateFlag: %v", err)
 	}
 	fs.BoolVar(&cfg.StrictReconfigCheck, "strict-reconfig-check", cfg.StrictReconfigCheck, "Reject reconfiguration requests that would cause quorum loss.")
+	fs.BoolVar(&cfg.EnableV2, "enable-v2", true, "Accept etcd V2 client requests.")
 
 	// proxy
 	fs.Var(cfg.proxy, "proxy", fmt.Sprintf("Valid values include %s", strings.Join(cfg.proxy.Values, ", ")))
@@ -200,6 +204,9 @@ func newConfig() *config {
 
 	// additional metrics
 	fs.StringVar(&cfg.Metrics, "metrics", cfg.Metrics, "Set level of detail for exported metrics, specify 'extensive' to include histogram metrics")
+
+	// auth
+	fs.StringVar(&cfg.AuthToken, "auth-token", cfg.AuthToken, "Specify auth token specific options.")
 
 	// ignored
 	for _, f := range cfg.ignored {

@@ -211,7 +211,7 @@ func TestShouldReconcileClusterServiceBroker(t *testing.T) {
 		actual := shouldReconcileClusterServiceBroker(tc.broker, tc.now)
 
 		if e, a := tc.reconcile, actual; e != a {
-			t.Errorf("%v: unexpected result: expected %v, got %v", tc.name, e, a)
+			t.Errorf("%v: unexpected result: %s", tc.name, expectedGot(e, a))
 		}
 	}
 }
@@ -410,11 +410,16 @@ func TestReconcileClusterServiceBrokerExistingClusterServiceClassDifferentBroker
 	assertNumberOfActions(t, kubeActions, 0)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") (broker "test-broker"): ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") already exists for Broker "notTheSame"`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
+	expectedEvent := warningEventBuilder(errorSyncingCatalogReason).msgf(
+		"Error reconciling ClusterServiceClass (K8S: %q ExternalName: %q) (broker %q):",
+		testClusterServiceClassGUID, testClusterServiceClassName, testClusterServiceBrokerName,
+	).msgf(
+		"ClusterServiceClass (K8S: %q ExternalName: %q) already exists for Broker %q",
+		testClusterServiceClassGUID, testClusterServiceClassName, "notTheSame",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -458,11 +463,16 @@ func TestReconcileClusterServiceBrokerExistingClusterServicePlanDifferentClass(t
 	assertNumberOfActions(t, kubeActions, 0)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling ClusterServicePlan (K8S: "PGUID" ExternalName: "test-plan"): ClusterServicePlan (K8S: "PGUID" ExternalName: "test-plan") already exists for Broker "notTheSame"`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
+	expectedEvent := warningEventBuilder(errorSyncingCatalogReason).msgf(
+		"Error reconciling ClusterServicePlan (K8S: %q ExternalName: %q):",
+		testClusterServicePlanGUID, testClusterServicePlanName,
+	).msgf(
+		"ClusterServicePlan (K8S: %q ExternalName: %q) already exists for Broker %q",
+		testClusterServicePlanGUID, testClusterServicePlanName, "notTheSame",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -535,11 +545,12 @@ func TestReconcileClusterServiceBrokerDelete(t *testing.T) {
 	assertEmptyFinalizers(t, updatedClusterServiceBroker)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeNormal + " " + successClusterServiceBrokerDeletedReason + " " + "The broker test-broker was deleted successfully."
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := normalEventBuilder(successClusterServiceBrokerDeletedReason).msg(
+		"The broker test-broker was deleted successfully.",
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -575,11 +586,10 @@ func TestReconcileClusterServiceBrokerErrorFetchingCatalog(t *testing.T) {
 	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorFetchingCatalogReason + " " + "Error getting broker catalog: ooops"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := warningEventBuilder(errorFetchingCatalogReason).msg("Error getting broker catalog:").msg("ooops")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -614,9 +624,12 @@ func TestReconcileClusterServiceBrokerZeroServices(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error getting catalog payload for broker "test-broker"; received zero services; at least one service is required`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event; \nexpected: %v\ngot:     %v", e, a)
+	expectedEvent := warningEventBuilder(errorSyncingCatalogReason).msgf(
+		"Error getting catalog payload for broker %q; received zero services; at least one service is required",
+		testClusterServiceBrokerName,
+	)
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -761,10 +774,10 @@ func testReconcileClusterServiceBrokerWithAuth(t *testing.T, authInfo *v1beta1.S
 
 	getAction := kubeActions[0].(clientgotesting.GetAction)
 	if e, a := "get", getAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on action; expected %v, got %v", e, a)
+		t.Fatalf("Unexpected verb on action; %s", expectedGot(e, a))
 	}
 	if e, a := "secrets", getAction.GetResource().Resource; e != a {
-		t.Fatalf("Unexpected resource on action; expected %v, got %v", e, a)
+		t.Fatalf("Unexpected resource on action; %s", expectedGot(e, a))
 	}
 
 	events := getRecordedEvents(testController)
@@ -777,7 +790,7 @@ func testReconcileClusterServiceBrokerWithAuth(t *testing.T, authInfo *v1beta1.S
 		expectedEvent = corev1.EventTypeWarning + " " + errorAuthCredentialsReason + " " + `Error getting broker auth credentials`
 	}
 	if e, a := expectedEvent, events[0]; !strings.HasPrefix(a, e) {
-		t.Fatalf("Received unexpected event,\nexpected:\t%s \ngot:\t%s", e, a)
+		t.Fatalf("Received unexpected event, %s", expectedGot(e, a))
 	}
 }
 
@@ -828,11 +841,13 @@ func TestReconcileClusterServiceBrokerWithReconcileError(t *testing.T) {
 	assertNumberOfActions(t, kubeActions, 0)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
 
-	expectedEvent := corev1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling ClusterServiceClass (K8S: "SCGUID" ExternalName: "test-serviceclass") (broker "test-broker"): error creating serviceclass`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
+	expectedEvent := warningEventBuilder(errorSyncingCatalogReason).msgf(
+		"Error reconciling ClusterServiceClass (K8S: %q ExternalName: %q) (broker %q):",
+		testClusterServiceClassGUID, testClusterServiceClassName, testClusterServiceBrokerName,
+	).msg("error creating serviceclass")
+	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -915,18 +930,15 @@ func TestReconcileClusterServiceBrokerFailureOnFinalRetry(t *testing.T) {
 
 	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
 
-	expectedEventPrefixes := []string{
-		corev1.EventTypeWarning + " " + errorFetchingCatalogReason,
-		corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason,
-	}
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, len(expectedEventPrefixes))
 
-	for i, e := range expectedEventPrefixes {
-		a := events[i]
-		if !strings.HasPrefix(a, e) {
-			t.Fatalf("Received unexpected event:\n  expected prefix: %v\n  got: %v", e, a)
-		}
+	expectedEventPrefixes := []string{
+		warningEventBuilder(errorFetchingCatalogReason).String(),
+		warningEventBuilder(errorReconciliationRetryTimeoutReason).String(),
+	}
+
+	if err := checkEventPrefixes(events, expectedEventPrefixes); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -950,7 +962,7 @@ func TestReconcileClusterServiceBrokerWithStatusUpdateError(t *testing.T) {
 		t.Fatalf("expected error from but got none")
 	}
 	if e, a := "update error", err.Error(); e != a {
-		t.Fatalf("unexpected error returned: expected %q, got %q", e, a)
+		t.Fatalf("unexpected error returned: %s", expectedGot(e, a))
 	}
 
 	brokerActions := fakeClusterServiceBrokerClient.Actions()
@@ -1066,7 +1078,7 @@ func TestUpdateServiceBrokerCondition(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(tc.input, inputClone) {
-			t.Errorf("%v: updating broker condition mutated input: expected %v, got %v", tc.name, inputClone, tc.input)
+			t.Errorf("%v: updating broker condition mutated input: %s", tc.name, expectedGot(inputClone, tc.input))
 			continue
 		}
 
@@ -1092,7 +1104,7 @@ func TestUpdateServiceBrokerCondition(t *testing.T) {
 		}
 
 		if e, a := 1, len(updateActionObject.Status.Conditions); e != a {
-			t.Errorf("%v: expected %v condition(s), got %v", tc.name, e, a)
+			t.Errorf("%v: %s", tc.name, expectedGot(e, a))
 		}
 
 		outputCondition := updateActionObject.Status.Conditions[0]
@@ -1106,11 +1118,11 @@ func TestUpdateServiceBrokerCondition(t *testing.T) {
 			continue
 		}
 		if e, a := tc.reason, outputCondition.Reason; e != "" && e != a {
-			t.Errorf("%v: condition reasons didn't match; expected %v, got %v", tc.name, e, a)
+			t.Errorf("%v: condition reasons didn't match; %s", tc.name, expectedGot(e, a))
 			continue
 		}
 		if e, a := tc.message, outputCondition.Message; e != "" && e != a {
-			t.Errorf("%v: condition message didn't match; expected %v, got %v", tc.name, e, a)
+			t.Errorf("%v: condition message didn't match; %s", tc.name, expectedGot(e, a))
 		}
 	}
 }
@@ -1202,7 +1214,7 @@ func TestReconcileClusterServicePlanFromClusterServiceBrokerCatalog(t *testing.T
 				t.Errorf("%v: unexpected error from method under test: %v", tc.name, err)
 				continue
 			} else if tc.errText != nil && *tc.errText != err.Error() {
-				t.Errorf("%v: unexpected error text from method under test; expected %v, got %v", tc.name, tc.errText, err.Error())
+				t.Errorf("%v: unexpected error text from method under test; %s", tc.name, expectedGot(tc.errText, err.Error()))
 				continue
 			}
 		}

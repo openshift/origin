@@ -257,6 +257,13 @@ type ClusterServiceClassSpec struct {
 	// Bindable which overrides the value of this field.
 	Bindable bool
 
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// BindingRetrievable indicates whether fetching a binding via a GET on
+	// its endpoint is supported for all plans.
+	BindingRetrievable bool
+
 	// PlanUpdatable indicates whether instances provisioned from this
 	// ClusterServiceClass may change ClusterServicePlans after being provisioned.
 	PlanUpdatable bool
@@ -724,6 +731,21 @@ type ServiceBindingSpec struct {
 type ServiceBindingStatus struct {
 	Conditions []ServiceBindingCondition
 
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// AsyncOpInProgress is set to true if there is an ongoing async operation
+	// against this ServiceBinding in progress.
+	AsyncOpInProgress bool
+
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// LastOperation is the string that the broker may have returned when
+	// an async operation started, it should be sent back to the broker
+	// on poll requests as a query param.
+	LastOperation *string
+
 	// CurrentOperation is the operation the Controller is currently performing
 	// on the ServiceBinding.
 	CurrentOperation ServiceBindingOperation
@@ -749,6 +771,9 @@ type ServiceBindingStatus struct {
 	// OrphanMitigationInProgress is a flag that represents whether orphan
 	// mitigation is in progress.
 	OrphanMitigationInProgress bool
+
+	// UnbindStatus describes what has been done to unbind a ServiceBinding
+	UnbindStatus ServiceBindingUnbindStatus
 }
 
 // ServiceBindingCondition condition information for a ServiceBinding.
@@ -816,6 +841,27 @@ type ServiceBindingPropertiesState struct {
 	// UserInfo is information about the user that made the request.
 	UserInfo *UserInfo
 }
+
+// ServiceBindingUnbindStatus is the status of unbinding a Binding
+type ServiceBindingUnbindStatus string
+
+const (
+	// ServiceBindingUnbindStatusNotRequired indicates that a binding request
+	// has not been sent for the ServiceBinding, so no unbinding request
+	// needs to be made.
+	ServiceBindingUnbindStatusNotRequired ServiceBindingUnbindStatus = "NotRequired"
+	// ServiceBindingUnbindStatusRequired indicates that a binding request has
+	// been sent for the ServiceBinding. An unbind request must be made before
+	// deleting the ServiceBinding.
+	ServiceBindingUnbindStatusRequired ServiceBindingUnbindStatus = "Required"
+	// ServiceBindingUnbindStatusSucceeded indicates that a unbind request
+	// has been sent for the ServiceBinding, and the request was successful.
+	ServiceBindingUnbindStatusSucceeded ServiceBindingUnbindStatus = "Succeeded"
+	// ServiceBindingUnbindStatusFailed indicates that unbind requests
+	// have been sent for the ServiceBinding but they failed. The controller
+	// has given up on sending more unbind requests.
+	ServiceBindingUnbindStatusFailed ServiceBindingUnbindStatus = "Failed"
+)
 
 // ParametersFromSource represents the source of a set of Parameters
 type ParametersFromSource struct {

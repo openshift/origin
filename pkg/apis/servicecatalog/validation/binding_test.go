@@ -37,6 +37,9 @@ func validServiceBinding() *servicecatalog.ServiceBinding {
 			},
 			SecretName: "test-secret",
 		},
+		Status: servicecatalog.ServiceBindingStatus{
+			UnbindStatus: servicecatalog.ServiceBindingUnbindStatusNotRequired,
+		},
 	}
 }
 
@@ -446,6 +449,72 @@ func TestValidateServiceBinding(t *testing.T) {
 						Status: servicecatalog.ConditionTrue,
 					},
 				}
+				return b
+			}(),
+			valid: true,
+		},
+		{
+			name: "required unbind status on create",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Status.UnbindStatus = servicecatalog.ServiceBindingUnbindStatusRequired
+				return b
+			}(),
+			create: true,
+			valid:  false,
+		},
+		{
+			name: "succeeded unbind status on create",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Status.UnbindStatus = servicecatalog.ServiceBindingUnbindStatusSucceeded
+				return b
+			}(),
+			create: true,
+			valid:  false,
+		},
+		{
+			name: "failed unbind status on create",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Status.UnbindStatus = servicecatalog.ServiceBindingUnbindStatusFailed
+				return b
+			}(),
+			create: true,
+			valid:  false,
+		},
+		{
+			name: "invalid unbind status on update",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Status.UnbindStatus = servicecatalog.ServiceBindingUnbindStatus("bad-unbind-status")
+				return b
+			}(),
+			valid: false,
+		},
+		{
+			name: "required unbind status on update",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Status.UnbindStatus = servicecatalog.ServiceBindingUnbindStatusRequired
+				return b
+			}(),
+			valid: true,
+		},
+		{
+			name: "succeeded unbind status on update",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Status.UnbindStatus = servicecatalog.ServiceBindingUnbindStatusSucceeded
+				return b
+			}(),
+			valid: true,
+		},
+		{
+			name: "failed unbind status on update",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Status.UnbindStatus = servicecatalog.ServiceBindingUnbindStatusFailed
 				return b
 			}(),
 			valid: true,

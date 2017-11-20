@@ -1,6 +1,6 @@
 # Default values for User-Provided Service Broker
 # Image to use
-image: quay.io/kubernetes-service-catalog/user-broker:v0.1.2
+image: quay.io/kubernetes-service-catalog/user-broker:v0.1.3
 # ImagePullPolicy; valid values are "IfNotPresent", "Never", and "Always"
 imagePullPolicy: Always
 # Certificate details to use for TLS. Leave blank to not use TLS
