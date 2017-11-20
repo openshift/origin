@@ -80,9 +80,19 @@ func defineTest(image string, t tc, oc *exutil.CLI) {
 				o.Expect(err).To(o.Equal(conditions.ErrPodCompleted))
 			}
 
-			log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw()
+			g.By("checking the log of the pod")
+			err = wait.Poll(1*time.Second, 10*time.Second, func() (bool, error) {
+				log, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).GetLogs(pod.Name, &kapiv1.PodLogOptions{}).DoRaw()
+				if err != nil {
+					return false, err
+				}
+				e2e.Logf("got log %v from pod %v", string(log), pod.Name)
+				if strings.Contains(string(log), t.Expected) {
+					return true, nil
+				}
+				return false, nil
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(string(log)).To(o.ContainSubstring(t.Expected))
 
 			g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
 			pod = exutil.GetPodForContainer(kapiv1.Container{
