@@ -1,185 +1,183 @@
 // Copyright ©2013 The gonum Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-// Based on the QRDecomposition class from Jama 1.0.3.
 
 package mat64
 
 import (
 	"math"
+
+	"github.com/gonum/blas"
+	"github.com/gonum/blas/blas64"
+	"github.com/gonum/lapack/lapack64"
+	"github.com/gonum/matrix"
 )
 
-type QRFactor struct {
-	QR    *Dense
-	rDiag []float64
+// QR is a type for creating and using the QR factorization of a matrix.
+type QR struct {
+	qr   *Dense
+	tau  []float64
+	cond float64
 }
 
-// QR computes a QR Decomposition for an m-by-n matrix a with m >= n by Householder
-// reflections, the QR decomposition is an m-by-n orthogonal matrix q and an n-by-n
-// upper triangular matrix r so that a = q.r. QR will panic with ErrShape if m < n.
+func (qr *QR) updateCond() {
+	// A = QR, where Q is orthonormal. Orthonormal multiplications do not change
+	// the condition number. Thus, ||A|| = ||Q|| ||R|| = ||R||.
+	n := qr.qr.mat.Cols
+	work := make([]float64, 3*n)
+	iwork := make([]int, n)
+	r := qr.qr.asTriDense(n, blas.NonUnit, blas.Upper)
+	v := lapack64.Trcon(matrix.CondNorm, r.mat, work, iwork)
+	qr.cond = 1 / v
+}
+
+// Factorize computes the QR factorization of an m×n matrix a where m >= n. The QR
+// factorization always exists even if A is singular.
 //
-// The QR decomposition always exists, even if the matrix does not have full rank,
-// so QR will never fail unless m < n. The primary use of the QR decomposition is
-// in the least squares solution of non-square systems of simultaneous linear equations.
-// This will fail if QRIsFullRank() returns false. The matrix a is overwritten by the
-// decomposition.
-func QR(a *Dense) QRFactor {
-	// Initialize.
+// The QR decomposition is a factorization of the matrix A such that A = Q * R.
+// The matrix Q is an orthonormal m×m matrix, and R is an m×n upper triangular matrix.
+// Q and R can be extracted from the QFromQR and RFromQR methods on Dense.
+func (qr *QR) Factorize(a Matrix) {
 	m, n := a.Dims()
 	if m < n {
-		panic(ErrShape)
+		panic(matrix.ErrShape)
 	}
-
-	qr := a
-	rDiag := make([]float64, n)
-
-	// Main loop.
-	for k := 0; k < n; k++ {
-		// Compute 2-norm of k-th column without under/overflow.
-		var norm float64
-		for i := k; i < m; i++ {
-			norm = math.Hypot(norm, qr.at(i, k))
-		}
-
-		if norm != 0 {
-			// Form k-th Householder vector.
-			if qr.at(k, k) < 0 {
-				norm = -norm
-			}
-			for i := k; i < m; i++ {
-				qr.set(i, k, qr.at(i, k)/norm)
-			}
-			qr.set(k, k, qr.at(k, k)+1)
-
-			// Apply transformation to remaining columns.
-			for j := k + 1; j < n; j++ {
-				var s float64
-				for i := k; i < m; i++ {
-					s += qr.at(i, k) * qr.at(i, j)
-				}
-				s /= -qr.at(k, k)
-				for i := k; i < m; i++ {
-					qr.set(i, j, qr.at(i, j)+s*qr.at(i, k))
-				}
-			}
-		}
-		rDiag[k] = -norm
+	k := min(m, n)
+	if qr.qr == nil {
+		qr.qr = &Dense{}
 	}
+	qr.qr.Clone(a)
+	work := make([]float64, 1)
+	qr.tau = make([]float64, k)
+	lapack64.Geqrf(qr.qr.mat, qr.tau, work, -1)
 
-	return QRFactor{qr, rDiag}
+	work = make([]float64, int(work[0]))
+	lapack64.Geqrf(qr.qr.mat, qr.tau, work, len(work))
+	qr.updateCond()
 }
 
-// IsFullRank returns whether the R matrix and hence a has full rank.
-func (f QRFactor) IsFullRank() bool {
-	for _, v := range f.rDiag {
-		if v == 0 {
-			return false
-		}
+// TODO(btracey): Add in the "Reduced" forms for extracting the n×n orthogonal
+// and upper triangular matrices.
+
+// RFromQR extracts the m×n upper trapezoidal matrix from a QR decomposition.
+func (m *Dense) RFromQR(qr *QR) {
+	r, c := qr.qr.Dims()
+	m.reuseAs(r, c)
+
+	// Disguise the QR as an upper triangular
+	t := &TriDense{
+		mat: blas64.Triangular{
+			N:      c,
+			Stride: qr.qr.mat.Stride,
+			Data:   qr.qr.mat.Data,
+			Uplo:   blas.Upper,
+			Diag:   blas.NonUnit,
+		},
+		cap: qr.qr.capCols,
 	}
-	return true
+	m.Copy(t)
+
+	// Zero below the triangular.
+	for i := r; i < c; i++ {
+		zero(m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+c])
+	}
 }
 
-// H returns the Householder vectors in a lower trapezoidal matrix
-// whose columns define the reflections.
-func (f QRFactor) H() *Dense {
-	qr := f.QR
-	m, n := qr.Dims()
-	h := NewDense(m, n, nil)
-	for i := 0; i < m; i++ {
-		for j := 0; j < n; j++ {
-			if i >= j {
-				h.set(i, j, qr.at(i, j))
-			}
-		}
+// QFromQR extracts the m×m orthonormal matrix Q from a QR decomposition.
+func (m *Dense) QFromQR(qr *QR) {
+	r, _ := qr.qr.Dims()
+	m.reuseAsZeroed(r, r)
+
+	// Set Q = I.
+	for i := 0; i < r*r; i += r + 1 {
+		m.mat.Data[i] = 1
 	}
-	return h
+
+	// Construct Q from the elementary reflectors.
+	work := make([]float64, 1)
+	lapack64.Ormqr(blas.Left, blas.NoTrans, qr.qr.mat, qr.tau, m.mat, work, -1)
+	work = make([]float64, int(work[0]))
+	lapack64.Ormqr(blas.Left, blas.NoTrans, qr.qr.mat, qr.tau, m.mat, work, len(work))
 }
 
-// R returns the upper triangular factor for the QR decomposition.
-func (f QRFactor) R() *Dense {
-	qr, rDiag := f.QR, f.rDiag
-	_, n := qr.Dims()
-	r := NewDense(n, n, nil)
-	for i, v := range rDiag[:n] {
-		for j := 0; j < n; j++ {
-			if i < j {
-				r.set(i, j, qr.at(i, j))
-			} else if i == j {
-				r.set(i, j, v)
-			}
+// SolveQR finds a minimum-norm solution to a system of linear equations defined
+// by the matrices A and b, where A is an m×n matrix represented in its QR factorized
+// form. If A is singular or near-singular a Condition error is returned. Please
+// see the documentation for Condition for more information.
+//
+// The minimization problem solved depends on the input parameters.
+//  If trans == false, find X such that ||A*X - b||_2 is minimized.
+//  If trans == true, find the minimum norm solution of A^T * X = b.
+// The solution matrix, X, is stored in place into the receiver.
+func (m *Dense) SolveQR(qr *QR, trans bool, b Matrix) error {
+	r, c := qr.qr.Dims()
+	br, bc := b.Dims()
+
+	// The QR solve algorithm stores the result in-place into the right hand side.
+	// The storage for the answer must be large enough to hold both b and x.
+	// However, this method's receiver must be the size of x. Copy b, and then
+	// copy the result into m at the end.
+	if trans {
+		if c != br {
+			panic(matrix.ErrShape)
+		}
+		m.reuseAs(r, bc)
+	} else {
+		if r != br {
+			panic(matrix.ErrShape)
+		}
+		m.reuseAs(c, bc)
+	}
+	// Do not need to worry about overlap between m and b because x has its own
+	// independent storage.
+	x := getWorkspace(max(r, c), bc, false)
+	x.Copy(b)
+	t := qr.qr.asTriDense(qr.qr.mat.Cols, blas.NonUnit, blas.Upper).mat
+	if trans {
+		ok := lapack64.Trtrs(blas.Trans, t, x.mat)
+		if !ok {
+			return matrix.Condition(math.Inf(1))
+		}
+		for i := c; i < r; i++ {
+			zero(x.mat.Data[i*x.mat.Stride : i*x.mat.Stride+bc])
+		}
+		work := make([]float64, 1)
+		lapack64.Ormqr(blas.Left, blas.NoTrans, qr.qr.mat, qr.tau, x.mat, work, -1)
+		work = make([]float64, int(work[0]))
+		lapack64.Ormqr(blas.Left, blas.NoTrans, qr.qr.mat, qr.tau, x.mat, work, len(work))
+	} else {
+		work := make([]float64, 1)
+		lapack64.Ormqr(blas.Left, blas.Trans, qr.qr.mat, qr.tau, x.mat, work, -1)
+		work = make([]float64, int(work[0]))
+		lapack64.Ormqr(blas.Left, blas.Trans, qr.qr.mat, qr.tau, x.mat, work, len(work))
+
+		ok := lapack64.Trtrs(blas.NoTrans, t, x.mat)
+		if !ok {
+			return matrix.Condition(math.Inf(1))
 		}
 	}
-	return r
+	// M was set above to be the correct size for the result.
+	m.Copy(x)
+	putWorkspace(x)
+	if qr.cond > matrix.ConditionTolerance {
+		return matrix.Condition(qr.cond)
+	}
+	return nil
 }
 
-// Q generates and returns the (economy-sized) orthogonal factor.
-func (f QRFactor) Q() *Dense {
-	qr := f.QR
-	m, n := qr.Dims()
-	q := NewDense(m, n, nil)
-
-	for k := n - 1; k >= 0; k-- {
-		q.set(k, k, 1)
-		for j := k; j < n; j++ {
-			if qr.at(k, k) != 0 {
-				var s float64
-				for i := k; i < m; i++ {
-					s += qr.at(i, k) * q.at(i, j)
-				}
-				s /= -qr.at(k, k)
-				for i := k; i < m; i++ {
-					q.set(i, j, q.at(i, j)+s*qr.at(i, k))
-				}
-			}
-		}
+// SolveQRVec finds a minimum-norm solution to a system of linear equations.
+// Please see Dense.SolveQR for the full documentation.
+func (v *Vector) SolveQRVec(qr *QR, trans bool, b *Vector) error {
+	if v != b {
+		v.checkOverlap(b.mat)
 	}
-
-	return q
-}
-
-// Solve computes a least squares solution of a.x = b where b has as many rows as a.
-// A matrix x is returned that minimizes the two norm of Q*R*X-B. Solve will panic
-// if a is not full rank. The matrix b is overwritten during the call.
-func (f QRFactor) Solve(b *Dense) (x *Dense) {
-	qr := f.QR
-	rDiag := f.rDiag
-	m, n := qr.Dims()
-	bm, bn := b.Dims()
-	if bm != m {
-		panic(ErrShape)
+	r, c := qr.qr.Dims()
+	// The Solve implementation is non-trivial, so rather than duplicate the code,
+	// instead recast the Vectors as Dense and call the matrix code.
+	if trans {
+		v.reuseAs(r)
+	} else {
+		v.reuseAs(c)
 	}
-	if !f.IsFullRank() {
-		panic(ErrSingular)
-	}
-
-	// Compute Y = transpose(Q)*B
-	for k := 0; k < n; k++ {
-		for j := 0; j < bn; j++ {
-			var s float64
-			for i := k; i < m; i++ {
-				s += qr.at(i, k) * b.at(i, j)
-			}
-			s /= -qr.at(k, k)
-
-			for i := k; i < m; i++ {
-				b.set(i, j, b.at(i, j)+s*qr.at(i, k))
-			}
-		}
-	}
-
-	// Solve R*X = Y;
-	for k := n - 1; k >= 0; k-- {
-		row := b.rowView(k)
-		for j := range row[:bn] {
-			row[j] /= rDiag[k]
-		}
-		for i := 0; i < k; i++ {
-			row := b.rowView(i)
-			for j := range row[:bn] {
-				row[j] -= b.at(k, j) * qr.at(i, k)
-			}
-		}
-	}
-
-	return b.View(0, 0, n, bn).(*Dense)
+	return v.asDense().SolveQR(qr, trans, b.asDense())
 }

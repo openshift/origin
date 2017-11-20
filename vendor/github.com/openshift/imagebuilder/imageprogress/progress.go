@@ -88,6 +88,9 @@ func (r report) percentProgress(status layerStatus) float32 {
 	if pct > 100.0 {
 		pct = 100.0
 	}
+	if pct < 0.0 {
+		pct = 0.0
+	}
 	return pct
 }
 

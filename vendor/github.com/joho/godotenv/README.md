@@ -1,4 +1,4 @@
-# GoDotEnv [![wercker status](https://app.wercker.com/status/507594c2ec7e60f19403a568dfea0f78 "wercker status")](https://app.wercker.com/project/bykey/507594c2ec7e60f19403a568dfea0f78)
+# GoDotEnv [![Build Status](https://travis-ci.org/joho/godotenv.svg?branch=master)](https://travis-ci.org/joho/godotenv) [![Build status](https://ci.appveyor.com/api/projects/status/9v40vnfvvgde64u4?svg=true)](https://ci.appveyor.com/project/joho/godotenv) [![Go Report Card](https://goreportcard.com/badge/github.com/joho/godotenv)](https://goreportcard.com/report/github.com/joho/godotenv)
 
 A Go (golang) port of the Ruby dotenv project (which loads env vars from a .env file)
 
@@ -96,6 +96,20 @@ myEnv, err := godotenv.Read()
 s3Bucket := myEnv["S3_BUCKET"]
 ```
 
+... or from an `io.Reader` instead of a local file
+
+```go
+reader := getRemoteFile()
+myEnv, err := godotenv.Parse(reader)
+```
+
+... or from a `string` if you so desire
+
+```go
+content := getRemoteFileContent()
+myEnv, err := godotenv.Unmarshal(content)
+```
+
 ### Command Mode
 
 Assuming you've installed the command as above and you've got `$GOPATH/bin` in your `$PATH`
@@ -105,6 +119,22 @@ godotenv -f /some/path/to/.env some_command with some args
 ```
 
 If you don't specify `-f` it will fall back on the default of loading `.env` in `PWD`
+
+### Writing Env Files
+
+Godotenv can also write a map representing the environment to a correctly-formatted and escaped file
+
+```go
+env, err := godotenv.Unmarshal("KEY=value")
+err := godotenv.Write(env, "./.env")
+```
+
+... or to a string
+
+```go
+env, err := godotenv.Unmarshal("KEY=value")
+content, err := godotenv.Marshal(env)
+```
 
 ## Contributing
 
@@ -118,9 +148,15 @@ Contributions are most welcome! The parser itself is pretty stupidly naive and I
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
 
+## Releases
+
+Releases should follow [Semver](http://semver.org/) though the first couple of releases are `v1` and `v1.1`.
+
+Use [annotated tags for all releases](https://github.com/joho/godotenv/issues/30). Example `git tag -a v1.2.1`
+
 ## CI
 
-Linux: [![wercker status](https://app.wercker.com/status/507594c2ec7e60f19403a568dfea0f78/m "wercker status")](https://app.wercker.com/project/bykey/507594c2ec7e60f19403a568dfea0f78) Windows: [![Build status](https://ci.appveyor.com/api/projects/status/9v40vnfvvgde64u4)](https://ci.appveyor.com/project/joho/godotenv)
+Linux: [![Build Status](https://travis-ci.org/joho/godotenv.svg?branch=master)](https://travis-ci.org/joho/godotenv) Windows: [![Build status](https://ci.appveyor.com/api/projects/status/9v40vnfvvgde64u4)](https://ci.appveyor.com/project/joho/godotenv)
 
 ## Who?
 

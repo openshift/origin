@@ -7,7 +7,7 @@
 //   import "google.golang.org/api/cloudkms/v1"
 //   ...
 //   cloudkmsService, err := cloudkms.New(oauthHttpClient)
-package cloudkms
+package cloudkms // import "google.golang.org/api/cloudkms/v1"
 
 import (
 	"bytes"

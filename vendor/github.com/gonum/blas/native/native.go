@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:generate ./single_precision
+//go:generate ./single_precision.bash
 
 package native
 
@@ -63,4 +63,10 @@ func min(a, b int) int {
 		return b
 	}
 	return a
+}
+
+// blocks returns the number of divisons of the dimension length with the given
+// block size.
+func blocks(dim, bsize int) int {
+	return (dim + bsize - 1) / bsize
 }

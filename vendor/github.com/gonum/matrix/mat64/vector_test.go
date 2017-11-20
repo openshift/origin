@@ -2,13 +2,14 @@ package mat64
 
 import (
 	"math/rand"
+	"reflect"
+	"testing"
 
 	"github.com/gonum/blas/blas64"
-	"github.com/gonum/floats"
-	"gopkg.in/check.v1"
+	"github.com/gonum/matrix"
 )
 
-func (s *S) TestNewVector(c *check.C) {
+func TestNewVector(t *testing.T) {
 	for i, test := range []struct {
 		n      int
 		data   []float64
@@ -25,18 +26,33 @@ func (s *S) TestNewVector(c *check.C) {
 				n: 3,
 			},
 		},
+		{
+			n:    3,
+			data: nil,
+			vector: &Vector{
+				mat: blas64.Vector{
+					Data: []float64{0, 0, 0},
+					Inc:  1,
+				},
+				n: 3,
+			},
+		},
 	} {
 		v := NewVector(test.n, test.data)
 		rows, cols := v.Dims()
-		c.Check(rows, check.Equals, test.n, check.Commentf("Test %d", i))
-		c.Check(cols, check.Equals, 1, check.Commentf("Test %d", i))
-		c.Check(v, check.DeepEquals, test.vector, check.Commentf("Test %d", i))
-		v2 := NewVector(test.n, nil)
-		c.Check(v2.mat.Data, check.DeepEquals, []float64{0, 0, 0}, check.Commentf("Test %d", i))
+		if rows != test.n {
+			t.Errorf("unexpected number of rows for test %d: got: %d want: %d", i, rows, test.n)
+		}
+		if cols != 1 {
+			t.Errorf("unexpected number of cols for test %d: got: %d want: 1", i, cols)
+		}
+		if !reflect.DeepEqual(v, test.vector) {
+			t.Errorf("unexpected data slice for test %d: got: %v want: %v", i, v, test.vector)
+		}
 	}
 }
 
-func (s *S) TestVectorAtSet(c *check.C) {
+func TestVectorAtSet(t *testing.T) {
 	for i, test := range []struct {
 		vector *Vector
 	}{
@@ -61,147 +77,158 @@ func (s *S) TestVectorAtSet(c *check.C) {
 	} {
 		v := test.vector
 		n := test.vector.n
-		c.Check(func() { v.At(n, 0) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test %d", i))
-		c.Check(func() { v.At(-1, 0) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test %d", i))
-		c.Check(func() { v.At(0, 1) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test %d", i))
-		c.Check(func() { v.At(0, -1) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test %d", i))
 
-		c.Check(v.At(0, 0), check.Equals, 0.0, check.Commentf("Test %d", i))
-		c.Check(v.At(1, 0), check.Equals, 1.0, check.Commentf("Test %d", i))
-		c.Check(v.At(n-1, 0), check.Equals, float64(n-1), check.Commentf("Test %d", i))
+		for _, row := range []int{-1, n} {
+			panicked, message := panics(func() { v.At(row, 0) })
+			if !panicked || message != matrix.ErrRowAccess.Error() {
+				t.Errorf("expected panic for invalid row access for test %d n=%d r=%d", i, n, row)
+			}
+		}
+		for _, col := range []int{-1, 1} {
+			panicked, message := panics(func() { v.At(0, col) })
+			if !panicked || message != matrix.ErrColAccess.Error() {
+				t.Errorf("expected panic for invalid column access for test %d n=%d c=%d", i, n, col)
+			}
+		}
 
-		c.Check(func() { v.SetVec(n, 100) }, check.PanicMatches, ErrVectorAccess.Error(), check.Commentf("Test %d", i))
-		c.Check(func() { v.SetVec(-1, 100) }, check.PanicMatches, ErrVectorAccess.Error(), check.Commentf("Test %d", i))
+		for _, row := range []int{0, 1, n - 1} {
+			if e := v.At(row, 0); e != float64(row) {
+				t.Errorf("unexpected value for At(%d, 0) for test %d : got: %v want: %v", row, i, e, float64(row))
+			}
+		}
 
-		v.SetVec(0, 100)
-		c.Check(v.At(0, 0), check.Equals, 100.0, check.Commentf("Test %d", i))
-		v.SetVec(2, 101)
-		c.Check(v.At(2, 0), check.Equals, 101.0, check.Commentf("Test %d", i))
+		for _, row := range []int{-1, n} {
+			panicked, message := panics(func() { v.SetVec(row, 100) })
+			if !panicked || message != matrix.ErrVectorAccess.Error() {
+				t.Errorf("expected panic for invalid row access for test %d n=%d r=%d", i, n, row)
+			}
+		}
+
+		for inc, row := range []int{0, 2} {
+			v.SetVec(row, 100+float64(inc))
+			if e := v.At(row, 0); e != 100+float64(inc) {
+				t.Errorf("unexpected value for At(%d, 0) after SetVec(%[1]d, %v) for test %d: got: %v want: %[2]v", row, 100+float64(inc), i, e)
+			}
+		}
 	}
 }
 
-func (s *S) TestVectorMul(c *check.C) {
+func TestVectorMul(t *testing.T) {
+	method := func(receiver, a, b Matrix) {
+		type mulVecer interface {
+			MulVec(a Matrix, b *Vector)
+		}
+		rd := receiver.(mulVecer)
+		rd.MulVec(a, b.(*Vector))
+	}
+	denseComparison := func(receiver, a, b *Dense) {
+		receiver.Mul(a, b)
+	}
+	legalSizeMulVec := func(ar, ac, br, bc int) bool {
+		var legal bool
+		if bc != 1 {
+			legal = false
+		} else {
+			legal = ac == br
+		}
+		return legal
+	}
+	testTwoInput(t, "MulVec", &Vector{}, method, denseComparison, legalTypesNotVecVec, legalSizeMulVec, 1e-14)
+}
 
+func TestVectorScale(t *testing.T) {
 	for i, test := range []struct {
-		m int
-		n int
+		a     *Vector
+		alpha float64
+		want  *Vector
 	}{
 		{
-			m: 10,
-			n: 5,
+			a:     NewVector(3, []float64{0, 1, 2}),
+			alpha: 0,
+			want:  NewVector(3, []float64{0, 0, 0}),
 		},
 		{
-			m: 5,
-			n: 5,
+			a:     NewVector(3, []float64{0, 1, 2}),
+			alpha: 1,
+			want:  NewVector(3, []float64{0, 1, 2}),
 		},
 		{
-			m: 5,
-			n: 10,
+			a:     NewVector(3, []float64{0, 1, 2}),
+			alpha: -2,
+			want:  NewVector(3, []float64{0, -2, -4}),
+		},
+		{
+			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
+			alpha: 0,
+			want:  NewVector(3, []float64{0, 0, 0}),
+		},
+		{
+			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
+			alpha: 1,
+			want:  NewVector(3, []float64{0, 1, 2}),
+		},
+		{
+			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
+			alpha: -2,
+			want:  NewVector(3, []float64{0, -2, -4}),
+		},
+		{
+			a: NewDense(3, 3, []float64{
+				0, 1, 2,
+				3, 4, 5,
+				6, 7, 8,
+			}).ColView(1),
+			alpha: -2,
+			want:  NewVector(3, []float64{-2, -8, -14}),
 		},
 	} {
-		vData := make([]float64, test.n)
-		for i := range vData {
-			vData[i] = rand.Float64()
+		var v Vector
+		v.ScaleVec(test.alpha, test.a)
+		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
+			t.Errorf("test %d: unexpected result for v = alpha * a: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
 		}
-		vDataCopy := make([]float64, test.n)
-		copy(vDataCopy, vData)
-		v := NewVector(test.n, vData)
-		aData := make([]float64, test.n*test.m)
-		for i := range aData {
-			aData[i] = rand.Float64()
+
+		v.CopyVec(test.a)
+		v.ScaleVec(test.alpha, &v)
+		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
+			t.Errorf("test %d: unexpected result for v = alpha * v: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
 		}
-		a := NewDense(test.m, test.n, aData)
-		var v2 Vector
-		v2.MulVec(a, false, v)
-		var v2M Dense
-		v2M.Mul(a, v)
-		same := floats.EqualApprox(v2.mat.Data, v2M.mat.Data, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d", i))
-
-		var aT Dense
-		v2.Reset()
-		aT.TCopy(a)
-		v2.MulVec(&aT, true, v)
-		same = floats.EqualApprox(v2.mat.Data, v2M.mat.Data, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d", i))
-
-		// Try with anonymous matrix type
-		o := asBasicMatrix(a)
-		var v3 Vector
-		v3.MulVec(o, false, v)
-		same = v3.EqualsApproxVec(&v2, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Matrix", i))
-
-		v3.Reset()
-		o = asBasicMatrix(&aT)
-		v3.MulVec(o, true, v)
-		same = v3.EqualsApproxVec(&v2, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Matrix T", i))
-
-		// Try with anonymous matrix type
-		v3.Reset()
-		o = asBasicVectorer(a)
-		v3.MulVec(o, false, v)
-		same = v3.EqualsApproxVec(&v2, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Vectorer", i))
-
-		v3.Reset()
-		o = asBasicVectorer(&aT)
-		v3.MulVec(o, true, v)
-		same = v3.EqualsApproxVec(&v2, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Vectorer T", i))
 	}
-	// Test symmetric and triangular cases
-	for _, n := range []int{3, 5, 8} {
-		vData := make([]float64, n)
-		for i := range vData {
-			vData[i] = rand.Float64()
+
+	for _, alpha := range []float64{0, 1, -1, 2.3, -2.3} {
+		method := func(receiver, a Matrix) {
+			type scaleVecer interface {
+				ScaleVec(float64, *Vector)
+			}
+			v := receiver.(scaleVecer)
+			v.ScaleVec(alpha, a.(*Vector))
 		}
-		v := NewVector(n, vData)
-		data := make([]float64, n*n)
-		for i := range data {
-			data[i] = rand.Float64()
+		denseComparison := func(receiver, a *Dense) {
+			receiver.Scale(alpha, a)
 		}
-		var dense Dense
-		var got Vector
-		var want Vector
-
-		triUpper := NewTriDense(n, true, data)
-		dense.Clone(triUpper)
-		got.MulVec(triUpper, false, v)
-		want.MulVec(&dense, false, v)
-		same := want.EqualsApproxVec(&got, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Tri", n))
-		got.MulVec(triUpper, true, v)
-		want.MulVec(&dense, true, v)
-		same = want.EqualsApproxVec(&got, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Tri", n))
-
-		triLower := NewTriDense(n, false, data)
-		dense.Clone(triLower)
-		got.MulVec(triLower, false, v)
-		want.MulVec(&dense, false, v)
-		same = want.EqualsApproxVec(&got, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Tri", n))
-		got.MulVec(triLower, true, v)
-		want.MulVec(&dense, true, v)
-		same = want.EqualsApproxVec(&got, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Tri", n))
-
-		sym := NewSymDense(n, data)
-		dense.Clone(sym)
-		got.MulVec(sym, false, v)
-		want.MulVec(&dense, false, v)
-		same = want.EqualsApproxVec(&got, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Tri", n))
-		got.MulVec(sym, true, v)
-		want.MulVec(&dense, true, v)
-		same = want.EqualsApproxVec(&got, 1e-14)
-		c.Check(same, check.Equals, true, check.Commentf("Test %d Tri", n))
+		testOneInput(t, "ScaleVec", &Vector{}, method, denseComparison, legalTypeVec, isAnyVector, 0)
 	}
 }
 
-func (s *S) TestVectorAdd(c *check.C) {
+func TestVectorAddScaled(t *testing.T) {
+	for _, alpha := range []float64{0, 1, -1, 2.3, -2.3} {
+		method := func(receiver, a, b Matrix) {
+			type addScaledVecer interface {
+				AddScaledVec(*Vector, float64, *Vector)
+			}
+			v := receiver.(addScaledVecer)
+			v.AddScaledVec(a.(*Vector), alpha, b.(*Vector))
+		}
+		denseComparison := func(receiver, a, b *Dense) {
+			var sb Dense
+			sb.Scale(alpha, b)
+			receiver.Add(a, &sb)
+		}
+		testTwoInput(t, "AddScaledVec", &Vector{}, method, denseComparison, legalTypesVecVec, legalSizeSameVec, 1e-14)
+	}
+}
+
+func TestVectorAdd(t *testing.T) {
 	for i, test := range []struct {
 		a, b *Vector
 		want *Vector
@@ -224,11 +251,13 @@ func (s *S) TestVectorAdd(c *check.C) {
 	} {
 		var v Vector
 		v.AddVec(test.a, test.b)
-		c.Check(v.RawVector(), check.DeepEquals, test.want.RawVector(), check.Commentf("Test %d", i))
+		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		}
 	}
 }
 
-func (s *S) TestVectorSub(c *check.C) {
+func TestVectorSub(t *testing.T) {
 	for i, test := range []struct {
 		a, b *Vector
 		want *Vector
@@ -251,11 +280,13 @@ func (s *S) TestVectorSub(c *check.C) {
 	} {
 		var v Vector
 		v.SubVec(test.a, test.b)
-		c.Check(v.RawVector(), check.DeepEquals, test.want.RawVector(), check.Commentf("Test %d", i))
+		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		}
 	}
 }
 
-func (s *S) TestVectorMulElem(c *check.C) {
+func TestVectorMulElem(t *testing.T) {
 	for i, test := range []struct {
 		a, b *Vector
 		want *Vector
@@ -278,11 +309,13 @@ func (s *S) TestVectorMulElem(c *check.C) {
 	} {
 		var v Vector
 		v.MulElemVec(test.a, test.b)
-		c.Check(v.RawVector(), check.DeepEquals, test.want.RawVector(), check.Commentf("Test %d", i))
+		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		}
 	}
 }
 
-func (s *S) TestVectorDivElem(c *check.C) {
+func TestVectorDivElem(t *testing.T) {
 	for i, test := range []struct {
 		a, b *Vector
 		want *Vector
@@ -305,6 +338,126 @@ func (s *S) TestVectorDivElem(c *check.C) {
 	} {
 		var v Vector
 		v.DivElemVec(test.a, test.b)
-		c.Check(v.RawVector(), check.DeepEquals, test.want.RawVector(), check.Commentf("Test %d", i))
+		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		}
+	}
+}
+
+func BenchmarkAddScaledVec10Inc1(b *testing.B)      { addScaledVecBench(b, 10, 1) }
+func BenchmarkAddScaledVec100Inc1(b *testing.B)     { addScaledVecBench(b, 100, 1) }
+func BenchmarkAddScaledVec1000Inc1(b *testing.B)    { addScaledVecBench(b, 1000, 1) }
+func BenchmarkAddScaledVec10000Inc1(b *testing.B)   { addScaledVecBench(b, 10000, 1) }
+func BenchmarkAddScaledVec100000Inc1(b *testing.B)  { addScaledVecBench(b, 100000, 1) }
+func BenchmarkAddScaledVec10Inc2(b *testing.B)      { addScaledVecBench(b, 10, 2) }
+func BenchmarkAddScaledVec100Inc2(b *testing.B)     { addScaledVecBench(b, 100, 2) }
+func BenchmarkAddScaledVec1000Inc2(b *testing.B)    { addScaledVecBench(b, 1000, 2) }
+func BenchmarkAddScaledVec10000Inc2(b *testing.B)   { addScaledVecBench(b, 10000, 2) }
+func BenchmarkAddScaledVec100000Inc2(b *testing.B)  { addScaledVecBench(b, 100000, 2) }
+func BenchmarkAddScaledVec10Inc20(b *testing.B)     { addScaledVecBench(b, 10, 20) }
+func BenchmarkAddScaledVec100Inc20(b *testing.B)    { addScaledVecBench(b, 100, 20) }
+func BenchmarkAddScaledVec1000Inc20(b *testing.B)   { addScaledVecBench(b, 1000, 20) }
+func BenchmarkAddScaledVec10000Inc20(b *testing.B)  { addScaledVecBench(b, 10000, 20) }
+func BenchmarkAddScaledVec100000Inc20(b *testing.B) { addScaledVecBench(b, 100000, 20) }
+func addScaledVecBench(b *testing.B, size, inc int) {
+	x := randVector(size, inc, 1, rand.NormFloat64)
+	y := randVector(size, inc, 1, rand.NormFloat64)
+	b.ResetTimer()
+	var v Vector
+	for i := 0; i < b.N; i++ {
+		v.AddScaledVec(y, 2, x)
+	}
+}
+
+func BenchmarkScaleVec10Inc1(b *testing.B)      { scaleVecBench(b, 10, 1) }
+func BenchmarkScaleVec100Inc1(b *testing.B)     { scaleVecBench(b, 100, 1) }
+func BenchmarkScaleVec1000Inc1(b *testing.B)    { scaleVecBench(b, 1000, 1) }
+func BenchmarkScaleVec10000Inc1(b *testing.B)   { scaleVecBench(b, 10000, 1) }
+func BenchmarkScaleVec100000Inc1(b *testing.B)  { scaleVecBench(b, 100000, 1) }
+func BenchmarkScaleVec10Inc2(b *testing.B)      { scaleVecBench(b, 10, 2) }
+func BenchmarkScaleVec100Inc2(b *testing.B)     { scaleVecBench(b, 100, 2) }
+func BenchmarkScaleVec1000Inc2(b *testing.B)    { scaleVecBench(b, 1000, 2) }
+func BenchmarkScaleVec10000Inc2(b *testing.B)   { scaleVecBench(b, 10000, 2) }
+func BenchmarkScaleVec100000Inc2(b *testing.B)  { scaleVecBench(b, 100000, 2) }
+func BenchmarkScaleVec10Inc20(b *testing.B)     { scaleVecBench(b, 10, 20) }
+func BenchmarkScaleVec100Inc20(b *testing.B)    { scaleVecBench(b, 100, 20) }
+func BenchmarkScaleVec1000Inc20(b *testing.B)   { scaleVecBench(b, 1000, 20) }
+func BenchmarkScaleVec10000Inc20(b *testing.B)  { scaleVecBench(b, 10000, 20) }
+func BenchmarkScaleVec100000Inc20(b *testing.B) { scaleVecBench(b, 100000, 20) }
+func scaleVecBench(b *testing.B, size, inc int) {
+	x := randVector(size, inc, 1, rand.NormFloat64)
+	b.ResetTimer()
+	var v Vector
+	for i := 0; i < b.N; i++ {
+		v.ScaleVec(2, x)
+	}
+}
+
+func BenchmarkAddVec10Inc1(b *testing.B)      { addVecBench(b, 10, 1) }
+func BenchmarkAddVec100Inc1(b *testing.B)     { addVecBench(b, 100, 1) }
+func BenchmarkAddVec1000Inc1(b *testing.B)    { addVecBench(b, 1000, 1) }
+func BenchmarkAddVec10000Inc1(b *testing.B)   { addVecBench(b, 10000, 1) }
+func BenchmarkAddVec100000Inc1(b *testing.B)  { addVecBench(b, 100000, 1) }
+func BenchmarkAddVec10Inc2(b *testing.B)      { addVecBench(b, 10, 2) }
+func BenchmarkAddVec100Inc2(b *testing.B)     { addVecBench(b, 100, 2) }
+func BenchmarkAddVec1000Inc2(b *testing.B)    { addVecBench(b, 1000, 2) }
+func BenchmarkAddVec10000Inc2(b *testing.B)   { addVecBench(b, 10000, 2) }
+func BenchmarkAddVec100000Inc2(b *testing.B)  { addVecBench(b, 100000, 2) }
+func BenchmarkAddVec10Inc20(b *testing.B)     { addVecBench(b, 10, 20) }
+func BenchmarkAddVec100Inc20(b *testing.B)    { addVecBench(b, 100, 20) }
+func BenchmarkAddVec1000Inc20(b *testing.B)   { addVecBench(b, 1000, 20) }
+func BenchmarkAddVec10000Inc20(b *testing.B)  { addVecBench(b, 10000, 20) }
+func BenchmarkAddVec100000Inc20(b *testing.B) { addVecBench(b, 100000, 20) }
+func addVecBench(b *testing.B, size, inc int) {
+	x := randVector(size, inc, 1, rand.NormFloat64)
+	y := randVector(size, inc, 1, rand.NormFloat64)
+	b.ResetTimer()
+	var v Vector
+	for i := 0; i < b.N; i++ {
+		v.AddVec(x, y)
+	}
+}
+
+func BenchmarkSubVec10Inc1(b *testing.B)      { subVecBench(b, 10, 1) }
+func BenchmarkSubVec100Inc1(b *testing.B)     { subVecBench(b, 100, 1) }
+func BenchmarkSubVec1000Inc1(b *testing.B)    { subVecBench(b, 1000, 1) }
+func BenchmarkSubVec10000Inc1(b *testing.B)   { subVecBench(b, 10000, 1) }
+func BenchmarkSubVec100000Inc1(b *testing.B)  { subVecBench(b, 100000, 1) }
+func BenchmarkSubVec10Inc2(b *testing.B)      { subVecBench(b, 10, 2) }
+func BenchmarkSubVec100Inc2(b *testing.B)     { subVecBench(b, 100, 2) }
+func BenchmarkSubVec1000Inc2(b *testing.B)    { subVecBench(b, 1000, 2) }
+func BenchmarkSubVec10000Inc2(b *testing.B)   { subVecBench(b, 10000, 2) }
+func BenchmarkSubVec100000Inc2(b *testing.B)  { subVecBench(b, 100000, 2) }
+func BenchmarkSubVec10Inc20(b *testing.B)     { subVecBench(b, 10, 20) }
+func BenchmarkSubVec100Inc20(b *testing.B)    { subVecBench(b, 100, 20) }
+func BenchmarkSubVec1000Inc20(b *testing.B)   { subVecBench(b, 1000, 20) }
+func BenchmarkSubVec10000Inc20(b *testing.B)  { subVecBench(b, 10000, 20) }
+func BenchmarkSubVec100000Inc20(b *testing.B) { subVecBench(b, 100000, 20) }
+func subVecBench(b *testing.B, size, inc int) {
+	x := randVector(size, inc, 1, rand.NormFloat64)
+	y := randVector(size, inc, 1, rand.NormFloat64)
+	b.ResetTimer()
+	var v Vector
+	for i := 0; i < b.N; i++ {
+		v.SubVec(x, y)
+	}
+}
+
+func randVector(size, inc int, rho float64, rnd func() float64) *Vector {
+	if size <= 0 {
+		panic("bad vector size")
+	}
+	data := make([]float64, size*inc)
+	for i := range data {
+		if rand.Float64() < rho {
+			data[i] = rnd()
+		}
+	}
+	return &Vector{
+		mat: blas64.Vector{
+			Inc:  inc,
+			Data: data,
+		},
+		n: size,
 	}
 }

@@ -11,10 +11,11 @@ import (
 	"github.com/gonum/blas"
 	"github.com/gonum/blas/blas64"
 	"github.com/gonum/floats"
+	"github.com/gonum/matrix"
 )
 
 // TODO: Need to add tests where one is overwritten.
-func TestMul(t *testing.T) {
+func TestMulTypes(t *testing.T) {
 	for _, test := range []struct {
 		ar     int
 		ac     int
@@ -133,22 +134,6 @@ func TestMul(t *testing.T) {
 		randomSlice(cvec)
 		testMul(t, a, b, c, acomp, bcomp, ccomp, false, "existing receiver")
 
-		// Test with vectorers
-		avm := (*basicVectorer)(a)
-		bvm := (*basicVectorer)(b)
-		d.Reset()
-		testMul(t, avm, b, d, acomp, bcomp, ccomp, true, "a vectoror with zero receiver")
-		d.Reset()
-		testMul(t, a, bvm, d, acomp, bcomp, ccomp, true, "b vectoror with zero receiver")
-		d.Reset()
-		testMul(t, avm, bvm, d, acomp, bcomp, ccomp, true, "both vectoror with zero receiver")
-		randomSlice(cvec)
-		testMul(t, avm, b, c, acomp, bcomp, ccomp, true, "a vectoror with existing receiver")
-		randomSlice(cvec)
-		testMul(t, a, bvm, c, acomp, bcomp, ccomp, true, "b vectoror with existing receiver")
-		randomSlice(cvec)
-		testMul(t, avm, bvm, c, acomp, bcomp, ccomp, true, "both vectoror with existing receiver")
-
 		// Cast a as a basic matrix
 		am := (*basicMatrix)(a)
 		bm := (*basicMatrix)(b)
@@ -166,6 +151,7 @@ func TestMul(t *testing.T) {
 		testMul(t, am, bm, d, acomp, bcomp, ccomp, true, "both basic, receiver is full")
 	}
 }
+
 func randomSlice(s []float64) {
 	for i := range s {
 		s[i] = rand.NormFloat64()
@@ -185,8 +171,6 @@ func testMul(t *testing.T, a, b Matrix, c *Dense, acomp, bcomp, ccomp matComp, c
 		aDense = t
 	case *basicMatrix:
 		aDense = (*Dense)(t)
-	case *basicVectorer:
-		aDense = (*Dense)(t)
 	}
 
 	var bDense *Dense
@@ -194,8 +178,6 @@ func testMul(t *testing.T, a, b Matrix, c *Dense, acomp, bcomp, ccomp matComp, c
 	case *Dense:
 		bDense = t
 	case *basicMatrix:
-		bDense = (*Dense)(t)
-	case *basicVectorer:
 		bDense = (*Dense)(t)
 	}
 
@@ -228,22 +210,50 @@ func (m *basicMatrix) Dims() (r, c int) {
 	return (*Dense)(m).Dims()
 }
 
-type basicVectorer Dense
-
-func (m *basicVectorer) At(r, c int) float64 {
-	return (*Dense)(m).At(r, c)
+func (m *basicMatrix) T() Matrix {
+	return Transpose{m}
 }
 
-func (m *basicVectorer) Dims() (r, c int) {
-	return (*Dense)(m).Dims()
+type basicSymmetric SymDense
+
+var _ Symmetric = &basicSymmetric{}
+
+func (m *basicSymmetric) At(r, c int) float64 {
+	return (*SymDense)(m).At(r, c)
 }
 
-func (m *basicVectorer) Row(row []float64, r int) []float64 {
-	return (*Dense)(m).Row(row, r)
+func (m *basicSymmetric) Dims() (r, c int) {
+	return (*SymDense)(m).Dims()
 }
 
-func (m *basicVectorer) Col(row []float64, c int) []float64 {
-	return (*Dense)(m).Col(row, c)
+func (m *basicSymmetric) T() Matrix {
+	return m
+}
+
+func (m *basicSymmetric) Symmetric() int {
+	return (*SymDense)(m).Symmetric()
+}
+
+type basicTriangular TriDense
+
+func (m *basicTriangular) At(r, c int) float64 {
+	return (*TriDense)(m).At(r, c)
+}
+
+func (m *basicTriangular) Dims() (r, c int) {
+	return (*TriDense)(m).Dims()
+}
+
+func (m *basicTriangular) T() Matrix {
+	return Transpose{m}
+}
+
+func (m *basicTriangular) Triangle() (int, matrix.TriKind) {
+	return (*TriDense)(m).Triangle()
+}
+
+func (m *basicTriangular) TTri() Triangular {
+	return TransposeTri{m}
 }
 
 func denseEqual(a *Dense, acomp matComp) bool {

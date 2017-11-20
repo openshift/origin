@@ -7,7 +7,9 @@ package mat64
 import (
 	"sync"
 
+	"github.com/gonum/blas"
 	"github.com/gonum/blas/blas64"
+	"github.com/gonum/matrix"
 )
 
 var tab64 = [64]byte{
@@ -38,16 +40,44 @@ func bits(v uint64) byte {
 	return tab64[((v-(v>>1))*0x07EDD5E59A4E28C2)>>58] - 1
 }
 
-// pool contains size stratified workspace Dense pools.
-// Each pool element i returns sized matrices with a data
-// slice capped at 1<<i.
-var pool [63]sync.Pool
+var (
+	// pool contains size stratified workspace Dense pools.
+	// Each pool element i returns sized matrices with a data
+	// slice capped at 1<<i.
+	pool [63]sync.Pool
+
+	// poolSym is the SymDense equivalent of pool.
+	poolSym [63]sync.Pool
+
+	// poolTri is the TriDense equivalent of pool.
+	poolTri [63]sync.Pool
+
+	// poolVec is the Vector equivalent of pool.
+	poolVec [63]sync.Pool
+)
 
 func init() {
 	for i := range pool {
 		l := 1 << uint(i)
 		pool[i].New = func() interface{} {
 			return &Dense{mat: blas64.General{
+				Data: make([]float64, l),
+			}}
+		}
+		poolSym[i].New = func() interface{} {
+			return &SymDense{mat: blas64.Symmetric{
+				Uplo: blas.Upper,
+				Data: make([]float64, l),
+			}}
+		}
+		poolTri[i].New = func() interface{} {
+			return &TriDense{mat: blas64.Triangular{
+				Data: make([]float64, l),
+			}}
+		}
+		poolVec[i].New = func() interface{} {
+			return &Vector{mat: blas64.Vector{
+				Inc:  1,
 				Data: make([]float64, l),
 			}}
 		}
@@ -77,4 +107,78 @@ func getWorkspace(r, c int, clear bool) *Dense {
 // where references to the underlying data slice has been kept.
 func putWorkspace(w *Dense) {
 	pool[bits(uint64(cap(w.mat.Data)))].Put(w)
+}
+
+// getWorkspaceSym returns a *SymDense of size n and a cap that is less than 2*n. If clear is true, the
+// data slice visible through the Matrix interface is zeroed.
+func getWorkspaceSym(n int, clear bool) *SymDense {
+	l := uint64(n)
+	l *= l
+	s := poolSym[bits(l)].Get().(*SymDense)
+	s.mat.Data = s.mat.Data[:l]
+	if clear {
+		zero(s.mat.Data)
+	}
+	s.mat.N = n
+	s.mat.Stride = n
+	s.cap = n
+	return s
+}
+
+// getWorkspaceTri returns a *TriDense of size n and a cap that is less than 2*n.
+// If clear is true, the data slice visible through the Matrix interface is zeroed.
+func getWorkspaceTri(n int, kind matrix.TriKind, clear bool) *TriDense {
+	l := uint64(n)
+	l *= l
+	t := poolTri[bits(l)].Get().(*TriDense)
+	t.mat.Data = t.mat.Data[:l]
+	if clear {
+		zero(t.mat.Data)
+	}
+	t.mat.N = n
+	t.mat.Stride = n
+	if kind == matrix.Upper {
+		t.mat.Uplo = blas.Upper
+	} else if kind == matrix.Lower {
+		t.mat.Uplo = blas.Lower
+	} else {
+		panic(matrix.ErrTriangle)
+	}
+	t.mat.Diag = blas.NonUnit
+	t.cap = n
+	return t
+}
+
+// putWorkspaceSym replaces a used *SymDense into the appropriate size
+// workspace pool. putWorkspaceSym must not be called with a matrix
+// where references to the underlying data slice has been kept.
+func putWorkspaceSym(s *SymDense) {
+	poolSym[bits(uint64(cap(s.mat.Data)))].Put(s)
+}
+
+// putWorkspaceTri replaces a used *TriDense into the appropriate size
+// workspace pool. putWorkspaceTri must not be called with a matrix
+// where references to the underlying data slice has been kept.
+func putWorkspaceTri(t *TriDense) {
+	poolTri[bits(uint64(cap(t.mat.Data)))].Put(t)
+}
+
+// getWorkspaceVec returns a *Vector of length n and a cap that is less than 2*n. If clear is true, the
+// data slice visible through the Matrix interface is zeroed.
+func getWorkspaceVec(n int, clear bool) *Vector {
+	l := uint64(n)
+	v := poolVec[bits(l)].Get().(*Vector)
+	v.mat.Data = v.mat.Data[:l]
+	if clear {
+		zero(v.mat.Data)
+	}
+	v.n = n
+	return v
+}
+
+// putWorkspaceVec replaces a used *Vector into the appropriate size
+// workspace pool. putWorkspaceVec must not be called with a matrix
+// where references to the underlying data slice has been kept.
+func putWorkspaceVec(v *Vector) {
+	poolVec[bits(uint64(cap(v.mat.Data)))].Put(v)
 }

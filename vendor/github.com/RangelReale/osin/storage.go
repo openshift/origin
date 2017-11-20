@@ -1,6 +1,16 @@
 package osin
 
-import ()
+import (
+	"errors"
+)
+
+var (
+	// ErrNotFound is the error returned by Storage Get<...> and Load<...> functions in case
+	// no entity is found in the storage. E.g. Storage.GetClient() returns ErrNotFound when
+	// client is not found. All other returned errors must be treated as storage-specific errors,
+	// like "connection lost", "connection refused", etc.
+	ErrNotFound = errors.New("Entity not found")
+)
 
 // Storage interface
 type Storage interface {

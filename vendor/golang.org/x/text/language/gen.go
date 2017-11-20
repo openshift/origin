@@ -68,7 +68,7 @@ the UN.M49 codes used for groups.)`,
 	`
 regionISO holds a list of alphabetically sorted 2-letter ISO region codes.
 Each 2-letter codes is followed by two bytes with the following meaning:
-    - [A-Z}{2}: the first letter of the 2-letter code plus these two
+    - [A-Z}{2}: the first letter of the 2-letter code plus these two 
                 letters form the 3-letter ISO code.
     - 0, n:     index into altRegionISO3.`,
 	`

@@ -36,7 +36,7 @@ clusters:
     server: https://cluster-a.com
   name: cluster-a
 - cluster:
-    certificate-authority-data: VGVzdA==
+    certificate-authority-data: VGVzdA== 
     server: https://cluster-b.com
   name: cluster-b
 contexts:

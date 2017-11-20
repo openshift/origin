@@ -258,7 +258,7 @@ message VolumeSpec {
   bool encrypted = 14;
   // Passphrase for an encrypted volume
   string passphrase = 15;
-  // SnapshotSchedule a well known string that specifies when snapshots should be taken.
+  // SnapshotSchedule a well known string that specifies when snapshots should be taken. 
   string snapshot_schedule = 16;
   // Scale allows autocreation of volumes.
   uint32 scale = 17;
@@ -272,13 +272,13 @@ message VolumeSpec {
   bool compressed = 23;
 }
 
-// ReplicaSet set of machine IDs (nodes) to which part of this volume is erasure
+// ReplicaSet set of machine IDs (nodes) to which part of this volume is erasure 
 // coded - for clustered storage arrays
 message ReplicaSet {
   repeated string nodes = 1;
 }
 
-// RuntimeStateMap is a list of name value mapping of driver specific runtime
+// RuntimeStateMap is a list of name value mapping of driver specific runtime 
 // information.
 message RuntimeStateMap {
   map<string, string> runtime_state = 1;
@@ -325,7 +325,7 @@ message Volume {
   map<string, string> attach_info = 18;
   // ReplicatSets storage for this volumefor clustered storage arrays.
   repeated ReplicaSet replica_sets = 19;
-  // RuntimeState is a lst of name value mapping of driver specific runtime
+  // RuntimeState is a lst of name value mapping of driver specific runtime 
   // information.
   repeated RuntimeStateMap runtime_state = 20;
   // Error is the Last recorded error.

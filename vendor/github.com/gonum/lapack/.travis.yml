@@ -7,21 +7,28 @@ env:
   - BLAS_LIB=OpenBLAS
   - BLAS_LIB=gonum
   # Does not currently link correctly.  Note that there is an issue with drotgm in ATLAS.
-  # - BLAS_LIB=ATLAS 
+  # - BLAS_LIB=ATLAS
   # If we can get multiarch builds on travis.
   # There are some issues with the Accellerate implementation.
-  #- BLAS_LIB=Accellerate 
+  #- BLAS_LIB=Accellerate
 
 # Versions of go that are explicitly supported by gonum.
 go:
- - 1.5beta1
- - 1.3.3
- - 1.4.2
+ - 1.5.4
+ - 1.6.3
+ - 1.7.3
+
+# Cache used to persist the compiled BLAS library between CI calls.
+cache:
+  directories:
+  - .travis/OpenBLAS.cache
 
 # Required for coverage.
 before_install:
  - go get golang.org/x/tools/cmd/cover
  - go get github.com/mattn/goveralls
+ - go get github.com/cznic/cc
+ - go get github.com/gonum/internal/binding
 
 # Install the appropriate BLAS library.
 install:
@@ -34,5 +41,7 @@ script:
  - go get -d -t -v ./...
  - go build -v ./...
  - go test -v ./...
- - diff <(gofmt -d *.go) <("")
+ - test -z "$(gofmt -d *.go)"
  - if [[ $TRAVIS_SECURE_ENV_VARS = "true" ]]; then bash -c "${TRAVIS_BUILD_DIR}/.travis/test-coverage.sh"; fi
+ # This is run last since it alters the tree.
+ - ${TRAVIS_BUILD_DIR}/.travis/check-generate.sh

@@ -20,6 +20,8 @@ import (
 // where tau is a real scalar.
 //
 // On entry, x contains the vector x, on exit it contains v.
+//
+// Dlarfg is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlarfg(n int, alpha float64, x []float64, incX int) (beta, tau float64) {
 	if n < 0 {
 		panic(nLT0)
@@ -37,7 +39,7 @@ func (impl Implementation) Dlarfg(n int, alpha float64, x []float64, incX int) (
 	safmin := dlamchS / dlamchE
 	knt := 0
 	if math.Abs(beta) < safmin {
-		// xnorm and beta may be innacurate, scale x and recompute.
+		// xnorm and beta may be inaccurate, scale x and recompute.
 		rsafmn := 1 / safmin
 		for {
 			knt++

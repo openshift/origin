@@ -7,34 +7,36 @@ package mat64
 import (
 	"math"
 	"math/rand"
+	"reflect"
 	"testing"
-
-	"gopkg.in/check.v1"
 )
 
-func (s *S) TestPool(c *check.C) {
+func TestPool(t *testing.T) {
 	for i := 1; i < 10; i++ {
 		for j := 1; j < 10; j++ {
-			var w, m *Dense
+			m := NewDense(i, j, nil)
 			for k := 0; k < 5; k++ {
-				w = getWorkspace(i, j, true)
-				m = NewDense(i, j, nil)
-				c.Check(w.mat, check.DeepEquals, m.mat)
-				c.Check(w.capRows, check.DeepEquals, m.capRows)
-				c.Check(w.capCols, check.DeepEquals, m.capCols)
-				c.Check(cap(w.mat.Data) < 2*len(w.mat.Data), check.Equals, true, check.Commentf("r: %d c: %d -> len: %d cap: %d", i, j, len(w.mat.Data), cap(w.mat.Data)))
-			}
-			w.Set(0, 0, math.NaN())
-			for k := 0; k < 5; k++ {
-				putWorkspace(w)
-			}
-			for k := 0; k < 5; k++ {
-				w = getWorkspace(i, j, true)
-				m = NewDense(i, j, nil)
-				c.Check(w.mat, check.DeepEquals, m.mat)
-				c.Check(w.capRows, check.DeepEquals, m.capRows)
-				c.Check(w.capCols, check.DeepEquals, m.capCols)
-				c.Check(cap(w.mat.Data) < 2*len(w.mat.Data), check.Equals, true, check.Commentf("r: %d c: %d -> len: %d cap: %d", i, j, len(w.mat.Data), cap(w.mat.Data)))
+				work := make([]*Dense, rand.Intn(10)+1)
+				for l := range work {
+					w := getWorkspace(i, j, true)
+					if !reflect.DeepEqual(w.mat, m.mat) {
+						t.Error("unexpected non-zeroed matrix returned by getWorkspace")
+					}
+					if w.capRows != m.capRows {
+						t.Error("unexpected capacity matrix returned by getWorkspace")
+					}
+					if w.capCols != m.capCols {
+						t.Error("unexpected capacity matrix returned by getWorkspace")
+					}
+					if cap(w.mat.Data) >= 2*len(w.mat.Data) {
+						t.Errorf("r: %d c: %d -> len: %d cap: %d", i, j, len(w.mat.Data), cap(w.mat.Data))
+					}
+					w.Set(0, 0, math.NaN())
+					work[l] = w
+				}
+				for _, w := range work {
+					putWorkspace(w)
+				}
 			}
 		}
 	}
