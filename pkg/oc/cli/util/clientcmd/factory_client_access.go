@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +37,6 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
-	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	routegen "github.com/openshift/origin/pkg/route/generator"

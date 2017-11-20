@@ -15,7 +15,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 func envVars(host string, caData []byte, insecure bool, bearerTokenFile string) []kapi.EnvVar {

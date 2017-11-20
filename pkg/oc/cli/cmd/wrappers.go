@@ -229,7 +229,7 @@ var (
 	  * zsh completions are only supported in versions of zsh >= 5.2`)
 )
 
-func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCompletion(fullName string, out io.Writer) *cobra.Command {
 	cmdHelpName := fullName
 
 	if strings.HasSuffix(fullName, "completion") {

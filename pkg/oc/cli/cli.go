@@ -179,7 +179,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				login.NewCmdLogout("logout", fullName+" logout", fullName+" login", f, in, out),
 				cmd.NewCmdConfig(fullName, "config", out, errout),
 				cmd.NewCmdWhoAmI(cmd.WhoAmIRecommendedCommandName, fullName+" "+cmd.WhoAmIRecommendedCommandName, f, out),
-				cmd.NewCmdCompletion(fullName, f, out),
+				cmd.NewCmdCompletion(fullName, out),
 			},
 		},
 	}

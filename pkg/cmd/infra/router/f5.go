@@ -15,7 +15,6 @@ import (
 	clientcmd "github.com/openshift/origin/pkg/client/cmd"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"

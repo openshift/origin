@@ -1,61 +1,36 @@
 package config
 
 import (
-	"crypto/x509"
-	"net/url"
 	"reflect"
-	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/third_party/forked/golang/netutil"
-	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	"github.com/openshift/origin/pkg/client/config"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
-// GetClusterNicknameFromConfig returns host:port of the clientConfig.Host, with .'s replaced by -'s
-func GetClusterNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
-	return GetClusterNicknameFromURL(clientCfg.Host)
+// getClusterNicknameFromConfig returns host:port of the clientConfig.Host, with .'s replaced by -'s
+func getClusterNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
+	return config.GetClusterNicknameFromURL(clientCfg.Host)
 }
 
-// GetClusterNicknameFromURL returns host:port of the apiServerLocation, with .'s replaced by -'s
-func GetClusterNicknameFromURL(apiServerLocation string) (string, error) {
-	u, err := url.Parse(apiServerLocation)
-	if err != nil {
-		return "", err
-	}
-	hostPort := netutil.CanonicalAddr(u)
-
-	// we need a character other than "." to avoid conflicts with.  replace with '-'
-	return strings.Replace(hostPort, ".", "-", -1), nil
-}
-
-// GetUserNicknameFromConfig returns "username(as known by the server)/GetClusterNicknameFromConfig".  This allows tab completion for switching users to
+// getUserNicknameFromConfig returns "username(as known by the server)/getClusterNicknameFromConfig".  This allows tab completion for switching users to
 // work easily and obviously.
-func GetUserNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
+func getUserNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
 	userPartOfNick, err := getUserPartOfNickname(clientCfg)
 	if err != nil {
 		return "", err
 	}
 
-	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
+	clusterNick, err := getClusterNicknameFromConfig(clientCfg)
 	if err != nil {
 		return "", err
 	}
 
 	return userPartOfNick + "/" + clusterNick, nil
-}
-
-func GetUserNicknameFromCert(clusterNick string, chain ...*x509.Certificate) (string, error) {
-	userInfo, _, err := x509request.CommonNameUserConversion(chain)
-	if err != nil {
-		return "", err
-	}
-
-	return userInfo.GetName() + "/" + clusterNick, nil
 }
 
 func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
@@ -79,16 +54,16 @@ func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
 	return userInfo.Name, nil
 }
 
-// GetContextNicknameFromConfig returns "namespace/GetClusterNicknameFromConfig/username(as known by the server)".  This allows tab completion for switching projects/context
+// getContextNicknameFromConfig returns "namespace/getClusterNicknameFromConfig/username(as known by the server)".  This allows tab completion for switching projects/context
 // to work easily.  First tab is the most selective on project.  Second stanza in the next most selective on cluster name.  The chances of a user trying having
 // one projects on a single server that they want to operate against with two identities is low, so username is last.
-func GetContextNicknameFromConfig(namespace string, clientCfg *restclient.Config) (string, error) {
+func getContextNicknameFromConfig(namespace string, clientCfg *restclient.Config) (string, error) {
 	userPartOfNick, err := getUserPartOfNickname(clientCfg)
 	if err != nil {
 		return "", err
 	}
 
-	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
+	clusterNick, err := getClusterNicknameFromConfig(clientCfg)
 	if err != nil {
 		return "", err
 	}
@@ -96,24 +71,19 @@ func GetContextNicknameFromConfig(namespace string, clientCfg *restclient.Config
 	return namespace + "/" + clusterNick + "/" + userPartOfNick, nil
 }
 
-func GetContextNickname(namespace, clusterNick, userNick string) string {
-	tokens := strings.SplitN(userNick, "/", 2)
-	return namespace + "/" + clusterNick + "/" + tokens[0]
-}
-
 // CreateConfig takes a clientCfg and builds a config (kubeconfig style) from it.
 func CreateConfig(namespace string, clientCfg *restclient.Config) (*clientcmdapi.Config, error) {
-	clusterNick, err := GetClusterNicknameFromConfig(clientCfg)
+	clusterNick, err := getClusterNicknameFromConfig(clientCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	userNick, err := GetUserNicknameFromConfig(clientCfg)
+	userNick, err := getUserNicknameFromConfig(clientCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	contextNick, err := GetContextNicknameFromConfig(namespace, clientCfg)
+	contextNick, err := getContextNicknameFromConfig(namespace, clientCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +142,7 @@ func MergeConfig(startingConfig, addition clientcmdapi.Config) (*clientcmdapi.Co
 		actualContext.Namespace = newContext.Namespace
 		actualContext.Extensions = newContext.Extensions
 
-		if existingName := FindExistingContextName(startingConfig, *actualContext); len(existingName) > 0 {
+		if existingName := findExistingContextName(startingConfig, *actualContext); len(existingName) > 0 {
 			// if this already exists, just move to the next, our job is done
 			requestedContextNamesToActualContextNames[requestedKey] = existingName
 			continue
@@ -193,8 +163,8 @@ func MergeConfig(startingConfig, addition clientcmdapi.Config) (*clientcmdapi.Co
 	return &ret, nil
 }
 
-// FindExistingContextName finds the nickname for the passed context
-func FindExistingContextName(haystack clientcmdapi.Config, needle clientcmdapi.Context) string {
+// findExistingContextName finds the nickname for the passed context
+func findExistingContextName(haystack clientcmdapi.Config, needle clientcmdapi.Context) string {
 	for key, context := range haystack.Contexts {
 		context.LocationOfOrigin = ""
 		if reflect.DeepEqual(context, needle) {
