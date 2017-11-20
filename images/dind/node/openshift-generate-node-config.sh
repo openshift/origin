@@ -46,7 +46,7 @@ function ensure-node-config() {
     # concurrent execution since the file passed to --signer-serial
     # needs to be incremented by each invocation.
     (flock 200;
-     /usr/local/bin/openshift admin create-node-config \
+     /usr/local/bin/oc adm create-node-config \
        --node-dir="${node_config_path}" \
        --node="${host}" \
        --master="${master_host}" \

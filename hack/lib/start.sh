@@ -61,11 +61,9 @@ readonly -f os::start::configure_server
 function os::start::internal::create_master_certs() {
 	local version="${1:-}"
 	local openshift_volumes=( "${MASTER_CONFIG_DIR}" )
-	local openshift_executable
-	openshift_executable="$(os::start::internal::openshift_executable "${version}")"
 
 	os::log::debug "Creating certificates for the OpenShift server"
-	${openshift_executable} admin ca create-master-certs                                \
+	oc adm ca create-master-certs                                \
 	                        --overwrite=false                                           \
 	                        --master="${MASTER_ADDR}"                                   \
 	                        --cert-dir="${MASTER_CONFIG_DIR}"                           \
@@ -89,11 +87,9 @@ readonly -f os::start::internal::create_master_certs
 function os::start::internal::configure_node() {
 	local version="${1:-}"
 	local openshift_volumes=( "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" )
-	local openshift_executable
-	openshift_executable="$(os::start::internal::openshift_executable "${version}")"
 
 	os::log::debug "Creating node configuration for the OpenShift server"
-	${openshift_executable} admin create-node-config                                          \
+	oc adm create-node-config                                          \
 	                        --node-dir="${NODE_CONFIG_DIR}"                                   \
 	                        --node="${KUBELET_HOST}"                                          \
 	                        --hostnames="${KUBELET_HOST}"                                     \
@@ -602,9 +598,9 @@ function os::start::router() {
 		cat "${MASTER_CONFIG_DIR}/router.crt" \
 		    "${MASTER_CONFIG_DIR}/router.key" \
 			"${MASTER_CONFIG_DIR}/ca.crt" > "${MASTER_CONFIG_DIR}/router.pem"
-		openshift admin router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router --default-cert="${MASTER_CONFIG_DIR}/router.pem"
+		oc adm router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router --default-cert="${MASTER_CONFIG_DIR}/router.pem"
 	else
-		openshift admin router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
+		oc adm router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
 	fi
 
 	# Set the SYN eater to make router reloads more robust
@@ -631,7 +627,7 @@ function os::start::registry() {
 	os::log::debug "Installing the registry"
 	# For testing purposes, ensure the quota objects are always up to date in the registry by
 	# disabling project cache.
-	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
+	oc adm registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
 		oc env --config="${ADMIN_KUBECONFIG}" -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
 		oc create --config="${ADMIN_KUBECONFIG}" -f -
 }

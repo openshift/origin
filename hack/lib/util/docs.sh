@@ -102,15 +102,13 @@ function os::util::gen-docs() {
 	generate_documentation "${OUTPUT_DIR}"
 	generate_manual_pages "${MAN_OUTPUT_DIR}" "oc"
 	generate_manual_pages "${MAN_OUTPUT_DIR}" "openshift"
-	generate_manual_pages "${MAN_OUTPUT_DIR}" "oadm"
 }
 readonly -f os::util::gen-docs
 
 # os::util::set-man-placeholder puts a placeholder for every generated manpage.
 function os::util::set-man-placeholder() {
 	MAN_OUTPUT_DIR="$1"
-	declare -a generated_files=( "${1}/.files_generated_oadm=${1}/.files_generated_oadm"
-                                 "${1}/.files_generated_oc=${1}/.files_generated_oc"
+	declare -a generated_files=( "${1}/.files_generated_oc=${1}/.files_generated_oc"
                                  "${1}/.files_generated_openshift=${1}/.files_generated_openshift" )
 
 	# remove all of the old manpages; we don't want to check them in.

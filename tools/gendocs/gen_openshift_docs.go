@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/openshift/origin/pkg/cmd/util/gendocs"
-	"github.com/openshift/origin/pkg/oc/admin"
 	"github.com/openshift/origin/pkg/oc/cli"
 )
 
@@ -48,9 +47,5 @@ func main() {
 	outFile := outDir + "oc_by_example_content.adoc"
 	out := os.Stdout
 	cmd := cli.NewCommandCLI("oc", "oc", &bytes.Buffer{}, out, ioutil.Discard)
-	gendocs.GenDocs(cmd, outFile)
-
-	outFile = outDir + "oadm_by_example_content.adoc"
-	cmd = admin.NewCommandAdmin("oadm", "oadm", &bytes.Buffer{}, ioutil.Discard, ioutil.Discard)
 	gendocs.GenDocs(cmd, outFile)
 }

@@ -57,7 +57,7 @@ os::provision::install-cmds() {
   local deployed_root=$1
 
   local output_path="$(os::build::get-bin-output-path "${deployed_root}")"
-  cp ${output_path}/{openshift,oc,osadm} /usr/bin
+  cp ${output_path}/{openshift,oc} /usr/bin
 }
 
 os::provision::add-to-hosts-file() {
@@ -102,7 +102,7 @@ os::provision::init-certs() {
   pushd "${config_root}" > /dev/null
 
   # Master certs
-  /usr/bin/openshift admin ca create-master-certs \
+  /usr/bin/oc adm ca create-master-certs \
     --overwrite=false \
     --cert-dir="${cert_dir}" \
     --master="https://${master_ip}:8443" \
@@ -112,7 +112,7 @@ os::provision::init-certs() {
   for (( i=0; i < ${#node_names[@]}; i++ )); do
     local name=${node_names[$i]}
     local ip=${node_ips[$i]}
-    /usr/bin/openshift admin create-node-config \
+    /usr/bin/oc adm create-node-config \
       --node-dir="${server_config_dir}/node-${name}" \
       --node="${name}" \
       --hostnames="${name},${ip}" \
@@ -386,7 +386,7 @@ os::provision::disable-node() {
   os::provision::wait-for-condition "${msg}" "${condition}"
 
   echo "Disabling scheduling for node ${node_name}"
-  "$(OS_ROOT="${origin_root}" os::util::find::built_binary osadm)" --config="${config}" \
+  "$(OS_ROOT="${origin_root}" os::util::find::built_binary oc)" adm --config="${config}" \
       manage-node "${node_name}" --schedulable=false > /dev/null
 }
 
