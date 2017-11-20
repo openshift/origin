@@ -82,6 +82,17 @@ func validServiceInstanceWithInProgressProvision() *servicecatalog.ServiceInstan
 	return instance
 }
 
+func validServiceInstanceWithInProgressDeprovision() *servicecatalog.ServiceInstance {
+	instance := validServiceInstance()
+	instance.Generation = 2
+	instance.Status.ReconciledGeneration = 1
+	instance.Status.CurrentOperation = servicecatalog.ServiceInstanceOperationDeprovision
+	now := metav1.Now()
+	instance.Status.OperationStartTime = &now
+	instance.Status.ExternalProperties = validServiceInstancePropertiesState()
+	return instance
+}
+
 func validServiceInstancePropertiesState() *servicecatalog.ServiceInstancePropertiesState {
 	return &servicecatalog.ServiceInstancePropertiesState{
 		ClusterServicePlanExternalName: "plan-name",
@@ -516,10 +527,69 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid:  false,
 		},
 		{
-			name: "in-progress operation with missing service plan ref",
+			name: "in-progress provision with missing service plan ref",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstanceWithInProgressProvision()
 				i.Spec.ClusterServicePlanRef = nil
+				return i
+			}(),
+			create: false,
+			valid:  false,
+		},
+		{
+			name:     "valid in-progress deprovision",
+			instance: validServiceInstanceWithInProgressDeprovision(),
+			create:   false,
+			valid:    true,
+		},
+		{
+			name: "in-progress deprovision with missing service plan ref",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressDeprovision()
+				i.Spec.ClusterServicePlanRef = nil
+				return i
+			}(),
+			create: false,
+			valid:  true,
+		},
+		{
+			name: "in-progress deprovision with missing external properties",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressDeprovision()
+				i.Status.ExternalProperties = nil
+				return i
+			}(),
+			create: false,
+			valid:  true,
+		},
+		{
+			name: "in-progress deprovision with missing external properties plan ID",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressDeprovision()
+				i.Status.ExternalProperties.ClusterServicePlanExternalID = ""
+				return i
+			}(),
+			create: false,
+			// not valid because ClusterServicePlanExternalID is required when ExternalProperties is present
+			valid: false,
+		},
+		{
+			name: "in-progress deprovision with missing service plan ref and external properties",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressDeprovision()
+				i.Spec.ClusterServicePlanRef = nil
+				i.Status.ExternalProperties = nil
+				return i
+			}(),
+			create: false,
+			valid:  false,
+		},
+		{
+			name: "in-progress deprovision with missing service plan ref and external properties plan ID",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressDeprovision()
+				i.Spec.ClusterServicePlanRef = nil
+				i.Status.ExternalProperties.ClusterServicePlanExternalID = ""
 				return i
 			}(),
 			create: false,
@@ -628,34 +698,34 @@ func TestValidateServiceInstance(t *testing.T) {
 
 func TestInternalValidateServiceInstanceUpdateAllowed(t *testing.T) {
 	cases := []struct {
-		name              string
-		newSpecChange     bool
-		onGoingSpecChange bool
-		valid             bool
+		name             string
+		specChange       bool
+		onGoingOperation bool
+		valid            bool
 	}{
 		{
-			name:              "spec change when no on-going spec change",
-			newSpecChange:     true,
-			onGoingSpecChange: false,
-			valid:             true,
+			name:             "spec change when no on-going operation",
+			specChange:       true,
+			onGoingOperation: false,
+			valid:            true,
 		},
 		{
-			name:              "spec change when on-going spec change",
-			newSpecChange:     true,
-			onGoingSpecChange: true,
-			valid:             false,
+			name:             "spec change when on-going operation",
+			specChange:       true,
+			onGoingOperation: true,
+			valid:            false,
 		},
 		{
-			name:              "meta change when no on-going spec change",
-			newSpecChange:     false,
-			onGoingSpecChange: false,
-			valid:             true,
+			name:             "meta change when no on-going operation",
+			specChange:       false,
+			onGoingOperation: false,
+			valid:            true,
 		},
 		{
-			name:              "meta change when on-going spec change",
-			newSpecChange:     false,
-			onGoingSpecChange: true,
-			valid:             true,
+			name:             "meta change when on-going operation",
+			specChange:       false,
+			onGoingOperation: true,
+			valid:            true,
 		},
 	}
 
@@ -672,12 +742,10 @@ func TestInternalValidateServiceInstanceUpdateAllowed(t *testing.T) {
 				},
 			},
 		}
-		if tc.onGoingSpecChange {
-			oldInstance.Generation = 2
-		} else {
-			oldInstance.Generation = 1
+		oldInstance.Generation = 1
+		if tc.onGoingOperation {
+			oldInstance.Status.CurrentOperation = servicecatalog.ServiceInstanceOperationProvision
 		}
-		oldInstance.Status.ReconciledGeneration = 1
 
 		newInstance := &servicecatalog.ServiceInstance{
 			ObjectMeta: metav1.ObjectMeta{
@@ -686,17 +754,16 @@ func TestInternalValidateServiceInstanceUpdateAllowed(t *testing.T) {
 			},
 			Spec: servicecatalog.ServiceInstanceSpec{
 				PlanReference: servicecatalog.PlanReference{
-					ClusterServiceClassExternalName: "test-serviceclass",
-					ClusterServicePlanExternalName:  "test-plan",
+					ClusterServiceClassExternalName: clusterServiceClassExternalName,
+					ClusterServicePlanExternalName:  clusterServicePlanExternalName,
 				},
 			},
 		}
-		if tc.newSpecChange {
+		if tc.specChange {
 			newInstance.Generation = oldInstance.Generation + 1
 		} else {
 			newInstance.Generation = oldInstance.Generation
 		}
-		newInstance.Status.ReconciledGeneration = 1
 
 		errs := internalValidateServiceInstanceUpdateAllowed(newInstance, oldInstance)
 		if len(errs) != 0 && tc.valid {

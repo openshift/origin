@@ -24,18 +24,12 @@ import (
 	// avoid error `servicecatalog/v1beta1 is not enabled`
 	_ "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/install"
 
-	fakeosb "github.com/pmorie/go-open-service-broker-client/v2/fake"
-
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
 )
 
 func TestClusterServicePlanRemovedFromCatalogWithoutInstances(t *testing.T) {
-	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
-		CatalogReaction: &fakeosb.CatalogReaction{
-			Response: getTestCatalogResponse(),
-		},
-	})
+	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t)
 	defer shutdownController()
 	defer shutdownServer()
 
@@ -117,11 +111,7 @@ func getTestClusterServicePlanRemoved() *v1beta1.ClusterServicePlan {
 }
 
 func TestClusterServiceClassRemovedFromCatalogWithoutInstances(t *testing.T) {
-	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
-		CatalogReaction: &fakeosb.CatalogReaction{
-			Response: getTestCatalogResponse(),
-		},
-	})
+	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t)
 	defer shutdownController()
 	defer shutdownServer()
 

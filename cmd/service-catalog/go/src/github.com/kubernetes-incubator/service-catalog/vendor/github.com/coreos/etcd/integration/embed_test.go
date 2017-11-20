@@ -15,13 +15,16 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/embed"
 )
 
@@ -40,6 +43,8 @@ func TestEmbedEtcd(t *testing.T) {
 		{wpeers: 1, wclients: 1},
 		{wpeers: 2, wclients: 1},
 		{wpeers: 1, wclients: 2},
+		{werr: "expected IP"},
+		{werr: "expected IP"},
 	}
 
 	urls := newEmbedURLs(10)
@@ -57,6 +62,10 @@ func TestEmbedEtcd(t *testing.T) {
 	setupEmbedCfg(&tests[4].cfg, []url.URL{urls[2]}, []url.URL{urls[3]})
 	setupEmbedCfg(&tests[5].cfg, []url.URL{urls[4]}, []url.URL{urls[5], urls[6]})
 	setupEmbedCfg(&tests[6].cfg, []url.URL{urls[7], urls[8]}, []url.URL{urls[9]})
+
+	dnsURL, _ := url.Parse("http://whatever.test:12345")
+	tests[7].cfg.LCUrls = []url.URL{*dnsURL}
+	tests[8].cfg.LPUrls = []url.URL{*dnsURL}
 
 	dir := filepath.Join(os.TempDir(), fmt.Sprintf("embed-etcd"))
 	os.RemoveAll(dir)
@@ -85,9 +94,55 @@ func TestEmbedEtcd(t *testing.T) {
 			t.Errorf("%d: expected %d peers, got %d", i, tt.wpeers, len(e.Peers))
 		}
 		if len(e.Clients) != tt.wclients {
-			t.Errorf("%d: expected %d peers, got %d", i, tt.wclients, len(e.Clients))
+			t.Errorf("%d: expected %d clients, got %d", i, tt.wclients, len(e.Clients))
 		}
 		e.Close()
+		select {
+		case err := <-e.Err():
+			t.Errorf("#%d: unexpected error on close (%v)", i, err)
+		default:
+		}
+	}
+}
+
+// TestEmbedEtcdGracefulStop ensures embedded server stops
+// cutting existing transports.
+func TestEmbedEtcdGracefulStop(t *testing.T) {
+	cfg := embed.NewConfig()
+
+	urls := newEmbedURLs(2)
+	setupEmbedCfg(cfg, []url.URL{urls[0]}, []url.URL{urls[1]})
+
+	cfg.Dir = filepath.Join(os.TempDir(), fmt.Sprintf("embed-etcd"))
+	os.RemoveAll(cfg.Dir)
+	defer os.RemoveAll(cfg.Dir)
+
+	e, err := embed.StartEtcd(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-e.Server.ReadyNotify() // wait for e.Server to join the cluster
+
+	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{urls[0].String()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cli.Close()
+
+	// open watch connection
+	cli.Watch(context.Background(), "foo")
+
+	donec := make(chan struct{})
+	go func() {
+		e.Close()
+		close(donec)
+	}()
+	select {
+	case err := <-e.Err():
+		t.Fatal(err)
+	case <-donec:
+	case <-time.After(2*time.Second + e.Server.Cfg.ReqTimeout()):
+		t.Fatalf("took too long to close server")
 	}
 }
 

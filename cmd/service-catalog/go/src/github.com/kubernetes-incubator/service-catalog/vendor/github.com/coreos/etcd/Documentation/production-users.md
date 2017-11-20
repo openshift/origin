@@ -2,6 +2,15 @@
 
 This document tracks people and use cases for etcd in production. By creating a list of production use cases we hope to build a community of advisors that we can reach out to with experience using various etcd applications, operation environments, and cluster sizes. The etcd development team may reach out periodically to check-in on how etcd is working in the field and update this list.
 
+## All Kubernetes Users
+
+- *Application*: https://kubernetes.io/
+- *Environments*: AWS, OpenStack, Azure, Google Cloud, Huawei Cloud, Bare Metal, etc
+
+**This is a meta user; please feel free to document specific Kubernetes clusters!**
+
+All Kubernetes clusters use etcd as their primary data store. This means etcd's users include such companies as [Niantic, Inc Pokemon Go](https://cloudplatform.googleblog.com/2016/09/bringing-Pokemon-GO-to-life-on-Google-Cloud.html), [Box](https://blog.box.com/blog/kubernetes-box-microservices-maximum-velocity/), [CoreOS](https://coreos.com/tectonic), [Ticketmaster](https://www.youtube.com/watch?v=wqXVKneP0Hg), [Salesforce](https://www.salesforce.com) and many many more.
+
 ## discovery.etcd.io
 
 - *Application*: https://github.com/coreos/discovery.etcd.io
@@ -50,13 +59,35 @@ Radius Intelligence uses Kubernetes running CoreOS to containerize and scale int
 
 ## Vonage
 
-- *Application*: system configuration for microservices, scheduling, locks (future - service discovery)
+- *Application*: kubernetes, vault backend, system configuration for microservices, scheduling, locks (future - service discovery)
 - *Launched*: August 2015
 - *Cluster Size*: 2 clusters of 5 members in 2 DCs, n local proxies 1-to-1 with microservice, (ssl and SRV look up)
 - *Order of Data Size*: kilobytes
 - *Operator*: Vonage [devAdmin][raoofm]
 - *Environment*: VMWare, AWS
 - *Backups*: Daily snapshots on VMs. Backups done for upgrades.
+
+## PD
+
+- *Application*: embed etcd
+- *Launched*: Mar 2016
+- *Cluster Size*: 3 or 5 members
+- *Order of Data Size*: megabytes
+- *Operator*: PingCAP, Inc.
+- *Environment*: Bare Metal, AWS, etc.
+- *Backups*: None.
+
+PD(Placement Driver) is the central controller in the TiDB cluster. It saves the cluster meta information, schedule the data, allocate the global unique timestamp for the distributed transaction, etc. It embeds etcd to supply high availability and auto failover.
+
+## Canal
+
+- *Application*: system configuration for overlay network
+- *Launched*: June 2016
+- *Cluster Size*: 3 members for each cluster
+- *Order of Data Size*: kilobytes
+- *Operator*: Huawei Euler Department
+- *Environment*: [Huawei Cloud](http://www.hwclouds.com/product/cce.html)
+- *Backups*: None, all data can be recreated if necessary.
 
 [teamcity]: https://www.jetbrains.com/teamcity/
 [raoofm]:https://github.com/raoofm
@@ -205,3 +236,4 @@ At [Branch][branch], we use kubernetes heavily as our core microservice platform
 - *Operator*: Hosted Graphite (sre@hostedgraphite.com)
 - *Environment*: Bare Metal
 - *Backups*: None, all data is considered ephemeral.
+

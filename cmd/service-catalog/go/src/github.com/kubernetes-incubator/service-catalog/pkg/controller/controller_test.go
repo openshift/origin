@@ -441,6 +441,20 @@ func getTestRemovedClusterServiceClass() *v1beta1.ClusterServiceClass {
 	}
 }
 
+func getTestBindingRetrievableClusterServiceClass() *v1beta1.ClusterServiceClass {
+	return &v1beta1.ClusterServiceClass{
+		ObjectMeta: metav1.ObjectMeta{Name: testClusterServiceClassGUID},
+		Spec: v1beta1.ClusterServiceClassSpec{
+			ClusterServiceBrokerName: testClusterServiceBrokerName,
+			Description:              "a test service",
+			ExternalName:             testClusterServiceClassName,
+			ExternalID:               testClusterServiceClassGUID,
+			BindingRetrievable:       true,
+			Bindable:                 true,
+		},
+	}
+}
+
 func getTestClusterServicePlan() *v1beta1.ClusterServicePlan {
 	return &v1beta1.ClusterServicePlan{
 		ObjectMeta: metav1.ObjectMeta{Name: testClusterServicePlanGUID},
@@ -826,13 +840,41 @@ func getTestServiceBinding() *v1beta1.ServiceBinding {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       testServiceBindingName,
 			Namespace:  testNamespace,
+			Finalizers: []string{v1beta1.FinalizerServiceCatalog},
 			Generation: 1,
 		},
 		Spec: v1beta1.ServiceBindingSpec{
 			ServiceInstanceRef: v1beta1.LocalObjectReference{Name: testServiceInstanceName},
 			ExternalID:         testServiceBindingGUID,
 		},
+		Status: v1beta1.ServiceBindingStatus{
+			UnbindStatus: v1beta1.ServiceBindingUnbindStatusRequired,
+		},
 	}
+}
+
+func getTestServiceBindingUnbinding() *v1beta1.ServiceBinding {
+	binding := &v1beta1.ServiceBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              testServiceBindingName,
+			Namespace:         testNamespace,
+			DeletionTimestamp: &metav1.Time{},
+			Finalizers:        []string{v1beta1.FinalizerServiceCatalog},
+			Generation:        2,
+		},
+		Spec: v1beta1.ServiceBindingSpec{
+			ServiceInstanceRef: v1beta1.LocalObjectReference{Name: testServiceInstanceName},
+			ExternalID:         testServiceBindingGUID,
+			SecretName:         testServiceBindingSecretName,
+		},
+		Status: v1beta1.ServiceBindingStatus{
+			ReconciledGeneration: 1,
+			ExternalProperties:   &v1beta1.ServiceBindingPropertiesState{},
+			UnbindStatus:         v1beta1.ServiceBindingUnbindStatusRequired,
+		},
+	}
+
+	return binding
 }
 
 func getTestServiceBindingWithFailedStatus() *v1beta1.ServiceBinding {
@@ -842,8 +884,124 @@ func getTestServiceBindingWithFailedStatus() *v1beta1.ServiceBinding {
 			Type:   v1beta1.ServiceBindingConditionFailed,
 			Status: v1beta1.ConditionTrue,
 		}},
+		UnbindStatus: v1beta1.ServiceBindingUnbindStatusNotRequired,
 	}
 
+	return binding
+}
+
+// getTestServiceBindingAsyncBinding returns an instance credential in async mode
+func getTestServiceBindingAsyncBinding(operation string) *v1beta1.ServiceBinding {
+	binding := getTestServiceBinding()
+
+	operationStartTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+	binding.Status = v1beta1.ServiceBindingStatus{
+		Conditions: []v1beta1.ServiceBindingCondition{{
+			Type:               v1beta1.ServiceBindingConditionReady,
+			Status:             v1beta1.ConditionFalse,
+			Message:            "Binding",
+			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
+		},
+		},
+		AsyncOpInProgress:    true,
+		OperationStartTime:   &operationStartTime,
+		CurrentOperation:     v1beta1.ServiceBindingOperationBind,
+		InProgressProperties: &v1beta1.ServiceBindingPropertiesState{},
+		UnbindStatus:         v1beta1.ServiceBindingUnbindStatusRequired,
+	}
+	if operation != "" {
+		binding.Status.LastOperation = &operation
+	}
+
+	return binding
+}
+
+// getTestServiceBindingAsyncBinding returns a binding service binding in
+// async mode whose retry duration has been exceeded
+func getTestServiceBindingAsyncBindingRetryDurationExceeded(operation string) *v1beta1.ServiceBinding {
+	binding := getTestServiceBindingAsyncBinding(operation)
+	var startTime metav1.Time
+	startTime = metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
+	binding.Status.OperationStartTime = &startTime
+	return binding
+}
+
+// getTestServiceBindingAsyncUnbinding returns an unbinding service binding in
+// async mode
+func getTestServiceBindingAsyncUnbinding(operation string) *v1beta1.ServiceBinding {
+	binding := getTestServiceBinding()
+	binding.Generation = 2
+
+	operationStartTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+
+	binding.Status = v1beta1.ServiceBindingStatus{
+		Conditions: []v1beta1.ServiceBindingCondition{{
+			Type:               v1beta1.ServiceBindingConditionReady,
+			Status:             v1beta1.ConditionFalse,
+			Message:            "Unbinding",
+			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
+		}},
+		AsyncOpInProgress:    true,
+		OperationStartTime:   &operationStartTime,
+		CurrentOperation:     v1beta1.ServiceBindingOperationUnbind,
+		ReconciledGeneration: 1,
+		ExternalProperties:   &v1beta1.ServiceBindingPropertiesState{},
+		UnbindStatus:         v1beta1.ServiceBindingUnbindStatusRequired,
+	}
+	if operation != "" {
+		binding.Status.LastOperation = &operation
+	}
+
+	return binding
+}
+
+// getTestServiceBindingAsyncUnbinding returns an unbinding service binding in
+// async mode whose retry duration has been exceeded
+func getTestServiceBindingAsyncUnbindingRetryDurationExceeded(operation string) *v1beta1.ServiceBinding {
+	binding := getTestServiceBindingAsyncUnbinding(operation)
+	var startTime metav1.Time
+	startTime = metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
+	binding.Status.OperationStartTime = &startTime
+	return binding
+}
+
+// getTestServiceBindingAsyncUnbinding returns a service binding undergoing
+// orphan mitigation in async mode
+func getTestServiceBindingAsyncOrphanMitigation(operation string) *v1beta1.ServiceBinding {
+	binding := getTestServiceBinding()
+
+	operationStartTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+
+	binding.Status = v1beta1.ServiceBindingStatus{
+		Conditions: []v1beta1.ServiceBindingCondition{{
+			Type:               v1beta1.ServiceBindingConditionReady,
+			Status:             v1beta1.ConditionFalse,
+			Message:            "Binding",
+			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
+		}},
+		AsyncOpInProgress:          true,
+		OrphanMitigationInProgress: true,
+		OperationStartTime:         &operationStartTime,
+		CurrentOperation:           v1beta1.ServiceBindingOperationBind,
+		ReconciledGeneration:       0,
+		InProgressProperties:       &v1beta1.ServiceBindingPropertiesState{},
+		UnbindStatus:               v1beta1.ServiceBindingUnbindStatusRequired,
+	}
+	if operation != "" {
+		binding.Status.LastOperation = &operation
+	}
+
+	return binding
+}
+
+// getTestServiceBindingAsyncOrphanMitigation returns a service binding
+// undergoing orphan mitigation in async mode whose retry duration has been
+// exceeded
+func getTestServiceBindingAsyncOrphanMitigationRetryDurationExceeded(operation string) *v1beta1.ServiceBinding {
+	binding := getTestServiceBindingAsyncOrphanMitigation(operation)
+	var startTime metav1.Time
+	startTime = metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
+	binding.Status.OperationStartTime = &startTime
 	return binding
 }
 
@@ -2287,6 +2445,7 @@ func assertServiceBindingErrorBeforeRequest(t *testing.T, obj runtime.Object, re
 	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
 	assertServiceBindingInProgressPropertiesNil(t, obj)
 	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusNotRequired)
 }
 
 func assertServiceBindingFailedBeforeRequest(t *testing.T, obj runtime.Object, reason string, originalBinding *v1beta1.ServiceBinding) {
@@ -2296,6 +2455,7 @@ func assertServiceBindingFailedBeforeRequest(t *testing.T, obj runtime.Object, r
 	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Generation)
 	assertServiceBindingInProgressPropertiesNil(t, obj)
 	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusNotRequired)
 }
 
 func assertServiceBindingOperationInProgress(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, originalBinding *v1beta1.ServiceBinding) {
@@ -2321,6 +2481,7 @@ func assertServiceBindingOperationInProgressWithParameters(t *testing.T, obj run
 		assertServiceBindingInProgressPropertiesNil(t, obj)
 	}
 	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
 }
 
 func assertServiceBindingStartingOrphanMitigation(t *testing.T, obj runtime.Object, originalBinding *v1beta1.ServiceBinding) {
@@ -2329,6 +2490,7 @@ func assertServiceBindingStartingOrphanMitigation(t *testing.T, obj runtime.Obje
 	assertServiceBindingOperationStartTimeSet(t, obj, false)
 	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
 	assertServiceBindingOrphanMitigationSet(t, obj, true)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
 }
 
 func assertServiceBindingOperationSuccess(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, originalBinding *v1beta1.ServiceBinding) {
@@ -2337,16 +2499,19 @@ func assertServiceBindingOperationSuccess(t *testing.T, obj runtime.Object, oper
 
 func assertServiceBindingOperationSuccessWithParameters(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, externalParameters map[string]interface{}, externalParametersChecksum string, originalBinding *v1beta1.ServiceBinding) {
 	var (
-		reason      string
-		readyStatus v1beta1.ConditionStatus
+		reason       string
+		readyStatus  v1beta1.ConditionStatus
+		unbindStatus v1beta1.ServiceBindingUnbindStatus
 	)
 	switch operation {
 	case v1beta1.ServiceBindingOperationBind:
 		reason = successInjectedBindResultReason
 		readyStatus = v1beta1.ConditionTrue
+		unbindStatus = v1beta1.ServiceBindingUnbindStatusRequired
 	case v1beta1.ServiceBindingOperationUnbind:
 		reason = successUnboundReason
 		readyStatus = v1beta1.ConditionFalse
+		unbindStatus = v1beta1.ServiceBindingUnbindStatusSucceeded
 	}
 	assertServiceBindingReadyCondition(t, obj, readyStatus, reason)
 	assertServiceBindingCurrentOperationClear(t, obj)
@@ -2354,6 +2519,8 @@ func assertServiceBindingOperationSuccessWithParameters(t *testing.T, obj runtim
 	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Generation)
 	if operation == v1beta1.ServiceBindingOperationUnbind {
 		assertEmptyFinalizers(t, obj)
+	} else {
+		assertCatalogFinalizerExists(t, obj)
 	}
 	assertServiceBindingInProgressPropertiesNil(t, obj)
 	switch operation {
@@ -2362,15 +2529,21 @@ func assertServiceBindingOperationSuccessWithParameters(t *testing.T, obj runtim
 	case v1beta1.ServiceBindingOperationUnbind:
 		assertServiceBindingExternalPropertiesNil(t, obj)
 	}
+	assertServiceBindingUnbindStatus(t, obj, unbindStatus)
 }
 
 func assertServiceBindingRequestFailingError(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, readyReason string, failureReason string, originalBinding *v1beta1.ServiceBinding) {
-	var readyStatus v1beta1.ConditionStatus
+	var (
+		readyStatus  v1beta1.ConditionStatus
+		unbindStatus v1beta1.ServiceBindingUnbindStatus
+	)
 	switch operation {
 	case v1beta1.ServiceBindingOperationBind:
 		readyStatus = v1beta1.ConditionFalse
+		unbindStatus = v1beta1.ServiceBindingUnbindStatusRequired
 	case v1beta1.ServiceBindingOperationUnbind:
 		readyStatus = v1beta1.ConditionUnknown
+		unbindStatus = v1beta1.ServiceBindingUnbindStatusFailed
 	}
 	assertServiceBindingReadyCondition(t, obj, readyStatus, readyReason)
 	assertServiceBindingCondition(t, obj, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, failureReason)
@@ -2379,6 +2552,82 @@ func assertServiceBindingRequestFailingError(t *testing.T, obj runtime.Object, o
 	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Generation)
 	assertServiceBindingInProgressPropertiesNil(t, obj)
 	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
+	assertServiceBindingUnbindStatus(t, obj, unbindStatus)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingAsyncBindRetryDurationExceeded(t *testing.T, obj runtime.Object, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionFalse, errorServiceBindingOrphanMitigation)
+	assertServiceBindingCondition(t, obj, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, errorReconciliationRetryTimeoutReason)
+	assertServiceBindingCurrentOperation(t, obj, v1beta1.ServiceBindingOperationBind)
+	assertServiceBindingOperationStartTimeSet(t, obj, false)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	assertServiceBindingInProgressPropertiesParameters(t, obj, nil, "")
+	assertServiceBindingExternalPropertiesNil(t, obj)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingAsyncBindErrorAfterStateSucceeded(t *testing.T, obj runtime.Object, failureReason string, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionFalse, errorServiceBindingOrphanMitigation)
+	assertServiceBindingCondition(t, obj, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, failureReason)
+	assertServiceBindingCurrentOperation(t, obj, v1beta1.ServiceBindingOperationBind)
+	assertServiceBindingOperationStartTimeSet(t, obj, false)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	assertServiceBindingExternalPropertiesParameters(t, obj, nil, "")
+	assertServiceBindingInProgressPropertiesNil(t, obj)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingAsyncUnbindRetryDurationExceeded(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, readyReason string, failureReason string, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionFalse, readyReason)
+	assertServiceBindingCondition(t, obj, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, failureReason)
+	assertServiceBindingCurrentOperationClear(t, obj)
+	assertServiceBindingOperationStartTimeSet(t, obj, false)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Generation)
+	assertServiceBindingInProgressPropertiesNil(t, obj)
+	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusFailed)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingAsyncOrphanMitigationRetryDurationExceeded(t *testing.T, obj runtime.Object, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionUnknown, errorOrphanMitigationFailedReason)
+	assertServiceBindingCurrentOperationClear(t, obj)
+	assertServiceBindingOperationStartTimeSet(t, obj, false)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Generation)
+	assertServiceBindingInProgressPropertiesNil(t, obj)
+	assertServiceBindingExternalPropertiesNil(t, obj)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusFailed)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingErrorFetchingBinding(t *testing.T, obj runtime.Object, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionFalse, errorFetchingBindingFailedReason)
+	assertServiceBindingCurrentOperation(t, obj, v1beta1.ServiceBindingOperationBind)
+	assertServiceBindingOperationStartTimeSet(t, obj, true)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	assertServiceBindingInProgressPropertiesNil(t, obj)
+	assertServiceBindingExternalPropertiesParameters(t, obj, nil, "")
+	assertServiceBindingAsyncOpInProgressTrue(t, obj)
+	assertServiceBindingOrphanMitigationSet(t, obj, false)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingErrorInjectingCredentials(t *testing.T, obj runtime.Object, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyFalse(t, obj, errorInjectingBindResultReason)
+	assertServiceBindingCurrentOperation(t, obj, v1beta1.ServiceBindingOperationBind)
+	assertServiceBindingOperationStartTimeSet(t, obj, true)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	assertServiceBindingInProgressPropertiesNil(t, obj)
+	// External properties are updated because the bind request with the Broker was successful
+	assertServiceBindingExternalPropertiesParameters(t, obj, nil, "")
+	assertServiceBindingAsyncOpInProgressTrue(t, obj)
+	assertServiceBindingOrphanMitigationSet(t, obj, false)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+	assertCatalogFinalizerExists(t, obj)
 }
 
 func assertServiceBindingRequestRetriableError(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, reason string, originalBinding *v1beta1.ServiceBinding) {
@@ -2404,6 +2653,80 @@ func assertServiceBindingRequestRetriableErrorWithParameters(t *testing.T, obj r
 		assertServiceBindingInProgressPropertiesNil(t, obj)
 	}
 	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+}
+
+func assertServiceBindingAsyncInProgress(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, reason string, operationKey string, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyFalse(t, obj, reason)
+	assertServiceBindingLastOperation(t, obj, operationKey)
+	assertServiceBindingCurrentOperation(t, obj, operation)
+	assertServiceBindingOperationStartTimeSet(t, obj, true)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	switch operation {
+	case v1beta1.ServiceBindingOperationBind:
+		assertServiceBindingInProgressPropertiesParameters(t, obj, nil, "")
+	case v1beta1.ServiceBindingOperationUnbind:
+		assertServiceBindingInProgressPropertiesNil(t, obj)
+	}
+	assertServiceBindingAsyncOpInProgressTrue(t, obj)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingOrphanMitigationSuccess(t *testing.T, obj runtime.Object, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionFalse, successOrphanMitigationReason)
+	assertServiceBindingCurrentOperationClear(t, obj)
+	assertServiceBindingOperationStartTimeSet(t, obj, false)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Generation)
+	assertServiceBindingInProgressPropertiesNil(t, obj)
+	assertServiceBindingExternalPropertiesNil(t, obj)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusSucceeded)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingOrphanMitigationFailure(t *testing.T, obj runtime.Object, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionUnknown, errorOrphanMitigationFailedReason)
+	assertServiceBindingCurrentOperationClear(t, obj)
+	assertServiceBindingOperationStartTimeSet(t, obj, false)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Generation)
+	assertServiceBindingInProgressPropertiesNil(t, obj)
+	assertServiceBindingExternalPropertiesNil(t, obj)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusFailed)
+	assertCatalogFinalizerExists(t, obj)
+}
+
+func assertServiceBindingLastOperation(t *testing.T, obj runtime.Object, operation string) {
+	binding, ok := obj.(*v1beta1.ServiceBinding)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1beta1.ServiceBinding", obj)
+	}
+	if binding.Status.LastOperation == nil {
+		if operation != "" {
+			fatalf(t, "Last Operation <nil> is not what was expected: %q", operation)
+		}
+	} else if *binding.Status.LastOperation != operation {
+		fatalf(t, "Last Operation %q is not what was expected: %q", *binding.Status.LastOperation, operation)
+	}
+}
+
+func assertServiceBindingAsyncOpInProgressTrue(t *testing.T, obj runtime.Object) {
+	binding, ok := obj.(*v1beta1.ServiceBinding)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1beta1.ServiceBinding", obj)
+	}
+	if !binding.Status.AsyncOpInProgress {
+		fatalf(t, "expected AsyncOpInProgress to be true but was %v", binding.Status.AsyncOpInProgress)
+	}
+}
+
+func assertServiceBindingAsyncOpInProgressFalse(t *testing.T, obj runtime.Object) {
+	binding, ok := obj.(*v1beta1.ServiceBinding)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1beta1.ServiceBinding", obj)
+	}
+	if binding.Status.AsyncOpInProgress {
+		fatalf(t, "expected AsyncOpInProgress to be false but was %v", binding.Status.AsyncOpInProgress)
+	}
 }
 
 func assertServiceBindingInProgressPropertiesNil(t *testing.T, obj runtime.Object) {
@@ -2495,6 +2818,17 @@ func assertServiceBindingOrphanMitigationSet(t *testing.T, obj runtime.Object, i
 
 	if e, a := inProgress, binding.Status.OrphanMitigationInProgress; e != a {
 		fatalf(t, "expected OrphanMitigationInProgress to be %v, but was not", a)
+	}
+}
+
+func assertServiceBindingUnbindStatus(t *testing.T, obj runtime.Object, unbindStatus v1beta1.ServiceBindingUnbindStatus) {
+	binding, ok := obj.(*v1beta1.ServiceBinding)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1beta1.ServiceBinding", obj)
+	}
+
+	if e, a := unbindStatus, binding.Status.UnbindStatus; e != a {
+		fatalf(t, "unexpected UnbindStatus, %s", expectedGot(e, a))
 	}
 }
 
@@ -2621,6 +2955,16 @@ func assertPollLastOperation(t *testing.T, action fakeosb.Action, request *osb.L
 	}
 }
 
+func assertPollBindingLastOperation(t *testing.T, action fakeosb.Action, request *osb.BindingLastOperationRequest) {
+	if e, a := fakeosb.PollBindingLastOperation, action.Type; e != a {
+		fatalf(t, "unexpected action type; expected %v, got %v", e, a)
+	}
+
+	if e, a := request, action.Request; !reflect.DeepEqual(e, a) {
+		fatalf(t, "unexpected diff in binding last operation request: %v\nexpected %+v\ngot      %+v", diff.ObjectReflectDiff(e, a), e, a)
+	}
+}
+
 func assertBind(t *testing.T, action fakeosb.Action, request *osb.BindRequest) {
 	if e, a := fakeosb.Bind, action.Type; e != a {
 		fatalf(t, "unexpected action type; expected %v, got %v", e, a)
@@ -2654,6 +2998,20 @@ func assertUnbind(t *testing.T, action fakeosb.Action, request *osb.UnbindReques
 	if e, a := request, action.Request; !reflect.DeepEqual(e, a) {
 		fatalf(t, "unexpected diff in bind request: %v\nexpected %+v\ngot      %+v", diff.ObjectReflectDiff(e, a), e, a)
 	}
+}
+
+func assertGetBinding(t *testing.T, action fakeosb.Action, request *osb.GetBindingRequest) {
+	if e, a := fakeosb.GetBinding, action.Type; e != a {
+		fatalf(t, "unexpected action type; expected %v, got %v", e, a)
+	}
+
+	// TODO(mkibbe): Currently the GetBinding fake has a bug where it does not
+	// store the request. Re-enable this once this is fixed.
+	/*
+		if e, a := request, action.Request; !reflect.DeepEqual(e, a) {
+			fatalf(t, "unexpected diff in GET binding request: %v\nexpected %+v\ngot      %+v", diff.ObjectReflectDiff(e, a), e, a)
+		}
+	*/
 }
 
 func assertOriginatingIdentity(t *testing.T, expected *osb.OriginatingIdentity, actual *osb.OriginatingIdentity) {

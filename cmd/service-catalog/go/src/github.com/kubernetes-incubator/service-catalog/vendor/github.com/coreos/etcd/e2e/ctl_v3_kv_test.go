@@ -28,6 +28,8 @@ func TestCtlV3PutTimeout(t *testing.T)       { testCtl(t, putTest, withDialTimeo
 func TestCtlV3PutClientTLSFlagByEnv(t *testing.T) {
 	testCtl(t, putTest, withCfg(configClientTLS), withFlagByEnv())
 }
+func TestCtlV3PutIgnoreValue(t *testing.T) { testCtl(t, putTestIgnoreValue) }
+func TestCtlV3PutIgnoreLease(t *testing.T) { testCtl(t, putTestIgnoreLease) }
 
 func TestCtlV3Get(t *testing.T)              { testCtl(t, getTest) }
 func TestCtlV3GetNoTLS(t *testing.T)         { testCtl(t, getTest, withCfg(configNoTLS)) }
@@ -59,6 +61,46 @@ func putTest(cx ctlCtx) {
 		if cx.dialTimeout > 0 && !isGRPCTimedout(err) {
 			cx.t.Fatalf("putTest ctlV3Get error (%v)", err)
 		}
+	}
+}
+
+func putTestIgnoreValue(cx ctlCtx) {
+	if err := ctlV3Put(cx, "foo", "bar", ""); err != nil {
+		cx.t.Fatal(err)
+	}
+	if err := ctlV3Get(cx, []string{"foo"}, kv{"foo", "bar"}); err != nil {
+		cx.t.Fatal(err)
+	}
+	if err := ctlV3Put(cx, "foo", "", "", "--ignore-value"); err != nil {
+		cx.t.Fatal(err)
+	}
+	if err := ctlV3Get(cx, []string{"foo"}, kv{"foo", "bar"}); err != nil {
+		cx.t.Fatal(err)
+	}
+}
+
+func putTestIgnoreLease(cx ctlCtx) {
+	leaseID, err := ctlV3LeaseGrant(cx, 10)
+	if err != nil {
+		cx.t.Fatalf("putTestIgnoreLease: ctlV3LeaseGrant error (%v)", err)
+	}
+	if err := ctlV3Put(cx, "foo", "bar", leaseID); err != nil {
+		cx.t.Fatalf("putTestIgnoreLease: ctlV3Put error (%v)", err)
+	}
+	if err := ctlV3Get(cx, []string{"foo"}, kv{"foo", "bar"}); err != nil {
+		cx.t.Fatalf("putTestIgnoreLease: ctlV3Get error (%v)", err)
+	}
+	if err := ctlV3Put(cx, "foo", "bar1", "", "--ignore-lease"); err != nil {
+		cx.t.Fatalf("putTestIgnoreLease: ctlV3Put error (%v)", err)
+	}
+	if err := ctlV3Get(cx, []string{"foo"}, kv{"foo", "bar1"}); err != nil {
+		cx.t.Fatalf("putTestIgnoreLease: ctlV3Get error (%v)", err)
+	}
+	if err := ctlV3LeaseRevoke(cx, leaseID); err != nil {
+		cx.t.Fatalf("putTestIgnoreLease: ctlV3LeaseRevok error (%v)", err)
+	}
+	if err := ctlV3Get(cx, []string{"key"}); err != nil { // expect no output
+		cx.t.Fatalf("putTestIgnoreLease: ctlV3Get error (%v)", err)
 	}
 }
 
@@ -156,21 +198,15 @@ func getRevTest(cx ctlCtx) {
 }
 
 func getKeysOnlyTest(cx ctlCtx) {
-	var (
-		kvs = []kv{{"key1", "val1"}}
-	)
-	for i := range kvs {
-		if err := ctlV3Put(cx, kvs[i].key, kvs[i].val, ""); err != nil {
-			cx.t.Fatalf("getKeysOnlyTest #%d: ctlV3Put error (%v)", i, err)
-		}
+	if err := ctlV3Put(cx, "key", "val", ""); err != nil {
+		cx.t.Fatal(err)
 	}
-
-	cmdArgs := append(cx.PrefixArgs(), "get")
-	cmdArgs = append(cmdArgs, []string{"--prefix", "--keys-only", "key"}...)
-
-	err := spawnWithExpects(cmdArgs, []string{"key1", ""}...)
-	if err != nil {
-		cx.t.Fatalf("getKeysOnlyTest : error (%v)", err)
+	cmdArgs := append(cx.PrefixArgs(), []string{"get", "--keys-only", "key"}...)
+	if err := spawnWithExpect(cmdArgs, "key"); err != nil {
+		cx.t.Fatal(err)
+	}
+	if err := spawnWithExpects(cmdArgs, "val"); err == nil {
+		cx.t.Fatalf("got value but passed --keys-only")
 	}
 }
 
@@ -227,10 +263,26 @@ func delTest(cx ctlCtx) {
 	}
 }
 
-func ctlV3Put(cx ctlCtx, key, value, leaseID string) error {
-	cmdArgs := append(cx.PrefixArgs(), "put", key, value)
-	if leaseID != "" {
+func ctlV3Put(cx ctlCtx, key, value, leaseID string, flags ...string) error {
+	skipValue := false
+	skipLease := false
+	for _, f := range flags {
+		if f == "--ignore-value" {
+			skipValue = true
+		}
+		if f == "--ignore-lease" {
+			skipLease = true
+		}
+	}
+	cmdArgs := append(cx.PrefixArgs(), "put", key)
+	if !skipValue {
+		cmdArgs = append(cmdArgs, value)
+	}
+	if leaseID != "" && !skipLease {
 		cmdArgs = append(cmdArgs, "--lease", leaseID)
+	}
+	if len(flags) != 0 {
+		cmdArgs = append(cmdArgs, flags...)
 	}
 	return spawnWithExpect(cmdArgs, "OK")
 }

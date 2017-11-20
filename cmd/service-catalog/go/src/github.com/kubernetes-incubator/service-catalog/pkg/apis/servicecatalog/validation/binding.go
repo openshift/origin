@@ -43,6 +43,23 @@ var validServiceBindingOperationValues = func() []string {
 	return validValues
 }()
 
+var validServiceBindingUnbindStatuses = map[sc.ServiceBindingUnbindStatus]bool{
+	sc.ServiceBindingUnbindStatusNotRequired: true,
+	sc.ServiceBindingUnbindStatusRequired:    true,
+	sc.ServiceBindingUnbindStatusSucceeded:   true,
+	sc.ServiceBindingUnbindStatusFailed:      true,
+}
+
+var validServiceBindingUnbindStatusValues = func() []string {
+	validValues := make([]string, len(validServiceBindingUnbindStatuses))
+	i := 0
+	for operation := range validServiceBindingUnbindStatuses {
+		validValues[i] = string(operation)
+		i++
+	}
+	return validValues
+}()
+
 // ValidateServiceBinding validates a ServiceBinding and returns a list of errors.
 func ValidateServiceBinding(binding *sc.ServiceBinding) field.ErrorList {
 	return internalValidateServiceBinding(binding, true)
@@ -94,6 +111,9 @@ func validateServiceBindingStatus(status *sc.ServiceBindingStatus, fldPath *fiel
 		if status.OperationStartTime != nil {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("operationStartTime"), "operationStartTime must not be present when currentOperation is not present"))
 		}
+		if status.AsyncOpInProgress {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("asyncOpInProgress"), "asyncOpInProgress cannot be true when there is no currentOperation"))
+		}
 	} else {
 		if status.OperationStartTime == nil && !status.OrphanMitigationInProgress {
 			allErrs = append(allErrs, field.Required(fldPath.Child("operationStartTime"), "operationStartTime is required when currentOperation is present and no orphan mitigation in progress"))
@@ -122,6 +142,16 @@ func validateServiceBindingStatus(status *sc.ServiceBindingStatus, fldPath *fiel
 
 	if status.ExternalProperties != nil {
 		allErrs = append(allErrs, validateServiceBindingPropertiesState(status.ExternalProperties, fldPath.Child("externalProperties"), create)...)
+	}
+
+	if create {
+		if status.UnbindStatus != sc.ServiceBindingUnbindStatusNotRequired {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("unbindStatus"), status.UnbindStatus, `unbindStatus must be "NotRequired" on create`))
+		}
+	} else {
+		if !validServiceBindingUnbindStatuses[status.UnbindStatus] {
+			allErrs = append(allErrs, field.NotSupported(fldPath.Child("unbindStatus"), status.UnbindStatus, validServiceBindingUnbindStatusValues))
+		}
 	}
 
 	return allErrs

@@ -37,7 +37,6 @@ type watcherTest func(*testing.T, *watchctx)
 type watchctx struct {
 	clus          *integration.ClusterV3
 	w             clientv3.Watcher
-	wclient       *clientv3.Client
 	kv            clientv3.KV
 	wclientMember int
 	kvMember      int
@@ -51,19 +50,16 @@ func runWatchTest(t *testing.T, f watcherTest) {
 	defer clus.Terminate(t)
 
 	wclientMember := rand.Intn(3)
-	wclient := clus.Client(wclientMember)
-	w := clientv3.NewWatcher(wclient)
-	defer w.Close()
+	w := clus.Client(wclientMember).Watcher
 	// select a different client from wclient so puts succeed if
 	// a test knocks out the watcher client
 	kvMember := rand.Intn(3)
 	for kvMember == wclientMember {
 		kvMember = rand.Intn(3)
 	}
-	kvclient := clus.Client(kvMember)
-	kv := clientv3.NewKV(kvclient)
+	kv := clus.Client(kvMember).KV
 
-	wctx := &watchctx{clus, w, wclient, kv, wclientMember, kvMember, nil}
+	wctx := &watchctx{clus, w, kv, wclientMember, kvMember, nil}
 	f(t, wctx)
 }
 
@@ -409,8 +405,7 @@ func TestWatchResumeCompacted(t *testing.T) {
 	defer clus.Terminate(t)
 
 	// create a waiting watcher at rev 1
-	w := clientv3.NewWatcher(clus.Client(0))
-	defer w.Close()
+	w := clus.Client(0)
 	wch := w.Watch(context.Background(), "foo", clientv3.WithRev(1))
 	select {
 	case w := <-wch:
@@ -431,7 +426,7 @@ func TestWatchResumeCompacted(t *testing.T) {
 
 	// put some data and compact away
 	numPuts := 5
-	kv := clientv3.NewKV(clus.Client(1))
+	kv := clus.Client(1)
 	for i := 0; i < numPuts; i++ {
 		if _, err := kv.Put(context.TODO(), "foo", "bar"); err != nil {
 			t.Fatal(err)
@@ -469,7 +464,7 @@ func TestWatchResumeCompacted(t *testing.T) {
 			continue
 		}
 		if wresp.Err() != rpctypes.ErrCompacted {
-			t.Fatalf("wresp.Err() expected %v, but got %v %+v", rpctypes.ErrCompacted, wresp.Err())
+			t.Fatalf("wresp.Err() expected %v, got %+v", rpctypes.ErrCompacted, wresp.Err())
 		}
 		break
 	}
@@ -497,15 +492,14 @@ func TestWatchCompactRevision(t *testing.T) {
 	defer clus.Terminate(t)
 
 	// set some keys
-	kv := clientv3.NewKV(clus.RandClient())
+	kv := clus.RandClient()
 	for i := 0; i < 5; i++ {
 		if _, err := kv.Put(context.TODO(), "foo", "bar"); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	w := clientv3.NewWatcher(clus.RandClient())
-	defer w.Close()
+	w := clus.RandClient()
 
 	if _, err := kv.Compact(context.TODO(), 4); err != nil {
 		t.Fatal(err)
@@ -543,8 +537,7 @@ func testWatchWithProgressNotify(t *testing.T, watchOnPut bool) {
 	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})
 	defer clus.Terminate(t)
 
-	wc := clientv3.NewWatcher(clus.RandClient())
-	defer wc.Close()
+	wc := clus.RandClient()
 
 	opts := []clientv3.OpOption{clientv3.WithProgressNotify()}
 	if watchOnPut {
@@ -561,7 +554,7 @@ func testWatchWithProgressNotify(t *testing.T, watchOnPut bool) {
 		t.Fatalf("watch response expected in %v, but timed out", pi)
 	}
 
-	kvc := clientv3.NewKV(clus.RandClient())
+	kvc := clus.RandClient()
 	if _, err := kvc.Put(context.TODO(), "foox", "bar"); err != nil {
 		t.Fatal(err)
 	}
@@ -664,13 +657,11 @@ func TestWatchErrConnClosed(t *testing.T) {
 	defer clus.Terminate(t)
 
 	cli := clus.Client(0)
-	defer cli.Close()
-	wc := clientv3.NewWatcher(cli)
 
 	donec := make(chan struct{})
 	go func() {
 		defer close(donec)
-		ch := wc.Watch(context.TODO(), "foo")
+		ch := cli.Watch(context.TODO(), "foo")
 		if wr := <-ch; grpc.ErrorDesc(wr.Err()) != grpc.ErrClientConnClosing.Error() {
 			t.Fatalf("expected %v, got %v", grpc.ErrClientConnClosing, grpc.ErrorDesc(wr.Err()))
 		}
@@ -702,9 +693,8 @@ func TestWatchAfterClose(t *testing.T) {
 
 	donec := make(chan struct{})
 	go func() {
-		wc := clientv3.NewWatcher(cli)
-		wc.Watch(context.TODO(), "foo")
-		if err := wc.Close(); err != nil && err != grpc.ErrClientConnClosing {
+		cli.Watch(context.TODO(), "foo")
+		if err := cli.Close(); err != nil && err != grpc.ErrClientConnClosing {
 			t.Fatalf("expected %v, got %v", grpc.ErrClientConnClosing, err)
 		}
 		close(donec)
@@ -741,7 +731,9 @@ func TestWatchWithRequireLeader(t *testing.T) {
 
 	// wait for election timeout, then member[0] will not have a leader.
 	tickDuration := 10 * time.Millisecond
-	time.Sleep(time.Duration(3*clus.Members[0].ElectionTicks) * tickDuration)
+	// existing streams need three elections before they're torn down; wait until 5 elections cycle
+	// so proxy tests receive a leader loss event on its existing watch before creating a new watch.
+	time.Sleep(time.Duration(5*clus.Members[0].ElectionTicks) * tickDuration)
 
 	chLeader := liveClient.Watch(clientv3.WithRequireLeader(context.TODO()), "foo", clientv3.WithRev(1))
 	chNoLeader := liveClient.Watch(context.TODO(), "foo", clientv3.WithRev(1))
@@ -862,21 +854,39 @@ func TestWatchCancelOnServer(t *testing.T) {
 	defer cluster.Terminate(t)
 
 	client := cluster.RandClient()
+	numWatches := 10
 
-	for i := 0; i < 10; i++ {
+	cancels := make([]context.CancelFunc, numWatches)
+	for i := 0; i < numWatches; i++ {
+		// use WithTimeout to force separate streams in client
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		client.Watch(ctx, "a", clientv3.WithCreatedNotify())
-		cancel()
+		cancels[i] = cancel
+		w := client.Watch(ctx, fmt.Sprintf("%d", i), clientv3.WithCreatedNotify())
+		<-w
 	}
-	// wait for cancels to propagate
+
+	// get max watches; proxy tests have leadership watches, so total may be >numWatches
+	maxWatches, _ := cluster.Members[0].Metric("etcd_debugging_mvcc_watcher_total")
+
+	// cancel all and wait for cancels to propagate to etcd server
+	for i := 0; i < numWatches; i++ {
+		cancels[i]()
+	}
 	time.Sleep(time.Second)
 
-	watchers, err := cluster.Members[0].Metric("etcd_debugging_mvcc_watcher_total")
+	minWatches, err := cluster.Members[0].Metric("etcd_debugging_mvcc_watcher_total")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if watchers != "0" {
-		t.Fatalf("expected 0 watchers, got %q", watchers)
+
+	maxWatchV, minWatchV := 0, 0
+	n, serr := fmt.Sscanf(maxWatches+" "+minWatches, "%d %d", &maxWatchV, &minWatchV)
+	if n != 2 || serr != nil {
+		t.Fatalf("expected n=2 and err=nil, got n=%d and err=%v", n, serr)
+	}
+
+	if maxWatchV-minWatchV != numWatches {
+		t.Fatalf("expected %d canceled watchers, got %d", numWatches, maxWatchV-minWatchV)
 	}
 }
 
