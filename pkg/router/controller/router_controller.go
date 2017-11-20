@@ -23,6 +23,7 @@ import (
 
 // RouterController abstracts the details of watching resources like Routes, Endpoints, etc.
 // used by the plugin implementation.
+// TODO: remove all the public methods on this type
 type RouterController struct {
 	lock sync.Mutex
 

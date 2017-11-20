@@ -127,7 +127,7 @@ func (o *RouterStats) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.StatsUsername, "stats-user", util.Env("STATS_USERNAME", ""), "If the underlying router implementation can provide statistics this is the requested username for auth.")
 }
 
-// NewCommndTemplateRouter provides CLI handler for the template router backend
+// NewCommandTemplateRouter provides CLI handler for the template router backend
 func NewCommandTemplateRouter(name string) *cobra.Command {
 	options := &TemplateRouterOptions{
 		Config: clientcmd.NewConfig(),
