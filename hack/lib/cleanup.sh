@@ -28,12 +28,14 @@ function os::cleanup::all() {
 	set +o errexit
 
 	os::log::info "[CLEANUP] Beginning cleanup routines..."
-	os::cleanup::dump_events
-	os::cleanup::dump_etcd
-	os::cleanup::dump_container_logs
-	os::cleanup::dump_pprof_output
-	os::cleanup::find_cache_alterations
-	os::cleanup::truncate_large_logs
+	if [[ -z "${SKIP_CLEANUP_DEBUG:-}" ]]; then
+		os::cleanup::dump_events
+		os::cleanup::dump_etcd
+		os::cleanup::dump_container_logs
+		os::cleanup::dump_pprof_output
+		os::cleanup::find_cache_alterations
+		os::cleanup::truncate_large_logs
+	fi
 
 	if [[ -z "${SKIP_TEARDOWN:-}" ]]; then
 		os::cleanup::containers

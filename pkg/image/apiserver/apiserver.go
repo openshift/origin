@@ -2,12 +2,16 @@ package apiserver
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
+	"github.com/docker/distribution/registry/client/auth"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -150,7 +154,14 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 	}
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, c.RegistryHostnameRetriever)
-	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
+
+	credentials := newLazyServiceAccountSecretBasicAuthStore(coreClient, "openshift-infra", "registry-management-controller")
+	authHandlersFunc := func(transport http.RoundTripper, registry *url.URL, repoName string) []auth.AuthenticationHandler {
+		return []auth.AuthenticationHandler{auth.NewTokenHandler(transport, credentials, repoName, "pull", "push")}
+	}
+	adminRegistryRetriever := importer.NewContext(importTransport, insecureImportTransport).WithAuthHandlers(authHandlersFunc)
+	imageStreamTagStorage, imageInstantiateStorage, imageInstantiateBinaryStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry, authorizationClient.SubjectAccessReviews(), c.RegistryHostnameRetriever, adminRegistryRetriever, credentials)
+
 	importerCache, err := imageimporter.NewImageStreamLayerCache(imageimporter.DefaultImageStreamLayerCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -185,5 +196,20 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 	v1Storage["imageStreamImages"] = imageStreamImageStorage
 	v1Storage["imageStreamMappings"] = imageStreamMappingStorage
 	v1Storage["imageStreamTags"] = imageStreamTagStorage
+	v1Storage["imageStreamTags/instantiate"] = imageInstantiateStorage
+	// This is a separate endpoint because the standard create endpoint does not allow "connect" behavior for multi-part
+	// forms. It would be ideal if a create endpoint in Kube could also optionally support connect, and have that negotiation
+	// provided as part of the request. So a multipart operation would bypass normal create. Needs more investigation - for now
+	// a separate endpoint is required.
+	v1Storage["imageStreamTags/instantiatelayer"] = imageInstantiateBinaryStorage
+
 	return v1Storage, nil
+}
+
+// LegacyImageMutator allows us to remove new endpoints from a legacy server.
+type LegacyImageMutator struct{}
+
+func (l LegacyImageMutator) Mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
+	delete(legacyStorage[imageapiv1.LegacySchemeGroupVersion], "imageStreamTags/instantiate")
+	delete(legacyStorage[imageapiv1.LegacySchemeGroupVersion], "imageStreamTags/instantiatelayer")
 }

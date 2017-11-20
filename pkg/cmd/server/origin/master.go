@@ -183,7 +183,7 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 	}
 	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain,
 		map[string]apiserver.PostStartHookFunc{
-			"oauth.openshift.io-EnsureBootstrapOAuthClients": config.EnsureBootstrapOAuthClients,
+			"oauth.openshift.io-ensurebootstrapoauthclients": config.EnsureBootstrapOAuthClients,
 		},
 		nil
 }
@@ -248,9 +248,11 @@ func (c *MasterConfig) Run(controllerPlug plug.Plug, stopCh <-chan struct{}) err
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("image.openshift.io-serviceaccounts", c.ensureOpenShiftMasterServiceAccounts)
 	for name, fn := range c.additionalPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}
+
 	for name, fn := range extraPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}

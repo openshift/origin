@@ -222,6 +222,19 @@ items:
     annotations:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
+    name: registry-management-controller-binding
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:image-pruner
+  subjects:
+  - kind: ServiceAccount
+    name: registry-management-controller
+    namespace: openshift-infra
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
     name: system:build-strategy-docker-binding
   roleRef:
     apiGroup: rbac.authorization.k8s.io
@@ -994,6 +1007,19 @@ items:
   subjects:
   - kind: ServiceAccount
     name: template-service-broker
+    namespace: openshift-infra
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:registry-management-controller
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:openshift:controller:registry-management-controller
+  subjects:
+  - kind: ServiceAccount
+    name: registry-management-controller
     namespace: openshift-infra
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding

@@ -842,6 +842,8 @@ var kindWhiteList = sets.NewString(
 
 	// github.com/openshift/origin/pkg/image/apis/image
 	"DockerImage",
+	"ImageStreamTagInstantiate",
+	"ImageStreamTagInstantiateOptions",
 	// --
 )
 

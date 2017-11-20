@@ -3,6 +3,7 @@ package validation
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -390,5 +391,57 @@ func ValidateImageStreamImport(isi *imageapi.ImageStreamImport) field.ErrorList 
 	}
 
 	errs = append(errs, validation.ValidateObjectMeta(&isi.ObjectMeta, true, ValidateImageStreamName, field.NewPath("metadata"))...)
+	return errs
+}
+
+func ValidateImageStreamTagInstantiate(instantiate *imageapi.ImageStreamTagInstantiate) field.ErrorList {
+	var errs field.ErrorList
+	errs = append(errs, validation.ValidateObjectMeta(&instantiate.ObjectMeta, true, path.ValidatePathSegmentName, field.NewPath("metadata"))...)
+	if len(instantiate.ObjectMeta.Annotations) != 0 {
+		errs = append(errs, field.Invalid(field.NewPath("metadata", "annotations"), nil, "may not be specified"))
+	}
+	if len(instantiate.ObjectMeta.Labels) != 0 {
+		errs = append(errs, field.Invalid(field.NewPath("metadata", "labels"), nil, "may not be specified"))
+	}
+	if instantiate.From == nil && instantiate.Image == nil {
+		errs = append(errs, field.Required(field.NewPath("image"), "required when from is not specified"))
+	}
+	if from := instantiate.From; from != nil {
+		switch from.Kind {
+		case "DockerImage":
+			if _, err := imageapi.ParseDockerImageReference(from.Name); err != nil {
+				errs = append(errs, field.Invalid(field.NewPath("from", "name"), from.Kind, "must be a valid image pull spec"))
+			}
+		case "ImageStreamTag":
+			if _, _, ok := imageapi.SplitImageStreamTag(from.Name); !ok {
+				errs = append(errs, field.Invalid(field.NewPath("from", "name"), from.Kind, "must be NAME:TAG"))
+			}
+		case "ImageStreamImage":
+			if _, _, ok := imageapi.SplitImageStreamImage(from.Name); !ok {
+				errs = append(errs, field.Invalid(field.NewPath("from", "name"), from.Kind, "must be NAME@DIGEST"))
+			}
+		default:
+			errs = append(errs, field.Invalid(field.NewPath("from", "kind"), from.Kind, "must be DockerImage, ImageStreamTag, or ImageStreamImage"))
+		}
+	}
+	if instantiate.Image != nil {
+		if !instantiate.Image.DockerImageMetadata.Created.IsZero() {
+			errs = append(errs, field.Invalid(field.NewPath("image", "dockerImageMetadata", "created"), instantiate.Image.DockerImageMetadata.Created, "must be empty"))
+		}
+		errs = append(errs, ValidateDockerImageMetadata(field.NewPath("image", "dockerImageMetadata"), &instantiate.Image.DockerImageMetadata)...)
+	}
+
+	return errs
+}
+
+func ValidateImageStreamTagInstantiateOptions(instantiate *imageapi.ImageStreamTagInstantiateOptions) field.ErrorList {
+	return nil
+}
+
+func ValidateDockerImageMetadata(fldPath *field.Path, metadata *imageapi.DockerImage) field.ErrorList {
+	var errs field.ErrorList
+	if !reflect.DeepEqual(metadata.ContainerConfig, imageapi.DockerConfig{}) {
+		errs = append(errs, field.Invalid(fldPath.Child("containerConfig"), nil, "may not be specified"))
+	}
 	return errs
 }

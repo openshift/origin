@@ -24,6 +24,15 @@ type DockerImage struct {
 	Config          *DockerConfig `json:"config,omitempty"`
 	Architecture    string        `json:"architecture,omitempty"`
 	Size            int64         `json:"size,omitempty"`
+
+	RootFS *DockerImageRootFS `json:"rootfs,omitempty"`
+	OS     string             `json:"os,omitempty"`
+}
+
+// DockerImageRootFS describes images root filesystem
+type DockerImageRootFS struct {
+	Type    string   `json:"type"`
+	DiffIDs []string `json:"layers,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.

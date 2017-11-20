@@ -20,6 +20,9 @@ type Registry interface {
 	GetImageStream(ctx apirequest.Context, id string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
 	// CreateImageStream creates a new image stream.
 	CreateImageStream(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	// CreateImageStreamInternal creates a new image stream and allows you to set spec and status. Only use
+	// this from within internal code.
+	CreateImageStreamInternal(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	// UpdateImageStream updates an image stream.
 	UpdateImageStream(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	// UpdateImageStreamSpec updates an image stream's spec.
@@ -39,7 +42,11 @@ type Storage interface {
 	rest.Getter
 	rest.Watcher
 
-	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
+	Mutator
+}
+
+type Mutator interface {
+	Create(ctx apirequest.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error)
 	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
@@ -47,12 +54,12 @@ type Storage interface {
 type storage struct {
 	Storage
 	status   rest.Updater
-	internal rest.Updater
+	internal Mutator
 }
 
 // NewRegistry returns a new Registry interface for the given Storage. Any mismatched
 // types will panic.
-func NewRegistry(s Storage, status, internal rest.Updater) Registry {
+func NewRegistry(s Storage, status rest.Updater, internal Mutator) Registry {
 	return &storage{Storage: s, status: status, internal: internal}
 }
 
@@ -74,6 +81,14 @@ func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string, o
 
 func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	obj, err := s.Create(ctx, imageStream, false)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*imageapi.ImageStream), nil
+}
+
+func (s *storage) CreateImageStreamInternal(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	obj, err := s.internal.Create(ctx, imageStream, false)
 	if err != nil {
 		return nil, err
 	}

@@ -105,20 +105,12 @@ func Convert_v1_Image_To_image_Image(in *Image, out *newer.Image, s conversion.S
 	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
 	out.DockerImageConfig = in.DockerImageConfig
 
-	version := in.DockerImageMetadataVersion
-	if len(version) == 0 {
-		version = "1.0"
+	version, err := DecodeDockerImageMetadata(&in.DockerImageMetadata, in.DockerImageMetadataVersion)
+	if err != nil {
+		return err
 	}
-	if len(in.DockerImageMetadata.Raw) > 0 {
-		// TODO: add a way to default the expected kind and version of an object if not set
-		obj, err := dockerImageScheme.New(schema.GroupVersionKind{Version: version, Kind: "DockerImage"})
-		if err != nil {
-			return err
-		}
-		if err := runtime.DecodeInto(dockerImageCodecs.UniversalDecoder(), in.DockerImageMetadata.Raw, obj); err != nil {
-			return err
-		}
-		if err := s.Convert(obj, &out.DockerImageMetadata, 0); err != nil {
+	if in.DockerImageMetadata.Object != nil {
+		if err := s.Convert(in.DockerImageMetadata.Object, &out.DockerImageMetadata, 0); err != nil {
 			return err
 		}
 	}
@@ -156,6 +148,61 @@ func Convert_v1_Image_To_image_Image(in *Image, out *newer.Image, s conversion.S
 	}
 
 	return nil
+}
+
+// The docker metadata must be cast to a version
+func Convert_image_ImageInstantiateMetadata_To_v1_ImageInstantiateMetadata(in *newer.ImageInstantiateMetadata, out *ImageInstantiateMetadata, s conversion.Scope) error {
+	gvString := in.DockerImageMetadataVersion
+	if len(gvString) == 0 {
+		gvString = "1.0"
+	}
+	if !strings.Contains(gvString, "/") {
+		gvString = "/" + gvString
+	}
+
+	version, err := schema.ParseGroupVersion(gvString)
+	if err != nil {
+		return err
+	}
+	data, err := runtime.Encode(dockerImageCodecs.LegacyCodec(version), &in.DockerImageMetadata)
+	if err != nil {
+		return err
+	}
+	out.DockerImageMetadata.Raw = data
+	out.DockerImageMetadataVersion = version.Version
+	return nil
+}
+
+func Convert_v1_ImageInstantiateMetadata_To_image_ImageInstantiateMetadata(in *ImageInstantiateMetadata, out *newer.ImageInstantiateMetadata, s conversion.Scope) error {
+	version, err := DecodeDockerImageMetadata(&in.DockerImageMetadata, in.DockerImageMetadataVersion)
+	if err != nil {
+		return err
+	}
+	if in.DockerImageMetadata.Object != nil {
+		if err := s.Convert(in.DockerImageMetadata.Object, &out.DockerImageMetadata, 0); err != nil {
+			return err
+		}
+	}
+	out.DockerImageMetadataVersion = version
+	return nil
+}
+
+func DecodeDockerImageMetadata(m *runtime.RawExtension, version string) (string, error) {
+	if len(version) == 0 {
+		version = "1.0"
+	}
+	if len(m.Raw) > 0 {
+		// TODO: add a way to default the expected kind and version of an object if not set
+		obj, err := dockerImageScheme.New(schema.GroupVersionKind{Version: version, Kind: "DockerImage"})
+		if err != nil {
+			return version, err
+		}
+		if err := runtime.DecodeInto(dockerImageCodecs.UniversalDecoder(), m.Raw, obj); err != nil {
+			return version, err
+		}
+		m.Object = obj
+	}
+	return version, nil
 }
 
 func Convert_v1_ImageStreamSpec_To_image_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
@@ -212,7 +259,7 @@ func Convert_v1_ImageStreamMapping_To_image_ImageStreamMapping(in *ImageStreamMa
 	return s.DefaultConvert(in, out, conversion.SourceToDest)
 }
 
-func Convert_v1_NamedTagEventListArray_to_api_TagEventListArray(in *[]NamedTagEventList, out *map[string]newer.TagEventList, s conversion.Scope) error {
+func Convert_v1_NamedTagEventListArray_to_image_TagEventListArray(in *[]NamedTagEventList, out *map[string]newer.TagEventList, s conversion.Scope) error {
 	for _, curr := range *in {
 		newTagEventList := newer.TagEventList{}
 		if err := s.Convert(&curr.Conditions, &newTagEventList.Conditions, 0); err != nil {
@@ -248,7 +295,7 @@ func Convert_image_TagEventListArray_to_v1_NamedTagEventListArray(in *map[string
 
 	return nil
 }
-func Convert_v1_TagReferenceArray_to_api_TagReferenceMap(in *[]TagReference, out *map[string]newer.TagReference, s conversion.Scope) error {
+func Convert_v1_TagReferenceArray_to_image_TagReferenceMap(in *[]TagReference, out *map[string]newer.TagReference, s conversion.Scope) error {
 	for _, curr := range *in {
 		r := newer.TagReference{}
 		if err := s.Convert(&curr, &r, 0); err != nil {
@@ -277,11 +324,63 @@ func Convert_image_TagReferenceMap_to_v1_TagReferenceArray(in *map[string]newer.
 	return nil
 }
 
+func Convert_docker10_DockerImageConfig_to_image_DockerImage(in *docker10.DockerImageConfig, out *newer.DockerImage, s conversion.Scope) error {
+	if err := s.Convert(in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	out.ID = in.ID
+	out.Parent = in.Parent
+	out.Comment = in.Comment
+	out.Created = in.Created
+	out.Container = in.Container
+	out.DockerVersion = in.DockerVersion
+	out.Author = in.Author
+	out.Architecture = in.Architecture
+	out.OS = in.OS
+	out.Size = in.Size
+	if in.RootFS != nil {
+		out.RootFS = &newer.DockerImageRootFS{
+			Type:    in.RootFS.Type,
+			DiffIDs: in.RootFS.DiffIDs,
+		}
+	}
+	return nil
+}
+
+func Convert_image_DockerImage_to_docker10_DockerImageConfig(in *newer.DockerImage, out *docker10.DockerImageConfig, s conversion.Scope) error {
+	if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
+		return err
+	}
+	out.ID = in.ID
+	out.Parent = in.Parent
+	out.Comment = in.Comment
+	out.Created = in.Created
+	out.Container = in.Container
+	out.DockerVersion = in.DockerVersion
+	out.Author = in.Author
+	out.Architecture = in.Architecture
+	out.OS = in.OS
+	out.Size = in.Size
+	if in.RootFS != nil {
+		out.RootFS = &docker10.DockerConfigRootFS{
+			Type:    in.RootFS.Type,
+			DiffIDs: in.RootFS.DiffIDs,
+		}
+	}
+	return nil
+}
+
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	err := scheme.AddConversionFuncs(
-		Convert_v1_NamedTagEventListArray_to_api_TagEventListArray,
+		Convert_v1_NamedTagEventListArray_to_image_TagEventListArray,
 		Convert_image_TagEventListArray_to_v1_NamedTagEventListArray,
-		Convert_v1_TagReferenceArray_to_api_TagReferenceMap,
+		Convert_v1_TagReferenceArray_to_image_TagReferenceMap,
 		Convert_image_TagReferenceMap_to_v1_TagReferenceArray,
 
 		Convert_image_Image_To_v1_Image,
@@ -292,6 +391,9 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		Convert_image_ImageStreamStatus_To_v1_ImageStreamStatus,
 		Convert_image_ImageStreamMapping_To_v1_ImageStreamMapping,
 		Convert_v1_ImageStreamMapping_To_image_ImageStreamMapping,
+
+		Convert_docker10_DockerImageConfig_to_image_DockerImage,
+		Convert_image_DockerImage_to_docker10_DockerImageConfig,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

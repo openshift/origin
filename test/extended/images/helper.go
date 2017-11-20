@@ -29,6 +29,8 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypedclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+
+	"github.com/openshift/origin/pkg/image/dockerlayer"
 	registryutil "github.com/openshift/origin/test/extended/registry/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
@@ -39,8 +41,6 @@ const (
 	layerSizeMultiplierForDocker18     = 2.0
 	layerSizeMultiplierForLatestDocker = 0.8
 	defaultLayerSize                   = 1024
-	digestSHA256GzippedEmptyTar        = digest.Digest("sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4")
-	digestSha256EmptyTar               = digest.Digest("sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 
 	dockerRegistryBinary     = "dockerregistry"
 	registryGCLauncherScript = `#!/bin/sh
@@ -569,7 +569,7 @@ func MirrorBlobInRegistry(oc *exutil.CLI, dgst digest.Digest, repository string,
 
 // IsEmptyDigest returns true if the given digest matches one of empty blobs.
 func IsEmptyDigest(dgst digest.Digest) bool {
-	return dgst == digestSha256EmptyTar || dgst == digestSHA256GzippedEmptyTar
+	return dgst == digest.DigestSha256EmptyTar || dgst == dockerlayer.GzippedEmptyLayerDigest
 }
 
 func pathExistsInRegistry(oc *exutil.CLI, pthComponents ...string) (bool, error) {

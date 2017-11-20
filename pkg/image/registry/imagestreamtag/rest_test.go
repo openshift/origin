@@ -78,7 +78,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
-	storage := NewREST(imageRegistry, imageStreamRegistry)
+	storage, _, _ := NewREST(imageRegistry, imageStreamRegistry, nil, nil, nil, nil)
 
 	return etcdClient, server, storage
 }

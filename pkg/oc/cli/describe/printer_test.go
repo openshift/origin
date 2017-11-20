@@ -54,6 +54,9 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),
 	reflect.TypeOf(&oauthapi.OAuthRedirectReference{}),
+	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
+	reflect.TypeOf(&imageapi.ImageStreamTagInstantiate{}),
+	reflect.TypeOf(&imageapi.ImageStreamTagInstantiateOptions{}),
 }
 
 // MissingPrinterCoverageExceptions is the list of types that were missing printer methods when I started
@@ -61,7 +64,6 @@ var PrinterCoverageExceptions = []reflect.Type{
 // TODO printers should be added for these types
 var MissingPrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),
-	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
 	reflect.TypeOf(&projectapi.ProjectRequest{}),
 }
 

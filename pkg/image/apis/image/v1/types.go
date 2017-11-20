@@ -402,6 +402,38 @@ type ImageStreamImage struct {
 	Image Image `json:"image" protobuf:"bytes,2,opt,name=image"`
 }
 
+// ImageStreamTagInstantiate allows a client to create a copy of an existing image that changes
+// metadata or adds a new layer. It also allows the client to create a new image (i.e.
+// FROM scratch). The resulting image is stored as a tag on the stream.
+type ImageStreamTagInstantiate struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// from is an optional reference to an existing image stream tag or image to copy.
+	// If from is not set, this is assumed to create a new scratch image.
+	From *kapi.ObjectReference `json:"from,omitempty" protobuf:"bytes,2,opt,name=from"`
+	// image is metadata that will replace the existing metadata of from, or if from
+	// is empty, will be used to create a new scratch image.
+	Image *ImageInstantiateMetadata `json:"image,omitempty" protobuf:"bytes,3,opt,name=image"`
+}
+
+// ImageInstantiateMetadata is metadata applied to a new copy of an image.
+type ImageInstantiateMetadata struct {
+	// DockerImageMetadata contains metadata about this image.
+	// +patchStrategy=replace
+	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty" patchStrategy:"replace" protobuf:"bytes,1,opt,name=dockerImageMetadata"`
+	// DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0".
+	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty" protobuf:"bytes,2,opt,name=dockerImageMetadataVersion"`
+}
+
+// ImageStreamTagInstantiateOptions are flags that apply when uploading a layer to an image copy.
+type ImageStreamTagInstantiateOptions struct {
+	metav1.TypeMeta `json:",inline"`
+	// preconditionUID, if specified, must match the ImageStreamTagInstantiate.
+	PreconditionUID string `json:"preconditionUID" protobuf:"bytes,1,opt,name=preconditionUID"`
+}
+
 // DockerImageReference points to a Docker image.
 type DockerImageReference struct {
 	// Registry is the registry that contains the Docker image

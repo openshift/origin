@@ -85,6 +85,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ImageStreamTagList{},
 		&ImageStreamImage{},
 		&ImageStreamImport{},
+		&ImageStreamTagInstantiate{},
+		&ImageStreamTagInstantiateOptions{},
 		&kapi.SecretList{},
 	)
 	return nil

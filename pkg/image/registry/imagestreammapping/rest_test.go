@@ -765,6 +765,9 @@ func (f *fakeImageStreamRegistry) GetImageStream(ctx apirequest.Context, id stri
 func (f *fakeImageStreamRegistry) CreateImageStream(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	return f.createImageStream(ctx, repo)
 }
+func (f *fakeImageStreamRegistry) CreateImageStreamInternal(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	return f.createImageStream(ctx, repo)
+}
 func (f *fakeImageStreamRegistry) UpdateImageStream(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	return f.updateImageStream(ctx, repo)
 }

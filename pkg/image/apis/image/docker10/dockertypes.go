@@ -22,6 +22,15 @@ type DockerImage struct {
 	Config          *DockerConfig `json:"Config,omitempty"`
 	Architecture    string        `json:"Architecture,omitempty"`
 	Size            int64         `json:"Size,omitempty"`
+
+	RootFS *DockerImageRootFS `json:"RootFS,omitempty"`
+	OS     string             `json:"Os,omitempty"`
+}
+
+// DockerImageRootFS describes images root filesystem
+type DockerImageRootFS struct {
+	Type    string   `json:"Type"`
+	DiffIDs []string `json:"Layers,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.
@@ -53,4 +62,41 @@ type DockerConfig struct {
 	SecurityOpts    []string            `json:"SecurityOpts,omitempty"`
 	OnBuild         []string            `json:"OnBuild,omitempty"`
 	Labels          map[string]string   `json:"Labels,omitempty"`
+}
+
+// DockerImageConfig handles application/vnd.docker.container.image.v1+json
+// from a docker/distribution registry. It is similar but not identical to
+// the struct returned by the Docker daemon.
+type DockerImageConfig struct {
+	ID              string                `json:"id"`
+	Parent          string                `json:"parent,omitempty"`
+	Comment         string                `json:"comment,omitempty"`
+	Created         metav1.Time           `json:"created"`
+	Container       string                `json:"container,omitempty"`
+	ContainerConfig DockerConfig          `json:"container_config,omitempty"`
+	DockerVersion   string                `json:"docker_version,omitempty"`
+	Author          string                `json:"author,omitempty"`
+	Config          *DockerConfig         `json:"config,omitempty"`
+	Architecture    string                `json:"architecture,omitempty"`
+	Size            int64                 `json:"size,omitempty"`
+	RootFS          *DockerConfigRootFS   `json:"rootfs,omitempty"`
+	History         []DockerConfigHistory `json:"history,omitempty"`
+	OS              string                `json:"os,omitempty"`
+	OSVersion       string                `json:"os.version,omitempty"`
+	OSFeatures      []string              `json:"os.features,omitempty"`
+}
+
+// DockerConfigHistory stores build commands that were used to create an image
+type DockerConfigHistory struct {
+	Created    metav1.Time `json:"created"`
+	Author     string      `json:"author,omitempty"`
+	CreatedBy  string      `json:"created_by,omitempty"`
+	Comment    string      `json:"comment,omitempty"`
+	EmptyLayer bool        `json:"empty_layer,omitempty"`
+}
+
+// DockerConfigRootFS describes images root filesystem
+type DockerConfigRootFS struct {
+	Type    string   `json:"type"`
+	DiffIDs []string `json:"diff_ids,omitempty"`
 }

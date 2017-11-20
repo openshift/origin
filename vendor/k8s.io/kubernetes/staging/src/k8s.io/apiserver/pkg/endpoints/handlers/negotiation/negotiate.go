@@ -69,8 +69,12 @@ func NegotiateOutputStreamSerializer(req *http.Request, ns runtime.NegotiatedSer
 }
 
 func NegotiateInputSerializer(req *http.Request, ns runtime.NegotiatedSerializer) (runtime.SerializerInfo, error) {
-	mediaTypes := ns.SupportedMediaTypes()
 	mediaType := req.Header.Get("Content-Type")
+	return NegotiateInputSerializerForMediaType(mediaType, ns)
+}
+
+func NegotiateInputSerializerForMediaType(mediaType string, ns runtime.NegotiatedSerializer) (runtime.SerializerInfo, error) {
+	mediaTypes := ns.SupportedMediaTypes()
 	if len(mediaType) == 0 {
 		mediaType = mediaTypes[0].MediaType
 	}

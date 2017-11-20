@@ -312,7 +312,8 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 	}
 	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
 
-	return server.GenericAPIServer, &legacyStorageVersionMutator{version: imageapiv1.SchemeGroupVersion, storage: storage}, nil
+	legacyImageMutator := imageapiserver.LegacyImageMutator{}
+	return server.GenericAPIServer, legacyStorageMutators{legacyStorageMutatorFunc(legacyImageMutator.Mutate), &legacyStorageVersionMutator{version: imageapiv1.SchemeGroupVersion, storage: storage}}, nil
 }
 
 func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
@@ -561,7 +562,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
-	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", c.ensureDefaultNamespaceServiceAccountRoles)
+	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensuresarolesdefault", c.ensureDefaultNamespaceServiceAccountRoles)
 	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", c.ensureOpenShiftInfraNamespace)
 
 	return s, nil
@@ -776,5 +777,42 @@ func ensureNamespaceServiceAccountRoleBindings(context genericapiserver.PostStar
 		utilruntime.HandleError(fmt.Errorf("Error recording adding service account roles to %q namespace: %v", namespace.Name, err))
 		return
 	}
+}
 
+// ensureDefaultNamespaceServiceAccounts initializes service accounts in the openshift-infra namespace.
+func (c *OpenshiftAPIConfig) ensureDefaultNamespaceServiceAccounts(context genericapiserver.PostStartHookContext) error {
+	return ensureNamespaceServiceAccounts(context, bootstrappolicy.DefaultOpenShiftInfraNamespace, bootstrappolicy.InfraRegistryManagementControllerServiceAccountName)
+}
+
+func ensureNamespaceServiceAccounts(context genericapiserver.PostStartHookContext, namespaceName string, serviceAccountNames ...string) error {
+	var coreClient coreclient.CoreInterface
+	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
+		var err error
+		coreClient, err = coreclient.NewForConfig(context.LoopbackClientConfig)
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Ensure service accounts exist
+	var lastErr error
+	for _, serviceAccountName := range serviceAccountNames {
+		_, err := coreClient.ServiceAccounts(namespaceName).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: serviceAccountName}})
+		if kapierror.IsAlreadyExists(err) {
+			continue
+		}
+		if err != nil {
+			if lastErr != nil {
+				utilruntime.HandleError(fmt.Errorf("Error creating service account %s: %v", serviceAccountName, err))
+			}
+			lastErr = err
+			continue
+		}
+	}
+	return lastErr
 }

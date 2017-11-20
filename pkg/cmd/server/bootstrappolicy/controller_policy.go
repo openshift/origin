@@ -34,6 +34,7 @@ const (
 	InfraServiceIngressIPControllerServiceAccountName           = "service-ingress-ip-controller"
 	InfraPersistentVolumeRecyclerControllerServiceAccountName   = "pv-recycler-controller"
 	InfraResourceQuotaControllerServiceAccountName              = "resourcequota-controller"
+	InfraRegistryManagementControllerServiceAccountName         = "registry-management-controller"
 
 	// template instance controller watches for TemplateInstance object creation
 	// and instantiates templates as a result.
@@ -347,6 +348,15 @@ func init() {
 			eventsRule(),
 		},
 	})
+
+	// registry-management-controller (grants access to push and pull image contents)
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraRegistryManagementControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "update").Groups(imageGroup, legacyImageGroup).Resources("imagestreams/layers").RuleOrDie(),
+		},
+	})
+
 }
 
 // ControllerRoles returns the cluster roles used by controllers
