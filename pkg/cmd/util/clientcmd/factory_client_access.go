@@ -109,6 +109,8 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	loadingRules := config.NewOpenShiftClientConfigLoadingRules()
 	flags.StringVar(&loadingRules.ExplicitPath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
+	// added for migration/compatibility with kubectl.  Used in e2e tests for example.
+	flags.StringVar(&loadingRules.ExplicitPath, kclientcmd.RecommendedConfigPathFlag, "", "Path to the config file to use for CLI requests.")
 	cobra.MarkFlagFilename(flags, config.OpenShiftConfigFlagName)
 
 	// set our explicit defaults

@@ -3,19 +3,12 @@ package cli
 import (
 	"fmt"
 	"io"
-	"os"
-	"runtime"
-	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
-	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
@@ -254,54 +247,4 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 			validateFlag.Changed = false
 		}
 	}
-}
-
-// NewCmdKubectl provides exactly the functionality from Kubernetes,
-// but with support for OpenShift resources
-func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
-	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-	f := clientcmd.New(flags)
-	cmds := kubecmd.NewKubectlCommand(f, os.Stdin, out, os.Stderr)
-	cmds.Aliases = []string{"kubectl"}
-	cmds.Use = name
-	cmds.Short = "Kubernetes cluster management via kubectl"
-	flags.VisitAll(func(flag *pflag.Flag) {
-		if f := cmds.PersistentFlags().Lookup(flag.Name); f == nil {
-			cmds.PersistentFlags().AddFlag(flag)
-		} else {
-			glog.V(5).Infof("already registered flag %s", flag.Name)
-		}
-	})
-	cmds.PersistentFlags().Var(flags.Lookup("config").Value, "kubeconfig", "Specify a kubeconfig file to define the configuration")
-	templates.ActsAsRootCommand(cmds, []string{"options"})
-	cmds.AddCommand(cmd.NewCmdOptions(out))
-	return cmds
-}
-
-// CommandFor returns the appropriate command for this base name,
-// or the OpenShift CLI command.
-func CommandFor(basename string) *cobra.Command {
-	var cmd *cobra.Command
-
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
-
-	// Make case-insensitive and strip executable suffix if present
-	if runtime.GOOS == "windows" {
-		basename = strings.ToLower(basename)
-		basename = strings.TrimSuffix(basename, ".exe")
-	}
-
-	switch basename {
-	case "kubectl":
-		cmd = NewCmdKubectl(basename, out)
-	default:
-		cmd = NewCommandCLI("oc", "oc", in, out, errout)
-	}
-
-	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd, []string{"options"})
-	}
-	flagtypes.GLog(cmd.PersistentFlags())
-
-	return cmd
 }
