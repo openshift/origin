@@ -66,8 +66,6 @@ func (pbs *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseW
 		return err
 	}
 
-	remoteGetter := pbs.repo.remoteBlobGetter
-
 	// store the content locally if requested, but ensure only one instance at a time
 	// is storing to avoid excessive local writes
 	if pbs.mirror {
@@ -75,16 +73,16 @@ func (pbs *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseW
 		if _, ok := inflight[dgst]; ok {
 			mu.Unlock()
 			context.GetLogger(ctx).Infof("Serving %q while mirroring in background", dgst)
-			_, err := copyContent(remoteGetter, ctx, dgst, w, req)
+			_, err := pbs.copyContent(ctx, dgst, w, req)
 			return err
 		}
 		inflight[dgst] = struct{}{}
 		mu.Unlock()
 
-		storeLocalInBackground(ctx, pbs.repo, pbs.BlobStore, dgst)
+		pbs.storeLocalInBackground(ctx, dgst)
 	}
 
-	_, err = copyContent(remoteGetter, ctx, dgst, w, req)
+	_, err = pbs.copyContent(ctx, dgst, w, req)
 	return err
 }
 
@@ -143,13 +141,13 @@ var mu sync.Mutex
 
 // copyContent attempts to load and serve the provided blob. If req != nil and writer is an instance of http.ResponseWriter,
 // response headers will be set and range requests honored.
-func copyContent(store BlobGetterService, ctx context.Context, dgst digest.Digest, writer io.Writer, req *http.Request) (distribution.Descriptor, error) {
-	desc, err := store.Stat(ctx, dgst)
+func (pbs *pullthroughBlobStore) copyContent(ctx context.Context, dgst digest.Digest, writer io.Writer, req *http.Request) (distribution.Descriptor, error) {
+	desc, err := pbs.repo.remoteBlobGetter.Stat(ctx, dgst)
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}
 
-	remoteReader, err := store.Open(ctx, dgst)
+	remoteReader, err := pbs.repo.remoteBlobGetter.Open(ctx, dgst)
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}
@@ -177,32 +175,21 @@ func copyContent(store BlobGetterService, ctx context.Context, dgst digest.Diges
 // storeLocalInBackground spawns a separate thread to copy the remote blob from the remote registry to the
 // local blob store.
 // The function assumes that localBlobStore is thread-safe.
-func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStore distribution.BlobStore, dgst digest.Digest) {
+func (pbs *pullthroughBlobStore) storeLocalInBackground(ctx context.Context, dgst digest.Digest) {
 	// leave only the essential entries in the context (logger)
 	newCtx := context.WithLogger(context.Background(), context.GetLogger(ctx))
-	writeLimiter := repo.app.writeLimiter
-
-	// the blob getter service is not thread-safe, we need to setup a new one
-	// TODO: make it thread-safe instead of instantiating a new one
-	remoteGetter := NewBlobGetterService(
-		repo.namespace,
-		repo.name,
-		repo.config.blobRepositoryCacheTTL,
-		repo.imageStreamGetter.get,
-		repo.registryOSClient,
-		repo.cachedLayers)
 
 	go func(dgst digest.Digest) {
-		if writeLimiter != nil {
-			if !writeLimiter.Start(newCtx) {
+		if pbs.repo.app.writeLimiter != nil {
+			if !pbs.repo.app.writeLimiter.Start(newCtx) {
 				context.GetLogger(newCtx).Infof("Skipped background mirroring of %q because write limits are reached", dgst)
 				return
 			}
-			defer writeLimiter.Done()
+			defer pbs.repo.app.writeLimiter.Done()
 		}
 
 		context.GetLogger(newCtx).Infof("Start background mirroring of %q", dgst)
-		if err := storeLocal(newCtx, localBlobStore, remoteGetter, dgst); err != nil {
+		if err := pbs.storeLocal(newCtx, dgst); err != nil {
 			context.GetLogger(newCtx).Errorf("Error committing to storage: %s", err.Error())
 		}
 		context.GetLogger(newCtx).Infof("Completed mirroring of %q", dgst)
@@ -210,7 +197,7 @@ func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStor
 }
 
 // storeLocal retrieves the named blob from the provided store and writes it into the local store.
-func storeLocal(ctx context.Context, localBlobStore distribution.BlobStore, remoteGetter BlobGetterService, dgst digest.Digest) error {
+func (pbs *pullthroughBlobStore) storeLocal(ctx context.Context, dgst digest.Digest) error {
 	defer func() {
 		mu.Lock()
 		delete(inflight, dgst)
@@ -221,13 +208,14 @@ func storeLocal(ctx context.Context, localBlobStore distribution.BlobStore, remo
 	var err error
 	var bw distribution.BlobWriter
 
-	bw, err = localBlobStore.Create(ctx)
+	bw, err = pbs.BlobStore.Create(ctx)
 	if err != nil {
 		return err
 	}
 
-	desc, err = copyContent(remoteGetter, ctx, dgst, bw, nil)
+	desc, err = pbs.copyContent(ctx, dgst, bw, nil)
 	if err != nil {
+		bw.Cancel(ctx)
 		return err
 	}
 

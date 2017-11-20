@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/docker/distribution"
@@ -26,6 +27,30 @@ type BlobGetterService interface {
 
 type ImageStreamGetter func() (*imageapiv1.ImageStream, error)
 
+type digestToStoreCache struct {
+	mu   sync.RWMutex
+	data map[string]distribution.BlobStore
+}
+
+func newDigestToStoreCache() digestToStoreCache {
+	return digestToStoreCache{
+		data: make(map[string]distribution.BlobStore),
+	}
+}
+
+func (d *digestToStoreCache) Load(key string) (value distribution.BlobStore, ok bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	value, ok = d.data[key]
+	return
+}
+
+func (d *digestToStoreCache) Store(key string, value distribution.BlobStore) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.data[key] = value
+}
+
 // remoteBlobGetterService implements BlobGetterService and allows to serve blobs from remote
 // repositories.
 type remoteBlobGetterService struct {
@@ -35,7 +60,7 @@ type remoteBlobGetterService struct {
 	getImageStream      ImageStreamGetter
 	isSecretsNamespacer client.ImageStreamSecretsNamespacer
 	cachedLayers        digestToRepositoryCache
-	digestToStore       map[string]distribution.BlobStore
+	digestToStore       digestToStoreCache
 }
 
 var _ BlobGetterService = &remoteBlobGetterService{}
@@ -56,7 +81,7 @@ func NewBlobGetterService(
 		isSecretsNamespacer: isSecretsNamespacer,
 		cacheTTL:            cacheTTL,
 		cachedLayers:        cachedLayers,
-		digestToStore:       make(map[string]distribution.BlobStore),
+		digestToStore:       newDigestToStoreCache(),
 	}
 }
 
@@ -110,7 +135,7 @@ func (rbgs *remoteBlobGetterService) Stat(ctx context.Context, dgst digest.Diges
 
 func (rbgs *remoteBlobGetterService) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
 	context.GetLogger(ctx).Debugf("(*remoteBlobGetterService).Open: starting with dgst=%s", dgst.String())
-	store, ok := rbgs.digestToStore[dgst.String()]
+	store, ok := rbgs.digestToStore.Load(dgst.String())
 	if ok {
 		return store.Open(ctx, dgst)
 	}
@@ -121,7 +146,7 @@ func (rbgs *remoteBlobGetterService) Open(ctx context.Context, dgst digest.Diges
 		return nil, err
 	}
 
-	store, ok = rbgs.digestToStore[desc.Digest.String()]
+	store, ok = rbgs.digestToStore.Load(desc.Digest.String())
 	if !ok {
 		return nil, distribution.ErrBlobUnknown
 	}
@@ -131,7 +156,7 @@ func (rbgs *remoteBlobGetterService) Open(ctx context.Context, dgst digest.Diges
 
 func (rbgs *remoteBlobGetterService) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
 	context.GetLogger(ctx).Debugf("(*remoteBlobGetterService).ServeBlob: starting with dgst=%s", dgst.String())
-	store, ok := rbgs.digestToStore[dgst.String()]
+	store, ok := rbgs.digestToStore.Load(dgst.String())
 	if ok {
 		return store.ServeBlob(ctx, w, req, dgst)
 	}
@@ -142,7 +167,7 @@ func (rbgs *remoteBlobGetterService) ServeBlob(ctx context.Context, w http.Respo
 		return err
 	}
 
-	store, ok = rbgs.digestToStore[desc.Digest.String()]
+	store, ok = rbgs.digestToStore.Load(desc.Digest.String())
 	if !ok {
 		return distribution.ErrBlobUnknown
 	}
@@ -179,14 +204,14 @@ func (rbgs *remoteBlobGetterService) proxyStat(
 		return distribution.Descriptor{}, err
 	}
 
-	rbgs.digestToStore[dgst.String()] = pullthroughBlobStore
+	rbgs.digestToStore.Store(dgst.String(), pullthroughBlobStore)
 	return desc, nil
 }
 
 // Get attempts to fetch the requested blob by digest using a remote proxy store if necessary.
 func (rbgs *remoteBlobGetterService) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
 	context.GetLogger(ctx).Debugf("(*remoteBlobGetterService).Get: starting with dgst=%s", dgst.String())
-	store, ok := rbgs.digestToStore[dgst.String()]
+	store, ok := rbgs.digestToStore.Load(dgst.String())
 	if ok {
 		return store.Get(ctx, dgst)
 	}
@@ -197,7 +222,7 @@ func (rbgs *remoteBlobGetterService) Get(ctx context.Context, dgst digest.Digest
 		return nil, err
 	}
 
-	store, ok = rbgs.digestToStore[desc.Digest.String()]
+	store, ok = rbgs.digestToStore.Load(desc.Digest.String())
 	if !ok {
 		return nil, distribution.ErrBlobUnknown
 	}
