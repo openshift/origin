@@ -175,7 +175,7 @@ func TestProjectRequestLimitSingleConfig(t *testing.T) {
 func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
 	_, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 	defer fn()
-	projectClient := projectclient.NewForConfigOrDie(clientConfig)
+	projectClient := projectclient.NewForConfigOrDie(clientConfig).Project()
 
 	if _, err := projectClient.ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
@@ -197,7 +197,7 @@ func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientCo
 		}
 		projectRequest := &projectapi.ProjectRequest{}
 		projectRequest.Name = names.SimpleNameGenerator.GenerateName("test-projectreq")
-		_, err = projectclient.NewForConfigOrDie(clientConfig).ProjectRequests().Create(projectRequest)
+		_, err = projectclient.NewForConfigOrDie(clientConfig).Project().ProjectRequests().Create(projectRequest)
 		if err != nil && expectSuccess {
 			t.Errorf("%s: unexpected error for user %s: %v", errorPrefix, user, err)
 			continue

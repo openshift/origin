@@ -23,7 +23,7 @@ These act like most other Resources in Kubernetes, and may be `kubectl apply`'d,
 Some example use cases:
 
 * Provisioning/Management of external datastores/databases (eg. CloudSQL/RDS instances)
-* Higher level abstractions around Kubernetes primitives (eg. a single Resource to define an etcd cluster, backed by a Service and a ReplicationController)
+* Higher level abstractions around Kubernetes primitives (eg. a single Resource to define an etcd cluster, backed by a Service and a ReplicationController) 
 
 ## Defining types
 
@@ -44,3 +44,9 @@ type User struct {
 	Password string `json:"password"`
 }
 ```
+
+## Cleanup
+
+Successfully running this program will clean the created artifacts. If you terminate the program without completing, you can clean up the created CustomResourceDefinition with:
+
+    kubectl delete crd examples.cr.client-go.k8s.io

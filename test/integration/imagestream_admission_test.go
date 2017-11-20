@@ -10,10 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/retry"
 
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -491,7 +491,7 @@ func setupImageStreamAdmissionTest(t *testing.T) (kclientset.Interface, imagecli
 	}
 
 	for {
-		_, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("src", nil))
+		_, err = clusterAdminImageClient.Image().ImageStreams(testutil.Namespace()).Create(newImageStreamWithSpecTags("src", nil))
 		t.Logf("initing: %v", err)
 		if err != nil {
 			if errForbiddenWithRetry(err) {

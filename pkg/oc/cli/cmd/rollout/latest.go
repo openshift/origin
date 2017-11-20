@@ -68,7 +68,7 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 			kcmdutil.CheckErr(err)
 
 			if err := opts.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			err = opts.RunRolloutLatest()

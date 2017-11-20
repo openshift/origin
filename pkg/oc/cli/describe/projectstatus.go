@@ -871,7 +871,7 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 
 	// display the last successful build if specifically requested or we're going to display an active build for context
 	if includeSuccess || len(activeBuilds) > 0 {
-		if passTime.Before(failTime) {
+		if passTime.Before(&failTime) {
 			firstBuildToDisplay = lastUnsuccessfulBuild
 			firstTime = failTime
 			secondBuildToDisplay = lastSuccessfulBuild
@@ -884,7 +884,7 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 		}
 	} else {
 		// only display last unsuccessful if it is later than last successful
-		if passTime.Before(failTime) {
+		if passTime.Before(&failTime) {
 			firstBuildToDisplay = lastUnsuccessfulBuild
 			firstTime = failTime
 		}
@@ -903,7 +903,8 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 			activeOut = append(activeOut, describeBuildPhase(activeBuilds[i].Build, nil, build.BuildConfig.Name, pushTargetResolved))
 		}
 
-		if buildTimestamp(activeBuilds[0].Build).Before(lastTime) {
+		buildTimestamp := buildTimestamp(activeBuilds[0].Build)
+		if buildTimestamp.Before(&lastTime) {
 			out = append(out, activeOut...)
 		} else {
 			out = append(activeOut, out...)

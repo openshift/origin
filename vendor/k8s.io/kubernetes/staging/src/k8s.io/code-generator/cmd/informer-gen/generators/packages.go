@@ -101,6 +101,13 @@ func packageForInternalInterfaces(base string) string {
 	return filepath.Join(base, "internalinterfaces")
 }
 
+func vendorless(p string) string {
+	if pos := strings.LastIndex(p, "/vendor/"); pos != -1 {
+		return p[pos+len("/vendor/"):]
+	}
+	return p
+}
+
 // Packages makes the client package definition.
 func Packages(context *generator.Context, arguments *args.GeneratorArgs) generator.Packages {
 	boilerplate, err := arguments.LoadGoBoilerplate()
@@ -115,8 +122,12 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		glog.Fatalf("Wrong CustomArgs type: %T", arguments.CustomArgs)
 	}
 
-	internalVersionPackagePath := filepath.Join(arguments.OutputPackagePath, "internalversion")
-	externalVersionPackagePath := filepath.Join(arguments.OutputPackagePath, "externalversions")
+	internalVersionPackagePath := filepath.Join(arguments.OutputPackagePath)
+	externalVersionPackagePath := filepath.Join(arguments.OutputPackagePath)
+	if !customArgs.SingleDirectory {
+		internalVersionPackagePath = filepath.Join(arguments.OutputPackagePath, "internalversion")
+		externalVersionPackagePath = filepath.Join(arguments.OutputPackagePath, "externalversions")
+	}
 
 	var packageList generator.Packages
 	typesForGroupVersion := make(map[clientgentypes.GroupVersion][]*types.Type)
@@ -124,7 +135,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 	externalGroupVersions := make(map[string]clientgentypes.GroupVersions)
 	internalGroupVersions := make(map[string]clientgentypes.GroupVersions)
 	for _, inputDir := range arguments.InputDirs {
-		p := context.Universe.Package(inputDir)
+		p := context.Universe.Package(vendorless(inputDir))
 
 		objectMeta, internal, err := objectMetaForPackage(p)
 		if err != nil {
@@ -197,16 +208,20 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		}
 	}
 
-	packageList = append(packageList, factoryInterfacePackage(externalVersionPackagePath, boilerplate, customArgs.VersionedClientSetPackage, typesForGroupVersion))
-	packageList = append(packageList, factoryPackage(externalVersionPackagePath, boilerplate, externalGroupVersions, customArgs.VersionedClientSetPackage, typesForGroupVersion))
-	for _, groupVersionsEntry := range externalGroupVersions {
-		packageList = append(packageList, groupPackage(externalVersionPackagePath, groupVersionsEntry, boilerplate))
+	if len(externalGroupVersions) != 0 {
+		packageList = append(packageList, factoryInterfacePackage(externalVersionPackagePath, boilerplate, customArgs.VersionedClientSetPackage, typesForGroupVersion))
+		packageList = append(packageList, factoryPackage(externalVersionPackagePath, boilerplate, externalGroupVersions, customArgs.VersionedClientSetPackage, typesForGroupVersion))
+		for _, groupVersionsEntry := range externalGroupVersions {
+			packageList = append(packageList, groupPackage(externalVersionPackagePath, groupVersionsEntry, boilerplate))
+		}
 	}
 
-	packageList = append(packageList, factoryInterfacePackage(internalVersionPackagePath, boilerplate, customArgs.InternalClientSetPackage, typesForGroupVersion))
-	packageList = append(packageList, factoryPackage(internalVersionPackagePath, boilerplate, internalGroupVersions, customArgs.InternalClientSetPackage, typesForGroupVersion))
-	for _, groupVersionsEntry := range internalGroupVersions {
-		packageList = append(packageList, groupPackage(internalVersionPackagePath, groupVersionsEntry, boilerplate))
+	if len(internalGroupVersions) != 0 {
+		packageList = append(packageList, factoryInterfacePackage(internalVersionPackagePath, boilerplate, customArgs.InternalClientSetPackage, typesForGroupVersion))
+		packageList = append(packageList, factoryPackage(internalVersionPackagePath, boilerplate, internalGroupVersions, customArgs.InternalClientSetPackage, typesForGroupVersion))
+		for _, groupVersionsEntry := range internalGroupVersions {
+			packageList = append(packageList, groupPackage(internalVersionPackagePath, groupVersionsEntry, boilerplate))
+		}
 	}
 
 	return packageList

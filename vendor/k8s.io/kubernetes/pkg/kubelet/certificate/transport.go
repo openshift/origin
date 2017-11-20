@@ -30,6 +30,7 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/util/certificate"
 )
 
 // UpdateTransport instruments a restconfig with a transport that dynamically uses
@@ -44,18 +45,13 @@ import (
 //
 // stopCh should be used to indicate when the transport is unused and doesn't need
 // to continue checking the manager.
-//
-// exitIfExpired controls whether the transport triggers a fatal error if the
-// currently returned certificate is expired. This can be used by the caller to
-// ensure that if the manager falls behind and is unable to rotate a certificate
-// that the process exits.
-func UpdateTransport(stopCh <-chan struct{}, clientConfig *restclient.Config, clientCertificateManager Manager, exitIfExpired bool) error {
+func UpdateTransport(stopCh <-chan struct{}, clientConfig *restclient.Config, clientCertificateManager certificate.Manager, exitIfExpired bool) error {
 	return updateTransport(stopCh, 10*time.Second, clientConfig, clientCertificateManager, exitIfExpired)
 }
 
 // updateTransport is an internal method that exposes how often this method checks that the
 // client cert has changed. Intended for testing.
-func updateTransport(stopCh <-chan struct{}, period time.Duration, clientConfig *restclient.Config, clientCertificateManager Manager, exitIfExpired bool) error {
+func updateTransport(stopCh <-chan struct{}, period time.Duration, clientConfig *restclient.Config, clientCertificateManager certificate.Manager, exitIfExpired bool) error {
 	if clientConfig.Transport != nil {
 		return fmt.Errorf("there is already a transport configured")
 	}

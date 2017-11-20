@@ -367,11 +367,11 @@ func TestEchoWithMessaging(t *testing.T) {
 		OutputBufferSize: 65536,
 	}
 	l, err := ListenPipe(testPipeName, &c)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer l.Close()
+
 	listenerDone := make(chan bool)
 	clientDone := make(chan bool)
 	go func() {
@@ -380,6 +380,8 @@ func TestEchoWithMessaging(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
+		defer conn.Close()
+
 		time.Sleep(500 * time.Millisecond) // make *sure* we don't begin to read before eof signal is sent
 		io.Copy(conn, conn)
 		conn.(CloseWriter).CloseWrite()

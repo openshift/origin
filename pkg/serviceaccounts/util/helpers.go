@@ -1,8 +1,8 @@
 package util
 
 import (
+	"k8s.io/api/core/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 )

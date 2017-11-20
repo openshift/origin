@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	informers "k8s.io/client-go/informers"
+	externalfake "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 )
 
@@ -57,7 +57,7 @@ func TestDockercfgDeletion(t *testing.T) {
 		// Re-seed to reset name generation
 		rand.Seed(1)
 
-		client := fake.NewSimpleClientset(tc.ClientObjects...)
+		client := externalfake.NewSimpleClientset(tc.ClientObjects...)
 		informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
 		controller := NewDockercfgDeletedController(
 			informerFactory.Core().V1().Secrets(),

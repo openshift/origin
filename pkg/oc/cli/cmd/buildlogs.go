@@ -75,7 +75,7 @@ func RunBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cob
 		if cmdNamespace != "" {
 			namespace = " -n " + cmdNamespace
 		}
-		return kcmdutil.UsageError(cmd, "A build name is required - you can run `%s get builds%s` to list builds", fullName, namespace)
+		return kcmdutil.UsageErrorf(cmd, "A build name is required - you can run `%s get builds%s` to list builds", fullName, namespace)
 	}
 
 	namespace, _, err := f.DefaultNamespace()

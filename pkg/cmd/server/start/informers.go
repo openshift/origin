@@ -3,13 +3,13 @@ package start
 import (
 	"time"
 
+	kexternalinformers "k8s.io/client-go/informers"
 	kubeclientgoinformers "k8s.io/client-go/informers"
+	kclientsetexternal "k8s.io/client-go/kubernetes"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"

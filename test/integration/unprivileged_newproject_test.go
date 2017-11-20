@@ -101,7 +101,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	waitForProject(t, valerieProjectClient, "new-project", 5*time.Second, 10)
 
-	actualProject, err := valerieProjectClient.Projects().Get("new-project", metav1.GetOptions{})
+	actualProject, err := valerieProjectClient.Project().Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	valerieClientConfig.BearerToken = accessToken
 	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
 
-	if _, err := clusterAdminProjectClient.Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
+	if _, err := clusterAdminProjectClient.Project().Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -165,7 +165,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	template.Name = templateName
 	template.Namespace = namespace
 
-	_, err = clusterAdminTemplateClient.Templates(namespace).Create(template)
+	_, err = clusterAdminTemplateClient.Template().Templates(namespace).Create(template)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	}
 
 	waitForProject(t, valerieProjectClient, "new-project", 5*time.Second, 10)
-	project, err := valerieProjectClient.Projects().Get("new-project", metav1.GetOptions{})
+	project, err := valerieProjectClient.Project().Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Errorf("unexpected project %#v", project)
 	}
 
-	if err := clusterAdminTemplateClient.Templates(namespace).Delete(templateName, nil); err != nil {
+	if err := clusterAdminTemplateClient.Template().Templates(namespace).Delete(templateName, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -215,7 +215,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationConfig := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminAuthorizationConfig := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 	role, err := clusterAdminAuthorizationConfig.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

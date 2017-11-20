@@ -7,12 +7,12 @@ import (
 
 	"github.com/golang/glog"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
+	kapiv1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"

@@ -6,7 +6,7 @@ import (
 
 	"github.com/docker/docker/pkg/term"
 	wordwrap "github.com/mitchellh/go-wordwrap"
-	kterm "k8s.io/kubernetes/pkg/util/term"
+	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 )
 
 type wordWrapWriter struct {

@@ -13,7 +13,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 

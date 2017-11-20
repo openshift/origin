@@ -17,15 +17,12 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*projectinternalversion.ProjectClient
+	project *projectinternalversion.ProjectClient
 }
 
 // Project retrieves the ProjectClient
 func (c *Clientset) Project() projectinternalversion.ProjectInterface {
-	if c == nil {
-		return nil
-	}
-	return c.ProjectClient
+	return c.project
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -44,7 +41,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.ProjectClient, err = projectinternalversion.NewForConfig(&configShallowCopy)
+	cs.project, err = projectinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +58,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.ProjectClient = projectinternalversion.NewForConfigOrDie(c)
+	cs.project = projectinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -70,7 +67,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.ProjectClient = projectinternalversion.New(c)
+	cs.project = projectinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

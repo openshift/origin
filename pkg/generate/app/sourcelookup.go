@@ -49,7 +49,7 @@ func NewDockerfile(contents string) (Dockerfile, error) {
 	if err != nil {
 		return nil, err
 	}
-	return dockerfileContents{node, contents}, nil
+	return dockerfileContents{node.AST, contents}, nil
 }
 
 type dockerfileContents struct {

@@ -61,7 +61,7 @@ func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writ
 		Long:  createSignerLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if _, err := options.CreateSignerCert(); err != nil {

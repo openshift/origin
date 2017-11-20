@@ -25,8 +25,11 @@ type clusterRoleBindingInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newClusterRoleBindingInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewClusterRoleBindingInformer constructs a new informer for ClusterRoleBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewClusterRoleBindingInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				return client.Authorization().ClusterRoleBindings().List(options)
@@ -37,14 +40,16 @@ func newClusterRoleBindingInformer(client internalclientset.Interface, resyncPer
 		},
 		&authorization.ClusterRoleBinding{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultClusterRoleBindingInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewClusterRoleBindingInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *clusterRoleBindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization.ClusterRoleBinding{}, newClusterRoleBindingInformer)
+	return f.factory.InformerFor(&authorization.ClusterRoleBinding{}, defaultClusterRoleBindingInformer)
 }
 
 func (f *clusterRoleBindingInformer) Lister() internalversion.ClusterRoleBindingLister {

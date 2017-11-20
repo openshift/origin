@@ -46,7 +46,7 @@ func TestImageStreamImport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminConfig)
+	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminConfig).Image()
 
 	// can't give invalid image specs, should be invalid
 	isi, err := clusterAdminImageClient.ImageStreamImports(testutil.Namespace()).Create(&imageapi.ImageStreamImport{
@@ -388,7 +388,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -537,7 +537,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -661,7 +661,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

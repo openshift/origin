@@ -108,7 +108,7 @@ func (s *ScheduledImageStreamController) deleteImageStream(obj interface{}) {
 	}
 	key, err := cache.MetaNamespaceKeyFunc(stream)
 	if err != nil {
-		glog.V(2).Infof("unable to get namespace key function for stream %q: %v", stream, err)
+		glog.V(2).Infof("unable to get namespace key function for stream %s/%s: %v", stream.Namespace, stream.Name, err)
 		return
 	}
 	s.scheduler.Remove(key, nil)
@@ -122,7 +122,7 @@ func (s *ScheduledImageStreamController) enqueueImageStream(stream *imageapi.Ima
 	if needsScheduling(stream) {
 		key, err := cache.MetaNamespaceKeyFunc(stream)
 		if err != nil {
-			glog.V(2).Infof("unable to get namespace key function for stream %q: %v", stream, err)
+			glog.V(2).Infof("unable to get namespace key function for stream %s/%s: %v", stream.Namespace, stream.Name, err)
 			return
 		}
 		s.scheduler.Add(key, uniqueItem{uid: string(stream.UID), resourceVersion: stream.ResourceVersion})

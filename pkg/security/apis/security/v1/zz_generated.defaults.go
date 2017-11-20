@@ -28,6 +28,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
 	for i := range in.Spec.Template.Spec.Volumes {
 		a := &in.Spec.Template.Spec.Volumes[i]
 		api_v1.SetDefaults_Volume(a)
+		if a.VolumeSource.HostPath != nil {
+			api_v1.SetDefaults_HostPathVolumeSource(a.VolumeSource.HostPath)
+		}
 		if a.VolumeSource.Secret != nil {
 			api_v1.SetDefaults_SecretVolumeSource(a.VolumeSource.Secret)
 		}
@@ -160,6 +163,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
 		for j := range a.PodSecurityPolicySubjectReviewStatus.Template.Spec.Volumes {
 			b := &a.PodSecurityPolicySubjectReviewStatus.Template.Spec.Volumes[j]
 			api_v1.SetDefaults_Volume(b)
+			if b.VolumeSource.HostPath != nil {
+				api_v1.SetDefaults_HostPathVolumeSource(b.VolumeSource.HostPath)
+			}
 			if b.VolumeSource.Secret != nil {
 				api_v1.SetDefaults_SecretVolumeSource(b.VolumeSource.Secret)
 			}
@@ -294,6 +300,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicyS
 	for i := range in.Spec.Template.Spec.Volumes {
 		a := &in.Spec.Template.Spec.Volumes[i]
 		api_v1.SetDefaults_Volume(a)
+		if a.VolumeSource.HostPath != nil {
+			api_v1.SetDefaults_HostPathVolumeSource(a.VolumeSource.HostPath)
+		}
 		if a.VolumeSource.Secret != nil {
 			api_v1.SetDefaults_SecretVolumeSource(a.VolumeSource.Secret)
 		}
@@ -424,6 +433,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicyS
 	for i := range in.Status.Template.Spec.Volumes {
 		a := &in.Status.Template.Spec.Volumes[i]
 		api_v1.SetDefaults_Volume(a)
+		if a.VolumeSource.HostPath != nil {
+			api_v1.SetDefaults_HostPathVolumeSource(a.VolumeSource.HostPath)
+		}
 		if a.VolumeSource.Secret != nil {
 			api_v1.SetDefaults_SecretVolumeSource(a.VolumeSource.Secret)
 		}
@@ -557,6 +569,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubje
 	for i := range in.Spec.Template.Spec.Volumes {
 		a := &in.Spec.Template.Spec.Volumes[i]
 		api_v1.SetDefaults_Volume(a)
+		if a.VolumeSource.HostPath != nil {
+			api_v1.SetDefaults_HostPathVolumeSource(a.VolumeSource.HostPath)
+		}
 		if a.VolumeSource.Secret != nil {
 			api_v1.SetDefaults_SecretVolumeSource(a.VolumeSource.Secret)
 		}
@@ -687,6 +702,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubje
 	for i := range in.Status.Template.Spec.Volumes {
 		a := &in.Status.Template.Spec.Volumes[i]
 		api_v1.SetDefaults_Volume(a)
+		if a.VolumeSource.HostPath != nil {
+			api_v1.SetDefaults_HostPathVolumeSource(a.VolumeSource.HostPath)
+		}
 		if a.VolumeSource.Secret != nil {
 			api_v1.SetDefaults_SecretVolumeSource(a.VolumeSource.Secret)
 		}

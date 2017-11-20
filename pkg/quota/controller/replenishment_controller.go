@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
+	kexternalinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"

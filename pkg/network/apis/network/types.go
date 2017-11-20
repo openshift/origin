@@ -123,6 +123,8 @@ type EgressNetworkPolicy struct {
 	Spec EgressNetworkPolicySpec
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 type EgressNetworkPolicyList struct {
 	metav1.TypeMeta

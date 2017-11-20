@@ -25,8 +25,11 @@ type identityInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newIdentityInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewIdentityInformer constructs a new informer for Identity type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewIdentityInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.UserV1().Identities().List(options)
@@ -37,14 +40,16 @@ func newIdentityInformer(client clientset.Interface, resyncPeriod time.Duration)
 		},
 		&user_v1.Identity{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultIdentityInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewIdentityInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *identityInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&user_v1.Identity{}, newIdentityInformer)
+	return f.factory.InformerFor(&user_v1.Identity{}, defaultIdentityInformer)
 }
 
 func (f *identityInformer) Lister() v1.IdentityLister {

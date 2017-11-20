@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
@@ -15,6 +14,7 @@ import (
 	"github.com/docker/distribution/registry/client/auth"
 	units "github.com/docker/go-units"
 	"github.com/golang/glog"
+	godigest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
 
@@ -39,7 +39,7 @@ var (
 		Mirroring will create the necessary metadata so that images can be pulled via tag or digest,
 		but listing manifests and tags will not be possible. You may also specify one or more
 		--s3-source-bucket parameters (as <bucket>/<path>) to designate buckets to look in to find
-		blobs (instead of uploading). The source bucket also supports the suffix "/[store]", which 
+		blobs (instead of uploading). The source bucket also supports the suffix "/[store]", which
 		will transform blob identifiers into the form the Docker registry uses on disk, allowing
 		you to mirror directly from an existing S3-backed Docker registry. Credentials for S3
 		may be stored in your docker credential file and looked up by host.
@@ -67,7 +67,7 @@ var (
     docker.io/myrepository/myimage:dev
 
 # Copy multiple images
-%[1]s myregistry.com/myimage:latest=myregistry.com/other:test \ 
+%[1]s myregistry.com/myimage:latest=myregistry.com/other:test \
     myregistry.com/myimage:new=myregistry.com/other:target
 `)
 )
@@ -245,7 +245,7 @@ type destinations struct {
 	digests map[string]pushTargets
 }
 
-func (d destinations) mergeIntoDigests(srcDigest digest.Digest, target pushTargets) {
+func (d destinations) mergeIntoDigests(srcDigest godigest.Digest, target pushTargets) {
 	srcKey := srcDigest.String()
 	current, ok := d.digests[srcKey]
 	if !ok {
@@ -346,11 +346,6 @@ func (o *pushOptions) includeDescriptor(d *manifestlist.ManifestDescriptor) bool
 // ErrAlreadyExists may be returned by the blob Create function to indicate that the blob already exists.
 var ErrAlreadyExists = fmt.Errorf("blob already exists in the target location")
 
-var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
-	manifestlist.MediaTypeManifestList,
-	schema2.MediaTypeManifest,
-})
-
 func (o *pushOptions) Run() error {
 	tree := buildTargetTree(o.Mappings)
 
@@ -401,9 +396,9 @@ func (o *pushOptions) Run() error {
 
 		for srcDigestString, pushTargets := range src.digests {
 			// load the manifest
-			srcDigest := digest.Digest(srcDigestString)
-			// var contentDigest digest.Digest / client.ReturnContentDigest(&contentDigest),
-			srcManifest, err := manifests.Get(ctx, digest.Digest(srcDigest), schema2ManifestOnly)
+			srcDigest := godigest.Digest(srcDigestString)
+			// var contentDigest godigest.Digest / client.ReturnContentDigest(&contentDigest),
+			srcManifest, err := manifests.Get(ctx, godigest.Digest(srcDigest), distribution.WithTag(manifestlist.MediaTypeManifestList), distribution.WithTag(schema2.MediaTypeManifest))
 			if err != nil {
 				digestErrs = append(digestErrs, retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s manifest: %v", src.ref, err)})
 				continue
@@ -541,7 +536,7 @@ func (o *pushOptions) Run() error {
 							}()
 							if err != nil {
 								_, srcBody, _ := srcManifest.Payload()
-								srcManifestDigest := digest.Canonical.FromBytes(srcBody)
+								srcManifestDigest := godigest.Canonical.FromBytes(srcBody)
 								if srcManifestDigest == srcDigest {
 									digestErrs = append(digestErrs, retrieverError{src: src.ref, dst: dst.ref, err: fmt.Errorf("failed to commit blob %s from manifest %s to %s: %v", blob.Digest, srcManifestDigest, dst.ref, err)})
 								} else {
@@ -593,7 +588,7 @@ func (o *pushOptions) Run() error {
 	return kerrors.NewAggregate(errs)
 }
 
-func processManifestList(ctx apirequest.Context, srcDigest digest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imageapi.DockerImageReference, filterFn func(*manifestlist.ManifestDescriptor) bool) ([]distribution.Manifest, distribution.Manifest, digest.Digest, error) {
+func processManifestList(ctx apirequest.Context, srcDigest godigest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imageapi.DockerImageReference, filterFn func(*manifestlist.ManifestDescriptor) bool) ([]distribution.Manifest, distribution.Manifest, godigest.Digest, error) {
 	var srcManifests []distribution.Manifest
 	switch t := srcManifest.(type) {
 	case *manifestlist.DeserializedManifestList:
@@ -631,7 +626,7 @@ func processManifestList(ctx apirequest.Context, srcDigest digest.Digest, srcMan
 		}
 
 		for i, manifest := range t.Manifests {
-			childManifest, err := manifests.Get(ctx, manifest.Digest, schema2ManifestOnly)
+			childManifest, err := manifests.Get(ctx, manifest.Digest, distribution.WithTag(manifestlist.MediaTypeManifestList), distribution.WithTag(schema2.MediaTypeManifest))
 			if err != nil {
 				return nil, nil, "", fmt.Errorf("unable to retrieve source image %s manifest #%d from manifest list: %v", ref, i+1, err)
 			}

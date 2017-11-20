@@ -40,6 +40,7 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/metrics"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	genericfilters "k8s.io/apiserver/pkg/server/filters"
 )
 
 const (
@@ -48,9 +49,10 @@ const (
 )
 
 type APIInstaller struct {
-	group             *APIGroupVersion
-	prefix            string // Path prefix where API resources are to be registered.
-	minRequestTimeout time.Duration
+	group                        *APIGroupVersion
+	prefix                       string // Path prefix where API resources are to be registered.
+	minRequestTimeout            time.Duration
+	enableAPIResponseCompression bool
 }
 
 // Struct capturing information about an action ("GET", "POST", "WATCH", "PROXY", etc).
@@ -88,9 +90,11 @@ var toDiscoveryKubeVerb = map[string]string{
 	"WATCHLIST":        "watch",
 }
 
-// Installs handlers for API resources.
-func (a *APIInstaller) Install(ws *restful.WebService) (apiResources []metav1.APIResource, errors []error) {
-	errors = make([]error, 0)
+// Install handlers for API resources.
+func (a *APIInstaller) Install() ([]metav1.APIResource, *restful.WebService, []error) {
+	var apiResources []metav1.APIResource
+	var errors []error
+	ws := a.newWebService()
 
 	proxyHandler := (&handlers.ProxyHandler{
 		Prefix:     a.prefix + "/proxy/",
@@ -116,11 +120,11 @@ func (a *APIInstaller) Install(ws *restful.WebService) (apiResources []metav1.AP
 			apiResources = append(apiResources, *apiResource)
 		}
 	}
-	return apiResources, errors
+	return apiResources, ws, errors
 }
 
-// NewWebService creates a new restful webservice with the api installer's prefix and version.
-func (a *APIInstaller) NewWebService() *restful.WebService {
+// newWebService creates a new restful webservice with the api installer's prefix and version.
+func (a *APIInstaller) newWebService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path(a.prefix)
 	// a.prefix contains "prefix/group/version"
@@ -374,19 +378,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		resourceKind = kind
 	}
 
-	var shortNames []string
-	shortNamesProvider, ok := storage.(rest.ShortNamesProvider)
-	if ok {
-		shortNames = shortNamesProvider.ShortNames()
-	}
-
 	tableProvider, _ := storage.(rest.TableConvertor)
-
-	var categories []string
-	categoriesProvider, ok := storage.(rest.CategoriesProvider)
-	if ok {
-		categories = categoriesProvider.Categories()
-	}
 
 	var apiResource metav1.APIResource
 	// Get the list of actions for the given scope.
@@ -514,7 +506,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 	// http.StatusUnsupportedMediaType, http.StatusNotAcceptable,
 	// http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden,
 	// http.StatusRequestTimeout, http.StatusConflict, http.StatusPreconditionFailed,
-	// 422 (StatusUnprocessableEntity), http.StatusInternalServerError,
+	// http.StatusUnprocessableEntity, http.StatusInternalServerError,
 	// http.StatusServiceUnavailable
 	// and api error codes
 	// Note that if we specify a versioned Status object here, we may need to
@@ -554,9 +546,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		reqScope.MetaGroupVersion = *a.group.MetaGroupVersion
 	}
 	for _, action := range actions {
-		producedObject := storageMeta.ProducesObject(action.Verb)
-		if producedObject == nil {
-			producedObject = defaultVersionedObject
+		versionedObject := storageMeta.ProducesObject(action.Verb)
+		if versionedObject == nil {
+			versionedObject = defaultVersionedObject
 		}
 		reqScope.Namer = action.Namer
 
@@ -567,10 +559,8 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			requestScope = "namespace"
 			namespaced = "Namespaced"
 		}
-		if len(subresource) > 0 || strings.Contains(action.Path, "/{name}") {
-			requestScope = "resource"
-		}
 		if strings.HasSuffix(action.Path, "/{path:*}") {
+			requestScope = "resource"
 			operationSuffix = operationSuffix + "WithPath"
 		}
 		if action.AllNamespaces {
@@ -616,6 +606,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				handler = metrics.InstrumentRouteFunc(action.Verb, resource, subresource, requestScope, handler)
 			}
 
+			if a.enableAPIResponseCompression {
+				handler = genericfilters.RestfulWithCompression(handler, a.group.Context)
+			}
 			doc := "read the specified " + kind
 			if hasSubresource {
 				doc = "read " + subresource + " of the specified " + kind
@@ -625,8 +618,8 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Param(ws.QueryParameter("pretty", "If 'true', then the output is pretty printed.")).
 				Operation("read"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
-				Writes(producedObject)
+				Returns(http.StatusOK, "OK", versionedObject).
+				Writes(versionedObject)
 			if isGetterWithOptions {
 				if err := addObjectParams(ws, route, versionedGetOptions); err != nil {
 					return nil, err
@@ -645,6 +638,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				doc = "list " + subresource + " of objects of kind " + kind
 			}
 			handler := metrics.InstrumentRouteFunc(action.Verb, resource, subresource, requestScope, restfulListResource(lister, watcher, reqScope, false, a.minRequestTimeout))
+			if a.enableAPIResponseCompression {
+				handler = genericfilters.RestfulWithCompression(handler, a.group.Context)
+			}
 			route := ws.GET(action.Path).To(handler).
 				Doc(doc).
 				Param(ws.QueryParameter("pretty", "If 'true', then the output is pretty printed.")).
@@ -682,9 +678,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Param(ws.QueryParameter("pretty", "If 'true', then the output is pretty printed.")).
 				Operation("replace"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
-				Reads(defaultVersionedObject).
-				Writes(producedObject)
+				Returns(http.StatusOK, "OK", versionedObject).
+				Reads(versionedObject).
+				Writes(versionedObject)
 			addParams(route, action.Params)
 			routes = append(routes, route)
 		case "PATCH": // Partially update a resource
@@ -699,9 +695,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Consumes(string(types.JSONPatchType), string(types.MergePatchType), string(types.StrategicMergePatchType)).
 				Operation("patch"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
+				Returns(http.StatusOK, "OK", versionedObject).
 				Reads(metav1.Patch{}).
-				Writes(producedObject)
+				Writes(versionedObject)
 			addParams(route, action.Params)
 			routes = append(routes, route)
 		case "POST": // Create a resource.
@@ -722,9 +718,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Param(ws.QueryParameter("pretty", "If 'true', then the output is pretty printed.")).
 				Operation("create"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
-				Reads(defaultVersionedObject).
-				Writes(producedObject)
+				Returns(http.StatusOK, "OK", versionedObject).
+				Reads(versionedObject).
+				Writes(versionedObject)
 			addParams(route, action.Params)
 			routes = append(routes, route)
 		case "DELETE": // Delete a resource.
@@ -819,10 +815,6 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			routes = append(routes, buildProxyRoute(ws, "OPTIONS", a.prefix, action.Path, kind, resource, subresource, namespaced, requestScope, hasSubresource, action.Params, proxyHandler, operationSuffix))
 		case "CONNECT":
 			for _, method := range connecter.ConnectMethods() {
-				connectProducedObject := storageMeta.ProducesObject(method)
-				if connectProducedObject == nil {
-					connectProducedObject = "string"
-				}
 				doc := "connect " + method + " requests to " + kind
 				if hasSubresource {
 					doc = "connect " + method + " requests to " + subresource + " of " + kind
@@ -834,7 +826,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 					Operation("connect" + strings.Title(strings.ToLower(method)) + namespaced + kind + strings.Title(subresource) + operationSuffix).
 					Produces("*/*").
 					Consumes("*/*").
-					Writes(connectProducedObject)
+					Writes("string")
 				if versionedConnectOptions != nil {
 					if err := addObjectParams(ws, route, versionedConnectOptions); err != nil {
 						return nil, err
@@ -863,13 +855,24 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		apiResource.Verbs = append(apiResource.Verbs, kubeVerb)
 	}
 	sort.Strings(apiResource.Verbs)
-	apiResource.ShortNames = shortNames
-	apiResource.Categories = categories
+
+	if shortNamesProvider, ok := storage.(rest.ShortNamesProvider); ok {
+		apiResource.ShortNames = shortNamesProvider.ShortNames()
+	}
+	if categoriesProvider, ok := storage.(rest.CategoriesProvider); ok {
+		apiResource.Categories = categoriesProvider.Categories()
+	}
+	if gvkProvider, ok := storage.(rest.GroupVersionKindProvider); ok {
+		gvk := gvkProvider.GroupVersionKind()
+		apiResource.Group = gvk.Group
+		apiResource.Version = gvk.Version
+		apiResource.Kind = gvk.Kind
+	}
 
 	return &apiResource, nil
 }
 
-// This magic incantation returns *ptrToObject for an arbitrary pointer
+// indirectArbitraryPointer returns *ptrToObject for an arbitrary pointer
 func indirectArbitraryPointer(ptrToObject interface{}) interface{} {
 	return reflect.Indirect(reflect.ValueOf(ptrToObject)).Interface()
 }

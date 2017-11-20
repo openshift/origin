@@ -136,7 +136,7 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 // an import.
 func (o *ImportImageOptions) Validate(cmd *cobra.Command) error {
 	if len(o.Target) == 0 {
-		return kcmdutil.UsageError(cmd, "you must specify the name of an image stream")
+		return kcmdutil.UsageErrorf(cmd, "you must specify the name of an image stream")
 	}
 
 	targetRef, err := imageapi.ParseDockerImageReference(o.Target)

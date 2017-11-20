@@ -89,7 +89,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 // Complete completes the required options for build-chain
 func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
-		return cmdutil.UsageError(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
+		return cmdutil.UsageErrorf(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}
 
 	buildClient, err := f.OpenshiftInternalBuildClient()

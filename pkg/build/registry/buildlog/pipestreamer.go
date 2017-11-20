@@ -19,6 +19,7 @@ package buildlog
 import (
 	"io"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/registry/rest"
 )
@@ -37,6 +38,10 @@ var _ rest.ResourceStreamer = &PipeStreamer{}
 
 func (obj *PipeStreamer) GetObjectKind() schema.ObjectKind {
 	return schema.EmptyObjectKind
+}
+
+func (obj *PipeStreamer) DeepCopyObject() runtime.Object {
+	panic("buildlog.PipeStreamer does not implement DeepCopyObject")
 }
 
 // InputStream returns a stream with the contents of the embedded pipe.

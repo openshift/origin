@@ -43,8 +43,8 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieTemplateClient := templateclient.NewForConfigOrDie(&valerieClientConfig)
-	valerieImageClient := imageclient.NewForConfigOrDie(&valerieClientConfig)
+	valerieTemplateClient := templateclient.NewForConfigOrDie(&valerieClientConfig).Template()
+	valerieImageClient := imageclient.NewForConfigOrDie(&valerieClientConfig).Image()
 
 	openshiftSharedResourcesNamespace := "openshift"
 
@@ -86,7 +86,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	valerieAuthorizationClient := authorizationclient.NewForConfigOrDie(valerieClientConfig)
+	valerieAuthorizationClient := authorizationclient.NewForConfigOrDie(valerieClientConfig).Authorization()
 
 	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.Action{Verb: "create", Resource: "policybindings"},
@@ -113,8 +113,8 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		localReview:       askCanClusterAdminsCreateProject,
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		kubeNamespace:     "openshift",
-		err:               `User "valerie" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "openshift"`,
-		kubeErr:           `User "valerie" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "openshift"`,
+		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "valerie" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "openshift"`,
+		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "valerie" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "openshift"`,
 	}.run(t)
 
 }
@@ -143,7 +143,7 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "ensure SAR for non-existing namespace does not leak namespace info",
-		localInterface:    authorizationclient.NewForConfigOrDie(valerieClientConfig).LocalSubjectAccessReviews("foo"),
+		localInterface:    authorizationclient.NewForConfigOrDie(valerieClientConfig).Authorization().LocalSubjectAccessReviews("foo"),
 		localReview:       askCanICreatePodsInNonExistingNamespace,
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{

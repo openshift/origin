@@ -9,7 +9,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	dbutil "github.com/openshift/origin/test/extended/util/db"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/api/core/v1"
 )
 
 var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mongodb replication (with statefulset)", func() {

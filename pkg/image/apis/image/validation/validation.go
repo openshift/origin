@@ -103,9 +103,9 @@ func validateImageSignature(signature *imageapi.ImageSignature, fldPath *field.P
 	var trustedCondition, forImageCondition *imageapi.SignatureCondition
 	for i := range signature.Conditions {
 		cond := &signature.Conditions[i]
-		if cond.Type == imageapi.SignatureTrusted && (trustedCondition == nil || !cond.LastProbeTime.Before(trustedCondition.LastProbeTime)) {
+		if cond.Type == imageapi.SignatureTrusted && (trustedCondition == nil || !cond.LastProbeTime.Before(&trustedCondition.LastProbeTime)) {
 			trustedCondition = cond
-		} else if cond.Type == imageapi.SignatureForImage && forImageCondition == nil || !cond.LastProbeTime.Before(forImageCondition.LastProbeTime) {
+		} else if cond.Type == imageapi.SignatureForImage && forImageCondition == nil || !cond.LastProbeTime.Before(&forImageCondition.LastProbeTime) {
 			forImageCondition = cond
 		}
 	}

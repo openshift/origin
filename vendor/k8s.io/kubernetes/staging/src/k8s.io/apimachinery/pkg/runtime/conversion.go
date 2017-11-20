@@ -28,6 +28,8 @@ import (
 )
 
 // DefaultFieldSelectorConversion auto-accepts metav1 values for name and namespace.
+// A cluster scoped resource specifying namespace empty works fine and specifying a particular
+// namespace will return no results, as expected.
 func DefaultMetaV1FieldSelectorConversion(label, value string) (string, string, error) {
 	switch label {
 	case "metadata.name":

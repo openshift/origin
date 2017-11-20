@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
-	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
+	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
@@ -35,6 +35,11 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 
 	"PodPreset",                // alpha in kube 1.6, not on by default
 	"DefaultTolerationSeconds", // alpha, not on by default
+
+	// TODO do we want these:
+	"EventRateLimit",
+	"PersistentVolumeClaimResize",
+	"Priority",
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {

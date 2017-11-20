@@ -8,12 +8,12 @@ import (
 
 	"github.com/ghodss/yaml"
 
+	"k8s.io/api/rbac/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
 	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 

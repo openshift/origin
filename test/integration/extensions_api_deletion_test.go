@@ -14,7 +14,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	expapi "k8s.io/kubernetes/pkg/apis/extensions"
 )
 
 func TestExtensionsAPIDeletion(t *testing.T) {
@@ -44,7 +43,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), projName, "get", expapi.Resource("horizontalpodautoscalers"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), projName, "get", autoscaling.Resource("horizontalpodautoscalers"), true); err != nil {
 		t.Fatalf("unexpected error waiting for policy update: %v", err)
 	}
 
@@ -86,7 +85,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 		t.Fatalf("unexpected error creating the job object: %v", err)
 	}
 
-	if err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Delete(projName, nil); err != nil {
+	if err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().Projects().Delete(projName, nil); err != nil {
 		t.Fatalf("unexpected error deleting the project: %v", err)
 	}
 	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {

@@ -62,6 +62,9 @@ func (b *OpenshiftCLIClientBuilder) OpenshiftInternalAuthorizationClient() (auth
 	if err != nil {
 		return nil, err
 	}
+	// used for reconcile commands touching dozens of objects
+	clientConfig.QPS = 50
+	clientConfig.Burst = 100
 	client, err := authorizationclientinternal.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err

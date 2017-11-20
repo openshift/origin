@@ -25,26 +25,31 @@ type routeInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newRouteInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewRouteInformer constructs a new informer for Route type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewRouteInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.RouteV1().Routes(meta_v1.NamespaceAll).List(options)
+				return client.RouteV1().Routes(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.RouteV1().Routes(meta_v1.NamespaceAll).Watch(options)
+				return client.RouteV1().Routes(namespace).Watch(options)
 			},
 		},
 		&route_v1.Route{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultRouteInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewRouteInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *routeInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&route_v1.Route{}, newRouteInformer)
+	return f.factory.InformerFor(&route_v1.Route{}, defaultRouteInformer)
 }
 
 func (f *routeInformer) Lister() v1.RouteLister {

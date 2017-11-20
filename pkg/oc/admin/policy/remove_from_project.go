@@ -47,11 +47,11 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, o
 		Long:  `Remove group from the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args, &options.Groups, "group"); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.Validate(f, cmd, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.Run(); err != nil {
@@ -75,11 +75,11 @@ func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, ou
 		Long:  `Remove user from the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args, &options.Users, "user"); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.Validate(f, cmd, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.Run(); err != nil {

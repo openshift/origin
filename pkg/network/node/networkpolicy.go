@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/networking"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/openshift/origin/pkg/network"
@@ -52,7 +52,7 @@ type npNamespace struct {
 
 // npPolicy is a parsed version of a single NetworkPolicy object
 type npPolicy struct {
-	policy            extensions.NetworkPolicy
+	policy            networking.NetworkPolicy
 	watchesNamespaces bool
 	watchesPods       bool
 
@@ -124,7 +124,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 		}
 	}
 
-	policies, err := np.node.kClient.Extensions().NetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
+	policies, err := np.node.kClient.Networking().NetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		if kapierrs.IsForbidden(err) {
 			glog.Errorf("Unable to query NetworkPolicies (%v) - please ensure your nodes have access to view NetworkPolicy (eg, 'oc adm policy reconcile-cluster-roles')", err)
@@ -295,7 +295,7 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 	return ips
 }
 
-func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *extensions.NetworkPolicy) (*npPolicy, error) {
+func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *networking.NetworkPolicy) (*npPolicy, error) {
 	npp := &npPolicy{policy: *policy}
 
 	var destFlows []string
@@ -380,7 +380,7 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *ext
 	return npp, nil
 }
 
-func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *extensions.NetworkPolicy) bool {
+func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *networking.NetworkPolicy) bool {
 	npp, err := np.parseNetworkPolicy(npns, policy)
 	if err != nil {
 		glog.Infof("Unsupported NetworkPolicy %s/%s (%v); treating as deny-all", policy.Namespace, policy.Name, err)
@@ -399,7 +399,7 @@ func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *ex
 
 func (np *networkPolicyPlugin) watchNetworkPolicies() {
 	common.RunEventQueue(np.node.kClient.Extensions().RESTClient(), common.NetworkPolicies, func(delta cache.Delta) error {
-		policy := delta.Object.(*extensions.NetworkPolicy)
+		policy := delta.Object.(*networking.NetworkPolicy)
 
 		glog.V(5).Infof("Watch %s event for NetworkPolicy %s/%s", delta.Type, policy.Namespace, policy.Name)
 

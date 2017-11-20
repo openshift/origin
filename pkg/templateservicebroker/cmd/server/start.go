@@ -166,9 +166,9 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	serverConfig.EnableMetrics = true
 
 	config := &server.TemplateServiceBrokerConfig{
-		GenericConfig: serverConfig,
+		GenericConfig: &genericapiserver.RecommendedConfig{Config: *serverConfig},
 
-		TemplateNamespaces: o.TSBConfig.TemplateNamespaces,
+		ExtraConfig: server.ExtraConfig{TemplateNamespaces: o.TSBConfig.TemplateNamespaces},
 		// TODO add the code to set up the client and informers that you need here
 	}
 	return config, nil

@@ -102,7 +102,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		Do()
 	infos, err := r.Infos()
 	if err != nil {
-		return kcmdutil.UsageError(cmd, err.Error())
+		return kcmdutil.UsageErrorf(cmd, err.Error())
 	}
 
 	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")

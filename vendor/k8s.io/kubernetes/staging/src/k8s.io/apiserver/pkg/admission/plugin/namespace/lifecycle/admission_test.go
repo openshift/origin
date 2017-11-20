@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,7 +33,6 @@ import (
 	informers "k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/pkg/api/v1"
 	core "k8s.io/client-go/testing"
 )
 
@@ -251,7 +251,7 @@ func TestAdmissionNamespaceForceLiveLookup(t *testing.T) {
 	getCalls = 0
 
 	// verify delete of namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, nil, v1.SchemeGroupVersion.WithKind("Namespace").GroupKind().WithVersion("version"), "", namespace, v1.Resource("namespaces").WithVersion("version"), "", admission.Delete, nil))
+	err = handler.Admit(admission.NewAttributesRecord(nil, nil, v1.SchemeGroupVersion.WithKind("Namespace").GroupKind().WithVersion("version"), namespace, namespace, v1.Resource("namespaces").WithVersion("version"), "", admission.Delete, nil))
 	if err != nil {
 		t.Errorf("Expected namespace deletion to be allowed")
 	}

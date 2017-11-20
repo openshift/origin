@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	authenticationv1 "k8s.io/client-go/pkg/apis/authentication/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"

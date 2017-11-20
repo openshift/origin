@@ -149,14 +149,14 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	var secretArg string
 	if !o.Remove {
 		if len(args) < 1 {
-			return kcmdutil.UsageError(cmd, "a secret name must be specified")
+			return kcmdutil.UsageErrorf(cmd, "a secret name must be specified")
 		}
 		secretArg = args[len(args)-1]
 		args = args[:len(args)-1]
 	}
 	resources := args
 	if len(resources) == 0 && len(o.Selector) == 0 && len(o.Filenames) == 0 && !o.All {
-		return kcmdutil.UsageError(cmd, "one or more build configs must be specified as <name> or <resource>/<name>")
+		return kcmdutil.UsageErrorf(cmd, "one or more build configs must be specified as <name> or <resource>/<name>")
 	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()

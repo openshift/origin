@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
+	"k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	// install RBAC types
 	_ "k8s.io/kubernetes/pkg/apis/rbac/install"
@@ -53,7 +53,7 @@ func TestHelpersRoundTrip(t *testing.T) {
 	}
 
 	for _, internalObj := range []runtime.Object{&rb, &rbcr, &crb, role, clusterRole} {
-		v1Obj, err := api.Scheme.ConvertToVersion(internalObj, v1beta1.SchemeGroupVersion)
+		v1Obj, err := api.Scheme.ConvertToVersion(internalObj, v1.SchemeGroupVersion)
 		if err != nil {
 			t.Errorf("err on %T: %v", internalObj, err)
 			continue

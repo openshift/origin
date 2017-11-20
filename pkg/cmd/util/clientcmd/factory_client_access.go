@@ -21,11 +21,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
-	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_internalclientset"
+	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -81,6 +82,12 @@ func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) Client
 
 type discoveryFactory struct {
 	clientConfig kclientcmd.ClientConfig
+	cacheDir     string
+}
+
+func (f *discoveryFactory) BindFlags(flags *pflag.FlagSet) {
+	defaultCacheDir := filepath.Join(homedir.HomeDir(), ".kube", "http-cache")
+	flags.StringVar(&f.cacheDir, kcmdutil.FlagHTTPCacheDir, defaultCacheDir, "Default HTTP cache directory")
 }
 
 func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
@@ -93,11 +100,13 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	// given 25 groups with one-ish version each, discovery needs to make 50 requests
 	// double it just so we don't end up here again for a while.  This config is only used for discovery.
 	cfg.Burst = 100
+	cfg.CacheDir = f.cacheDir
 
 	// at this point we've negotiated and can get the client
 	kubeClient, err := kclientset.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
+
 	}
 
 	// TODO: k8s dir is different, I guess we should align
@@ -136,6 +145,10 @@ func (f *ring0Factory) OpenShiftClientConfig() kclientcmd.ClientConfig {
 
 func (f *ring0Factory) DiscoveryClient() (discovery.CachedDiscoveryInterface, error) {
 	return f.kubeClientAccessFactory.DiscoveryClient()
+}
+
+func (f *ring0Factory) KubernetesClientSet() (*kubernetes.Clientset, error) {
+	return f.kubeClientAccessFactory.KubernetesClientSet()
 }
 
 func (f *ring0Factory) ClientSet() (kclientset.Interface, error) {

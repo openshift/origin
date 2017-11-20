@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
+	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 
 	// Admission control plug-ins used by OpenShift
 	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/admission/restrictusers"

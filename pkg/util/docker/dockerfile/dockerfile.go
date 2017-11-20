@@ -60,7 +60,7 @@ func InsertInstructions(node *parser.Node, pos int, instructions string) error {
 		return err
 	}
 	// InsertVector pattern (https://github.com/golang/go/wiki/SliceTricks)
-	node.Children = append(node.Children[:pos], append(newChild.Children, node.Children[pos:]...)...)
+	node.Children = append(node.Children[:pos], append(newChild.AST.Children, node.Children[pos:]...)...)
 	return nil
 }
 

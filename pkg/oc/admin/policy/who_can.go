@@ -44,7 +44,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 		Long:  "List who can perform the specified action on a resource",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(f, cmd, args, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			kcmdutil.CheckErr(options.run())

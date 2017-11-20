@@ -82,7 +82,7 @@ export PUBLIC_OPENSHIFT_IP=""
 echo "===> Waiting for public IP to be set for the OpenShift Service."
 echo "Mistakes in service setup can cause this to loop infinitely if an"
 echo "external IP is never set. Ensure that the OpenShift service"
-echo "is set to use an external load balancer. This process may take"
+echo "is set to use an external load balancer. This process may take" 
 echo "a few minutes. Errors can be found in the log file found at:"
 echo ${OPENSHIFT_EXAMPLE}/openshift-startup.log
 echo "" > ${OPENSHIFT_EXAMPLE}/openshift-startup.log

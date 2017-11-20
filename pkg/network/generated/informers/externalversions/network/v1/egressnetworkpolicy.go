@@ -25,26 +25,31 @@ type egressNetworkPolicyInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newEgressNetworkPolicyInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewEgressNetworkPolicyInformer constructs a new informer for EgressNetworkPolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewEgressNetworkPolicyInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.NetworkV1().EgressNetworkPolicies(meta_v1.NamespaceAll).List(options)
+				return client.NetworkV1().EgressNetworkPolicies(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.NetworkV1().EgressNetworkPolicies(meta_v1.NamespaceAll).Watch(options)
+				return client.NetworkV1().EgressNetworkPolicies(namespace).Watch(options)
 			},
 		},
 		&network_v1.EgressNetworkPolicy{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultEgressNetworkPolicyInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewEgressNetworkPolicyInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *egressNetworkPolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&network_v1.EgressNetworkPolicy{}, newEgressNetworkPolicyInformer)
+	return f.factory.InformerFor(&network_v1.EgressNetworkPolicy{}, defaultEgressNetworkPolicyInformer)
 }
 
 func (f *egressNetworkPolicyInformer) Lister() v1.EgressNetworkPolicyLister {

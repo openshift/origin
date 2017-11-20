@@ -8,19 +8,19 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
+	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kclientset "k8s.io/client-go/kubernetes"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	clientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
@@ -82,7 +82,7 @@ type serviceChange struct {
 func NewIngressIPController(services cache.SharedIndexInformer, kc kclientset.Interface, ipNet *net.IPNet, resyncInterval time.Duration) *IngressIPController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kc.CoreV1().RESTClient()).Events("")})
-	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "ingressip-controller"})
+	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "ingressip-controller"})
 
 	ic := &IngressIPController{
 		client:     kc.Core(),
@@ -198,7 +198,7 @@ type serviceAge []*v1.Service
 func (s serviceAge) Len() int      { return len(s) }
 func (s serviceAge) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s serviceAge) Less(i, j int) bool {
-	if s[i].CreationTimestamp.Before(s[j].CreationTimestamp) {
+	if s[i].CreationTimestamp.Before(&s[j].CreationTimestamp) {
 		return true
 	}
 	return (s[i].CreationTimestamp == s[j].CreationTimestamp && s[i].UID < s[j].UID)
@@ -329,10 +329,9 @@ func (ic *IngressIPController) recordLocalAllocation(key, ipString string) (real
 	}
 
 	err = ic.ipAllocator.Allocate(ip)
-	switch {
-	case err == ipallocator.ErrNotInRange:
+	if _, ok := err.(*ipallocator.ErrNotInRange); ok {
 		return true, fmt.Errorf("The ingress ip %v for service %v is not in the ingress range.  A new ip will be allocated.", ipString, key)
-	case err != nil:
+	} else if err != nil {
 		// The only other error that Allocate() can throw is ErrAllocated, but that
 		// should not happen after the check against the allocation map.
 		return false, fmt.Errorf("Unexpected error from ip allocator for service %v: %v", key, err)

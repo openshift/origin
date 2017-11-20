@@ -6,7 +6,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/api/core/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

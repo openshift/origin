@@ -36,14 +36,13 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &rbac.ClusterRole{} },
 		NewListFunc:              func() runtime.Object { return &rbac.ClusterRoleList{} },
-		PredicateFunc:            clusterrole.Matcher,
 		DefaultQualifiedResource: rbac.Resource("clusterroles"),
 
 		CreateStrategy: clusterrole.Strategy,
 		UpdateStrategy: clusterrole.Strategy,
 		DeleteStrategy: clusterrole.Strategy,
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterrole.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

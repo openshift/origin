@@ -25,8 +25,11 @@ type netNamespaceInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newNetNamespaceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewNetNamespaceInformer constructs a new informer for NetNamespace type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewNetNamespaceInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.NetworkV1().NetNamespaces().List(options)
@@ -37,14 +40,16 @@ func newNetNamespaceInformer(client clientset.Interface, resyncPeriod time.Durat
 		},
 		&network_v1.NetNamespace{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultNetNamespaceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewNetNamespaceInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *netNamespaceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&network_v1.NetNamespace{}, newNetNamespaceInformer)
+	return f.factory.InformerFor(&network_v1.NetNamespace{}, defaultNetNamespaceInformer)
 }
 
 func (f *netNamespaceInformer) Lister() v1.NetNamespaceLister {

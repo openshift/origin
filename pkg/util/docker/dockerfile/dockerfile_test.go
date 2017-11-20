@@ -94,7 +94,7 @@ WORKDIR /home
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := ParseTreeToDockerfile(node)
+		got := ParseTreeToDockerfile(node.AST)
 		want := []byte(tc.want)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("ParseTreeToDockerfile: %s:\ngot:\n%swant:\n%s", name, got, want)
@@ -129,7 +129,7 @@ ENV PATH=/bin
 		command.Maintainer: nil,
 		"UnknownCommand":   nil,
 	} {
-		got := FindAll(node, cmd)
+		got := FindAll(node.AST, cmd)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("FindAll(node, %q) = %#v; want %#v", cmd, got, want)
 		}
@@ -211,7 +211,7 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		err = InsertInstructions(got, tc.index, tc.newInstructions)
+		err = InsertInstructions(got.AST, tc.index, tc.newInstructions)
 		if err != nil {
 			t.Errorf("InsertInstructions: %s: %v", name, err)
 			continue
@@ -221,7 +221,7 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		if !bytes.Equal(ParseTreeToDockerfile(got), ParseTreeToDockerfile(want)) {
+		if !bytes.Equal(ParseTreeToDockerfile(got.AST), ParseTreeToDockerfile(want.AST)) {
 			t.Errorf("InsertInstructions: %s: got %#v; want %#v", name, got, want)
 		}
 	}
@@ -247,7 +247,7 @@ ENV PATH=/bin
 		t.Fatalf("parse error: %v", err)
 	}
 	for _, pos := range []int{-1, 3, 4} {
-		err := InsertInstructions(node, pos, "")
+		err := InsertInstructions(node.AST, pos, "")
 		if err == nil {
 			t.Errorf("InsertInstructions(node, %d, \"\"): got nil; want error", pos)
 		}
@@ -268,7 +268,7 @@ ENV PATH=/bin
 		"env without value": `ENV PATH`,
 		"nested json":       `CMD [ "echo", [ "nested json" ] ]`,
 	} {
-		err = InsertInstructions(node, 1, instructions)
+		err = InsertInstructions(node.AST, 1, instructions)
 		if err == nil {
 			t.Errorf("InsertInstructions: %s: got nil; want error", name)
 		}
@@ -307,7 +307,7 @@ FROM centos:7`,
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := LastBaseImage(node)
+		got := LastBaseImage(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("LastBaseImage: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -354,7 +354,7 @@ FROM centos:7`,
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := baseImages(node)
+		got := baseImages(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("baseImages: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -413,7 +413,7 @@ EXPOSE 9090 9091
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := LastExposedPorts(node)
+		got := LastExposedPorts(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("LastExposedPorts: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -473,7 +473,7 @@ EXPOSE 9090 9091
 			t.Errorf("%s: parse error: %v", name, err)
 			continue
 		}
-		got := exposedPorts(node)
+		got := exposedPorts(node.AST)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("exposedPorts: %s: got %#v; want %#v", name, got, tc.want)
 		}
@@ -510,15 +510,15 @@ func TestNextValues(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parse error: %s: %v", original, err)
 		}
-		if len(node.Children) != 1 {
+		if len(node.AST.Children) != 1 {
 			t.Fatalf("unexpected number of children in test case: %s", original)
 		}
 		// The Docker parser always wrap instructions in a root node.
 		// Look at the node representing the first instruction, the one
 		// and only one in each test case.
-		node = node.Children[0]
-		if got := nextValues(node); !reflect.DeepEqual(got, want) {
-			t.Errorf("nextValues(%+v) = %#v; want %#v", node, got, want)
+		newNode := node.AST.Children[0]
+		if got := nextValues(newNode); !reflect.DeepEqual(got, want) {
+			t.Errorf("nextValues(%+v) = %#v; want %#v", newNode, got, want)
 		}
 	}
 }
@@ -535,19 +535,19 @@ func TestNextValuesOnbuild(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parse error: %s: %v", original, err)
 		}
-		if len(node.Children) != 1 {
+		if len(node.AST.Children) != 1 {
 			t.Fatalf("unexpected number of children in test case: %s", original)
 		}
 		// The Docker parser always wrap instructions in a root node.
 		// Look at the node representing the instruction following
 		// ONBUILD, the one and only one in each test case.
-		node = node.Children[0].Next
-		if node == nil || len(node.Children) != 1 {
+		nextNode := node.AST.Children[0].Next
+		if nextNode == nil || len(nextNode.Children) != 1 {
 			t.Fatalf("unexpected number of children in ONBUILD instruction of test case: %s", original)
 		}
-		node = node.Children[0]
-		if got := nextValues(node); !reflect.DeepEqual(got, want) {
-			t.Errorf("nextValues(%+v) = %#v; want %#v", node, got, want)
+		nextNode = nextNode.Children[0]
+		if got := nextValues(nextNode); !reflect.DeepEqual(got, want) {
+			t.Errorf("nextValues(%+v) = %#v; want %#v", nextNode, got, want)
 		}
 	}
 }

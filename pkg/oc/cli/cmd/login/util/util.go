@@ -21,7 +21,7 @@ func CanRequestProjects(config *restclient.Config, defaultNamespace string) (boo
 		},
 	}
 
-	listResponse, err := oClient.SubjectAccessReviews().Create(sar)
+	listResponse, err := oClient.Authorization().SubjectAccessReviews().Create(sar)
 	if err != nil {
 		return false, err
 	}
@@ -34,7 +34,7 @@ func CanRequestProjects(config *restclient.Config, defaultNamespace string) (boo
 		},
 	}
 
-	createResponse, err := oClient.SubjectAccessReviews().Create(sar)
+	createResponse, err := oClient.Authorization().SubjectAccessReviews().Create(sar)
 	if err != nil {
 		return false, err
 	}

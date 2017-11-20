@@ -25,26 +25,31 @@ type policyBindingInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newPolicyBindingInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewPolicyBindingInformer constructs a new informer for PolicyBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewPolicyBindingInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.AuthorizationV1().PolicyBindings(meta_v1.NamespaceAll).List(options)
+				return client.AuthorizationV1().PolicyBindings(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.AuthorizationV1().PolicyBindings(meta_v1.NamespaceAll).Watch(options)
+				return client.AuthorizationV1().PolicyBindings(namespace).Watch(options)
 			},
 		},
 		&authorization_v1.PolicyBinding{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultPolicyBindingInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewPolicyBindingInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *policyBindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization_v1.PolicyBinding{}, newPolicyBindingInformer)
+	return f.factory.InformerFor(&authorization_v1.PolicyBinding{}, defaultPolicyBindingInformer)
 }
 
 func (f *policyBindingInformer) Lister() v1.PolicyBindingLister {

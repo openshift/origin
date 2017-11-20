@@ -49,7 +49,7 @@ func NewCmdIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.Fac
 			}
 			opts.CheckSelector = c.Flag("selector").Changed
 			if err := opts.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
 			}
 
 			err := isolateOp.Run()

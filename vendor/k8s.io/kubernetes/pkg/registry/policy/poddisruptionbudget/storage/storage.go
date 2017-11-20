@@ -25,6 +25,9 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	policyapi "k8s.io/kubernetes/pkg/apis/policy"
+	"k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	"k8s.io/kubernetes/pkg/registry/policy/poddisruptionbudget"
 )
 
@@ -39,14 +42,15 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &policyapi.PodDisruptionBudget{} },
 		NewListFunc:              func() runtime.Object { return &policyapi.PodDisruptionBudgetList{} },
-		PredicateFunc:            poddisruptionbudget.MatchPodDisruptionBudget,
 		DefaultQualifiedResource: policyapi.Resource("poddisruptionbudgets"),
 
 		CreateStrategy: poddisruptionbudget.Strategy,
 		UpdateStrategy: poddisruptionbudget.Strategy,
 		DeleteStrategy: poddisruptionbudget.Strategy,
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: poddisruptionbudget.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

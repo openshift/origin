@@ -25,8 +25,11 @@ type imageInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newImageInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewImageInformer constructs a new informer for Image type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewImageInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.ImageV1().Images().List(options)
@@ -37,14 +40,16 @@ func newImageInformer(client clientset.Interface, resyncPeriod time.Duration) ca
 		},
 		&image_v1.Image{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultImageInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewImageInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *imageInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&image_v1.Image{}, newImageInformer)
+	return f.factory.InformerFor(&image_v1.Image{}, defaultImageInformer)
 }
 
 func (f *imageInformer) Lister() v1.ImageLister {

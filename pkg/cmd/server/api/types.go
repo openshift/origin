@@ -62,6 +62,7 @@ var (
 	APIGroupComponentConfig       = "componentconfig"
 	APIGroupAuthorizationRbac     = "rbac.authorization.k8s.io"
 	APIGroupSettings              = "settings.k8s.io"
+	APIGroupScheduling            = "scheduling.k8s.io"
 
 	OriginAPIGroupCore                = ""
 	OriginAPIGroupAuthorization       = "authorization.openshift.io"
@@ -82,20 +83,21 @@ var (
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
 		APIGroupKube:                  {"v1"},
 		APIGroupExtensions:            {"v1beta1"},
-		APIGroupApps:                  {"v1beta1"},
+		APIGroupApps:                  {"v1beta1", "v1beta2"},
 		APIGroupAdmissionRegistration: {}, // alpha disabled by default
 		APIGroupAPIExtensions:         {"v1beta1"},
 		APIGroupAPIRegistration:       {"v1beta1"},
 		APIGroupAuthentication:        {"v1", "v1beta1"},
 		APIGroupAuthorization:         {"v1", "v1beta1"},
-		APIGroupAuthorizationRbac:     {"v1beta1"},
-		APIGroupAutoscaling:           {"v1"},
-		APIGroupBatch:                 {"v1", "v2alpha1"}, // v2alpha1 has to stay on to keep cronjobs on for backwards compatibility
+		APIGroupAuthorizationRbac:     {"v1", "v1beta1"},
+		APIGroupAutoscaling:           {"v1", "v2beta1"},
+		APIGroupBatch:                 {"v1", "v1beta1", "v2alpha1"}, // v2alpha1 has to stay on to keep cronjobs on for backwards compatibility
 		APIGroupCertificates:          {"v1beta1"},
 		APIGroupNetworking:            {"v1"},
 		APIGroupPolicy:                {"v1beta1"},
 		APIGroupStorage:               {"v1", "v1beta1"},
 		APIGroupSettings:              {}, // list the group, but don't enable any versions.  alpha disabled by default, but enablable via arg
+		APIGroupScheduling:            {}, // alpha disabled by default
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
@@ -126,6 +128,7 @@ var (
 		APIGroupAdmissionRegistration: {"v1alpha1"},
 		APIGroupAuthorizationRbac:     {"v1alpha1"},
 		APIGroupSettings:              {"v1alpha1"},
+		APIGroupScheduling:            {"v1alpha1"},
 	}
 	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)

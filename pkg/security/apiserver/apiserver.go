@@ -22,9 +22,7 @@ import (
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 
-type SecurityAPIServerConfig struct {
-	GenericConfig *genericapiserver.Config
-
+type ExtraConfig struct {
 	CoreAPIServerClientConfig *restclient.Config
 	// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
 	// so we have to have it special cased here to point to the right spot.
@@ -42,29 +40,38 @@ type SecurityAPIServerConfig struct {
 	v1StorageErr  error
 }
 
+type SecurityAPIServerConfig struct {
+	GenericConfig *genericapiserver.RecommendedConfig
+	ExtraConfig   ExtraConfig
+}
+
 type SecurityAPIServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 }
 
 type completedConfig struct {
-	*SecurityAPIServerConfig
+	GenericConfig genericapiserver.CompletedConfig
+	ExtraConfig   *ExtraConfig
+}
+
+type CompletedConfig struct {
+	// Embed a private pointer that cannot be instantiated outside of this package.
+	*completedConfig
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (c *SecurityAPIServerConfig) Complete() completedConfig {
-	c.GenericConfig.Complete()
+	cfg := completedConfig{
+		c.GenericConfig.Complete(),
+		&c.ExtraConfig,
+	}
 
-	return completedConfig{c}
-}
-
-// SkipComplete provides a way to construct a server instance without config completion.
-func (c *SecurityAPIServerConfig) SkipComplete() completedConfig {
-	return completedConfig{c}
+	return cfg
 }
 
 // New returns a new instance of SecurityAPIServer from the given config.
 func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*SecurityAPIServer, error) {
-	genericServer, err := c.SecurityAPIServerConfig.GenericConfig.SkipComplete().New("security.openshift.io-apiserver", delegationTarget) // completion is done in Complete, no need for a second time
+	genericServer, err := c.GenericConfig.New("security.openshift.io-apiserver", delegationTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +85,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(securityapiv1.GroupName, c.Registry, c.Scheme, metav1.ParameterCodec, c.Codecs)
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(securityapiv1.GroupName, c.ExtraConfig.Registry, c.ExtraConfig.Scheme, metav1.ParameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.GroupMeta.GroupVersion = securityapiv1.SchemeGroupVersion
 	apiGroupInfo.VersionedResourcesStorageMap[securityapiv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
@@ -88,36 +95,36 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	return s, nil
 }
 
-func (c *SecurityAPIServerConfig) V1RESTStorage() (map[string]rest.Storage, error) {
-	c.makeV1Storage.Do(func() {
-		c.v1Storage, c.v1StorageErr = c.newV1RESTStorage()
+func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
+	c.ExtraConfig.makeV1Storage.Do(func() {
+		c.ExtraConfig.v1Storage, c.ExtraConfig.v1StorageErr = c.newV1RESTStorage()
 	})
 
-	return c.v1Storage, c.v1StorageErr
+	return c.ExtraConfig.v1Storage, c.ExtraConfig.v1StorageErr
 }
 
-func (c *SecurityAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.CoreAPIServerClientConfig)
+func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	sccStorage := c.SCCStorage
+	sccStorage := c.ExtraConfig.SCCStorage
 	// TODO allow this when we're sure that its storing correctly and we want to allow starting up without embedding kube
 	if false && sccStorage == nil {
 		sccStorage = sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
 	}
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
-		c.KubeInternalInformers.Core().InternalVersion().ServiceAccounts().Lister(),
+		oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
+		c.ExtraConfig.KubeInternalInformers.Core().InternalVersion().ServiceAccounts().Lister(),
 		kubeInternalClient,
 	)
 	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		kubeInternalClient,
 	)
 	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		kubeInternalClient,
 	)
 

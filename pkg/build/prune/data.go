@@ -57,7 +57,7 @@ func NewFilterBeforePredicate(d time.Duration) FilterPredicate {
 	now := metav1.Now()
 	before := metav1.NewTime(now.Time.Add(-1 * d))
 	return func(build *buildapi.Build) bool {
-		return build.CreationTimestamp.Before(before)
+		return build.CreationTimestamp.Before(&before)
 	}
 }
 

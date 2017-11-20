@@ -181,7 +181,7 @@ func NewCmdObserve(fullName string, f *clientcmd.Factory, out, errOut io.Writer)
 			}
 
 			if err := options.Validate(args); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+				cmdutil.CheckErr(cmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.Run(); err != nil {
@@ -441,10 +441,12 @@ func (o *ObserveOptions) Run() error {
 	}
 
 	defer o.dumpMetrics()
+	stopChan := make(chan struct{})
+	defer close(stopChan)
 
 	// start the reflector
 	reflector := cache.NewNamedReflector("observer", lw, nil, store, o.resyncPeriod)
-	reflector.Run()
+	go reflector.Run(stopChan)
 
 	if o.once {
 		// wait until the reflector reports it has completed the initial list and the
@@ -777,7 +779,7 @@ func (lw restListWatcher) List(opt metav1.ListOptions) (runtime.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return lw.Helper.List(lw.namespace, "", labelSelector, false)
+	return lw.Helper.List(lw.namespace, "", labelSelector, false, false)
 }
 
 func (lw restListWatcher) Watch(opt metav1.ListOptions) (watch.Interface, error) {

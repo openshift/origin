@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	dockertypes "github.com/docker/engine-api/types"
+	enginetypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -234,13 +234,22 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 			Email:    v.Email,
 		}
 	}
+
 	keyring := credentialprovider.BasicDockerKeyring{}
 	keyring.Add(keys)
-	e.AuthFn = func(name string) ([]dockertypes.AuthConfig, bool) {
+	e.AuthFn = func(name string) ([]enginetypes.AuthConfig, bool) {
 		authConfs, found := keyring.Lookup(name)
-		var out []dockertypes.AuthConfig
+		var out []enginetypes.AuthConfig
 		for _, conf := range authConfs {
-			out = append(out, conf.AuthConfig)
+			c := enginetypes.AuthConfig{
+				Username:      conf.Username,
+				Password:      conf.Password,
+				Email:         conf.Email,
+				ServerAddress: conf.ServerAddress,
+				IdentityToken: conf.IdentityToken,
+				RegistryToken: conf.RegistryToken,
+			}
+			out = append(out, c)
 		}
 		return out, found
 	}

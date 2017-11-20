@@ -3,7 +3,7 @@ package build
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/api/core/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )

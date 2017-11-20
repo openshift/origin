@@ -3,9 +3,9 @@ package v1
 import (
 	"fmt"
 
+	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // Authorization is calculated against

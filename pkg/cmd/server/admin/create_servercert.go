@@ -60,7 +60,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 		Long:  fmt.Sprintf(createServerLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if _, err := options.CreateServerCert(); err != nil {

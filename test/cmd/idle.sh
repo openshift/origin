@@ -32,6 +32,7 @@ setup_idling_resources() {
     os::cmd::expect_success "echo '${endpoints_json}' | oc create -f -"
     os::cmd::expect_success 'oc describe endpoints idling-echo'
     # deployer pod won't work, so just scale up the rc ourselves
+    os::cmd::try_until_success "oc get replicationcontroller ${dc_name}-1"
     os::cmd::expect_success "oc scale replicationcontroller ${dc_name}-1 --replicas=2"
     os::cmd::try_until_text "oc get pod -l app=idling-echo -o go-template='{{ len .items }}'" "2"
     local pod_name

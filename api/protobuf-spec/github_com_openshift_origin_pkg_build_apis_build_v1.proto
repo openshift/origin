@@ -5,11 +5,8 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.build.apis.build.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -193,12 +190,12 @@ message BuildOutput {
   // This value will be used to look up a Docker image repository to push to.
   // In the case of an ImageStreamTag, the ImageStreamTag will be looked for in the namespace of
   // the build unless Namespace is specified.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference to = 1;
+  optional k8s.io.api.core.v1.ObjectReference to = 1;
 
   // PushSecret is the name of a Secret that would be used for setting
   // up the authentication for executing the Docker push to authentication
   // enabled Docker Registry (or Docker Hub).
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pushSecret = 2;
+  optional k8s.io.api.core.v1.LocalObjectReference pushSecret = 2;
 
   // imageLabels define a list of labels that are applied to the resulting image. If there
   // are multiple labels with the same name then the last one in the list is used.
@@ -304,10 +301,10 @@ message BuildRequest {
   optional SourceRevision revision = 2;
 
   // triggeredByImage is the Image that triggered this build.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference triggeredByImage = 3;
+  optional k8s.io.api.core.v1.ObjectReference triggeredByImage = 3;
 
   // from is the reference to the ImageStreamTag that triggered the build.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 4;
+  optional k8s.io.api.core.v1.ObjectReference from = 4;
 
   // binary indicates a request to build from a binary provided to the builder
   optional BinaryBuildSource binary = 5;
@@ -318,7 +315,7 @@ message BuildRequest {
   optional int64 lastVersion = 6;
 
   // env contains additional environment variables you want to pass into a builder container.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 7;
+  repeated k8s.io.api.core.v1.EnvVar env = 7;
 
   // triggeredBy describes which triggers started the most recent update to the
   // build configuration and contains information about those triggers.
@@ -370,7 +367,7 @@ message BuildSource {
   // The secret contains valid credentials for remote repository, where the
   // data's key represent the authentication method to be used and value is
   // the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference sourceSecret = 7;
+  optional k8s.io.api.core.v1.LocalObjectReference sourceSecret = 7;
 
   // secrets represents a list of secrets and their destinations that will
   // be used only for the build.
@@ -424,7 +421,7 @@ message BuildStatus {
   optional string outputDockerImageReference = 8;
 
   // config is an ObjectReference to the BuildConfig this Build is based on.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference config = 9;
+  optional k8s.io.api.core.v1.ObjectReference config = 9;
 
   // output describes the Docker image the build has produced.
   optional BuildStatusOutput output = 10;
@@ -547,7 +544,7 @@ message CommonSpec {
   optional BuildOutput output = 5;
 
   // resources computes resource requirements to execute the build.
-  optional k8s.io.kubernetes.pkg.api.v1.ResourceRequirements resources = 6;
+  optional k8s.io.api.core.v1.ResourceRequirements resources = 6;
 
   // postCommit is a build hook executed after the build output image is
   // committed, before it is pushed to a registry.
@@ -581,15 +578,15 @@ message CommonWebHookCause {
 message CustomBuildStrategy {
   // from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
   // the docker image should be pulled
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // pullSecret is the name of a Secret that would be used for setting up
   // the authentication for pulling the Docker images from the private Docker
   // registries
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 2;
+  optional k8s.io.api.core.v1.LocalObjectReference pullSecret = 2;
 
   // env contains additional environment variables you want to pass into a builder container.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
+  repeated k8s.io.api.core.v1.EnvVar env = 3;
 
   // exposeDockerSocket will allow running Docker commands (and build Docker images) from
   // inside the Docker container.
@@ -612,19 +609,19 @@ message DockerBuildStrategy {
   // from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
   // the docker image should be pulled
   // the resulting image will be used in the FROM line of the Dockerfile for this build.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // pullSecret is the name of a Secret that would be used for setting up
   // the authentication for pulling the Docker images from the private Docker
   // registries
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 2;
+  optional k8s.io.api.core.v1.LocalObjectReference pullSecret = 2;
 
   // noCache if set to true indicates that the docker build must be executed with the
   // --no-cache=true flag
   optional bool noCache = 3;
 
   // env contains additional environment variables you want to pass into a builder container.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 4;
+  repeated k8s.io.api.core.v1.EnvVar env = 4;
 
   // forcePull describes if the builder should pull the images from registry prior to building.
   optional bool forcePull = 5;
@@ -635,7 +632,7 @@ message DockerBuildStrategy {
 
   // buildArgs contains build arguments that will be resolved in the Dockerfile.  See
   // https://docs.docker.com/engine/reference/builder/#/arg for more details.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 7;
+  repeated k8s.io.api.core.v1.EnvVar buildArgs = 7;
 
   // imageOptimizationPolicy describes what optimizations the system can use when building images
   // to reduce the final size or time spent building the image. The default policy is 'None' which
@@ -651,7 +648,7 @@ message DockerBuildStrategy {
 message DockerStrategyOptions {
   // Args contains any build arguments that are to be passed to Docker.  See
   // https://docs.docker.com/engine/reference/builder/#/arg for more details
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 1;
+  repeated k8s.io.api.core.v1.EnvVar buildArgs = 1;
 
   // noCache overrides the docker-strategy noCache option in the build config
   optional bool noCache = 2;
@@ -679,7 +676,7 @@ message GenericWebHookEvent {
 
   // env contains additional environment variables you want to pass into a builder container.
   // ValueFrom is not supported.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
+  repeated k8s.io.api.core.v1.EnvVar env = 3;
 
   // DockerStrategyOptions contains additional docker-strategy specific options for the build
   optional DockerStrategyOptions dockerStrategyOptions = 4;
@@ -744,7 +741,7 @@ message ImageChangeCause {
 
   // fromRef contains detailed information about an image that triggered a
   // build.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference fromRef = 2;
+  optional k8s.io.api.core.v1.ObjectReference fromRef = 2;
 }
 
 // ImageChangeTrigger allows builds to be triggered when an ImageStream changes
@@ -757,7 +754,7 @@ message ImageChangeTrigger {
   // It is optional. If no From is specified, the From image from the build strategy
   // will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
   // a build configuration.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 2;
+  optional k8s.io.api.core.v1.ObjectReference from = 2;
 }
 
 // ImageLabel represents a label applied to the resulting image.
@@ -777,14 +774,14 @@ message ImageLabel {
 message ImageSource {
   // from is a reference to an ImageStreamTag, ImageStreamImage, or DockerImage to
   // copy source from.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // paths is a list of source and destination paths to copy from the image.
   repeated ImageSourcePath paths = 2;
 
   // pullSecret is a reference to a secret to be used to pull the image from a registry
   // If the image is pulled from the OpenShift registry, this field does not need to be set.
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 3;
+  optional k8s.io.api.core.v1.LocalObjectReference pullSecret = 3;
 }
 
 // ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.
@@ -811,7 +808,7 @@ message JenkinsPipelineBuildStrategy {
   optional string jenkinsfile = 2;
 
   // env contains additional environment variables you want to pass into a build pipeline.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
+  repeated k8s.io.api.core.v1.EnvVar env = 3;
 }
 
 // OptionalNodeSelector is a map that may also be left nil to distinguish between set and unset.
@@ -841,7 +838,7 @@ message ProxyConfig {
 message SecretBuildSource {
   // secret is a reference to an existing secret that you want to use in your
   // build.
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference secret = 1;
+  optional k8s.io.api.core.v1.LocalObjectReference secret = 1;
 
   // destinationDir is the directory where the files from the secret should be
   // available for the build time.
@@ -857,7 +854,7 @@ message SecretBuildSource {
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
 message SecretSpec {
   // secretSource is a reference to the secret
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference secretSource = 1;
+  optional k8s.io.api.core.v1.LocalObjectReference secretSource = 1;
 
   // mountPath is the path at which to mount the secret
   optional string mountPath = 2;
@@ -867,15 +864,15 @@ message SecretSpec {
 message SourceBuildStrategy {
   // from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which
   // the docker image should be pulled
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // pullSecret is the name of a Secret that would be used for setting up
   // the authentication for pulling the Docker images from the private Docker
   // registries
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 2;
+  optional k8s.io.api.core.v1.LocalObjectReference pullSecret = 2;
 
   // env contains additional environment variables you want to pass into a builder container.
-  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
+  repeated k8s.io.api.core.v1.EnvVar env = 3;
 
   // scripts is the location of Source scripts
   optional string scripts = 4;

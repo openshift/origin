@@ -44,7 +44,7 @@ os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certi
 os::cmd::expect_success_and_text 'oc status' "You don't have any projects. You can try to create a new project, by running"
 os::cmd::expect_success_and_text 'oc status --all-namespaces' "Showing all projects on server"
 # make sure `oc status` does not re-use the "no projects" message from `oc login` if -n is specified
-os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): User "test-user" cannot get projects.project.openshift.io in the namespace "forbidden"'
+os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): projects.project.openshift.io "forbidden" is forbidden: User "test-user" cannot get projects.project.openshift.io in the namespace "forbidden"'
 
 # create a new project
 os::cmd::expect_success "oc new-project project-bar --display-name='my project' --description='test project'"
@@ -52,7 +52,7 @@ os::cmd::expect_success_and_text "oc project" 'Using project "project-bar"'
 
 # make sure `oc status` does not use "no projects" message if there is a project created
 os::cmd::expect_success_and_text 'oc status' "In project my project \(project-bar\) on server"
-os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): User "test-user" cannot get projects.project.openshift.io in the namespace "forbidden"'
+os::cmd::expect_failure_and_text 'oc status -n forbidden' 'Error from server \(Forbidden\): projects.project.openshift.io "forbidden" is forbidden: User "test-user" cannot get projects.project.openshift.io in the namespace "forbidden"'
 
 # create a second project
 os::cmd::expect_success "oc new-project project-bar-2 --display-name='my project 2' --description='test project 2'"
@@ -62,7 +62,7 @@ os::cmd::expect_success_and_text "oc project" 'Using project "project-bar-2"'
 # message since `project-bar` still exists
 os::cmd::expect_success_and_text "oc delete project project-bar-2" 'project "project-bar-2" deleted'
 # the deletion is asynchronous and can take a while, so wait until we see the error
-os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): User "test-user" cannot get projects.project.openshift.io in the namespace "project-bar-2"'
+os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): projects.project.openshift.io "project-bar-2" is forbidden: User "test-user" cannot get projects.project.openshift.io in the namespace "project-bar-2"'
 
 # delete "project-bar" and test that `oc status` still does not return the "no projects" message.
 # Although we are deleting the last remaining project, the current context's namespace is still set
@@ -71,7 +71,7 @@ os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): User "test
 os::cmd::expect_success "oc project project-bar"
 os::cmd::expect_success "oc delete project project-bar"
 # the deletion is asynchronous and can take a while, so wait until we see the error
-os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): User "test-user" cannot get projects.project.openshift.io in the namespace "project-bar"'
+os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): projects.project.openshift.io "project-bar" is forbidden: User "test-user" cannot get projects.project.openshift.io in the namespace "project-bar"'
 os::cmd::try_until_not_text "oc get projects" "project-bar"
 os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 os::cmd::expect_success "oc logout"

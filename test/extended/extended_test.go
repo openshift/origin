@@ -18,7 +18,6 @@ import (
 	_ "github.com/openshift/origin/test/extended/localquota"
 	_ "github.com/openshift/origin/test/extended/networking"
 	_ "github.com/openshift/origin/test/extended/prometheus"
-	_ "github.com/openshift/origin/test/extended/registry"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
 	_ "github.com/openshift/origin/test/extended/templates"

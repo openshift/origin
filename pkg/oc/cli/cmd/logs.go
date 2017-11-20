@@ -87,7 +87,7 @@ func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer) *cob
 		kcmdutil.CheckErr(o.Complete(f, cmd, args, out))
 
 		if err := o.Validate(); err != nil {
-			kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+			kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 		}
 
 		kcmdutil.CheckErr(o.RunLog())

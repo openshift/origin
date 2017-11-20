@@ -50,7 +50,7 @@ func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f *clientcmd.
 			}
 			opts.CheckSelector = c.Flag("selector").Changed
 			if err := opts.Validate(); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))
 			}
 
 			err := makeGlobalOp.Run()

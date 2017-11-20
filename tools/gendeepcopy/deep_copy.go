@@ -109,7 +109,7 @@ func main() {
 			pkgs := generators.Packages(context, arguments)
 			var include generator.Packages
 			for _, pkg := range pkgs {
-				if strings.HasPrefix(pkg.Path(), "k8s.io/") {
+				if strings.Contains(pkg.Path(), "vendor/k8s.io/") {
 					continue
 				}
 				include = append(include, pkg)

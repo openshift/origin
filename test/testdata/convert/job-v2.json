@@ -1,5 +1,5 @@
 {
-    "kind": "ScheduledJob",
+    "kind": "CronJob",
     "apiVersion": "batch/v2alpha1",
     "metadata": {
         "name": "hello",

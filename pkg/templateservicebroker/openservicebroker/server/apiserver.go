@@ -54,10 +54,13 @@ func init() {
 	Scheme.AddUnversionedTypes(unversionedVersion, unversionedTypes...)
 }
 
-type TemplateServiceBrokerConfig struct {
-	GenericConfig *genericapiserver.Config
-
+type ExtraConfig struct {
 	TemplateNamespaces []string
+}
+
+type TemplateServiceBrokerConfig struct {
+	GenericConfig *genericapiserver.RecommendedConfig
+	ExtraConfig   ExtraConfig
 }
 
 type TemplateServiceBrokerServer struct {
@@ -65,23 +68,22 @@ type TemplateServiceBrokerServer struct {
 }
 
 type completedTemplateServiceBrokerConfig struct {
-	*TemplateServiceBrokerConfig
+	GenericConfig genericapiserver.CompletedConfig
+	ExtraConfig   *ExtraConfig
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (c *TemplateServiceBrokerConfig) Complete() completedTemplateServiceBrokerConfig {
-	c.GenericConfig.Complete()
+	cfg := completedTemplateServiceBrokerConfig{
+		c.GenericConfig.Complete(),
+		&c.ExtraConfig,
+	}
 
-	return completedTemplateServiceBrokerConfig{c}
-}
-
-// SkipComplete provides a way to construct a server instance without config completion.
-func (c *TemplateServiceBrokerConfig) SkipComplete() completedTemplateServiceBrokerConfig {
-	return completedTemplateServiceBrokerConfig{c}
+	return cfg
 }
 
 func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiserver.DelegationTarget) (*TemplateServiceBrokerServer, error) {
-	genericServer, err := c.TemplateServiceBrokerConfig.GenericConfig.SkipComplete().New("template-service-broker", delegationTarget) // completion is done in Complete, no need for a second time
+	genericServer, err := c.GenericConfig.New("template-service-broker", delegationTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +110,7 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 	broker, err := templateservicebroker.NewBroker(
 		clientConfig,
 		templateInformers.Template().V1().Templates(),
-		c.TemplateNamespaces,
+		c.ExtraConfig.TemplateNamespaces,
 	)
 	if err != nil {
 		return nil, err

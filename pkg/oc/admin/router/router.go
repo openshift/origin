@@ -496,7 +496,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	case 1:
 		cfg.Name = args[0]
 	default:
-		return kcmdutil.UsageError(cmd, "You may pass zero or one arguments to provide a name for the router")
+		return kcmdutil.UsageErrorf(cmd, "You may pass zero or one arguments to provide a name for the router")
 	}
 	name := cfg.Name
 
@@ -504,12 +504,12 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	if len(cfg.StatsUsername) > 0 {
 		if strings.Contains(cfg.StatsUsername, ":") {
-			return kcmdutil.UsageError(cmd, "username %s must not contain ':'", cfg.StatsUsername)
+			return kcmdutil.UsageErrorf(cmd, "username %s must not contain ':'", cfg.StatsUsername)
 		}
 	}
 
 	if len(cfg.Subdomain) > 0 && len(cfg.ForceSubdomain) > 0 {
-		return kcmdutil.UsageError(cmd, "only one of --subdomain, --force-subdomain can be specified")
+		return kcmdutil.UsageErrorf(cmd, "only one of --subdomain, --force-subdomain can be specified")
 	}
 
 	ports, err := app.ContainerPortsFromString(cfg.Ports)
@@ -550,7 +550,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 			glog.Fatal(err)
 		}
 		if len(remove) > 0 {
-			return kcmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
+			return kcmdutil.UsageErrorf(cmd, "You may not pass negative labels in %q", cfg.Labels)
 		}
 		label = valid
 	}
@@ -562,7 +562,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 			glog.Fatal(err)
 		}
 		if len(remove) > 0 {
-			return kcmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
+			return kcmdutil.UsageErrorf(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
 		}
 		nodeSelector = valid
 	}

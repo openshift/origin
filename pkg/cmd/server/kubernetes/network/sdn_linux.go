@@ -3,10 +3,10 @@ package network
 import (
 	"strings"
 
+	kclientv1 "k8s.io/api/core/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	kclientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"

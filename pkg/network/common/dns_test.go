@@ -6,12 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	kexec "k8s.io/kubernetes/pkg/util/exec"
+	kexec "k8s.io/utils/exec"
+	fakeexec "k8s.io/utils/exec/testing"
 )
 
-func addTestResult(t *testing.T, fexec *kexec.FakeExec, command string, output string, err error) {
-	fcmd := kexec.FakeCmd{
-		CombinedOutputScript: []kexec.FakeCombinedOutputAction{
+func addTestResult(t *testing.T, fexec *fakeexec.FakeExec, command string, output string, err error) {
+	fcmd := fakeexec.FakeCmd{
+		CombinedOutputScript: []fakeexec.FakeCombinedOutputAction{
 			func() ([]byte, error) { return []byte(output), err },
 		},
 	}
@@ -21,11 +22,11 @@ func addTestResult(t *testing.T, fexec *kexec.FakeExec, command string, output s
 			if execCommand != command {
 				t.Fatalf("Unexpected command: wanted %q got %q", command, execCommand)
 			}
-			return kexec.InitFakeCmd(&fcmd, cmd, args...)
+			return fakeexec.InitFakeCmd(&fcmd, cmd, args...)
 		})
 }
 
-func ensureTestResults(t *testing.T, fexec *kexec.FakeExec) {
+func ensureTestResults(t *testing.T, fexec *fakeexec.FakeExec) {
 	if fexec.CommandCalls != len(fexec.CommandScript) {
 		t.Fatalf("Only used %d of %d expected commands", fexec.CommandCalls, len(fexec.CommandScript))
 	}
@@ -60,7 +61,7 @@ func TestAddDNS(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fexec := &kexec.FakeExec{}
+		fexec := &fakeexec.FakeExec{}
 		dns := NewDNS(fexec)
 		addTestResult(t, fexec, fmt.Sprintf("dig +nocmd +noall +answer +ttlid a %s", test.domainName), test.dnsResolverOutput, nil)
 
@@ -134,7 +135,7 @@ func TestUpdateDNS(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fexec := &kexec.FakeExec{}
+		fexec := &fakeexec.FakeExec{}
 		dns := NewDNS(fexec)
 		addTestResult(t, fexec, fmt.Sprintf("dig +nocmd +noall +answer +ttlid a %s", test.domainName), test.addResolverOutput, nil)
 

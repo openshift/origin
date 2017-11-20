@@ -17,13 +17,13 @@ limitations under the License.
 package fake
 
 import (
+	v1beta1 "k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 )
 
 // FakeReplicaSets implements ReplicaSetInterface
@@ -135,4 +135,26 @@ func (c *FakeReplicaSets) Patch(name string, pt types.PatchType, data []byte, su
 		return nil, err
 	}
 	return obj.(*v1beta1.ReplicaSet), err
+}
+
+// GetScale takes name of the replicaSet, and returns the corresponding scale object, and an error if there is any.
+func (c *FakeReplicaSets) GetScale(replicaSetName string, options v1.GetOptions) (result *v1beta1.Scale, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewGetSubresourceAction(replicasetsResource, c.ns, "scale", replicaSetName), &v1beta1.Scale{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1beta1.Scale), err
+}
+
+// UpdateScale takes the representation of a scale and updates it. Returns the server's representation of the scale, and an error, if there is any.
+func (c *FakeReplicaSets) UpdateScale(replicaSetName string, scale *v1beta1.Scale) (result *v1beta1.Scale, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(replicasetsResource, "scale", c.ns, scale), &v1beta1.Scale{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1beta1.Scale), err
 }

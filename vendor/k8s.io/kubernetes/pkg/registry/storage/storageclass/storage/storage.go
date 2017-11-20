@@ -36,7 +36,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &storageapi.StorageClass{} },
 		NewListFunc:              func() runtime.Object { return &storageapi.StorageClassList{} },
-		PredicateFunc:            storageclass.MatchStorageClasses,
 		DefaultQualifiedResource: storageapi.Resource("storageclasses"),
 
 		CreateStrategy:      storageclass.Strategy,
@@ -44,7 +43,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		DeleteStrategy:      storageclass.Strategy,
 		ReturnDeletedObject: true,
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: storageclass.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

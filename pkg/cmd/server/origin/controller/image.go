@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"time"
 
+	kappsv1beta1 "k8s.io/api/apps/v1beta1"
+	kappsv1beta2 "k8s.io/api/apps/v1beta2"
+	kbatchv1 "k8s.io/api/batch/v1"
+	kbatchv1beta1 "k8s.io/api/batch/v1beta1"
+	kbatchv2alpha1 "k8s.io/api/batch/v2alpha1"
+	kapiv1 "k8s.io/api/core/v1"
+	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kclientsetexternal "k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kappsv1beta1 "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
-	kbatchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
-	kbatchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
-	kextensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -126,17 +128,26 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 	case *kextensionsv1beta1.DaemonSet:
 		_, err := u.kclient.Extensions().DaemonSets(t.Namespace).Update(t)
 		return err
-	case *kappsv1beta1.Deployment:
-		_, err := u.kclient.Apps().Deployments(t.Namespace).Update(t)
-		return err
 	case *kextensionsv1beta1.Deployment:
 		_, err := u.kclient.Extensions().Deployments(t.Namespace).Update(t)
 		return err
+	case *kappsv1beta1.Deployment:
+		_, err := u.kclient.AppsV1beta1().Deployments(t.Namespace).Update(t)
+		return err
+	case *kappsv1beta2.Deployment:
+		_, err := u.kclient.AppsV1beta2().Deployments(t.Namespace).Update(t)
+		return err
 	case *kappsv1beta1.StatefulSet:
-		_, err := u.kclient.Apps().StatefulSets(t.Namespace).Update(t)
+		_, err := u.kclient.AppsV1beta1().StatefulSets(t.Namespace).Update(t)
+		return err
+	case *kappsv1beta2.StatefulSet:
+		_, err := u.kclient.AppsV1beta2().StatefulSets(t.Namespace).Update(t)
 		return err
 	case *kbatchv1.Job:
 		_, err := u.kclient.Batch().Jobs(t.Namespace).Update(t)
+		return err
+	case *kbatchv1beta1.CronJob:
+		_, err := u.kclient.BatchV1beta1().CronJobs(t.Namespace).Update(t)
 		return err
 	case *kbatchv2alpha1.CronJob:
 		_, err := u.kclient.BatchV2alpha1().CronJobs(t.Namespace).Update(t)

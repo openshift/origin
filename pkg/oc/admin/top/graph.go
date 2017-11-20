@@ -4,8 +4,6 @@ import (
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
 
-	"github.com/docker/distribution/digest"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/api/graph"
@@ -22,6 +20,8 @@ const (
 	PodImageEdgeKind                 = "PodImage"
 	ParentImageEdgeKind              = "ParentImage"
 
+	// digestSha256EmptyTar is the canonical sha256 digest of empty data
+	digestSHA256EmptyTar = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	// digest.DigestSha256EmptyTar is empty layer digest, whereas this is gzipped digest of empty layer
 	digestSHA256GzippedEmptyTar = "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
 )
@@ -53,7 +53,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList) {
 			layer := image.DockerImageLayers[i]
 			layerNode := imagegraph.EnsureImageComponentLayerNode(g, layer.Name)
 			edgeKind := ImageLayerEdgeKind
-			if !topLayerAdded && layer.Name != digest.DigestSha256EmptyTar && layer.Name != digestSHA256GzippedEmptyTar {
+			if !topLayerAdded && layer.Name != digestSHA256EmptyTar && layer.Name != digestSHA256GzippedEmptyTar {
 				edgeKind = ImageTopLayerEdgeKind
 				topLayerAdded = true
 			}

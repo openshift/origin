@@ -74,7 +74,7 @@ func NewCommandGetServiceAccountToken(name, fullname string, f *clientcmd.Factor
 
 func (o *GetServiceAccountTokenOptions) Complete(args []string, f *clientcmd.Factory, cmd *cobra.Command) error {
 	if len(args) != 1 {
-		return cmdutil.UsageError(cmd, fmt.Sprintf("expected one service account name as an argument, got %q", args))
+		return cmdutil.UsageErrorf(cmd, fmt.Sprintf("expected one service account name as an argument, got %q", args))
 	}
 
 	o.SAName = args[0]

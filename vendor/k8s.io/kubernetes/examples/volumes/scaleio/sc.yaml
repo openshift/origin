@@ -4,7 +4,7 @@ metadata:
   name: sio-small
 provisioner: kubernetes.io/scaleio
 parameters:
-  gateway: https://localhost:443/api
+  gateway: https://localhost:443/api 
   system: scaleio
   protectionDomain: default
   secretRef: sio-secret

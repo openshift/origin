@@ -25,8 +25,11 @@ type oAuthClientAuthorizationInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newOAuthClientAuthorizationInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewOAuthClientAuthorizationInformer constructs a new informer for OAuthClientAuthorization type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewOAuthClientAuthorizationInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.OauthV1().OAuthClientAuthorizations().List(options)
@@ -37,14 +40,16 @@ func newOAuthClientAuthorizationInformer(client clientset.Interface, resyncPerio
 		},
 		&oauth_v1.OAuthClientAuthorization{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultOAuthClientAuthorizationInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewOAuthClientAuthorizationInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *oAuthClientAuthorizationInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&oauth_v1.OAuthClientAuthorization{}, newOAuthClientAuthorizationInformer)
+	return f.factory.InformerFor(&oauth_v1.OAuthClientAuthorization{}, defaultOAuthClientAuthorizationInformer)
 }
 
 func (f *oAuthClientAuthorizationInformer) Lister() v1.OAuthClientAuthorizationLister {

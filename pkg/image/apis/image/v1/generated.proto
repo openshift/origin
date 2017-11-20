@@ -5,11 +5,9 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.image.apis.image.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -71,10 +69,10 @@ message Image {
 // ImageImportSpec describes a request to import a specific image.
 message ImageImportSpec {
   // From is the source of an image to import; only kind DockerImage is allowed
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // To is a tag in the current image stream to assign the imported image to, if name is not specified the default tag from from.name will be used
-  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference to = 2;
+  optional k8s.io.api.core.v1.LocalObjectReference to = 2;
 
   // ImportPolicy is the policy controlling how the image is imported
   optional TagImportPolicy importPolicy = 3;
@@ -343,7 +341,7 @@ message NamedTagEventList {
 // RepositoryImportSpec describes a request to import images from a Docker image repository.
 message RepositoryImportSpec {
   // From is the source for the image repository to import; only kind DockerImage and a name of a Docker image repository is allowed
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 1;
+  optional k8s.io.api.core.v1.ObjectReference from = 1;
 
   // ImportPolicy is the policy controlling how the image is imported
   optional TagImportPolicy importPolicy = 2;
@@ -470,7 +468,7 @@ message TagReference {
 
   // Optional; if specified, a reference to another image that this tag should point to. Valid values
   // are ImageStreamTag, ImageStreamImage, and DockerImage.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 3;
+  optional k8s.io.api.core.v1.ObjectReference from = 3;
 
   // Reference states if the tag will be imported. Default value is false, which means the tag will
   // be imported.

@@ -9,7 +9,7 @@ import (
 
 	"github.com/docker/distribution/registry/client/auth"
 
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 

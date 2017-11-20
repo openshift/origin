@@ -17,16 +17,16 @@ limitations under the License.
 package json
 
 import (
-	"encoding/json"
+	gojson "encoding/json"
 	"io"
 
 	"github.com/ghodss/yaml"
-	"github.com/ugorji/go/codec"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/recognizer"
 	"k8s.io/apimachinery/pkg/util/framer"
+	"k8s.io/apimachinery/pkg/util/json"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
@@ -121,7 +121,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 		types, _, err := s.typer.ObjectKinds(into)
 		switch {
 		case runtime.IsNotRegisteredError(err):
-			if err := codec.NewDecoderBytes(data, new(codec.JsonHandle)).Decode(into); err != nil {
+			if err := json.Unmarshal(data, into); err != nil {
 				return nil, actual, err
 			}
 			return into, actual, nil
@@ -155,7 +155,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 		return nil, actual, err
 	}
 
-	if err := codec.NewDecoderBytes(data, new(codec.JsonHandle)).Decode(obj); err != nil {
+	if err := json.Unmarshal(data, obj); err != nil {
 		return nil, actual, err
 	}
 	return obj, actual, nil
@@ -177,7 +177,7 @@ func (s *Serializer) Encode(obj runtime.Object, w io.Writer) error {
 	}
 
 	if s.pretty {
-		data, err := json.MarshalIndent(obj, "", "  ")
+		data, err := gojson.MarshalIndent(obj, "", "  ")
 		if err != nil {
 			return err
 		}

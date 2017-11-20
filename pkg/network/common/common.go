@@ -17,10 +17,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/networking"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
@@ -187,7 +188,7 @@ func newEventQueue(client kcache.Getter, resourceName ResourceName, expectedType
 	eventQueue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
 	// Repopulate event queue every 30 mins
 	// Existing items in the event queue will have watch.Modified event type
-	kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run()
+	go kcache.NewReflector(lw, expectedType, eventQueue, 30*time.Minute).Run(wait.NeverStop)
 	return eventQueue
 }
 
@@ -211,7 +212,7 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 	case EgressNetworkPolicies:
 		expectedType = &networkapi.EgressNetworkPolicy{}
 	case NetworkPolicies:
-		expectedType = &extensions.NetworkPolicy{}
+		expectedType = &networking.NetworkPolicy{}
 	default:
 		glog.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}

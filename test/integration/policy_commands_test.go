@@ -32,7 +32,7 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig)
+	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig).Authorization()
 
 	addViewer := policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.ViewRoleName,

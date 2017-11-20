@@ -8,8 +8,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 // QuotaApplicator is used to apply quota to an emptyDir volume.

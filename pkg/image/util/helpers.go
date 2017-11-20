@@ -6,10 +6,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/golang/glog"
+	godigest "github.com/opencontainers/go-digest"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -193,16 +193,12 @@ func ReorderImageLayers(image *imageapi.Image) {
 
 // ManifestMatchesImage returns true if the provided manifest matches the name of the image.
 func ManifestMatchesImage(image *imageapi.Image, newManifest []byte) (bool, error) {
-	dgst, err := digest.ParseDigest(image.Name)
+	dgst, err := godigest.Parse(image.Name)
 	if err != nil {
 		return false, err
 	}
-	v, err := digest.NewDigestVerifier(dgst)
-	if err != nil {
-		return false, err
-	}
+	v := dgst.Verifier()
 	var canonical []byte
-
 	switch image.DockerImageManifestMediaType {
 	case schema2.MediaTypeManifest:
 		var m schema2.DeserializedManifest
@@ -240,11 +236,7 @@ func ImageConfigMatchesImage(image *imageapi.Image, imageConfig []byte) (bool, e
 		return false, err
 	}
 
-	v, err := digest.NewDigestVerifier(m.Config.Digest)
-	if err != nil {
-		return false, err
-	}
-
+	v := m.Config.Digest.Verifier()
 	if _, err := v.Write(imageConfig); err != nil {
 		return false, err
 	}

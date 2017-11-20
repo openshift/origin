@@ -1,8 +1,9 @@
 package v1
 
 import (
+	"k8s.io/api/core/v1"
+
 	newer "github.com/openshift/origin/pkg/image/apis/image"
-	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 func SetDefaults_ImageImportSpec(obj *ImageImportSpec) {

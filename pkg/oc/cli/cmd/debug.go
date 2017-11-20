@@ -23,8 +23,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/util/term"
 	"k8s.io/kubernetes/pkg/util/interrupt"
-	"k8s.io/kubernetes/pkg/util/term"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -180,14 +180,14 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 	resources, envArgs, ok := cmdutil.SplitEnvironmentFromResources(args)
 	if !ok {
-		return kcmdutil.UsageError(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
+		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
 
 	switch {
 	case o.ForceTTY && o.NoStdin:
-		return kcmdutil.UsageError(cmd, "you may not specify -I and -t together")
+		return kcmdutil.UsageErrorf(cmd, "you may not specify -I and -t together")
 	case o.ForceTTY && o.DisableTTY:
-		return kcmdutil.UsageError(cmd, "you may not specify -t and -T together")
+		return kcmdutil.UsageErrorf(cmd, "you may not specify -t and -T together")
 	case o.ForceTTY:
 		o.Attach.TTY = true
 	// since ForceTTY is defaulted to false, check if user specifically passed in "=false" flag

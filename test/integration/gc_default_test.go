@@ -84,11 +84,11 @@ func TestGCDefaults(t *testing.T) {
 		t.Error(err)
 	}
 
-	if bc, err := newBuildClient.BuildConfigs(ns).Get(buildConfig.Name, metav1.GetOptions{}); !apierrors.IsNotFound(err) {
+	if bc, err := newBuildClient.Build().BuildConfigs(ns).Get(buildConfig.Name, metav1.GetOptions{}); !apierrors.IsNotFound(err) {
 		t.Fatalf("%v and %#v", err, bc)
 	}
 
-	secondBuildConfig, err := newBuildClient.BuildConfigs(ns).Create(buildConfig)
+	secondBuildConfig, err := newBuildClient.Build().BuildConfigs(ns).Create(buildConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

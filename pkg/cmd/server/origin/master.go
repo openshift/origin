@@ -47,43 +47,49 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	genericConfig.RESTOptionsGetter = c.RESTOptionsGetter
 
 	ret := &OpenshiftAPIConfig{
-		GenericConfig: &genericConfig,
-
-		KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
-		KubeletClientConfig:                c.KubeletClientConfig,
-		KubeInternalInformers:              c.InternalKubeInformers,
-		QuotaInformers:                     c.QuotaInformers,
-		SecurityInformers:                  c.SecurityInformers,
-		RuleResolver:                       c.RuleResolver,
-		SubjectLocator:                     c.SubjectLocator,
-		LimitVerifier:                      c.LimitVerifier,
-		RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
-		AllowedRegistriesForImport:         c.Options.ImagePolicyConfig.AllowedRegistriesForImport,
-		MaxImagesBulkImportedPerRepository: c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
-		RouteAllocator:                     c.RouteAllocator(),
-		ProjectAuthorizationCache:          c.ProjectAuthorizationCache,
-		ProjectCache:                       c.ProjectCache,
-		ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
-		ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
-		EnableBuilds:                       configapi.IsBuildEnabled(&c.Options),
-		ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
-		SCCStorage:                         sccStorage,
+		GenericConfig: &apiserver.RecommendedConfig{Config: genericConfig},
+		ExtraConfig: OpenshiftAPIExtraConfig{
+			KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
+			KubeletClientConfig:                c.KubeletClientConfig,
+			KubeInternalInformers:              c.InternalKubeInformers,
+			QuotaInformers:                     c.QuotaInformers,
+			SecurityInformers:                  c.SecurityInformers,
+			RuleResolver:                       c.RuleResolver,
+			SubjectLocator:                     c.SubjectLocator,
+			LimitVerifier:                      c.LimitVerifier,
+			RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
+			AllowedRegistriesForImport:         c.Options.ImagePolicyConfig.AllowedRegistriesForImport,
+			MaxImagesBulkImportedPerRepository: c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
+			RouteAllocator:                     c.RouteAllocator(),
+			ProjectAuthorizationCache:          c.ProjectAuthorizationCache,
+			ProjectCache:                       c.ProjectCache,
+			ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
+			ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
+			EnableBuilds:                       configapi.IsBuildEnabled(&c.Options),
+			ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
+			SCCStorage:                         sccStorage,
+		},
 	}
 	if c.Options.OAuthConfig != nil {
-		ret.ServiceAccountMethod = c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod
+		ret.ExtraConfig.ServiceAccountMethod = c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod
 	}
 
-	return ret, ret.Validate()
+	return ret, ret.ExtraConfig.Validate()
 }
 
 func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config, controllerPlug plug.Plug) *OpenshiftNonAPIConfig {
 	ret := &OpenshiftNonAPIConfig{
-		GenericConfig:  &kubeAPIServerConfig,
-		ControllerPlug: controllerPlug,
-		EnableOAuth:    c.Options.OAuthConfig != nil,
+		GenericConfig: &apiserver.RecommendedConfig{
+			Config:                kubeAPIServerConfig,
+			SharedInformerFactory: c.ClientGoKubeInformers,
+		},
+		ExtraConfig: NonAPIExtraConfig{
+			ControllerPlug: controllerPlug,
+			EnableOAuth:    c.Options.OAuthConfig != nil,
+		},
 	}
 	if c.Options.OAuthConfig != nil {
-		ret.MasterPublicURL = c.Options.OAuthConfig.MasterPublicURL
+		ret.ExtraConfig.MasterPublicURL = c.Options.OAuthConfig.MasterPublicURL
 	}
 
 	return ret
@@ -121,7 +127,7 @@ func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTa
 		return nil, err
 	}
 	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
-	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
+	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.ExtraConfig.SCCStorage)
 
 	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer)
 	if err != nil {
@@ -138,7 +144,7 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 	if err != nil {
 		return nil, err
 	}
-	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(delegateAPIServer, nil /*this is only used for tpr migration and we don't have any to migrate*/)
+	kubeAPIServer, err := kubeAPIServerConfig.Complete(c.ClientGoKubeInformers).New(delegateAPIServer)
 	if err != nil {
 		return nil, err
 	}

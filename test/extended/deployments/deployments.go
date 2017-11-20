@@ -10,13 +10,12 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapiv1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -1056,9 +1055,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				rc1, err = waitForRCModification(oc, namespace, rcName(1), deploymentChangeTimeout,
-					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(kcontroller.GetControllerOf(rc1))))
+					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(metav1.GetControllerOf(rc1))))
 				o.Expect(err).NotTo(o.HaveOccurred())
-				controllerRef := kcontroller.GetControllerOf(rc1)
+				controllerRef := metav1.GetControllerOf(rc1)
 				o.Expect(controllerRef).To(o.BeNil())
 
 				dc, err = waitForDCModification(oc, namespace, dcName, deploymentChangeTimeout,
@@ -1076,7 +1075,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				rc1, err = waitForRCModification(oc, namespace, rcName(1), deploymentChangeTimeout,
-					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(kcontroller.GetControllerOf(rc1))))
+					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(metav1.GetControllerOf(rc1))))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				validRef := HasValidDCControllerRef(dc, rc1)
 				o.Expect(validRef).To(o.BeTrue())

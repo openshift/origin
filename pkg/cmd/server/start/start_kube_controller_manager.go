@@ -8,15 +8,15 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kexternalinformers "k8s.io/client-go/informers"
+	kinformers "k8s.io/client-go/informers"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
-	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/volume"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
@@ -169,11 +169,14 @@ func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, po
 
 		// virtual resource
 		componentconfig.GroupResource{Group: "project.openshift.io", Resource: "projects"},
+		// virtual and unwatchable resource, surfaced via rbac.authorization.k8s.io objects
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "clusterroles"},
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "clusterrolebindings"},
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "roles"},
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindings"},
 		// these resources contain security information in their names, and we don't need to track them
 		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"},
 		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
-		// exposed already as cronjobs
-		componentconfig.GroupResource{Group: "batch", Resource: "scheduledjobs"},
 		// exposed already as extensions v1beta1 by other controllers
 		componentconfig.GroupResource{Group: "apps", Resource: "deployments"},
 		// exposed as autoscaling v1

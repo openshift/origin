@@ -5,11 +5,8 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.quota.apis.quota.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -79,13 +76,13 @@ message ClusterResourceQuotaSpec {
   optional ClusterResourceQuotaSelector selector = 1;
 
   // Quota defines the desired quota
-  optional k8s.io.kubernetes.pkg.api.v1.ResourceQuotaSpec quota = 2;
+  optional k8s.io.api.core.v1.ResourceQuotaSpec quota = 2;
 }
 
 // ClusterResourceQuotaStatus defines the actual enforced quota and its current usage
 message ClusterResourceQuotaStatus {
   // Total defines the actual enforced quota and its current usage across all projects
-  optional k8s.io.kubernetes.pkg.api.v1.ResourceQuotaStatus total = 1;
+  optional k8s.io.api.core.v1.ResourceQuotaStatus total = 1;
 
   // Namespaces slices the usage by project.  This division allows for quick resolution of
   // deletion reconciliation inside of a single project without requiring a recalculation
@@ -99,6 +96,6 @@ message ResourceQuotaStatusByNamespace {
   optional string namespace = 1;
 
   // Status indicates how many resources have been consumed by this project
-  optional k8s.io.kubernetes.pkg.api.v1.ResourceQuotaStatus status = 2;
+  optional k8s.io.api.core.v1.ResourceQuotaStatus status = 2;
 }
 

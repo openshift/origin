@@ -4,7 +4,7 @@ metadata:
   labels:
     name: hazelcast
   name: hazelcast
-spec:
+spec: 
   ports:
     - port: 5701
   selector:

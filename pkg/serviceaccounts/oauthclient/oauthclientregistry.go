@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	clientv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -14,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	clientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"

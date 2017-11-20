@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"testing"
 
+	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )

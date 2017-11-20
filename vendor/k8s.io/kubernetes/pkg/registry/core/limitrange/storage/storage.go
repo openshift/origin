@@ -29,13 +29,12 @@ type REST struct {
 	*genericregistry.Store
 }
 
-// NewREST returns a RESTStorage object that will work against horizontal pod autoscalers.
+// NewREST returns a RESTStorage object that will work against limitranges.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &genericregistry.Store{
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &api.LimitRange{} },
 		NewListFunc:              func() runtime.Object { return &api.LimitRangeList{} },
-		PredicateFunc:            limitrange.MatchLimitRange,
 		DefaultQualifiedResource: api.Resource("limitranges"),
 
 		CreateStrategy: limitrange.Strategy,
@@ -43,7 +42,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		DeleteStrategy: limitrange.Strategy,
 		ExportStrategy: limitrange.Strategy,
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: limitrange.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

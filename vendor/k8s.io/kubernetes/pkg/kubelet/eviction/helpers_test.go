@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 	statsapi "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	evictionapi "k8s.io/kubernetes/pkg/kubelet/eviction/api"
@@ -1363,12 +1363,12 @@ func TestHasNodeConditions(t *testing.T) {
 		result bool
 	}{
 		"has-condition": {
-			inputs: []v1.NodeConditionType{v1.NodeReady, v1.NodeOutOfDisk, v1.NodeMemoryPressure},
+			inputs: []v1.NodeConditionType{v1.NodeReady, v1.NodeDiskPressure, v1.NodeMemoryPressure},
 			item:   v1.NodeMemoryPressure,
 			result: true,
 		},
 		"does-not-have-condition": {
-			inputs: []v1.NodeConditionType{v1.NodeReady, v1.NodeOutOfDisk},
+			inputs: []v1.NodeConditionType{v1.NodeReady, v1.NodeDiskPressure},
 			item:   v1.NodeMemoryPressure,
 			result: false,
 		},
@@ -1600,6 +1600,20 @@ func newResourceList(cpu, memory string) v1.ResourceList {
 	}
 	if memory != "" {
 		res[v1.ResourceMemory] = resource.MustParse(memory)
+	}
+	return res
+}
+
+func newEphemeralStorageResourceList(ephemeral, cpu, memory string) v1.ResourceList {
+	res := v1.ResourceList{}
+	if ephemeral != "" {
+		res[v1.ResourceEphemeralStorage] = resource.MustParse(ephemeral)
+	}
+	if cpu != "" {
+		res[v1.ResourceCPU] = resource.MustParse(cpu)
+	}
+	if memory != "" {
+		res[v1.ResourceMemory] = resource.MustParse("1Mi")
 	}
 	return res
 }

@@ -3,14 +3,14 @@ package util
 import (
 	"github.com/golang/glog"
 
+	kapiv1 "k8s.io/api/core/v1"
+	kextapi "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	kextensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kextapi "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -169,7 +169,7 @@ func (c *ScaleAnnotater) UpdateObjectScale(updater ScaleUpdater, namespace strin
 	case *deployapi.DeploymentConfig, *kapi.ReplicationController:
 		return updater.Update(c, obj, scale)
 	default:
-		glog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations")
+		glog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations", obj)
 		_, err = c.scales.Scales(namespace).Update(ref.Kind, scale)
 	}
 

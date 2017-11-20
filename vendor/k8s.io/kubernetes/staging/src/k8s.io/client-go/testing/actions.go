@@ -114,6 +114,18 @@ func NewCreateAction(resource schema.GroupVersionResource, namespace string, obj
 	return action
 }
 
+func NewCreateSubresourceAction(resource schema.GroupVersionResource, name, subresource string, namespace string, object runtime.Object) CreateActionImpl {
+	action := CreateActionImpl{}
+	action.Verb = "create"
+	action.Resource = resource
+	action.Subresource = subresource
+	action.Namespace = namespace
+	action.Name = name
+	action.Object = object
+
+	return action
+}
+
 func NewRootUpdateAction(resource schema.GroupVersionResource, object runtime.Object) UpdateActionImpl {
 	action := UpdateActionImpl{}
 	action.Verb = "update"
@@ -192,18 +204,6 @@ func NewUpdateSubresourceAction(resource schema.GroupVersionResource, subresourc
 	action.Resource = resource
 	action.Subresource = subresource
 	action.Namespace = namespace
-	action.Object = object
-
-	return action
-}
-
-func NewCreateSubresourceAction(resource schema.GroupVersionResource, name, subresource string, namespace string, object runtime.Object) CreateActionImpl {
-	action := CreateActionImpl{}
-	action.Verb = "create"
-	action.Resource = resource
-	action.Subresource = subresource
-	action.Namespace = namespace
-	action.Name = name
 	action.Object = object
 
 	return action
@@ -354,6 +354,17 @@ type UpdateAction interface {
 type DeleteAction interface {
 	Action
 	GetName() string
+}
+
+type DeleteCollectionAction interface {
+	Action
+	GetListRestrictions() ListRestrictions
+}
+
+type PatchAction interface {
+	Action
+	GetName() string
+	GetPatch() []byte
 }
 
 type WatchAction interface {

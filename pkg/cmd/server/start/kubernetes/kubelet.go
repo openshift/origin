@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 
 	kflag "k8s.io/apiserver/pkg/util/flag"
+	"k8s.io/apiserver/pkg/util/logs"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	"k8s.io/kubernetes/pkg/util/logs"
 )
 
 const kubeletLog = `Start Kubelet
@@ -20,7 +20,7 @@ starting from a configuration file.`
 
 // NewKubeletCommand provides a CLI handler for the 'kubelet' command
 func NewKubeletCommand(name, fullName string, out io.Writer) *cobra.Command {
-	kubeletOptions := kubeletoptions.NewKubeletServer()
+	kubeletOptions, _ := kubeletoptions.NewKubeletServer()
 
 	cmd := &cobra.Command{
 		Use:   name,

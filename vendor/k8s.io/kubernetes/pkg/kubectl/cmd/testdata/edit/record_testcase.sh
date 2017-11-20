@@ -64,7 +64,7 @@ kind: Config
 users: []
 " > "${edit_kubeconfig}"
     export KUBECONFIG="${edit_kubeconfig}"
-
+    
     echo "Starting subshell. Type exit when finished."
     bash
 popd

@@ -10,7 +10,6 @@ import (
 	"k8s.io/client-go/util/cert"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -120,7 +119,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		},
 	}
 	if len(options.ServiceAccountConfig.PrivateKeyFile) > 0 {
-		ret.ServiceAccountTokenControllerOptions.PrivateKey, err = serviceaccount.ReadPrivateKey(options.ServiceAccountConfig.PrivateKeyFile)
+		ret.ServiceAccountTokenControllerOptions.PrivateKey, err = cert.PrivateKeyFromFile(options.ServiceAccountConfig.PrivateKeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("error reading signing key for Service Account Token Manager: %v", err)
 		}

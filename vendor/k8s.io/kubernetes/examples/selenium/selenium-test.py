@@ -30,3 +30,4 @@ def check_browser(browser):
 
 check_browser("FIREFOX")
 check_browser("CHROME")
+
