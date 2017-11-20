@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kflag "k8s.io/apiserver/pkg/util/flag"
-	"k8s.io/kubernetes/pkg/util/logs"
+	"k8s.io/apiserver/pkg/util/logs"
 	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 )

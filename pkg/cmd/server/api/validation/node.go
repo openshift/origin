@@ -127,7 +127,8 @@ func ValidateDockerConfig(config api.DockerConfig, fldPath *field.Path) field.Er
 }
 
 func ValidateKubeletExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, kubeletoptions.NewKubeletServer().AddFlags, fldPath)
+	server, _ := kubeletoptions.NewKubeletServer()
+	return ValidateExtendedArguments(config, server.AddFlags, fldPath)
 }
 
 func ValidateVolumeConfig(config api.NodeVolumeConfig, fldPath *field.Path) field.ErrorList {

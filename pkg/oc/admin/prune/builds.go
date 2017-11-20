@@ -85,7 +85,7 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 // which can be validated and used for pruning builds.
 func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
-		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
+		return kcmdutil.UsageErrorf(cmd, "no arguments are allowed to this command")
 	}
 
 	o.Namespace = metav1.NamespaceAll

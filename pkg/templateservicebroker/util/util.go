@@ -3,11 +3,11 @@ package util
 import (
 	"errors"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
-	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/authorization/v1"
+	"k8s.io/client-go/kubernetes/typed/authorization/v1"
 )
 
 // AddUserToSAR adds the requisite user information to a SubjectAccessReview.

@@ -10,13 +10,13 @@ import (
 	gocontext "golang.org/x/net/context"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
+	godigest "github.com/opencontainers/go-digest"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -364,7 +364,7 @@ func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, bs dis
 			continue
 		}
 
-		desc, err := bs.Stat(ctx, digest.Digest(layer.Name))
+		desc, err := bs.Stat(ctx, godigest.Digest(layer.Name))
 		if err != nil {
 			return err
 		}
@@ -395,7 +395,7 @@ func manifestFromManifestList(ctx gocontext.Context, manifestList *manifestlist.
 		preferOS = runtime.GOOS
 	}
 
-	var manifestDigest digest.Digest
+	var manifestDigest godigest.Digest
 	for _, manifestDescriptor := range manifestList.Manifests {
 		if manifestDescriptor.Platform.Architecture == preferArch && manifestDescriptor.Platform.OS == preferOS {
 			manifestDigest = manifestDescriptor.Digest
@@ -415,7 +415,7 @@ func manifestFromManifestList(ctx gocontext.Context, manifestList *manifestlist.
 	return manifest, err
 }
 
-func (isi *ImageStreamImporter) importManifest(ctx gocontext.Context, manifest distribution.Manifest, ref imageapi.DockerImageReference, d digest.Digest, s distribution.ManifestService, b distribution.BlobStore, preferArch, preferOS string) (image *imageapi.Image, err error) {
+func (isi *ImageStreamImporter) importManifest(ctx gocontext.Context, manifest distribution.Manifest, ref imageapi.DockerImageReference, d godigest.Digest, s distribution.ManifestService, b distribution.BlobStore, preferArch, preferOS string) (image *imageapi.Image, err error) {
 	if manifestList, ok := manifest.(*manifestlist.DeserializedManifestList); ok {
 		manifest, err = manifestFromManifestList(ctx, manifestList, ref, s, preferArch, preferOS)
 		if err != nil {
@@ -540,7 +540,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 			continue
 		}
 
-		d, err := digest.ParseDigest(importDigest.Name)
+		d, err := godigest.Parse(importDigest.Name)
 		if err != nil {
 			importDigest.Err = err
 			continue

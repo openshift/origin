@@ -3,19 +3,19 @@ package meta
 import (
 	"fmt"
 
+	appsv1beta1 "k8s.io/api/apps/v1beta1"
+	batchv1 "k8s.io/api/batch/v1"
+	batchv2alpha1 "k8s.io/api/batch/v2alpha1"
+	kapiv1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/apps"
-	appsv1beta1 "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
-	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
@@ -56,8 +56,6 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	batch.Resource("jobs"):                  batch.Kind("Job"),
 	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
 
-	// TODO do we still need this or is cronjob sufficient?
-	batch.Resource("scheduledjobs"):    batch.Kind("ScheduledJob"),
 	batch.Resource("cronjobs"):         batch.Kind("CronJob"),
 	extensions.Resource("deployments"): extensions.Kind("Deployment"),
 	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),

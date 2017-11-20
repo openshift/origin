@@ -24,7 +24,8 @@ spec:
       name: app-volume
     ports:
     - containerPort: 8080
-      hostPort: 8001
+      hostPort: 8001 
   volumes:
   - name: app-volume
     emptyDir: {}
+

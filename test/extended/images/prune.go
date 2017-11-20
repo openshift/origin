@@ -9,14 +9,13 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
+	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	registryutil "github.com/openshift/origin/test/extended/registry/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -36,7 +35,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 
 	g.JustBeforeEach(func() {
 		if originalAcceptSchema2 == nil {
-			accepts, err := registryutil.DoesRegistryAcceptSchema2(oc)
+			accepts, err := DoesRegistryAcceptSchema2(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			originalAcceptSchema2 = &accepts
 		}
@@ -53,14 +52,14 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 		g.JustBeforeEach(func() {
 			if *originalAcceptSchema2 {
 				g.By("ensure the registry does not accept schema 2")
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, false)
+				err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if *originalAcceptSchema2 {
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, true)
+				err := EnsureRegistryAcceptsSchema2(oc, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -72,14 +71,14 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 		g.JustBeforeEach(func() {
 			if !*originalAcceptSchema2 {
 				g.By("ensure the registry accepts schema 2")
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, true)
+				err := EnsureRegistryAcceptsSchema2(oc, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if !*originalAcceptSchema2 {
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, false)
+				err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -91,14 +90,14 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 		g.JustBeforeEach(func() {
 			if !*originalAcceptSchema2 {
 				g.By("ensure the registry accepts schema 2")
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, true)
+				err := EnsureRegistryAcceptsSchema2(oc, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if !*originalAcceptSchema2 {
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, false)
+				err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -110,14 +109,14 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 		g.JustBeforeEach(func() {
 			if !*originalAcceptSchema2 {
 				g.By("ensure the registry accepts schema 2")
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, true)
+				err := EnsureRegistryAcceptsSchema2(oc, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if !*originalAcceptSchema2 {
-				err := registryutil.EnsureRegistryAcceptsSchema2(oc, false)
+				err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -154,12 +153,12 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 	cleanUp.AddImage(imgPruneName, "", "")
 	cleanUp.AddImageStream(isName)
-	pruneSize, err := registryutil.GetRegistryStorageSize(oc)
+	pruneSize, err := GetRegistryStorageSize(oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	imgKeepName, _, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, "latest", testImageSize, 2, outSink, true, true)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	cleanUp.AddImage(imgKeepName, "", "")
-	keepSize, err := registryutil.GetRegistryStorageSize(oc)
+	keepSize, err := GetRegistryStorageSize(oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(pruneSize < keepSize).To(o.BeTrue())
 
@@ -195,7 +194,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 		}
 	}
 
-	noConfirmSize, err := registryutil.GetRegistryStorageSize(oc)
+	noConfirmSize, err := GetRegistryStorageSize(oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(noConfirmSize).To(o.Equal(keepSize))
 
@@ -213,7 +212,7 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 		if !strings.Contains(output, layer.Name) {
 			o.Expect(output).To(o.ContainSubstring(layer.Name))
 		}
-		globally, inRepository, err := IsBlobStoredInRegistry(oc, digest.Digest(layer.Name), repoName)
+		globally, inRepository, err := IsBlobStoredInRegistry(oc, godigest.Digest(layer.Name), repoName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(globally).To(o.BeFalse())
 		o.Expect(inRepository).To(o.BeFalse())
@@ -225,13 +224,13 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 		if !strings.Contains(output, layer.Name) {
 			o.Expect(output).NotTo(o.ContainSubstring(layer.Name))
 		}
-		globally, inRepository, err := IsBlobStoredInRegistry(oc, digest.Digest(layer.Name), repoName)
+		globally, inRepository, err := IsBlobStoredInRegistry(oc, godigest.Digest(layer.Name), repoName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(globally).To(o.BeTrue())
 		o.Expect(inRepository).To(o.BeTrue())
 	}
 
-	confirmSize, err := registryutil.GetRegistryStorageSize(oc)
+	confirmSize, err := GetRegistryStorageSize(oc)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	g.By(fmt.Sprintf("confirming storage size: sizeOfKeepImage=%d <= sizeAfterPrune=%d < beforePruneSize=%d", imgKeep.DockerImageMetadata.Size, confirmSize, keepSize))
 	o.Expect(confirmSize >= imgKeep.DockerImageMetadata.Size).To(o.BeTrue())
@@ -276,7 +275,7 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 
 		for _, layer := range managedImage.DockerImageLayers {
 			o.Expect(output).To(o.ContainSubstring(layer.Name))
-			globally, inRepository, err := IsBlobStoredInRegistry(oc, digest.Digest(layer.Name), repository)
+			globally, inRepository, err := IsBlobStoredInRegistry(oc, godigest.Digest(layer.Name), repository)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(globally).To(o.Equal(dryRun))
 			o.Expect(inRepository).To(o.Equal(dryRun))
@@ -298,7 +297,7 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 			if blobdgst.String() != layer.Name {
 				continue
 			}
-			globally, inRepository, err := IsBlobStoredInRegistry(oc, digest.Digest(layer.Name), repository)
+			globally, inRepository, err := IsBlobStoredInRegistry(oc, godigest.Digest(layer.Name), repository)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(globally).To(o.Equal(dryRun || setAllImagesToFalse))
 			// mirrored blobs are not linked into any repository/_layers directory
@@ -339,7 +338,7 @@ func (bls byLayerSize) Less(i, j int) bool {
 	return false
 }
 
-func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destISTag string) (*imageapi.Image, digest.Digest, error) {
+func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destISTag string) (*imageapi.Image, godigest.Digest, error) {
 	g.By(fmt.Sprintf("importing external image %q", imageReference))
 	err := oc.Run("tag").Args("--source=docker", imageReference, destISTag).Execute()
 	if err != nil {
@@ -362,7 +361,7 @@ func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destIST
 	for i := range istag.Image.DockerImageLayers {
 		layer := istag.Image.DockerImageLayers[i]
 		// skip empty blobs
-		if IsEmptyDigest(digest.Digest(layer.Name)) {
+		if IsEmptyDigest(godigest.Digest(layer.Name)) {
 			continue
 		}
 		tmpLayers = append(tmpLayers, layer)
@@ -374,10 +373,10 @@ func importImageAndMirrorItsSmallestBlob(oc *exutil.CLI, imageReference, destIST
 
 	layer := tmpLayers[0]
 	g.By(fmt.Sprintf("mirroring image's blob of size=%d in repository %q", layer.LayerSize, isName))
-	err = MirrorBlobInRegistry(oc, digest.Digest(layer.Name), oc.Namespace()+"/"+isName, mirrorBlobTimeout)
+	err = MirrorBlobInRegistry(oc, godigest.Digest(layer.Name), oc.Namespace()+"/"+isName, mirrorBlobTimeout)
 	if err != nil {
 		return nil, "", err
 	}
 
-	return &istag.Image, digest.Digest(tmpLayers[0].Name), nil
+	return &istag.Image, godigest.Digest(tmpLayers[0].Name), nil
 }

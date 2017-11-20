@@ -201,7 +201,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout i
 // Complete completes any options that are required by validate or run steps.
 func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Writer, args []string) error {
 	if len(args) > 0 {
-		return kcmdutil.UsageError(cmd, "No arguments are allowed to this command")
+		return kcmdutil.UsageErrorf(cmd, "No arguments are allowed to this command")
 	}
 
 	opts.image = opts.Config.ImageTemplate.ExpandOrDie(opts.Config.Type)
@@ -215,7 +215,7 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return err
 		}
 		if len(remove) > 0 {
-			return kcmdutil.UsageError(cmd, "You may not pass negative labels in %q", opts.Config.Labels)
+			return kcmdutil.UsageErrorf(cmd, "You may not pass negative labels in %q", opts.Config.Labels)
 		}
 		opts.label = valid
 	}
@@ -227,26 +227,26 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return err
 		}
 		if len(remove) > 0 {
-			return kcmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", opts.Config.Selector)
+			return kcmdutil.UsageErrorf(cmd, "You may not pass negative labels in selector %q", opts.Config.Selector)
 		}
 		opts.nodeSelector = valid
 	}
 
 	if len(opts.Config.FSGroup) > 0 {
 		if _, err := strconv.ParseInt(opts.Config.FSGroup, 10, 64); err != nil {
-			return kcmdutil.UsageError(cmd, "invalid group ID %q specified for fsGroup (%v)", opts.Config.FSGroup, err)
+			return kcmdutil.UsageErrorf(cmd, "invalid group ID %q specified for fsGroup (%v)", opts.Config.FSGroup, err)
 		}
 	}
 
 	if len(opts.Config.SupplementalGroups) > 0 {
 		for _, v := range opts.Config.SupplementalGroups {
 			if val, err := strconv.ParseInt(v, 10, 64); err != nil || val == 0 {
-				return kcmdutil.UsageError(cmd, "invalid group ID %q specified for supplemental group (%v)", v, err)
+				return kcmdutil.UsageErrorf(cmd, "invalid group ID %q specified for supplemental group (%v)", v, err)
 			}
 		}
 	}
 	if len(opts.Config.SupplementalGroups) > 0 && len(opts.Config.FSGroup) > 0 {
-		return kcmdutil.UsageError(cmd, "fsGroup and supplemental groups cannot be specified both at the same time")
+		return kcmdutil.UsageErrorf(cmd, "fsGroup and supplemental groups cannot be specified both at the same time")
 	}
 
 	var portsErr error
@@ -420,6 +420,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 				Labels: opts.label,
 			},
 			Spec: extensions.DaemonSetSpec{
+				Selector: &metav1.LabelSelector{MatchLabels: opts.label},
 				Template: kapi.PodTemplateSpec{
 					ObjectMeta: podTemplate.ObjectMeta,
 					Spec:       podTemplate.Spec,

@@ -17,8 +17,8 @@ limitations under the License.
 package testing
 
 import (
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
 
@@ -57,3 +57,7 @@ func (f *FakeCache) UpdateNodeNameToInfoMap(infoMap map[string]*schedulercache.N
 }
 
 func (f *FakeCache) List(s labels.Selector) ([]*v1.Pod, error) { return nil, nil }
+
+func (f *FakeCache) FilteredList(filter schedulercache.PodFilter, selector labels.Selector) ([]*v1.Pod, error) {
+	return nil, nil
+}

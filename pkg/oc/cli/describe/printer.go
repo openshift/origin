@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kprinters "k8s.io/kubernetes/pkg/printers"
-	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -86,7 +85,6 @@ func init() {
 func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
 	// TODO: support cross namespace listing
 	p := kprinters.NewHumanReadablePrinter(encoder, decoder, printOptions)
-	kinternalprinters.AddHandlers(p)
 	p.Handler(buildColumns, nil, printBuild)
 	p.Handler(buildColumns, nil, printBuildList)
 	p.Handler(buildConfigColumns, nil, printBuildConfig)

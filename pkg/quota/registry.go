@@ -2,9 +2,9 @@ package quota
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kexternalinformers "k8s.io/client-go/informers"
+	clientset "k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/install"
 

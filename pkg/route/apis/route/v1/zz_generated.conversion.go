@@ -6,16 +6,16 @@ package v1
 
 import (
 	route "github.com/openshift/origin/pkg/route/apis/route"
+	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	unsafe "unsafe"
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -121,7 +121,7 @@ func Convert_v1_RouteIngressCondition_To_route_RouteIngressCondition(in *RouteIn
 
 func autoConvert_route_RouteIngressCondition_To_v1_RouteIngressCondition(in *route.RouteIngressCondition, out *RouteIngressCondition, s conversion.Scope) error {
 	out.Type = RouteIngressConditionType(in.Type)
-	out.Status = api_v1.ConditionStatus(in.Status)
+	out.Status = core_v1.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
 	out.LastTransitionTime = (*meta_v1.Time)(unsafe.Pointer(in.LastTransitionTime))
@@ -146,11 +146,7 @@ func Convert_v1_RouteList_To_route_RouteList(in *RouteList, out *route.RouteList
 
 func autoConvert_route_RouteList_To_v1_RouteList(in *route.RouteList, out *RouteList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]Route, 0)
-	} else {
-		out.Items = *(*[]Route)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]Route)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -226,11 +222,7 @@ func Convert_v1_RouteStatus_To_route_RouteStatus(in *RouteStatus, out *route.Rou
 }
 
 func autoConvert_route_RouteStatus_To_v1_RouteStatus(in *route.RouteStatus, out *RouteStatus, s conversion.Scope) error {
-	if in.Ingress == nil {
-		out.Ingress = make([]RouteIngress, 0)
-	} else {
-		out.Ingress = *(*[]RouteIngress)(unsafe.Pointer(&in.Ingress))
-	}
+	out.Ingress = *(*[]RouteIngress)(unsafe.Pointer(&in.Ingress))
 	return nil
 }
 

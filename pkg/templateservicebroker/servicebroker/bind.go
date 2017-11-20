@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/glog"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +20,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/util/jsonpath"
 	kapi "k8s.io/kubernetes/pkg/api"
-	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 
 	"github.com/openshift/origin/pkg/config/cmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"

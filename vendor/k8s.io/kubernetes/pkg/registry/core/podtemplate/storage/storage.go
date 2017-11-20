@@ -21,6 +21,9 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	"k8s.io/kubernetes/pkg/registry/core/podtemplate"
 )
 
@@ -34,7 +37,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		Copier:                   api.Scheme,
 		NewFunc:                  func() runtime.Object { return &api.PodTemplate{} },
 		NewListFunc:              func() runtime.Object { return &api.PodTemplateList{} },
-		PredicateFunc:            podtemplate.MatchPodTemplate,
 		DefaultQualifiedResource: api.Resource("podtemplates"),
 
 		CreateStrategy: podtemplate.Strategy,
@@ -43,8 +45,10 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		ExportStrategy: podtemplate.Strategy,
 
 		ReturnDeletedObject: true,
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: podtemplate.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}

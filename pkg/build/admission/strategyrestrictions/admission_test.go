@@ -230,6 +230,8 @@ type fakeObject struct{}
 
 func (*fakeObject) GetObjectKind() schema.ObjectKind { return nil }
 
+func (*fakeObject) DeepCopyObject() runtime.Object { return nil }
+
 func fakeUser() user.Info {
 	return &user.DefaultInfo{
 		Name: "testuser",

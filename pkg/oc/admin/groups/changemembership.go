@@ -58,7 +58,7 @@ func NewCmdAddUsers(name, fullName string, f *clientcmd.Factory, out io.Writer) 
 		Example: fmt.Sprintf(addExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			kcmdutil.CheckErr(options.AddUsers())
@@ -78,7 +78,7 @@ func NewCmdRemoveUsers(name, fullName string, f *clientcmd.Factory, out io.Write
 		Example: fmt.Sprintf(removeExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			kcmdutil.CheckErr(options.RemoveUsers())

@@ -19,11 +19,11 @@ func IngressConditionStatus(ingress *RouteIngress, t RouteIngressConditionType) 
 }
 
 func RouteLessThan(route1, route2 *Route) bool {
-	if route1.CreationTimestamp.Before(route2.CreationTimestamp) {
+	if route1.CreationTimestamp.Before(&route2.CreationTimestamp) {
 		return true
 	}
 
-	if route2.CreationTimestamp.Before(route1.CreationTimestamp) {
+	if route2.CreationTimestamp.Before(&route1.CreationTimestamp) {
 		return false
 	}
 

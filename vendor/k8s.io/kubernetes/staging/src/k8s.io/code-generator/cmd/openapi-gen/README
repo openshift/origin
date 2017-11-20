@@ -10,3 +10,4 @@ have multiple extensions. The rest of the line in the comment will be used as $V
 escape or quote the value string. Extensions can be use to pass more information to client generators or
 documentation generators. For example a type my have a friendly name to be displayed in documentation or
 being used in a client's fluent interface.
+

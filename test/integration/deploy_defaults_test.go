@@ -75,7 +75,9 @@ func setEssentialDefaults(dc *deployapi.DeploymentConfig) *deployapi.DeploymentC
 		MaxSurge:            intstr.FromString("25%"),
 	}
 	dc.Spec.Strategy.ActiveDeadlineSeconds = int64ptr(21600)
-	dc.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
+	dc.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{
+		{Type: deployapi.DeploymentTriggerOnConfigChange},
+	}
 	dc.Spec.Template.Spec.Containers[0].TerminationMessagePath = "/dev/termination-log"
 	dc.Spec.Template.Spec.Containers[0].TerminationMessagePolicy = "File"
 	dc.Spec.Template.Spec.Containers[0].ImagePullPolicy = "IfNotPresent"
@@ -219,7 +221,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 
 				clearTransient(appsDC)
 				if !reflect.DeepEqual(appsDC, tc.apps) {
-					t.Errorf("Apps DC differs from expected output: %s", diff.ObjectReflectDiff(&appsDC, tc.apps))
+					t.Errorf("Apps DC differs from expected output: %s", diff.ObjectReflectDiff(appsDC, tc.apps))
 				}
 			})
 		}

@@ -30,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	"k8s.io/kubernetes/cmd/kubeadm/app/features"
+	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	tokenutil "k8s.io/kubernetes/cmd/kubeadm/app/util/token"
 	apivalidation "k8s.io/kubernetes/pkg/api/validation"
 	authzmodes "k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
@@ -44,7 +46,6 @@ var cloudproviders = []string{
 	"azure",
 	"cloudstack",
 	"gce",
-	"mesos",
 	"openstack",
 	"ovirt",
 	"photon",
@@ -52,15 +53,23 @@ var cloudproviders = []string{
 	"vsphere",
 }
 
+// Describes the authorization modes that are enforced by kubeadm
+var requiredAuthzModes = []string{
+	authzmodes.ModeRBAC,
+	authzmodes.ModeNode,
+}
+
 func ValidateMasterConfiguration(c *kubeadm.MasterConfiguration) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, ValidateCloudProvider(c.CloudProvider, field.NewPath("cloudprovider"))...)
-	allErrs = append(allErrs, ValidateAuthorizationModes(c.AuthorizationModes, field.NewPath("authorization-mode"))...)
+	allErrs = append(allErrs, ValidateAuthorizationModes(c.AuthorizationModes, field.NewPath("authorization-modes"))...)
 	allErrs = append(allErrs, ValidateNetworking(&c.Networking, field.NewPath("networking"))...)
 	allErrs = append(allErrs, ValidateAPIServerCertSANs(c.APIServerCertSANs, field.NewPath("cert-altnames"))...)
 	allErrs = append(allErrs, ValidateAbsolutePath(c.CertificatesDir, field.NewPath("certificates-dir"))...)
 	allErrs = append(allErrs, ValidateNodeName(c.NodeName, field.NewPath("node-name"))...)
 	allErrs = append(allErrs, ValidateToken(c.Token, field.NewPath("token"))...)
+	allErrs = append(allErrs, ValidateFeatureGates(c.FeatureGates, field.NewPath("feature-gates"))...)
+	allErrs = append(allErrs, ValidateAPIEndpoint(c, field.NewPath("api-endpoint"))...)
 	return allErrs
 }
 
@@ -76,19 +85,23 @@ func ValidateNodeConfiguration(c *kubeadm.NodeConfiguration) field.ErrorList {
 
 func ValidateAuthorizationModes(authzModes []string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
+	found := map[string]bool{}
+
 	for _, authzMode := range authzModes {
 		if !authzmodes.IsValidAuthorizationMode(authzMode) {
 			allErrs = append(allErrs, field.Invalid(fldPath, authzMode, "invalid authorization mode"))
 		}
-	}
 
-	found := map[string]bool{}
-	for _, authzMode := range authzModes {
 		if found[authzMode] {
 			allErrs = append(allErrs, field.Invalid(fldPath, authzMode, "duplicate authorization mode"))
 			continue
 		}
 		found[authzMode] = true
+	}
+	for _, requiredMode := range requiredAuthzModes {
+		if !found[requiredMode] {
+			allErrs = append(allErrs, field.Required(fldPath, fmt.Sprintf("authorization mode %s must be enabled", requiredMode)))
+		}
 	}
 	return allErrs
 }
@@ -126,6 +139,17 @@ func ValidateArgSelection(cfg *kubeadm.NodeConfiguration, fldPath *field.Path) f
 	if len(cfg.DiscoveryTokenAPIServers) < 1 && len(cfg.DiscoveryToken) != 0 {
 		allErrs = append(allErrs, field.Required(fldPath, "DiscoveryTokenAPIServers not set"))
 	}
+
+	if len(cfg.DiscoveryFile) != 0 && len(cfg.DiscoveryTokenCACertHashes) != 0 {
+		allErrs = append(allErrs, field.Invalid(fldPath, "", "DiscoveryTokenCACertHashes cannot be used with DiscoveryFile"))
+	}
+
+	// TODO: convert this warning to an error after v1.8
+	if len(cfg.DiscoveryFile) == 0 && len(cfg.DiscoveryTokenCACertHashes) == 0 && !cfg.DiscoveryTokenUnsafeSkipCAVerification {
+		fmt.Println("[validation] WARNING: using token-based discovery without DiscoveryTokenCACertHashes can be unsafe (see https://kubernetes.io/docs/admin/kubeadm/#kubeadm-join).")
+		fmt.Println("[validation] WARNING: Pass --discovery-token-unsafe-skip-ca-verification to disable this warning. This warning will become an error in Kubernetes 1.9.")
+	}
+
 	// TODO remove once we support multiple api servers
 	if len(cfg.DiscoveryTokenAPIServers) > 1 {
 		fmt.Println("[validation] WARNING: kubeadm doesn't fully support multiple API Servers yet")
@@ -233,7 +257,7 @@ func ValidateAbsolutePath(path string, fldPath *field.Path) field.ErrorList {
 func ValidateNodeName(nodename string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if node.GetHostname(nodename) != nodename {
-		allErrs = append(allErrs, field.Invalid(fldPath, nodename, "nodename is not valid"))
+		allErrs = append(allErrs, field.Invalid(fldPath, nodename, "nodename is not valid, must be lower case"))
 	}
 	return allErrs
 }
@@ -260,8 +284,8 @@ func ValidateMixedArguments(flag *pflag.FlagSet) error {
 
 	mixedInvalidFlags := []string{}
 	flag.Visit(func(f *pflag.Flag) {
-		if f.Name == "config" || strings.HasPrefix(f.Name, "skip-") {
-			// "--skip-*" flags can be set with --config
+		if f.Name == "config" || strings.HasPrefix(f.Name, "skip-") || f.Name == "dry-run" || f.Name == "kubeconfig" {
+			// "--skip-*" flags or other whitelisted flags can be set with --config
 			return
 		}
 		mixedInvalidFlags = append(mixedInvalidFlags, f.Name)
@@ -271,4 +295,29 @@ func ValidateMixedArguments(flag *pflag.FlagSet) error {
 		return fmt.Errorf("can not mix '--config' with arguments %v", mixedInvalidFlags)
 	}
 	return nil
+}
+
+func ValidateFeatureGates(featureGates map[string]bool, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	validFeatures := features.Keys(features.InitFeatureGates)
+
+	// check valid feature names are provided
+	for k := range featureGates {
+		if !features.Supports(features.InitFeatureGates, k) {
+			allErrs = append(allErrs, field.Invalid(fldPath, featureGates,
+				fmt.Sprintf("%s is not a valid feature name. Valid features are: %s", k, validFeatures)))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateAPIEndpoint(c *kubeadm.MasterConfiguration, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	endpoint, err := kubeadmutil.GetMasterEndpoint(c)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, endpoint, "Invalid API Endpoint"))
+	}
+	return allErrs
 }

@@ -1,4 +1,4 @@
-apiVersion: autoscaling/v2alpha1
+apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: test-autoscaler 

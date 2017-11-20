@@ -94,11 +94,11 @@ func TestAggregator(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Legacy openshift resource
-	if _, err := openshiftProjectClient.Projects().Get("default", metav1.GetOptions{}); err != nil {
+	if _, err := openshiftProjectClient.Project().Projects().Get("default", metav1.GetOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	// Groupified openshift resource
-	if _, err := openshiftProjectClient.Projects().Get("default", metav1.GetOptions{}); err != nil {
+	if _, err := openshiftProjectClient.Project().Projects().Get("default", metav1.GetOptions{}); err != nil {
 		t.Fatal(err)
 	}
 

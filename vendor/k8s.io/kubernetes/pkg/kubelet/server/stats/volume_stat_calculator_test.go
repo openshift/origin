@@ -21,10 +21,11 @@ import (
 	"testing"
 	"time"
 
-	k8sv1 "k8s.io/kubernetes/pkg/api/v1"
+	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubestats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
+	statstest "k8s.io/kubernetes/pkg/kubelet/server/stats/testing"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
@@ -74,7 +75,7 @@ func TestPVCRef(t *testing.T) {
 	}
 
 	// Setup mock stats provider
-	mockStats := new(MockStatsProvider)
+	mockStats := new(statstest.StatsProvider)
 	volumes := map[string]volume.Volume{vol0: &fakeVolume{}, vol1: &fakeVolume{}}
 	mockStats.On("ListVolumesForPod", fakePod.UID).Return(volumes, true)
 

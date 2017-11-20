@@ -6,6 +6,7 @@ package v1
 
 import (
 	apps "github.com/openshift/origin/pkg/apps/apis/apps"
+	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -15,7 +16,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -95,7 +96,7 @@ func autoConvert_apps_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrat
 	out.Image = in.Image
 	if in.Environment != nil {
 		in, out := &in.Environment, &out.Environment
-		*out = make([]api_v1.EnvVar, len(*in))
+		*out = make([]core_v1.EnvVar, len(*in))
 		for i := range *in {
 			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
@@ -192,7 +193,7 @@ func Convert_v1_DeploymentCondition_To_apps_DeploymentCondition(in *DeploymentCo
 
 func autoConvert_apps_DeploymentCondition_To_v1_DeploymentCondition(in *apps.DeploymentCondition, out *DeploymentCondition, s conversion.Scope) error {
 	out.Type = DeploymentConditionType(in.Type)
-	out.Status = api_v1.ConditionStatus(in.Status)
+	out.Status = core_v1.ConditionStatus(in.Status)
 	out.LastUpdateTime = in.LastUpdateTime
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = string(in.Reason)
@@ -269,7 +270,7 @@ func autoConvert_apps_DeploymentConfigList_To_v1_DeploymentConfigList(in *apps.D
 			}
 		}
 	} else {
-		out.Items = make([]DeploymentConfig, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -393,7 +394,7 @@ func autoConvert_apps_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *apps.D
 			}
 		}
 	} else {
-		out.Triggers = make(DeploymentTriggerPolicies, 0)
+		out.Triggers = nil
 	}
 	out.Replicas = in.Replicas
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
@@ -402,7 +403,7 @@ func autoConvert_apps_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *apps.D
 	out.Selector = *(*map[string]string)(unsafe.Pointer(&in.Selector))
 	if in.Template != nil {
 		in, out := &in.Template, &out.Template
-		*out = new(api_v1.PodTemplateSpec)
+		*out = new(core_v1.PodTemplateSpec)
 		if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(*in, *out, s); err != nil {
 			return err
 		}
@@ -501,7 +502,7 @@ func autoConvert_apps_DeploymentDetails_To_v1_DeploymentDetails(in *apps.Deploym
 			}
 		}
 	} else {
-		out.Causes = make([]DeploymentCause, 0)
+		out.Causes = nil
 	}
 	return nil
 }
@@ -761,14 +762,10 @@ func Convert_v1_ExecNewPodHook_To_apps_ExecNewPodHook(in *ExecNewPodHook, out *a
 }
 
 func autoConvert_apps_ExecNewPodHook_To_v1_ExecNewPodHook(in *apps.ExecNewPodHook, out *ExecNewPodHook, s conversion.Scope) error {
-	if in.Command == nil {
-		out.Command = make([]string, 0)
-	} else {
-		out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
-	}
+	out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api_v1.EnvVar, len(*in))
+		*out = make([]core_v1.EnvVar, len(*in))
 		for i := range *in {
 			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err

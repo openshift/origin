@@ -65,12 +65,12 @@ func TestGetEnabledAPIVersionsForGroup(t *testing.T) {
 			name:      "enable by default, disable by flag",
 			apiGroup:  "batch",
 			flagValue: []string{"apis/batch/v1=false"},
-			expected:  []string{"v2alpha1"},
+			expected:  []string{"v1beta1", "v2alpha1"},
 		},
 		{
 			name:     "enable by default, no disable",
 			apiGroup: "batch",
-			expected: []string{"v1", "v2alpha1"},
+			expected: []string{"v1", "v1beta1", "v2alpha1"},
 		},
 		{
 			name:      "enable settings",

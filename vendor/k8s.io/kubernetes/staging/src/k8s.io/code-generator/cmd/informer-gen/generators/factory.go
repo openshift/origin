@@ -19,10 +19,10 @@ package generators
 import (
 	"io"
 
+	clientgentypes "k8s.io/code-generator/cmd/client-gen/types"
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
-	clientgentypes "k8s.io/code-generator/cmd/client-gen/types"
 
 	"github.com/golang/glog"
 )
@@ -68,8 +68,8 @@ func (g *factoryGenerator) GenerateType(c *generator.Context, t *types.Type, w i
 	gvInterfaces := make(map[string]*types.Type)
 	gvNewFuncs := make(map[string]*types.Type)
 	for groupName := range g.groupVersions {
-		gvInterfaces[groupName] = c.Universe.Type(types.Name{Package: packageForGroup(g.outputPackage, g.groupVersions[groupName].Group), Name: "Interface"})
-		gvNewFuncs[groupName] = c.Universe.Function(types.Name{Package: packageForGroup(g.outputPackage, g.groupVersions[groupName].Group), Name: "New"})
+		gvInterfaces[groupName] = c.Universe.Type(types.Name{Package: packageForGroup(vendorless(g.outputPackage), g.groupVersions[groupName].Group), Name: "Interface"})
+		gvNewFuncs[groupName] = c.Universe.Function(types.Name{Package: packageForGroup(vendorless(g.outputPackage), g.groupVersions[groupName].Group), Name: "New"})
 	}
 	m := map[string]interface{}{
 		"cacheSharedIndexInformer":   c.Universe.Type(cacheSharedIndexInformer),

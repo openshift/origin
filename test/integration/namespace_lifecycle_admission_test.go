@@ -24,7 +24,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminRouteClient := routeclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminRouteClient := routeclient.NewForConfigOrDie(clusterAdminClientConfig).Route()
 	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)

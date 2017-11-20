@@ -3,7 +3,7 @@ package network
 import (
 	"fmt"
 
-	kexec "k8s.io/kubernetes/pkg/util/exec"
+	kexec "k8s.io/utils/exec"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )

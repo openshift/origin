@@ -25,8 +25,11 @@ type clusterResourceQuotaInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newClusterResourceQuotaInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewClusterResourceQuotaInformer constructs a new informer for ClusterResourceQuota type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewClusterResourceQuotaInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.QuotaV1().ClusterResourceQuotas().List(options)
@@ -37,14 +40,16 @@ func newClusterResourceQuotaInformer(client clientset.Interface, resyncPeriod ti
 		},
 		&quota_v1.ClusterResourceQuota{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultClusterResourceQuotaInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewClusterResourceQuotaInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *clusterResourceQuotaInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&quota_v1.ClusterResourceQuota{}, newClusterResourceQuotaInformer)
+	return f.factory.InformerFor(&quota_v1.ClusterResourceQuota{}, defaultClusterResourceQuotaInformer)
 }
 
 func (f *clusterResourceQuotaInformer) Lister() v1.ClusterResourceQuotaLister {

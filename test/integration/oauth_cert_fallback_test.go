@@ -34,8 +34,8 @@ func TestOAuthCertFallback(t *testing.T) {
 		tokenUser = "user"
 		certUser  = "system:admin"
 
-		unauthorizedError = "the server has asked for the client to provide credentials (get users.user.openshift.io ~)"
-		anonymousError    = `User "system:anonymous" cannot get users.user.openshift.io at the cluster scope: User "system:anonymous" cannot get users.user.openshift.io at the cluster scope (get users.user.openshift.io ~)`
+		unauthorizedError = "Unauthorized"
+		anonymousError    = `users.user.openshift.io "~" is forbidden: User "system:anonymous" cannot get users.user.openshift.io at the cluster scope: User "system:anonymous" cannot get users.user.openshift.io at the cluster scope`
 	)
 
 	// Build master config
@@ -176,11 +176,11 @@ func TestOAuthCertFallback(t *testing.T) {
 			if err == nil {
 				t.Errorf("%s: expected error but got nil", k)
 			} else if err.Error() != test.errorString {
-				t.Errorf("%s: unexpected error string %q", k, err.Error())
+				t.Errorf("%s: unexpected error string '%s'", k, err.Error())
 			}
 		} else {
 			if err != nil {
-				t.Errorf("%s: unexpected error %q", k, err.Error())
+				t.Errorf("%s: unexpected error '%s'", k, err.Error())
 			}
 		}
 	}

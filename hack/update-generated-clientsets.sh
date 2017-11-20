@@ -49,6 +49,6 @@ fi
 for pkg in "${packages[@]}"; do
   shortGroup=$(basename "${pkg}")
   containingPackage=$(dirname "${pkg}")
-  generate_clientset_for "${containingPackage}" "internalclientset"  --group=${shortGroup} --input=${shortGroup} ${verify} "$@"
-  generate_clientset_for "${containingPackage}" "clientset" --group=${shortGroup} --version=v1 --input=${shortGroup}/v1 ${verify} "$@"
+  generate_clientset_for "${containingPackage}" "internalclientset"  --input=${shortGroup} ${verify} "$@"
+  generate_clientset_for "${containingPackage}" "clientset" --input=${shortGroup}/v1 ${verify} "$@"
 done

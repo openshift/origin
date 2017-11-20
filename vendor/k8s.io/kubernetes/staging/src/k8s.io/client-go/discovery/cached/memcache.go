@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"github.com/emicklei/go-restful-swagger12"
-	"github.com/go-openapi/spec"
+	"github.com/googleapis/gnostic/OpenAPIv2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -120,7 +120,7 @@ func (d *memCacheClient) SwaggerSchema(version schema.GroupVersion) (*swagger.Ap
 	return d.delegate.SwaggerSchema(version)
 }
 
-func (d *memCacheClient) OpenAPISchema() (*spec.Swagger, error) {
+func (d *memCacheClient) OpenAPISchema() (*openapi_v2.Document, error) {
 	return d.delegate.OpenAPISchema()
 }
 

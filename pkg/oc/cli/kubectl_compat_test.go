@@ -36,6 +36,7 @@ var MissingCommands = sets.NewString(
 	"rollingupdate",
 	"run-container",
 	"update",
+	"alpha",
 )
 
 // WhitelistedCommands is the list of commands we're never going to have,

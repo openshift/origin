@@ -80,7 +80,7 @@ func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.
 
 func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
-		return kcmdutil.UsageError(cmd, cmd.Use)
+		return kcmdutil.UsageErrorf(cmd, cmd.Use)
 	}
 	if len(o.User) > 0 && len(o.serviceAccount) > 0 {
 		return fmt.Errorf("--user and --serviceaccount are mutually exclusive")

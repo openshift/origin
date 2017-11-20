@@ -59,7 +59,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Long:  newProjectLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(f, args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid

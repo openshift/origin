@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -745,7 +746,7 @@ func resolveError(kind string, namespace string, name string, err error) error {
 	msg := fmt.Sprintf("Error resolving %s %s in namespace %s: %v", kind, name, namespace, err)
 	return &errors.StatusError{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
-		Code:    errors.StatusUnprocessableEntity,
+		Code:    http.StatusUnprocessableEntity,
 		Reason:  metav1.StatusReasonInvalid,
 		Message: msg,
 		Details: &metav1.StatusDetails{

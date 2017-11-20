@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"regexp"
 	"strings"
@@ -619,7 +620,7 @@ func TestInstantiateWithMissingImageStream(t *testing.T) {
 		t.Fatalf("Expected errors.StatusError, got %T", err)
 	}
 
-	if se.ErrStatus.Code != errors.StatusUnprocessableEntity {
+	if se.ErrStatus.Code != http.StatusUnprocessableEntity {
 		t.Errorf("Expected status 422, got %d", se.ErrStatus.Code)
 	}
 

@@ -58,7 +58,7 @@ func NewFilterBeforePredicate(d time.Duration) FilterPredicate {
 	now := metav1.Now()
 	before := metav1.NewTime(now.Time.Add(-1 * d))
 	return func(item *kapi.ReplicationController) bool {
-		return item.CreationTimestamp.Before(before)
+		return item.CreationTimestamp.Before(&before)
 	}
 }
 

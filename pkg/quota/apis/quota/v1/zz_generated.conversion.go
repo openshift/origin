@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -102,7 +102,7 @@ func autoConvert_quota_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResou
 			}
 		}
 	} else {
-		out.Items = make([]AppliedClusterResourceQuota, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -176,7 +176,7 @@ func autoConvert_quota_ClusterResourceQuotaList_To_v1_ClusterResourceQuotaList(i
 			}
 		}
 	} else {
-		out.Items = make([]ClusterResourceQuota, 0)
+		out.Items = nil
 	}
 	return nil
 }

@@ -52,7 +52,7 @@ func NewCmdVersion(fullName string, f *clientcmd.Factory, out io.Writer, options
 			options.BaseName = fullName
 
 			if err := options.Complete(cmd, f, out); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.RunVersion(); err != nil {

@@ -30,39 +30,8 @@ import (
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
-type OAuthServerConfig struct {
-	GenericConfig *genericapiserver.Config
-
-	Options configapi.OAuthConfig
-
-	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
-	AssetPublicAddresses []string
-
-	// KubeClient is kubeclient with enough permission for the auth API
-	KubeClient kclientset.Interface
-
-	// EventsClient is for creating user events
-	EventsClient corev1.EventInterface
-
-	// RouteClient provides a client for OpenShift routes API.
-	RouteClient routeclient.Interface
-
-	UserClient                userclient.UserResourceInterface
-	IdentityClient            userclient.IdentityInterface
-	UserIdentityMappingClient userclient.UserIdentityMappingInterface
-
-	OAuthAccessTokenClient         oauthclient.OAuthAccessTokenInterface
-	OAuthAuthorizeTokenClient      oauthclient.OAuthAuthorizeTokenInterface
-	OAuthClientClient              oauthclient.OAuthClientInterface
-	OAuthClientAuthorizationClient oauthclient.OAuthClientAuthorizationInterface
-
-	SessionAuth *session.Authenticator
-
-	HandlerWrapper handlerWrapper
-}
-
 func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
-	genericConfig := genericapiserver.NewConfig(kapi.Codecs)
+	genericConfig := genericapiserver.NewRecommendedConfig(kapi.Codecs)
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper
@@ -90,18 +59,20 @@ func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *r
 	}
 
 	ret := &OAuthServerConfig{
-		GenericConfig:                  genericConfig,
-		Options:                        oauthConfig,
-		SessionAuth:                    sessionAuth,
-		EventsClient:                   eventsClient.Events(""),
-		IdentityClient:                 userClient.Identities(),
-		UserClient:                     userClient.Users(),
-		UserIdentityMappingClient:      userClient.UserIdentityMappings(),
-		OAuthAccessTokenClient:         oauthClient.OAuthAccessTokens(),
-		OAuthAuthorizeTokenClient:      oauthClient.OAuthAuthorizeTokens(),
-		OAuthClientClient:              oauthClient.OAuthClients(),
-		OAuthClientAuthorizationClient: oauthClient.OAuthClientAuthorizations(),
-		HandlerWrapper:                 sessionHandlerWrapper,
+		GenericConfig: genericConfig,
+		ExtraOAuthConfig: ExtraOAuthConfig{
+			Options:                        oauthConfig,
+			SessionAuth:                    sessionAuth,
+			EventsClient:                   eventsClient.Events(""),
+			IdentityClient:                 userClient.Identities(),
+			UserClient:                     userClient.Users(),
+			UserIdentityMappingClient:      userClient.UserIdentityMappings(),
+			OAuthAccessTokenClient:         oauthClient.OAuthAccessTokens(),
+			OAuthAuthorizeTokenClient:      oauthClient.OAuthAuthorizeTokens(),
+			OAuthClientClient:              oauthClient.OAuthClients(),
+			OAuthClientAuthorizationClient: oauthClient.OAuthClientAuthorizations(),
+			HandlerWrapper:                 sessionHandlerWrapper,
+		},
 	}
 	genericConfig.BuildHandlerChainFunc = ret.buildHandlerChainForOAuth
 
@@ -150,6 +121,40 @@ func isHTTPS(u string) bool {
 	return err == nil && parsedURL.Scheme == "https"
 }
 
+type ExtraOAuthConfig struct {
+	Options configapi.OAuthConfig
+
+	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
+	AssetPublicAddresses []string
+
+	// KubeClient is kubeclient with enough permission for the auth API
+	KubeClient kclientset.Interface
+
+	// EventsClient is for creating user events
+	EventsClient corev1.EventInterface
+
+	// RouteClient provides a client for OpenShift routes API.
+	RouteClient routeclient.Interface
+
+	UserClient                userclient.UserResourceInterface
+	IdentityClient            userclient.IdentityInterface
+	UserIdentityMappingClient userclient.UserIdentityMappingInterface
+
+	OAuthAccessTokenClient         oauthclient.OAuthAccessTokenInterface
+	OAuthAuthorizeTokenClient      oauthclient.OAuthAuthorizeTokenInterface
+	OAuthClientClient              oauthclient.OAuthClientInterface
+	OAuthClientAuthorizationClient oauthclient.OAuthClientAuthorizationInterface
+
+	SessionAuth *session.Authenticator
+
+	HandlerWrapper handlerWrapper
+}
+
+type OAuthServerConfig struct {
+	GenericConfig    *genericapiserver.RecommendedConfig
+	ExtraOAuthConfig ExtraOAuthConfig
+}
+
 // OAuthServer serves non-API endpoints for openshift.
 type OAuthServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
@@ -157,26 +162,30 @@ type OAuthServer struct {
 	PublicURL url.URL
 }
 
-type completedOAuthServerConfig struct {
-	*OAuthServerConfig
+type completedOAuthConfig struct {
+	GenericConfig    genericapiserver.CompletedConfig
+	ExtraOAuthConfig *ExtraOAuthConfig
+}
+
+type CompletedOAuthConfig struct {
+	// Embed a private pointer that cannot be instantiated outside of this package.
+	*completedOAuthConfig
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
-func (c *OAuthServerConfig) Complete() completedOAuthServerConfig {
-	c.GenericConfig.Complete()
+func (c *OAuthServerConfig) Complete() completedOAuthConfig {
+	cfg := completedOAuthConfig{
+		c.GenericConfig.Complete(),
+		&c.ExtraOAuthConfig,
+	}
 
-	return completedOAuthServerConfig{c}
-}
-
-// SkipComplete provides a way to construct a server instance without config completion.
-func (c *OAuthServerConfig) SkipComplete() completedOAuthServerConfig {
-	return completedOAuthServerConfig{c}
+	return cfg
 }
 
 // this server is odd.  It doesn't delegate.  We mostly leave it alone, so I don't plan to make it look "normal".  We'll
 // model it as a separate API server to reason about its handling chain, but otherwise, just let it be
-func (c completedOAuthServerConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OAuthServer, error) {
-	genericServer, err := c.OAuthServerConfig.GenericConfig.SkipComplete().New("openshift-oauth", delegationTarget) // completion is done in Complete, no need for a second time
+func (c completedOAuthConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OAuthServer, error) {
+	genericServer, err := c.GenericConfig.New("openshift-oauth", delegationTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -215,10 +224,10 @@ func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver
 		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
 		Secret:                "",
 		RespondWithChallenges: false,
-		RedirectURIs:          c.AssetPublicAddresses,
+		RedirectURIs:          c.ExtraOAuthConfig.AssetPublicAddresses,
 		GrantMethod:           oauthapi.GrantHandlerAuto,
 	}
-	if err := ensureOAuthClient(webConsoleClient, c.OAuthClientClient, true, false); err != nil {
+	if err := ensureOAuthClient(webConsoleClient, c.ExtraOAuthConfig.OAuthClientClient, true, false); err != nil {
 		return err
 	}
 
@@ -226,10 +235,10 @@ func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver
 		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 		Secret:                uuid.New(),
 		RespondWithChallenges: false,
-		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenDisplayURL(c.Options.MasterPublicURL)},
+		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
 		GrantMethod:           oauthapi.GrantHandlerAuto,
 	}
-	if err := ensureOAuthClient(browserClient, c.OAuthClientClient, true, true); err != nil {
+	if err := ensureOAuthClient(browserClient, c.ExtraOAuthConfig.OAuthClientClient, true, true); err != nil {
 		return err
 	}
 
@@ -237,10 +246,10 @@ func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver
 		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
 		Secret:                "",
 		RespondWithChallenges: true,
-		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenImplicitURL(c.Options.MasterPublicURL)},
+		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
 		GrantMethod:           oauthapi.GrantHandlerAuto,
 	}
-	if err := ensureOAuthClient(cliClient, c.OAuthClientClient, false, false); err != nil {
+	if err := ensureOAuthClient(cliClient, c.ExtraOAuthConfig.OAuthClientClient, false, false); err != nil {
 		return err
 	}
 

@@ -19,6 +19,8 @@ var SYS_SETNS = map[string]uintptr{
 	"amd64":   308,
 	"arm64":   268,
 	"arm":     375,
+	"mips":    4344,
+	"mipsle":  4344,
 	"ppc64":   350,
 	"ppc64le": 350,
 	"s390x":   339,
@@ -136,7 +138,9 @@ func getThisCgroup(cgroupType string) (string, error) {
 		return "", fmt.Errorf("docker pid not found in /var/run/docker.pid")
 	}
 	pid, err := strconv.Atoi(result[0])
-
+	if err != nil {
+		return "", err
+	}
 	output, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
 	if err != nil {
 		return "", err

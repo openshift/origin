@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -63,11 +63,7 @@ func Convert_v1_ClusterNetwork_To_network_ClusterNetwork(in *ClusterNetwork, out
 
 func autoConvert_network_ClusterNetwork_To_v1_ClusterNetwork(in *network.ClusterNetwork, out *ClusterNetwork, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if in.ClusterNetworks == nil {
-		out.ClusterNetworks = make([]ClusterNetworkEntry, 0)
-	} else {
-		out.ClusterNetworks = *(*[]ClusterNetworkEntry)(unsafe.Pointer(&in.ClusterNetworks))
-	}
+	out.ClusterNetworks = *(*[]ClusterNetworkEntry)(unsafe.Pointer(&in.ClusterNetworks))
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
 	out.ServiceNetwork = in.ServiceNetwork
@@ -134,7 +130,7 @@ func autoConvert_network_ClusterNetworkList_To_v1_ClusterNetworkList(in *network
 			}
 		}
 	} else {
-		out.Items = make([]ClusterNetwork, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -183,11 +179,7 @@ func Convert_v1_EgressNetworkPolicyList_To_network_EgressNetworkPolicyList(in *E
 
 func autoConvert_network_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in *network.EgressNetworkPolicyList, out *EgressNetworkPolicyList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]EgressNetworkPolicy, 0)
-	} else {
-		out.Items = *(*[]EgressNetworkPolicy)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]EgressNetworkPolicy)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -255,11 +247,7 @@ func Convert_v1_EgressNetworkPolicySpec_To_network_EgressNetworkPolicySpec(in *E
 }
 
 func autoConvert_network_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in *network.EgressNetworkPolicySpec, out *EgressNetworkPolicySpec, s conversion.Scope) error {
-	if in.Egress == nil {
-		out.Egress = make([]EgressNetworkPolicyRule, 0)
-	} else {
-		out.Egress = *(*[]EgressNetworkPolicyRule)(unsafe.Pointer(&in.Egress))
-	}
+	out.Egress = *(*[]EgressNetworkPolicyRule)(unsafe.Pointer(&in.Egress))
 	return nil
 }
 
@@ -309,11 +297,7 @@ func Convert_v1_HostSubnetList_To_network_HostSubnetList(in *HostSubnetList, out
 
 func autoConvert_network_HostSubnetList_To_v1_HostSubnetList(in *network.HostSubnetList, out *HostSubnetList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]HostSubnet, 0)
-	} else {
-		out.Items = *(*[]HostSubnet)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]HostSubnet)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -361,11 +345,7 @@ func Convert_v1_NetNamespaceList_To_network_NetNamespaceList(in *NetNamespaceLis
 
 func autoConvert_network_NetNamespaceList_To_v1_NetNamespaceList(in *network.NetNamespaceList, out *NetNamespaceList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]NetNamespace, 0)
-	} else {
-		out.Items = *(*[]NetNamespace)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]NetNamespace)(unsafe.Pointer(&in.Items))
 	return nil
 }
 

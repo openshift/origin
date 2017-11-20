@@ -223,7 +223,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	addJoe := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace, authorizationclient.NewForConfigOrDie(projectAdminConfig)),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace, authorizationclient.NewForConfigOrDie(projectAdminConfig).Authorization()),
 		Users:               []string{"joe"},
 	}
 	if err := addJoe.AddRole(); err != nil {
@@ -252,7 +252,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	template.Name = "jenkins-ephemeral"
 	template.Namespace = "openshift"
 
-	_, err = templateclient.NewForConfigOrDie(clusterAdminClientConfig).Templates("openshift").Create(template)
+	_, err = templateclient.NewForConfigOrDie(clusterAdminClientConfig).Template().Templates("openshift").Create(template)
 	if err != nil {
 		t.Fatalf("Couldn't create jenkins template: %v", err)
 	}

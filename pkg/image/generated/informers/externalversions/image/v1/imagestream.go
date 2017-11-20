@@ -25,26 +25,31 @@ type imageStreamInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newImageStreamInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewImageStreamInformer constructs a new informer for ImageStream type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewImageStreamInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.ImageV1().ImageStreams(meta_v1.NamespaceAll).List(options)
+				return client.ImageV1().ImageStreams(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.ImageV1().ImageStreams(meta_v1.NamespaceAll).Watch(options)
+				return client.ImageV1().ImageStreams(namespace).Watch(options)
 			},
 		},
 		&image_v1.ImageStream{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultImageStreamInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewImageStreamInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *imageStreamInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&image_v1.ImageStream{}, newImageStreamInformer)
+	return f.factory.InformerFor(&image_v1.ImageStream{}, defaultImageStreamInformer)
 }
 
 func (f *imageStreamInformer) Lister() v1.ImageStreamLister {

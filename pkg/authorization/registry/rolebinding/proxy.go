@@ -107,10 +107,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	// Default the namespace if it is not specified so conversion does not error
 	// Normally this is done during the REST strategy but we avoid those here to keep the proxies simple
 	if ns, ok := apirequest.NamespaceFrom(ctx); ok && len(ns) > 0 && len(rb.Namespace) == 0 && len(rb.RoleRef.Namespace) > 0 {
-		deepcopiedObj := &authorizationapi.RoleBinding{}
-		if err := authorizationapi.DeepCopy_authorization_RoleBinding(rb, deepcopiedObj, cloner); err != nil {
-			return nil, err
-		}
+		deepcopiedObj := rb.DeepCopy()
 		deepcopiedObj.Namespace = ns
 		rb = deepcopiedObj
 	}

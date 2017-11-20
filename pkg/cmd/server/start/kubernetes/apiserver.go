@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 
 	kflag "k8s.io/apiserver/pkg/util/flag"
+	"k8s.io/apiserver/pkg/util/logs"
 	apiserverapp "k8s.io/kubernetes/cmd/kube-apiserver/app"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	"k8s.io/kubernetes/pkg/util/logs"
 )
 
 const apiserverLong = `

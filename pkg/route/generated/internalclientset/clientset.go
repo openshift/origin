@@ -17,15 +17,12 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*routeinternalversion.RouteClient
+	route *routeinternalversion.RouteClient
 }
 
 // Route retrieves the RouteClient
 func (c *Clientset) Route() routeinternalversion.RouteInterface {
-	if c == nil {
-		return nil
-	}
-	return c.RouteClient
+	return c.route
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -44,7 +41,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.RouteClient, err = routeinternalversion.NewForConfig(&configShallowCopy)
+	cs.route, err = routeinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +58,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.RouteClient = routeinternalversion.NewForConfigOrDie(c)
+	cs.route = routeinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -70,7 +67,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.RouteClient = routeinternalversion.New(c)
+	cs.route = routeinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

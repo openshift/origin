@@ -10,7 +10,7 @@ import (
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 
 	ktypes "k8s.io/apimachinery/pkg/types"
-	kexec "k8s.io/kubernetes/pkg/util/exec"
+	kexec "k8s.io/utils/exec"
 )
 
 type EgressDNSUpdate struct {

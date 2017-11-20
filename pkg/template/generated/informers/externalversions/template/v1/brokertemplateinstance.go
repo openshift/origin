@@ -25,8 +25,11 @@ type brokerTemplateInstanceInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newBrokerTemplateInstanceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewBrokerTemplateInstanceInformer constructs a new informer for BrokerTemplateInstance type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewBrokerTemplateInstanceInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.TemplateV1().BrokerTemplateInstances().List(options)
@@ -37,14 +40,16 @@ func newBrokerTemplateInstanceInformer(client clientset.Interface, resyncPeriod 
 		},
 		&template_v1.BrokerTemplateInstance{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultBrokerTemplateInstanceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewBrokerTemplateInstanceInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *brokerTemplateInstanceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&template_v1.BrokerTemplateInstance{}, newBrokerTemplateInstanceInformer)
+	return f.factory.InformerFor(&template_v1.BrokerTemplateInstance{}, defaultBrokerTemplateInstanceInformer)
 }
 
 func (f *brokerTemplateInstanceInformer) Lister() v1.BrokerTemplateInstanceLister {

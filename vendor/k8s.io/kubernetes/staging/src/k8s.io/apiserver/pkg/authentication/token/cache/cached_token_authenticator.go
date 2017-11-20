@@ -24,6 +24,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
+// cacheRecord holds the three return values of the authenticator.Token AuthenticateToken method
 type cacheRecord struct {
 	user user.Info
 	ok   bool

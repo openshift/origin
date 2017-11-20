@@ -56,7 +56,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 		Long:  createClientLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			if err := options.CreateClientFolder(); err != nil {

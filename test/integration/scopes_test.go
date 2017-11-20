@@ -41,7 +41,7 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -65,7 +65,7 @@ func TestScopedTokens(t *testing.T) {
 	whoamiConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	whoamiConfig.BearerToken = whoamiOnlyToken.Name
 
-	if _, err := buildclient.NewForConfigOrDie(whoamiConfig).Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := buildclient.NewForConfigOrDie(whoamiConfig).Build().Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -145,7 +145,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -173,7 +173,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := nonEscalatingEditClient.Secrets(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := nonEscalatingEditClient.Core().Secrets(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -196,7 +196,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := escalatingEditClient.Secrets(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := escalatingEditClient.Core().Secrets(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

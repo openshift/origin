@@ -192,7 +192,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 
 	o.Config.DryRun = o.Action.DryRun
 	if o.Action.Output == "wide" {
-		return kcmdutil.UsageError(c, "wide mode is not a compatible output format")
+		return kcmdutil.UsageErrorf(c, "wide mode is not a compatible output format")
 	}
 	o.CommandPath = c.CommandPath()
 	o.BaseName = baseName
@@ -605,26 +605,26 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 
 	unknown := config.AddArguments(args)
 	if len(unknown) != 0 {
-		return kcmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
+		return kcmdutil.UsageErrorf(c, "Did not recognize the following arguments: %v", unknown)
 	}
 
 	if config.AllowMissingImages && config.AsSearch {
-		return kcmdutil.UsageError(c, "--allow-missing-images and --search are mutually exclusive.")
+		return kcmdutil.UsageErrorf(c, "--allow-missing-images and --search are mutually exclusive.")
 	}
 
 	if len(config.SourceImage) != 0 && len(config.SourceImagePath) == 0 {
-		return kcmdutil.UsageError(c, "--source-image-path must be specified when --source-image is specified.")
+		return kcmdutil.UsageErrorf(c, "--source-image-path must be specified when --source-image is specified.")
 	}
 	if len(config.SourceImage) == 0 && len(config.SourceImagePath) != 0 {
-		return kcmdutil.UsageError(c, "--source-image must be specified when --source-image-path is specified.")
+		return kcmdutil.UsageErrorf(c, "--source-image must be specified when --source-image-path is specified.")
 	}
 
 	if config.BinaryBuild && config.Strategy == generate.StrategyPipeline {
-		return kcmdutil.UsageError(c, "specifying binary builds and the pipeline strategy at the same time is not allowed.")
+		return kcmdutil.UsageErrorf(c, "specifying binary builds and the pipeline strategy at the same time is not allowed.")
 	}
 
 	if len(config.BuildArgs) > 0 && config.Strategy != generate.StrategyUnspecified && config.Strategy != generate.StrategyDocker {
-		return kcmdutil.UsageError(c, "Cannot use '--build-arg' without a Docker build")
+		return kcmdutil.UsageErrorf(c, "Cannot use '--build-arg' without a Docker build")
 	}
 	return nil
 }

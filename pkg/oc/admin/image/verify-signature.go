@@ -141,7 +141,7 @@ func (o *VerifyImageSignatureOptions) Validate() error {
 }
 func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
-		return kcmdutil.UsageError(cmd, "exactly one image must be specified")
+		return kcmdutil.UsageErrorf(cmd, "exactly one image must be specified")
 	}
 	o.InputImage = args[0]
 	var err error

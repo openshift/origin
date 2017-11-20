@@ -26,9 +26,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 const ProxyProtocolPolicyName = "k8s-proxyprotocol-enabled"
@@ -388,7 +388,7 @@ func (c *Cloud) ensureLoadBalancerHealthCheck(loadBalancer *elb.LoadBalancerDesc
 
 	expectedTarget := protocol + ":" + strconv.FormatInt(int64(port), 10) + path
 
-	if expectedTarget == orEmpty(actual.Target) &&
+	if expectedTarget == aws.StringValue(actual.Target) &&
 		expectedHealthyThreshold == orZero(actual.HealthyThreshold) &&
 		expectedUnhealthyThreshold == orZero(actual.UnhealthyThreshold) &&
 		expectedTimeout == orZero(actual.Timeout) &&
@@ -426,7 +426,7 @@ func (c *Cloud) ensureLoadBalancerInstances(loadBalancerName string, lbInstances
 
 	actual := sets.NewString()
 	for _, lbInstance := range lbInstances {
-		actual.Insert(orEmpty(lbInstance.InstanceId))
+		actual.Insert(aws.StringValue(lbInstance.InstanceId))
 	}
 
 	additions := expected.Difference(actual)

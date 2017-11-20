@@ -20,17 +20,17 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/informers"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 	k8s_api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 )
@@ -108,7 +108,8 @@ func (p *serviceEvaluator) GroupKind() schema.GroupKind {
 }
 
 // Handles returns true of the evaluator should handle the specified operation.
-func (p *serviceEvaluator) Handles(operation admission.Operation) bool {
+func (p *serviceEvaluator) Handles(a admission.Attributes) bool {
+	operation := a.GetOperation()
 	// We handle create and update because a service type can change.
 	return admission.Create == operation || admission.Update == operation
 }

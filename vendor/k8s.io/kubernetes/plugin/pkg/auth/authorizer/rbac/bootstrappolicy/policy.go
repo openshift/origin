@@ -21,7 +21,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	rbac "k8s.io/kubernetes/pkg/apis/rbac"
+	"k8s.io/kubernetes/pkg/features"
 )
 
 var (
@@ -44,6 +46,8 @@ const (
 	policyGroup         = "policy"
 	rbacGroup           = "rbac.authorization.k8s.io"
 	storageGroup        = "storage.k8s.io"
+	resMetricsGroup     = "metrics.k8s.io"
+	customMetricsGroup  = "custom.metrics.k8s.io"
 )
 
 func addDefaultMetadata(obj runtime.Object) {
@@ -179,7 +183,7 @@ func ClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(ReadWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
-				rbac.NewRule(ReadWrite...).Groups(batchGroup).Resources("jobs", "cronjobs", "scheduledjobs").RuleOrDie(),
+				rbac.NewRule(ReadWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(extensionsGroup).Resources("daemonsets",
 					"deployments", "deployments/scale", "deployments/rollback", "ingresses",
@@ -211,7 +215,7 @@ func ClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(ReadWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
-				rbac.NewRule(ReadWrite...).Groups(batchGroup).Resources("jobs", "cronjobs", "scheduledjobs").RuleOrDie(),
+				rbac.NewRule(ReadWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
 				rbac.NewRule(ReadWrite...).Groups(extensionsGroup).Resources("daemonsets",
 					"deployments", "deployments/scale", "deployments/rollback", "ingresses",
@@ -235,7 +239,7 @@ func ClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(Read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
-				rbac.NewRule(Read...).Groups(batchGroup).Resources("jobs", "cronjobs", "scheduledjobs").RuleOrDie(),
+				rbac.NewRule(Read...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
 				rbac.NewRule(Read...).Groups(extensionsGroup).Resources("daemonsets", "deployments", "deployments/scale",
 					"ingresses", "replicasets", "replicasets/scale", "replicationcontrollers/scale").RuleOrDie(),
@@ -246,6 +250,7 @@ func ClusterRoles() []rbac.ClusterRole {
 			ObjectMeta: metav1.ObjectMeta{Name: "system:heapster"},
 			Rules: []rbac.PolicyRule{
 				rbac.NewRule(Read...).Groups(legacyGroup).Resources("events", "pods", "nodes", "namespaces").RuleOrDie(),
+				rbac.NewRule(Read...).Groups(extensionsGroup).Resources("deployments").RuleOrDie(),
 			},
 		},
 		{
@@ -327,7 +332,8 @@ func ClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("get", "update", "patch", "delete").Groups(legacyGroup).Resources("endpoints").Names("kube-scheduler").RuleOrDie(),
 
 				// fundamental resources
-				rbac.NewRule(Read...).Groups(legacyGroup).Resources("nodes", "pods").RuleOrDie(),
+				rbac.NewRule(Read...).Groups(legacyGroup).Resources("nodes").RuleOrDie(),
+				rbac.NewRule("get", "list", "watch", "delete").Groups(legacyGroup).Resources("pods").RuleOrDie(),
 				rbac.NewRule("create").Groups(legacyGroup).Resources("pods/binding", "bindings").RuleOrDie(),
 				rbac.NewRule("update").Groups(legacyGroup).Resources("pods/status").RuleOrDie(),
 				// things that select pods
@@ -360,42 +366,37 @@ func ClusterRoles() []rbac.ClusterRole {
 				eventsRule(),
 			},
 		},
+		{
+			// a role making the csrapprover controller approve a node client CSR
+			ObjectMeta: metav1.ObjectMeta{Name: "system:certificates.k8s.io:certificatesigningrequests:nodeclient"},
+			Rules: []rbac.PolicyRule{
+				rbac.NewRule("create").Groups(certificatesGroup).Resources("certificatesigningrequests/nodeclient").RuleOrDie(),
+			},
+		},
+		{
+			// a role making the csrapprover controller approve a node client CSR requested by the node itself
+			ObjectMeta: metav1.ObjectMeta{Name: "system:certificates.k8s.io:certificatesigningrequests:selfnodeclient"},
+			Rules: []rbac.PolicyRule{
+				rbac.NewRule("create").Groups(certificatesGroup).Resources("certificatesigningrequests/selfnodeclient").RuleOrDie(),
+			},
+		},
 	}
+
+	if utilfeature.DefaultFeatureGate.Enabled(features.RotateKubeletServerCertificate) {
+		roles = append(roles, rbac.ClusterRole{
+			// a role making the csrapprover controller approve a node server CSR requested by the node itself
+			ObjectMeta: metav1.ObjectMeta{Name: "system:certificates.k8s.io:certificatesigningrequests:selfnodeserver"},
+			Rules: []rbac.PolicyRule{
+				rbac.NewRule("create").Groups(certificatesGroup).Resources("certificatesigningrequests/selfnodeserver").RuleOrDie(),
+			},
+		})
+	}
+
 	addClusterRoleLabel(roles)
 	return roles
 }
 
-// ClusterRoleBindingFilter can modify and return or omit (by returning nil) a role binding
-type ClusterRoleBindingFilter func(*rbac.ClusterRoleBinding) *rbac.ClusterRoleBinding
-
-// AddClusterRoleBindingFilter adds the given filter to the list that is invoked when determing bootstrap roles to reconcile.
-func AddClusterRoleBindingFilter(filter ClusterRoleBindingFilter) {
-	clusterRoleBindingFilters = append(clusterRoleBindingFilters, filter)
-}
-
-// ClearClusterRoleBindingFilters removes any filters added using AddClusterRoleBindingFilter
-func ClearClusterRoleBindingFilters() {
-	clusterRoleBindingFilters = nil
-}
-
 const systemNodeRoleName = "system:node"
-
-var clusterRoleBindingFilters []ClusterRoleBindingFilter
-
-// OmitNodesGroupBinding is a filter that omits the deprecated binding for the system:nodes group to the system:node role.
-var OmitNodesGroupBinding = ClusterRoleBindingFilter(func(binding *rbac.ClusterRoleBinding) *rbac.ClusterRoleBinding {
-	if binding.RoleRef.Name == systemNodeRoleName {
-		subjects := []rbac.Subject{}
-		for _, subject := range binding.Subjects {
-			if subject.Kind == rbac.GroupKind && subject.Name == user.NodesGroup {
-				continue
-			}
-			subjects = append(subjects, subject)
-		}
-		binding.Subjects = subjects
-	}
-	return binding
-})
 
 // ClusterRoleBindings return default rolebindings to the default roles
 func ClusterRoleBindings() []rbac.ClusterRoleBinding {
@@ -418,19 +419,5 @@ func ClusterRoleBindings() []rbac.ClusterRoleBinding {
 
 	addClusterRoleBindingLabel(rolebindings)
 
-	retval := []rbac.ClusterRoleBinding{}
-	for i := range rolebindings {
-		binding := &rolebindings[i]
-		for _, filter := range clusterRoleBindingFilters {
-			binding = filter(binding)
-			if binding == nil {
-				break
-			}
-		}
-		if binding != nil {
-			retval = append(retval, *binding)
-		}
-	}
-
-	return retval
+	return rolebindings
 }

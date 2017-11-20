@@ -73,7 +73,7 @@ func NewCmdRolloutRetry(fullName string, f *clientcmd.Factory, out io.Writer) *c
 
 func (o *RetryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
-		return kcmdutil.UsageError(cmd, cmd.Use)
+		return kcmdutil.UsageErrorf(cmd, cmd.Use)
 	}
 
 	o.Mapper, o.Typer = f.Object()

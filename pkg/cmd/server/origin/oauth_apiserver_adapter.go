@@ -48,7 +48,7 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 		}
 		secureServingOptions.SNICertKeys = append(secureServingOptions.SNICertKeys, sniCert)
 	}
-	if err := secureServingOptions.ApplyTo(oauthServerConfig.GenericConfig); err != nil {
+	if err := secureServingOptions.ApplyTo(&oauthServerConfig.GenericConfig.Config); err != nil {
 		return nil, err
 	}
 	oauthServerConfig.GenericConfig.SecureServingInfo.BindAddress = servingConfig.BindAddress
@@ -61,12 +61,12 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 		return nil, err
 	}
 	// TODO pass a privileged client config through during construction.  It is NOT a loopback client.
-	oauthServerConfig.RouteClient = routeClient
-	oauthServerConfig.KubeClient = masterConfig.PrivilegedLoopbackKubernetesClientsetInternal
+	oauthServerConfig.ExtraOAuthConfig.RouteClient = routeClient
+	oauthServerConfig.ExtraOAuthConfig.KubeClient = masterConfig.PrivilegedLoopbackKubernetesClientsetInternal
 
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
 	if !options.DisabledFeatures.Has(configapi.FeatureWebConsole) {
-		oauthServerConfig.AssetPublicAddresses = []string{oauthConfig.AssetPublicURL}
+		oauthServerConfig.ExtraOAuthConfig.AssetPublicAddresses = []string{oauthConfig.AssetPublicURL}
 	}
 
 	return oauthServerConfig, nil

@@ -37,8 +37,8 @@ package main
 import (
 	"path/filepath"
 
-	"k8s.io/gengo/args"
 	"k8s.io/code-generator/cmd/conversion-gen/generators"
+	"k8s.io/gengo/args"
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -52,10 +52,13 @@ func main() {
 	arguments.GoHeaderFilePath = filepath.Join(args.DefaultSourceTree(), "k8s.io/kubernetes/hack/boilerplate/boilerplate.go.txt")
 
 	// Custom args.
+	// TODO: make callers pass this in.  It is too opaque here, and any use of
+	// the flag that DOESN'T include these is broken.
 	customArgs := &generators.CustomArgs{
 		ExtraPeerDirs: []string{
 			"k8s.io/kubernetes/pkg/api",
 			"k8s.io/kubernetes/pkg/api/v1",
+			"k8s.io/api/core/v1",
 			"k8s.io/apimachinery/pkg/apis/meta/v1",
 			"k8s.io/apimachinery/pkg/conversion",
 			"k8s.io/apimachinery/pkg/runtime",

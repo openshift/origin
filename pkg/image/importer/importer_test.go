@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
+	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -39,18 +39,18 @@ func TestImport(t *testing.T) {
 	if err := json.Unmarshal([]byte(etcdManifest), etcdManifestSchema1); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("etcd manifest schema 1 digest: %q", digest.FromBytes([]byte(etcdManifest)))
+	t.Logf("etcd manifest schema 1 digest: %q", godigest.FromBytes([]byte(etcdManifest)))
 	busyboxManifestSchema2 := &schema2.DeserializedManifest{}
 	if err := busyboxManifestSchema2.UnmarshalJSON([]byte(busyboxManifest)); err != nil {
 		t.Fatal(err)
 	}
-	busyboxConfigDigest := digest.FromBytes([]byte(busyboxManifestConfig))
+	busyboxConfigDigest := godigest.FromBytes([]byte(busyboxManifestConfig))
 	busyboxManifestSchema2.Config = distribution.Descriptor{
 		Digest:    busyboxConfigDigest,
 		Size:      int64(len(busyboxManifestConfig)),
-		MediaType: schema2.MediaTypeConfig,
+		MediaType: schema2.MediaTypeImageConfig,
 	}
-	t.Logf("busybox manifest schema 2 digest: %q", digest.FromBytes([]byte(busyboxManifest)))
+	t.Logf("busybox manifest schema 2 digest: %q", godigest.FromBytes([]byte(busyboxManifest)))
 
 	insecureRetriever := &mockRetriever{
 		repo: &mockRepository{
@@ -177,7 +177,7 @@ func TestImport(t *testing.T) {
 			retriever: &mockRetriever{
 				repo: &mockRepository{
 					blobs: &mockBlobStore{
-						blobs: map[digest.Digest][]byte{
+						blobs: map[godigest.Digest][]byte{
 							busyboxConfigDigest: []byte(busyboxManifestConfig),
 						},
 					},

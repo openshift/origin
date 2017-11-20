@@ -352,7 +352,7 @@ type oldestEndpoints []*kapi.Endpoints
 func (s oldestEndpoints) Len() int      { return len(s) }
 func (s oldestEndpoints) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s oldestEndpoints) Less(i, j int) bool {
-	return !s[j].CreationTimestamp.Before(s[i].CreationTimestamp)
+	return !s[j].CreationTimestamp.Before(&s[i].CreationTimestamp)
 }
 
 // arpaSuffix is the standard suffix for PTR IP reverse lookups.

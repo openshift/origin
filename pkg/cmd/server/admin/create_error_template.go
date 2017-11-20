@@ -41,7 +41,7 @@ func NewCommandCreateErrorTemplate(f *clientcmd.Factory, commandName string, ful
 		Long:  errorLongDescription,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+				cmdutil.CheckErr(cmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
 			_, err := io.WriteString(out, errorpage.ErrorPageTemplateExample)

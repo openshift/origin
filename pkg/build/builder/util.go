@@ -13,6 +13,9 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildutil "github.com/openshift/origin/pkg/build/util"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
 )
 
 var (
@@ -150,4 +153,38 @@ func extractParentFromCgroupMap(cgMap map[string]string) (string, error) {
 	}
 	glog.V(5).Infof("found cgroup parent %v", cgroupParent)
 	return cgroupParent, nil
+}
+
+// SafeForLoggingEnvironmentList returns a copy of an s2i EnvironmentList array with
+// proxy credential values redacted.
+func SafeForLoggingEnvironmentList(env s2iapi.EnvironmentList) s2iapi.EnvironmentList {
+	newEnv := make(s2iapi.EnvironmentList, len(env))
+	copy(newEnv, env)
+	proxyRegex := regexp.MustCompile("(?i)proxy")
+	for i, env := range newEnv {
+		if proxyRegex.MatchString(env.Name) {
+			newEnv[i].Value, _ = s2iutil.SafeForLoggingURL(env.Value)
+		}
+	}
+	return newEnv
+}
+
+// SafeForLoggingS2IConfig returns a copy of an s2i Config with
+// proxy credentials redacted.
+func SafeForLoggingS2IConfig(config *s2iapi.Config) *s2iapi.Config {
+	newConfig := *config
+	newConfig.Environment = SafeForLoggingEnvironmentList(config.Environment)
+	if config.ScriptDownloadProxyConfig != nil {
+		newProxy := *config.ScriptDownloadProxyConfig
+		newConfig.ScriptDownloadProxyConfig = &newProxy
+		if newConfig.ScriptDownloadProxyConfig.HTTPProxy != nil {
+			newConfig.ScriptDownloadProxyConfig.HTTPProxy = buildutil.SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
+		}
+
+		if newConfig.ScriptDownloadProxyConfig.HTTPProxy != nil {
+			newConfig.ScriptDownloadProxyConfig.HTTPSProxy = buildutil.SafeForLoggingURL(newConfig.ScriptDownloadProxyConfig.HTTPProxy)
+		}
+	}
+	newConfig.ScriptsURL, _ = s2iutil.SafeForLoggingURL(newConfig.ScriptsURL)
+	return &newConfig
 }

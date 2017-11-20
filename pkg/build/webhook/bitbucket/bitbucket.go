@@ -108,7 +108,7 @@ func (p *WebHook) Extract(buildCfg *buildapi.BuildConfig, secret, path string, r
 	}
 
 	if !webhook.GitRefMatches(branch, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
-		glog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference '%s' does not match configuration", buildCfg.Namespace, buildCfg, branch)
+		glog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference '%s' does not match configuration", buildCfg.Namespace, buildCfg.Name, branch)
 		return revision, envvars, dockerStrategyOptions, false, err
 	}
 

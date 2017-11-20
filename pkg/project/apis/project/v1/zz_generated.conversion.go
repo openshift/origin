@@ -6,15 +6,15 @@ package v1
 
 import (
 	project "github.com/openshift/origin/pkg/project/apis/project"
+	core_v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	unsafe "unsafe"
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -79,11 +79,7 @@ func Convert_v1_ProjectList_To_project_ProjectList(in *ProjectList, out *project
 
 func autoConvert_project_ProjectList_To_v1_ProjectList(in *project.ProjectList, out *ProjectList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]Project, 0)
-	} else {
-		out.Items = *(*[]Project)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]Project)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -127,7 +123,7 @@ func Convert_v1_ProjectSpec_To_project_ProjectSpec(in *ProjectSpec, out *project
 }
 
 func autoConvert_project_ProjectSpec_To_v1_ProjectSpec(in *project.ProjectSpec, out *ProjectSpec, s conversion.Scope) error {
-	out.Finalizers = *(*[]api_v1.FinalizerName)(unsafe.Pointer(&in.Finalizers))
+	out.Finalizers = *(*[]core_v1.FinalizerName)(unsafe.Pointer(&in.Finalizers))
 	return nil
 }
 
@@ -147,7 +143,7 @@ func Convert_v1_ProjectStatus_To_project_ProjectStatus(in *ProjectStatus, out *p
 }
 
 func autoConvert_project_ProjectStatus_To_v1_ProjectStatus(in *project.ProjectStatus, out *ProjectStatus, s conversion.Scope) error {
-	out.Phase = api_v1.NamespacePhase(in.Phase)
+	out.Phase = core_v1.NamespacePhase(in.Phase)
 	return nil
 }
 

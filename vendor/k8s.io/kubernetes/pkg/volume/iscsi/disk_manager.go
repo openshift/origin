@@ -35,7 +35,6 @@ type diskManager interface {
 
 // utility to mount a disk based filesystem
 func diskSetUp(manager diskManager, b iscsiDiskMounter, volPath string, mounter mount.Interface, fsGroup *int64) error {
-	globalPDPath := manager.MakeGlobalPDName(*b.iscsiDisk)
 	// TODO: handle failed mounts here.
 	notMnt, err := mounter.IsLikelyNotMountPoint(volPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -55,6 +54,11 @@ func diskSetUp(manager diskManager, b iscsiDiskMounter, volPath string, mounter 
 	if b.readOnly {
 		options = append(options, "ro")
 	}
+	if b.iscsiDisk.InitiatorName != "" {
+		// new iface name is <target portal>:<volume name>
+		b.iscsiDisk.Iface = b.iscsiDisk.Portals[0] + ":" + b.iscsiDisk.VolName
+	}
+	globalPDPath := manager.MakeGlobalPDName(*b.iscsiDisk)
 	mountOptions := volume.JoinMountOptions(b.mountOptions, options)
 	err = mounter.Mount(globalPDPath, volPath, "", mountOptions)
 	if err != nil {
@@ -89,4 +93,37 @@ func diskSetUp(manager diskManager, b iscsiDiskMounter, volPath string, mounter 
 	}
 
 	return nil
+}
+
+// utility to tear down a disk based filesystem
+func diskTearDown(manager diskManager, c iscsiDiskUnmounter, volPath string, mounter mount.Interface) error {
+	notMnt, err := mounter.IsLikelyNotMountPoint(volPath)
+	if err != nil {
+		glog.Errorf("cannot validate mountpoint %s", volPath)
+		return err
+	}
+	if notMnt {
+		return os.Remove(volPath)
+	}
+	_, err = mount.GetMountRefs(mounter, volPath)
+	if err != nil {
+		glog.Errorf("failed to get reference count %s", volPath)
+		return err
+	}
+	if err := mounter.Unmount(volPath); err != nil {
+		glog.Errorf("failed to unmount %s", volPath)
+		return err
+	}
+	notMnt, mntErr := mounter.IsLikelyNotMountPoint(volPath)
+	if mntErr != nil {
+		glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
+		return err
+	}
+	if notMnt {
+		if err := os.Remove(volPath); err != nil {
+			return err
+		}
+	}
+	return nil
+
 }

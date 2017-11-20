@@ -42,7 +42,8 @@ os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-hellowo
 os::cmd::expect_success 'oc scale --replicas=0 dc/test-deployment-config'
 os::cmd::expect_success_and_text "oc debug --request-timeout=10s -c ruby-helloworld --one-container dc/test-deployment-config -o jsonpath='{.metadata.name}'" 'test-deployment-config'
 
-os::cmd::expect_success 'oc create -f - >> cat << __EOF__
+tmp_deploy="$(mktemp)"
+os::cmd::expect_success 'oc create -f - >> $tmp_deploy << __EOF__
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:

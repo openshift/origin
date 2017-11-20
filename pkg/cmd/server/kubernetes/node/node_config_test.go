@@ -15,12 +15,13 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
+	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 func TestKubeletDefaults(t *testing.T) {
-	defaults := kubeletoptions.NewKubeletServer()
+	defaults, _ := kubeletoptions.NewKubeletServer()
 
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
@@ -35,30 +36,33 @@ func TestKubeletDefaults(t *testing.T) {
 				ImagePullProgressDeadline: metav1.Duration{Duration: 1 * time.Minute},
 				RktAPIEndpoint:            rkt.DefaultRktAPIServiceEndpoint,
 				PodSandboxImage:           "gcr.io/google_containers/pause-" + goruntime.GOARCH + ":3.0", // overridden
+				DockerDisableSharedPID:    true,
 			},
+			CloudProvider: "auto-detect",
+			RootDirectory: "/var/lib/kubelet",
+			CertDirectory: "/var/lib/kubelet/pki",
 		},
 
-		KubeletConfiguration: componentconfig.KubeletConfiguration{
+		KubeletConfiguration: kubeletconfig.KubeletConfiguration{
 			Address:         "0.0.0.0", // overridden
 			AllowPrivileged: false,     // overridden
-			Authentication: componentconfig.KubeletAuthentication{
-				Webhook: componentconfig.KubeletWebhookAuthentication{
+			Authentication: kubeletconfig.KubeletAuthentication{
+				Webhook: kubeletconfig.KubeletWebhookAuthentication{
 					CacheTTL: metav1.Duration{Duration: 2 * time.Minute},
 				},
-				Anonymous: componentconfig.KubeletAnonymousAuthentication{
+				Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
 					Enabled: true,
 				},
 			},
-			Authorization: componentconfig.KubeletAuthorization{
-				Mode: componentconfig.KubeletAuthorizationModeAlwaysAllow,
-				Webhook: componentconfig.KubeletWebhookAuthorization{
+			Authorization: kubeletconfig.KubeletAuthorization{
+				Mode: kubeletconfig.KubeletAuthorizationModeAlwaysAllow,
+				Webhook: kubeletconfig.KubeletWebhookAuthorization{
 					CacheAuthorizedTTL:   metav1.Duration{Duration: 5 * time.Minute},
 					CacheUnauthorizedTTL: metav1.Duration{Duration: 30 * time.Second},
 				},
 			},
 			CAdvisorPort:         4194, // disabled
 			VolumeStatsAggPeriod: metav1.Duration{Duration: time.Minute},
-			CertDirectory:        "/var/run/kubernetes",
 			CgroupRoot:           "",
 			CgroupDriver:         "cgroupfs",
 			ClusterDNS:           nil, // overridden
@@ -67,49 +71,51 @@ func TestKubeletDefaults(t *testing.T) {
 			Containerized:        false, // overridden based on OPENSHIFT_CONTAINERIZED
 			CPUCFSQuota:          true,  // forced to true
 
-			EventBurst:                     10,
-			EventRecordQPS:                 5.0,
-			EnableCustomMetrics:            false,
-			EnableDebuggingHandlers:        true,
-			EnableServer:                   true,
-			EvictionHard:                   "memory.available<100Mi,nodefs.available<10%,nodefs.inodesFree<5%,imagefs.available<15%",
-			FileCheckFrequency:             metav1.Duration{Duration: 20 * time.Second}, // overridden
-			HealthzBindAddress:             "127.0.0.1",                                 // disabled
-			HealthzPort:                    10248,                                       // disabled
-			HostNetworkSources:             []string{"*"},                               // overridden
-			HostPIDSources:                 []string{"*"},                               // overridden
-			HostIPCSources:                 []string{"*"},                               // overridden
-			HTTPCheckFrequency:             metav1.Duration{Duration: 20 * time.Second}, // disabled
-			ImageMinimumGCAge:              metav1.Duration{Duration: 120 * time.Second},
-			ImageGCHighThresholdPercent:    85,
-			ImageGCLowThresholdPercent:     80,
-			IPTablesMasqueradeBit:          14,
-			IPTablesDropBit:                15,
-			LowDiskSpaceThresholdMB:        0, // used to be 256.  Overriden to have old behavior. 3.7
-			MakeIPTablesUtilChains:         true,
-			MasterServiceNamespace:         "default",
-			MaxContainerCount:              -1,
-			MaxPerPodContainerCount:        1,
-			MaxOpenFiles:                   1000000,
-			MaxPods:                        110, // overridden
-			MinimumGCAge:                   metav1.Duration{},
-			NonMasqueradeCIDR:              "10.0.0.0/8",
-			VolumePluginDir:                "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
-			NodeStatusUpdateFrequency:      metav1.Duration{Duration: 10 * time.Second},
-			NodeLabels:                     nil,
-			OOMScoreAdj:                    -999,
-			LockFilePath:                   "",
-			Port:                           10250, // overridden
-			ReadOnlyPort:                   10255, // disabled
-			RegisterNode:                   true,
-			RegisterSchedulable:            true,
-			RegistryBurst:                  10,
-			RegistryPullQPS:                5.0,
-			RemoteRuntimeEndpoint:          "unix:///var/run/dockershim.sock", // overridden
-			ResolverConfig:                 kubetypes.ResolvConfDefault,
-			KubeletCgroups:                 "",
-			CgroupsPerQOS:                  true,
-			RootDirectory:                  "/var/lib/kubelet", // overridden
+			EventBurst:                  10,
+			EventRecordQPS:              5.0,
+			EnableCustomMetrics:         false,
+			EnableDebuggingHandlers:     true,
+			EnableServer:                true,
+			EvictionHard:                "memory.available<100Mi,nodefs.available<10%,nodefs.inodesFree<5%",
+			FileCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // overridden
+			HealthzBindAddress:          "127.0.0.1",                                 // disabled
+			HealthzPort:                 10248,                                       // disabled
+			HostNetworkSources:          []string{"*"},                               // overridden
+			HostPIDSources:              []string{"*"},                               // overridden
+			HostIPCSources:              []string{"*"},                               // overridden
+			HTTPCheckFrequency:          metav1.Duration{Duration: 20 * time.Second}, // disabled
+			ImageMinimumGCAge:           metav1.Duration{Duration: 120 * time.Second},
+			ImageGCHighThresholdPercent: 85,
+			ImageGCLowThresholdPercent:  80,
+			IPTablesMasqueradeBit:       14,
+			IPTablesDropBit:             15,
+			// TODO figure out where this moved
+			// LowDiskSpaceThresholdMB:        0, // used to be 256.  Overriden to have old behavior. 3.7
+			MakeIPTablesUtilChains:    true,
+			MasterServiceNamespace:    "default",
+			MaxContainerCount:         -1,
+			MaxPerPodContainerCount:   1,
+			MaxOpenFiles:              1000000,
+			MaxPods:                   110, // overridden
+			MinimumGCAge:              metav1.Duration{},
+			NonMasqueradeCIDR:         "10.0.0.0/8",
+			VolumePluginDir:           "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
+			NodeStatusUpdateFrequency: metav1.Duration{Duration: 10 * time.Second},
+			NodeLabels:                nil,
+			OOMScoreAdj:               -999,
+			LockFilePath:              "",
+			Port:                      10250, // overridden
+			ReadOnlyPort:              10255, // disabled
+			RegisterNode:              true,
+			RegisterSchedulable:       true,
+			RegistryBurst:             10,
+			RegistryPullQPS:           5.0,
+			RemoteRuntimeEndpoint:     "unix:///var/run/dockershim.sock", // overridden
+			ResolverConfig:            kubetypes.ResolvConfDefault,
+			KubeletCgroups:            "",
+			CgroupsPerQOS:             true,
+			// TODO figure out where this moved
+			// RootDirectory:                  "/var/lib/kubelet", // overridden
 			RuntimeCgroups:                 "",
 			SerializeImagePulls:            true,
 			StreamingConnectionIdleTimeout: metav1.Duration{Duration: 4 * time.Hour},
@@ -119,22 +125,28 @@ func TestKubeletDefaults(t *testing.T) {
 			TLSPrivateKeyFile:              "", // overridden to prevent cert generation
 			KubeAPIQPS:                     5.0,
 			KubeAPIBurst:                   10,
-			OutOfDiskTransitionFrequency:   metav1.Duration{Duration: 5 * time.Minute},
-			HairpinMode:                    "promiscuous-bridge",
-			SeccompProfileRoot:             "/var/lib/kubelet/seccomp",
-			CloudProvider:                  "auto-detect",
-			RuntimeRequestTimeout:          metav1.Duration{Duration: 2 * time.Minute},
-			ContentType:                    "application/vnd.kubernetes.protobuf",
-			EnableControllerAttachDetach:   true,
-			ExperimentalQOSReserved:        componentconfig.ConfigurationMap{},
+			// TODO figure out where this moved
+			// OutOfDiskTransitionFrequency:   metav1.Duration{Duration: 5 * time.Minute},
+			HairpinMode:        "promiscuous-bridge",
+			SeccompProfileRoot: "/var/lib/kubelet/seccomp",
+			// TODO figure out where this moved
+			// CloudProvider:                "auto-detect",
+			RuntimeRequestTimeout:        metav1.Duration{Duration: 2 * time.Minute},
+			ContentType:                  "application/vnd.kubernetes.protobuf",
+			EnableControllerAttachDetach: true,
+			ExperimentalQOSReserved:      kubeletconfig.ConfigurationMap{},
 
 			EvictionPressureTransitionPeriod:    metav1.Duration{Duration: 5 * time.Minute},
 			ExperimentalKernelMemcgNotification: false,
 
-			SystemReserved: componentconfig.ConfigurationMap{},
-			KubeReserved:   componentconfig.ConfigurationMap{},
+			SystemReserved: kubeletconfig.ConfigurationMap{},
+			KubeReserved:   kubeletconfig.ConfigurationMap{},
 
 			EnforceNodeAllocatable: []string{"pods"},
+
+			ConfigTrialDuration:       &metav1.Duration{Duration: 10 * time.Minute},
+			CPUManagerReconcilePeriod: metav1.Duration{Duration: 10 * time.Second},
+			CPUManagerPolicy:          "none",
 		},
 	}
 
@@ -196,7 +208,7 @@ func TestBuildCloudProviderFake(t *testing.T) {
 		return &fake.FakeCloud{}, nil
 	})
 
-	server := kubeletoptions.NewKubeletServer()
+	server, _ := kubeletoptions.NewKubeletServer()
 	server.CloudProvider = providerName
 
 	cloud, err := buildCloudProvider(server)
@@ -213,7 +225,7 @@ func TestBuildCloudProviderFake(t *testing.T) {
 }
 
 func TestBuildCloudProviderNone(t *testing.T) {
-	server := kubeletoptions.NewKubeletServer()
+	server, _ := kubeletoptions.NewKubeletServer()
 	server.CloudProvider = ""
 	cloud, err := buildCloudProvider(server)
 	if err != nil {
@@ -225,7 +237,7 @@ func TestBuildCloudProviderNone(t *testing.T) {
 }
 
 func TestBuildCloudProviderError(t *testing.T) {
-	server := kubeletoptions.NewKubeletServer()
+	server, _ := kubeletoptions.NewKubeletServer()
 	server.CloudProvider = "unknown-provider-name"
 	cloud, err := buildCloudProvider(server)
 	if err == nil {

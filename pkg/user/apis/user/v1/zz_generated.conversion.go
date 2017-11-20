@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -50,11 +50,7 @@ func Convert_v1_Group_To_user_Group(in *Group, out *user.Group, s conversion.Sco
 
 func autoConvert_user_Group_To_v1_Group(in *user.Group, out *Group, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if in.Users == nil {
-		out.Users = make(OptionalNames, 0)
-	} else {
-		out.Users = *(*OptionalNames)(unsafe.Pointer(&in.Users))
-	}
+	out.Users = *(*OptionalNames)(unsafe.Pointer(&in.Users))
 	return nil
 }
 
@@ -76,11 +72,7 @@ func Convert_v1_GroupList_To_user_GroupList(in *GroupList, out *user.GroupList, 
 
 func autoConvert_user_GroupList_To_v1_GroupList(in *user.GroupList, out *GroupList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]Group, 0)
-	} else {
-		out.Items = *(*[]Group)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]Group)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -153,7 +145,7 @@ func autoConvert_user_IdentityList_To_v1_IdentityList(in *user.IdentityList, out
 			}
 		}
 	} else {
-		out.Items = make([]Identity, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -179,16 +171,8 @@ func Convert_v1_User_To_user_User(in *User, out *user.User, s conversion.Scope) 
 func autoConvert_user_User_To_v1_User(in *user.User, out *User, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.FullName = in.FullName
-	if in.Identities == nil {
-		out.Identities = make([]string, 0)
-	} else {
-		out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
-	}
-	if in.Groups == nil {
-		out.Groups = make([]string, 0)
-	} else {
-		out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	}
+	out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
 }
 
@@ -242,11 +226,7 @@ func Convert_v1_UserList_To_user_UserList(in *UserList, out *user.UserList, s co
 
 func autoConvert_user_UserList_To_v1_UserList(in *user.UserList, out *UserList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]User, 0)
-	} else {
-		out.Items = *(*[]User)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]User)(unsafe.Pointer(&in.Items))
 	return nil
 }
 

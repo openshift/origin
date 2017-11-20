@@ -25,8 +25,11 @@ type projectInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newProjectInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewProjectInformer constructs a new informer for Project type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewProjectInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				return client.ProjectV1().Projects().List(options)
@@ -37,14 +40,16 @@ func newProjectInformer(client clientset.Interface, resyncPeriod time.Duration) 
 		},
 		&project_v1.Project{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultProjectInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewProjectInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *projectInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&project_v1.Project{}, newProjectInformer)
+	return f.factory.InformerFor(&project_v1.Project{}, defaultProjectInformer)
 }
 
 func (f *projectInformer) Lister() v1.ProjectLister {

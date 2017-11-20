@@ -5,11 +5,9 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.authorization.apis.authorization.v1;
 
+import "k8s.io/api/core/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
-import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
-import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -69,7 +67,7 @@ message ClusterPolicyBinding {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastModified = 2;
 
   // PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference policyRef = 3;
+  optional k8s.io.api.core.v1.ObjectReference policyRef = 3;
 
   // RoleBindings holds all the ClusterRoleBindings held by this ClusterPolicyBinding, mapped by ClusterRoleBinding.Name
   repeated NamedClusterRoleBinding roleBindings = 4;
@@ -126,12 +124,12 @@ message ClusterRoleBinding {
   // Thus newer clients that do not need to support backwards compatibility should send
   // only fully qualified Subjects and should omit the UserNames and GroupNames fields.
   // Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.
-  repeated k8s.io.kubernetes.pkg.api.v1.ObjectReference subjects = 4;
+  repeated k8s.io.api.core.v1.ObjectReference subjects = 4;
 
   // RoleRef can only reference the current namespace and the global namespace.
   // If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.
   // Since Policy is a singleton, this is sufficient knowledge to locate a role.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference roleRef = 5;
+  optional k8s.io.api.core.v1.ObjectReference roleRef = 5;
 }
 
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
@@ -270,7 +268,7 @@ message PolicyBinding {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastModified = 2;
 
   // PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference policyRef = 3;
+  optional k8s.io.api.core.v1.ObjectReference policyRef = 3;
 
   // RoleBindings holds all the RoleBindings held by this PolicyBinding, mapped by RoleBinding.Name
   repeated NamedRoleBinding roleBindings = 4;
@@ -379,12 +377,12 @@ message RoleBinding {
   // Thus newer clients that do not need to support backwards compatibility should send
   // only fully qualified Subjects and should omit the UserNames and GroupNames fields.
   // Clients that need to support backwards compatibility can use this field to build the UserNames and GroupNames.
-  repeated k8s.io.kubernetes.pkg.api.v1.ObjectReference subjects = 4;
+  repeated k8s.io.api.core.v1.ObjectReference subjects = 4;
 
   // RoleRef can only reference the current namespace and the global namespace.
   // If the RoleRef cannot be resolved, the Authorizer must return an error.
   // Since Policy is a singleton, this is sufficient knowledge to locate a role.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference roleRef = 5;
+  optional k8s.io.api.core.v1.ObjectReference roleRef = 5;
 }
 
 // RoleBindingList is a collection of RoleBindings

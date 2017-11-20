@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
+	kapiv1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -63,7 +63,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err := templateapi.AddObjectsToTemplate(template, additionalObjects, kapiv1.SchemeGroupVersion); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := templateclient.NewForConfigOrDie(clusterAdminClientConfig).Templates(templateNamespace).Create(template); err != nil {
+	if _, err := templateclient.NewForConfigOrDie(clusterAdminClientConfig).Template().Templates(templateNamespace).Create(template); err != nil {
 		t.Fatal(err)
 	}
 
@@ -82,7 +82,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Create project request
-	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project().ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
 	if err == nil || err.Error() != `Internal error occurred: ConfigMap "" is invalid: metadata.name: Required value: name or generateName is required` {
 		t.Fatalf("Expected internal error creating project, got %v", err)
 	}

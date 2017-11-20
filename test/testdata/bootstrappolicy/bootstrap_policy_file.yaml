@@ -124,10 +124,16 @@ items:
     attributeRestrictions: null
     resources:
     - controllerrevisions
+    - daemonsets
+    - daemonsets/status
     - deployments
     - deployments/scale
     - deployments/status
+    - replicasets
+    - replicasets/scale
+    - replicasets/status
     - statefulsets
+    - statefulsets/scale
     - statefulsets/status
     verbs:
     - get
@@ -171,8 +177,6 @@ items:
     - cronjobs/status
     - jobs
     - jobs/status
-    - scheduledjobs
-    - scheduledjobs/status
     verbs:
     - get
     - list
@@ -452,6 +456,7 @@ items:
     resources:
     - localsubjectaccessreviews
     - selfsubjectaccessreviews
+    - selfsubjectrulesreviews
     - subjectaccessreviews
     verbs:
     - create
@@ -743,7 +748,6 @@ items:
     resources:
     - cronjobs
     - jobs
-    - scheduledjobs
     verbs:
     - create
     - delete
@@ -754,13 +758,13 @@ items:
     - update
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
     - deployments
     - deployments/rollback
     - deployments/scale
-    - horizontalpodautoscalers
     - networkpolicies
     - replicasets
     - replicasets/scale
@@ -775,6 +779,7 @@ items:
     - update
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -1213,7 +1218,6 @@ items:
     resources:
     - cronjobs
     - jobs
-    - scheduledjobs
     verbs:
     - create
     - delete
@@ -1224,13 +1228,13 @@ items:
     - update
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
     - deployments
     - deployments/rollback
     - deployments/scale
-    - horizontalpodautoscalers
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -1244,6 +1248,7 @@ items:
     - update
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -1556,18 +1561,17 @@ items:
     resources:
     - cronjobs
     - jobs
-    - scheduledjobs
     verbs:
     - get
     - list
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
     - deployments
     - deployments/scale
-    - horizontalpodautoscalers
     - replicasets
     - replicasets/scale
     verbs:
@@ -1575,6 +1579,7 @@ items:
     - list
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -2042,6 +2047,7 @@ items:
     - get
     - list
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -2050,6 +2056,7 @@ items:
     - get
     - list
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -2058,6 +2065,7 @@ items:
     - get
     - list
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -4695,19 +4703,23 @@ items:
     - 'http:heapster:'
     - 'https:heapster:'
     resources:
-    - services
-    verbs:
-    - proxy
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resourceNames:
-    - 'http:heapster:'
-    - 'https:heapster:'
-    resources:
     - services/proxy
     verbs:
     - get
+  - apiGroups:
+    - metrics.k8s.io
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - list
+  - apiGroups:
+    - custom.metrics.k8s.io
+    attributeRestrictions: null
+    resources:
+    - '*'
+    verbs:
+    - list
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -5449,6 +5461,15 @@ items:
     - get
     - list
     - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - deployments
+    verbs:
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -5664,8 +5685,17 @@ items:
     attributeRestrictions: null
     resources:
     - nodes
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - pods
     verbs:
+    - delete
     - get
     - list
     - watch
@@ -5742,6 +5772,42 @@ items:
     verbs:
     - list
     - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:certificates.k8s.io:certificatesigningrequests:nodeclient
+  rules:
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests/nodeclient
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
+  rules:
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests/selfnodeclient
+    verbs:
+    - create
 - apiVersion: v1
   groupNames:
   - system:masters

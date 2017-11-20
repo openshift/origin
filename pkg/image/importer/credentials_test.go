@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
@@ -24,7 +25,7 @@ func TestCredentialsForSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 	secrets := obj.(*kapi.SecretList)
-	secretsv1 := make([]kapiv1.Secret, len(secrets.Items))
+	secretsv1 := make([]corev1.Secret, len(secrets.Items))
 	for i, secret := range secrets.Items {
 		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
 		if err != nil {

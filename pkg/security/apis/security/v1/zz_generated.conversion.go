@@ -6,6 +6,7 @@ package v1
 
 import (
 	security "github.com/openshift/origin/pkg/security/apis/security"
+	core_v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api "k8s.io/kubernetes/pkg/api"
@@ -14,7 +15,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(RegisterConversions)
+	localSchemeBuilder.Register(RegisterConversions)
 }
 
 // RegisterConversions adds conversion functions to the given scheme.
@@ -208,7 +209,7 @@ func autoConvert_security_PodSecurityPolicyReviewStatus_To_v1_PodSecurityPolicyR
 			}
 		}
 	} else {
-		out.AllowedServiceAccounts = make([]ServiceAccountPodSecurityPolicyReviewStatus, 0)
+		out.AllowedServiceAccounts = nil
 	}
 	return nil
 }
@@ -355,7 +356,7 @@ func Convert_v1_PodSecurityPolicySubjectReviewStatus_To_security_PodSecurityPoli
 func autoConvert_security_PodSecurityPolicySubjectReviewStatus_To_v1_PodSecurityPolicySubjectReviewStatus(in *security.PodSecurityPolicySubjectReviewStatus, out *PodSecurityPolicySubjectReviewStatus, s conversion.Scope) error {
 	if in.AllowedBy != nil {
 		in, out := &in.AllowedBy, &out.AllowedBy
-		*out = new(api_v1.ObjectReference)
+		*out = new(core_v1.ObjectReference)
 		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
@@ -423,7 +424,7 @@ func autoConvert_security_SELinuxContextStrategyOptions_To_v1_SELinuxContextStra
 	out.Type = SELinuxContextStrategyType(in.Type)
 	if in.SELinuxOptions != nil {
 		in, out := &in.SELinuxOptions, &out.SELinuxOptions
-		*out = new(api_v1.SELinuxOptions)
+		*out = new(core_v1.SELinuxOptions)
 		if err := api_v1.Convert_api_SELinuxOptions_To_v1_SELinuxOptions(*in, *out, s); err != nil {
 			return err
 		}
@@ -475,31 +476,11 @@ func autoConvert_security_SecurityContextConstraints_To_v1_SecurityContextConstr
 	out.ObjectMeta = in.ObjectMeta
 	out.Priority = (*int32)(unsafe.Pointer(in.Priority))
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	if in.DefaultAddCapabilities == nil {
-		out.DefaultAddCapabilities = make([]api_v1.Capability, 0)
-	} else {
-		out.DefaultAddCapabilities = *(*[]api_v1.Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
-	}
-	if in.RequiredDropCapabilities == nil {
-		out.RequiredDropCapabilities = make([]api_v1.Capability, 0)
-	} else {
-		out.RequiredDropCapabilities = *(*[]api_v1.Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
-	}
-	if in.AllowedCapabilities == nil {
-		out.AllowedCapabilities = make([]api_v1.Capability, 0)
-	} else {
-		out.AllowedCapabilities = *(*[]api_v1.Capability)(unsafe.Pointer(&in.AllowedCapabilities))
-	}
-	if in.Volumes == nil {
-		out.Volumes = make([]FSType, 0)
-	} else {
-		out.Volumes = *(*[]FSType)(unsafe.Pointer(&in.Volumes))
-	}
-	if in.AllowedFlexVolumes == nil {
-		out.AllowedFlexVolumes = make([]AllowedFlexVolume, 0)
-	} else {
-		out.AllowedFlexVolumes = *(*[]AllowedFlexVolume)(unsafe.Pointer(&in.AllowedFlexVolumes))
-	}
+	out.DefaultAddCapabilities = *(*[]core_v1.Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
+	out.RequiredDropCapabilities = *(*[]core_v1.Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
+	out.AllowedCapabilities = *(*[]core_v1.Capability)(unsafe.Pointer(&in.AllowedCapabilities))
+	out.Volumes = *(*[]FSType)(unsafe.Pointer(&in.Volumes))
+	out.AllowedFlexVolumes = *(*[]AllowedFlexVolume)(unsafe.Pointer(&in.AllowedFlexVolumes))
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
@@ -518,16 +499,8 @@ func autoConvert_security_SecurityContextConstraints_To_v1_SecurityContextConstr
 	}
 	out.ReadOnlyRootFilesystem = in.ReadOnlyRootFilesystem
 	out.SeccompProfiles = *(*[]string)(unsafe.Pointer(&in.SeccompProfiles))
-	if in.Users == nil {
-		out.Users = make([]string, 0)
-	} else {
-		out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
-	}
-	if in.Groups == nil {
-		out.Groups = make([]string, 0)
-	} else {
-		out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	}
+	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
 }
 
@@ -563,7 +536,7 @@ func autoConvert_security_SecurityContextConstraintsList_To_v1_SecurityContextCo
 			}
 		}
 	} else {
-		out.Items = make([]SecurityContextConstraints, 0)
+		out.Items = nil
 	}
 	return nil
 }

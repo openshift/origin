@@ -61,16 +61,16 @@ func TestSecretForDockerRegistryGenerate(t *testing.T) {
 		},
 		"test-valid-use-append-hash": {
 			params: map[string]interface{}{
-				"name":            "foo-94759gc65b",
+				"name":            "foo",
 				"docker-server":   server,
 				"docker-username": username,
 				"docker-password": password,
 				"docker-email":    email,
-				"append-hash":     "true",
+				"append-hash":     true,
 			},
 			expected: &api.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "foo-94759gc65b",
+					Name: "foo-gb4kftc655",
 				},
 				Data: map[string][]byte{
 					api.DockerConfigKey: secretData,

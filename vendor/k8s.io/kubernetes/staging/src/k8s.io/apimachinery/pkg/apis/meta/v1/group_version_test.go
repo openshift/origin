@@ -17,11 +17,10 @@ limitations under the License.
 package v1
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
-	"github.com/ugorji/go/codec"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type GroupVersionHolder struct {
@@ -46,12 +45,13 @@ func TestGroupVersionUnmarshalJSON(t *testing.T) {
 		if !reflect.DeepEqual(result.GV, c.expect) {
 			t.Errorf("JSON codec failed to unmarshal input '%s': expected %+v, got %+v", c.input, c.expect, result.GV)
 		}
-		// test the Ugorji codec
-		if err := codec.NewDecoderBytes(c.input, new(codec.JsonHandle)).Decode(&result); err != nil {
-			t.Errorf("Ugorji codec failed to unmarshal input '%v': %v", c.input, err)
+		// test the json-iterator codec
+		// if err := jsoniter.ConfigFastest.Unmarshal(c.input, &result); err != nil {
+		if err := json.Unmarshal(c.input, &result); err != nil {
+			t.Errorf("json-iterator codec failed to unmarshal input '%v': %v", c.input, err)
 		}
 		if !reflect.DeepEqual(result.GV, c.expect) {
-			t.Errorf("Ugorji codec failed to unmarshal input '%s': expected %+v, got %+v", c.input, c.expect, result.GV)
+			t.Errorf("json-iterator codec failed to unmarshal input '%s': expected %+v, got %+v", c.input, c.expect, result.GV)
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package util
 
 import (
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -16,12 +15,7 @@ func ClusterRoleToRBAC(obj *authorizationapi.ClusterRole) (*rbac.ClusterRole, er
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &rbac.ClusterRole{}
-	if err := rbac.DeepCopy_rbac_ClusterRole(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
 
 // ClusterRoleBindingToRBAC turns an OpenShift ClusterRoleBinding into a Kubernetes
@@ -32,12 +26,7 @@ func ClusterRoleBindingToRBAC(obj *authorizationapi.ClusterRoleBinding) (*rbac.C
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &rbac.ClusterRoleBinding{}
-	if err := rbac.DeepCopy_rbac_ClusterRoleBinding(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
 
 // RoleToRBAC turns an OpenShift Role into a Kubernetes RBAC Role,
@@ -48,12 +37,7 @@ func RoleToRBAC(obj *authorizationapi.Role) (*rbac.Role, error) {
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &rbac.Role{}
-	if err := rbac.DeepCopy_rbac_Role(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
 
 // RoleBindingToRBAC turns an OpenShift RoleBinding into a Kubernetes RBAC
@@ -64,12 +48,7 @@ func RoleBindingToRBAC(obj *authorizationapi.RoleBinding) (*rbac.RoleBinding, er
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &rbac.RoleBinding{}
-	if err := rbac.DeepCopy_rbac_RoleBinding(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
 
 // ClusterRoleFromRBAC turns a Kubernetes RBAC ClusterRole into an Openshift
@@ -80,12 +59,7 @@ func ClusterRoleFromRBAC(obj *rbac.ClusterRole) (*authorizationapi.ClusterRole, 
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &authorizationapi.ClusterRole{}
-	if err := authorizationapi.DeepCopy_authorization_ClusterRole(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
 
 // ClusterRoleBindingFromRBAC turns a Kuberenets RBAC ClusterRoleBinding into
@@ -96,12 +70,7 @@ func ClusterRoleBindingFromRBAC(obj *rbac.ClusterRoleBinding) (*authorizationapi
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &authorizationapi.ClusterRoleBinding{}
-	if err := authorizationapi.DeepCopy_authorization_ClusterRoleBinding(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
 
 // RoleFromRBAC turns a Kubernetes RBAC Role into an OpenShift Role,
@@ -112,12 +81,7 @@ func RoleFromRBAC(obj *rbac.Role) (*authorizationapi.Role, error) {
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &authorizationapi.Role{}
-	if err := authorizationapi.DeepCopy_authorization_Role(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
 
 // RoleBindingFromRBAC turns a Kubernetes RBAC RoleBinding into an OpenShift
@@ -128,12 +92,5 @@ func RoleBindingFromRBAC(obj *rbac.RoleBinding) (*authorizationapi.RoleBinding, 
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
-	deepcopiedObj := &authorizationapi.RoleBinding{}
-	if err := authorizationapi.DeepCopy_authorization_RoleBinding(convertedObj, deepcopiedObj, cloner); err != nil {
-		return nil, err
-	}
-
-	return deepcopiedObj, nil
+	return convertedObj.DeepCopy(), nil
 }
-
-var cloner = conversion.NewCloner()

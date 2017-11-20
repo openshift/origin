@@ -10,7 +10,7 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/term"
+	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -108,7 +108,7 @@ func NewCmdRsh(name string, parent string, f *clientcmd.Factory, in io.Reader, o
 func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	switch {
 	case o.ForceTTY && o.DisableTTY:
-		return kcmdutil.UsageError(cmd, "you may not specify -t and -T together")
+		return kcmdutil.UsageErrorf(cmd, "you may not specify -t and -T together")
 	case o.ForceTTY:
 		o.TTY = true
 	case o.DisableTTY:
@@ -118,7 +118,7 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	}
 
 	if len(args) < 1 {
-		return kcmdutil.UsageError(cmd, "rsh requires a single Pod to connect to")
+		return kcmdutil.UsageErrorf(cmd, "rsh requires a single Pod to connect to")
 	}
 	resource := args[0]
 	args = args[1:]

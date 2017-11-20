@@ -7,8 +7,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/util/exec"
 	utilversion "k8s.io/kubernetes/pkg/util/version"
+	"k8s.io/utils/exec"
 )
 
 // Interface represents an interface to OVS

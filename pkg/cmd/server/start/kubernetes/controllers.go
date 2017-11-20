@@ -9,9 +9,9 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	kflag "k8s.io/apiserver/pkg/util/flag"
+	"k8s.io/apiserver/pkg/util/logs"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	"k8s.io/kubernetes/pkg/util/logs"
 )
 
 const controllersLong = `

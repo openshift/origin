@@ -162,3 +162,4 @@ echo "* Use the following line to make an alias to kvtctl:"
 echo "* alias kvtctl='\$GOPATH/bin/vtctlclient -server $vtctl_server'"
 echo "* See the vtctld UI at: http://${vtctld_ip}:30000"
 echo "****************************"
+
