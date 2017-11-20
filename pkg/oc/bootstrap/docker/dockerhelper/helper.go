@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/docker/distribution/reference"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/golang/glog"
@@ -146,7 +147,13 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	if glog.V(5) {
 		outputStream = out
 	}
-	err = h.client.ImagePull(image, types.ImagePullOptions{}, outputStream)
+
+	normalized, err := reference.ParseNormalizedNamed(image)
+	if err != nil {
+		return err
+	}
+
+	err = h.client.ImagePull(normalized.String(), types.ImagePullOptions{}, outputStream)
 	if err != nil {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
 	}
