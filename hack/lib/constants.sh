@@ -46,6 +46,8 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/oc
   cmd/kubefed
   cmd/template-service-broker
+  cmd/openshift-sti-build
+  cmd/openshift-docker-build
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -66,8 +68,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-router
   openshift-deploy
   openshift-recycle
-  openshift-sti-build
-  openshift-docker-build
   openshift-git-clone
   openshift-manage-dockerfile
   openshift-extract-image-content

@@ -67,10 +67,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
-	case "openshift-sti-build":
-		cmd = builder.NewCommandS2IBuilder(basename)
-	case "openshift-docker-build":
-		cmd = builder.NewCommandDockerBuilder(basename)
 	case "openshift-git-clone":
 		cmd = builder.NewCommandGitClone(basename)
 	case "openshift-manage-dockerfile":
@@ -142,8 +138,6 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		irouter.NewCommandF5Router("f5-router"),
 		deployer.NewCommandDeployer("deploy"),
 		recycle.NewCommandRecycle("recycle", out),
-		builder.NewCommandS2IBuilder("sti-build"),
-		builder.NewCommandDockerBuilder("docker-build"),
 		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
 		diagnostics.NewCommandNetworkPodDiagnostics("network-diagnostic-pod", out),
 	)

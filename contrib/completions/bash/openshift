@@ -23810,45 +23810,6 @@ _openshift_infra_diagnostic-pod()
     noun_aliases=()
 }
 
-_openshift_infra_docker-build_version()
-{
-    last_command="openshift_infra_docker-build_version"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--loglevel=")
-    flags+=("--logspec=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
-_openshift_infra_docker-build()
-{
-    last_command="openshift_infra_docker-build"
-    commands=()
-    commands+=("version")
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--loglevel=")
-    flags+=("--logspec=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
 _openshift_infra_f5-router_version()
 {
     last_command="openshift_infra_f5-router_version"
@@ -24166,57 +24127,16 @@ _openshift_infra_router()
     noun_aliases=()
 }
 
-_openshift_infra_sti-build_version()
-{
-    last_command="openshift_infra_sti-build_version"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--loglevel=")
-    flags+=("--logspec=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
-_openshift_infra_sti-build()
-{
-    last_command="openshift_infra_sti-build"
-    commands=()
-    commands+=("version")
-
-    flags=()
-    two_word_flags=()
-    local_nonpersistent_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--loglevel=")
-    flags+=("--logspec=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-    noun_aliases=()
-}
-
 _openshift_infra()
 {
     last_command="openshift_infra"
     commands=()
     commands+=("deploy")
     commands+=("diagnostic-pod")
-    commands+=("docker-build")
     commands+=("f5-router")
     commands+=("network-diagnostic-pod")
     commands+=("recycle")
     commands+=("router")
-    commands+=("sti-build")
 
     flags=()
     two_word_flags=()
