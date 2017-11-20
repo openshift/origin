@@ -74,7 +74,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   osc
   oadm
   osadm
-  kubectl
   kubernetes
   kubelet
   kube-proxy

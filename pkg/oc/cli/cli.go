@@ -7,9 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -256,28 +254,6 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 	}
 }
 
-// NewCmdKubectl provides exactly the functionality from Kubernetes,
-// but with support for OpenShift resources
-func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
-	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-	f := clientcmd.New(flags)
-	cmds := kubecmd.NewKubectlCommand(f, os.Stdin, out, os.Stderr)
-	cmds.Aliases = []string{"kubectl"}
-	cmds.Use = name
-	cmds.Short = "Kubernetes cluster management via kubectl"
-	flags.VisitAll(func(flag *pflag.Flag) {
-		if f := cmds.PersistentFlags().Lookup(flag.Name); f == nil {
-			cmds.PersistentFlags().AddFlag(flag)
-		} else {
-			glog.V(5).Infof("already registered flag %s", flag.Name)
-		}
-	})
-	cmds.PersistentFlags().Var(flags.Lookup("config").Value, "kubeconfig", "Specify a kubeconfig file to define the configuration")
-	templates.ActsAsRootCommand(cmds, []string{"options"})
-	cmds.AddCommand(cmd.NewCmdOptions(out))
-	return cmds
-}
-
 // CommandFor returns the appropriate command for this base name,
 // or the OpenShift CLI command.
 func CommandFor(basename string) *cobra.Command {
@@ -293,7 +269,7 @@ func CommandFor(basename string) *cobra.Command {
 
 	switch basename {
 	case "kubectl":
-		cmd = NewCmdKubectl(basename, out)
+		cmd = kubecmd.NewKubectlCommand(kcmdutil.NewFactory(nil), in, out, errout)
 	default:
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
 	}
