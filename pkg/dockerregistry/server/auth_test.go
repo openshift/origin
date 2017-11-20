@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	restclient "k8s.io/client-go/rest"
 
+	dockercfg "github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -104,10 +105,10 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 // TestAccessController tests complete integration of the v2 registry auth package.
 func TestAccessController(t *testing.T) {
 	defaultOptions := map[string]interface{}{
-		"addr":        "https://openshift-example.com/osapi",
-		"apiVersion":  schema.GroupVersion{Group: "", Version: "v1"},
-		RealmKey:      "myrealm",
-		TokenRealmKey: "http://tokenrealm.com",
+		"addr":                      "https://openshift-example.com/osapi",
+		"apiVersion":                schema.GroupVersion{Group: "", Version: "v1"},
+		configuration.RealmKey:      "myrealm",
+		configuration.TokenRealmKey: "http://tokenrealm.com",
 	}
 
 	tests := map[string]struct {
@@ -131,10 +132,10 @@ func TestAccessController(t *testing.T) {
 		},
 		"no token, autodetected tokenrealm": {
 			options: map[string]interface{}{
-				"addr":        "https://openshift-example.com/osapi",
-				"apiVersion":  schema.GroupVersion{Group: "", Version: "v1"},
-				RealmKey:      "myrealm",
-				TokenRealmKey: "",
+				"addr":                      "https://openshift-example.com/osapi",
+				"apiVersion":                schema.GroupVersion{Group: "", Version: "v1"},
+				configuration.RealmKey:      "myrealm",
+				configuration.TokenRealmKey: "",
 			},
 			access:            []auth.Access{},
 			basicToken:        "",
@@ -392,6 +393,11 @@ func TestAccessController(t *testing.T) {
 		if options == nil {
 			options = defaultOptions
 		}
+		config := &dockercfg.Configuration{
+			Auth: dockercfg.Auth{
+				"openshift": options,
+			},
+		}
 		reqURL, err := url.Parse(options["addr"].(string))
 		if err != nil {
 			t.Fatal(err)
@@ -425,9 +431,14 @@ func TestAccessController(t *testing.T) {
 		app := &App{
 			ctx:            ctx,
 			registryClient: client.NewRegistryClient(cfg),
-			extraConfig:    &configuration.Configuration{},
+			extraConfig: &configuration.Configuration{
+				Server: &configuration.Server{":5000"},
+			},
 		}
-		accessController, err := app.newAccessController(options)
+		if err := configuration.InitExtraConfig(config, app.extraConfig); err != nil {
+			t.Fatal(err)
+		}
+		accessController, err := app.newAccessController(app.extraConfig.Auth)
 		if err != nil {
 			t.Fatal(err)
 		}

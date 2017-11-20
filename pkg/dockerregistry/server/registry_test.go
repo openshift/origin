@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/docker/distribution"
+	dockercfg "github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/reference"
@@ -65,8 +66,13 @@ func newTestRegistry(
 		return nil, err
 	}
 
+	cfg := &configuration.Configuration{}
+	if err := configuration.InitExtraConfig(&dockercfg.Configuration{}, cfg); err != nil {
+		return nil, err
+	}
+
 	app := &App{
-		extraConfig:  &configuration.Configuration{},
+		extraConfig:  cfg,
 		driver:       storageDriver,
 		registry:     reg,
 		cachedLayers: cachedLayers,
@@ -126,7 +132,7 @@ func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (d
 		r.remoteBlobGetter = NewBlobGetterService(
 			nm,
 			name,
-			defaultBlobRepositoryCacheTTL,
+			reg.app.extraConfig.Cache.BlobRepositoryTTL,
 			isGetter.get,
 			reg.osClient,
 			reg.app.cachedLayers)

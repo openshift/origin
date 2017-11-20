@@ -59,8 +59,8 @@ func TestSignatureGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx = withUserClient(ctx, osclient)
-	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
+	config := &registryconfig.Configuration{}
+	dockercfg := &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -84,7 +84,13 @@ func TestSignatureGet(t *testing.T) {
 			"repository": {{Name: "openshift", Options: configuration.Parameters{"dockerregistryurl": "localhost:5000"}}},
 			"storage":    {{Name: "openshift"}},
 		},
-	}, &registryconfig.Configuration{}, nil)
+	}
+	if err := registryconfig.InitExtraConfig(dockercfg, config); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx = withUserClient(ctx, osclient)
+	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), dockercfg, config, nil)
 	registryServer := httptest.NewServer(registryApp)
 	defer registryServer.Close()
 
@@ -166,7 +172,9 @@ func TestSignaturePut(t *testing.T) {
 	ctx := context.Background()
 	ctx = registrytest.WithTestLogger(ctx, t)
 	ctx = withUserClient(ctx, osclient)
-	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
+
+	config := &registryconfig.Configuration{}
+	dockercfg := &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -190,7 +198,12 @@ func TestSignaturePut(t *testing.T) {
 			"repository": {{Name: "openshift", Options: configuration.Parameters{"dockerregistryurl": "localhost:5000"}}},
 			"storage":    {{Name: "openshift"}},
 		},
-	}, &registryconfig.Configuration{}, nil)
+	}
+	if err := registryconfig.InitExtraConfig(dockercfg, config); err != nil {
+		t.Fatal(err)
+	}
+
+	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), dockercfg, config, nil)
 	registryServer := httptest.NewServer(registryApp)
 	defer registryServer.Close()
 

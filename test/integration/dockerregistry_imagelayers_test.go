@@ -66,6 +66,10 @@ func StartTestRegistry() (string, error) {
 
 	extraConfig := &registryconfig.Configuration{}
 
+	if err := registryconfig.InitExtraConfig(dockerConfig, extraConfig); err != nil {
+		return "", fmt.Errorf("unable to init registry config: %v", err)
+	}
+
 	go func() {
 		err := dockerregistry.Start(dockerConfig, extraConfig)
 		panic(fmt.Errorf("failed to start the integrated registry: %v", err))

@@ -38,9 +38,6 @@ func (d deferredErrors) Empty() bool {
 const (
 	defaultTokenPath = "/openshift/token"
 	defaultUserName  = "anonymous"
-
-	RealmKey      = "realm"
-	TokenRealmKey = "tokenrealm"
 )
 
 // WithUserInfoLogger creates a new context with provided user infomation.
@@ -95,26 +92,21 @@ var (
 
 // TokenRealm returns the template URL to use as the token realm redirect.
 // An empty scheme/host in the returned URL means to match the scheme/host on incoming requests.
-func TokenRealm(options map[string]interface{}) (*url.URL, error) {
-	if options[TokenRealmKey] == nil {
+func TokenRealm(tokenRealmString string) (*url.URL, error) {
+	if len(tokenRealmString) == 0 {
 		// If not specified, default to "/openshift/token", auto-detecting the scheme and host
 		return &url.URL{Path: defaultTokenPath}, nil
 	}
 
-	tokenRealmString, ok := options[TokenRealmKey].(string)
-	if !ok {
-		return nil, fmt.Errorf("%s config option must be a string, got %T", TokenRealmKey, options[TokenRealmKey])
-	}
-
 	tokenRealm, err := url.Parse(tokenRealmString)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing URL in %s config option: %v", TokenRealmKey, err)
+		return nil, fmt.Errorf("error parsing URL in %s config option: %v", configuration.TokenRealmKey, err)
 	}
 	if len(tokenRealm.RawQuery) > 0 || len(tokenRealm.Fragment) > 0 {
-		return nil, fmt.Errorf("%s config option may not contain query parameters or a fragment", TokenRealmKey)
+		return nil, fmt.Errorf("%s config option may not contain query parameters or a fragment", configuration.TokenRealmKey)
 	}
 	if len(tokenRealm.Path) > 0 {
-		return nil, fmt.Errorf("%s config option may not contain a path (%q was specified)", TokenRealmKey, tokenRealm.Path)
+		return nil, fmt.Errorf("%s config option may not contain a path (%q was specified)", configuration.TokenRealmKey, tokenRealm.Path)
 	}
 
 	// pin to "/openshift/token"
@@ -123,40 +115,18 @@ func TokenRealm(options map[string]interface{}) (*url.URL, error) {
 	return tokenRealm, nil
 }
 
-func (app *App) newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
-	realm, err := getStringOption("", RealmKey, "origin", options)
+func (app *App) newAccessController(authcfg *configuration.Auth) (registryauth.AccessController, error) {
+	tokenRealm, err := TokenRealm(authcfg.TokenRealm)
 	if err != nil {
 		return nil, err
 	}
-
-	tokenRealm, err := TokenRealm(options)
-	if err != nil {
-		return nil, err
-	}
-
-	ac := &AccessController{
-		realm:          realm,
+	return &AccessController{
+		realm:          app.extraConfig.Auth.Realm,
 		tokenRealm:     tokenRealm,
 		registryClient: app.registryClient,
 		metricsConfig:  app.extraConfig.Metrics,
-	}
-
-	if audit, ok := options["audit"]; ok {
-		auditOptions := make(map[string]interface{})
-
-		for k, v := range audit.(map[interface{}]interface{}) {
-			if s, ok := k.(string); ok {
-				auditOptions[s] = v
-			}
-		}
-
-		ac.auditLog, err = getBoolOption("", "enabled", false, auditOptions)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return ac, nil
+		auditLog:       app.extraConfig.Audit.Enabled,
+	}, nil
 }
 
 // Error returns the internal error string for this authChallenge.

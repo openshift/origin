@@ -55,7 +55,7 @@ func init() {
 
 		context.GetLogger(app.ctx).Info("Using Origin Auth handler")
 
-		return app.newAccessController(options)
+		return app.newAccessController(app.extraConfig.Auth)
 	})
 
 	registrystorage.Register(middlewareOpenShift, func(driver storagedriver.StorageDriver, options map[string]interface{}) (storagedriver.StorageDriver, error) {

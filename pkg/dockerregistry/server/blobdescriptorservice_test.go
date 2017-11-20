@@ -53,8 +53,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	fos, imageClient := registrytest.NewFakeOpenShiftWithClient(ctx)
 	testImage := registrytest.AddRandomImage(t, fos, "user", "app", "latest")
 
-	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", "localhost:5000")
-	app := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
+	dockercfg := &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -78,7 +77,17 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			"repository": {{Name: "openshift"}},
 			"storage":    {{Name: "openshift"}},
 		},
-	}, &srvconfig.Configuration{}, nil)
+	}
+
+	cfg := &srvconfig.Configuration{
+		Server: &srvconfig.Server{":5000"},
+	}
+	if err := srvconfig.InitExtraConfig(dockercfg, cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", "localhost:5000")
+	app := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), dockercfg, cfg, nil)
 	server := httptest.NewServer(app)
 	router := v2.Router()
 
