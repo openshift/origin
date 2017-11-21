@@ -298,13 +298,14 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []buildapi.S
 	}
 
 	opts := docker.BuildImageOptions{
-		Name:           tag,
-		RmTmpContainer: true,
-		OutputStream:   os.Stdout,
-		Dockerfile:     dockerfilePath,
-		NoCache:        noCache,
-		Pull:           forcePull,
-		BuildArgs:      buildArgs,
+		Name:                tag,
+		RmTmpContainer:      true,
+		ForceRmTmpContainer: true,
+		OutputStream:        os.Stdout,
+		Dockerfile:          dockerfilePath,
+		NoCache:             noCache,
+		Pull:                forcePull,
+		BuildArgs:           buildArgs,
 	}
 	network, resolvConfHostPath, err := getContainerNetworkConfig()
 	if err != nil {
