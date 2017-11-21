@@ -63,6 +63,7 @@ function ensure-node-config() {
 kubeletArguments:
   cgroups-per-qos: ["false"]
   enforce-node-allocatable: [""]
+  fail-swap-on: ["false"]
 EOF
 
     if [[ "${OPENSHIFT_CONTAINER_RUNTIME}" != "dockershim" ]]; then
