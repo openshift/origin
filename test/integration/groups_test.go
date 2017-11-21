@@ -49,7 +49,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	}
 
 	// make sure that user/~ returns groups for unbacked users
-	expectedClusterAdminGroups := []string{"system:cluster-admins"}
+	expectedClusterAdminGroups := []string{"system:cluster-admins", "system:masters"}
 	clusterAdminUser, err := clusterAdminUserClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
