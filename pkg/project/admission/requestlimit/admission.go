@@ -19,8 +19,8 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/clientset"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/clientset/typed/user/v1"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,

@@ -14,13 +14,13 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/clientset/typed/authorization/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
 	usercache "github.com/openshift/origin/pkg/user/cache"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	userclient "github.com/openshift/origin/pkg/user/generated/clientset"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -72,7 +72,7 @@ func (q *restrictUsersAdmission) SetOpenshiftInternalUserClient(userClient userc
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
-	q.groupCache = usercache.NewGroupCache(userInformers.User().InternalVersion().Groups())
+	q.groupCache = usercache.NewGroupCache(userInformers.User().V1().Groups())
 }
 
 // subjectsDelta returns the relative complement of elementsToIgnore in
