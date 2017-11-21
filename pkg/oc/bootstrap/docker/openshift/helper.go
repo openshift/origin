@@ -887,9 +887,6 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		nodeCfg.DNSIP = ""
 	}
 	nodeCfg.DNSBindAddress = ""
-	if nodeCfg.KubeletArguments == nil {
-		nodeCfg.KubeletArguments = configapi.ExtendedArguments{}
-	}
 
 	if h.supportsCgroupDriver() {
 		// Set the cgroup driver from the current docker
@@ -898,9 +895,11 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 			return err
 		}
 		glog.V(5).Infof("cgroup driver from Docker: %s", cgroupDriver)
+		if nodeCfg.KubeletArguments == nil {
+			nodeCfg.KubeletArguments = configapi.ExtendedArguments{}
+		}
 		nodeCfg.KubeletArguments["cgroup-driver"] = []string{cgroupDriver}
 	}
-	nodeCfg.KubeletArguments["fail-swap-on"] = []string{"false"}
 
 	cfgBytes, err = configapilatest.WriteYAML(nodeCfg)
 	if err != nil {
