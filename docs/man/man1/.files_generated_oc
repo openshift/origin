@@ -54,7 +54,6 @@ oc-adm-migrate-storage.1
 oc-adm-migrate.1
 oc-adm-new-project.1
 oc-adm-options.1
-oc-adm-overwrite-policy.1
 oc-adm-pod-network-isolate-projects.1
 oc-adm-pod-network-join-projects.1
 oc-adm-pod-network-make-projects-global.1
