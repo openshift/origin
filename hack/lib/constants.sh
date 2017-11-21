@@ -333,7 +333,6 @@ readonly OS_ALL_IMAGES=(
   openshift/origin-pod
   openshift/origin-deployer
   openshift/origin-docker-builder
-  openshift/origin-docker-registry
   openshift/origin-keepalived-ipfailover
   openshift/origin-sti-builder
   openshift/origin-haproxy-router
@@ -379,7 +378,6 @@ function os::build::images() {
 
   # images that depend on "${tag_prefix}-base"
   ( os::build::image "${tag_prefix}"                       images/origin ) &
-  ( os::build::image "${tag_prefix}-docker-registry"       images/dockerregistry ) &
   ( os::build::image "${tag_prefix}-egress-router"         images/egress/router ) &
   ( os::build::image "${tag_prefix}-egress-http-proxy"     images/egress/http-proxy ) &
   ( os::build::image "${tag_prefix}-federation"            images/federation ) &
