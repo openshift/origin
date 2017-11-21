@@ -44,6 +44,8 @@ type CreateNodeConfigOptions struct {
 	DNSRecursiveResolvConf string
 	ListenAddr             flagtypes.Addr
 
+	KubeletArguments map[string][]string
+
 	ClientCertFile    string
 	ClientKeyFile     string
 	ServerCertFile    string
@@ -419,6 +421,8 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		NetworkConfig: configapi.NodeNetworkConfig{
 			NetworkPluginName: o.NetworkPluginName,
 		},
+
+		KubeletArguments: o.KubeletArguments,
 
 		EnableUnidling: true,
 	}
