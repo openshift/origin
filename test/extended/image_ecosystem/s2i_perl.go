@@ -43,7 +43,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 
 				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app -f %q", dancerTemplate))
-				err := oc.Run("new-app").Args("-f", dancerTemplate).Execute()
+				err := oc.Run("new-app").Args("-f", dancerTemplate, "-e", "HTTPD_MAX_REQUEST_WORKERS=1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")

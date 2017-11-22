@@ -45,7 +45,7 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 				err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By(fmt.Sprintf("calling oc new-app %s", djangoRepository))
-				err = oc.Run("new-app").Args(djangoRepository, "--strategy=source").Execute()
+				err = oc.Run("new-app").Args(djangoRepository, "--strategy=source", "-e", "WEB_CONCURRENCY=1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
