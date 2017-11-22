@@ -14095,7 +14095,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraintsList"
+        "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraintsList"
        }
       },
       "401": {
@@ -14132,7 +14132,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints"
+        "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraints"
        }
       }
      ],
@@ -14140,7 +14140,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints"
+        "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraints"
        }
       },
       "401": {
@@ -14295,7 +14295,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints"
+        "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraints"
        }
       },
       "401": {
@@ -14332,7 +14332,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints"
+        "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraints"
        }
       }
      ],
@@ -14340,7 +14340,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints"
+        "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraints"
        }
       },
       "401": {
@@ -14453,7 +14453,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints"
+        "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraints"
        }
       },
       "401": {
@@ -54140,7 +54140,7 @@
    }
   },
   "definitions": {
-   "com.github.openshift.origin.pkg.security.apis.security.v1.AllowedFlexVolume": {
+   "com.github.openshift.api.security.v1.AllowedFlexVolume": {
     "description": "AllowedFlexVolume represents a single Flexvolume that is allowed to be used.",
     "properties": {
      "driver": {
@@ -54149,14 +54149,14 @@
      }
     }
    },
-   "com.github.openshift.origin.pkg.security.apis.security.v1.FSGroupStrategyOptions": {
+   "com.github.openshift.api.security.v1.FSGroupStrategyOptions": {
     "description": "FSGroupStrategyOptions defines the strategy type and options used to create the strategy.",
     "properties": {
      "ranges": {
       "description": "Ranges are the allowed ranges of fs groups.  If you would like to force a single fs group then supply a single range with the same start and end.",
       "type": "array",
       "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.IDRange"
+       "$ref": "#/definitions/com.github.openshift.api.security.v1.IDRange"
       }
      },
      "type": {
@@ -54165,7 +54165,7 @@
      }
     }
    },
-   "com.github.openshift.origin.pkg.security.apis.security.v1.IDRange": {
+   "com.github.openshift.api.security.v1.IDRange": {
     "description": "IDRange provides a min/max of an allowed range of IDs.",
     "properties": {
      "max": {
@@ -54180,7 +54180,7 @@
      }
     }
    },
-   "com.github.openshift.origin.pkg.security.apis.security.v1.RunAsUserStrategyOptions": {
+   "com.github.openshift.api.security.v1.RunAsUserStrategyOptions": {
     "description": "RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.",
     "properties": {
      "type": {
@@ -54204,7 +54204,7 @@
      }
     }
    },
-   "com.github.openshift.origin.pkg.security.apis.security.v1.SELinuxContextStrategyOptions": {
+   "com.github.openshift.api.security.v1.SELinuxContextStrategyOptions": {
     "description": "SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.",
     "properties": {
      "seLinuxOptions": {
@@ -54217,7 +54217,7 @@
      }
     }
    },
-   "com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints": {
+   "com.github.openshift.api.security.v1.SecurityContextConstraints": {
     "description": "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container.",
     "required": [
      "priority",
@@ -54270,7 +54270,7 @@
       "description": "AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes is allowed in the \"Volumes\" field.",
       "type": "array",
       "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.AllowedFlexVolume"
+       "$ref": "#/definitions/com.github.openshift.api.security.v1.AllowedFlexVolume"
       }
      },
      "apiVersion": {
@@ -54286,7 +54286,7 @@
      },
      "fsGroup": {
       "description": "FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.FSGroupStrategyOptions"
+      "$ref": "#/definitions/com.github.openshift.api.security.v1.FSGroupStrategyOptions"
      },
      "groups": {
       "description": "The groups that have permission to use this security context constraints",
@@ -54321,11 +54321,11 @@
      },
      "runAsUser": {
       "description": "RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.RunAsUserStrategyOptions"
+      "$ref": "#/definitions/com.github.openshift.api.security.v1.RunAsUserStrategyOptions"
      },
      "seLinuxContext": {
       "description": "SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SELinuxContextStrategyOptions"
+      "$ref": "#/definitions/com.github.openshift.api.security.v1.SELinuxContextStrategyOptions"
      },
      "seccompProfiles": {
       "description": "SeccompProfiles lists the allowed profiles that may be set for the pod or container's seccomp annotations.  An unset (nil) or empty value means that no profiles may be specifid by the pod or container.\tThe wildcard '*' may be used to allow all profiles.  When used to generate a value for a pod the first non-wildcard profile will be used as the default.",
@@ -54336,7 +54336,7 @@
      },
      "supplementalGroups": {
       "description": "SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SupplementalGroupsStrategyOptions"
+      "$ref": "#/definitions/com.github.openshift.api.security.v1.SupplementalGroupsStrategyOptions"
      },
      "users": {
       "description": "The users who have permissions to use this security context constraints",
@@ -54366,7 +54366,7 @@
      }
     ]
    },
-   "com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraintsList": {
+   "com.github.openshift.api.security.v1.SecurityContextConstraintsList": {
     "description": "SecurityContextConstraintsList is a list of SecurityContextConstraints objects",
     "required": [
      "items"
@@ -54380,7 +54380,7 @@
       "description": "List of security context constraints.",
       "type": "array",
       "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.SecurityContextConstraints"
+       "$ref": "#/definitions/com.github.openshift.api.security.v1.SecurityContextConstraints"
       }
      },
      "kind": {
@@ -54405,14 +54405,14 @@
      }
     ]
    },
-   "com.github.openshift.origin.pkg.security.apis.security.v1.SupplementalGroupsStrategyOptions": {
+   "com.github.openshift.api.security.v1.SupplementalGroupsStrategyOptions": {
     "description": "SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.",
     "properties": {
      "ranges": {
       "description": "Ranges are the allowed ranges of supplemental groups.  If you would like to force a single supplemental group then supply a single range with the same start and end.",
       "type": "array",
       "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.IDRange"
+       "$ref": "#/definitions/com.github.openshift.api.security.v1.IDRange"
       }
      },
      "type": {

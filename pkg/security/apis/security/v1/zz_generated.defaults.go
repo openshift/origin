@@ -5,6 +5,7 @@
 package v1
 
 import (
+	v1 "github.com/openshift/api/security/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
@@ -13,17 +14,17 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&PodSecurityPolicyReview{}, func(obj interface{}) { SetObjectDefaults_PodSecurityPolicyReview(obj.(*PodSecurityPolicyReview)) })
-	scheme.AddTypeDefaultingFunc(&PodSecurityPolicySelfSubjectReview{}, func(obj interface{}) {
-		SetObjectDefaults_PodSecurityPolicySelfSubjectReview(obj.(*PodSecurityPolicySelfSubjectReview))
+	scheme.AddTypeDefaultingFunc(&v1.PodSecurityPolicyReview{}, func(obj interface{}) { SetObjectDefaults_PodSecurityPolicyReview(obj.(*v1.PodSecurityPolicyReview)) })
+	scheme.AddTypeDefaultingFunc(&v1.PodSecurityPolicySelfSubjectReview{}, func(obj interface{}) {
+		SetObjectDefaults_PodSecurityPolicySelfSubjectReview(obj.(*v1.PodSecurityPolicySelfSubjectReview))
 	})
-	scheme.AddTypeDefaultingFunc(&PodSecurityPolicySubjectReview{}, func(obj interface{}) {
-		SetObjectDefaults_PodSecurityPolicySubjectReview(obj.(*PodSecurityPolicySubjectReview))
+	scheme.AddTypeDefaultingFunc(&v1.PodSecurityPolicySubjectReview{}, func(obj interface{}) {
+		SetObjectDefaults_PodSecurityPolicySubjectReview(obj.(*v1.PodSecurityPolicySubjectReview))
 	})
 	return nil
 }
 
-func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
+func SetObjectDefaults_PodSecurityPolicyReview(in *v1.PodSecurityPolicyReview) {
 	api_v1.SetDefaults_PodSpec(&in.Spec.Template.Spec)
 	for i := range in.Spec.Template.Spec.Volumes {
 		a := &in.Spec.Template.Spec.Volumes[i]
@@ -295,7 +296,7 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
 	}
 }
 
-func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicySelfSubjectReview) {
+func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *v1.PodSecurityPolicySelfSubjectReview) {
 	api_v1.SetDefaults_PodSpec(&in.Spec.Template.Spec)
 	for i := range in.Spec.Template.Spec.Volumes {
 		a := &in.Spec.Template.Spec.Volumes[i]
@@ -564,7 +565,7 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicyS
 	}
 }
 
-func SetObjectDefaults_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubjectReview) {
+func SetObjectDefaults_PodSecurityPolicySubjectReview(in *v1.PodSecurityPolicySubjectReview) {
 	api_v1.SetDefaults_PodSpec(&in.Spec.Template.Spec)
 	for i := range in.Spec.Template.Spec.Volumes {
 		a := &in.Spec.Template.Spec.Volumes[i]

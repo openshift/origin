@@ -5,6 +5,7 @@
 package v1
 
 import (
+	v1 "github.com/openshift/api/quota/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
@@ -13,18 +14,18 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&AppliedClusterResourceQuota{}, func(obj interface{}) {
-		SetObjectDefaults_AppliedClusterResourceQuota(obj.(*AppliedClusterResourceQuota))
+	scheme.AddTypeDefaultingFunc(&v1.AppliedClusterResourceQuota{}, func(obj interface{}) {
+		SetObjectDefaults_AppliedClusterResourceQuota(obj.(*v1.AppliedClusterResourceQuota))
 	})
-	scheme.AddTypeDefaultingFunc(&AppliedClusterResourceQuotaList{}, func(obj interface{}) {
-		SetObjectDefaults_AppliedClusterResourceQuotaList(obj.(*AppliedClusterResourceQuotaList))
+	scheme.AddTypeDefaultingFunc(&v1.AppliedClusterResourceQuotaList{}, func(obj interface{}) {
+		SetObjectDefaults_AppliedClusterResourceQuotaList(obj.(*v1.AppliedClusterResourceQuotaList))
 	})
-	scheme.AddTypeDefaultingFunc(&ClusterResourceQuota{}, func(obj interface{}) { SetObjectDefaults_ClusterResourceQuota(obj.(*ClusterResourceQuota)) })
-	scheme.AddTypeDefaultingFunc(&ClusterResourceQuotaList{}, func(obj interface{}) { SetObjectDefaults_ClusterResourceQuotaList(obj.(*ClusterResourceQuotaList)) })
+	scheme.AddTypeDefaultingFunc(&v1.ClusterResourceQuota{}, func(obj interface{}) { SetObjectDefaults_ClusterResourceQuota(obj.(*v1.ClusterResourceQuota)) })
+	scheme.AddTypeDefaultingFunc(&v1.ClusterResourceQuotaList{}, func(obj interface{}) { SetObjectDefaults_ClusterResourceQuotaList(obj.(*v1.ClusterResourceQuotaList)) })
 	return nil
 }
 
-func SetObjectDefaults_AppliedClusterResourceQuota(in *AppliedClusterResourceQuota) {
+func SetObjectDefaults_AppliedClusterResourceQuota(in *v1.AppliedClusterResourceQuota) {
 	api_v1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Used)
@@ -35,14 +36,14 @@ func SetObjectDefaults_AppliedClusterResourceQuota(in *AppliedClusterResourceQuo
 	}
 }
 
-func SetObjectDefaults_AppliedClusterResourceQuotaList(in *AppliedClusterResourceQuotaList) {
+func SetObjectDefaults_AppliedClusterResourceQuotaList(in *v1.AppliedClusterResourceQuotaList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_AppliedClusterResourceQuota(a)
 	}
 }
 
-func SetObjectDefaults_ClusterResourceQuota(in *ClusterResourceQuota) {
+func SetObjectDefaults_ClusterResourceQuota(in *v1.ClusterResourceQuota) {
 	api_v1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Used)
@@ -53,7 +54,7 @@ func SetObjectDefaults_ClusterResourceQuota(in *ClusterResourceQuota) {
 	}
 }
 
-func SetObjectDefaults_ClusterResourceQuotaList(in *ClusterResourceQuotaList) {
+func SetObjectDefaults_ClusterResourceQuotaList(in *v1.ClusterResourceQuotaList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_ClusterResourceQuota(a)
