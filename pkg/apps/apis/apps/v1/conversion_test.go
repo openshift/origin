@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/api/apps/v1"
 	newer "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
@@ -49,7 +50,7 @@ func TestTriggerRoundTrip(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		p := DeploymentTriggerImageChangeParams{
+		p := v1.DeploymentTriggerImageChangeParams{
 			From: kapiv1.ObjectReference{
 				Kind: test.kind,
 				Name: test.name,
@@ -70,20 +71,20 @@ func TestTriggerRoundTrip(t *testing.T) {
 
 func Test_convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentStrategyParams(t *testing.T) {
 	tests := []struct {
-		in  *RollingDeploymentStrategyParams
+		in  *v1.RollingDeploymentStrategyParams
 		out *newer.RollingDeploymentStrategyParams
 	}{
 		{
-			in: &RollingDeploymentStrategyParams{
+			in: &v1.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
-				Pre: &LifecycleHook{
-					FailurePolicy: LifecycleHookFailurePolicyIgnore,
+				Pre: &v1.LifecycleHook{
+					FailurePolicy: v1.LifecycleHookFailurePolicyIgnore,
 				},
-				Post: &LifecycleHook{
-					FailurePolicy: LifecycleHookFailurePolicyAbort,
+				Post: &v1.LifecycleHook{
+					FailurePolicy: v1.LifecycleHookFailurePolicyAbort,
 				},
 			},
 			out: &newer.RollingDeploymentStrategyParams{
@@ -101,7 +102,7 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentSt
 			},
 		},
 		{
-			in: &RollingDeploymentStrategyParams{
+			in: &v1.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
@@ -116,7 +117,7 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentSt
 			},
 		},
 		{
-			in: &RollingDeploymentStrategyParams{
+			in: &v1.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
@@ -132,7 +133,7 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentSt
 			},
 		},
 		{
-			in: &RollingDeploymentStrategyParams{
+			in: &v1.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
@@ -162,7 +163,7 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentSt
 func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams(t *testing.T) {
 	tests := []struct {
 		in  *newer.RollingDeploymentStrategyParams
-		out *RollingDeploymentStrategyParams
+		out *v1.RollingDeploymentStrategyParams
 	}{
 		{
 			in: &newer.RollingDeploymentStrategyParams{
@@ -172,7 +173,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 				MaxSurge:            intstr.FromInt(0),
 				MaxUnavailable:      intstr.FromString("25%"),
 			},
-			out: &RollingDeploymentStrategyParams{
+			out: &v1.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
@@ -188,7 +189,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 				MaxSurge:            intstr.FromString("25%"),
 				MaxUnavailable:      intstr.FromInt(0),
 			},
-			out: &RollingDeploymentStrategyParams{
+			out: &v1.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
@@ -204,7 +205,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 				MaxSurge:            intstr.FromInt(10),
 				MaxUnavailable:      intstr.FromInt(20),
 			},
-			out: &RollingDeploymentStrategyParams{
+			out: &v1.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
@@ -215,7 +216,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 	}
 
 	for _, test := range tests {
-		out := &RollingDeploymentStrategyParams{}
+		out := &v1.RollingDeploymentStrategyParams{}
 		if err := scheme.Convert(test.in, out, nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}

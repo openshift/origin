@@ -65,18 +65,6 @@ func IsOriginAPIGroup(groupName string) bool {
 	return false
 }
 
-// IsKindInAnyOriginGroup returns true if OpenShift owns the kind described in any apiVersion.
-// TODO: this may not work once we divide builds/deployments/images into their own API groups
-func IsKindInAnyOriginGroup(kind string) bool {
-	for _, version := range Versions {
-		if OriginKind(version.WithKind(kind)) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func getOrCreateOriginKinds() map[schema.GroupVersionKind]bool {
 	if originTypes == nil {
 		originTypesLock.Do(func() {
@@ -90,9 +78,12 @@ func getOrCreateOriginKinds() map[schema.GroupVersionKind]bool {
 					if kind == "SecurityContextConstraints" {
 						continue
 					}
-					if !strings.Contains(t.PkgPath(), "github.com/openshift/origin") || strings.Contains(t.PkgPath(), "github.com/openshift/origin/vendor/") {
+					isExternal := strings.Contains(t.PkgPath(), "github.com/openshift/api")
+					isVendored := strings.Contains(t.PkgPath(), "github.com/openshift/origin/vendor/")
+					if isVendored && !isExternal {
 						continue
 					}
+
 					gvk := version.WithKind(kind)
 					newOriginTypes[gvk] = true
 				}

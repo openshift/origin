@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/openshift/api/security/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
@@ -19,11 +20,11 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func Convert_v1_SecurityContextConstraints_To_security_SecurityContextConstraints(in *SecurityContextConstraints, out *securityapi.SecurityContextConstraints, s conversion.Scope) error {
+func Convert_v1_SecurityContextConstraints_To_security_SecurityContextConstraints(in *v1.SecurityContextConstraints, out *securityapi.SecurityContextConstraints, s conversion.Scope) error {
 	return autoConvert_v1_SecurityContextConstraints_To_security_SecurityContextConstraints(in, out, s)
 }
 
-func Convert_security_SecurityContextConstraints_To_v1_SecurityContextConstraints(in *securityapi.SecurityContextConstraints, out *SecurityContextConstraints, s conversion.Scope) error {
+func Convert_security_SecurityContextConstraints_To_v1_SecurityContextConstraints(in *securityapi.SecurityContextConstraints, out *v1.SecurityContextConstraints, s conversion.Scope) error {
 	if err := autoConvert_security_SecurityContextConstraints_To_v1_SecurityContextConstraints(in, out, s); err != nil {
 		return err
 	}

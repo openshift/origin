@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/api/image/dockerpre012"
+	"github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -32,7 +33,7 @@ func init() {
 }
 
 // The docker metadata must be cast to a version
-func Convert_image_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Scope) error {
+func Convert_image_Image_To_v1_Image(in *newer.Image, out *v1.Image, s conversion.Scope) error {
 	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 		return err
 	}
@@ -62,7 +63,7 @@ func Convert_image_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.S
 	out.DockerImageMetadataVersion = version.Version
 
 	if in.DockerImageLayers != nil {
-		out.DockerImageLayers = make([]ImageLayer, len(in.DockerImageLayers))
+		out.DockerImageLayers = make([]v1.ImageLayer, len(in.DockerImageLayers))
 		for i := range in.DockerImageLayers {
 			out.DockerImageLayers[i].MediaType = in.DockerImageLayers[i].MediaType
 			out.DockerImageLayers[i].Name = in.DockerImageLayers[i].Name
@@ -73,7 +74,7 @@ func Convert_image_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.S
 	}
 
 	if in.Signatures != nil {
-		out.Signatures = make([]ImageSignature, len(in.Signatures))
+		out.Signatures = make([]v1.ImageSignature, len(in.Signatures))
 		for i := range in.Signatures {
 			if err := s.Convert(&in.Signatures[i], &out.Signatures[i], 0); err != nil {
 				return err
@@ -95,7 +96,7 @@ func Convert_image_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.S
 	return nil
 }
 
-func Convert_v1_Image_To_image_Image(in *Image, out *newer.Image, s conversion.Scope) error {
+func Convert_v1_Image_To_image_Image(in *v1.Image, out *newer.Image, s conversion.Scope) error {
 	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
 		return err
 	}
@@ -158,15 +159,15 @@ func Convert_v1_Image_To_image_Image(in *Image, out *newer.Image, s conversion.S
 	return nil
 }
 
-func Convert_v1_ImageStreamSpec_To_image_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
+func Convert_v1_ImageStreamSpec_To_image_ImageStreamSpec(in *v1.ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
 	out.LookupPolicy = newer.ImageLookupPolicy{Local: in.LookupPolicy.Local}
 	out.DockerImageRepository = in.DockerImageRepository
 	out.Tags = make(map[string]newer.TagReference)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func Convert_image_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
-	out.LookupPolicy = ImageLookupPolicy{Local: in.LookupPolicy.Local}
+func Convert_image_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSpec, out *v1.ImageStreamSpec, s conversion.Scope) error {
+	out.LookupPolicy = v1.ImageLookupPolicy{Local: in.LookupPolicy.Local}
 	out.DockerImageRepository = in.DockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
 		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
@@ -177,18 +178,18 @@ func Convert_image_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSp
 			}
 		}
 	}
-	out.Tags = make([]TagReference, 0, 0)
+	out.Tags = make([]v1.TagReference, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func Convert_v1_ImageStreamStatus_To_image_ImageStreamStatus(in *ImageStreamStatus, out *newer.ImageStreamStatus, s conversion.Scope) error {
+func Convert_v1_ImageStreamStatus_To_image_ImageStreamStatus(in *v1.ImageStreamStatus, out *newer.ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	out.PublicDockerImageRepository = in.PublicDockerImageRepository
 	out.Tags = make(map[string]newer.TagEventList)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func Convert_image_ImageStreamStatus_To_v1_ImageStreamStatus(in *newer.ImageStreamStatus, out *ImageStreamStatus, s conversion.Scope) error {
+func Convert_image_ImageStreamStatus_To_v1_ImageStreamStatus(in *newer.ImageStreamStatus, out *v1.ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	out.PublicDockerImageRepository = in.PublicDockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
@@ -200,19 +201,19 @@ func Convert_image_ImageStreamStatus_To_v1_ImageStreamStatus(in *newer.ImageStre
 			}
 		}
 	}
-	out.Tags = make([]NamedTagEventList, 0, 0)
+	out.Tags = make([]v1.NamedTagEventList, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
-func Convert_image_ImageStreamMapping_To_v1_ImageStreamMapping(in *newer.ImageStreamMapping, out *ImageStreamMapping, s conversion.Scope) error {
+func Convert_image_ImageStreamMapping_To_v1_ImageStreamMapping(in *newer.ImageStreamMapping, out *v1.ImageStreamMapping, s conversion.Scope) error {
 	return s.DefaultConvert(in, out, conversion.DestFromSource)
 }
 
-func Convert_v1_ImageStreamMapping_To_image_ImageStreamMapping(in *ImageStreamMapping, out *newer.ImageStreamMapping, s conversion.Scope) error {
+func Convert_v1_ImageStreamMapping_To_image_ImageStreamMapping(in *v1.ImageStreamMapping, out *newer.ImageStreamMapping, s conversion.Scope) error {
 	return s.DefaultConvert(in, out, conversion.SourceToDest)
 }
 
-func Convert_v1_NamedTagEventListArray_to_api_TagEventListArray(in *[]NamedTagEventList, out *map[string]newer.TagEventList, s conversion.Scope) error {
+func Convert_v1_NamedTagEventListArray_to_api_TagEventListArray(in *[]v1.NamedTagEventList, out *map[string]newer.TagEventList, s conversion.Scope) error {
 	for _, curr := range *in {
 		newTagEventList := newer.TagEventList{}
 		if err := s.Convert(&curr.Conditions, &newTagEventList.Conditions, 0); err != nil {
@@ -226,7 +227,7 @@ func Convert_v1_NamedTagEventListArray_to_api_TagEventListArray(in *[]NamedTagEv
 
 	return nil
 }
-func Convert_image_TagEventListArray_to_v1_NamedTagEventListArray(in *map[string]newer.TagEventList, out *[]NamedTagEventList, s conversion.Scope) error {
+func Convert_image_TagEventListArray_to_v1_NamedTagEventListArray(in *map[string]newer.TagEventList, out *[]v1.NamedTagEventList, s conversion.Scope) error {
 	allKeys := make([]string, 0, len(*in))
 	for key := range *in {
 		allKeys = append(allKeys, key)
@@ -235,7 +236,7 @@ func Convert_image_TagEventListArray_to_v1_NamedTagEventListArray(in *map[string
 
 	for _, key := range allKeys {
 		newTagEventList := (*in)[key]
-		oldTagEventList := &NamedTagEventList{Tag: key}
+		oldTagEventList := &v1.NamedTagEventList{Tag: key}
 		if err := s.Convert(&newTagEventList.Conditions, &oldTagEventList.Conditions, 0); err != nil {
 			return err
 		}
@@ -248,7 +249,7 @@ func Convert_image_TagEventListArray_to_v1_NamedTagEventListArray(in *map[string
 
 	return nil
 }
-func Convert_v1_TagReferenceArray_to_api_TagReferenceMap(in *[]TagReference, out *map[string]newer.TagReference, s conversion.Scope) error {
+func Convert_v1_TagReferenceArray_to_api_TagReferenceMap(in *[]v1.TagReference, out *map[string]newer.TagReference, s conversion.Scope) error {
 	for _, curr := range *in {
 		r := newer.TagReference{}
 		if err := s.Convert(&curr, &r, 0); err != nil {
@@ -258,7 +259,7 @@ func Convert_v1_TagReferenceArray_to_api_TagReferenceMap(in *[]TagReference, out
 	}
 	return nil
 }
-func Convert_image_TagReferenceMap_to_v1_TagReferenceArray(in *map[string]newer.TagReference, out *[]TagReference, s conversion.Scope) error {
+func Convert_image_TagReferenceMap_to_v1_TagReferenceArray(in *map[string]newer.TagReference, out *[]v1.TagReference, s conversion.Scope) error {
 	allTags := make([]string, 0, len(*in))
 	for tag := range *in {
 		allTags = append(allTags, tag)
@@ -267,7 +268,7 @@ func Convert_image_TagReferenceMap_to_v1_TagReferenceArray(in *map[string]newer.
 
 	for _, tag := range allTags {
 		newTagReference := (*in)[tag]
-		oldTagReference := TagReference{}
+		oldTagReference := v1.TagReference{}
 		if err := s.Convert(&newTagReference, &oldTagReference, 0); err != nil {
 			return err
 		}

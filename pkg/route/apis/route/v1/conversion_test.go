@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
+	v1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
 	"github.com/openshift/origin/pkg/route/apis/route"
 )
@@ -31,14 +32,14 @@ func TestSupportingCamelConstants(t *testing.T) {
 	scheme := runtime.NewScheme()
 	LegacySchemeBuilder.AddToScheme(scheme)
 
-	for k, v := range map[TLSTerminationType]TLSTerminationType{
-		"Reencrypt":   TLSTerminationReencrypt,
-		"Edge":        TLSTerminationEdge,
-		"Passthrough": TLSTerminationPassthrough,
+	for k, v := range map[v1.TLSTerminationType]v1.TLSTerminationType{
+		"Reencrypt":   v1.TLSTerminationReencrypt,
+		"Edge":        v1.TLSTerminationEdge,
+		"Passthrough": v1.TLSTerminationPassthrough,
 	} {
-		obj := &Route{
-			Spec: RouteSpec{
-				TLS: &TLSConfig{Termination: k},
+		obj := &v1.Route{
+			Spec: v1.RouteSpec{
+				TLS: &v1.TLSConfig{Termination: k},
 			},
 		}
 		scheme.Default(obj)
