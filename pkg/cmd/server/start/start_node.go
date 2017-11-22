@@ -345,6 +345,10 @@ func (o NodeOptions) createNodeConfig() (string, error) {
 		APIServerURL:     masterAddr.String(),
 		APIServerCAFiles: []string{admin.DefaultCABundleFile(o.NodeArgs.MasterCertDir)},
 
+		KubeletArguments: map[string][]string{
+			"fail-swap-on": {"false"},
+		},
+
 		NodeClientCAFile: getSignerOptions.CertFile,
 		ExpireDays:       o.ExpireDays,
 		Output:           cmdutil.NewGLogWriterV(3),
