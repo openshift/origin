@@ -1,7 +1,10 @@
 package godotenv
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -74,6 +77,8 @@ func TestReadPlainEnv(t *testing.T) {
 		"OPTION_C": "3",
 		"OPTION_D": "4",
 		"OPTION_E": "5",
+		"OPTION_F": "",
+		"OPTION_G": "",
 	}
 
 	envMap, err := Read(envFileName)
@@ -92,16 +97,35 @@ func TestReadPlainEnv(t *testing.T) {
 	}
 }
 
+func TestParse(t *testing.T) {
+	envMap, err := Parse(bytes.NewReader([]byte("ONE=1\nTWO='2'\nTHREE = \"3\"")))
+	expectedValues := map[string]string{
+		"ONE":   "1",
+		"TWO":   "2",
+		"THREE": "3",
+	}
+	if err != nil {
+		t.Fatalf("error parsing env: %v", err)
+	}
+	for key, value := range expectedValues {
+		if envMap[key] != value {
+			t.Errorf("expected %s to be %s, got %s", key, value, envMap[key])
+		}
+	}
+}
+
 func TestLoadDoesNotOverride(t *testing.T) {
 	envFileName := "fixtures/plain.env"
 
 	// ensure NO overload
 	presets := map[string]string{
 		"OPTION_A": "do_not_override",
+		"OPTION_B": "",
 	}
 
 	expectedValues := map[string]string{
 		"OPTION_A": "do_not_override",
+		"OPTION_B": "",
 	}
 	loadEnvAndCompareValues(t, Load, envFileName, expectedValues, presets)
 }
@@ -163,6 +187,7 @@ func TestLoadQuotedEnv(t *testing.T) {
 		"OPTION_F": "2",
 		"OPTION_G": "",
 		"OPTION_H": "\n",
+		"OPTION_I": "echo 'asd'",
 	}
 
 	loadEnvAndCompareValues(t, Load, envFileName, expectedValues, noopPresets)
@@ -187,24 +212,33 @@ func TestParsing(t *testing.T) {
 	parseAndCompare(t, "FOO= bar", "FOO", "bar")
 
 	// parses double quoted values
-	parseAndCompare(t, "FOO=\"bar\"", "FOO", "bar")
+	parseAndCompare(t, `FOO="bar"`, "FOO", "bar")
 
 	// parses single quoted values
 	parseAndCompare(t, "FOO='bar'", "FOO", "bar")
 
 	// parses escaped double quotes
-	parseAndCompare(t, "FOO=escaped\\\"bar\"", "FOO", "escaped\"bar")
+	parseAndCompare(t, `FOO="escaped\"bar"`, "FOO", `escaped"bar`)
+
+	// parses single quotes inside double quotes
+	parseAndCompare(t, `FOO="'d'"`, "FOO", `'d'`)
 
 	// parses yaml style options
 	parseAndCompare(t, "OPTION_A: 1", "OPTION_A", "1")
 
+	//parses yaml values with equal signs
+	parseAndCompare(t, "OPTION_A: Foo=bar", "OPTION_A", "Foo=bar")
+
+	// parses non-yaml options with colons
+	parseAndCompare(t, "OPTION_A=1:B", "OPTION_A", "1:B")
+
 	// parses export keyword
 	parseAndCompare(t, "export OPTION_A=2", "OPTION_A", "2")
-	parseAndCompare(t, "export OPTION_B='\\n'", "OPTION_B", "\n")
+	parseAndCompare(t, `export OPTION_B='\n'`, "OPTION_B", "\n")
 
 	// it 'expands newlines in quoted strings' do
 	// expect(env('FOO="bar\nbaz"')).to eql('FOO' => "bar\nbaz")
-	parseAndCompare(t, "FOO=\"bar\\nbaz\"", "FOO", "bar\nbaz")
+	parseAndCompare(t, `FOO="bar\nbaz"`, "FOO", "bar\nbaz")
 
 	// it 'parses varibales with "." in the name' do
 	// expect(env('FOO.BAR=foobar')).to eql('FOO.BAR' => 'foobar')
@@ -224,15 +258,24 @@ func TestParsing(t *testing.T) {
 
 	// it 'allows # in quoted value' do
 	// expect(env('foo="bar#baz" # comment')).to eql('foo' => 'bar#baz')
-	parseAndCompare(t, "FOO=\"bar#baz\" # comment", "FOO", "bar#baz")
+	parseAndCompare(t, `FOO="bar#baz" # comment`, "FOO", "bar#baz")
 	parseAndCompare(t, "FOO='bar#baz' # comment", "FOO", "bar#baz")
-	parseAndCompare(t, "FOO=\"bar#baz#bang\" # comment", "FOO", "bar#baz#bang")
+	parseAndCompare(t, `FOO="bar#baz#bang" # comment`, "FOO", "bar#baz#bang")
 
 	// it 'parses # in quoted values' do
 	// expect(env('foo="ba#r"')).to eql('foo' => 'ba#r')
 	// expect(env("foo='ba#r'")).to eql('foo' => 'ba#r')
-	parseAndCompare(t, "FOO=\"ba#r\"", "FOO", "ba#r")
+	parseAndCompare(t, `FOO="ba#r"`, "FOO", "ba#r")
 	parseAndCompare(t, "FOO='ba#r'", "FOO", "ba#r")
+
+	//newlines and backslashes should be escaped
+	parseAndCompare(t, `FOO="bar\n\ b\az"`, "FOO", "bar\n baz")
+	parseAndCompare(t, `FOO="bar\\\n\ b\az"`, "FOO", "bar\\\n baz")
+	parseAndCompare(t, `FOO="bar\\r\ b\az"`, "FOO", "bar\\r baz")
+
+	parseAndCompare(t, `="value"`, "", "value")
+	parseAndCompare(t, `KEY="`, "KEY", "\"")
+	parseAndCompare(t, `KEY="value`, "KEY", "\"value")
 
 	// it 'throws an error if line format is incorrect' do
 	// expect{env('lol$wut')}.to raise_error(Dotenv::FormatError)
@@ -265,7 +308,71 @@ func TestLinesToIgnore(t *testing.T) {
 	}
 
 	// make sure we're not getting false positives
-	if isIgnoredLine("export OPTION_B='\\n'") {
+	if isIgnoredLine(`export OPTION_B='\n'`) {
 		t.Error("ignoring a perfectly valid line to parse")
+	}
+}
+
+func TestErrorReadDirectory(t *testing.T) {
+	envFileName := "fixtures/"
+	envMap, err := Read(envFileName)
+
+	if err == nil {
+		t.Errorf("Expected error, got %v", envMap)
+	}
+}
+
+func TestErrorParsing(t *testing.T) {
+	envFileName := "fixtures/invalid1.env"
+	envMap, err := Read(envFileName)
+	if err == nil {
+		t.Errorf("Expected error, got %v", envMap)
+	}
+}
+
+func TestWrite(t *testing.T) {
+	writeAndCompare := func(env string, expected string) {
+		envMap, _ := Unmarshal(env)
+		actual, _ := Marshal(envMap)
+		if expected != actual {
+			t.Errorf("Expected '%v' (%v) to write as '%v', got '%v' instead.", env, envMap, expected, actual)
+		}
+	}
+	//just test some single lines to show the general idea
+	//TestRoundtrip makes most of the good assertions
+
+	//values are always double-quoted
+	writeAndCompare(`key=value`, `key="value"`)
+	//double-quotes are escaped
+	writeAndCompare(`key=va"lu"e`, `key="va\"lu\"e"`)
+	//but single quotes are left alone
+	writeAndCompare(`key=va'lu'e`, `key="va'lu'e"`)
+	// newlines, backslashes, and some other special chars are escaped
+	writeAndCompare(`foo="$ba\n\r\\r!"`, `foo="\$ba\n\r\\r\!"`)
+	// lines should be sorted
+	writeAndCompare("foo=bar\nbaz=buzz", "baz=\"buzz\"\nfoo=\"bar\"")
+
+}
+
+func TestRoundtrip(t *testing.T) {
+	fixtures := []string{"equals.env", "exported.env", "plain.env", "quoted.env"}
+	for _, fixture := range fixtures {
+		fixtureFilename := fmt.Sprintf("fixtures/%s", fixture)
+		env, err := readFile(fixtureFilename)
+		if err != nil {
+			t.Errorf("Expected '%s' to read without error (%v)", fixtureFilename, err)
+		}
+		rep, err := Marshal(env)
+		if err != nil {
+			t.Errorf("Expected '%s' to Marshal (%v)", fixtureFilename, err)
+		}
+		roundtripped, err := Unmarshal(rep)
+		if err != nil {
+			t.Errorf("Expected '%s' to Mashal and Unmarshal (%v)", fixtureFilename, err)
+		}
+		if !reflect.DeepEqual(env, roundtripped) {
+			t.Errorf("Expected '%s' to roundtrip as '%v', got '%v' instead", fixtureFilename, env, roundtripped)
+		}
+
 	}
 }

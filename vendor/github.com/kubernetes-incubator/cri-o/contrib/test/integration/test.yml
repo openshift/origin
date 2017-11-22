@@ -1,0 +1,50 @@
+---
+- name: Change test_runner.sh to use bats xunit output
+  lineinfile:
+    dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/test/test_runner.sh"
+    line: 'execute time bats --tap --junit $TESTS'
+    regexp: 'execute time bats --tap \$TESTS'
+    state: present
+  when: xunit
+
+- name: Make testing output verbose so it can be converted to xunit
+  lineinfile:
+    dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/make-rules/test.sh"
+    line: ' go test -v "${goflags[@]:+${goflags[@]}}" \'
+    regexp: ' go test \"\$'
+    state: present
+
+- name: set extra storage options
+  set_fact:
+    extra_storage_opts: " --storage-opt overlay2.override_kernel_check=1"
+  when: ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS'
+
+- name: set extra shell for non-xunit tests
+  set_fact:
+    extra_shell_suffix: " >testout.txt 2>&1"
+  when: not xunit
+
+- name: run integration tests
+  shell: "CGROUP_MANAGER=cgroupfs STORAGE_OPTS='--storage-driver=overlay2{{ extra_storage_opts | default('') }}' make localintegration{{ extra_shell_suffix }}"
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o"
+  ignore_errors: yes
+  register: integration_test
+  async: 5400
+  poll: 30
+
+- name: Make testing output directory
+  file:
+    path: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/reports"
+    state: directory
+  ignore_errors: yes
+  when: xunit
+
+- name: Move all xunit files into one dir to scp
+  shell: "mv {{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/test/TestReport-bats*.xml {{ ansible_env.GOPATH }}/src/github.com/kubernetes-incubator/cri-o/reports/"
+  when: xunit
+
+- name: ensure we fail on bad tests
+  fail:
+    msg: Integration tests failed!
+  when: "'not ok' in integration_test.stdout"

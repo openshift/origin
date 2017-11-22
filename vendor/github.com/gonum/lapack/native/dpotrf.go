@@ -9,29 +9,26 @@ import (
 	"github.com/gonum/blas/blas64"
 )
 
-// Dpotrf computes the cholesky decomposition of the symmetric positive definite
+// Dpotrf computes the Cholesky decomposition of the symmetric positive definite
 // matrix a. If ul == blas.Upper, then a is stored as an upper-triangular matrix,
-// and a = U U^T is stored in place into a. If ul == blas.Lower, then a = L L^T
+// and a = U^T U is stored in place into a. If ul == blas.Lower, then a = L L^T
 // is computed and stored in-place into a. If a is not positive definite, false
 // is returned. This is the blocked version of the algorithm.
 func (impl Implementation) Dpotrf(ul blas.Uplo, n int, a []float64, lda int) (ok bool) {
-	bi := blas64.Implementation()
 	if ul != blas.Upper && ul != blas.Lower {
 		panic(badUplo)
 	}
-	if n < 0 {
-		panic(nLT0)
-	}
-	if lda < n {
-		panic(badLdA)
-	}
+	checkMatrix(n, n, a, lda)
+
 	if n == 0 {
 		return true
 	}
+
 	nb := impl.Ilaenv(1, "DPOTRF", string(ul), n, -1, -1, -1)
-	if n <= nb {
+	if nb <= 1 || n <= nb {
 		return impl.Dpotf2(ul, n, a, lda)
 	}
+	bi := blas64.Implementation()
 	if ul == blas.Upper {
 		for j := 0; j < n; j += nb {
 			jb := min(nb, n-j)

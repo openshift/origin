@@ -5,21 +5,25 @@
 package native
 
 // Ilaenv returns algorithm tuning parameters for the algorithm given by the
-// input string. ispec specifies the parameter to return.
-//  1: The optimal block size
-//  2: The minimum block size for which the algorithm should be used.
-//  3: The crossover point below which an unblocked routine should be used.
+// input string. ispec specifies the parameter to return:
+//  1: The optimal block size for a blocked algorithm.
+//  2: The minimum block size for a blocked algorithm.
+//  3: The block size of unprocessed data at which a blocked algorithm should
+//     crossover to an unblocked version.
 //  4: The number of shifts.
-//  5: The minumum column dimension for blocking to be used.
+//  5: The minimum column dimension for blocking to be used.
 //  6: The crossover point for SVD (to use QR factorization or not).
 //  7: The number of processors.
-//  8: The crossover point for multishift in QR and QZ methods for nonsymmetric eigenvalue problems.
+//  8: The crossover point for multi-shift in QR and QZ methods for non-symmetric eigenvalue problems.
 //  9: Maximum size of the subproblems in divide-and-conquer algorithms.
 //  10: ieee NaN arithmetic can be trusted not to trap.
 //  11: infinity arithmetic can be trusted not to trap.
-func (Implementation) Ilaenv(ispec int, s string, opts string, n1, n2, n3, n4 int) int {
+//  12...16: parameters for Dhseqr and related functions. See Iparmq for more
+//           information.
+//
+// Ilaenv is an internal routine. It is exported for testing purposes.
+func (impl Implementation) Ilaenv(ispec int, s string, opts string, n1, n2, n3, n4 int) int {
 	// TODO(btracey): Replace this with a constant lookup? A list of constants?
-	// TODO: What is the difference between 2 and 3?
 	sname := s[0] == 'S' || s[0] == 'D'
 	cname := s[0] == 'C' || s[0] == 'Z'
 	if !sname && !cname {
@@ -176,6 +180,11 @@ func (Implementation) Ilaenv(ispec int, s string, opts string, n1, n2, n3, n4 in
 			default:
 				panic("lapack: bad function name")
 			case "TRI":
+				if sname {
+					return 64
+				}
+				return 64
+			case "EVC":
 				if sname {
 					return 64
 				}
@@ -355,7 +364,7 @@ func (Implementation) Ilaenv(ispec int, s string, opts string, n1, n2, n3, n4 in
 		return 2
 	case 6:
 		// Used by xGELSS and xGESVD
-		return min(n1, n2) * 1e6
+		return int(float64(min(n1, n2)) * 1.6)
 	case 7:
 		// Not used
 		return 1
@@ -371,5 +380,8 @@ func (Implementation) Ilaenv(ispec int, s string, opts string, n1, n2, n3, n4 in
 	case 11:
 		// Go guarantees ieee
 		return 1
+	case 12, 13, 14, 15, 16:
+		// Dhseqr and related functions for eigenvalue problems.
+		return impl.Iparmq(ispec, s, opts, n1, n2, n3, n4)
 	}
 }

@@ -9,11 +9,11 @@ import (
 	"github.com/gonum/lapack"
 )
 
-// Dgelqf computes the LQ factorization of the m×n matrix a using a blocked
-// algorithm. Please see the documentation for Dgelq2 for a description of the
+// Dgelqf computes the LQ factorization of the m×n matrix A using a blocked
+// algorithm. See the documentation for Dgelq2 for a description of the
 // parameters at entry and exit.
 //
-// Work is temporary storage, and lwork specifies the usable memory length.
+// work is temporary storage, and lwork specifies the usable memory length.
 // At minimum, lwork >= m, and this function will panic otherwise.
 // Dgelqf is a blocked LQ factorization, but the block size is limited
 // by the temporary space available. If lwork == -1, instead of performing Dgelqf,

@@ -3,6 +3,8 @@ package raven
 import (
 	"fmt"
 	"go/build"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -57,7 +59,7 @@ func TestStacktrace(t *testing.T) {
 	if f.Module != thisPackage {
 		t.Error("incorrect Module:", f.Module)
 	}
-	if f.Lineno != 83 {
+	if f.Lineno != 87 {
 		t.Error("incorrect Lineno:", f.Lineno)
 	}
 	if f.ContextLine != "\treturn NewStacktrace(0, 2, []string{thisPackage})" {
@@ -69,11 +71,13 @@ func TestStacktrace(t *testing.T) {
 	if len(f.PostContext) != 2 || f.PostContext[0] != "\t// b" || f.PostContext[1] != "}" {
 		t.Errorf("incorrect PostContext %#v", f.PostContext)
 	}
-	if !*f.InApp {
+	_, filename, _, _ := runtime.Caller(0)
+	runningInVendored := strings.Contains(filename, "vendor")
+	if f.InApp != !runningInVendored {
 		t.Error("expected InApp to be true")
 	}
 
-	if st.Culprit() != fmt.Sprintf("%s.trace", thisPackage) {
+	if f.InApp && st.Culprit() != fmt.Sprintf("%s.trace", thisPackage) {
 		t.Error("incorrect Culprit:", st.Culprit())
 	}
 }
@@ -129,5 +133,56 @@ func TestNewStacktrace_outOfBounds(t *testing.T) {
 	f := st.Frames[len(st.Frames)-1]
 	if f.ContextLine != "\tst := NewStacktrace(0, 1000000, []string{thisPackage})" {
 		t.Errorf("incorrect ContextLine: %#v", f.ContextLine)
+	}
+}
+
+func TestNewStacktrace_noFrames(t *testing.T) {
+	st := NewStacktrace(999999999, 0, []string{})
+	if st != nil {
+		t.Errorf("expected st.Frames to be nil: %v", st)
+	}
+}
+
+func TestFileContext(t *testing.T) {
+	// reset the cache
+	fileCache = make(map[string][][]byte)
+
+	tempdir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal("failed to create temporary directory:", err)
+	}
+	defer os.RemoveAll(tempdir)
+
+	okPath := filepath.Join(tempdir, "ok")
+	missingPath := filepath.Join(tempdir, "missing")
+	noPermissionPath := filepath.Join(tempdir, "noperms")
+
+	err = ioutil.WriteFile(okPath, []byte("hello\nworld\n"), 0600)
+	if err != nil {
+		t.Fatal("failed writing file:", err)
+	}
+	err = ioutil.WriteFile(noPermissionPath, []byte("no access\n"), 0000)
+	if err != nil {
+		t.Fatal("failed writing file:", err)
+	}
+
+	tests := []struct {
+		path          string
+		expectedLines int
+		expectedIndex int
+	}{
+		{okPath, 1, 0},
+		{missingPath, 0, 0},
+		{noPermissionPath, 0, 0},
+	}
+	for i, test := range tests {
+		lines, index := fileContext(test.path, 1, 0)
+		if !(len(lines) == test.expectedLines && index == test.expectedIndex) {
+			t.Errorf("%d: fileContext(%#v, 1, 0) = %v, %v; expected len()=%d, %d",
+				i, test.path, lines, index, test.expectedLines, test.expectedIndex)
+		}
+		if len(fileCache) != i+1 {
+			t.Errorf("%d: result was not cached; len(fileCached)=%d", i, len(fileCache))
+		}
 	}
 }

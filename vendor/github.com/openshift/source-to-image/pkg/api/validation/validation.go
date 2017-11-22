@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/distribution/reference"
+
 	"github.com/openshift/source-to-image/pkg/api"
 )
 
@@ -31,6 +33,11 @@ func ValidateConfig(config *api.Config) []Error {
 			}
 		}
 	}
+	if config.Tag != "" {
+		if err := validateDockerReference(config.Tag); err != nil {
+			allErrs = append(allErrs, NewFieldInvalidValueWithReason("tag", err.Error()))
+		}
+	}
 	return allErrs
 }
 
@@ -50,14 +57,24 @@ func validateDockerNetworkMode(mode api.DockerNetworkMode) bool {
 	return false
 }
 
+func validateDockerReference(ref string) error {
+	_, err := reference.Parse(ref)
+	return err
+}
+
 // NewFieldRequired returns a *ValidationError indicating "value required"
 func NewFieldRequired(field string) Error {
-	return Error{ErrorTypeRequired, field}
+	return Error{Type: ErrorTypeRequired, Field: field}
 }
 
 // NewFieldInvalidValue returns a ValidationError indicating "invalid value"
 func NewFieldInvalidValue(field string) Error {
-	return Error{ErrorInvalidValue, field}
+	return Error{Type: ErrorInvalidValue, Field: field}
+}
+
+// NewFieldInvalidValueWithReason returns a ValidationError indicating "invalid value" and a reason for the error
+func NewFieldInvalidValueWithReason(field, reason string) Error {
+	return Error{Type: ErrorInvalidValue, Field: field, Reason: reason}
 }
 
 // ErrorType is a machine readable value providing more detail about why a field
@@ -77,17 +94,23 @@ const (
 // Error is an implementation of the 'error' interface, which represents an
 // error of validation.
 type Error struct {
-	Type  ErrorType
-	Field string
+	Type   ErrorType
+	Field  string
+	Reason string
 }
 
 func (v Error) Error() string {
+	var msg string
 	switch v.Type {
 	case ErrorInvalidValue:
-		return fmt.Sprintf("Invalid value specified for %q", v.Field)
+		msg = fmt.Sprintf("Invalid value specified for %q", v.Field)
 	case ErrorTypeRequired:
-		return fmt.Sprintf("Required value not specified for %q", v.Field)
+		msg = fmt.Sprintf("Required value not specified for %q", v.Field)
 	default:
-		return fmt.Sprintf("%s: %s", v.Type, v.Field)
+		msg = fmt.Sprintf("%s: %s", v.Type, v.Field)
 	}
+	if len(v.Reason) > 0 {
+		msg = fmt.Sprintf("%s: %s", msg, v.Reason)
+	}
+	return msg
 }

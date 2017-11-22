@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "payload": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 10
+    }
+  }
+}
+ 

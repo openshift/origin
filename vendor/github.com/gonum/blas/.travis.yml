@@ -4,36 +4,43 @@ language: go
 
 # Versions of go that are explicitly supported by gonum.
 go:
- - 1.5beta1
- - 1.3.3
- - 1.4.2
+ - 1.5.4
+ - 1.6.3
+ - 1.7.3
+
+os:
+ - linux
+ - osx
 
 env:
   matrix:
   - BLAS_LIB=OpenBLAS
   - BLAS_LIB=gonum
-  # at some point, when travis allows builds on darwin
-  #- BLAS_LIB=Accellerate
-  # at some point, when the issue with drotgm is resolved
-  #- BLAS_LIB=ATLAS
+  - BLAS_LIB=Accelerate
+  - BLAS_LIB=ATLAS
 
-# Required for coverage.
-before_install:
- - go get golang.org/x/tools/cmd/cover
- - go get github.com/mattn/goveralls
+matrix:
+ exclude:
+  - os: linux
+    env: BLAS_LIB=Accelerate
+  - os: linux
+    env: BLAS_LIB=ATLAS
+  - os: osx
+    env: BLAS_LIB=ATLAS
+  - os: osx
+    env: BLAS_LIB=OpenBLAS
 
-# Install the appropriate blas library if we are using cgo.
+# Cache used to persist the compiled BLAS library between CI calls.
+cache:
+  directories:
+  - .travis/OpenBLAS.cache
+
+# Install the appropriate blas library (if any) and associated gonum software.
 install:
- - source .travis/$TRAVIS_OS_NAME/$BLAS_LIB/install.sh
- - go get github.com/gonum/floats
+ - source ${TRAVIS_BUILD_DIR}/.travis/$TRAVIS_OS_NAME/$BLAS_LIB/install.sh
 
-# Get deps, build, test, and ensure the code is gofmt'ed.
-# Move into the native directory if we aren't using an external blas lib.
-# If we are building as gonum, then we have access to the coveralls api key, so we can run coverage as well.
 script:
- - if [[ "$BLAS_LIB" == "gonum" ]]; then pushd native; fi
- - go get -d -t -v ./...
- - go test -a -v ./...
- - go test -a -tags noasm -v ./...
- - diff <(gofmt -d .) <("")
- - if [[ $TRAVIS_SECURE_ENV_VARS = "true" ]]; then bash -c "${TRAVIS_BUILD_DIR}/.travis/test-coverage.sh"; fi
+ - source ${TRAVIS_BUILD_DIR}/.travis/$TRAVIS_OS_NAME/$BLAS_LIB/test.sh
+ - test -z "$(gofmt -d .)"
+ # This is run last since it alters the tree.
+ - ${TRAVIS_BUILD_DIR}/.travis/check-generate.sh

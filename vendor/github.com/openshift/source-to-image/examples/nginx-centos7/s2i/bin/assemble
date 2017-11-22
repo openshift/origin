@@ -1,0 +1,36 @@
+#!/bin/bash -e
+#
+# S2I assemble script for the 'nginx-centos7' image.
+# The 'assemble' script builds your application source so that it is ready to run.
+#
+# For more information refer to the documentation:
+#	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
+#
+
+if [[ "$1" == "-h" ]]; then
+	# If the 'nginx-centos7' assemble script is executed with '-h' flag,
+	# print the usage.
+	exec /usr/libexec/s2i/usage
+fi
+
+# Restore artifacts from the previous build (if they exist).
+# We set them here just for show, but you will need to set this up with your logic
+# according to the application directory that you chose.
+
+#if [ "$(ls /tmp/artifacts/ 2>/dev/null)" ]; then
+#  echo "---> Restoring build artifacts..."
+#  mv /tmp/artifacts/* <your directory here>
+#fi
+
+# Override the default nginx index.html file.
+# This is what we consider in this example 'installing the application'
+# here you can go ahead an replace this with the actual building of python modules,
+# bundle install, and anything else you need.
+
+echo "---> Building and installing application from source..."
+if [ -f /tmp/src/nginx.conf ]; then
+  mv /tmp/src/nginx.conf /etc/nginx/nginx.conf
+fi
+if [ "$(ls -A /tmp/src)" ]; then
+  mv /tmp/src/* /usr/share/nginx/html/
+fi

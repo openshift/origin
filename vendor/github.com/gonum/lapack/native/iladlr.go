@@ -6,6 +6,8 @@ package native
 
 // Iladlr scans a matrix for its last non-zero row. Returns -1 if the matrix
 // is all zeros.
+//
+// Iladlr is an internal routine. It is exported for testing purposes.
 func (Implementation) Iladlr(m, n int, a []float64, lda int) int {
 	if m == 0 {
 		return m - 1

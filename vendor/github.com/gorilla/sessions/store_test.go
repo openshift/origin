@@ -59,6 +59,10 @@ func TestGH2MaxLength(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	session, err := store.New(req, "my session")
+	if err != nil {
+		t.Fatal("failed to create session", err)
+	}
+
 	session.Values["big"] = make([]byte, base64.StdEncoding.DecodedLen(4096*2))
 	err = session.Save(req, w)
 	if err == nil {
@@ -69,5 +73,57 @@ func TestGH2MaxLength(t *testing.T) {
 	err = session.Save(req, w)
 	if err != nil {
 		t.Fatal("failed to Save:", err)
+	}
+}
+
+// Test delete filesystem store with max-age: -1
+func TestGH8FilesystemStoreDelete(t *testing.T) {
+	store := NewFilesystemStore("", []byte("some key"))
+	req, err := http.NewRequest("GET", "http://www.example.com", nil)
+	if err != nil {
+		t.Fatal("failed to create request", err)
+	}
+	w := httptest.NewRecorder()
+
+	session, err := store.New(req, "hello")
+	if err != nil {
+		t.Fatal("failed to create session", err)
+	}
+
+	err = session.Save(req, w)
+	if err != nil {
+		t.Fatal("failed to save session", err)
+	}
+
+	session.Options.MaxAge = -1
+	err = session.Save(req, w)
+	if err != nil {
+		t.Fatal("failed to delete session", err)
+	}
+}
+
+// Test delete filesystem store with max-age: 0
+func TestGH8FilesystemStoreDelete2(t *testing.T) {
+	store := NewFilesystemStore("", []byte("some key"))
+	req, err := http.NewRequest("GET", "http://www.example.com", nil)
+	if err != nil {
+		t.Fatal("failed to create request", err)
+	}
+	w := httptest.NewRecorder()
+
+	session, err := store.New(req, "hello")
+	if err != nil {
+		t.Fatal("failed to create session", err)
+	}
+
+	err = session.Save(req, w)
+	if err != nil {
+		t.Fatal("failed to save session", err)
+	}
+
+	session.Options.MaxAge = 0
+	err = session.Save(req, w)
+	if err != nil {
+		t.Fatal("failed to delete session", err)
 	}
 }

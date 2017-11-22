@@ -41,7 +41,7 @@ var (
 	serviceaccountLong = templates.LongDesc(i18n.T(`
 	Update ServiceAccount of pod template resources.
 
-	Possible resources (case insensitive) can be:
+	Possible resources (case insensitive) can be: 
 	` + serviceaccountResources))
 
 	serviceaccountExample = templates.Examples(i18n.T(`

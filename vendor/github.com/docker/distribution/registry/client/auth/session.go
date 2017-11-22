@@ -255,15 +255,6 @@ func (th *tokenHandler) AuthorizeRequest(req *http.Request, params map[string]st
 	return nil
 }
 
-func hasScope(scopes []string, scope string) bool {
-	for _, s := range scopes {
-		if s == scope {
-			return true
-		}
-	}
-	return false
-}
-
 func (th *tokenHandler) getToken(params map[string]string, additionalScopes ...string) (string, error) {
 	th.tokenLock.Lock()
 	defer th.tokenLock.Unlock()
@@ -273,9 +264,6 @@ func (th *tokenHandler) getToken(params map[string]string, additionalScopes ...s
 	}
 	var addedScopes bool
 	for _, scope := range additionalScopes {
-		if hasScope(scopes, scope) {
-			continue
-		}
 		scopes = append(scopes, scope)
 		addedScopes = true
 	}

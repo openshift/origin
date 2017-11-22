@@ -60,6 +60,10 @@ type ServerConfig struct {
 	// Separator to support multiple URIs in Client.GetRedirectUri().
 	// If blank (the default), don't allow multiple URIs.
 	RedirectUriSeparator string
+
+	// RetainTokenAfter Refresh allows the server to retain the access and
+	// refresh token for re-use - default false
+	RetainTokenAfterRefresh bool
 }
 
 // NewServerConfig returns a new ServerConfig with default configuration
@@ -73,5 +77,6 @@ func NewServerConfig() *ServerConfig {
 		ErrorStatusCode:           200,
 		AllowClientSecretInParams: false,
 		AllowGetAccessRequest:     false,
+		RetainTokenAfterRefresh:   false,
 	}
 }

@@ -8,144 +8,138 @@
 
 package mat64
 
-import "github.com/gonum/blas"
+import "github.com/gonum/matrix"
 
-// At returns the element at row r, column c.
-func (m *Dense) At(r, c int) float64 {
-	return m.at(r, c)
+// At returns the element at row i, column j.
+func (m *Dense) At(i, j int) float64 {
+	return m.at(i, j)
 }
 
-func (m *Dense) at(r, c int) float64 {
-	if r >= m.mat.Rows || r < 0 {
-		panic(ErrRowAccess)
+func (m *Dense) at(i, j int) float64 {
+	if uint(i) >= uint(m.mat.Rows) {
+		panic(matrix.ErrRowAccess)
 	}
-	if c >= m.mat.Cols || c < 0 {
-		panic(ErrColAccess)
+	if uint(j) >= uint(m.mat.Cols) {
+		panic(matrix.ErrColAccess)
 	}
-	return m.mat.Data[r*m.mat.Stride+c]
+	return m.mat.Data[i*m.mat.Stride+j]
 }
 
-// Set sets the element at row r, column c to the value v.
-func (m *Dense) Set(r, c int, v float64) {
-	m.set(r, c, v)
+// Set sets the element at row i, column j to the value v.
+func (m *Dense) Set(i, j int, v float64) {
+	m.set(i, j, v)
 }
 
-func (m *Dense) set(r, c int, v float64) {
-	if r >= m.mat.Rows || r < 0 {
-		panic(ErrRowAccess)
+func (m *Dense) set(i, j int, v float64) {
+	if uint(i) >= uint(m.mat.Rows) {
+		panic(matrix.ErrRowAccess)
 	}
-	if c >= m.mat.Cols || c < 0 {
-		panic(ErrColAccess)
+	if uint(j) >= uint(m.mat.Cols) {
+		panic(matrix.ErrColAccess)
 	}
-	m.mat.Data[r*m.mat.Stride+c] = v
+	m.mat.Data[i*m.mat.Stride+j] = v
 }
 
-// At returns the element at row r, column c. It panics if c is not zero.
-func (v *Vector) At(r, c int) float64 {
-	if c != 0 {
-		panic(ErrColAccess)
+// At returns the element at row i.
+// It panics if i is out of bounds or if j is not zero.
+func (v *Vector) At(i, j int) float64 {
+	if j != 0 {
+		panic(matrix.ErrColAccess)
 	}
-	return v.at(r)
+	return v.at(i)
 }
 
-func (v *Vector) at(r int) float64 {
-	if r < 0 || r >= v.n {
-		panic(ErrRowAccess)
+func (v *Vector) at(i int) float64 {
+	if uint(i) >= uint(v.n) {
+		panic(matrix.ErrRowAccess)
 	}
-	return v.mat.Data[r*v.mat.Inc]
+	return v.mat.Data[i*v.mat.Inc]
 }
 
-// Set sets the element at row r to the value val. It panics if r is less than
-// zero or greater than the length.
+// SetVec sets the element at row i to the value val.
+// It panics if i is out of bounds.
 func (v *Vector) SetVec(i int, val float64) {
 	v.setVec(i, val)
 }
 
 func (v *Vector) setVec(i int, val float64) {
-	if i < 0 || i >= v.n {
-		panic(ErrVectorAccess)
+	if uint(i) >= uint(v.n) {
+		panic(matrix.ErrVectorAccess)
 	}
 	v.mat.Data[i*v.mat.Inc] = val
 }
 
-// At returns the element at row r and column c.
-func (t *SymDense) At(r, c int) float64 {
-	return t.at(r, c)
+// At returns the element at row i and column j.
+func (t *SymDense) At(i, j int) float64 {
+	return t.at(i, j)
 }
 
-func (t *SymDense) at(r, c int) float64 {
-	if r >= t.mat.N || r < 0 {
-		panic(ErrRowAccess)
+func (t *SymDense) at(i, j int) float64 {
+	if uint(i) >= uint(t.mat.N) {
+		panic(matrix.ErrRowAccess)
 	}
-	if c >= t.mat.N || c < 0 {
-		panic(ErrColAccess)
+	if uint(j) >= uint(t.mat.N) {
+		panic(matrix.ErrColAccess)
 	}
-	if r > c {
-		r, c = c, r
+	if i > j {
+		i, j = j, i
 	}
-	return t.mat.Data[r*t.mat.Stride+c]
+	return t.mat.Data[i*t.mat.Stride+j]
 }
 
-// SetSym sets the elements at (r,c) and (c,r) to the value v.
-func (t *SymDense) SetSym(r, c int, v float64) {
-	t.set(r, c, v)
+// SetSym sets the elements at (i,j) and (j,i) to the value v.
+func (t *SymDense) SetSym(i, j int, v float64) {
+	t.set(i, j, v)
 }
 
-func (t *SymDense) set(r, c int, v float64) {
-	if r >= t.mat.N || r < 0 {
-		panic(ErrRowAccess)
+func (t *SymDense) set(i, j int, v float64) {
+	if uint(i) >= uint(t.mat.N) {
+		panic(matrix.ErrRowAccess)
 	}
-	if c >= t.mat.N || c < 0 {
-		panic(ErrColAccess)
+	if uint(j) >= uint(t.mat.N) {
+		panic(matrix.ErrColAccess)
 	}
-	if r > c {
-		r, c = c, r
+	if i > j {
+		i, j = j, i
 	}
-	t.mat.Data[r*t.mat.Stride+c] = v
+	t.mat.Data[i*t.mat.Stride+j] = v
 }
 
-// At returns the element at row r, column c.
-func (t *TriDense) At(r, c int) float64 {
-	return t.at(r, c)
+// At returns the element at row i, column j.
+func (t *TriDense) At(i, j int) float64 {
+	return t.at(i, j)
 }
 
-func (t *TriDense) at(r, c int) float64 {
-	if r >= t.mat.N || r < 0 {
-		panic(ErrRowAccess)
+func (t *TriDense) at(i, j int) float64 {
+	if uint(i) >= uint(t.mat.N) {
+		panic(matrix.ErrRowAccess)
 	}
-	if c >= t.mat.N || c < 0 {
-		panic(ErrColAccess)
+	if uint(j) >= uint(t.mat.N) {
+		panic(matrix.ErrColAccess)
 	}
-	if t.mat.Uplo == blas.Upper {
-		if r > c {
-			return 0
-		}
-		return t.mat.Data[r*t.mat.Stride+c]
-	}
-	if r < c {
+	isUpper := t.isUpper()
+	if (isUpper && i > j) || (!isUpper && i < j) {
 		return 0
 	}
-	return t.mat.Data[r*t.mat.Stride+c]
+	return t.mat.Data[i*t.mat.Stride+j]
 }
 
-// SetTri sets the element of the triangular matrix at row r, column c to the value v.
+// SetTri sets the element of the triangular matrix at row i, column j to the value v.
 // It panics if the location is outside the appropriate half of the matrix.
-func (t *TriDense) SetTri(r, c int, v float64) {
-	t.set(r, c, v)
+func (t *TriDense) SetTri(i, j int, v float64) {
+	t.set(i, j, v)
 }
 
-func (t *TriDense) set(r, c int, v float64) {
-	if r >= t.mat.N || r < 0 {
-		panic(ErrRowAccess)
+func (t *TriDense) set(i, j int, v float64) {
+	if uint(i) >= uint(t.mat.N) {
+		panic(matrix.ErrRowAccess)
 	}
-	if c >= t.mat.N || c < 0 {
-		panic(ErrColAccess)
+	if uint(j) >= uint(t.mat.N) {
+		panic(matrix.ErrColAccess)
 	}
-	if t.mat.Uplo == blas.Upper && r > c {
-		panic("mat64: triangular set out of bounds")
+	isUpper := t.isUpper()
+	if (isUpper && i > j) || (!isUpper && i < j) {
+		panic(matrix.ErrTriangleSet)
 	}
-	if t.mat.Uplo == blas.Lower && r < c {
-		panic("mat64: triangular set out of bounds")
-	}
-	t.mat.Data[r*t.mat.Stride+c] = v
+	t.mat.Data[i*t.mat.Stride+j] = v
 }

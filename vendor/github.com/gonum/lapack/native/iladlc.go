@@ -6,6 +6,8 @@ package native
 
 // Iladlc scans a matrix for its last non-zero column. Returns -1 if the matrix
 // is all zeros.
+//
+// Iladlc is an internal routine. It is exported for testing purposes.
 func (Implementation) Iladlc(m, n int, a []float64, lda int) int {
 	if n == 0 || m == 0 {
 		return n - 1

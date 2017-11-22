@@ -9,9 +9,8 @@ import (
 	"github.com/gonum/blas/blas64"
 )
 
-// Dtrtrs solves a triangular system of the form a * x = b or a^T * x = b. Dtrtrs
-// checks for singularity in a. If a is singular, false is returned and no solve
-// is performed. True is returned otherwise.
+// Dtrtrs solves a triangular system of the form A * X = B or A^T * X = B. Dtrtrs
+// returns whether the solve completed successfully. If A is singular, no solve is performed.
 func (impl Implementation) Dtrtrs(uplo blas.Uplo, trans blas.Transpose, diag blas.Diag, n, nrhs int, a []float64, lda int, b []float64, ldb int) (ok bool) {
 	nounit := diag == blas.NonUnit
 	if n == 0 {

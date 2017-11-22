@@ -10,6 +10,8 @@ import "math"
 // sumsq represent the current scale and total sum of squares. These values are
 // updated with the information in the first n elements of the vector specified
 // by x and incX.
+//
+// Dlassq is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlassq(n int, x []float64, incx int, scale float64, sumsq float64) (scl, smsq float64) {
 	if n <= 0 {
 		return scale, sumsq
