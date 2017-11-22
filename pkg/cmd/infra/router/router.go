@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -25,7 +26,12 @@ import (
 // RouterSelection controls what routes and resources on the server are considered
 // part of this router.
 type RouterSelection struct {
+	RouterName              string
+	RouterCanonicalHostname string
+
 	ResyncInterval time.Duration
+
+	UpdateStatus bool
 
 	HostnameTemplate string
 	OverrideHostname bool
@@ -52,6 +58,8 @@ type RouterSelection struct {
 
 	DisableNamespaceOwnershipCheck bool
 
+	ExtendedValidation bool
+
 	EnableIngress bool
 
 	ListenAddr string
@@ -59,6 +67,9 @@ type RouterSelection struct {
 
 // Bind sets the appropriate labels
 func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
+	flag.StringVar(&o.RouterName, "name", cmdutil.Env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
+	flag.StringVar(&o.RouterCanonicalHostname, "router-canonical-hostname", cmdutil.Env("ROUTER_CANONICAL_HOSTNAME", ""), "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
+	flag.BoolVar(&o.UpdateStatus, "update-status", cmdutil.Env("ROUTER_UPDATE_STATUS", "true") == "true", "If true, the router will update admitted route status.")
 	flag.DurationVar(&o.ResyncInterval, "resync-interval", controllerfactory.DefaultResyncInterval, "The interval at which the route list should be fully refreshed")
 	flag.StringVar(&o.HostnameTemplate, "hostname-template", cmdutil.Env("ROUTER_SUBDOMAIN", ""), "If specified, a template that should be used to generate the hostname for a route without spec.host (e.g. '${name}-${namespace}.myapps.mycompany.com')")
 	flag.BoolVar(&o.OverrideHostname, "override-hostname", cmdutil.Env("ROUTER_OVERRIDE_HOSTNAME", "") == "true", "Override the spec.host value for a route with --hostname-template")
@@ -71,6 +82,7 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.StringSliceVar(&o.AllowedDomains, "allowed-domains", envVarAsStrings("ROUTER_ALLOWED_DOMAINS", "", ","), "List of comma separated domains to allow in routes. If specified, only the domains in this list will be allowed routes. Note that domains in the denied list take precedence over the ones in the allowed list")
 	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "") == "true", "Allow wildcard host names for routes")
 	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cmdutil.Env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "") == "true", "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
+	flag.BoolVar(&o.ExtendedValidation, "extended-validation", cmdutil.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.BoolVar(&o.EnableIngress, "enable-ingress", cmdutil.Env("ROUTER_ENABLE_INGRESS", "") == "true", "Enable configuration via ingress resources")
 	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen. Overrides stats port.")
 }
@@ -204,6 +216,15 @@ func (o *RouterSelection) Complete() error {
 
 	o.BlacklistedDomains = sets.NewString(o.DeniedDomains...)
 	o.WhitelistedDomains = sets.NewString(o.AllowedDomains...)
+
+	if routerCanonicalHostname := o.RouterCanonicalHostname; len(routerCanonicalHostname) > 0 {
+		if errs := validation.IsDNS1123Subdomain(routerCanonicalHostname); len(errs) != 0 {
+			return fmt.Errorf("invalid canonical hostname: %s", routerCanonicalHostname)
+		}
+		if errs := validation.IsValidIP(routerCanonicalHostname); len(errs) == 0 {
+			return fmt.Errorf("canonical hostname must not be an IP address: %s", routerCanonicalHostname)
+		}
+	}
 
 	return nil
 }

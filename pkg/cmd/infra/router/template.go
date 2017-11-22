@@ -17,7 +17,6 @@ import (
 
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
@@ -70,8 +69,6 @@ type TemplateRouterOptions struct {
 }
 
 type TemplateRouter struct {
-	RouterName               string
-	RouterCanonicalHostname  string
 	WorkingDir               string
 	TemplateFile             string
 	ReloadScript             string
@@ -80,7 +77,6 @@ type TemplateRouter struct {
 	DefaultCertificatePath   string
 	DefaultCertificateDir    string
 	DefaultDestinationCAPath string
-	ExtendedValidation       bool
 	RouterService            *ktypes.NamespacedName
 	BindPortsAfterSync       bool
 	MaxConnections           string
@@ -102,8 +98,6 @@ func reloadInterval() time.Duration {
 }
 
 func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
-	flag.StringVar(&o.RouterName, "name", util.Env("ROUTER_SERVICE_NAME", "public"), "The name the router will identify itself with in the route status")
-	flag.StringVar(&o.RouterCanonicalHostname, "router-canonical-hostname", util.Env("ROUTER_CANONICAL_HOSTNAME", ""), "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
 	flag.StringVar(&o.WorkingDir, "working-dir", "/var/lib/haproxy/router", "The working directory for the router plugin")
 	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "The contents of a default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.DefaultCertificatePath, "default-certificate-path", util.Env("DEFAULT_CERTIFICATE_PATH", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
@@ -112,7 +106,6 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
-	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
 	flag.StringVar(&o.Ciphers, "ciphers", util.Env("ROUTER_CIPHERS", ""), "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list.")
@@ -174,7 +167,6 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 func (o *TemplateRouterOptions) Complete() error {
 	routerSvcName := util.Env("ROUTER_SERVICE_NAME", "")
 	routerSvcNamespace := util.Env("ROUTER_SERVICE_NAMESPACE", "")
-	routerCanonicalHostname := util.Env("ROUTER_CANONICAL_HOSTNAME", "")
 	if len(routerSvcName) > 0 {
 		if len(routerSvcNamespace) == 0 {
 			return fmt.Errorf("ROUTER_SERVICE_NAMESPACE is required when ROUTER_SERVICE_NAME is specified")
@@ -213,15 +205,6 @@ func (o *TemplateRouterOptions) Complete() error {
 		return fmt.Errorf("invalid reload interval: %v - must be a positive duration", nsecs)
 	}
 
-	if len(routerCanonicalHostname) > 0 {
-		if errs := validation.IsDNS1123Subdomain(routerCanonicalHostname); len(errs) != 0 {
-			return fmt.Errorf("invalid canonical hostname: %s", routerCanonicalHostname)
-		}
-		if errs := validation.IsValidIP(routerCanonicalHostname); len(errs) == 0 {
-			return fmt.Errorf("canonical hostname must not be an IP address: %s", routerCanonicalHostname)
-		}
-	}
-
 	return o.RouterSelection.Complete()
 }
 
@@ -232,7 +215,7 @@ func (o *TemplateRouterOptions) Validate() error {
 	if len(o.MetricsType) > 0 && !supportedMetricsTypes.Has(o.MetricsType) {
 		return fmt.Errorf("supported metrics types are: %s", strings.Join(supportedMetricsTypes.List(), ", "))
 	}
-	if len(o.RouterName) == 0 {
+	if len(o.RouterName) == 0 && o.UpdateStatus {
 		return errors.New("router must have a name to identify itself in route status")
 	}
 	if len(o.TemplateFile) == 0 {
@@ -415,13 +398,18 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname)
-	var nextPlugin router.Plugin = statusPlugin
-	if o.ExtendedValidation {
-		nextPlugin = controller.NewExtendedValidator(nextPlugin, controller.RejectionRecorder(statusPlugin))
+	var recorder controller.RejectionRecorder = controller.LogRejections
+	var plugin router.Plugin = templatePlugin
+	if o.UpdateStatus {
+		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname)
+		recorder = status
+		plugin = status
 	}
-	uniqueHostPlugin := controller.NewUniqueHost(nextPlugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin))
-	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin))
+	if o.ExtendedValidation {
+		plugin = controller.NewExtendedValidator(plugin, recorder)
+	}
+	plugin = controller.NewUniqueHost(plugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
+	plugin = controller.NewHostAdmitter(plugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
 	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	controller := factory.Create(plugin, false, o.EnableIngress)

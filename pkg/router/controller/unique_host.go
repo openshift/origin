@@ -25,14 +25,6 @@ func HostForRoute(route *routeapi.Route) string {
 type HostToRouteMap map[string][]*routeapi.Route
 type RouteToHostMap map[string]string
 
-var LogRejections = logRecorder{}
-
-type logRecorder struct{}
-
-func (logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
-	glog.V(4).Infof("Rejected route %s: %s: %s", route.Name, reason, message)
-}
-
 // UniqueHost implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type UniqueHost struct {
