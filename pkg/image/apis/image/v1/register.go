@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/apis/image/dockerpre012"
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/api/image/dockerpre012"
 )
 
 const (

@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	deployapiv1 "github.com/openshift/api/apps/v1"
 	legacy "github.com/openshift/origin/pkg/api/legacy"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 

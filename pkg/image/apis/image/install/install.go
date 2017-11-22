@@ -7,11 +7,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/api/image/dockerpre012"
+	imageapiv1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/apis/image/dockerpre012"
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 func init() {

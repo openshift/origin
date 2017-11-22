@@ -16,8 +16,8 @@ import (
 	fakekubeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	fakebuildclient "github.com/openshift/origin/pkg/build/generated/clientset/fake"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 

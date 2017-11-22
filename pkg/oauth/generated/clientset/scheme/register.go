@@ -1,7 +1,7 @@
 package scheme
 
 import (
-	oauthv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

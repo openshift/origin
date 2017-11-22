@@ -14,10 +14,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
+	userapi "github.com/openshift/api/user/v1"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/clientset/typed/authorization/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	userclient "github.com/openshift/origin/pkg/user/generated/clientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"

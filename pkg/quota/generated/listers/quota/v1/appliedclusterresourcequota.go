@@ -3,7 +3,7 @@
 package v1
 
 import (
-	v1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	v1 "github.com/openshift/api/quota/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

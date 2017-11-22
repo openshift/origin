@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 
+	deployv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 

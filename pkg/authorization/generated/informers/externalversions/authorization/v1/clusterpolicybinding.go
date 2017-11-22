@@ -3,7 +3,7 @@
 package v1
 
 import (
-	authorization_v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorization_v1 "github.com/openshift/api/authorization/v1"
 	clientset "github.com/openshift/origin/pkg/authorization/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/authorization/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/v1"

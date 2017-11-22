@@ -3,7 +3,7 @@
 package v1
 
 import (
-	route_v1 "github.com/openshift/origin/pkg/route/apis/route/v1"
+	route_v1 "github.com/openshift/api/route/v1"
 	clientset "github.com/openshift/origin/pkg/route/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/route/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/route/generated/listers/route/v1"

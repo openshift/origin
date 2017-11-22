@@ -1,7 +1,7 @@
 package scheme
 
 import (
-	networkv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
+	networkv1 "github.com/openshift/api/network/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

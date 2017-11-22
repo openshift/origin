@@ -3,7 +3,7 @@
 package v1
 
 import (
-	apps_v1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	apps_v1 "github.com/openshift/api/apps/v1"
 	clientset "github.com/openshift/origin/pkg/apps/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/apps/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/apps/generated/listers/apps/v1"

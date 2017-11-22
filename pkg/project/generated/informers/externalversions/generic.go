@@ -4,7 +4,7 @@ package externalversions
 
 import (
 	"fmt"
-	v1 "github.com/openshift/origin/pkg/project/apis/project/v1"
+	v1 "github.com/openshift/api/project/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

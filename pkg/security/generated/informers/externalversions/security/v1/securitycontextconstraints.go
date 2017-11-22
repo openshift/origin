@@ -3,7 +3,7 @@
 package v1
 
 import (
-	security_v1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	security_v1 "github.com/openshift/api/security/v1"
 	clientset "github.com/openshift/origin/pkg/security/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/security/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/security/generated/listers/security/v1"

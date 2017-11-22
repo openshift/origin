@@ -1,7 +1,7 @@
 package identitymapper
 
 import (
-	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
+	userapi "github.com/openshift/api/user/v1"
 )
 
 type UserToGroupMapper interface {

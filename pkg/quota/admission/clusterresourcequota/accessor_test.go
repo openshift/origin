@@ -15,8 +15,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
+	quotaapiv1 "github.com/openshift/api/quota/v1"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	fakequotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"

@@ -1,7 +1,7 @@
 package fake
 
 import (
-	appsv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

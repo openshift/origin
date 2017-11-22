@@ -18,9 +18,9 @@ import (
 	clientesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	_ "github.com/openshift/origin/pkg/api/install"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	fakebuildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"

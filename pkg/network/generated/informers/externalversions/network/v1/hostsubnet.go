@@ -3,7 +3,7 @@
 package v1
 
 import (
-	network_v1 "github.com/openshift/origin/pkg/network/apis/network/v1"
+	network_v1 "github.com/openshift/api/network/v1"
 	clientset "github.com/openshift/origin/pkg/network/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/network/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/network/generated/listers/network/v1"

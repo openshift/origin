@@ -1,7 +1,7 @@
 package v1
 
 import (
-	v1 "github.com/openshift/origin/pkg/network/apis/network/v1"
+	v1 "github.com/openshift/api/network/v1"
 	scheme "github.com/openshift/origin/pkg/network/generated/clientset/scheme"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"

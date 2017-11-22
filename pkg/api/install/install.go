@@ -48,15 +48,15 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 
-	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
-	authorizationv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	buildv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
-	imagev1 "github.com/openshift/origin/pkg/image/apis/image/v1"
-	oauthv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
-	projectv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
-	routev1 "github.com/openshift/origin/pkg/route/apis/route/v1"
-	templatev1 "github.com/openshift/origin/pkg/template/apis/template/v1"
-	userv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
+	deployv1 "github.com/openshift/api/apps/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	projectv1 "github.com/openshift/api/project/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	templatev1 "github.com/openshift/api/template/v1"
+	userv1 "github.com/openshift/api/user/v1"
 )
 
 func init() {

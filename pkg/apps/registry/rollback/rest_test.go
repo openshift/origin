@@ -12,10 +12,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	deployv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 )

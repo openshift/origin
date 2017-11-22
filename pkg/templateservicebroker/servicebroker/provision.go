@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	templateapiv1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/util"
 )

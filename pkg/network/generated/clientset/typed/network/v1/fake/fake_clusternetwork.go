@@ -1,7 +1,7 @@
 package fake
 
 import (
-	network_v1 "github.com/openshift/origin/pkg/network/apis/network/v1"
+	network_v1 "github.com/openshift/api/network/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

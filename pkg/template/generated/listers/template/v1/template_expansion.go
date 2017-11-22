@@ -1,8 +1,8 @@
 package v1
 
 import (
+	templateapiv1 "github.com/openshift/api/template/v1"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 

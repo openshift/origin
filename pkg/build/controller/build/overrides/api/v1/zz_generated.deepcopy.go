@@ -5,7 +5,7 @@
 package v1
 
 import (
-	build_v1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	build_v1 "github.com/openshift/api/build/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"

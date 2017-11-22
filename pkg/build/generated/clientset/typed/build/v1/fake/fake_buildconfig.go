@@ -1,7 +1,7 @@
 package fake
 
 import (
-	build_v1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	build_v1 "github.com/openshift/api/build/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

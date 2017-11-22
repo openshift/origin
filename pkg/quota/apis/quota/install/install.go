@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	quotaapiv1 "github.com/openshift/api/quota/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 )
 
 func init() {

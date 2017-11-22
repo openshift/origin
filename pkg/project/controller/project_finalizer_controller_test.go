@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 
-	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
+	projectapiv1 "github.com/openshift/api/project/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 

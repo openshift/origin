@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	securityapiv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 func init() {

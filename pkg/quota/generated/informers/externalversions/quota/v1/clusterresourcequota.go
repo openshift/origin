@@ -3,7 +3,7 @@
 package v1
 
 import (
-	quota_v1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quota_v1 "github.com/openshift/api/quota/v1"
 	clientset "github.com/openshift/origin/pkg/quota/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/quota/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/quota/generated/listers/quota/v1"

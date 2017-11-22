@@ -1,7 +1,7 @@
 package fake
 
 import (
-	v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	v1 "github.com/openshift/api/authorization/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	testing "k8s.io/client-go/testing"
 )

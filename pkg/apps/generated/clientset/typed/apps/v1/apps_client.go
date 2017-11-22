@@ -1,7 +1,7 @@
 package v1
 
 import (
-	v1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	v1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/apps/generated/clientset/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"

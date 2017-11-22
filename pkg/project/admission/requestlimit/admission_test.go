@@ -14,11 +14,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	userapi "github.com/openshift/api/user/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	requestlimitapi "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
 	fakeuserclient "github.com/openshift/origin/pkg/user/generated/clientset/fake"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 

@@ -1,7 +1,7 @@
 package fake
 
 import (
-	quota_v1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quota_v1 "github.com/openshift/api/quota/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

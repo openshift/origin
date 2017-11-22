@@ -22,10 +22,10 @@ import (
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	imageapiv1 "github.com/openshift/api/image/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"

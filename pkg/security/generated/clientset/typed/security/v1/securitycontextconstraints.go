@@ -1,7 +1,7 @@
 package v1
 
 import (
-	v1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	v1 "github.com/openshift/api/security/v1"
 	scheme "github.com/openshift/origin/pkg/security/generated/clientset/scheme"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
