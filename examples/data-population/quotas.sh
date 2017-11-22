@@ -14,7 +14,7 @@ QUOTA=$(dirname "${BASH_SOURCE}")/quota.yaml
 
 for ((i=1; i <=$NUM_PROJECTS; i++))
 do
-  openshift cli create -f $QUOTA --namespace=${PROJECT_NAME_PREFIX}${i}
+  oc create -f $QUOTA --namespace=${PROJECT_NAME_PREFIX}${i}
 done
 
 echo "Done"

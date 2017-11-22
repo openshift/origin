@@ -59,17 +59,17 @@ os::cmd::expect_success_and_text "dig +tcp @${MASTER_SERVICE_IP} kubernetes.defa
 os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
-os::cmd::expect_success 'openshift admin policy add-role-to-user view e2e-user --namespace=default'
+os::cmd::expect_success 'oc adm policy add-role-to-user view e2e-user --namespace=default'
 
 # pre-load some image streams and templates
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift'
 os::cmd::expect_success 'oc create -f examples/jenkins/application-template.json --namespace=openshift'
 
 # create test project so that this shows up in the console
-os::cmd::expect_success "openshift admin new-project test --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
-os::cmd::expect_success "openshift admin new-project docker --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
-os::cmd::expect_success "openshift admin new-project custom --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
-os::cmd::expect_success "openshift admin new-project cache --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
+os::cmd::expect_success "oc adm new-project test --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
+os::cmd::expect_success "oc adm new-project docker --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
+os::cmd::expect_success "oc adm new-project custom --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
+os::cmd::expect_success "oc adm new-project cache --description='This is an example project to demonstrate OpenShift v3' --admin='e2e-user'"
 
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
@@ -78,8 +78,8 @@ os::log::info "Pre-pulling and pushing ruby-22-centos7"
 os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'
 os::log::info "Pulled ruby-22-centos7"
 
-os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ipfailover"
-os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
+os::cmd::expect_success "oc adm policy add-scc-to-user privileged -z ipfailover"
+os::cmd::expect_success "oc adm ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
 os::log::info "Waiting for Docker registry pod to start"
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
@@ -140,7 +140,7 @@ os::cmd::expect_success_and_text 'oc whoami' 'e2e-user'
 # check to make sure that cluster-admin and node-reader can see node endpoint
 os::test::junit::declare_suite_start "end-to-end/core/node-access"
 os::cmd::expect_success "oc get --context='${CLUSTER_ADMIN_CONTEXT}' --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --raw spec/"
-os::cmd::expect_success "openshift admin policy add-cluster-role-to-user --context='${CLUSTER_ADMIN_CONTEXT}' system:node-reader e2e-user"
+os::cmd::expect_success "oc adm policy add-cluster-role-to-user --context='${CLUSTER_ADMIN_CONTEXT}' system:node-reader e2e-user"
 os::cmd::try_until_text "oc policy can-i get nodes/spec" "yes"
 os::cmd::expect_success "oc get --server='https://${KUBELET_HOST}:${KUBELET_PORT}' --raw spec/"
 os::test::junit::declare_suite_end
@@ -559,7 +559,7 @@ os::cmd::try_until_text "curl -s -k -H 'Host: wWw.ExAmPlE.cOm' https://${CONTAIN
 # Pod node selection
 os::log::info "Validating pod.spec.nodeSelector rejections"
 # Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
-os::cmd::expect_success "openshift admin new-project node-selector --description='This is an example project to test node selection prevents deployment' --admin='e2e-user' --node-selector='impossible-label=true'"
+os::cmd::expect_success "oc adm new-project node-selector --description='This is an example project to test node selection prevents deployment' --admin='e2e-user' --node-selector='impossible-label=true'"
 os::cmd::expect_success "oc process -n node-selector -v NODE_NAME='$(oc get node -o jsonpath='{.items[0].metadata.name}')' -f test/testdata/node-selector/pods.json | oc create -n node-selector -f -"
 # The pod without a node name should fail to schedule
 os::cmd::try_until_text 'oc get events -n node-selector' 'pod-without-node-name.+FailedScheduling' $((20*TIME_SEC))

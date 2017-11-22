@@ -45,7 +45,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/manage-node"
 # Test admin manage-node operations
-os::cmd::expect_success_and_text 'openshift admin manage-node --help' 'Manage nodes'
+os::cmd::expect_success_and_text 'oc adm manage-node --help' 'Manage nodes'
 
 # create a node object to mess with
 os::cmd::expect_success "echo 'apiVersion: v1
@@ -178,10 +178,6 @@ os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' "system:ser
 os::cmd::expect_success 'oc adm policy remove-scc-from-group privileged fake-group'
 os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group'
 echo "admin-scc: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/overwrite-policy"
-os::cmd::expect_failure_and_text 'oc adm overwrite-policy' 'error: the server does not support legacy policy resources'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/reconcile-cluster-roles"

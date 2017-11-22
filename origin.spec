@@ -321,13 +321,6 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in \
-    kube-apiserver \
-    kube-controller-manager \
-    kube-proxy \
-    kube-scheduler \
-    kubelet \
-    kubernetes \
-    oadm \
     openshift-deploy \
     openshift-docker-build \
     openshift-sti-build \
@@ -384,7 +377,7 @@ install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-for bin in oadm oc openshift
+for bin in oc openshift
 do
   echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
   %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
@@ -421,13 +414,7 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %doc README.md
 %license LICENSE
 %{_bindir}/openshift
-%{_bindir}/kube-apiserver
-%{_bindir}/kube-controller-manager
-%{_bindir}/kube-proxy
-%{_bindir}/kube-scheduler
-%{_bindir}/kubelet
-%{_bindir}/kubernetes
-%{_bindir}/oadm
+%{_bindir}/hyperkube
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-f5-router
 %{_bindir}/openshift-recycle
@@ -439,13 +426,11 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %{_bindir}/openshift-manage-dockerfile
 %{_bindir}/origin
 %{_sharedstatedir}/origin
-%{_sysconfdir}/bash_completion.d/oadm
 %{_sysconfdir}/bash_completion.d/openshift
 %defattr(-,root,root,0700)
 %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %dir %config(noreplace) %{_sysconfdir}/origin
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
-%{_mandir}/man1/oadm*
 %{_mandir}/man1/openshift*
 
 %pre

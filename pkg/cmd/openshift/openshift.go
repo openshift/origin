@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -19,7 +18,6 @@ import (
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
-	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -27,7 +25,6 @@ import (
 	diagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics"
 	sync "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/oc/admin/validate"
-	"github.com/openshift/origin/pkg/oc/cli"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/experimental/buildchain"
 	configcmd "github.com/openshift/origin/pkg/oc/experimental/config"
@@ -50,7 +47,7 @@ var (
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out := os.Stdout
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -77,24 +74,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandManageDockerfile(basename)
 	case "openshift-extract-image-content":
 		cmd = builder.NewCommandExtractImageContent(basename)
-	case "oc", "osc":
-		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
-	case "oadm", "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
-	case "kubectl":
-		cmd = cli.NewCmdKubectl(basename, out)
-	case "kube-apiserver":
-		cmd = kubernetes.NewAPIServerCommand(basename, basename, out)
-	case "kube-controller-manager":
-		cmd = kubernetes.NewControllersCommand(basename, basename, out)
-	case "kubelet":
-		cmd = kubernetes.NewKubeletCommand(basename, basename, out)
-	case "kube-proxy":
-		cmd = proxyapp.NewProxyCommand()
-	case "kube-scheduler":
-		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
-	case "kubernetes":
-		cmd = kubernetes.NewCommand(basename, basename, out, errout)
 	case "origin":
 		cmd = NewCommandOpenShift(basename)
 	default:
@@ -111,7 +90,7 @@ func CommandFor(basename string) *cobra.Command {
 
 // NewCommandOpenShift creates the standard OpenShift command
 func NewCommandOpenShift(name string) *cobra.Command {
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out, errout := os.Stdout, os.Stderr
 
 	root := &cobra.Command{
 		Use:   name,
@@ -124,9 +103,6 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
-	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true, IsServer: true}))

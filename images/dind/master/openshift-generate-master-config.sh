@@ -22,7 +22,7 @@ function ensure-master-config() {
   local name
   name="$(hostname)"
 
-  /usr/local/bin/openshift admin ca create-master-certs \
+  /usr/local/bin/oc adm ca create-master-certs \
     --overwrite=false \
     --cert-dir="${master_path}" \
     --master="https://${ip_addr}:8443" \

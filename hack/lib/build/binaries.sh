@@ -347,12 +347,6 @@ function os::build::place_bins() {
       if [[ $platform == "windows/amd64" ]]; then
         suffix=".exe"
       fi
-      for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
-        local src="${release_binpath}/openshift${suffix}"
-        if [[ -f "${src}" ]]; then
-          ln "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
-        fi
-      done
       for linkname in "${OC_BINARY_COPY[@]}"; do
         local src="${release_binpath}/oc${suffix}"
         if [[ -f "${src}" ]]; then
@@ -416,6 +410,11 @@ function os::build::make_openshift_binary_symlinks() {
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
     for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
       ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
+    done
+  fi
+  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/oc" ]]; then
+    for linkname in "${OC_BINARY_COPY[@]}"; do
+      ln -sf oc "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
     done
   fi
 }

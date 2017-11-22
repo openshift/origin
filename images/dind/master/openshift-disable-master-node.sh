@@ -22,7 +22,7 @@ function disable-node() {
   os::util::wait-for-condition "${msg}" "${condition}"
 
   echo "Disabling scheduling for node ${node_name}"
-  /usr/local/bin/osadm --config="${config}" manage-node "${node_name}" --schedulable=false > /dev/null
+  /usr/local/bin/oc adm --config="${config}" manage-node "${node_name}" --schedulable=false > /dev/null
 }
 
 disable-node /data/openshift.local.config/master/admin.kubeconfig "$(hostname)-node"

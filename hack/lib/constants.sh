@@ -45,6 +45,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/oc
   cmd/kubefed
   cmd/template-service-broker
+  vendor/k8s.io/kubernetes/cmd/hyperkube
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -71,24 +72,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-manage-dockerfile
   openshift-extract-image-content
   origin
-  osc
-  oadm
-  osadm
-  kubectl
-  kubernetes
-  kubelet
-  kube-proxy
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
-)
-readonly OPENSHIFT_BINARY_COPY=(
-  oadm
-  kubelet
-  kube-proxy
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
 )
 readonly OC_BINARY_COPY=(
   kubectl
@@ -334,7 +317,6 @@ readonly OS_ALL_IMAGES=(
   openshift/origin-pod
   openshift/origin-deployer
   openshift/origin-docker-builder
-  openshift/origin-docker-registry
   openshift/origin-keepalived-ipfailover
   openshift/origin-sti-builder
   openshift/origin-haproxy-router
@@ -380,7 +362,6 @@ function os::build::images() {
 
   # images that depend on "${tag_prefix}-base"
   ( os::build::image "${tag_prefix}"                       images/origin ) &
-  ( os::build::image "${tag_prefix}-docker-registry"       images/dockerregistry ) &
   ( os::build::image "${tag_prefix}-egress-router"         images/egress/router ) &
   ( os::build::image "${tag_prefix}-egress-http-proxy"     images/egress/http-proxy ) &
   ( os::build::image "${tag_prefix}-federation"            images/federation ) &
