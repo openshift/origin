@@ -252,11 +252,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 
 	buildPodName := buildapi.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
-		Stdin: true,
-		// TODO remove Stdout and Stderr once https://github.com/kubernetes/kubernetes/issues/44448 is
-		// fixed
-		Stdout:    true,
-		Stderr:    true,
+		Stdin:     true,
 		Container: buildstrategy.GitCloneContainer,
 	}
 	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
@@ -276,9 +272,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))
 	}
 	streamOptions := remotecommand.StreamOptions{
-		Stdin: r,
-		// TODO remove Stdout and Stderr once https://github.com/kubernetes/kubernetes/issues/44448 is
-		// fixed
+		Stdin:  r,
 		Stdout: ioutil.Discard,
 		Stderr: ioutil.Discard,
 	}
