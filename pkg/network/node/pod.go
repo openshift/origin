@@ -303,7 +303,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 		ipamResult, runningPod, err := m.podHandler.setup(request)
 		if ipamResult != nil {
 			result.Response, err = json.Marshal(ipamResult)
-			if result.Err == nil {
+			if err == nil {
 				m.runningPods[pk] = runningPod
 				if m.ovs != nil {
 					m.updateLocalMulticastRulesWithLock(runningPod.vnid)
