@@ -66,6 +66,7 @@ objects:
   metadata:
     annotations:
       prometheus.io/scrape: "true"
+      prometheus.io/port: "8443"
       prometheus.io/scheme: https
       service.alpha.openshift.io/serving-cert-secret-name: prometheus-tls
     labels:
