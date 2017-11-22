@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 68311208b78ca0695b6bb454842a707ea8d02311
+%global commit e90500621efc8e05a4d041553e2167f00e8af542
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=8+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.7.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.8.1+0d5291c OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=0d5291c OS_GIT_COMMIT=6831120 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=8+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.8.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.8.1+0d5291c OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=0d5291c OS_GIT_COMMIT=e905006 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.8.0%{?dist}
+Release:        0.9.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -642,6 +642,57 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Nov 22 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.9.0
+- Enable cert rotation for node bootstrap (jliggitt@redhat.com)
+- update dind image (deads@redhat.com)
+- Make "openshift start node --write-config" tolerate swap on
+  (jliggitt@redhat.com)
+- Revert "set fail-swap-on to false for cluster up" (jliggitt@redhat.com)
+- generated (deads@redhat.com)
+- remove openshift cli and friends (deads@redhat.com)
+- pkg/security/OWNERS: add simo5 to the list of approvers.
+  (vsemushi@redhat.com)
+- UPSTREAM: 56045: Fix getting logs from daemonset (mfojtik@redhat.com)
+- generated (deads@redhat.com)
+- switch to hyperkube (deads@redhat.com)
+- Remove soltysh from OWNERS (maszulik@redhat.com)
+- Normalize image ref before pulling in cluster up (jliggitt@redhat.com)
+- update generated docs (jvallejo@redhat.com)
+- remove pkg/cmd/server/admin/overwrite_bootstrappolicy.go and
+  pkg/cmd/server/admin/legacyetcd (jvallejo@redhat.com)
+- generated (deads@redhat.com)
+- Remove dockerregistry Dockerfile and build (jliggitt@redhat.com)
+- set fail-swap-on to false for cluster up (mfojtik@redhat.com)
+- Revert "interesting: restore ability to start with swap on by default"
+  (jliggitt@redhat.com)
+- try to modify the build scripts and not turn purple (deads@redhat.com)
+- remove kubectl from openshift (but not oc) (deads@redhat.com)
+- admission_test.go(TestAdmitSuccess): remove hardcoded SELinux level.
+  (vsemushi@redhat.com)
+- admission_test.go(testSCCAdmission): modify to signalize about errors.
+  (vsemushi@redhat.com)
+- admission_test.go(TestAdmitSuccess): compare SecurityContexts instead of
+  particular members. (vsemushi@redhat.com)
+- admission_test.go(saSCC): extract function. (vsemushi@redhat.com)
+- switch to external user client (deads@redhat.com)
+- admission_test.go(saExactSCC): extract function. (vsemushi@redhat.com)
+- admission_test.go(createSCCListerAndIndexer): introduce and use function.
+  (vsemushi@redhat.com)
+- admission_test.go: rename variable to better describe its type.
+  (vsemushi@redhat.com)
+- admission_test.go(createSCCLister): extract function. (vsemushi@redhat.com)
+- admission_test.go(setupClientSet): extract function. (vsemushi@redhat.com)
+- admission_test.go(TestAdmitFailure): reduce code by (enchancing and) using
+  existing function. (vsemushi@redhat.com)
+- admission_test.go(TestAdmit): split to TestAdmitSuccess and TestAdmitFailure.
+  (vsemushi@redhat.com)
+- admission_test.go(TestAdmit): eliminate duplicated code by using existing
+  method. (vsemushi@redhat.com)
+- admission_test.go(testSCCAdmission): print test case name when test fails.
+  (vsemushi@redhat.com)
+- switch easy admission plugins to external clients (deads@redhat.com)
+- Force removal of temporary build containers (cewong@redhat.com)
+
 * Mon Nov 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.8.0
 - 
 
