@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	sdnapiv1 "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	sdnapi "github.com/openshift/origin/pkg/network/apis/network"
+	sdnapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
 )
 
 func init() {

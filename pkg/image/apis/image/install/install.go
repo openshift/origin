@@ -9,9 +9,9 @@ import (
 
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/api/image/dockerpre012"
-	imageapiv1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 func init() {

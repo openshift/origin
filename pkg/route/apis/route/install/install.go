@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	routeapiv1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 

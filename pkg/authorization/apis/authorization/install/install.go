@@ -7,10 +7,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapiv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 )
 
 func init() {

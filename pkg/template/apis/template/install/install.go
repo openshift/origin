@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	templateapiv1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 )
 
 func init() {
