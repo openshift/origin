@@ -8,6 +8,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,12 +21,14 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	st "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"google.golang.org/grpc"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/router/envoy/api"
 )
 
@@ -297,6 +300,32 @@ func (s *server) handleClusterLoadAssignment(req *api.DiscoveryRequest) (resourc
 	return resources, versionInfo, false, nil
 }
 
+type pathPair struct {
+	path  string
+	route *routeapi.Route
+}
+
+type longestMatchPathPair []pathPair
+
+func (p longestMatchPathPair) Len() int          { return len(p) }
+func (p longestMatchPathPair) Swap(i int, j int) { p[i], p[j] = p[j], p[i] }
+
+func (p longestMatchPathPair) Less(i int, j int) bool {
+	a, b := p[i].path, p[j].path
+	switch {
+	case len(a) < len(b):
+		return false
+	case len(a) > len(b):
+		return true
+	case a < b:
+		return true
+	case a > b:
+		return false
+	default:
+		return p[i].route.UID < p[j].route.UID
+	}
+}
+
 func (s *server) handleRouteConfiguration(req *api.DiscoveryRequest) (resources []proto.Message, versionInfo string, queue bool, err error) {
 	p := s.plugin
 	latest := strconv.FormatInt(p.getVersions().route, 10)
@@ -305,31 +334,59 @@ func (s *server) handleRouteConfiguration(req *api.DiscoveryRequest) (resources 
 	}
 
 	log.Printf("  Returning all route configuration: %s (%v) @ %s", req.TypeUrl, req.ResourceNames, req.VersionInfo)
-	routes, version := p.listRoutes()
+	domains, version := p.listRoutesByDomain()
 	config := &api.RouteConfiguration{
 		Name:         "openshift_http",
 		VirtualHosts: []*api.VirtualHost{},
 	}
-	for _, route := range routes {
-		name := fmt.Sprintf("%s_%s", route.Namespace, route.Name)
-		config.VirtualHosts = append(config.VirtualHosts, &api.VirtualHost{
-			Name:    name,
-			Domains: []string{route.Spec.Host},
-			Routes: []*api.Route{
-				{
-					Match: &api.RouteMatch{
-						PathSpecifier: &api.RouteMatch_Prefix{},
-					},
-					Action: &api.Route_Route{
-						Route: &api.RouteAction{
-							ClusterSpecifier: &api.RouteAction_Cluster{
-								Cluster: name,
-							},
+	for domain, routes := range domains {
+		paths := make(longestMatchPathPair, 0, len(routes))
+		for _, route := range routes {
+			path := route.Spec.Path
+			if path == "/" {
+				path = ""
+			}
+			paths = append(paths, pathPair{
+				path:  route.Spec.Path,
+				route: route,
+			})
+		}
+		sort.Sort(paths)
+
+		vhost := &api.VirtualHost{
+			Name:    domain,
+			Domains: []string{domain},
+		}
+
+		for _, path := range paths {
+			name := fmt.Sprintf("%s_%s", path.route.Namespace, path.route.Name)
+			vhost.Routes = append(vhost.Routes, &api.Route{
+				Match: &api.RouteMatch{PathSpecifier: &api.RouteMatch_Prefix{path.path}},
+				Action: &api.Route_Route{
+					Route: &api.RouteAction{
+						ClusterSpecifier: &api.RouteAction_Cluster{
+							Cluster: name,
 						},
 					},
 				},
-			},
-		})
+			})
+		}
+
+		// the lowest priority route sets the TLS policy
+		// TODO: support split TLS policy when two paths are the same?
+		switch route := paths[len(paths)-1].route; {
+		case route.Spec.TLS == nil:
+			vhost.RequireTls = api.VirtualHost_NONE
+		case route.Spec.TLS.Termination == routeapi.TLSTerminationEdge:
+			switch route.Spec.TLS.InsecureEdgeTerminationPolicy {
+			case routeapi.InsecureEdgeTerminationPolicyAllow:
+				vhost.RequireTls = api.VirtualHost_NONE
+			case routeapi.InsecureEdgeTerminationPolicyRedirect:
+				vhost.RequireTls = api.VirtualHost_EXTERNAL_ONLY
+			}
+		}
+
+		config.VirtualHosts = append(config.VirtualHosts, vhost)
 	}
 	resources = append(resources, config)
 	versionInfo = strconv.FormatInt(version, 10)
@@ -380,6 +437,62 @@ func (s *server) handleListener(req *api.DiscoveryRequest) (resources []proto.Me
 						Address:  "0.0.0.0",
 						PortSpecifier: &api.SocketAddress_PortValue{
 							PortValue: 80,
+						},
+					},
+				},
+			},
+		},
+		&api.Listener{
+			Name:     "https",
+			Metadata: &api.Metadata{},
+			FilterChains: []*api.FilterChain{
+				{
+					TlsContext: &api.DownstreamTlsContext{
+						RequireSni: &wrappers.BoolValue{Value: true},
+						CommonTlsContext: &api.CommonTlsContext{
+							TlsCertificateSdsSecretConfigs: []*api.SdsSecretConfig{
+								{
+									Name: "openshift_tls",
+									SdsConfig: &api.ConfigSource{
+										ConfigSourceSpecifier: &api.ConfigSource_Ads{
+											Ads: &api.AggregatedConfigSource{},
+										},
+									},
+								},
+							},
+						},
+					},
+					FilterChainMatch: &api.FilterChainMatch{},
+					Filters: []*api.Filter{
+						{
+							Name: "envoy.http_connection_manager",
+							Config: &st.Struct{Fields: pm{
+								"codec_type":  pstring("AUTO"),
+								"stat_prefix": pstring("openshift_https"),
+								"rds": pstruct(pm{
+									"route_config_name": pstring("openshift_http"),
+									"config_source": pstruct(pm{
+										"ads": pstruct(pm{}),
+									}),
+								}),
+								"http_filters": plist(pa{
+									pstruct(pm{
+										"name":   pstring("envoy.router"),
+										"config": pstruct(pm{}),
+									}),
+								}),
+							}},
+						},
+					},
+				},
+			},
+			Address: &api.Address{
+				Address: &api.Address_SocketAddress{
+					&api.SocketAddress{
+						Protocol: api.SocketAddress_TCP,
+						Address:  "0.0.0.0",
+						PortSpecifier: &api.SocketAddress_PortValue{
+							PortValue: 443,
 						},
 					},
 				},

@@ -283,3 +283,13 @@ func (p *Plugin) listRoutes() ([]*routeapi.Route, int64) {
 	}
 	return routes, p.versions.route
 }
+
+func (p *Plugin) listRoutesByDomain() (map[string][]*routeapi.Route, int64) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	domains := make(map[string][]*routeapi.Route)
+	for key, routes := range p.domainToRoute {
+		domains[key] = routes
+	}
+	return domains, p.versions.domainToRoute
+}
