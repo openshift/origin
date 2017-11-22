@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/cmd/openshift"
-	"github.com/openshift/origin/pkg/oc/admin"
 	"github.com/openshift/origin/pkg/oc/cli"
 	mangen "github.com/openshift/origin/tools/genman/md2man"
 	"github.com/spf13/cobra"
@@ -18,7 +17,7 @@ import (
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Root command not specified (oc | oadm | openshift).\n")
+		fmt.Fprintf(os.Stderr, "Root command not specified (oc | openshift).\n")
 		os.Exit(1)
 	}
 
@@ -26,10 +25,8 @@ func main() {
 		genCmdMan("oc", cli.NewCommandCLI("oc", "oc", &bytes.Buffer{}, os.Stdout, ioutil.Discard))
 	} else if strings.HasSuffix(os.Args[2], "openshift") {
 		genCmdMan("openshift", openshift.NewCommandOpenShift("openshift"))
-	} else if strings.HasSuffix(os.Args[2], "oadm") {
-		genCmdMan("oadm", admin.NewCommandAdmin("oadm", "oadm", &bytes.Buffer{}, os.Stdout, ioutil.Discard))
 	} else {
-		fmt.Fprintf(os.Stderr, "Root command not specified (oc | oadm | openshift).")
+		fmt.Fprintf(os.Stderr, "Root command not specified (oc | openshift).")
 		os.Exit(1)
 	}
 }

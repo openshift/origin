@@ -25,7 +25,6 @@ import (
 	diagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics"
 	sync "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/oc/admin/validate"
-	"github.com/openshift/origin/pkg/oc/cli"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/experimental/buildchain"
 	configcmd "github.com/openshift/origin/pkg/oc/experimental/config"
@@ -48,7 +47,7 @@ var (
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out := os.Stdout
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -75,10 +74,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandManageDockerfile(basename)
 	case "openshift-extract-image-content":
 		cmd = builder.NewCommandExtractImageContent(basename)
-	case "oc", "osc":
-		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
-	case "oadm", "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
 	case "origin":
 		cmd = NewCommandOpenShift(basename)
 	default:
@@ -95,7 +90,7 @@ func CommandFor(basename string) *cobra.Command {
 
 // NewCommandOpenShift creates the standard OpenShift command
 func NewCommandOpenShift(name string) *cobra.Command {
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out, errout := os.Stdout, os.Stderr
 
 	root := &cobra.Command{
 		Use:   name,
@@ -108,8 +103,6 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true, IsServer: true}))

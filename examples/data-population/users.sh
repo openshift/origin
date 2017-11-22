@@ -11,7 +11,7 @@ for ((i=1; i <=$NUM_USERS; i++))
 do  
   USERNAME=${USER_NAME_PREFIX}${i}
   USERCONFIG=/tmp/${USERNAME}.config
-  openshift cli config view --minify --raw -o yaml > ${USERCONFIG}
+  oc config view --minify --raw -o yaml > ${USERCONFIG}
   KUBECONFIG=${USERCONFIG} oc login --username=$USERNAME --password=whocares
 done
 
