@@ -31,7 +31,6 @@ readonly OS_SDN_COMPILE_TARGETS_LINUX=(
   vendor/github.com/containernetworking/cni/plugins/main/loopback
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
-  vendor/k8s.io/kubernetes/cmd/hyperkube
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
