@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -226,7 +227,7 @@ func UpdateDeploymentConfigImages(dc *appsapi.DeploymentConfig, tagRetriever tri
 }
 
 // ImageChanged is passed a deployment config and a set of changes.
-func (r *DeploymentConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.TagRetriever) error {
+func (r *DeploymentConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
 	dc := obj.(*appsapi.DeploymentConfig)
 	newDC := dc.DeepCopy()
 

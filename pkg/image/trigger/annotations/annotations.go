@@ -261,8 +261,8 @@ type AnnotationReactor struct {
 	Copier  runtime.ObjectCopier
 }
 
-func (r *AnnotationReactor) ImageChanged(obj interface{}, tagRetriever trigger.TagRetriever) error {
-	changed, err := UpdateObjectFromImages(obj.(runtime.Object), r.Copier, tagRetriever)
+func (r *AnnotationReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
+	changed, err := UpdateObjectFromImages(obj, r.Copier, tagRetriever)
 	if err != nil {
 		return err
 	}
