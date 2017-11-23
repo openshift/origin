@@ -34,6 +34,7 @@ func NewDeploymentConfigController(
 	codec runtime.Codec,
 ) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kubeClientset.CoreV1().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "deploymentconfig-controller"})
 
