@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
@@ -243,8 +242,7 @@ func checkClientForGroups(tc *userfakeclient.Clientset, expectedGroups []*userap
 
 func groupExists(haystack []*userapi.Group, needle *userapi.Group) bool {
 	for _, actual := range haystack {
-		t, _ := kapi.Scheme.DeepCopy(actual)
-		actualGroup := t.(*userapi.Group)
+		actualGroup := actual.DeepCopy()
 		delete(actualGroup.Annotations, ldaputil.LDAPSyncTimeAnnotation)
 
 		if reflect.DeepEqual(needle, actualGroup) {

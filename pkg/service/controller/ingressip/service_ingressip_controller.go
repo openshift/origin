@@ -468,23 +468,19 @@ func (ic *IngressIPController) recordAllocation(service *v1.Service, key string)
 	}
 
 	// Make a copy to modify to avoid mutating cache state
-	t, err := kapi.Scheme.DeepCopy(service)
-	if err != nil {
-		return err
-	}
-	service = t.(*v1.Service)
+	serviceCopy := service.DeepCopy()
 
 	if reallocate {
 		// TODO update the external ips but not the status since
 		// allocate() will overwrite any existing allocation.
-		if err = ic.clearPersistedAllocation(service, key, reallocateMessage); err != nil {
+		if err = ic.clearPersistedAllocation(serviceCopy, key, reallocateMessage); err != nil {
 			return err
 		}
-		ic.recorder.Eventf(service, v1.EventTypeWarning, "IngressIPReallocated", reallocateMessage)
-		return ic.allocate(service, key)
+		ic.recorder.Eventf(serviceCopy, v1.EventTypeWarning, "IngressIPReallocated", reallocateMessage)
+		return ic.allocate(serviceCopy, key)
 	} else {
 		// Ensure that the ingress ip is present in the service's spec.
-		return ic.ensureExternalIP(service, key, ipString)
+		return ic.ensureExternalIP(serviceCopy, key, ipString)
 	}
 }
 
@@ -492,20 +488,16 @@ func (ic *IngressIPController) recordAllocation(service *v1.Service, key string)
 // service's persisted state.
 func (ic *IngressIPController) allocate(service *v1.Service, key string) error {
 	// Make a copy to avoid mutating cache state
-	t, err := kapi.Scheme.DeepCopy(service)
-	if err != nil {
-		return err
-	}
-	service = t.(*v1.Service)
+	serviceCopy := service.DeepCopy()
 
-	ip, err := ic.allocateIP(service.Spec.LoadBalancerIP)
+	ip, err := ic.allocateIP(serviceCopy.Spec.LoadBalancerIP)
 	if err != nil {
 		return err
 	}
 	ipString := ip.String()
 
 	glog.V(5).Infof("Allocating ip %v to service %v", ipString, key)
-	service.Status = v1.ServiceStatus{
+	serviceCopy.Status = v1.ServiceStatus{
 		LoadBalancer: v1.LoadBalancerStatus{
 			Ingress: []v1.LoadBalancerIngress{
 				{
@@ -514,7 +506,7 @@ func (ic *IngressIPController) allocate(service *v1.Service, key string) error {
 			},
 		},
 	}
-	if err = ic.persistServiceStatus(service); err != nil {
+	if err = ic.persistServiceStatus(serviceCopy); err != nil {
 		if releaseErr := ic.ipAllocator.Release(ip); releaseErr != nil {
 			// Release from contiguous allocator should never return an error, but just in case...
 			utilruntime.HandleError(fmt.Errorf("Error releasing ip %v for service %v: %v", ipString, key, releaseErr))
@@ -523,7 +515,7 @@ func (ic *IngressIPController) allocate(service *v1.Service, key string) error {
 	}
 	ic.allocationMap[ipString] = key
 
-	return ic.ensureExternalIP(service, key, ipString)
+	return ic.ensureExternalIP(serviceCopy, key, ipString)
 }
 
 // deallocate ensures that the ip currently allocated to a service is
@@ -532,17 +524,13 @@ func (ic *IngressIPController) deallocate(service *v1.Service, key string) error
 	glog.V(5).Infof("Clearing allocation state for %v", key)
 
 	// Make a copy to modify to avoid mutating cache state
-	t, err := kapi.Scheme.DeepCopy(service)
-	if err != nil {
-		return err
-	}
-	service = t.(*v1.Service)
+	serviceCopy := service.DeepCopy()
 
 	// Get the ingress ip to remove from local allocation state before
 	// it is removed from the service.
-	ipString := service.Status.LoadBalancer.Ingress[0].IP
+	ipString := serviceCopy.Status.LoadBalancer.Ingress[0].IP
 
-	if err = ic.clearPersistedAllocation(service, key, ""); err != nil {
+	if err := ic.clearPersistedAllocation(serviceCopy, key, ""); err != nil {
 		return err
 	}
 

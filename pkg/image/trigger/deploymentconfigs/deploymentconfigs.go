@@ -228,11 +228,7 @@ func UpdateDeploymentConfigImages(dc *appsapi.DeploymentConfig, tagRetriever tri
 // ImageChanged is passed a deployment config and a set of changes.
 func (r *DeploymentConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.TagRetriever) error {
 	dc := obj.(*appsapi.DeploymentConfig)
-	copied, err := kapi.Scheme.DeepCopy(dc)
-	if err != nil {
-		return err
-	}
-	newDC := copied.(*appsapi.DeploymentConfig)
+	newDC := dc.DeepCopy()
 
 	updated, resolvable, err := UpdateDeploymentConfigImages(newDC, tagRetriever)
 	if err != nil {

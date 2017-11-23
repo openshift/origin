@@ -748,10 +748,9 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 
 	// image reference resolution requires a copy of the build
 	var err error
-	build, err = buildutil.BuildDeepCopy(build)
-	if err != nil {
-		return nil, fmt.Errorf("unable to copy build %s: %v", buildDesc(build), err)
-	}
+
+	// TODO: Rename this to buildCopy
+	build = build.DeepCopy()
 
 	// Resolve all Docker image references to valid values.
 	if err := bc.resolveImageReferences(build, update); err != nil {
@@ -1085,10 +1084,7 @@ func (bc *BuildController) handleBuildConfig(bcNamespace string, bcName string) 
 // and applies that patch using the REST client
 func (bc *BuildController) patchBuild(build *buildapi.Build, update *buildUpdate) (*buildapi.Build, error) {
 	// Create a patch using the buildUpdate object
-	updatedBuild, err := buildutil.BuildDeepCopy(build)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create a deep copy of build %s: %v", buildDesc(build), err)
-	}
+	updatedBuild := build.DeepCopy()
 	update.apply(updatedBuild)
 
 	patch, err := validation.CreateBuildPatch(build, updatedBuild)

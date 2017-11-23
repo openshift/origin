@@ -381,20 +381,8 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 	}
 
 	gracePeriod := int64(10)
-
-	var podSecurityContextCopy *kapi.PodSecurityContext
-	if ctx, err := kapi.Scheme.DeepCopy(rc.Spec.Template.Spec.SecurityContext); err != nil {
-		return nil, fmt.Errorf("unable to copy pod securityContext: %v", err)
-	} else {
-		podSecurityContextCopy = ctx.(*kapi.PodSecurityContext)
-	}
-
-	var securityContextCopy *kapi.SecurityContext
-	if ctx, err := kapi.Scheme.DeepCopy(baseContainer.SecurityContext); err != nil {
-		return nil, fmt.Errorf("unable to copy securityContext: %v", err)
-	} else {
-		securityContextCopy = ctx.(*kapi.SecurityContext)
-	}
+	podSecurityContextCopy := rc.Spec.Template.Spec.SecurityContext.DeepCopy()
+	securityContextCopy := baseContainer.SecurityContext.DeepCopy()
 
 	pod := &kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{

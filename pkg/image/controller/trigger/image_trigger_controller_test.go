@@ -973,8 +973,7 @@ func updateBuildConfigImages(bc *buildapi.BuildConfig, tagRetriever trigger.TagR
 // changes passed to it and send it back on the watch as a modification.
 func alterBuildConfigFromTriggers(bcWatch *consistentWatch) imageReactorFunc {
 	return imageReactorFunc(func(obj interface{}, tagRetriever trigger.TagRetriever) error {
-		obj, _ = kapi.Scheme.DeepCopy(obj)
-		bc := obj.(*buildapi.BuildConfig)
+		bc := obj.DeepCopy()
 
 		updated, err := updateBuildConfigImages(bc, tagRetriever)
 		if err != nil {
@@ -989,8 +988,7 @@ func alterBuildConfigFromTriggers(bcWatch *consistentWatch) imageReactorFunc {
 
 func alterDeploymentConfigFromTriggers(dcWatch *consistentWatch) imageReactorFunc {
 	return imageReactorFunc(func(obj interface{}, tagRetriever trigger.TagRetriever) error {
-		obj, _ = kapi.Scheme.DeepCopy(obj)
-		dc := obj.(*deployapi.DeploymentConfig)
+		dc := obj.DeepCopy()
 		updated, resolvable, err := deploymentconfigs.UpdateDeploymentConfigImages(dc, tagRetriever)
 		if err != nil {
 			return err
@@ -1007,8 +1005,7 @@ func alterDeploymentConfigFromTriggers(dcWatch *consistentWatch) imageReactorFun
 func alterPodFromTriggers(podWatch *watch.RaceFreeFakeWatcher) imageReactorFunc {
 	count := 2
 	return imageReactorFunc(func(obj interface{}, tagRetriever trigger.TagRetriever) error {
-		obj, _ = kapi.Scheme.DeepCopy(obj)
-		pod := obj.(*kapi.Pod)
+		pod := obj.DeepCopy()
 
 		updated, err := annotations.UpdateObjectFromImages(pod, kapi.Scheme, tagRetriever)
 		if err != nil {
@@ -1227,8 +1224,7 @@ func TestTriggerController(t *testing.T) {
 				if len(items) == 0 {
 					continue
 				}
-				obj, _ := kapi.Scheme.DeepCopy(items[rnd.Int31n(int32(len(items)))])
-				bc := obj.(*buildapi.BuildConfig)
+				bc := items[rnd.Int31n(int32(len(items)))].DeepCopy()
 				if len(bc.Spec.Triggers) > 0 {
 					index := rnd.Int31n(int32(len(bc.Spec.Triggers)))
 					trigger := &bc.Spec.Triggers[index]

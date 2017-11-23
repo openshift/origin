@@ -651,12 +651,7 @@ func setLabels(labels map[string]string, result *newcmd.AppResult) error {
 
 func hasLabel(labels map[string]string, result *newcmd.AppResult) (bool, error) {
 	for _, obj := range result.List.Items {
-		objCopy, err := kapi.Scheme.DeepCopy(obj)
-		if err != nil {
-			return false, err
-		}
-		err = util.AddObjectLabelsWithFlags(objCopy.(runtime.Object), labels, util.ErrorOnExistingDstKey)
-		if err != nil {
+		if err := util.AddObjectLabelsWithFlags(obj.DeepCopyObject(), labels, util.ErrorOnExistingDstKey); err != nil {
 			return true, nil
 		}
 	}

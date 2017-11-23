@@ -398,11 +398,8 @@ func TestDeploymentConfigReactor(t *testing.T) {
 				})
 			}
 			r := DeploymentConfigReactor{Client: c.Apps()}
-			initial, err := kapi.Scheme.DeepCopy(test.obj)
-			if err != nil {
-				t.Fatal(err)
-			}
-			err = r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
+			initial := test.obj.DeepCopy()
+			err := r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
 			if !kapihelper.Semantic.DeepEqual(initial, test.obj) {
 				t.Errorf("should not have mutated: %s", diff.ObjectReflectDiff(initial, test.obj))
 			}

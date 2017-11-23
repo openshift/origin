@@ -61,8 +61,7 @@ func TestEmptyHostDefaulting(t *testing.T) {
 			Host: "myhost.com",
 		},
 	}
-	obj, _ := kapi.Scheme.DeepCopy(persistedRoute)
-	hostlessUpdatedRoute := obj.(*routeapi.Route)
+	hostlessUpdatedRoute := persistedRoute.DeepCopy()
 	hostlessUpdatedRoute.Spec.Host = ""
 	strategy.PrepareForUpdate(ctx, hostlessUpdatedRoute, persistedRoute)
 	if hostlessUpdatedRoute.Spec.Host != "myhost.com" {

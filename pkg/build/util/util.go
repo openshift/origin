@@ -165,24 +165,8 @@ func VersionForBuild(build *buildapi.Build) int {
 	return version
 }
 
-func BuildDeepCopy(build *buildapi.Build) (*buildapi.Build, error) {
-	objCopy, err := kapi.Scheme.DeepCopy(build)
-	if err != nil {
-		return nil, err
-	}
-	copied, ok := objCopy.(*buildapi.Build)
-	if !ok {
-		return nil, fmt.Errorf("expected Build, got %#v", objCopy)
-	}
-	return copied, nil
-}
-
 func CopyApiResourcesToV1Resources(in *kapi.ResourceRequirements) corev1.ResourceRequirements {
-	copied, err := kapi.Scheme.DeepCopy(in)
-	if err != nil {
-		panic(err)
-	}
-	in = copied.(*kapi.ResourceRequirements)
+	in = in.DeepCopy()
 	out := corev1.ResourceRequirements{}
 	if err := kapiv1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
 		panic(err)
@@ -191,14 +175,10 @@ func CopyApiResourcesToV1Resources(in *kapi.ResourceRequirements) corev1.Resourc
 }
 
 func CopyApiEnvVarToV1EnvVar(in []kapi.EnvVar) []corev1.EnvVar {
-	copied, err := kapi.Scheme.DeepCopy(in)
-	if err != nil {
-		panic(err)
-	}
-	in = copied.([]kapi.EnvVar)
 	out := make([]corev1.EnvVar, len(in))
 	for i := range in {
-		if err := kapiv1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
+		item := in[i].DeepCopy()
+		if err := kapiv1.Convert_api_EnvVar_To_v1_EnvVar(item, &out[i], nil); err != nil {
 			panic(err)
 		}
 	}
