@@ -920,7 +920,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    "",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -933,7 +933,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    "",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -946,7 +946,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    "",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -959,7 +959,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by openshift authorizer",
+			Reason:    "",
 			Namespace: "any-project",
 		},
 	}.run(t)
