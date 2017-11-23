@@ -14,6 +14,7 @@ INPUT_DIRS=(
     xargs -n1 dirname | \
     sed "s,^vendor/,," | \
     sort -u | \
+    sed '/^k8s\.io\/kubernetes\/build\/root$/d' | \
     sed '/^k8s\.io\/kubernetes$/d' | \
     sed '/^k8s\.io\/kubernetes\/staging$/d' | \
     sed 's,k8s\.io/kubernetes/staging/src/,,'
@@ -36,3 +37,4 @@ genopenapi \
   --input-dirs "${INPUT_DIRS}" \
   --output-package "${ORIGIN_PREFIX}pkg/openapi" \
   "$@"
+

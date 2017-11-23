@@ -1,6 +1,7 @@
 package raven
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 )
@@ -25,5 +26,14 @@ func TestNewException(t *testing.T) {
 		if actual.Module != test.Module {
 			t.Errorf("incorrect Module: got %s, want %s", actual.Module, test.Module)
 		}
+	}
+}
+
+func TestNewException_JSON(t *testing.T) {
+	expected := `{"value":"foobar","type":"*errors.errorString"}`
+	e := NewException(errors.New("foobar"), nil)
+	b, _ := json.Marshal(e)
+	if string(b) != expected {
+		t.Errorf("incorrect JSON: got %s, want %s", string(b), expected)
 	}
 }

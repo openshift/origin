@@ -231,7 +231,7 @@ func Convert_image_TagEventListArray_to_v1_NamedTagEventListArray(in *map[string
 	for key := range *in {
 		allKeys = append(allKeys, key)
 	}
-	newer.PrioritizeTags(allKeys)
+	sort.Strings(allKeys)
 
 	for _, key := range allKeys {
 		newTagEventList := (*in)[key]

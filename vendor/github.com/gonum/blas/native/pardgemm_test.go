@@ -151,8 +151,11 @@ func testMatchParallelSerial(t *testing.T, i int, tA, tB blas.Transpose, m, n, k
 	bClone := b.clone()
 	cClone := c.clone()
 
-	dgemmSerial(tA, tB, a, b, cClone, alpha)
-	dgemmParallel(tA, tB, a, b, c, alpha)
+	lda := colA
+	ldb := colB
+	ldc := n
+	dgemmSerial(tA == blas.Trans, tB == blas.Trans, m, n, k, a.data, lda, b.data, ldb, cClone.data, ldc, alpha)
+	dgemmParallel(tA == blas.Trans, tB == blas.Trans, m, n, k, a.data, lda, b.data, ldb, c.data, ldc, alpha)
 	if !a.equal(aClone) {
 		t.Errorf("Case %v: a changed during call to dgemmParallel", i)
 	}

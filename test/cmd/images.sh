@@ -143,12 +143,12 @@ os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Created:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Name:'
 
 # test prefer-os and prefer-arch annotations
-os::cmd::expect_success 'oc create -f test/testdata/test-nginx-multiarch-stream.yaml'
-os::cmd::try_until_success 'oc get istag test-nginx-multiarch-stream:linux-amd64'
-os::cmd::try_until_success 'oc get istag test-nginx-multiarch-stream:linux-ppc64le'
-os::cmd::expect_success_and_text 'oc get istag test-nginx-multiarch-stream:linux-amd64 --template={{.image.dockerImageMetadata.Architecture}}' 'amd64'
-os::cmd::expect_success_and_text 'oc get istag test-nginx-multiarch-stream:linux-ppc64le --template={{.image.dockerImageMetadata.Architecture}}' 'ppc64le'
-os::cmd::expect_success 'oc delete is test-nginx-multiarch-stream'
+os::cmd::expect_success 'oc create -f test/testdata/test-multiarch-stream.yaml'
+os::cmd::try_until_success 'oc get istag test-multiarch-stream:linux-amd64'
+os::cmd::try_until_success 'oc get istag test-multiarch-stream:linux-s390x'
+os::cmd::expect_success_and_text 'oc get istag test-multiarch-stream:linux-amd64 --template={{.image.dockerImageMetadata.Architecture}}' 'amd64'
+os::cmd::expect_success_and_text 'oc get istag test-multiarch-stream:linux-s390x --template={{.image.dockerImageMetadata.Architecture}}' 's390x'
+os::cmd::expect_success 'oc delete is test-multiarch-stream'
 echo "imageStreams: ok"
 os::test::junit::declare_suite_end
 
@@ -283,7 +283,8 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/delete-istag"
 # test deleting a tag using oc delete
 os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.16'
-os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" 'latest'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.16'
+os::cmd::expect_success_and_text "oc describe is perl | sed -n -e '0,/^Tags:/d' -e '/^\s\+/d' -e '/./p' | head -n 1" 'latest'
 os::cmd::expect_success "oc delete istag/perl:5.16 --context='${cluster_admin_context}'"
 os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'version:5.16'
 os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'version:5.16'

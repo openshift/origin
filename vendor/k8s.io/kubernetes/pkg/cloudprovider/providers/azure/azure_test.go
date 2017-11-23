@@ -856,7 +856,7 @@ func TestMetadataParsing(t *testing.T) {
         "macAddress": "002248020E1E"
       }
     ]
-}
+}	
 `
 
 	network := NetworkMetadata{}

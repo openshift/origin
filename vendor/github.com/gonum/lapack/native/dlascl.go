@@ -10,14 +10,19 @@ import (
 	"github.com/gonum/lapack"
 )
 
-// Dlascl multiplies a rectangular matrix by a scalar.
+// Dlascl multiplies an m×n matrix by the scalar cto/cfrom.
+//
+// cfrom must not be zero, and cto and cfrom must not be NaN, otherwise Dlascl
+// will panic.
+//
+// Dlascl is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlascl(kind lapack.MatrixType, kl, ku int, cfrom, cto float64, m, n int, a []float64, lda int) {
 	checkMatrix(m, n, a, lda)
 	if cfrom == 0 {
-		panic("dlascl: zero divisor")
+		panic(zeroDiv)
 	}
 	if math.IsNaN(cfrom) || math.IsNaN(cto) {
-		panic("dlascl: NaN scale factor")
+		panic(nanScale)
 	}
 	if n == 0 || m == 0 {
 		return
@@ -31,7 +36,7 @@ func (impl Implementation) Dlascl(kind lapack.MatrixType, kl, ku int, cfrom, cto
 		var done bool
 		var mul, ctol float64
 		if cfrom1 == cfromc {
-			// cfromc is inf
+			// cfromc is inf.
 			mul = ctoc / cfromc
 			done = true
 			ctol = ctoc
@@ -61,6 +66,18 @@ func (impl Implementation) Dlascl(kind lapack.MatrixType, kl, ku int, cfrom, cto
 		case lapack.General:
 			for i := 0; i < m; i++ {
 				for j := 0; j < n; j++ {
+					a[i*lda+j] = a[i*lda+j] * mul
+				}
+			}
+		case lapack.UpperTri:
+			for i := 0; i < m; i++ {
+				for j := i; j < n; j++ {
+					a[i*lda+j] = a[i*lda+j] * mul
+				}
+			}
+		case lapack.LowerTri:
+			for i := 0; i < m; i++ {
+				for j := 0; j <= min(i, n-1); j++ {
 					a[i*lda+j] = a[i*lda+j] * mul
 				}
 			}

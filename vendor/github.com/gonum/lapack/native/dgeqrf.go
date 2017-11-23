@@ -9,21 +9,22 @@ import (
 	"github.com/gonum/lapack"
 )
 
-// Dgeqrf computes the QR factorization of the m×n matrix a using a blocked
-// algorithm. Please see the documentation for Dgeqr2 for a description of the
+// Dgeqrf computes the QR factorization of the m×n matrix A using a blocked
+// algorithm. See the documentation for Dgeqr2 for a description of the
 // parameters at entry and exit.
 //
-// Work is temporary storage, and lwork specifies the usable memory length.
-// At minimum, lwork >= m and this function will panic otherwise.
-// Dgeqrf is a blocked LQ factorization, but the block size is limited
-// by the temporary space available. If lwork == -1, instead of performing Dgelqf,
+// work is temporary storage, and lwork specifies the usable memory length.
+// The length of work must be at least max(1, lwork) and lwork must be -1
+// or at least n, otherwise this function will panic.
+// Dgeqrf is a blocked QR factorization, but the block size is limited
+// by the temporary space available. If lwork == -1, instead of performing Dgeqrf,
 // the optimal work length will be stored into work[0].
 //
-// tau must be at least len min(m,n), and this function will panic otherwise.
+// tau must have length at least min(m,n), and this function will panic otherwise.
 func (impl Implementation) Dgeqrf(m, n int, a []float64, lda int, tau, work []float64, lwork int) {
-	// TODO(btracey): This algorithm is oriented for column-major storage.
-	// Consider modifying the algorithm to better suit row-major storage.
-
+	if len(work) < max(1, lwork) {
+		panic(shortWork)
+	}
 	// nb is the optimal blocksize, i.e. the number of columns transformed at a time.
 	nb := impl.Ilaenv(1, "DGEQRF", " ", m, n, -1, -1)
 	lworkopt := n * max(nb, 1)
@@ -33,9 +34,6 @@ func (impl Implementation) Dgeqrf(m, n int, a []float64, lda int, tau, work []fl
 		return
 	}
 	checkMatrix(m, n, a, lda)
-	if len(work) < lwork {
-		panic(shortWork)
-	}
 	if lwork < n {
 		panic(badWork)
 	}
@@ -44,22 +42,24 @@ func (impl Implementation) Dgeqrf(m, n int, a []float64, lda int, tau, work []fl
 		panic(badTau)
 	}
 	if k == 0 {
+		work[0] = float64(lworkopt)
 		return
 	}
-	nbmin := 2 // Minimal number of blocks
+	nbmin := 2 // Minimal block size.
 	var nx int // Use unblocked (unless changed in the next for loop)
 	iws := n
 	ldwork := nb
-	// Only consider blocked if the suggested number of blocks is > 1 and the
-	// number of columns is sufficiently large.
-	if nb > 1 && k > nb {
-		// nx is the crossover point. Above this value the blocked routine should be used.
+	// Only consider blocked if the suggested block size is > 1 and the
+	// number of rows or columns is sufficiently large.
+	if 1 < nb && nb < k {
+		// nx is the block size at which the code switches from blocked
+		// to unblocked.
 		nx = max(0, impl.Ilaenv(3, "DGEQRF", " ", m, n, -1, -1))
 		if k > nx {
 			iws = ldwork * n
 			if lwork < iws {
-				// Not enough workspace to use the optimal number of blocks. Instead,
-				// get the maximum allowable number of blocks.
+				// Not enough workspace to use the optimal block
+				// size. Get the minimum block size instead.
 				nb = lwork / n
 				nbmin = max(2, impl.Ilaenv(2, "DGEQRF", " ", m, n, -1, -1))
 			}
@@ -70,7 +70,7 @@ func (impl Implementation) Dgeqrf(m, n int, a []float64, lda int, tau, work []fl
 	}
 	// Compute QR using a blocked algorithm.
 	var i int
-	if nb >= nbmin && nb < k && nx < k {
+	if nbmin <= nb && nb < k && nx < k {
 		for i = 0; i < k-nx; i += nb {
 			ib := min(k-i, nb)
 			// Compute the QR factorization of the current block.
@@ -95,4 +95,5 @@ func (impl Implementation) Dgeqrf(m, n int, a []float64, lda int, tau, work []fl
 	if i < k {
 		impl.Dgeqr2(m-i, n-i, a[i*lda+i:], lda, tau[i:], work)
 	}
+	work[0] = float64(lworkopt)
 }

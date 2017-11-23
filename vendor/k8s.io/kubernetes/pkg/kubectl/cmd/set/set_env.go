@@ -39,7 +39,7 @@ import (
 
 var (
 	envResources = `
-	pod (po), replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs)`
+  	pod (po), replicationcontroller (rc), deployment (deploy), daemonset (ds), job, replicaset (rs)`
 
 	envLong = templates.LongDesc(`
 		Update environment variables on a pod template.

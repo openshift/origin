@@ -5,58 +5,28 @@
 package mat64
 
 import (
-	"bytes"
-	"encoding/binary"
-
+	"github.com/gonum/blas"
 	"github.com/gonum/blas/blas64"
+	"github.com/gonum/matrix"
 )
 
 var (
-	matrix *Dense
+	dense *Dense
 
-	_ Matrix       = matrix
-	_ Mutable      = matrix
-	_ Vectorer     = matrix
-	_ VectorSetter = matrix
+	_ Matrix  = dense
+	_ Mutable = dense
 
-	_ Cloner       = matrix
-	_ Viewer       = matrix
-	_ RowViewer    = matrix
-	_ ColViewer    = matrix
-	_ RawRowViewer = matrix
-	_ Grower       = matrix
+	_ Cloner       = dense
+	_ Viewer       = dense
+	_ RowViewer    = dense
+	_ ColViewer    = dense
+	_ RawRowViewer = dense
+	_ Grower       = dense
 
-	_ Adder     = matrix
-	_ Suber     = matrix
-	_ Muler     = matrix
-	_ Dotter    = matrix
-	_ ElemMuler = matrix
-	_ ElemDiver = matrix
-	_ Exper     = matrix
+	_ RawMatrixSetter = dense
+	_ RawMatrixer     = dense
 
-	_ Scaler  = matrix
-	_ Applyer = matrix
-
-	_ TransposeCopier = matrix
-	// _ TransposeViewer = matrix
-
-	_ Tracer = matrix
-	_ Normer = matrix
-	_ Sumer  = matrix
-
-	_ Uer = matrix
-	_ Ler = matrix
-
-	_ Stacker   = matrix
-	_ Augmenter = matrix
-
-	_ Equaler       = matrix
-	_ ApproxEqualer = matrix
-
-	_ RawMatrixSetter = matrix
-	_ RawMatrixer     = matrix
-
-	_ Reseter = matrix
+	_ Reseter = dense
 )
 
 // Dense is a dense matrix representation.
@@ -66,24 +36,26 @@ type Dense struct {
 	capRows, capCols int
 }
 
-// NewDense creates a new matrix of type Dense with dimensions r and c.
-// If the mat argument is nil, a new data slice is allocated.
+// NewDense creates a new Dense matrix with r rows and c columns. If data == nil,
+// a new slice is allocated for the backing slice. If len(data) == r*c, data is
+// used as the backing slice, and changes to the elements of the returned Dense
+// will be reflected in data. If neither of these is true, NewDense will panic.
 //
 // The data must be arranged in row-major order, i.e. the (i*c + j)-th
-// element in mat is the {i, j}-th element in the matrix.
-func NewDense(r, c int, mat []float64) *Dense {
-	if mat != nil && r*c != len(mat) {
-		panic(ErrShape)
+// element in the data slice is the {i, j}-th element in the matrix.
+func NewDense(r, c int, data []float64) *Dense {
+	if data != nil && r*c != len(data) {
+		panic(matrix.ErrShape)
 	}
-	if mat == nil {
-		mat = make([]float64, r*c)
+	if data == nil {
+		data = make([]float64, r*c)
 	}
 	return &Dense{
 		mat: blas64.General{
 			Rows:   r,
 			Cols:   c,
 			Stride: c,
-			Data:   mat,
+			Data:   data,
 		},
 		capRows: r,
 		capCols: c,
@@ -92,6 +64,8 @@ func NewDense(r, c int, mat []float64) *Dense {
 
 // reuseAs resizes an empty matrix to a r×c matrix,
 // or checks that a non-empty matrix is r×c.
+//
+// reuseAs must be kept in sync with reuseAsZeroed.
 func (m *Dense) reuseAs(r, c int) {
 	if m.mat.Rows > m.capRows || m.mat.Cols > m.capCols {
 		// Panic as a string, not a mat64.Error.
@@ -109,14 +83,91 @@ func (m *Dense) reuseAs(r, c int) {
 		return
 	}
 	if r != m.mat.Rows || c != m.mat.Cols {
-		panic(ErrShape)
+		panic(matrix.ErrShape)
 	}
+}
+
+// reuseAsZeroed resizes an empty matrix to a r×c matrix,
+// or checks that a non-empty matrix is r×c. It zeroes
+// all the elements of the matrix.
+//
+// reuseAsZeroed must be kept in sync with reuseAs.
+func (m *Dense) reuseAsZeroed(r, c int) {
+	if m.mat.Rows > m.capRows || m.mat.Cols > m.capCols {
+		// Panic as a string, not a mat64.Error.
+		panic("mat64: caps not correctly set")
+	}
+	if m.isZero() {
+		m.mat = blas64.General{
+			Rows:   r,
+			Cols:   c,
+			Stride: c,
+			Data:   useZeroed(m.mat.Data, r*c),
+		}
+		m.capRows = r
+		m.capCols = c
+		return
+	}
+	if r != m.mat.Rows || c != m.mat.Cols {
+		panic(matrix.ErrShape)
+	}
+	for i := 0; i < r; i++ {
+		zero(m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+c])
+	}
+}
+
+// untranspose untransposes a matrix if applicable. If a is an Untransposer, then
+// untranspose returns the underlying matrix and true. If it is not, then it returns
+// the input matrix and false.
+func untranspose(a Matrix) (Matrix, bool) {
+	if ut, ok := a.(Untransposer); ok {
+		return ut.Untranspose(), true
+	}
+	return a, false
+}
+
+// isolatedWorkspace returns a new dense matrix w with the size of a and
+// returns a callback to defer which performs cleanup at the return of the call.
+// This should be used when a method receiver is the same pointer as an input argument.
+func (m *Dense) isolatedWorkspace(a Matrix) (w *Dense, restore func()) {
+	r, c := a.Dims()
+	w = getWorkspace(r, c, false)
+	return w, func() {
+		m.Copy(w)
+		putWorkspace(w)
+	}
+}
+
+// Reset zeros the dimensions of the matrix so that it can be reused as the
+// receiver of a dimensionally restricted operation.
+//
+// See the Reseter interface for more information.
+func (m *Dense) Reset() {
+	// Row, Cols and Stride must be zeroed in unison.
+	m.mat.Rows, m.mat.Cols, m.mat.Stride = 0, 0, 0
+	m.capRows, m.capCols = 0, 0
+	m.mat.Data = m.mat.Data[:0]
 }
 
 func (m *Dense) isZero() bool {
 	// It must be the case that m.Dims() returns
 	// zeros in this case. See comment in Reset().
 	return m.mat.Stride == 0
+}
+
+// asTriDense returns a TriDense with the given size and side. The backing data
+// of the TriDense is the same as the receiver.
+func (m *Dense) asTriDense(n int, diag blas.Diag, uplo blas.Uplo) *TriDense {
+	return &TriDense{
+		mat: blas64.Triangular{
+			N:      n,
+			Stride: m.mat.Stride,
+			Data:   m.mat.Data,
+			Uplo:   uplo,
+			Diag:   diag,
+		},
+		cap: n,
+	}
 }
 
 // DenseCopyOf returns a newly allocated copy of the elements of a.
@@ -145,33 +196,17 @@ func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
 // Caps returns the number of rows and columns in the backing matrix.
 func (m *Dense) Caps() (r, c int) { return m.capRows, m.capCols }
 
-// Col copies the elements in the jth column of the matrix into the slice dst.
-// If the provided slice is nil, a new slice is first allocated.
-//
-// See the Vectorer interface for more information.
-func (m *Dense) Col(dst []float64, j int) []float64 {
-	if j >= m.mat.Cols || j < 0 {
-		panic(ErrColAccess)
-	}
-
-	if dst == nil {
-		dst = make([]float64, m.mat.Rows)
-	}
-	dst = dst[:min(len(dst), m.mat.Rows)]
-	blas64.Copy(len(dst),
-		blas64.Vector{Inc: m.mat.Stride, Data: m.mat.Data[j:]},
-		blas64.Vector{Inc: 1, Data: dst},
-	)
-
-	return dst
+// T performs an implicit transpose by returning the receiver inside a Transpose.
+func (m *Dense) T() Matrix {
+	return Transpose{m}
 }
 
-// ColView returns a Vector reflecting col j, backed by the matrix data.
+// ColView returns a Vector reflecting the column j, backed by the matrix data.
 //
 // See ColViewer for more information.
 func (m *Dense) ColView(j int) *Vector {
 	if j >= m.mat.Cols || j < 0 {
-		panic(ErrColAccess)
+		panic(matrix.ErrColAccess)
 	}
 	return &Vector{
 		mat: blas64.Vector{
@@ -182,65 +217,47 @@ func (m *Dense) ColView(j int) *Vector {
 	}
 }
 
-// SetCol sets the elements of the matrix in the specified column to the values
-// of src.
-//
-// See the VectorSetter interface for more information.
-func (m *Dense) SetCol(j int, src []float64) int {
+// SetCol sets the values in the specified column of the matrix to the values
+// in src. len(src) must equal the number of rows in the receiver.
+func (m *Dense) SetCol(j int, src []float64) {
 	if j >= m.mat.Cols || j < 0 {
-		panic(ErrColAccess)
+		panic(matrix.ErrColAccess)
+	}
+	if len(src) != m.mat.Rows {
+		panic(matrix.ErrColLength)
 	}
 
-	blas64.Copy(min(len(src), m.mat.Rows),
+	blas64.Copy(m.mat.Rows,
 		blas64.Vector{Inc: 1, Data: src},
 		blas64.Vector{Inc: m.mat.Stride, Data: m.mat.Data[j:]},
 	)
-
-	return min(len(src), m.mat.Rows)
 }
 
-// Row copies the elements in the ith row of the matrix into the slice dst.
-// If the provided slice is nil, a new slice is first allocated.
-//
-// See the Vectorer interface for more information.
-func (m *Dense) Row(dst []float64, i int) []float64 {
+// SetRow sets the values in the specified rows of the matrix to the values
+// in src. len(src) must equal the number of columns in the receiver.
+func (m *Dense) SetRow(i int, src []float64) {
 	if i >= m.mat.Rows || i < 0 {
-		panic(ErrRowAccess)
+		panic(matrix.ErrRowAccess)
+	}
+	if len(src) != m.mat.Cols {
+		panic(matrix.ErrRowLength)
 	}
 
-	if dst == nil {
-		dst = make([]float64, m.mat.Cols)
-	}
-	copy(dst, m.rowView(i))
-
-	return dst
+	copy(m.rawRowView(i), src)
 }
 
-// SetRow sets the elements of the matrix in the specified row to the values of
-// src.
-//
-// See the VectorSetter interface for more information.
-func (m *Dense) SetRow(i int, src []float64) int {
-	if i >= m.mat.Rows || i < 0 {
-		panic(ErrRowAccess)
-	}
-
-	copy(m.rowView(i), src)
-
-	return min(len(src), m.mat.Cols)
-}
-
-// RowView returns a Vector reflecting row i, backed by the matrix data.
+// RowView returns row i of the matrix data represented as a column vector,
+// backed by the matrix data.
 //
 // See RowViewer for more information.
 func (m *Dense) RowView(i int) *Vector {
 	if i >= m.mat.Rows || i < 0 {
-		panic(ErrRowAccess)
+		panic(matrix.ErrRowAccess)
 	}
 	return &Vector{
 		mat: blas64.Vector{
 			Inc:  1,
-			Data: m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+m.mat.Cols],
+			Data: m.rawRowView(i),
 		},
 		n: m.mat.Cols,
 	}
@@ -250,38 +267,51 @@ func (m *Dense) RowView(i int) *Vector {
 // receiver.
 func (m *Dense) RawRowView(i int) []float64 {
 	if i >= m.mat.Rows || i < 0 {
-		panic(ErrRowAccess)
+		panic(matrix.ErrRowAccess)
 	}
-	return m.rowView(i)
+	return m.rawRowView(i)
 }
 
-func (m *Dense) rowView(r int) []float64 {
-	return m.mat.Data[r*m.mat.Stride : r*m.mat.Stride+m.mat.Cols]
+func (m *Dense) rawRowView(i int) []float64 {
+	return m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+m.mat.Cols]
 }
 
 // View returns a new Matrix that shares backing data with the receiver.
 // The new matrix is located from row i, column j extending r rows and c
-// columns.
+// columns. View panics if the view is outside the bounds of the receiver.
+//
+// View is deprecated and should not be used. It will be removed at a later date.
 func (m *Dense) View(i, j, r, c int) Matrix {
+	return m.Slice(i, i+r, j, j+c)
+}
+
+// Slice returns a new Matrix that shares backing data with the receiver.
+// The returned matrix starts at {i,j} of the recevier and extends k-i rows
+// and l-j columns. The final row in the resulting matrix is k-1 and the
+// final column is l-1.
+// Slice panics with ErrIndexOutOfRange if the slice is outside the bounds
+// of the receiver.
+func (m *Dense) Slice(i, k, j, l int) Matrix {
 	mr, mc := m.Dims()
-	if i < 0 || i >= mr || j < 0 || j >= mc || r <= 0 || i+r > mr || c <= 0 || j+c > mc {
-		panic(ErrIndexOutOfRange)
+	if i < 0 || mr <= i || j < 0 || mc <= j || k <= i || mr < k || l <= j || mc < l {
+		panic(matrix.ErrIndexOutOfRange)
 	}
 	t := *m
-	t.mat.Data = t.mat.Data[i*t.mat.Stride+j : (i+r-1)*t.mat.Stride+(j+c)]
-	t.mat.Rows = r
-	t.mat.Cols = c
+	t.mat.Data = t.mat.Data[i*t.mat.Stride+j : (k-1)*t.mat.Stride+l]
+	t.mat.Rows = k - i
+	t.mat.Cols = l - j
 	t.capRows -= i
 	t.capCols -= j
 	return &t
 }
 
-// Grow returns an expanded copy of the receiver. The copy is expanded
-// by r rows and c columns. If the dimensions of the new copy are outside
-// the caps of the receiver a new allocation is made, otherwise not.
+// Grow returns the receiver expanded by r rows and c columns. If the dimensions
+// of the expanded matrix are outside the capacities of the receiver a new
+// allocation is made, otherwise not. Note the receiver itself is not modified
+// during the call to Grow.
 func (m *Dense) Grow(r, c int) Matrix {
 	if r < 0 || c < 0 {
-		panic(ErrIndexOutOfRange)
+		panic(matrix.ErrIndexOutOfRange)
 	}
 	if r == 0 && c == 0 {
 		return m
@@ -314,10 +344,18 @@ func (m *Dense) Grow(r, c int) Matrix {
 		t.capRows = cr
 		t.capCols = cc
 		// Copy the complete matrix over to the new matrix.
-		// Including elements not currently visible.
-		r, c, m.mat.Rows, m.mat.Cols = m.mat.Rows, m.mat.Cols, m.capRows, m.capCols
-		t.Copy(m)
-		m.mat.Rows, m.mat.Cols = r, c
+		// Including elements not currently visible. Use a temporary structure
+		// to avoid modifying the receiver.
+		var tmp Dense
+		tmp.mat = blas64.General{
+			Rows:   m.mat.Rows,
+			Cols:   m.mat.Cols,
+			Stride: m.mat.Stride,
+			Data:   m.mat.Data,
+		}
+		tmp.capRows = m.capRows
+		tmp.capCols = m.capCols
+		t.Copy(&tmp)
 		return &t
 	default:
 		t.mat = blas64.General{
@@ -332,20 +370,9 @@ func (m *Dense) Grow(r, c int) Matrix {
 	return &t
 }
 
-// Reset zeros the dimensions of the matrix so that it can be reused as the
-// receiver of a dimensionally restricted operation.
-//
-// See the Reseter interface for more information.
-func (m *Dense) Reset() {
-	// No change of Stride, Rows and Cols to 0
-	// may be made unless all are set to 0.
-	m.mat.Rows, m.mat.Cols, m.mat.Stride = 0, 0, 0
-	m.capRows, m.capCols = 0, 0
-	m.mat.Data = m.mat.Data[:0]
-}
-
 // Clone makes a copy of a into the receiver, overwriting the previous value of
-// the receiver. The clone operation does not make any restriction on shape.
+// the receiver. The clone operation does not make any restriction on shape and
+// will not cause shadowing.
 //
 // See the Cloner interface for more information.
 func (m *Dense) Clone(a Matrix) {
@@ -356,26 +383,39 @@ func (m *Dense) Clone(a Matrix) {
 		Stride: c,
 	}
 	m.capRows, m.capCols = r, c
-	switch a := a.(type) {
+
+	aU, trans := untranspose(a)
+	switch aU := aU.(type) {
 	case RawMatrixer:
-		amat := a.RawMatrix()
+		amat := aU.RawMatrix()
 		mat.Data = make([]float64, r*c)
-		for i := 0; i < r; i++ {
-			copy(mat.Data[i*c:(i+1)*c], amat.Data[i*amat.Stride:i*amat.Stride+c])
-		}
-	case Vectorer:
-		mat.Data = use(m.mat.Data, r*c)
-		for i := 0; i < r; i++ {
-			a.Row(mat.Data[i*c:(i+1)*c], i)
-		}
-	default:
-		mat.Data = use(m.mat.Data, r*c)
-		m.mat = mat
-		for i := 0; i < r; i++ {
-			for j := 0; j < c; j++ {
-				m.set(i, j, a.At(i, j))
+		if trans {
+			for i := 0; i < r; i++ {
+				blas64.Copy(c,
+					blas64.Vector{Inc: amat.Stride, Data: amat.Data[i : i+(c-1)*amat.Stride+1]},
+					blas64.Vector{Inc: 1, Data: mat.Data[i*c : (i+1)*c]})
+			}
+		} else {
+			for i := 0; i < r; i++ {
+				copy(mat.Data[i*c:(i+1)*c], amat.Data[i*amat.Stride:i*amat.Stride+c])
 			}
 		}
+	case *Vector:
+		amat := aU.mat
+		mat.Data = make([]float64, aU.n)
+		blas64.Copy(aU.n,
+			blas64.Vector{Inc: amat.Inc, Data: amat.Data},
+			blas64.Vector{Inc: 1, Data: mat.Data})
+	default:
+		mat.Data = make([]float64, r*c)
+		w := *m
+		w.mat = mat
+		for i := 0; i < r; i++ {
+			for j := 0; j < c; j++ {
+				w.set(i, j, a.At(i, j))
+			}
+		}
+		*m = w
 		return
 	}
 	m.mat = mat
@@ -383,28 +423,82 @@ func (m *Dense) Clone(a Matrix) {
 
 // Copy makes a copy of elements of a into the receiver. It is similar to the
 // built-in copy; it copies as much as the overlap between the two matrices and
-// returns the number of rows and columns it copied.
+// returns the number of rows and columns it copied. If a aliases the receiver
+// and is a transposed Dense or Vector, with a non-unitary increment, Copy will
+// panic.
 //
 // See the Copier interface for more information.
 func (m *Dense) Copy(a Matrix) (r, c int) {
 	r, c = a.Dims()
+	if a == m {
+		return r, c
+	}
 	r = min(r, m.mat.Rows)
 	c = min(c, m.mat.Cols)
+	if r == 0 || c == 0 {
+		return 0, 0
+	}
 
-	switch a := a.(type) {
+	aU, trans := untranspose(a)
+	switch aU := aU.(type) {
 	case RawMatrixer:
-		amat := a.RawMatrix()
-		for i := 0; i < r; i++ {
-			copy(m.mat.Data[i*m.mat.Stride:i*m.mat.Stride+c], amat.Data[i*amat.Stride:i*amat.Stride+c])
+		amat := aU.RawMatrix()
+		if trans {
+			if amat.Stride != 1 {
+				m.checkOverlap(amat)
+			}
+			for i := 0; i < r; i++ {
+				blas64.Copy(c,
+					blas64.Vector{Inc: amat.Stride, Data: amat.Data[i : i+(c-1)*amat.Stride+1]},
+					blas64.Vector{Inc: 1, Data: m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+c]})
+			}
+		} else {
+			switch o := offset(m.mat.Data, amat.Data); {
+			case o < 0:
+				for i := r - 1; i >= 0; i-- {
+					copy(m.mat.Data[i*m.mat.Stride:i*m.mat.Stride+c], amat.Data[i*amat.Stride:i*amat.Stride+c])
+				}
+			case o > 0:
+				for i := 0; i < r; i++ {
+					copy(m.mat.Data[i*m.mat.Stride:i*m.mat.Stride+c], amat.Data[i*amat.Stride:i*amat.Stride+c])
+				}
+			default:
+				// Nothing to do.
+			}
 		}
-	case Vectorer:
-		for i := 0; i < r; i++ {
-			a.Row(m.mat.Data[i*m.mat.Stride:i*m.mat.Stride+c], i)
+	case *Vector:
+		var n, stride int
+		amat := aU.mat
+		if trans {
+			if amat.Inc != 1 {
+				m.checkOverlap(aU.asGeneral())
+			}
+			n = c
+			stride = 1
+		} else {
+			n = r
+			stride = m.mat.Stride
+		}
+		if amat.Inc == 1 && stride == 1 {
+			copy(m.mat.Data, amat.Data[:n])
+			break
+		}
+		switch o := offset(m.mat.Data, amat.Data); {
+		case o < 0:
+			blas64.Copy(n,
+				blas64.Vector{Inc: -amat.Inc, Data: amat.Data},
+				blas64.Vector{Inc: -stride, Data: m.mat.Data})
+		case o > 0:
+			blas64.Copy(n,
+				blas64.Vector{Inc: amat.Inc, Data: amat.Data},
+				blas64.Vector{Inc: stride, Data: m.mat.Data})
+		default:
+			// Nothing to do.
 		}
 	default:
 		for i := 0; i < r; i++ {
 			for j := 0; j < c; j++ {
-				m.set(r, c, a.At(r, c))
+				m.set(i, j, a.At(i, j))
 			}
 		}
 	}
@@ -412,235 +506,38 @@ func (m *Dense) Copy(a Matrix) (r, c int) {
 	return r, c
 }
 
-// U places the upper triangular matrix of a in the receiver.
-//
-// See the Uer interface for more information.
-func (m *Dense) U(a Matrix) {
-	ar, ac := a.Dims()
-	if ar != ac {
-		panic(ErrSquare)
-	}
-
-	if m == a {
-		m.zeroLower()
-		return
-	}
-	m.reuseAs(ar, ac)
-
-	if a, ok := a.(RawMatrixer); ok {
-		amat := a.RawMatrix()
-		copy(m.mat.Data[:ac], amat.Data[:ac])
-		for j, ja, jm := 1, amat.Stride, m.mat.Stride; ja < ar*amat.Stride; j, ja, jm = j+1, ja+amat.Stride, jm+m.mat.Stride {
-			zero(m.mat.Data[jm : jm+j])
-			copy(m.mat.Data[jm+j:jm+ac], amat.Data[ja+j:ja+ac])
-		}
-		return
-	}
-
-	if a, ok := a.(Vectorer); ok {
-		row := make([]float64, ac)
-		copy(m.mat.Data[:m.mat.Cols], a.Row(row, 0))
-		for r := 1; r < ar; r++ {
-			zero(m.mat.Data[r*m.mat.Stride : r*(m.mat.Stride+1)])
-			copy(m.mat.Data[r*(m.mat.Stride+1):r*m.mat.Stride+m.mat.Cols], a.Row(row, r))
-		}
-		return
-	}
-
-	m.zeroLower()
-	for r := 0; r < ar; r++ {
-		for c := r; c < ac; c++ {
-			m.set(r, c, a.At(r, c))
-		}
-	}
-}
-
-func (m *Dense) zeroLower() {
-	for i := 1; i < m.mat.Rows; i++ {
-		zero(m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+i])
-	}
-}
-
-// L places the lower triangular matrix of a in the receiver.
-//
-// See the Ler interface for more information.
-func (m *Dense) L(a Matrix) {
-	ar, ac := a.Dims()
-	if ar != ac {
-		panic(ErrSquare)
-	}
-
-	if m == a {
-		m.zeroUpper()
-		return
-	}
-	m.reuseAs(ar, ac)
-
-	if a, ok := a.(RawMatrixer); ok {
-		amat := a.RawMatrix()
-		copy(m.mat.Data[:ar], amat.Data[:ar])
-		for j, ja, jm := 1, amat.Stride, m.mat.Stride; ja < ac*amat.Stride; j, ja, jm = j+1, ja+amat.Stride, jm+m.mat.Stride {
-			zero(m.mat.Data[jm : jm+j])
-			copy(m.mat.Data[jm+j:jm+ar], amat.Data[ja+j:ja+ar])
-		}
-		return
-	}
-
-	if a, ok := a.(Vectorer); ok {
-		row := make([]float64, ac)
-		for r := 0; r < ar; r++ {
-			a.Row(row[:r+1], r)
-			m.SetRow(r, row)
-		}
-		return
-	}
-
-	m.zeroUpper()
-	for c := 0; c < ac; c++ {
-		for r := c; r < ar; r++ {
-			m.set(r, c, a.At(r, c))
-		}
-	}
-}
-
-func (m *Dense) zeroUpper() {
-	for i := 0; i < m.mat.Rows-1; i++ {
-		zero(m.mat.Data[i*m.mat.Stride+i+1 : (i+1)*m.mat.Stride])
-	}
-}
-
-// TCopy makes a copy of the transpose the matrix represented by a, placing the
-// result into the receiver.
-//
-// See the TransposeCopier interface for more information.
-func (m *Dense) TCopy(a Matrix) {
-	ar, ac := a.Dims()
-
-	var w Dense
-	if m != a {
-		w = *m
-	}
-	w.reuseAs(ac, ar)
-
-	switch a := a.(type) {
-	case *Dense:
-		for i := 0; i < ac; i++ {
-			for j := 0; j < ar; j++ {
-				w.set(i, j, a.at(j, i))
-			}
-		}
-	default:
-		for i := 0; i < ac; i++ {
-			for j := 0; j < ar; j++ {
-				w.set(i, j, a.At(j, i))
-			}
-		}
-	}
-	*m = w
-}
-
 // Stack appends the rows of b onto the rows of a, placing the result into the
-// receiver.
-//
-// See the Stacker interface for more information.
+// receiver with b placed in the greater indexed rows. Stack will panic if the
+// two input matrices do not have the same number of columns or the constructed
+// stacked matrix is not the same shape as the receiver.
 func (m *Dense) Stack(a, b Matrix) {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
 	if ac != bc || m == a || m == b {
-		panic(ErrShape)
+		panic(matrix.ErrShape)
 	}
 
 	m.reuseAs(ar+br, ac)
 
 	m.Copy(a)
-	w := m.View(ar, 0, br, bc).(*Dense)
+	w := m.Slice(ar, ar+br, 0, bc).(*Dense)
 	w.Copy(b)
 }
 
 // Augment creates the augmented matrix of a and b, where b is placed in the
-// greater indexed columns.
-//
-// See the Augmenter interface for more information.
+// greater indexed columns. Augment will panic if the two input matrices do
+// not have the same number of rows or the constructed augmented matrix is
+// not the same shape as the receiver.
 func (m *Dense) Augment(a, b Matrix) {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
 	if ar != br || m == a || m == b {
-		panic(ErrShape)
+		panic(matrix.ErrShape)
 	}
 
 	m.reuseAs(ar, ac+bc)
 
 	m.Copy(a)
-	w := m.View(0, ac, br, bc).(*Dense)
+	w := m.Slice(0, br, ac, ac+bc).(*Dense)
 	w.Copy(b)
-}
-
-// MarshalBinary encodes the receiver into a binary form and returns the result.
-//
-// Dense is little-endian encoded as follows:
-//   0 -  8  number of rows    (int64)
-//   8 - 16  number of columns (int64)
-//  16 - ..  matrix data elements (float64)
-//           [0,0] [0,1] ... [0,ncols-1]
-//           [1,0] [1,1] ... [1,ncols-1]
-//           ...
-//           [nrows-1,0] ... [nrows-1,ncols-1]
-func (m Dense) MarshalBinary() ([]byte, error) {
-	buf := bytes.NewBuffer(make([]byte, 0, m.mat.Rows*m.mat.Cols*sizeFloat64+2*sizeInt64))
-	err := binary.Write(buf, defaultEndian, int64(m.mat.Rows))
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buf, defaultEndian, int64(m.mat.Cols))
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < m.mat.Rows; i++ {
-		for _, v := range m.rowView(i) {
-			err = binary.Write(buf, defaultEndian, v)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return buf.Bytes(), err
-}
-
-// UnmarshalBinary decodes the binary form into the receiver.
-// It panics if the receiver is a non-zero Dense matrix.
-//
-// See MarshalBinary for the on-disk layout.
-func (m *Dense) UnmarshalBinary(data []byte) error {
-	if !m.isZero() {
-		panic("mat64: unmarshal into non-zero matrix")
-	}
-
-	buf := bytes.NewReader(data)
-	var rows int64
-	err := binary.Read(buf, defaultEndian, &rows)
-	if err != nil {
-		return err
-	}
-	var cols int64
-	err = binary.Read(buf, defaultEndian, &cols)
-	if err != nil {
-		return err
-	}
-
-	m.mat.Rows = int(rows)
-	m.mat.Cols = int(cols)
-	m.mat.Stride = int(cols)
-	m.capRows = int(rows)
-	m.capCols = int(cols)
-	m.mat.Data = use(m.mat.Data, m.mat.Rows*m.mat.Cols)
-
-	for i := range m.mat.Data {
-		err = binary.Read(buf, defaultEndian, &m.mat.Data[i])
-		if err != nil {
-			return err
-		}
-	}
-
-	return err
 }

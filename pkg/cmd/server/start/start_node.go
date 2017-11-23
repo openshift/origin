@@ -295,7 +295,10 @@ func (o NodeOptions) resolveNodeConfig() (*configapi.NodeConfig, string, error) 
 		if err != nil {
 			return nil, "", err
 		}
-		cfg, err := o.NodeArgs.BuildSerializeableNodeConfig()
+		cfg, err := configapilatest.ReadAndResolveNodeConfig(configFile)
+		if err != nil {
+			return nil, "", err
+		}
 		return cfg, configFile, err
 	}
 }

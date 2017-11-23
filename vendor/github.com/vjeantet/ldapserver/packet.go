@@ -109,7 +109,7 @@ func (msg *messagePacket) readMessage() (m Message, err error) {
 
 	case ApplicationAbandonRequest:
 		var r AbandonRequest
-		r = AbandonRequest(msg.Packet.Children[1].Value.(uint64))
+		r = AbandonRequest(ber.DecodeInteger(msg.Packet.Children[1].Data.Bytes()))
 		m.protocolOp = r
 		return m, nil
 

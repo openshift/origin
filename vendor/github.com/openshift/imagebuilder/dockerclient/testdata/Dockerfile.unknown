@@ -1,0 +1,4 @@
+FROM busybox
+HEALTH NONE
+SHELL ["/bin/sh", "-c"]
+UNRECOGNIZED

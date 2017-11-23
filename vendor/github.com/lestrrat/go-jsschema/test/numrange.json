@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "payload": {
+      "type": "number",
+      "minimum": 1.4142135623,
+      "maximum": 3.1415926535
+    }
+  }
+}

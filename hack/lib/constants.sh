@@ -31,7 +31,6 @@ readonly OS_SDN_COMPILE_TARGETS_LINUX=(
   vendor/github.com/containernetworking/cni/plugins/main/loopback
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
-  vendor/k8s.io/kubernetes/cmd/hyperkube
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
@@ -231,9 +230,11 @@ function os::util::list_test_packages_under() {
       # we need to find all of the kubernetes test suites, excluding those we directly whitelisted before, the end-to-end suite, and
       # the go2idl tests which we currently do not support
       # etcd3 isn't supported yet and that test flakes upstream
+      # cmd wasn't done before using glide and constantly flakes
       find -L vendor/k8s.io/{apimachinery,apiserver,client-go,kube-aggregator,kubernetes} -not \( \
         \(                                                                                          \
           -path "${kubernetes_path}/staging"                                                        \
+          -o -path "${kubernetes_path}/cmd"                                                         \
           -o -path "${kubernetes_path}/test"                                                        \
           -o -path "${kubernetes_path}/cmd/libs/go2idl/client-gen/testoutput/testgroup/unversioned" \
           -o -path "${kubernetes_path}/pkg/storage/etcd3"                                           \

@@ -17,9 +17,10 @@ import (
 //  h = 1 - tau * v * v^T
 // and c is an m * n matrix.
 //
-
-// Work is temporary storage of length at least m if side == Left and at least
+// work is temporary storage of length at least m if side == Left and at least
 // n if side == Right. This function will panic if this length requirement is not met.
+//
+// Dlarf is an internal routine. It is exported for testing purposes.
 func (impl Implementation) Dlarf(side blas.Side, m, n int, v []float64, incv int, tau float64, c []float64, ldc int, work []float64) {
 	applyleft := side == blas.Left
 	if (applyleft && len(work) < n) || (!applyleft && len(work) < m) {

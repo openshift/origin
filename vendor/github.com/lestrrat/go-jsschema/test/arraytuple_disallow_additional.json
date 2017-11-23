@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "payload": {
+      "type": "array",
+      "items": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string",
+          "enum": ["Street", "Avenue", "Boulevard"]
+        },
+        {
+          "type": "string",
+          "enum": ["NW", "NE", "SW", "SE"]
+        }
+      ],
+      "additionalItems": false
+    }
+  }
+}

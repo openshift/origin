@@ -263,8 +263,8 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 }
 
 func extraScopes(access_scopes, refresh_scopes string) bool {
-	access_scopes_list := strings.Split(access_scopes, ",")
-	refresh_scopes_list := strings.Split(refresh_scopes, ",")
+	access_scopes_list := strings.Split(access_scopes, " ")
+	refresh_scopes_list := strings.Split(refresh_scopes, " ")
 
 	access_map := make(map[string]int)
 
@@ -507,7 +507,7 @@ func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessReq
 		}
 
 		// remove previous access token
-		if ret.AccessData != nil {
+		if ret.AccessData != nil && !s.Config.RetainTokenAfterRefresh {
 			if ret.AccessData.RefreshToken != "" {
 				w.Storage.RemoveRefresh(ret.AccessData.RefreshToken)
 			}
@@ -521,8 +521,8 @@ func (s *Server) FinishAccessRequest(w *Response, r *http.Request, ar *AccessReq
 		if ret.RefreshToken != "" {
 			w.Output["refresh_token"] = ret.RefreshToken
 		}
-		if ar.Scope != "" {
-			w.Output["scope"] = ar.Scope
+		if ret.Scope != "" {
+			w.Output["scope"] = ret.Scope
 		}
 	} else {
 		w.SetError(E_ACCESS_DENIED, "")

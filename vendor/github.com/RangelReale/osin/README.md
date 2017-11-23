@@ -20,10 +20,13 @@ The library implements the majority of the specification, like authorization and
 ### Example Server
 
 ````go
-import "github.com/RangelReale/osin"
+import (
+	"github.com/RangelReale/osin"
+	ex "github.com/RangelReale/osin/example" 
+)
 
-// TestStorage implements the "osin.Storage" interface
-server := osin.NewServer(osin.NewServerConfig(), &TestStorage{})
+// ex.NewTestStorage implements the "osin.Storage" interface
+server := osin.NewServer(osin.NewServerConfig(), ex.NewTestStorage())
 
 // Authorization code endpoint
 http.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +78,7 @@ You might want to check out other implementations for common database management
 * [DynamoDB](https://github.com/uniplaces/osin-dynamodb)
 * [Couchbase](https://github.com/elgris/osin-couchbase-storage)
 * [MySQL](https://github.com/felipeweb/osin-mysql)
+* [Redis](https://github.com/ShaleApps/osinredis)
 
 ### License
 
