@@ -63,6 +63,8 @@ function ensure-node-config() {
 kubeletArguments:
   cgroups-per-qos: ["false"]
   enforce-node-allocatable: [""]
+  image-gc-low-threshold: ["95"]
+  image-gc-high-threshold: ["97"]
 EOF
 
     if [[ "${OPENSHIFT_CONTAINER_RUNTIME}" != "dockershim" ]]; then
