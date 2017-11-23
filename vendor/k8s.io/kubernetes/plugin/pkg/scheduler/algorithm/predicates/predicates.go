@@ -18,15 +18,13 @@ package predicates
 
 import (
 	"fmt"
-	"math/rand"
-	"strconv"
 	"sync"
-	"time"
 
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/rand"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/util/workqueue"
@@ -179,6 +177,11 @@ type MaxPDVolumeCountChecker struct {
 	maxVolumes int
 	pvInfo     PersistentVolumeInfo
 	pvcInfo    PersistentVolumeClaimInfo
+
+	// The string below is generated randomly during the struct's initialization.
+	// It is used to prefix volumeID generated inside the predicate() method to
+	// avoid conflicts with any real volume.
+	randomVolumeIDPrefix string
 }
 
 // VolumeFilter contains information on how to filter PD Volumes when checking PD Volume caps
@@ -197,10 +200,11 @@ type VolumeFilter struct {
 // the maximum.
 func NewMaxPDVolumeCountPredicate(filter VolumeFilter, maxVolumes int, pvInfo PersistentVolumeInfo, pvcInfo PersistentVolumeClaimInfo) algorithm.FitPredicate {
 	c := &MaxPDVolumeCountChecker{
-		filter:     filter,
-		maxVolumes: maxVolumes,
-		pvInfo:     pvInfo,
-		pvcInfo:    pvcInfo,
+		filter:               filter,
+		maxVolumes:           maxVolumes,
+		pvInfo:               pvInfo,
+		pvcInfo:              pvcInfo,
+		randomVolumeIDPrefix: rand.String(32),
 	}
 
 	return c.predicate
@@ -216,40 +220,38 @@ func (c *MaxPDVolumeCountChecker) filterVolumes(volumes []v1.Volume, namespace s
 			if pvcName == "" {
 				return fmt.Errorf("PersistentVolumeClaim had no name")
 			}
+
+			// Until we know real ID of the volume use namespace/pvcName as substitute
+			// with a random prefix (calculated and stored inside 'c' during initialization)
+			// to avoid conflicts with existing volume IDs.
+			pvId := fmt.Sprintf("%s-%s/%s", c.randomVolumeIDPrefix, namespace, pvcName)
+
 			pvc, err := c.pvcInfo.GetPersistentVolumeClaimInfo(namespace, pvcName)
-			if err != nil {
+			if err != nil || pvc == nil {
 				// if the PVC is not found, log the error and count the PV towards the PV limit
-				// generate a random volume ID since its required for de-dup
 				glog.V(4).Infof("Unable to look up PVC info for %s/%s, assuming PVC matches predicate when counting limits: %v", namespace, pvcName, err)
-				source := rand.NewSource(time.Now().UnixNano())
-				generatedID := "missingPVC" + strconv.Itoa(rand.New(source).Intn(1000000))
-				filteredVolumes[generatedID] = true
-				return nil
+				filteredVolumes[pvId] = true
+				continue
 			}
 
-			if pvc == nil {
-				return fmt.Errorf("PersistentVolumeClaim not found: %q", pvcName)
+			if pvc.Spec.VolumeName == "" {
+				// PVC is not bound. It was either deleted and created again or
+				// it was forcefuly unbound by admin. The pod can still use the
+				// original PV where it was bound to -> log the error and count
+				// the PV towards the PV limit
+				glog.V(4).Infof("PVC %s/%s is not bound, assuming PVC matches predicate when counting limits", namespace, pvcName)
+				filteredVolumes[pvId] = true
+				continue
 			}
 
 			pvName := pvc.Spec.VolumeName
-			if pvName == "" {
-				return fmt.Errorf("PersistentVolumeClaim is not bound: %q", pvcName)
-			}
-
 			pv, err := c.pvInfo.GetPersistentVolumeInfo(pvName)
-			if err != nil {
+			if err != nil || pv == nil {
 				// if the PV is not found, log the error
 				// and count the PV towards the PV limit
-				// generate a random volume ID since it is required for de-dup
 				glog.V(4).Infof("Unable to look up PV info for %s/%s/%s, assuming PV matches predicate when counting limits: %v", namespace, pvcName, pvName, err)
-				source := rand.NewSource(time.Now().UnixNano())
-				generatedID := "missingPV" + strconv.Itoa(rand.New(source).Intn(1000000))
-				filteredVolumes[generatedID] = true
-				return nil
-			}
-
-			if pv == nil {
-				return fmt.Errorf("PersistentVolume not found: %q", pvName)
+				filteredVolumes[pvId] = true
+				continue
 			}
 
 			if id, ok := c.filter.FilterPersistentVolume(pv); ok {
