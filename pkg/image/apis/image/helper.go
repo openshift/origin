@@ -856,6 +856,7 @@ type prioritizedTag struct {
 	tag      string
 	priority tagPriority
 	semver   semver.Version
+	prefix   string
 }
 
 func prioritizeTag(tag string) prioritizedTag {
@@ -866,7 +867,12 @@ func prioritizeTag(tag string) prioritizedTag {
 		}
 	}
 
-	short := strings.TrimLeft(tag, "v")
+	short := tag
+	prefix := ""
+	if strings.HasPrefix(tag, "v") {
+		prefix = "v"
+		short = tag[1:]
+	}
 
 	// 5.1.3
 	if v, err := semver.Parse(short); err == nil {
@@ -874,6 +880,7 @@ func prioritizeTag(tag string) prioritizedTag {
 			tag:      tag,
 			priority: tagPriorityFull,
 			semver:   v,
+			prefix:   prefix,
 		}
 	}
 
@@ -884,6 +891,7 @@ func prioritizeTag(tag string) prioritizedTag {
 				tag:      tag,
 				priority: tagPriorityMinor,
 				semver:   v,
+				prefix:   prefix,
 			}
 		}
 	}
@@ -895,6 +903,7 @@ func prioritizeTag(tag string) prioritizedTag {
 				tag:      tag,
 				priority: tagPriorityMinor,
 				semver:   v,
+				prefix:   prefix,
 			}
 		}
 	}
@@ -903,6 +912,7 @@ func prioritizeTag(tag string) prioritizedTag {
 	return prioritizedTag{
 		tag:      tag,
 		priority: tagPriorityOther,
+		prefix:   prefix,
 	}
 }
 
@@ -920,7 +930,10 @@ func (t prioritizedTags) Less(i, j int) bool {
 	}
 
 	cmp := t[i].semver.Compare(t[j].semver)
-	return cmp > 0 // the newer tag has a higher priority
+	if cmp > 0 { // the newer tag has a higher priority
+		return true
+	}
+	return t[i].prefix < t[j].prefix
 }
 
 // PrioritizeTags orders a set of image tags with a few conventions:
