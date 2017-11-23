@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e90500621efc8e05a4d041553e2167f00e8af542
+%global commit 0a8069fdafc6ce473e70d06fa83c7e77b02074cb
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=8+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.8.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.8.1+0d5291c OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=0d5291c OS_GIT_COMMIT=e905006 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=8+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.8.0-0.9.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.8.1+0d5291c OS_GIT_CATALOG_VERSION=v0.1.2 KUBE_GIT_COMMIT=0d5291c OS_GIT_COMMIT=0a8069f OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -69,7 +69,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.8.0
-Release:        0.9.0%{?dist}
+Release:        0.10.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -642,6 +642,33 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Nov 23 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.10.0
+- UPSTREAM: 53989: Remove repeated random string generations in scheduler
+  volume predicate (jsafrane@redhat.com)
+- UPSTREAM: 53135: Fixed counting of unbound PVCs towards limit of attached
+  volumes (jsafrane@redhat.com)
+- Version prefix matters when sorting tags names (miminar@redhat.com)
+- Sort istags alphabetically during schema conversion (miminar@redhat.com)
+- disable multiarch import tests (bparees@redhat.com)
+- stop double building hyperkube (deads@redhat.com)
+- dind: set fail-swap-on=false (dcbw@redhat.com)
+- make the default system:admin client cert a system:masters (deads@redhat.com)
+- prevent k8s.io/kubernetes/cmd since we didn't run them before
+  (deads@redhat.com)
+- minor completion changes (deads@redhat.com)
+- UPSTREAM: 55974: Allow constructing spdy executor from existing transports
+  (deads@redhat.com)
+- update openapi generation script to exclude dir (deads@redhat.com)
+- Use written node config in 'openshift start' (jliggitt@redhat.com)
+- UPSTREAM: 55796: Correct ConstructVolumeSpec() (hchiramm@redhat.com)
+- UPSTREAM: <carry>: disable failing etcd test for old level (deads@redhat.com)
+- bump(*): glide (deads@redhat.com)
+- use script to link to staging folder for patches (deads@redhat.com)
+- glide.yaml (deads@redhat.com)
+- Add template for local storage (jsafrane@redhat.com)
+- Rename "local storage" to "HostPath storage" example (jsafrane@redhat.com)
+- Add multitenant<->networkpolicy migration helper scripts (danw@redhat.com)
+
 * Wed Nov 22 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.8.0-0.9.0
 - Enable cert rotation for node bootstrap (jliggitt@redhat.com)
 - update dind image (deads@redhat.com)
