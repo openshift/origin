@@ -341,10 +341,8 @@ var (
 		`validates resource limits of pods that are allowed to run`, // can't schedule to master due to node label limits, also fiddly
 
 		// TODO undisable:
-		`should provide basic identity`,                               // needs a persistent volume provisioner in single node, host path not working
-		"should adopt matching orphans and release non-matching pods", // stateful set, broken?
-		"should not deadlock when a pod's predecessor fails",          // stateful set, broken?
-		`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig [Conformance]
+		`should provide basic identity`,                         // needs a persistent volume provisioner in single node, host path not working
+		`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
 
 		// slow as sin and twice as ugly (11m each)
 		"Pod should avoid to schedule to node that have avoidPod annotation",
