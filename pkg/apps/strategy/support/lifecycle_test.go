@@ -109,8 +109,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	go func() {
 		<-podCreated
 		podsWatch.Add(createdPod)
-		podCopy, _ := kapi.Scheme.Copy(createdPod)
-		updatedPod := podCopy.(*kapi.Pod)
+		updatedPod := createdPod.DeepCopy()
 		updatedPod.Status.Phase = kapi.PodSucceeded
 		podsWatch.Modify(updatedPod)
 	}()
@@ -175,8 +174,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	go func() {
 		<-podCreated
 		podsWatch.Add(createdPod)
-		podCopy, _ := kapi.Scheme.Copy(createdPod)
-		updatedPod := podCopy.(*kapi.Pod)
+		updatedPod := createdPod.DeepCopy()
 		updatedPod.Status.Phase = kapi.PodFailed
 		podsWatch.Modify(updatedPod)
 	}()

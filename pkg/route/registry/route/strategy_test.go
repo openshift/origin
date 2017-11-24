@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -88,21 +87,21 @@ func TestEmptyDefaultCACertificate(t *testing.T) {
 		},
 	}
 	for i, testCase := range testCases {
-		copied, _ := kapi.Scheme.Copy(testCase.route)
-		if err := DecorateLegacyRouteWithEmptyDestinationCACertificates(copied.(*routeapi.Route)); err != nil {
+		copied := testCase.route.DeepCopy()
+		if err := DecorateLegacyRouteWithEmptyDestinationCACertificates(copied); err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)
 			continue
 		}
-		routeStrategy{}.PrepareForCreate(nil, copied.(*routeapi.Route))
+		routeStrategy{}.PrepareForCreate(nil, copied)
 		if !reflect.DeepEqual(testCase.route, copied) {
 			t.Errorf("%d: unexpected change: %#v", i, copied)
 			continue
 		}
-		if err := DecorateLegacyRouteWithEmptyDestinationCACertificates(copied.(*routeapi.Route)); err != nil {
+		if err := DecorateLegacyRouteWithEmptyDestinationCACertificates(copied); err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)
 			continue
 		}
-		routeStrategy{}.PrepareForUpdate(nil, copied.(*routeapi.Route), &routeapi.Route{})
+		routeStrategy{}.PrepareForUpdate(nil, copied, &routeapi.Route{})
 		if !reflect.DeepEqual(testCase.route, copied) {
 			t.Errorf("%d: unexpected change: %#v", i, copied)
 			continue

@@ -63,13 +63,9 @@ func (e *clusterQuotaAccessor) UpdateQuotaStatus(newQuota *kapi.ResourceQuota) e
 	}
 	clusterQuota = e.checkCache(clusterQuota)
 
-	// make a copy
-	obj, err := kapi.Scheme.Copy(clusterQuota)
-	if err != nil {
-		return err
-	}
 	// re-assign objectmeta
-	clusterQuota = obj.(*quotaapi.ClusterResourceQuota)
+	// make a copy
+	clusterQuota = clusterQuota.DeepCopy()
 	clusterQuota.ObjectMeta = newQuota.ObjectMeta
 	clusterQuota.Namespace = ""
 

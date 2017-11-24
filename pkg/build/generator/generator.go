@@ -458,8 +458,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 	// Need to copy the buildConfig here so that it doesn't share pointers with
 	// the build object which could be (will be) modified later.
 	buildName := getNextBuildName(bc)
-	obj, _ := kapi.Scheme.Copy(bc)
-	bcCopy := obj.(*buildapi.BuildConfig)
+	bcCopy := bc.DeepCopy()
 	serviceAccount := getServiceAccount(bcCopy, g.DefaultServiceAccountName)
 	t := true
 	build := &buildapi.Build{
@@ -791,8 +790,7 @@ func UpdateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage strin
 
 // generateBuildFromBuild creates a new build based on a given Build.
 func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildConfig) *buildapi.Build {
-	obj, _ := kapi.Scheme.Copy(build)
-	buildCopy := obj.(*buildapi.Build)
+	buildCopy := build.DeepCopy()
 
 	newBuild := &buildapi.Build{
 		Spec: buildCopy.Spec,

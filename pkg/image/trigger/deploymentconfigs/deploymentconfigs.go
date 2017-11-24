@@ -164,11 +164,7 @@ func UpdateDeploymentConfigImages(dc *appsapi.DeploymentConfig, tagRetriever tri
 		if updated != nil {
 			return
 		}
-		copied, err := kapi.Scheme.Copy(dc)
-		if err != nil {
-			return
-		}
-		dc = copied.(*appsapi.DeploymentConfig)
+		dc = dc.DeepCopy()
 		updated = dc
 	}
 

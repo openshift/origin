@@ -80,7 +80,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 	var result = []error{}
 	for _, b := range builds {
 		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
-			b = copyOrDie(b)
+			b = b.DeepCopy()
 			b.Status.Cancelled = true
 			err := s.BuildUpdater.Update(b.Namespace, b)
 			if err != nil && errors.IsConflict(err) {

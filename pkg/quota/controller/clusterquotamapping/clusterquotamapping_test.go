@@ -110,10 +110,7 @@ func runFuzzer(t *testing.T) {
 
 			quota := NewQuota(name)
 			finalQuotas[name] = quota
-			copied, err := kapi.Scheme.Copy(quota)
-			if err != nil {
-				t.Fatal(err)
-			}
+			copied := quota.DeepCopy()
 			if exists {
 				quotaActions[name] = append(quotaActions[name], fmt.Sprintf("updating %v to %v", name, quota.Spec.Selector))
 				quotaWatch.Modify(copied)
@@ -149,10 +146,7 @@ func runFuzzer(t *testing.T) {
 
 			ns := NewNamespace(name)
 			finalNamespaces[name] = ns
-			copied, err := kapi.Scheme.Copy(ns)
-			if err != nil {
-				t.Fatal(err)
-			}
+			copied := ns.DeepCopy()
 			if exists {
 				namespaceActions[name] = append(namespaceActions[name], fmt.Sprintf("updating %v to %v", name, ns.Labels))
 				nsWatch.Modify(copied)

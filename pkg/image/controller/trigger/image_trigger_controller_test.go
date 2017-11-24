@@ -956,12 +956,7 @@ func updateBuildConfigImages(bc *buildapi.BuildConfig, tagRetriever trigger.TagR
 			continue
 		}
 		if updated == nil {
-			copied, err := kapi.Scheme.Copy(bc)
-			if err != nil {
-				return nil, err
-			}
-			bc = copied.(*buildapi.BuildConfig)
-			updated = bc
+			updated = bc.DeepCopy()
 		}
 		p = bc.Spec.Triggers[i].ImageChange
 		p.LastTriggeredImageID = latest
