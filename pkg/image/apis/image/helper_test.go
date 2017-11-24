@@ -1160,8 +1160,8 @@ func TestPrioritizeTags(t *testing.T) {
 		expected []string
 	}{
 		{
-			tags:     []string{"other", "latest", "v5.5", "5.2.3", "v5.3.6-bother", "5.3.6-abba", "5.6"},
-			expected: []string{"latest", "5.6", "v5.5", "5.3.6-abba", "v5.3.6-bother", "5.2.3", "other"},
+			tags:     []string{"other", "latest", "v5.5", "5.2.3", "5.5", "v5.3.6-bother", "5.3.6-abba", "5.6"},
+			expected: []string{"latest", "5.6", "5.5", "v5.5", "v5.3.6-bother", "5.3.6-abba", "5.2.3", "other"},
 		},
 		{
 			tags:     []string{"1.1-beta1", "1.2-rc1", "1.1-rc1", "1.1-beta2", "1.2-beta1", "1.2-alpha1", "1.2-beta4", "latest"},
