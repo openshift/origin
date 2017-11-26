@@ -8,7 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
@@ -79,13 +78,7 @@ func (d *RouteCertificateValidation) Check() types.DiagnosticResult {
 	}
 
 	for _, route := range routes.Items {
-		copied, err := kapi.Scheme.Copy(&route)
-		if err != nil {
-			r.Error("DRouCert2003", err, fmt.Errorf("unable to copy route: %v", err).Error())
-			return r
-		}
-		original := copied.(*routeapi.Route)
-
+		original := route.DeepCopy()
 		errs := validation.ExtendedValidateRoute(&route)
 
 		if len(errs) == 0 {

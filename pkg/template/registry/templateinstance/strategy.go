@@ -104,22 +104,22 @@ func (s *templateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, o
 	// place where this happens is in the garbage collector, which uses
 	// Unstructureds via the dynamic client.
 
-	objcopy, err := kapi.Scheme.DeepCopy(obj)
-	if err != nil {
-		return field.ErrorList{field.InternalError(field.NewPath(""), err)}
+	if obj == nil {
+		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("input object is nil"))}
 	}
-	templateInstance := objcopy.(*templateapi.TemplateInstance)
+	templateInstanceCopy := obj.DeepCopyObject()
+	templateInstance := templateInstanceCopy.(*templateapi.TemplateInstance)
 
 	errs := runtime.DecodeList(templateInstance.Spec.Template.Objects, unstructured.UnstructuredJSONScheme)
 	if len(errs) != 0 {
 		return field.ErrorList{field.InternalError(field.NewPath(""), kutilerrors.NewAggregate(errs))}
 	}
 
-	oldcopy, err := kapi.Scheme.DeepCopy(old)
-	if err != nil {
-		return field.ErrorList{field.InternalError(field.NewPath(""), err)}
+	if old == nil {
+		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("input object is nil"))}
 	}
-	oldTemplateInstance := oldcopy.(*templateapi.TemplateInstance)
+	oldTemplateInstanceCopy := old.DeepCopyObject()
+	oldTemplateInstance := oldTemplateInstanceCopy.(*templateapi.TemplateInstance)
 
 	errs = runtime.DecodeList(oldTemplateInstance.Spec.Template.Objects, unstructured.UnstructuredJSONScheme)
 	if len(errs) != 0 {

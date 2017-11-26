@@ -3,8 +3,6 @@ package policy
 import (
 	"github.com/golang/glog"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
@@ -106,12 +104,4 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 		nextBuilds = append(nextBuilds, nextBuild)
 	}
 	return nextBuilds, hasRunningBuilds, nil
-}
-
-func copyOrDie(build *buildapi.Build) *buildapi.Build {
-	obj, err := kapi.Scheme.Copy(build)
-	if err != nil {
-		panic(err)
-	}
-	return obj.(*buildapi.Build)
 }

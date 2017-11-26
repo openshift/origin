@@ -6,6 +6,7 @@ import (
 
 	clientv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
@@ -131,7 +132,7 @@ func NewBuildConfigReactor(instantiator BuildConfigInstantiator, restclient rest
 
 // ImageChanged is passed a build config and a set of changes and updates the object if
 // necessary.
-func (r *buildConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.TagRetriever) error {
+func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
 	bc := obj.(*buildapi.BuildConfig)
 
 	var request *buildapi.BuildRequest

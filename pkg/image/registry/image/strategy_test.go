@@ -68,11 +68,7 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 
 	seed := int64(2703387474910584091) //rand.Int63()
 	fuzzed := fuzzImage(t, &original, seed)
-	obj, err := kapi.Scheme.DeepCopy(fuzzed)
-	if err != nil {
-		t.Fatalf("faild to deep copy fuzzed image: %v", err)
-	}
-	image := obj.(*imageapi.Image)
+	image := fuzzed.DeepCopy()
 
 	if len(image.Signatures) == 0 {
 		t.Fatalf("fuzzifier failed to generate signatures")

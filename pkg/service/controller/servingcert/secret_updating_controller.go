@@ -16,7 +16,6 @@ import (
 	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -181,11 +180,7 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	}
 
 	// make a copy to avoid mutating cache state
-	t, err := kapi.Scheme.DeepCopy(sharedSecret)
-	if err != nil {
-		return err
-	}
-	secretCopy := t.(*v1.Secret)
+	secretCopy := sharedSecret.DeepCopy()
 
 	dnsName := service.Name + "." + secretCopy.Namespace + ".svc"
 	fqDNSName := dnsName + "." + sc.dnsSuffix

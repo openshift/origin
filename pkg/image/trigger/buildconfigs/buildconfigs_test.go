@@ -247,11 +247,8 @@ func TestBuildConfigReactor(t *testing.T) {
 	for i, test := range testCases {
 		instantiator := &instantiator{build: test.response}
 		r := buildConfigReactor{instantiator: instantiator}
-		initial, err := kapi.Scheme.DeepCopy(test.obj)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
+		initial := test.obj.DeepCopy()
+		err := r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
 		if !kapihelper.Semantic.DeepEqual(initial, test.obj) {
 			t.Errorf("%d: should not have mutated: %s", i, diff.ObjectReflectDiff(initial, test.obj))
 		}

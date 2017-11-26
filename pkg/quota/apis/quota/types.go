@@ -136,11 +136,8 @@ func (o ResourceQuotasStatusByNamespace) DeepCopy() ResourceQuotasStatusByNamesp
 	for e := o.OrderedKeys().Front(); e != nil; e = e.Next() {
 		namespace := e.Value.(string)
 		instatus, _ := o.Get(namespace)
-		if outstatus, err := kapi.Scheme.DeepCopy(instatus); err != nil {
-			panic(err) // should never happen
-		} else {
-			out.Insert(namespace, outstatus.(kapi.ResourceQuotaStatus))
-		}
+		outstatus := instatus.DeepCopy()
+		out.Insert(namespace, *outstatus)
 	}
 	return out
 }

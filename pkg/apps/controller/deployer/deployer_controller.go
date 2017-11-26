@@ -490,16 +490,7 @@ func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *v1.Replicatio
 			continue
 		}
 		glog.V(4).Infof("setting ownerRef for pod %s/%s to deployment %s/%s", pod.Namespace, pod.Name, deployment.Namespace, deployment.Name)
-		objCopy, err := kapi.Scheme.DeepCopy(pod)
-		if err != nil {
-			errors = append(errors, err)
-			continue
-		}
-		newPod, ok := objCopy.(*v1.Pod)
-		if !ok {
-			errors = append(errors, fmt.Errorf("object %#+v is not a pod", objCopy))
-			continue
-		}
+		newPod := pod.DeepCopy()
 		newPod.SetOwnerReferences([]metav1.OwnerReference{{
 			APIVersion: "v1",
 			Name:       deployment.Name,

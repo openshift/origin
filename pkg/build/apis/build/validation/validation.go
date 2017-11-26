@@ -44,11 +44,7 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 	}
 
 	// lie about the old build's pushsecret value so we can allow it to be updated.
-	olderCopy, err := buildutil.BuildDeepCopy(older)
-	if err != nil {
-		glog.V(2).Infof("Error copying build for update validation: %v", err)
-		allErrs = append(allErrs, field.InternalError(field.NewPath(""), fmt.Errorf("Unable to copy build for update validation: %v", err)))
-	}
+	olderCopy := older.DeepCopy()
 	olderCopy.Spec.Output.PushSecret = build.Spec.Output.PushSecret
 
 	if !kapihelper.Semantic.DeepEqual(build.Spec, olderCopy.Spec) {

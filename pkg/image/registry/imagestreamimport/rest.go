@@ -235,10 +235,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	_, hasAnnotation := stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
 	nextGeneration := stream.Generation + 1
 
-	original, err := kapi.Scheme.DeepCopy(stream)
-	if err != nil {
-		return nil, err
-	}
+	original := stream.DeepCopy()
 
 	// walk the retrieved images, ensuring each one exists in etcd
 	importedImages := make(map[string]error)
@@ -330,7 +327,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	} else {
 		if hasAnnotation && !hasChanges {
 			glog.V(4).Infof("stream did not change: %#v", stream)
-			obj, err = original.(*imageapi.ImageStream), nil
+			obj, err = original, nil
 		} else {
 			if glog.V(4) {
 				glog.V(4).Infof("updating stream %s", diff.ObjectDiff(original, stream))
@@ -344,7 +341,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		// if we have am admission limit error then record the conditions on the original stream.  Quota errors
 		// will be recorded by the importer.
 		if quotautil.IsErrorLimitExceeded(err) {
-			originalStream := original.(*imageapi.ImageStream)
+			originalStream := original
 			recordLimitExceededStatus(originalStream, stream, err, now, nextGeneration)
 			var limitErr error
 			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream, kapi.Scheme))

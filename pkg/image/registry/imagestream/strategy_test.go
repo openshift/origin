@@ -1108,8 +1108,11 @@ func TestTagsChanged(t *testing.T) {
 		// we can't reuse the same map twice, it causes both to be modified during updates
 		var previousTagHistory = test.existingTagHistory
 		if previousTagHistory != nil {
-			obj, _ := kapi.Scheme.DeepCopy(previousTagHistory)
-			previousTagHistory, _ = obj.(map[string]imageapi.TagEventList)
+			previousTagHistoryCopy := map[string]imageapi.TagEventList{}
+			for k, v := range previousTagHistory {
+				previousTagHistory[k] = *v.DeepCopy()
+			}
+			previousTagHistory = previousTagHistoryCopy
 		}
 		previousStream := &imageapi.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{

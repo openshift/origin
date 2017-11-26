@@ -284,11 +284,8 @@ func TestAnnotationsReactor(t *testing.T) {
 	for i, test := range testCases {
 		u := &fakeUpdater{}
 		r := AnnotationReactor{Copier: kapi.Scheme, Updater: u}
-		initial, err := kapi.Scheme.DeepCopy(test.obj)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
+		initial := test.obj.DeepCopy()
+		err := r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
 		if !kapihelper.Semantic.DeepEqual(initial, test.obj) {
 			t.Errorf("%d: should not have mutated: %s", i, diff.ObjectReflectDiff(initial, test.obj))
 		}

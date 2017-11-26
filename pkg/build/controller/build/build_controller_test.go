@@ -371,10 +371,7 @@ func TestHandleBuild(t *testing.T) {
 					t.Errorf("%s: did not get an update. Expected: %v", tc.name, tc.expectUpdate)
 					return
 				}
-				expectedBuild, err := buildutil.BuildDeepCopy(tc.build)
-				if err != nil {
-					t.Fatalf("unexpected: %v", err)
-				}
+				expectedBuild := tc.build.DeepCopy()
 				tc.expectUpdate.apply(expectedBuild)
 
 				// For start/completion/duration fields, simply validate that they are set/not set
