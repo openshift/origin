@@ -17,9 +17,9 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
+	templateclientset "github.com/openshift/client-go/template/clientset/versioned"
+	templateinformer "github.com/openshift/client-go/template/informers/externalversions"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateclientset "github.com/openshift/origin/pkg/template/generated/clientset"
-	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/externalversions"
 	templateservicebroker "github.com/openshift/origin/pkg/templateservicebroker/servicebroker"
 )
 

@@ -17,9 +17,9 @@ import (
 
 	authorizationapi "github.com/openshift/api/authorization/v1"
 	userapi "github.com/openshift/api/user/v1"
-	fakeauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset/fake"
+	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
+	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	fakeuserclient "github.com/openshift/origin/pkg/user/generated/clientset/fake"
 )
 
 func TestAdmission(t *testing.T) {

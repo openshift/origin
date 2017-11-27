@@ -3,8 +3,8 @@ package controller
 import (
 	"time"
 
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
-	appstypedclient "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
 	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"

@@ -12,7 +12,7 @@ import (
 
 	authorizationapi "github.com/openshift/api/authorization/v1"
 	userapi "github.com/openshift/api/user/v1"
-	fakeuserclient "github.com/openshift/origin/pkg/user/generated/clientset/fake"
+	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
 
 func mustNewSubjectChecker(t *testing.T, spec *authorizationapi.RoleBindingRestrictionSpec) SubjectChecker {
