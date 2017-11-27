@@ -18,6 +18,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -55,12 +56,18 @@ type RoleModificationOptions struct {
 	DryRun bool
 	Output string
 
+	Out    io.Writer
+	ErrOut io.Writer
+
 	PrintObj func(obj runtime.Object) error
 }
 
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
-func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE GROUP [GROUP ...]",
@@ -91,8 +98,11 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 }
 
 // NewCmdAddRoleToUser implements the OpenShift cli add-role-to-user command
-func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 	saNames := []string{}
 
 	cmd := &cobra.Command{
@@ -125,8 +135,11 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 }
 
 // NewCmdRemoveRoleFromGroup implements the OpenShift cli remove-role-from-group command
-func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE GROUP [GROUP ...]",
@@ -155,8 +168,11 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 }
 
 // NewCmdRemoveRoleFromUser implements the OpenShift cli remove-role-from-user command
-func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 	saNames := []string{}
 
 	cmd := &cobra.Command{
@@ -187,8 +203,11 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 }
 
 // NewCmdAddClusterRoleToGroup implements the OpenShift cli add-cluster-role-to-group command
-func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
@@ -216,9 +235,12 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 }
 
 // NewCmdAddClusterRoleToUser implements the OpenShift cli add-cluster-role-to-user command
-func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	saNames := []string{}
-	options := &RoleModificationOptions{}
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user | -z serviceaccount> [user]...",
@@ -248,8 +270,11 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 }
 
 // NewCmdRemoveClusterRoleFromGroup implements the OpenShift cli remove-cluster-role-from-group command
-func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	options := &RoleModificationOptions{}
+func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
@@ -276,9 +301,12 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 }
 
 // NewCmdRemoveClusterRoleFromUser implements the OpenShift cli remove-cluster-role-from-user command
-func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	saNames := []string{}
-	options := &RoleModificationOptions{}
+	options := &RoleModificationOptions{
+		Out:    out,
+		ErrOut: errout,
+	}
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user> [user]...",
@@ -474,21 +502,35 @@ func (o *RoleModificationOptions) AddRole() error {
 	newSubjects := authorizationapi.BuildSubjects(o.Users, o.Groups)
 	newSubjects = append(newSubjects, o.Subjects...)
 
+	alreadyBound := []string{}
+	o.Targets = []string{}
+
 subjectCheck:
 	for _, newSubject := range newSubjects {
 		for _, existingSubject := range roleBinding.Subjects {
 			if existingSubject.Kind == newSubject.Kind &&
 				existingSubject.Name == newSubject.Name &&
 				existingSubject.Namespace == newSubject.Namespace {
+				alreadyBound = append(alreadyBound, existingSubject.Name)
 				continue subjectCheck
 			}
 		}
 
+		o.Targets = append(o.Targets, newSubject.Name)
 		roleBinding.Subjects = append(roleBinding.Subjects, newSubject)
 	}
 
 	if len(o.Output) > 0 {
 		return o.PrintObj(roleBinding)
+	}
+
+	if len(alreadyBound) > 0 {
+		kind := "users"
+		if len(o.Groups) > 0 {
+			kind = "groups"
+		}
+
+		fmt.Fprintf(o.Out, "role %q already bound to %s: %v\n", o.RoleName, kind, alreadyBound)
 	}
 
 	if o.DryRun {
@@ -533,7 +575,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 
 	if len(o.Output) > 0 {
 		for _, binding := range roleBindings {
-			binding.Subjects = removeSubjects(binding.Subjects, subjectsToRemove)
+			binding.Subjects = o.removeSubjects(binding.Subjects, subjectsToRemove)
 			updatedBindings.Items = append(updatedBindings.Items, *binding)
 		}
 		return o.PrintObj(updatedBindings)
@@ -544,7 +586,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	}
 
 	for _, roleBinding := range roleBindings {
-		roleBinding.Subjects = removeSubjects(roleBinding.Subjects, subjectsToRemove)
+		roleBinding.Subjects = o.removeSubjects(roleBinding.Subjects, subjectsToRemove)
 
 		err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
 		if err != nil {
@@ -555,8 +597,14 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	return nil
 }
 
-func removeSubjects(haystack, needles []kapi.ObjectReference) []kapi.ObjectReference {
+func (o *RoleModificationOptions) removeSubjects(haystack, needles []kapi.ObjectReference) []kapi.ObjectReference {
 	newSubjects := []kapi.ObjectReference{}
+	targetsWithoutRole := sets.NewString()
+	for _, s := range needles {
+		targetsWithoutRole.Insert(s.Name)
+	}
+
+	o.Targets = []string{}
 
 existingLoop:
 	for _, existingSubject := range haystack {
@@ -564,12 +612,22 @@ existingLoop:
 			if existingSubject.Kind == toRemove.Kind &&
 				existingSubject.Name == toRemove.Name &&
 				existingSubject.Namespace == toRemove.Namespace {
+				targetsWithoutRole.Delete(toRemove.Name)
+				o.Targets = append(o.Targets, toRemove.Name)
 				continue existingLoop
-
 			}
 		}
 
 		newSubjects = append(newSubjects, existingSubject)
+	}
+
+	if len(targetsWithoutRole) > 0 {
+		kind := "users"
+		if len(o.Groups) > 0 {
+			kind = "groups"
+		}
+
+		fmt.Fprintf(o.Out, "role %q was not already bound to %s: %v\n", o.RoleName, kind, targetsWithoutRole.UnsortedList())
 	}
 
 	return newSubjects
@@ -577,6 +635,10 @@ existingLoop:
 
 // prints affirmative output for role modification commands
 func printSuccessForCommand(role string, didAdd bool, targetName string, targets []string, isNamespaced bool, dryRun bool, out io.Writer) {
+	if len(targets) == 0 {
+		return
+	}
+
 	verb := "removed"
 	clusterScope := "cluster "
 	allTargets := fmt.Sprintf("%q", targets)

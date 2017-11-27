@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -242,6 +243,9 @@ func makeUserAnImageSigner(authorizationClient authorizationclient.Interface, us
 		RoleName:            bootstrappolicy.ImageSignerRoleName,
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationClient.Authorization()),
 		Users:               []string{userName},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addImageSignerRole.AddRole(); err != nil {
 		return err

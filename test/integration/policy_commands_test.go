@@ -39,6 +39,9 @@ func TestPolicyCommands(t *testing.T) {
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(projectName, haroldAuthorizationClient),
 		Users:               []string{"valerie"},
 		Groups:              []string{"my-group"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 
 	if err := addViewer.AddRole(); err != nil {

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,6 +83,9 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 		RoleName:            bootstrappolicy.BuildStrategyCustomRoleName,
 		RoleBindingAccessor: clusterRoleBindingAccessor,
 		Subjects:            subjects,
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	options.AddRole()
 
@@ -112,6 +116,9 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t
 		RoleName:            bootstrappolicy.BuildStrategyCustomRoleName,
 		RoleBindingAccessor: clusterRoleBindingAccessor,
 		Subjects:            subjects,
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	options.AddRole()
 

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
@@ -76,6 +77,9 @@ func TestNodeAuth(t *testing.T) {
 		RoleName:            bootstrappolicy.NodeReaderRoleName,
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig).Authorization()),
 		Subjects:            []kapi.ObjectReference{{Kind: "User", Name: "bob"}},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addBob.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -105,6 +109,9 @@ func TestNodeAuth(t *testing.T) {
 		RoleName:            bootstrappolicy.ClusterReaderRoleName,
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig).Authorization()),
 		Subjects:            []kapi.ObjectReference{{Kind: "ServiceAccount", Namespace: "default", Name: "sa1"}},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addSA1.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

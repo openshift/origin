@@ -3,6 +3,7 @@ package util
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -478,6 +479,9 @@ func addRoleToE2EServiceAccounts(c authorizationclient.Interface, namespaces []k
 					RoleName:            roleName,
 					RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns.Name, c.Authorization()),
 					Users:               []string{sa},
+
+					Out:    ioutil.Discard,
+					ErrOut: ioutil.Discard,
 				}
 				if err := addRole.AddRole(); err != nil {
 					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)

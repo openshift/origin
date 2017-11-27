@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -134,6 +135,9 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 			RoleName:            o.AdminRole,
 			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(project.Name, o.RoleBindingClient),
 			Users:               []string{o.AdminUser},
+
+			Out:    ioutil.Discard,
+			ErrOut: ioutil.Discard,
 		}
 
 		if err := adduser.AddRole(); err != nil {
@@ -175,6 +179,9 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 			RoleNamespace:       binding.RoleRef.Namespace,
 			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.RoleBindingClient),
 			Subjects:            binding.Subjects,
+
+			Out:    ioutil.Discard,
+			ErrOut: ioutil.Discard,
 		}
 		if err := addRole.AddRole(); err != nil {
 			fmt.Printf("Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)

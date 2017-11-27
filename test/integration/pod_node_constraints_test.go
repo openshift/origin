@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"testing"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -131,6 +132,9 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 		RoleName:            bootstrappolicy.AdminRoleName,
 		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()),
 		Users:               []string{user},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addUser.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

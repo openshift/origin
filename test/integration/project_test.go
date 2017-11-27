@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"path"
 	"testing"
 	"time"
@@ -253,6 +254,9 @@ func TestProjectWatch(t *testing.T) {
 		RoleName:            bootstrappolicy.EditRoleName,
 		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("ns-02", authorizationclient.NewForConfigOrDie(joeConfig).Authorization()),
 		Users:               []string{"bob"},
+
+		Out:    ioutil.Discard,
+		ErrOut: ioutil.Discard,
 	}
 	if err := addBob.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -538,7 +542,7 @@ func TestInvalidRoleRefs(t *testing.T) {
 	if _, err := clusterAdminAuthorizationClient.ClusterRoles().Create(&authorizationapi.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	modifyRole := &policy.RoleModificationOptions{RoleName: roleName, Users: []string{"someuser"}}
+	modifyRole := &policy.RoleModificationOptions{RoleName: roleName, Users: []string{"someuser"}, Out: ioutil.Discard, ErrOut: ioutil.Discard}
 	// mess up rolebindings in "foo"
 	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("foo", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization())
 	if err := modifyRole.AddRole(); err != nil {

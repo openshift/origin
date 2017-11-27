@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	coreosetcdclient "github.com/coreos/etcd/client"
@@ -96,6 +97,9 @@ func (o *DebugAPIServerOptions) Run() error {
 			RoleName:            bootstrappolicy.ClusterAdminRoleName,
 			RoleBindingAccessor: policy.ClusterRoleBindingAccessor{Client: authorizationclient.NewForConfigOrDie(clientConfig)},
 			Groups:              []string{"system:authenticated"},
+
+			Out:    ioutil.Discard,
+			ErrOut: ioutil.Discard,
 		}
 		if err := addClusterAdmin.AddRole(); err != nil {
 			return err
