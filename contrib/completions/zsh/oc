@@ -12198,6 +12198,8 @@ _oc_ex_dockergc()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
     flags+=("--image-gc-high-threshold=")
     local_nonpersistent_flags+=("--image-gc-high-threshold=")
     flags+=("--image-gc-low-threshold=")

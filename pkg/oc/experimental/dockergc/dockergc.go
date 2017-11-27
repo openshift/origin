@@ -35,6 +35,8 @@ var (
 
 // DockerGCConfigCmdOptions are options supported by the dockergc admin command.
 type dockerGCConfigCmdOptions struct {
+	// DryRun is true if the command was invoked with --dry-run=true
+	DryRun bool
 	// MinimumGCAge is the minimum age for a container or unused image before
 	// it is garbage collected.
 	MinimumGCAge metav1.Duration
@@ -66,6 +68,7 @@ var (
 
 func NewCmdDockerGCConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	options := &dockerGCConfigCmdOptions{
+		DryRun:                      false,
 		MinimumGCAge:                DefaultMinimumGCAge,
 		ImageGCHighThresholdPercent: DefaultImageGCHighThresholdPercent,
 		ImageGCLowThresholdPercent:  DefaultImageGCLowThresholdPercent,
@@ -87,6 +90,7 @@ func NewCmdDockerGCConfig(f *clientcmd.Factory, parentName, name string, out, er
 	cmd.Flags().DurationVar(&options.MinimumGCAge.Duration, "minimum-ttl-duration", options.MinimumGCAge.Duration, "Minimum age for a container or unused image before it is garbage collected.  Examples: '300ms', '10s' or '2h45m'.")
 	cmd.Flags().Int32Var(&options.ImageGCHighThresholdPercent, "image-gc-high-threshold", options.ImageGCHighThresholdPercent, "The percent of disk usage after which image garbage collection is always run.")
 	cmd.Flags().Int32Var(&options.ImageGCLowThresholdPercent, "image-gc-low-threshold", options.ImageGCLowThresholdPercent, "The percent of disk usage before which image garbage collection is never run. Lowest disk usage to garbage collect to.")
+	cmd.Flags().BoolVar(&options.DryRun, "dry-run", options.DryRun, "Run in single-pass mode with no effect.")
 
 	return cmd
 }
@@ -183,7 +187,10 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 			break
 		}
 		glog.Infof("removing container %v (size: %v, age: %v)", c.ID, c.SizeRw, age)
-		err := client.ContainerRemove(ctx, c.ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true})
+		var err error
+		if !options.DryRun {
+			err = client.ContainerRemove(ctx, c.ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true})
+		}
 		if err != nil {
 			glog.Infof("unable to remove container: %v", err)
 		} else {
@@ -200,6 +207,7 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 		return err
 	}
 	sort.Sort(oldestImagesFirst(images))
+	glog.Infof("%d images found", len(images))
 	for _, i := range images {
 		if freedBytes > attemptToFreeBytes {
 			glog.Infof("usage is below low threshold, freed %vMB", bytesToMB(freedBytes))
@@ -220,13 +228,17 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 			break
 		}
 		glog.Infof("removing image %v (size: %v, age: %v)", i.ID, i.Size, age)
-		_, err := client.ImageRemove(ctx, i.ID, dockertypes.ImageRemoveOptions{PruneChildren: true})
+		var err error
+		if !options.DryRun {
+			_, err = client.ImageRemove(ctx, i.ID, dockertypes.ImageRemoveOptions{PruneChildren: true})
+		}
 		if err != nil {
 			glog.Infof("unable to remove image: %v", err)
 		} else {
 			freedBytes += i.Size
 		}
 	}
+	glog.Infof("unable to get below low threshold, %vMB freed", bytesToMB(freedBytes))
 
 	return nil
 }
@@ -234,6 +246,9 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 // Run runs the dockergc command.
 func Run(f *clientcmd.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Command, args []string) error {
 	glog.Infof("docker build garbage collection daemon")
+	if options.DryRun {
+		glog.Infof("Running in dry-run mode")
+	}
 	glog.Infof("MinimumGCAge: %v, ImageGCHighThresholdPercent: %v, ImageGCLowThresholdPercent: %v", options.MinimumGCAge, options.ImageGCHighThresholdPercent, options.ImageGCLowThresholdPercent)
 	client, err := dockerapi.NewEnvClient()
 	if err != nil {
@@ -259,7 +274,9 @@ func Run(f *clientcmd.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Com
 		if err != nil {
 			return err
 		}
+		if options.DryRun {
+			return nil
+		}
 		<-time.After(time.Minute)
-		return nil
 	}
 }
