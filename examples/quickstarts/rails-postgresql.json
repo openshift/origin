@@ -403,7 +403,7 @@
                 "volumeMounts": [
                   {
                     "name": "data",
-                    "mountPath": "/var/lib/pgsql/data"
+                    "mountPath": "/var/lib/postgresql/data"
                   }
                 ],
                 "env": [

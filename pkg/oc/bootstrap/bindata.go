@@ -11923,7 +11923,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
                 "volumeMounts": [
                   {
                     "name": "${DATABASE_SERVICE_NAME}-data",
-                    "mountPath": "/var/lib/pgsql/data"
+                    "mountPath": "/var/lib/postgresql/data"
                   }
                 ],
                 "env": [
@@ -12528,7 +12528,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                 "volumeMounts": [
                   {
                     "name": "data",
-                    "mountPath": "/var/lib/pgsql/data"
+                    "mountPath": "/var/lib/postgresql/data"
                   }
                 ],
                 "env": [
