@@ -7,8 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	genappcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
+	genappcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )

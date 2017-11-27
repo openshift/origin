@@ -9,7 +9,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	fakeauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
-	"github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
 func TestModifyNamedClusterRoleBinding(t *testing.T) {
@@ -126,11 +125,11 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 	}
 	for tcName, tc := range tests {
 		// Set up modifier options and run AddRole()
-		o := &policy.RoleModificationOptions{
+		o := &RoleModificationOptions{
 			RoleName:            tc.inputRole,
 			RoleBindingName:     tc.inputRoleBindingName,
 			Users:               tc.inputSubjects,
-			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(fakeauthorizationclient.NewSimpleClientset(tc.existingClusterRoleBindings).Authorization()),
+			RoleBindingAccessor: NewClusterRoleBindingAccessor(fakeauthorizationclient.NewSimpleClientset(tc.existingClusterRoleBindings).Authorization()),
 		}
 
 		addRoleAndCheck(t, o, tcName, tc.expectedRoleBindingName, tc.expectedSubjects)
@@ -259,19 +258,19 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 	}
 	for tcName, tc := range tests {
 		// Set up modifier options and run AddRole()
-		o := &policy.RoleModificationOptions{
+		o := &RoleModificationOptions{
 			RoleName:            tc.inputRole,
 			RoleBindingName:     tc.inputRoleBindingName,
 			Users:               tc.inputSubjects,
 			RoleNamespace:       metav1.NamespaceDefault,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(metav1.NamespaceDefault, fakeauthorizationclient.NewSimpleClientset(tc.existingRoleBindings).Authorization()),
+			RoleBindingAccessor: NewLocalRoleBindingAccessor(metav1.NamespaceDefault, fakeauthorizationclient.NewSimpleClientset(tc.existingRoleBindings).Authorization()),
 		}
 
 		addRoleAndCheck(t, o, tcName, tc.expectedRoleBindingName, tc.expectedSubjects)
 	}
 }
 
-func addRoleAndCheck(t *testing.T, o *policy.RoleModificationOptions, tcName, expectedName string, expectedSubjects []string) {
+func addRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, expectedName string, expectedSubjects []string) {
 	err := o.AddRole()
 	if err != nil {
 		t.Errorf("%s: unexpected err %v", tcName, err)

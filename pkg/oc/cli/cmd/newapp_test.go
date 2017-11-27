@@ -10,9 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	newcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
