@@ -315,6 +315,10 @@ ORIGIN_COMMIT=${ORIGIN_COMMIT:-latest}
 
 echo "Running cluster up tests using tag $ORIGIN_COMMIT"
 
+# Tag the docker registry image with the same tag as the other origin images
+docker pull openshift/origin-docker-registry:latest
+docker tag openshift/origin-docker-registry:latest openshift/origin-docker-registry:${ORIGIN_COMMIT}
+
 # Ensure that KUBECONFIG is not set
 unset KUBECONFIG
 for test in "${tests[@]}"; do

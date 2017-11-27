@@ -888,7 +888,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	}
 	nodeCfg.DNSBindAddress = ""
 
-	if h.supportsCgroupDriver() {
+	if h.supportsCgroupDriver(version) {
 		// Set the cgroup driver from the current docker
 		cgroupDriver, err := h.dockerHelper.CgroupDriver()
 		if err != nil {
@@ -956,7 +956,10 @@ func getUsedPorts(data string) map[int]struct{} {
 	return ports
 }
 
-func (h *Helper) supportsCgroupDriver() bool {
+func (h *Helper) supportsCgroupDriver(version semver.Version) bool {
+	if version.GTE(version37) {
+		return true
+	}
 	script := `#!/bin/bash
 
 # Exit with an error
