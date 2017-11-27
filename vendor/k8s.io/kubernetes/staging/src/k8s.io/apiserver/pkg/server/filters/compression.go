@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 )
@@ -58,6 +57,7 @@ func WithCompression(handler http.Handler, ctxMapper request.RequestContextMappe
 				return
 			}
 			compressionWriter.Header().Set("Content-Encoding", encoding)
+
 			handler.ServeHTTP(compressionWriter, req)
 			compressionWriter.(*compressionResponseWriter).Close()
 		} else {
@@ -136,6 +136,7 @@ func (c *compressionResponseWriter) Write(p []byte) (int, error) {
 		return -1, errors.New("compressing error: tried to write data using closed compressor")
 	}
 	c.Header().Set(headerContentEncoding, c.encoding)
+	defer c.compressor.Flush()
 	return c.compressor.Write(p)
 }
 
