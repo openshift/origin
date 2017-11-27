@@ -27,9 +27,8 @@ function generate_informers_for() {
   grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${package}/../..)
   informer-gen --logtostderr \
                --go-header-file=hack/boilerplate.txt \
-               --input-dirs="${package},${package}/v1" \
+               --input-dirs="${package}" \
                --output-package="${grouppkg}/generated/informers" \
-               --versioned-clientset-package "${grouppkg}/generated/clientset" \
                --internal-clientset-package "${grouppkg}/generated/internalclientset" \
                --listers-package "${grouppkg}/generated/listers" \
                "$@"
