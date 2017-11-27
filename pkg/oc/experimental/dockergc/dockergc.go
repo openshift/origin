@@ -1,7 +1,6 @@
 package dockergc
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -17,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
 	dockerfilters "github.com/docker/engine-api/types/filters"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -31,6 +29,8 @@ const (
 
 var (
 	DefaultMinimumGCAge = metav1.Duration{Duration: time.Hour}
+
+	dockerTimeout = time.Duration(2 * time.Minute)
 )
 
 // DockerGCConfigCmdOptions are options supported by the dockergc admin command.
@@ -146,7 +146,7 @@ func parseDockerTimestamp(s string) (time.Time, error) {
 	return time.Parse(time.RFC3339Nano, s)
 }
 
-func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options *dockerGCConfigCmdOptions, rootDir string) error {
+func doGarbageCollection(client *dockerClient, options *dockerGCConfigCmdOptions, rootDir string) error {
 	glog.Infof("gathering disk usage data")
 	capacityBytes, usageBytes, err := getRootDirInfo(rootDir)
 	if err != nil {
@@ -167,10 +167,7 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 	// conatiners
 	exitedFilter := dockerfilters.NewArgs()
 	exitedFilter.Add("status", "exited")
-	containers, err := client.ContainerList(ctx, dockertypes.ContainerListOptions{All: true, Filter: exitedFilter})
-	if ctx.Err() == context.DeadlineExceeded {
-		return ctx.Err()
-	}
+	containers, err := client.ContainerList(dockertypes.ContainerListOptions{All: true, Filter: exitedFilter})
 	if err != nil {
 		return err
 	}
@@ -189,7 +186,7 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 		glog.Infof("removing container %v (size: %v, age: %v)", c.ID, c.SizeRw, age)
 		var err error
 		if !options.DryRun {
-			err = client.ContainerRemove(ctx, c.ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true})
+			err = client.ContainerRemove(c.ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true})
 		}
 		if err != nil {
 			glog.Infof("unable to remove container: %v", err)
@@ -199,10 +196,7 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 	}
 
 	// images
-	images, err := client.ImageList(ctx, dockertypes.ImageListOptions{})
-	if ctx.Err() == context.DeadlineExceeded {
-		return ctx.Err()
-	}
+	images, err := client.ImageList(dockertypes.ImageListOptions{})
 	if err != nil {
 		return err
 	}
@@ -230,7 +224,7 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 		glog.Infof("removing image %v (size: %v, age: %v)", i.ID, i.Size, age)
 		var err error
 		if !options.DryRun {
-			_, err = client.ImageRemove(ctx, i.ID, dockertypes.ImageRemoveOptions{PruneChildren: true})
+			err = client.ImageRemove(i.ID, dockertypes.ImageRemoveOptions{PruneChildren: true})
 		}
 		if err != nil {
 			glog.Infof("unable to remove image: %v", err)
@@ -250,14 +244,12 @@ func Run(f *clientcmd.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Com
 		glog.Infof("Running in dry-run mode")
 	}
 	glog.Infof("MinimumGCAge: %v, ImageGCHighThresholdPercent: %v, ImageGCLowThresholdPercent: %v", options.MinimumGCAge, options.ImageGCHighThresholdPercent, options.ImageGCLowThresholdPercent)
-	client, err := dockerapi.NewEnvClient()
+	client, err := newDockerClient(dockerTimeout)
 	if err != nil {
 		return err
 	}
-	timeout := time.Duration(2 * time.Minute)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	info, err := client.Info(ctx)
+
+	info, err := client.Info()
 	if err != nil {
 		return err
 	}
@@ -270,7 +262,7 @@ func Run(f *clientcmd.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Com
 	}
 
 	for {
-		err := doGarbageCollection(ctx, client, options, rootDir)
+		err := doGarbageCollection(client, options, rootDir)
 		if err != nil {
 			return err
 		}
