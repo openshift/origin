@@ -264,7 +264,7 @@ func Run(f *clientcmd.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Com
 	for {
 		err := doGarbageCollection(client, options, rootDir)
 		if err != nil {
-			return err
+			glog.Errorf("garbage collection attempt failed: %v", err)
 		}
 		if options.DryRun {
 			return nil
