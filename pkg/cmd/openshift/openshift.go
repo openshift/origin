@@ -106,25 +106,6 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true, IsServer: true}))
-
-	// infra commands are those that are bundled with the binary but not displayed to end users
-	// directly
-	infra := &cobra.Command{
-		Use: "infra", // Because this command exposes no description, it will not be shown in help
-	}
-
-	infra.AddCommand(
-		irouter.NewCommandTemplateRouter("router"),
-		irouter.NewCommandF5Router("f5-router"),
-		deployer.NewCommandDeployer("deploy"),
-		recycle.NewCommandRecycle("recycle", out),
-		builder.NewCommandS2IBuilder("sti-build"),
-		builder.NewCommandDockerBuilder("docker-build"),
-		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
-		diagnostics.NewCommandNetworkPodDiagnostics("network-diagnostic-pod", out),
-	)
-	root.AddCommand(infra)
-
 	root.AddCommand(cmd.NewCmdOptions(out))
 
 	// TODO: add groups
