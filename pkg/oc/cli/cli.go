@@ -17,6 +17,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/oc/admin"
+	diagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics"
+	sync "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
+	"github.com/openshift/origin/pkg/oc/admin/validate"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/cluster"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/image"
@@ -30,6 +33,10 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/sa"
 	"github.com/openshift/origin/pkg/oc/cli/secrets"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/experimental/buildchain"
+	configcmd "github.com/openshift/origin/pkg/oc/experimental/config"
+	"github.com/openshift/origin/pkg/oc/experimental/dockergc"
+	exipfailover "github.com/openshift/origin/pkg/oc/experimental/ipfailover"
 )
 
 const productName = `OpenShift`
@@ -192,13 +199,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	templates.ActsAsRootCommand(cmds, filters, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify", "token")
 
-	// experimental commands are those that are bundled with the binary but not displayed to end users
-	// directly
-	experimental := &cobra.Command{
-		Use: "ex", // Because this command exposes no description, it will not be shown in help
-	}
-	experimental.AddCommand()
-	cmds.AddCommand(experimental)
+	cmds.AddCommand(newExperimentalCommand("ex", name+"ex"))
 
 	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, in, out, errout))
 	if name == fullName {
@@ -252,6 +253,39 @@ func changeSharedFlagDefaults(rootCmd *cobra.Command) {
 			validateFlag.Changed = false
 		}
 	}
+}
+
+func newExperimentalCommand(name, fullName string) *cobra.Command {
+	out := os.Stdout
+	errout := os.Stderr
+
+	experimental := &cobra.Command{
+		Use:   name,
+		Short: "Experimental commands under active development",
+		Long:  "The commands grouped here are under development and may change without notice.",
+		Run: func(c *cobra.Command, args []string) {
+			c.SetOutput(out)
+			c.Help()
+		},
+		BashCompletionFunction: admin.BashCompletionFunc,
+	}
+
+	f := clientcmd.New(experimental.PersistentFlags())
+
+	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out, errout))
+	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout))
+	experimental.AddCommand(dockergc.NewCmdDockerGCConfig(f, fullName, "dockergc", out, errout))
+	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
+	experimental.AddCommand(configcmd.NewCmdConfig(configcmd.ConfigRecommendedName, fullName+" "+configcmd.ConfigRecommendedName, f, out, errout))
+	deprecatedDiag := diagnostics.NewCmdDiagnostics(diagnostics.DiagnosticsRecommendedName, fullName+" "+diagnostics.DiagnosticsRecommendedName, out)
+	deprecatedDiag.Deprecated = fmt.Sprintf(`use "oc adm %[1]s" to run diagnostics instead.`, diagnostics.DiagnosticsRecommendedName)
+	experimental.AddCommand(deprecatedDiag)
+	experimental.AddCommand(cmd.NewCmdOptions(out))
+
+	// these groups also live under `oc adm groups {sync,prune}` and are here only for backwards compatibility
+	experimental.AddCommand(sync.NewCmdSync("sync-groups", fullName+" "+"sync-groups", f, out))
+	experimental.AddCommand(sync.NewCmdPrune("prune-groups", fullName+" "+"prune-groups", f, out))
+	return experimental
 }
 
 // CommandFor returns the appropriate command for this base name,
