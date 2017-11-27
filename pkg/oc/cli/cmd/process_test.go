@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"testing"
+
+	"github.com/openshift/origin/pkg/generate/app"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 func TestInjectUserVars(t *testing.T) {
@@ -19,7 +21,7 @@ func TestInjectUserVars(t *testing.T) {
 		"parameter_foo_bar_error":    "value_foo_bar_error=value_foo_bar_error",
 	}
 
-	errors := injectUserVars(testParam, template, false)
+	errors := injectUserVars(app.NewEnvironmentFromMap(testParam), template, false)
 	if len(errors) != 2 {
 		for index, err := range errors {
 			fmt.Printf("errors[%d] : %v\n", index, err)

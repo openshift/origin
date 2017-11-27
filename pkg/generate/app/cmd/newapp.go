@@ -490,7 +490,7 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 		if len(c.ContextDir) > 0 {
 			return "", nil, fmt.Errorf("--context-dir is not supported when using a template")
 		}
-		result, err := TransformTemplate(tpl, templateProcessor, c.OriginNamespace, parameters, c.IgnoreUnknownParameters)
+		result, err := TransformTemplate(tpl, templateProcessor, c.OriginNamespace, parameters.Map(), c.IgnoreUnknownParameters)
 		if err != nil {
 			return name, nil, err
 		}

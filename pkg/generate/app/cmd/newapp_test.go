@@ -141,7 +141,7 @@ func TestValidate(t *testing.T) {
 		if len(env) != len(c.env) {
 			t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.env, env)
 		}
-		for e, v := range env {
+		for e, v := range env.Map() {
 			if c.env[e] != v {
 				t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.env, env)
 				break
@@ -150,7 +150,7 @@ func TestValidate(t *testing.T) {
 		if len(buildEnv) != len(c.buildEnv) {
 			t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.buildEnv, buildEnv)
 		}
-		for e, v := range buildEnv {
+		for e, v := range buildEnv.Map() {
 			if c.buildEnv[e] != v {
 				t.Errorf("%s: Environment variables don't match. Expected: %v, Got: %v", n, c.buildEnv, buildEnv)
 				break
@@ -159,7 +159,7 @@ func TestValidate(t *testing.T) {
 		if len(parms) != len(c.parms) {
 			t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
 		}
-		for p, v := range parms {
+		for p, v := range parms.Map() {
 			if c.parms[p] != v {
 				t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
 				break
@@ -217,7 +217,7 @@ func TestBuildTemplates(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue
 		}
-		_, _, err = appCfg.buildTemplates(components, app.Environment(parms), app.Environment(map[string]string{}), app.Environment(map[string]string{}), fakeTemplateProcessor{})
+		_, _, err = appCfg.buildTemplates(components, app.Environment(parms), app.Environment{}, app.Environment{}, fakeTemplateProcessor{})
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 		}
@@ -232,7 +232,7 @@ func TestBuildTemplates(t *testing.T) {
 			if len(parms) != len(c.parms) {
 				t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
 			}
-			for p, v := range parms {
+			for p, v := range parms.Map() {
 				if c.parms[p] != v {
 					t.Errorf("%s: Template parameters don't match. Expected: %v, Got: %v", n, c.parms, parms)
 					break

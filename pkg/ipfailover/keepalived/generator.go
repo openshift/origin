@@ -22,10 +22,7 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 	replicas := strconv.FormatInt(int64(options.Replicas), 10)
 	interval := strconv.Itoa(options.CheckInterval)
 	VRRPIDOffset := strconv.Itoa(options.VRRPIDOffset)
-	env := app.Environment{}
-
-	env.Add(app.Environment{
-
+	env := map[string]string{
 		"OPENSHIFT_HA_CONFIG_NAME":       name,
 		"OPENSHIFT_HA_VIRTUAL_IPS":       options.VirtualIPs,
 		"OPENSHIFT_HA_NETWORK_INTERFACE": options.NetworkInterface,
@@ -39,8 +36,8 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 		"OPENSHIFT_HA_PREEMPTION":        options.Preemption,
 		"OPENSHIFT_HA_CHECK_INTERVAL":    interval,
 		// "OPENSHIFT_HA_UNICAST_PEERS":     "127.0.0.1",
-	})
-	return env
+	}
+	return app.NewEnvironmentFromMap(env)
 }
 
 //  Generate the IP failover monitor (keepalived) container configuration.
