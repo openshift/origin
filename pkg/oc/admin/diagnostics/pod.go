@@ -13,9 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/diagnostics/log"
-	poddiag "github.com/openshift/origin/pkg/diagnostics/pod"
-	"github.com/openshift/origin/pkg/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
+	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/pod"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
 )

@@ -15,9 +15,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/diagnostics/log"
-	networkdiag "github.com/openshift/origin/pkg/diagnostics/networkpod"
-	"github.com/openshift/origin/pkg/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
+	networkdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
 )

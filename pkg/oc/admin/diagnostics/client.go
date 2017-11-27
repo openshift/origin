@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	clientdiags "github.com/openshift/origin/pkg/diagnostics/client"
-	networkdiags "github.com/openshift/origin/pkg/diagnostics/network"
-	"github.com/openshift/origin/pkg/diagnostics/types"
+	clientdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client"
+	networkdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/network"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
 var (
