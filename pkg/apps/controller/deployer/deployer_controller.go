@@ -408,6 +408,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
 			DNSPolicy:             deployment.Spec.Template.Spec.DNSPolicy,
 			ImagePullSecrets:      deployment.Spec.Template.Spec.ImagePullSecrets,
+			Tolerations:           deployment.Spec.Template.Spec.Tolerations,
 			// Setting the node selector on the deployer pod so that it is created
 			// on the same set of nodes as the pods.
 			NodeSelector:                  deployment.Spec.Template.Spec.NodeSelector,
