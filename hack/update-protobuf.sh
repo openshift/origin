@@ -24,4 +24,4 @@ go-to-protobuf \
 --go-header-file=${SCRIPT_ROOT}/hack/empty.txt \
 --proto-import=${SCRIPT_ROOT}/vendor/github.com/gogo/protobuf/protobuf \
 --proto-import=${SCRIPT_ROOT}/vendor \
---packages='github.com/openshift/api/apps/v1,github.com/openshift/api/authorization/v1,github.com/openshift/api/image/v1,github.com/openshift/api/network/v1,github.com/openshift/api/oauth/v1,github.com/openshift/api/project/v1,github.com/openshift/api/quota/v1,github.com/openshift/api/route/v1,github.com/openshift/api/security/v1,github.com/openshift/api/template/v1,github.com/openshift/api/user/v1'
+--packages='github.com/openshift/api/apps/v1,github.com/openshift/api/authorization/v1,github.com/openshift/api/build/v1,github.com/openshift/api/image/v1,github.com/openshift/api/network/v1,github.com/openshift/api/oauth/v1,github.com/openshift/api/project/v1,github.com/openshift/api/quota/v1,github.com/openshift/api/route/v1,github.com/openshift/api/security/v1,github.com/openshift/api/template/v1,github.com/openshift/api/user/v1'
