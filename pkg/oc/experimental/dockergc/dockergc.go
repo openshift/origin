@@ -221,7 +221,7 @@ func doGarbageCollection(ctx context.Context, client *dockerapi.Client, options 
 		fmt.Printf("removing image %v (size: %v, age: %v)\n", i.ID, i.Size, age)
 		_, err := client.ImageRemove(ctx, i.ID, dockertypes.ImageRemoveOptions{PruneChildren: true})
 		if err != nil {
-			fmt.Printf("unable to remove container: %v", err)
+			fmt.Printf("unable to remove image: %v", err)
 		} else {
 			freedBytes += i.Size
 		}
