@@ -11,6 +11,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 	reflect "reflect"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -26,91 +27,111 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*CustomDeploymentStrategyParams).DeepCopyInto(out.(*CustomDeploymentStrategyParams))
 			return nil
-		}, InType: reflect.TypeOf(&CustomDeploymentStrategyParams{})},
+		}, InType: reflect.TypeOf(new(CustomDeploymentStrategyParams))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentCause).DeepCopyInto(out.(*DeploymentCause))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentCause{})},
+		}, InType: reflect.TypeOf(new(DeploymentCause))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentCauseImageTrigger).DeepCopyInto(out.(*DeploymentCauseImageTrigger))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentCauseImageTrigger{})},
+		}, InType: reflect.TypeOf(new(DeploymentCauseImageTrigger))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentCondition).DeepCopyInto(out.(*DeploymentCondition))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentCondition{})},
+		}, InType: reflect.TypeOf(new(DeploymentCondition))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DeploymentConditionType).DeepCopyInto(out.(*DeploymentConditionType))
+			return nil
+		}, InType: reflect.TypeOf(new(DeploymentConditionType))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentConfig).DeepCopyInto(out.(*DeploymentConfig))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentConfig{})},
+		}, InType: reflect.TypeOf(new(DeploymentConfig))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentConfigList).DeepCopyInto(out.(*DeploymentConfigList))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentConfigList{})},
+		}, InType: reflect.TypeOf(new(DeploymentConfigList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentConfigRollback).DeepCopyInto(out.(*DeploymentConfigRollback))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentConfigRollback{})},
+		}, InType: reflect.TypeOf(new(DeploymentConfigRollback))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentConfigRollbackSpec).DeepCopyInto(out.(*DeploymentConfigRollbackSpec))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentConfigRollbackSpec{})},
+		}, InType: reflect.TypeOf(new(DeploymentConfigRollbackSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentConfigSpec).DeepCopyInto(out.(*DeploymentConfigSpec))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentConfigSpec{})},
+		}, InType: reflect.TypeOf(new(DeploymentConfigSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentConfigStatus).DeepCopyInto(out.(*DeploymentConfigStatus))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentConfigStatus{})},
+		}, InType: reflect.TypeOf(new(DeploymentConfigStatus))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentDetails).DeepCopyInto(out.(*DeploymentDetails))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentDetails{})},
+		}, InType: reflect.TypeOf(new(DeploymentDetails))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentLog).DeepCopyInto(out.(*DeploymentLog))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentLog{})},
+		}, InType: reflect.TypeOf(new(DeploymentLog))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentLogOptions).DeepCopyInto(out.(*DeploymentLogOptions))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentLogOptions{})},
+		}, InType: reflect.TypeOf(new(DeploymentLogOptions))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentRequest).DeepCopyInto(out.(*DeploymentRequest))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentRequest{})},
+		}, InType: reflect.TypeOf(new(DeploymentRequest))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentStrategy).DeepCopyInto(out.(*DeploymentStrategy))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentStrategy{})},
+		}, InType: reflect.TypeOf(new(DeploymentStrategy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DeploymentStrategyType).DeepCopyInto(out.(*DeploymentStrategyType))
+			return nil
+		}, InType: reflect.TypeOf(new(DeploymentStrategyType))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentTriggerImageChangeParams).DeepCopyInto(out.(*DeploymentTriggerImageChangeParams))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentTriggerImageChangeParams{})},
+		}, InType: reflect.TypeOf(new(DeploymentTriggerImageChangeParams))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DeploymentTriggerPolicies).DeepCopyInto(out.(*DeploymentTriggerPolicies))
+			return nil
+		}, InType: reflect.TypeOf(new(DeploymentTriggerPolicies))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DeploymentTriggerPolicy).DeepCopyInto(out.(*DeploymentTriggerPolicy))
 			return nil
-		}, InType: reflect.TypeOf(&DeploymentTriggerPolicy{})},
+		}, InType: reflect.TypeOf(new(DeploymentTriggerPolicy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*DeploymentTriggerType).DeepCopyInto(out.(*DeploymentTriggerType))
+			return nil
+		}, InType: reflect.TypeOf(new(DeploymentTriggerType))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ExecNewPodHook).DeepCopyInto(out.(*ExecNewPodHook))
 			return nil
-		}, InType: reflect.TypeOf(&ExecNewPodHook{})},
+		}, InType: reflect.TypeOf(new(ExecNewPodHook))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*LifecycleHook).DeepCopyInto(out.(*LifecycleHook))
 			return nil
-		}, InType: reflect.TypeOf(&LifecycleHook{})},
+		}, InType: reflect.TypeOf(new(LifecycleHook))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*LifecycleHookFailurePolicy).DeepCopyInto(out.(*LifecycleHookFailurePolicy))
+			return nil
+		}, InType: reflect.TypeOf(new(LifecycleHookFailurePolicy))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*RecreateDeploymentStrategyParams).DeepCopyInto(out.(*RecreateDeploymentStrategyParams))
 			return nil
-		}, InType: reflect.TypeOf(&RecreateDeploymentStrategyParams{})},
+		}, InType: reflect.TypeOf(new(RecreateDeploymentStrategyParams))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*RollingDeploymentStrategyParams).DeepCopyInto(out.(*RollingDeploymentStrategyParams))
 			return nil
-		}, InType: reflect.TypeOf(&RollingDeploymentStrategyParams{})},
+		}, InType: reflect.TypeOf(new(RollingDeploymentStrategyParams))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TagImageHook).DeepCopyInto(out.(*TagImageHook))
 			return nil
-		}, InType: reflect.TypeOf(&TagImageHook{})},
+		}, InType: reflect.TypeOf(new(TagImageHook))},
 	)
 }
 
@@ -198,6 +219,26 @@ func (in *DeploymentCondition) DeepCopy() *DeploymentCondition {
 		return nil
 	}
 	out := new(DeploymentCondition)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DeploymentConditionType) DeepCopyInto(out *DeploymentConditionType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DeploymentConditionType.
+func (in *DeploymentConditionType) DeepCopy() *DeploymentConditionType {
+	if in == nil {
+		return nil
+	}
+	out := new(DeploymentConditionType)
 	in.DeepCopyInto(out)
 	return out
 }
@@ -616,6 +657,26 @@ func (in *DeploymentStrategy) DeepCopy() *DeploymentStrategy {
 }
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DeploymentStrategyType) DeepCopyInto(out *DeploymentStrategyType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DeploymentStrategyType.
+func (in *DeploymentStrategyType) DeepCopy() *DeploymentStrategyType {
+	if in == nil {
+		return nil
+	}
+	out := new(DeploymentStrategyType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *DeploymentTriggerImageChangeParams) DeepCopyInto(out *DeploymentTriggerImageChangeParams) {
 	*out = *in
 	if in.ContainerNames != nil {
@@ -633,6 +694,29 @@ func (in *DeploymentTriggerImageChangeParams) DeepCopy() *DeploymentTriggerImage
 		return nil
 	}
 	out := new(DeploymentTriggerImageChangeParams)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DeploymentTriggerPolicies) DeepCopyInto(out *DeploymentTriggerPolicies) {
+	{
+		in := (*[]DeploymentTriggerPolicy)(unsafe.Pointer(in))
+		out := (*[]DeploymentTriggerPolicy)(unsafe.Pointer(out))
+		*out = make([]DeploymentTriggerPolicy, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DeploymentTriggerPolicies.
+func (in *DeploymentTriggerPolicies) DeepCopy() *DeploymentTriggerPolicies {
+	if in == nil {
+		return nil
+	}
+	out := new(DeploymentTriggerPolicies)
 	in.DeepCopyInto(out)
 	return out
 }
@@ -658,6 +742,26 @@ func (in *DeploymentTriggerPolicy) DeepCopy() *DeploymentTriggerPolicy {
 		return nil
 	}
 	out := new(DeploymentTriggerPolicy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *DeploymentTriggerType) DeepCopyInto(out *DeploymentTriggerType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new DeploymentTriggerType.
+func (in *DeploymentTriggerType) DeepCopy() *DeploymentTriggerType {
+	if in == nil {
+		return nil
+	}
+	out := new(DeploymentTriggerType)
 	in.DeepCopyInto(out)
 	return out
 }
@@ -721,6 +825,26 @@ func (in *LifecycleHook) DeepCopy() *LifecycleHook {
 		return nil
 	}
 	out := new(LifecycleHook)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *LifecycleHookFailurePolicy) DeepCopyInto(out *LifecycleHookFailurePolicy) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new LifecycleHookFailurePolicy.
+func (in *LifecycleHookFailurePolicy) DeepCopy() *LifecycleHookFailurePolicy {
+	if in == nil {
+		return nil
+	}
+	out := new(LifecycleHookFailurePolicy)
 	in.DeepCopyInto(out)
 	return out
 }
