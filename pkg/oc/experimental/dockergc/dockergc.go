@@ -19,7 +19,6 @@ import (
 	dockerapi "github.com/docker/engine-api/client"
 	dockertypes "github.com/docker/engine-api/types"
 	dockerfilters "github.com/docker/engine-api/types/filters"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -35,8 +34,6 @@ var (
 
 // DockerGCConfigCmdOptions are options supported by the dockergc admin command.
 type dockerGCConfigCmdOptions struct {
-	Action configcmd.BulkAction
-
 	// MinimumGCAge is the minimum age for a container or unused image before
 	// it is garbage collected.
 	MinimumGCAge metav1.Duration
@@ -68,10 +65,6 @@ var (
 
 func NewCmdDockerGCConfig(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
 	options := &dockerGCConfigCmdOptions{
-		Action: configcmd.BulkAction{
-			Out:    out,
-			ErrOut: errout,
-		},
 		MinimumGCAge:                DefaultMinimumGCAge,
 		ImageGCHighThresholdPercent: DefaultImageGCHighThresholdPercent,
 		ImageGCLowThresholdPercent:  DefaultImageGCLowThresholdPercent,
@@ -93,8 +86,6 @@ func NewCmdDockerGCConfig(f *clientcmd.Factory, parentName, name string, out, er
 	cmd.Flags().DurationVar(&options.MinimumGCAge.Duration, "minimum-ttl-duration", options.MinimumGCAge.Duration, "Minimum age for a container or unused image before it is garbage collected.  Examples: '300ms', '10s' or '2h45m'.")
 	cmd.Flags().Int32Var(&options.ImageGCHighThresholdPercent, "image-gc-high-threshold", options.ImageGCHighThresholdPercent, "The percent of disk usage after which image garbage collection is always run.")
 	cmd.Flags().Int32Var(&options.ImageGCLowThresholdPercent, "image-gc-low-threshold", options.ImageGCLowThresholdPercent, "The percent of disk usage before which image garbage collection is never run. Lowest disk usage to garbage collect to.")
-
-	options.Action.BindForOutput(cmd.Flags())
 
 	return cmd
 }
