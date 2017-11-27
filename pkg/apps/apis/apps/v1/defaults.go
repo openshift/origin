@@ -7,17 +7,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
-// Applies defaults only for API group "apps.openshift.io" and not for the legacy API.
-// This function is called from storage layer where differentiation
-// between legacy and group API can be made and is not related to other functions here
-// which are called fom auto-generated code.
-func AppsV1DeploymentConfigLayeredDefaults(dc *deployapi.DeploymentConfig) {
-	if dc.Spec.RevisionHistoryLimit == nil {
-		v := deployapi.DefaultRevisionHistoryLimit
-		dc.Spec.RevisionHistoryLimit = &v
-	}
-}
-
 // Keep this in sync with pkg/api/serialization_test.go#defaultHookContainerName
 func defaultHookContainerName(hook *v1.LifecycleHook, containerName string) {
 	if hook == nil {

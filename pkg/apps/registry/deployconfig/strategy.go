@@ -11,7 +11,6 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	deployapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 )
@@ -136,7 +135,7 @@ func (s groupStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obje
 	s.strategy.PrepareForCreate(ctx, obj)
 
 	dc := obj.(*deployapi.DeploymentConfig)
-	deployapiv1.AppsV1DeploymentConfigLayeredDefaults(dc)
+	appsV1DeploymentConfigLayeredDefaults(dc)
 }
 
 // statusStrategy implements behavior for DeploymentConfig status updates.
@@ -157,4 +156,15 @@ func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.
 // ValidateUpdate is the default update validation for an end user updating status.
 func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*deployapi.DeploymentConfig), old.(*deployapi.DeploymentConfig))
+}
+
+// Applies defaults only for API group "apps.openshift.io" and not for the legacy API.
+// This function is called from storage layer where differentiation
+// between legacy and group API can be made and is not related to other functions here
+// which are called fom auto-generated code.
+func appsV1DeploymentConfigLayeredDefaults(dc *deployapi.DeploymentConfig) {
+	if dc.Spec.RevisionHistoryLimit == nil {
+		v := deployapi.DefaultRevisionHistoryLimit
+		dc.Spec.RevisionHistoryLimit = &v
+	}
 }
