@@ -271,19 +271,80 @@ func makeNamespaceGlobal(ns *corev1.Namespace) {
 	expectNoError(err)
 }
 
-func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
-	nodes := e2e.GetReadySchedulableNodesOrDie(f1.ClientSet)
-	var serverNode, clientNode *corev1.Node
-	serverNode = &nodes.Items[0]
-	if nodeType == DIFFERENT_NODE {
-		if len(nodes.Items) == 1 {
-			e2e.Skipf("Only one node is available in this environment")
+func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
+	// to avoid hassles dealing with selector limits, set the namespace label selector to empty
+	// to allow targeting all nodes
+	for {
+		ns, err := f.ClientSet.CoreV1().Namespaces().Get(f.Namespace.Name, metav1.GetOptions{})
+		expectNoError(err)
+		ns.Annotations["openshift.io/node-selector"] = ""
+		_, err = f.ClientSet.CoreV1().Namespaces().Update(ns)
+		if err == nil {
+			return
 		}
-		clientNode = &nodes.Items[1]
-	} else {
-		clientNode = serverNode
+		if kapierrs.IsConflict(err) {
+			continue
+		}
+		expectNoError(err)
+	}
+}
+
+// findAppropriateNodes tries to find a source and destination for a type of node connectivity
+// test (same node, or different node).
+func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *corev1.Node) {
+	nodes := e2e.GetReadySchedulableNodesOrDie(f.ClientSet)
+	candidates := nodes.Items
+
+	if len(candidates) == 0 {
+		e2e.Failf("Unable to find any candidate nodes for e2e networking tests in \n%#v", nodes.Items)
 	}
 
+	// in general, avoiding masters is a good thing, so see if we can find nodes that aren't masters
+	if len(candidates) > 1 {
+		var withoutMasters []corev1.Node
+		// look for anything that has the label value master or infra and try to skip it
+		isAllowed := func(node *corev1.Node) bool {
+			for _, value := range node.Labels {
+				if value == "master" || value == "infra" {
+					return false
+				}
+			}
+			return true
+		}
+		for _, node := range candidates {
+			if !isAllowed(&node) {
+				continue
+			}
+			withoutMasters = append(withoutMasters, node)
+		}
+		if len(withoutMasters) >= 2 {
+			candidates = withoutMasters
+		}
+	}
+
+	var candidateNames, nodeNames []string
+	for _, node := range candidates {
+		candidateNames = append(candidateNames, node.Name)
+	}
+	for _, node := range nodes.Items {
+		nodeNames = append(nodeNames, node.Name)
+	}
+
+	if nodeType == DIFFERENT_NODE {
+		if len(candidates) <= 1 {
+			e2e.Skipf("Only one node is available in this environment (%v out of %v)", candidateNames, nodeNames)
+		}
+		e2e.Logf("Using %s and %s for test (%v out of %v)", candidates[0].Name, candidates[1].Name, candidateNames, nodeNames)
+		return &candidates[0], &candidates[1]
+	}
+	e2e.Logf("Using %s for test (%v out of %v)", candidates[0].Name, candidateNames, nodeNames)
+	return &candidates[0], &candidates[0]
+}
+
+func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
+	makeNamespaceScheduleToAllNodes(f1)
+	makeNamespaceScheduleToAllNodes(f2)
+	serverNode, clientNode := findAppropriateNodes(f1, nodeType)
 	podName := "isolation-webserver"
 	defer f1.ClientSet.CoreV1().Pods(f1.Namespace.Name).Delete(podName, nil)
 	ip := e2e.LaunchWebserverPod(f1, podName, serverNode.Name)
@@ -292,18 +353,9 @@ func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 }
 
 func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, nodeType NodeType) error {
-	nodes := e2e.GetReadySchedulableNodesOrDie(serverFramework.ClientSet)
-	var serverNode, clientNode *corev1.Node
-	serverNode = &nodes.Items[0]
-	if nodeType == DIFFERENT_NODE {
-		if len(nodes.Items) == 1 {
-			e2e.Skipf("Only one node is available in this environment")
-		}
-		clientNode = &nodes.Items[1]
-	} else {
-		clientNode = serverNode
-	}
-
+	makeNamespaceScheduleToAllNodes(serverFramework)
+	makeNamespaceScheduleToAllNodes(clientFramework)
+	serverNode, clientNode := findAppropriateNodes(serverFramework, nodeType)
 	podName := kapiv1.SimpleNameGenerator.GenerateName("service-")
 	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(podName, nil)
 	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(podName, nil)
