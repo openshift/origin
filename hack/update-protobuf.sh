@@ -16,7 +16,9 @@ To skip protobuf generation, set \$PROTO_OPTIONAL."
 fi
 
 rm -rf go-to-protobuf
+rm -rf protoc-gen-gogo
 go build -o _output/bin/go-to-protobuf github.com/openshift/api/vendor/k8s.io/code-generator/cmd/go-to-protobuf
+go build -o _output/bin/protoc-gen-gogo github.com/openshift/api/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 
 go-to-protobuf \
 --output-base="${GOPATH}/src" \
