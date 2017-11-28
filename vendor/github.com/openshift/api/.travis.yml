@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - 1.8
+
+script:
+  - PERMISSIVE_GO=y make build
+
+notifications:
+  irc: "chat.freenode.net#openshift-dev"
+
+sudo: false
