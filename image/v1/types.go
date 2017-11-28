@@ -186,7 +186,7 @@ type ImageStreamSpec struct {
 	// tags map arbitrary string values to specific image locators
 	// +patchMergeKey=name
 	// +patchStrategy=merge
-	Tags []TagReference `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
+	Tags []TagReference `json:"tags,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,2,rep,name=tags"`
 }
 
 // ImageLookupPolicy describes how an image stream can be used to override the image references
@@ -278,7 +278,7 @@ type ImageStreamStatus struct {
 	// TagEvent array is the currently tagged image.
 	// +patchMergeKey=tag
 	// +patchStrategy=merge
-	Tags []NamedTagEventList `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
+	Tags []NamedTagEventList `json:"tags,omitempty" patchStrategy:"merge" patchMergeKey:"tag" protobuf:"bytes,2,rep,name=tags"`
 }
 
 // NamedTagEventList relates a tag to its image history.
