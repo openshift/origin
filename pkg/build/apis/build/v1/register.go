@@ -1,8 +1,7 @@
 package v1
 
 import (
-	kapiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openshift/api/build/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -14,10 +13,10 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, addConversionFuncs, addLegacyFieldSelectorKeyConversions, RegisterDeepCopies, RegisterDefaults, RegisterConversions)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.LegacySchemeBuilder.AddToScheme, addConversionFuncs, addLegacyFieldSelectorKeyConversions, v1.RegisterDeepCopies, RegisterDefaults, RegisterConversions)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs, addFieldSelectorKeyConversions, RegisterDefaults)
+	SchemeBuilder = runtime.NewSchemeBuilder(v1.SchemeBuilder.AddToScheme, addConversionFuncs, addFieldSelectorKeyConversions, RegisterDefaults)
 	AddToScheme   = SchemeBuilder.AddToScheme
 
 	localSchemeBuilder = &SchemeBuilder
@@ -36,39 +35,4 @@ func LegacyResource(resource string) schema.GroupResource {
 // resource by looking up the API group and also the legacy API.
 func IsResourceOrLegacy(resource string, gr schema.GroupResource) bool {
 	return gr == Resource(resource) || gr == LegacyResource(resource)
-}
-
-// addKnownTypes adds types to API group
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&Build{},
-		&BuildList{},
-		&BuildConfig{},
-		&BuildConfigList{},
-		&BuildLog{},
-		&BuildRequest{},
-		&BuildLogOptions{},
-		&BinaryBuildRequestOptions{},
-		// This is needed for webhooks
-		&kapiv1.PodProxyOptions{},
-	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-	return nil
-}
-
-// addLegacyKnownTypes adds types to legacy API group
-// DEPRECATED: This will be deprecated and should not be modified.
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&Build{},
-		&BuildList{},
-		&BuildConfig{},
-		&BuildConfigList{},
-		&BuildLog{},
-		&BuildRequest{},
-		&BuildLogOptions{},
-		&BinaryBuildRequestOptions{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
-	return nil
 }

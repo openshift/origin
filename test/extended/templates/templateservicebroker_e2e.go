@@ -20,12 +20,12 @@ import (
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/test/e2e/framework"
 
+	templateapiv1 "github.com/openshift/api/template/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/config/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"

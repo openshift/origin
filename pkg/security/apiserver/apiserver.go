@@ -13,7 +13,7 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	securityapiv1 "github.com/openshift/api/security/v1"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"

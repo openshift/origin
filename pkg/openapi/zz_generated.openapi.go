@@ -14,7 +14,7 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.CustomDeploymentStrategyParams": {
+		"github.com/openshift/api/apps/v1.CustomDeploymentStrategyParams": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "CustomDeploymentStrategyParams are the input to the Custom deployment strategy.",
@@ -59,7 +59,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.EnvVar"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCause": {
+		"github.com/openshift/api/apps/v1.DeploymentCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentCause captures information about a particular cause of a deployment.",
@@ -74,7 +74,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"imageTrigger": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ImageTrigger contains the image trigger details, if this trigger was fired based on an image change",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCauseImageTrigger"),
+								Ref:         ref("github.com/openshift/api/apps/v1.DeploymentCauseImageTrigger"),
 							},
 						},
 					},
@@ -82,9 +82,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCauseImageTrigger"},
+				"github.com/openshift/api/apps/v1.DeploymentCauseImageTrigger"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCauseImageTrigger": {
+		"github.com/openshift/api/apps/v1.DeploymentCauseImageTrigger": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentCauseImageTrigger represents details about the cause of a deployment originating from an image change trigger",
@@ -102,7 +102,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCondition": {
+		"github.com/openshift/api/apps/v1.DeploymentCondition": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentCondition describes the state of a deployment config at a certain point.",
@@ -154,7 +154,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfig": {
+		"github.com/openshift/api/apps/v1.DeploymentConfig": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
@@ -182,13 +182,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec represents a desired deployment state and how to deploy to it.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigSpec"),
+								Ref:         ref("github.com/openshift/api/apps/v1.DeploymentConfigSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status represents the current deployment state.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigStatus"),
+								Ref:         ref("github.com/openshift/api/apps/v1.DeploymentConfigStatus"),
 							},
 						},
 					},
@@ -196,9 +196,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigSpec", "github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/apps/v1.DeploymentConfigSpec", "github.com/openshift/api/apps/v1.DeploymentConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigList": {
+		"github.com/openshift/api/apps/v1.DeploymentConfigList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentConfigList is a collection of deployment configs.",
@@ -230,7 +230,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfig"),
+											Ref: ref("github.com/openshift/api/apps/v1.DeploymentConfig"),
 										},
 									},
 								},
@@ -241,9 +241,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/apps/v1.DeploymentConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollback": {
+		"github.com/openshift/api/apps/v1.DeploymentConfigRollback": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentConfigRollback provides the input to rollback generation.",
@@ -286,7 +286,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec defines the options to rollback generation.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollbackSpec"),
+								Ref:         ref("github.com/openshift/api/apps/v1.DeploymentConfigRollbackSpec"),
 							},
 						},
 					},
@@ -294,9 +294,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollbackSpec"},
+				"github.com/openshift/api/apps/v1.DeploymentConfigRollbackSpec"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollbackSpec": {
+		"github.com/openshift/api/apps/v1.DeploymentConfigRollbackSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentConfigRollbackSpec represents the options for rollback generation.",
@@ -349,7 +349,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigSpec": {
+		"github.com/openshift/api/apps/v1.DeploymentConfigSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentConfigSpec represents the desired state of the deployment.",
@@ -357,7 +357,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"strategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Strategy describes how a deployment is executed.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentStrategy"),
+								Ref:         ref("github.com/openshift/api/apps/v1.DeploymentStrategy"),
 							},
 						},
 						"minReadySeconds": {
@@ -374,7 +374,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerPolicy"),
+											Ref: ref("github.com/openshift/api/apps/v1.DeploymentTriggerPolicy"),
 										},
 									},
 								},
@@ -432,9 +432,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentStrategy", "github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerPolicy", "k8s.io/api/core/v1.PodTemplateSpec"},
+				"github.com/openshift/api/apps/v1.DeploymentStrategy", "github.com/openshift/api/apps/v1.DeploymentTriggerPolicy", "k8s.io/api/core/v1.PodTemplateSpec"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigStatus": {
+		"github.com/openshift/api/apps/v1.DeploymentConfigStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentConfigStatus represents the current deployment state.",
@@ -484,7 +484,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"details": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentDetails"),
+								Ref:         ref("github.com/openshift/api/apps/v1.DeploymentDetails"),
 							},
 						},
 						"conditions": {
@@ -500,7 +500,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCondition"),
+											Ref: ref("github.com/openshift/api/apps/v1.DeploymentCondition"),
 										},
 									},
 								},
@@ -518,9 +518,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCondition", "github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentDetails"},
+				"github.com/openshift/api/apps/v1.DeploymentCondition", "github.com/openshift/api/apps/v1.DeploymentDetails"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentDetails": {
+		"github.com/openshift/api/apps/v1.DeploymentDetails": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentDetails captures information about the causes of a deployment.",
@@ -539,7 +539,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCause"),
+											Ref: ref("github.com/openshift/api/apps/v1.DeploymentCause"),
 										},
 									},
 								},
@@ -550,9 +550,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCause"},
+				"github.com/openshift/api/apps/v1.DeploymentCause"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentLog": {
+		"github.com/openshift/api/apps/v1.DeploymentLog": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentLog represents the logs for a deployment",
@@ -576,7 +576,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentLogOptions": {
+		"github.com/openshift/api/apps/v1.DeploymentLogOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentLogOptions is the REST options for a deployment log",
@@ -670,7 +670,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentRequest": {
+		"github.com/openshift/api/apps/v1.DeploymentRequest": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentRequest is a request to a deployment config for a new deployment.",
@@ -730,7 +730,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentStrategy": {
+		"github.com/openshift/api/apps/v1.DeploymentStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentStrategy describes how to perform a deployment.",
@@ -745,19 +745,19 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"customParams": {
 							SchemaProps: spec.SchemaProps{
 								Description: "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.CustomDeploymentStrategyParams"),
+								Ref:         ref("github.com/openshift/api/apps/v1.CustomDeploymentStrategyParams"),
 							},
 						},
 						"recreateParams": {
 							SchemaProps: spec.SchemaProps{
 								Description: "RecreateParams are the input to the Recreate deployment strategy.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.RecreateDeploymentStrategyParams"),
+								Ref:         ref("github.com/openshift/api/apps/v1.RecreateDeploymentStrategyParams"),
 							},
 						},
 						"rollingParams": {
 							SchemaProps: spec.SchemaProps{
 								Description: "RollingParams are the input to the Rolling deployment strategy.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.RollingDeploymentStrategyParams"),
+								Ref:         ref("github.com/openshift/api/apps/v1.RollingDeploymentStrategyParams"),
 							},
 						},
 						"resources": {
@@ -805,9 +805,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.CustomDeploymentStrategyParams", "github.com/openshift/origin/pkg/apps/apis/apps/v1.RecreateDeploymentStrategyParams", "github.com/openshift/origin/pkg/apps/apis/apps/v1.RollingDeploymentStrategyParams", "k8s.io/api/core/v1.ResourceRequirements"},
+				"github.com/openshift/api/apps/v1.CustomDeploymentStrategyParams", "github.com/openshift/api/apps/v1.RecreateDeploymentStrategyParams", "github.com/openshift/api/apps/v1.RollingDeploymentStrategyParams", "k8s.io/api/core/v1.ResourceRequirements"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerImageChangeParams": {
+		"github.com/openshift/api/apps/v1.DeploymentTriggerImageChangeParams": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.",
@@ -853,7 +853,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerPolicy": {
+		"github.com/openshift/api/apps/v1.DeploymentTriggerPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.",
@@ -868,16 +868,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"imageChangeParams": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ImageChangeParams represents the parameters for the ImageChange trigger.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerImageChangeParams"),
+								Ref:         ref("github.com/openshift/api/apps/v1.DeploymentTriggerImageChangeParams"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerImageChangeParams"},
+				"github.com/openshift/api/apps/v1.DeploymentTriggerImageChangeParams"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.ExecNewPodHook": {
+		"github.com/openshift/api/apps/v1.ExecNewPodHook": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ExecNewPodHook is a hook implementation which runs a command in a new pod based on the specified container which is assumed to be part of the deployment template.",
@@ -937,7 +937,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.EnvVar"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook": {
+		"github.com/openshift/api/apps/v1.LifecycleHook": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
@@ -952,7 +952,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"execNewPod": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ExecNewPod specifies the options for a lifecycle hook backed by a pod.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.ExecNewPodHook"),
+								Ref:         ref("github.com/openshift/api/apps/v1.ExecNewPodHook"),
 							},
 						},
 						"tagImages": {
@@ -962,7 +962,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.TagImageHook"),
+											Ref: ref("github.com/openshift/api/apps/v1.TagImageHook"),
 										},
 									},
 								},
@@ -973,9 +973,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.ExecNewPodHook", "github.com/openshift/origin/pkg/apps/apis/apps/v1.TagImageHook"},
+				"github.com/openshift/api/apps/v1.ExecNewPodHook", "github.com/openshift/api/apps/v1.TagImageHook"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.RecreateDeploymentStrategyParams": {
+		"github.com/openshift/api/apps/v1.RecreateDeploymentStrategyParams": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RecreateDeploymentStrategyParams are the input to the Recreate deployment strategy.",
@@ -990,28 +990,28 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"pre": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Pre is a lifecycle hook which is executed before the strategy manipulates the deployment. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+								Ref:         ref("github.com/openshift/api/apps/v1.LifecycleHook"),
 							},
 						},
 						"mid": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new pod is created. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+								Ref:         ref("github.com/openshift/api/apps/v1.LifecycleHook"),
 							},
 						},
 						"post": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+								Ref:         ref("github.com/openshift/api/apps/v1.LifecycleHook"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"},
+				"github.com/openshift/api/apps/v1.LifecycleHook"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.RollingDeploymentStrategyParams": {
+		"github.com/openshift/api/apps/v1.RollingDeploymentStrategyParams": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
@@ -1052,22 +1052,22 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"pre": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+								Ref:         ref("github.com/openshift/api/apps/v1.LifecycleHook"),
 							},
 						},
 						"post": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+								Ref:         ref("github.com/openshift/api/apps/v1.LifecycleHook"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook", "k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+				"github.com/openshift/api/apps/v1.LifecycleHook", "k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 		},
-		"github.com/openshift/origin/pkg/apps/apis/apps/v1.TagImageHook": {
+		"github.com/openshift/api/apps/v1.TagImageHook": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.",
@@ -1092,7 +1092,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Action": {
+		"github.com/openshift/api/authorization/v1.Action": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Action describes a request to the API server",
@@ -1166,7 +1166,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicy": {
+		"github.com/openshift/api/authorization/v1.ClusterPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most one ClusterPolicy document per namespace.",
@@ -1204,7 +1204,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedClusterRole"),
+											Ref: ref("github.com/openshift/api/authorization/v1.NamedClusterRole"),
 										},
 									},
 								},
@@ -1215,9 +1215,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedClusterRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"github.com/openshift/api/authorization/v1.NamedClusterRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicyBinding": {
+		"github.com/openshift/api/authorization/v1.ClusterPolicyBinding": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is one ClusterPolicyBinding document per referenced ClusterPolicy namespace",
@@ -1261,7 +1261,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedClusterRoleBinding"),
+											Ref: ref("github.com/openshift/api/authorization/v1.NamedClusterRoleBinding"),
 										},
 									},
 								},
@@ -1272,9 +1272,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedClusterRoleBinding", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"github.com/openshift/api/authorization/v1.NamedClusterRoleBinding", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicyBindingList": {
+		"github.com/openshift/api/authorization/v1.ClusterPolicyBindingList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterPolicyBindingList is a collection of ClusterPolicyBindings",
@@ -1306,7 +1306,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicyBinding"),
+											Ref: ref("github.com/openshift/api/authorization/v1.ClusterPolicyBinding"),
 										},
 									},
 								},
@@ -1317,9 +1317,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicyBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.ClusterPolicyBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicyList": {
+		"github.com/openshift/api/authorization/v1.ClusterPolicyList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterPolicyList is a collection of ClusterPolicies",
@@ -1351,7 +1351,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicy"),
+											Ref: ref("github.com/openshift/api/authorization/v1.ClusterPolicy"),
 										},
 									},
 								},
@@ -1362,9 +1362,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.ClusterPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRole": {
+		"github.com/openshift/api/authorization/v1.ClusterRole": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.",
@@ -1396,7 +1396,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyRule"),
+											Ref: ref("github.com/openshift/api/authorization/v1.PolicyRule"),
 										},
 									},
 								},
@@ -1407,9 +1407,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyRule", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/authorization/v1.PolicyRule", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRoleBinding": {
+		"github.com/openshift/api/authorization/v1.ClusterRoleBinding": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
@@ -1488,7 +1488,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRoleBindingList": {
+		"github.com/openshift/api/authorization/v1.ClusterRoleBindingList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterRoleBindingList is a collection of ClusterRoleBindings",
@@ -1520,7 +1520,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRoleBinding"),
+											Ref: ref("github.com/openshift/api/authorization/v1.ClusterRoleBinding"),
 										},
 									},
 								},
@@ -1531,9 +1531,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRoleBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.ClusterRoleBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRoleList": {
+		"github.com/openshift/api/authorization/v1.ClusterRoleList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterRoleList is a collection of ClusterRoles",
@@ -1565,7 +1565,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRole"),
+											Ref: ref("github.com/openshift/api/authorization/v1.ClusterRole"),
 										},
 									},
 								},
@@ -1576,9 +1576,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.ClusterRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.GroupRestriction": {
+		"github.com/openshift/api/authorization/v1.GroupRestriction": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GroupRestriction matches a group either by a string match on the group name or a label selector applied to group labels.",
@@ -1617,7 +1617,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.IsPersonalSubjectAccessReview": {
+		"github.com/openshift/api/authorization/v1.IsPersonalSubjectAccessReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed",
@@ -1641,7 +1641,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.LocalResourceAccessReview": {
+		"github.com/openshift/api/authorization/v1.LocalResourceAccessReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace",
@@ -1729,7 +1729,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.LocalSubjectAccessReview": {
+		"github.com/openshift/api/authorization/v1.LocalSubjectAccessReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace",
@@ -1852,7 +1852,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedClusterRole": {
+		"github.com/openshift/api/authorization/v1.NamedClusterRole": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NamedClusterRole relates a name with a cluster role",
@@ -1867,7 +1867,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"role": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Role is the cluster role being named",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRole"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.ClusterRole"),
 							},
 						},
 					},
@@ -1875,9 +1875,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRole"},
+				"github.com/openshift/api/authorization/v1.ClusterRole"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedClusterRoleBinding": {
+		"github.com/openshift/api/authorization/v1.NamedClusterRoleBinding": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NamedClusterRoleBinding relates a name with a cluster role binding",
@@ -1892,7 +1892,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"roleBinding": {
 							SchemaProps: spec.SchemaProps{
 								Description: "RoleBinding is the cluster role binding being named",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRoleBinding"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.ClusterRoleBinding"),
 							},
 						},
 					},
@@ -1900,9 +1900,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ClusterRoleBinding"},
+				"github.com/openshift/api/authorization/v1.ClusterRoleBinding"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedRole": {
+		"github.com/openshift/api/authorization/v1.NamedRole": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NamedRole relates a Role with a name",
@@ -1917,7 +1917,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"role": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Role is the role being named",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Role"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.Role"),
 							},
 						},
 					},
@@ -1925,9 +1925,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Role"},
+				"github.com/openshift/api/authorization/v1.Role"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedRoleBinding": {
+		"github.com/openshift/api/authorization/v1.NamedRoleBinding": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NamedRoleBinding relates a role binding with a name",
@@ -1942,7 +1942,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"roleBinding": {
 							SchemaProps: spec.SchemaProps{
 								Description: "RoleBinding is the role binding being named",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBinding"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.RoleBinding"),
 							},
 						},
 					},
@@ -1950,9 +1950,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBinding"},
+				"github.com/openshift/api/authorization/v1.RoleBinding"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Policy": {
+		"github.com/openshift/api/authorization/v1.Policy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Policy is a object that holds all the Roles for a particular namespace.  There is at most one Policy document per namespace.",
@@ -1990,7 +1990,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedRole"),
+											Ref: ref("github.com/openshift/api/authorization/v1.NamedRole"),
 										},
 									},
 								},
@@ -2001,9 +2001,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"github.com/openshift/api/authorization/v1.NamedRole", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyBinding": {
+		"github.com/openshift/api/authorization/v1.PolicyBinding": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is one PolicyBinding document per referenced Policy namespace",
@@ -2047,7 +2047,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedRoleBinding"),
+											Ref: ref("github.com/openshift/api/authorization/v1.NamedRoleBinding"),
 										},
 									},
 								},
@@ -2058,9 +2058,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.NamedRoleBinding", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"github.com/openshift/api/authorization/v1.NamedRoleBinding", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyBindingList": {
+		"github.com/openshift/api/authorization/v1.PolicyBindingList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PolicyBindingList is a collection of PolicyBindings",
@@ -2092,7 +2092,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyBinding"),
+											Ref: ref("github.com/openshift/api/authorization/v1.PolicyBinding"),
 										},
 									},
 								},
@@ -2103,9 +2103,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.PolicyBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyList": {
+		"github.com/openshift/api/authorization/v1.PolicyList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PolicyList is a collection of Policies",
@@ -2137,7 +2137,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Policy"),
+											Ref: ref("github.com/openshift/api/authorization/v1.Policy"),
 										},
 									},
 								},
@@ -2148,9 +2148,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Policy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.Policy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyRule": {
+		"github.com/openshift/api/authorization/v1.PolicyRule": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to.",
@@ -2238,7 +2238,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ResourceAccessReview": {
+		"github.com/openshift/api/authorization/v1.ResourceAccessReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec",
@@ -2326,7 +2326,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ResourceAccessReviewResponse": {
+		"github.com/openshift/api/authorization/v1.ResourceAccessReviewResponse": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ResourceAccessReviewResponse describes who can perform the action",
@@ -2393,7 +2393,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Role": {
+		"github.com/openshift/api/authorization/v1.Role": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.",
@@ -2425,7 +2425,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyRule"),
+											Ref: ref("github.com/openshift/api/authorization/v1.PolicyRule"),
 										},
 									},
 								},
@@ -2436,9 +2436,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyRule", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/authorization/v1.PolicyRule", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBinding": {
+		"github.com/openshift/api/authorization/v1.RoleBinding": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace. It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in. RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).",
@@ -2517,7 +2517,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingList": {
+		"github.com/openshift/api/authorization/v1.RoleBindingList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RoleBindingList is a collection of RoleBindings",
@@ -2549,7 +2549,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBinding"),
+											Ref: ref("github.com/openshift/api/authorization/v1.RoleBinding"),
 										},
 									},
 								},
@@ -2560,9 +2560,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.RoleBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingRestriction": {
+		"github.com/openshift/api/authorization/v1.RoleBindingRestriction": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RoleBindingRestriction is an object that can be matched against a subject (user, group, or service account) to determine whether rolebindings on that subject are allowed in the namespace to which the RoleBindingRestriction belongs.  If any one of those RoleBindingRestriction objects matches a subject, rolebindings on that subject in the namespace are allowed.",
@@ -2590,7 +2590,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec defines the matcher.",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingRestrictionSpec"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.RoleBindingRestrictionSpec"),
 							},
 						},
 					},
@@ -2598,9 +2598,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingRestrictionSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/authorization/v1.RoleBindingRestrictionSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingRestrictionList": {
+		"github.com/openshift/api/authorization/v1.RoleBindingRestrictionList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.",
@@ -2632,7 +2632,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingRestriction"),
+											Ref: ref("github.com/openshift/api/authorization/v1.RoleBindingRestriction"),
 										},
 									},
 								},
@@ -2643,9 +2643,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingRestriction", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.RoleBindingRestriction", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleBindingRestrictionSpec": {
+		"github.com/openshift/api/authorization/v1.RoleBindingRestrictionSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RoleBindingRestrictionSpec defines a rolebinding restriction.  Exactly one field must be non-nil.",
@@ -2653,19 +2653,19 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"userrestriction": {
 							SchemaProps: spec.SchemaProps{
 								Description: "UserRestriction matches against user subjects.",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.UserRestriction"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.UserRestriction"),
 							},
 						},
 						"grouprestriction": {
 							SchemaProps: spec.SchemaProps{
 								Description: "GroupRestriction matches against group subjects.",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.GroupRestriction"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.GroupRestriction"),
 							},
 						},
 						"serviceaccountrestriction": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ServiceAccountRestriction matches against service-account subjects.",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ServiceAccountRestriction"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.ServiceAccountRestriction"),
 							},
 						},
 					},
@@ -2673,9 +2673,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.GroupRestriction", "github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ServiceAccountRestriction", "github.com/openshift/origin/pkg/authorization/apis/authorization/v1.UserRestriction"},
+				"github.com/openshift/api/authorization/v1.GroupRestriction", "github.com/openshift/api/authorization/v1.ServiceAccountRestriction", "github.com/openshift/api/authorization/v1.UserRestriction"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.RoleList": {
+		"github.com/openshift/api/authorization/v1.RoleList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RoleList is a collection of Roles",
@@ -2707,7 +2707,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Role"),
+											Ref: ref("github.com/openshift/api/authorization/v1.Role"),
 										},
 									},
 								},
@@ -2718,9 +2718,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Role", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/authorization/v1.Role", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SelfSubjectRulesReview": {
+		"github.com/openshift/api/authorization/v1.SelfSubjectRulesReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace",
@@ -2742,13 +2742,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec adds information about how to conduct the check",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SelfSubjectRulesReviewSpec"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.SelfSubjectRulesReviewSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status is completed by the server to tell which permissions you have",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewStatus"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.SubjectRulesReviewStatus"),
 							},
 						},
 					},
@@ -2756,9 +2756,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SelfSubjectRulesReviewSpec", "github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewStatus"},
+				"github.com/openshift/api/authorization/v1.SelfSubjectRulesReviewSpec", "github.com/openshift/api/authorization/v1.SubjectRulesReviewStatus"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SelfSubjectRulesReviewSpec": {
+		"github.com/openshift/api/authorization/v1.SelfSubjectRulesReviewSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SelfSubjectRulesReviewSpec adds information about how to conduct the check",
@@ -2783,7 +2783,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ServiceAccountReference": {
+		"github.com/openshift/api/authorization/v1.ServiceAccountReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ServiceAccountReference specifies a service account and namespace by their names.",
@@ -2808,7 +2808,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ServiceAccountRestriction": {
+		"github.com/openshift/api/authorization/v1.ServiceAccountRestriction": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ServiceAccountRestriction matches a service account by a string match on either the service-account name or the name of the service account's namespace.",
@@ -2820,7 +2820,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ServiceAccountReference"),
+											Ref: ref("github.com/openshift/api/authorization/v1.ServiceAccountReference"),
 										},
 									},
 								},
@@ -2845,9 +2845,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.ServiceAccountReference"},
+				"github.com/openshift/api/authorization/v1.ServiceAccountReference"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectAccessReview": {
+		"github.com/openshift/api/authorization/v1.SubjectAccessReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SubjectAccessReview is an object for requesting information about whether a user or group can perform an action",
@@ -2970,7 +2970,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectAccessReviewResponse": {
+		"github.com/openshift/api/authorization/v1.SubjectAccessReviewResponse": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SubjectAccessReviewResponse describes whether or not a user or group can perform an action",
@@ -3023,7 +3023,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReview": {
+		"github.com/openshift/api/authorization/v1.SubjectRulesReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace",
@@ -3045,13 +3045,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec adds information about how to conduct the check",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewSpec"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.SubjectRulesReviewSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status is completed by the server to tell which permissions you have",
-								Ref:         ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewStatus"),
+								Ref:         ref("github.com/openshift/api/authorization/v1.SubjectRulesReviewStatus"),
 							},
 						},
 					},
@@ -3059,9 +3059,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewSpec", "github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewStatus"},
+				"github.com/openshift/api/authorization/v1.SubjectRulesReviewSpec", "github.com/openshift/api/authorization/v1.SubjectRulesReviewStatus"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewSpec": {
+		"github.com/openshift/api/authorization/v1.SubjectRulesReviewSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SubjectRulesReviewSpec adds information about how to conduct the check",
@@ -3107,7 +3107,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.SubjectRulesReviewStatus": {
+		"github.com/openshift/api/authorization/v1.SubjectRulesReviewStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SubjectRulesReviewStatus is contains the result of a rules check",
@@ -3119,7 +3119,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyRule"),
+											Ref: ref("github.com/openshift/api/authorization/v1.PolicyRule"),
 										},
 									},
 								},
@@ -3137,9 +3137,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.PolicyRule"},
+				"github.com/openshift/api/authorization/v1.PolicyRule"},
 		},
-		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.UserRestriction": {
+		"github.com/openshift/api/authorization/v1.UserRestriction": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "UserRestriction matches a user either by a string match on the user name, a string match on the name of a group to which the user belongs, or a label selector applied to the user labels.",
@@ -3192,7 +3192,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildRequestOptions": {
+		"github.com/openshift/api/build/v1.BinaryBuildRequestOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BinaryBuildRequestOptions are the options required to fully speficy a binary build request",
@@ -3272,7 +3272,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildSource": {
+		"github.com/openshift/api/build/v1.BinaryBuildSource": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BinaryBuildSource describes a binary file to be used for the Docker and Source build strategies, where the file will be extracted and used as the build source.",
@@ -3289,7 +3289,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BitbucketWebHookCause": {
+		"github.com/openshift/api/build/v1.BitbucketWebHookCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BitbucketWebHookCause has information about a Bitbucket webhook that triggered a build.",
@@ -3297,7 +3297,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Revision is the git source revision information of the trigger.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"secret": {
@@ -3311,9 +3311,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"},
+				"github.com/openshift/api/build/v1.SourceRevision"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.Build": {
+		"github.com/openshift/api/build/v1.Build": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
@@ -3341,22 +3341,22 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec is all the inputs used to execute the build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildSpec"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "status is the current status of the build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatus"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildSpec", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/build/v1.BuildSpec", "github.com/openshift/api/build/v1.BuildStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfig": {
+		"github.com/openshift/api/build/v1.BuildConfig": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the \"output\" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.\n\nEach build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have \"output\" set can be used to test code or run a verification build.",
@@ -3384,13 +3384,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec holds all the input necessary to produce a new build, and the conditions when to trigger them.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfigSpec"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildConfigSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "status holds any relevant information about a build config",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfigStatus"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildConfigStatus"),
 							},
 						},
 					},
@@ -3398,9 +3398,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfigSpec", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/build/v1.BuildConfigSpec", "github.com/openshift/api/build/v1.BuildConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfigList": {
+		"github.com/openshift/api/build/v1.BuildConfigList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildConfigList is a collection of BuildConfigs.",
@@ -3432,7 +3432,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfig"),
+											Ref: ref("github.com/openshift/api/build/v1.BuildConfig"),
 										},
 									},
 								},
@@ -3443,9 +3443,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/build/v1.BuildConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfigSpec": {
+		"github.com/openshift/api/build/v1.BuildConfigSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildConfigSpec describes when and how builds are created",
@@ -3457,7 +3457,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerPolicy"),
+											Ref: ref("github.com/openshift/api/build/v1.BuildTriggerPolicy"),
 										},
 									},
 								},
@@ -3480,25 +3480,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"source": {
 							SchemaProps: spec.SchemaProps{
 								Description: "source describes the SCM in use.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildSource"),
 							},
 						},
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "revision is the information from the source for a specific repo snapshot. This is optional.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"strategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "strategy defines how to perform a build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildStrategy"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildStrategy"),
 							},
 						},
 						"output": {
 							SchemaProps: spec.SchemaProps{
 								Description: "output describes the Docker image the Strategy should produce.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildOutput"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildOutput"),
 							},
 						},
 						"resources": {
@@ -3510,7 +3510,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"postCommit": {
 							SchemaProps: spec.SchemaProps{
 								Description: "postCommit is a build hook executed after the build output image is committed, before it is pushed to a registry.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildPostCommitSpec"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildPostCommitSpec"),
 							},
 						},
 						"completionDeadlineSeconds": {
@@ -3553,9 +3553,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildOutput", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildPostCommitSpec", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildStrategy", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerPolicy", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision", "k8s.io/api/core/v1.ResourceRequirements"},
+				"github.com/openshift/api/build/v1.BuildOutput", "github.com/openshift/api/build/v1.BuildPostCommitSpec", "github.com/openshift/api/build/v1.BuildSource", "github.com/openshift/api/build/v1.BuildStrategy", "github.com/openshift/api/build/v1.BuildTriggerPolicy", "github.com/openshift/api/build/v1.SourceRevision", "k8s.io/api/core/v1.ResourceRequirements"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildConfigStatus": {
+		"github.com/openshift/api/build/v1.BuildConfigStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildConfigStatus contains current state of the build config object.",
@@ -3573,7 +3573,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildList": {
+		"github.com/openshift/api/build/v1.BuildList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildList is a collection of Builds.",
@@ -3605,7 +3605,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.Build"),
+											Ref: ref("github.com/openshift/api/build/v1.Build"),
 										},
 									},
 								},
@@ -3616,9 +3616,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.Build", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/build/v1.Build", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildLog": {
+		"github.com/openshift/api/build/v1.BuildLog": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildLog is the (unused) resource associated with the build log redirector",
@@ -3642,7 +3642,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildLogOptions": {
+		"github.com/openshift/api/build/v1.BuildLogOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildLogOptions is the REST options for a build log",
@@ -3736,7 +3736,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildOutput": {
+		"github.com/openshift/api/build/v1.BuildOutput": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildOutput is input to a build strategy and describes the Docker image that the strategy should produce.",
@@ -3760,7 +3760,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.ImageLabel"),
+											Ref: ref("github.com/openshift/api/build/v1.ImageLabel"),
 										},
 									},
 								},
@@ -3770,9 +3770,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.ImageLabel", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
+				"github.com/openshift/api/build/v1.ImageLabel", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildPostCommitSpec": {
+		"github.com/openshift/api/build/v1.BuildPostCommitSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "A BuildPostCommitSpec holds a build post commit hook specification. The hook executes a command in a temporary container running the build output image, immediately after the last layer of the image is committed and before the image is pushed to a registry. The command is executed with the current working directory ($PWD) set to the image's WORKDIR.\n\nThe build will be marked as failed if the hook execution fails. It will fail if the script or command return a non-zero exit code, or if there is any other error related to starting the temporary container.\n\nThere are five different ways to configure the hook. As an example, all forms below are equivalent and will execute `rake test --verbose`.\n\n1. Shell script:\n\n       \"postCommit\": {\n         \"script\": \"rake test --verbose\",\n       }\n\n    The above is a convenient form which is equivalent to:\n\n       \"postCommit\": {\n         \"command\": [\"/bin/sh\", \"-ic\"],\n         \"args\":    [\"rake test --verbose\"]\n       }\n\n2. A command as the image entrypoint:\n\n       \"postCommit\": {\n         \"commit\": [\"rake\", \"test\", \"--verbose\"]\n       }\n\n    Command overrides the image entrypoint in the exec form, as documented in\n    Docker: https://docs.docker.com/engine/reference/builder/#entrypoint.\n\n3. Pass arguments to the default entrypoint:\n\n       \"postCommit\": {\n\t\t      \"args\": [\"rake\", \"test\", \"--verbose\"]\n\t      }\n\n    This form is only useful if the image entrypoint can handle arguments.\n\n4. Shell script with arguments:\n\n       \"postCommit\": {\n         \"script\": \"rake test $1\",\n         \"args\":   [\"--verbose\"]\n       }\n\n    This form is useful if you need to pass arguments that would otherwise be\n    hard to quote properly in the shell script. In the script, $0 will be\n    \"/bin/sh\" and $1, $2, etc, are the positional arguments from Args.\n\n5. Command with arguments:\n\n       \"postCommit\": {\n         \"command\": [\"rake\", \"test\"],\n         \"args\":    [\"--verbose\"]\n       }\n\n    This form is equivalent to appending the arguments to the Command slice.\n\nIt is invalid to provide both Script and Command simultaneously. If none of the fields are specified, the hook is not executed.",
@@ -3817,7 +3817,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildRequest": {
+		"github.com/openshift/api/build/v1.BuildRequest": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildRequest is the resource used to pass parameters to build generator",
@@ -3845,7 +3845,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "revision is the information from the source for a specific repo snapshot.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"triggeredByImage": {
@@ -3863,7 +3863,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"binary": {
 							SchemaProps: spec.SchemaProps{
 								Description: "binary indicates a request to build from a binary provided to the builder",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildSource"),
+								Ref:         ref("github.com/openshift/api/build/v1.BinaryBuildSource"),
 							},
 						},
 						"lastVersion": {
@@ -3893,7 +3893,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerCause"),
+											Ref: ref("github.com/openshift/api/build/v1.BuildTriggerCause"),
 										},
 									},
 								},
@@ -3902,13 +3902,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"dockerStrategyOptions": {
 							SchemaProps: spec.SchemaProps{
 								Description: "DockerStrategyOptions contains additional docker-strategy specific options for the build",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions"),
+								Ref:         ref("github.com/openshift/api/build/v1.DockerStrategyOptions"),
 							},
 						},
 						"sourceStrategyOptions": {
 							SchemaProps: spec.SchemaProps{
 								Description: "SourceStrategyOptions contains additional source-strategy specific options for the build",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceStrategyOptions"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceStrategyOptions"),
 							},
 						},
 					},
@@ -3916,9 +3916,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerCause", "github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceStrategyOptions", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/build/v1.BinaryBuildSource", "github.com/openshift/api/build/v1.BuildTriggerCause", "github.com/openshift/api/build/v1.DockerStrategyOptions", "github.com/openshift/api/build/v1.SourceRevision", "github.com/openshift/api/build/v1.SourceStrategyOptions", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource": {
+		"github.com/openshift/api/build/v1.BuildSource": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildSource is the SCM used for the build.",
@@ -3933,7 +3933,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"binary": {
 							SchemaProps: spec.SchemaProps{
 								Description: "binary builds accept a binary as their input. The binary is generally assumed to be a tar, gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build context and an optional Dockerfile may be specified to override any Dockerfile in the build context. For Source builds, this is assumed to be an archive as described above. For Source and Docker builds, if binary.asFile is set the build will receive a directory with a single file. contextDir may be used when an archive is provided. Custom builds will receive this binary as input on STDIN.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildSource"),
+								Ref:         ref("github.com/openshift/api/build/v1.BinaryBuildSource"),
 							},
 						},
 						"dockerfile": {
@@ -3946,7 +3946,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"git": {
 							SchemaProps: spec.SchemaProps{
 								Description: "git contains optional information about git build source",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.GitBuildSource"),
+								Ref:         ref("github.com/openshift/api/build/v1.GitBuildSource"),
 							},
 						},
 						"images": {
@@ -3956,7 +3956,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.ImageSource"),
+											Ref: ref("github.com/openshift/api/build/v1.ImageSource"),
 										},
 									},
 								},
@@ -3982,7 +3982,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.SecretBuildSource"),
+											Ref: ref("github.com/openshift/api/build/v1.SecretBuildSource"),
 										},
 									},
 								},
@@ -3993,9 +3993,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.GitBuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.ImageSource", "github.com/openshift/origin/pkg/build/apis/build/v1.SecretBuildSource", "k8s.io/api/core/v1.LocalObjectReference"},
+				"github.com/openshift/api/build/v1.BinaryBuildSource", "github.com/openshift/api/build/v1.GitBuildSource", "github.com/openshift/api/build/v1.ImageSource", "github.com/openshift/api/build/v1.SecretBuildSource", "k8s.io/api/core/v1.LocalObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildSpec": {
+		"github.com/openshift/api/build/v1.BuildSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildSpec has the information to represent a build and also additional information about a build",
@@ -4010,25 +4010,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"source": {
 							SchemaProps: spec.SchemaProps{
 								Description: "source describes the SCM in use.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildSource"),
 							},
 						},
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "revision is the information from the source for a specific repo snapshot. This is optional.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"strategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "strategy defines how to perform a build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildStrategy"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildStrategy"),
 							},
 						},
 						"output": {
 							SchemaProps: spec.SchemaProps{
 								Description: "output describes the Docker image the Strategy should produce.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildOutput"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildOutput"),
 							},
 						},
 						"resources": {
@@ -4040,7 +4040,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"postCommit": {
 							SchemaProps: spec.SchemaProps{
 								Description: "postCommit is a build hook executed after the build output image is committed, before it is pushed to a registry.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildPostCommitSpec"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildPostCommitSpec"),
 							},
 						},
 						"completionDeadlineSeconds": {
@@ -4071,7 +4071,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerCause"),
+											Ref: ref("github.com/openshift/api/build/v1.BuildTriggerCause"),
 										},
 									},
 								},
@@ -4082,9 +4082,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildOutput", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildPostCommitSpec", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildStrategy", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerCause", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision", "k8s.io/api/core/v1.ResourceRequirements"},
+				"github.com/openshift/api/build/v1.BuildOutput", "github.com/openshift/api/build/v1.BuildPostCommitSpec", "github.com/openshift/api/build/v1.BuildSource", "github.com/openshift/api/build/v1.BuildStrategy", "github.com/openshift/api/build/v1.BuildTriggerCause", "github.com/openshift/api/build/v1.SourceRevision", "k8s.io/api/core/v1.ResourceRequirements"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatus": {
+		"github.com/openshift/api/build/v1.BuildStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildStatus contains the status of a build",
@@ -4152,7 +4152,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"output": {
 							SchemaProps: spec.SchemaProps{
 								Description: "output describes the Docker image the build has produced.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatusOutput"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildStatusOutput"),
 							},
 						},
 						"stages": {
@@ -4162,7 +4162,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.StageInfo"),
+											Ref: ref("github.com/openshift/api/build/v1.StageInfo"),
 										},
 									},
 								},
@@ -4180,9 +4180,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatusOutput", "github.com/openshift/origin/pkg/build/apis/build/v1.StageInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"github.com/openshift/api/build/v1.BuildStatusOutput", "github.com/openshift/api/build/v1.StageInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatusOutput": {
+		"github.com/openshift/api/build/v1.BuildStatusOutput": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildStatusOutput contains the status of the built image.",
@@ -4190,16 +4190,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"to": {
 							SchemaProps: spec.SchemaProps{
 								Description: "to describes the status of the built image being pushed to a registry.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatusOutputTo"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildStatusOutputTo"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatusOutputTo"},
+				"github.com/openshift/api/build/v1.BuildStatusOutputTo"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildStatusOutputTo": {
+		"github.com/openshift/api/build/v1.BuildStatusOutputTo": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildStatusOutputTo describes the status of the built image with regards to image registry to which it was supposed to be pushed.",
@@ -4216,7 +4216,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildStrategy": {
+		"github.com/openshift/api/build/v1.BuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildStrategy contains the details of how to perform a build.",
@@ -4231,25 +4231,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"dockerStrategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "dockerStrategy holds the parameters to the Docker build strategy.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.DockerBuildStrategy"),
+								Ref:         ref("github.com/openshift/api/build/v1.DockerBuildStrategy"),
 							},
 						},
 						"sourceStrategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "sourceStrategy holds the parameters to the Source build strategy.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceBuildStrategy"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceBuildStrategy"),
 							},
 						},
 						"customStrategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "customStrategy holds the parameters to the Custom build strategy",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.CustomBuildStrategy"),
+								Ref:         ref("github.com/openshift/api/build/v1.CustomBuildStrategy"),
 							},
 						},
 						"jenkinsPipelineStrategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.JenkinsPipelineBuildStrategy"),
+								Ref:         ref("github.com/openshift/api/build/v1.JenkinsPipelineBuildStrategy"),
 							},
 						},
 					},
@@ -4257,9 +4257,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.CustomBuildStrategy", "github.com/openshift/origin/pkg/build/apis/build/v1.DockerBuildStrategy", "github.com/openshift/origin/pkg/build/apis/build/v1.JenkinsPipelineBuildStrategy", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceBuildStrategy"},
+				"github.com/openshift/api/build/v1.CustomBuildStrategy", "github.com/openshift/api/build/v1.DockerBuildStrategy", "github.com/openshift/api/build/v1.JenkinsPipelineBuildStrategy", "github.com/openshift/api/build/v1.SourceBuildStrategy"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerCause": {
+		"github.com/openshift/api/build/v1.BuildTriggerCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildTriggerCause holds information about a triggered build. It is used for displaying build trigger data for each build and build configuration in oc describe. It is also used to describe which triggers led to the most recent update in the build configuration.",
@@ -4274,40 +4274,40 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"genericWebHook": {
 							SchemaProps: spec.SchemaProps{
 								Description: "genericWebHook holds data about a builds generic webhook trigger.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.GenericWebHookCause"),
+								Ref:         ref("github.com/openshift/api/build/v1.GenericWebHookCause"),
 							},
 						},
 						"githubWebHook": {
 							SchemaProps: spec.SchemaProps{
 								Description: "gitHubWebHook represents data for a GitHub webhook that fired a specific build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.GitHubWebHookCause"),
+								Ref:         ref("github.com/openshift/api/build/v1.GitHubWebHookCause"),
 							},
 						},
 						"imageChangeBuild": {
 							SchemaProps: spec.SchemaProps{
 								Description: "imageChangeBuild stores information about an imagechange event that triggered a new build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.ImageChangeCause"),
+								Ref:         ref("github.com/openshift/api/build/v1.ImageChangeCause"),
 							},
 						},
 						"gitlabWebHook": {
 							SchemaProps: spec.SchemaProps{
 								Description: "GitLabWebHook represents data for a GitLab webhook that fired a specific build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.GitLabWebHookCause"),
+								Ref:         ref("github.com/openshift/api/build/v1.GitLabWebHookCause"),
 							},
 						},
 						"bitbucketWebHook": {
 							SchemaProps: spec.SchemaProps{
 								Description: "BitbucketWebHook represents data for a Bitbucket webhook that fired a specific build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BitbucketWebHookCause"),
+								Ref:         ref("github.com/openshift/api/build/v1.BitbucketWebHookCause"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BitbucketWebHookCause", "github.com/openshift/origin/pkg/build/apis/build/v1.GenericWebHookCause", "github.com/openshift/origin/pkg/build/apis/build/v1.GitHubWebHookCause", "github.com/openshift/origin/pkg/build/apis/build/v1.GitLabWebHookCause", "github.com/openshift/origin/pkg/build/apis/build/v1.ImageChangeCause"},
+				"github.com/openshift/api/build/v1.BitbucketWebHookCause", "github.com/openshift/api/build/v1.GenericWebHookCause", "github.com/openshift/api/build/v1.GitHubWebHookCause", "github.com/openshift/api/build/v1.GitLabWebHookCause", "github.com/openshift/api/build/v1.ImageChangeCause"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerPolicy": {
+		"github.com/openshift/api/build/v1.BuildTriggerPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.",
@@ -4322,31 +4322,31 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"github": {
 							SchemaProps: spec.SchemaProps{
 								Description: "github contains the parameters for a GitHub webhook type of trigger",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.WebHookTrigger"),
+								Ref:         ref("github.com/openshift/api/build/v1.WebHookTrigger"),
 							},
 						},
 						"generic": {
 							SchemaProps: spec.SchemaProps{
 								Description: "generic contains the parameters for a Generic webhook type of trigger",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.WebHookTrigger"),
+								Ref:         ref("github.com/openshift/api/build/v1.WebHookTrigger"),
 							},
 						},
 						"imageChange": {
 							SchemaProps: spec.SchemaProps{
 								Description: "imageChange contains parameters for an ImageChange type of trigger",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.ImageChangeTrigger"),
+								Ref:         ref("github.com/openshift/api/build/v1.ImageChangeTrigger"),
 							},
 						},
 						"gitlab": {
 							SchemaProps: spec.SchemaProps{
 								Description: "GitLabWebHook contains the parameters for a GitLab webhook type of trigger",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.WebHookTrigger"),
+								Ref:         ref("github.com/openshift/api/build/v1.WebHookTrigger"),
 							},
 						},
 						"bitbucket": {
 							SchemaProps: spec.SchemaProps{
 								Description: "BitbucketWebHook contains the parameters for a Bitbucket webhook type of trigger",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.WebHookTrigger"),
+								Ref:         ref("github.com/openshift/api/build/v1.WebHookTrigger"),
 							},
 						},
 					},
@@ -4354,9 +4354,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.ImageChangeTrigger", "github.com/openshift/origin/pkg/build/apis/build/v1.WebHookTrigger"},
+				"github.com/openshift/api/build/v1.ImageChangeTrigger", "github.com/openshift/api/build/v1.WebHookTrigger"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.CommonSpec": {
+		"github.com/openshift/api/build/v1.CommonSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "CommonSpec encapsulates all the inputs necessary to represent a build.",
@@ -4371,25 +4371,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"source": {
 							SchemaProps: spec.SchemaProps{
 								Description: "source describes the SCM in use.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildSource"),
 							},
 						},
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "revision is the information from the source for a specific repo snapshot. This is optional.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"strategy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "strategy defines how to perform a build.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildStrategy"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildStrategy"),
 							},
 						},
 						"output": {
 							SchemaProps: spec.SchemaProps{
 								Description: "output describes the Docker image the Strategy should produce.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildOutput"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildOutput"),
 							},
 						},
 						"resources": {
@@ -4401,7 +4401,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"postCommit": {
 							SchemaProps: spec.SchemaProps{
 								Description: "postCommit is a build hook executed after the build output image is committed, before it is pushed to a registry.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.BuildPostCommitSpec"),
+								Ref:         ref("github.com/openshift/api/build/v1.BuildPostCommitSpec"),
 							},
 						},
 						"completionDeadlineSeconds": {
@@ -4430,9 +4430,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BuildOutput", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildPostCommitSpec", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildStrategy", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision", "k8s.io/api/core/v1.ResourceRequirements"},
+				"github.com/openshift/api/build/v1.BuildOutput", "github.com/openshift/api/build/v1.BuildPostCommitSpec", "github.com/openshift/api/build/v1.BuildSource", "github.com/openshift/api/build/v1.BuildStrategy", "github.com/openshift/api/build/v1.SourceRevision", "k8s.io/api/core/v1.ResourceRequirements"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.CommonWebHookCause": {
+		"github.com/openshift/api/build/v1.CommonWebHookCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "CommonWebHookCause factors out the identical format of these webhook causes into struct so we can share it in the specific causes;  it is too late for GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.",
@@ -4440,7 +4440,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Revision is the git source revision information of the trigger.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"secret": {
@@ -4454,9 +4454,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"},
+				"github.com/openshift/api/build/v1.SourceRevision"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.CustomBuildStrategy": {
+		"github.com/openshift/api/build/v1.CustomBuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "CustomBuildStrategy defines input parameters specific to Custom build.",
@@ -4507,7 +4507,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.SecretSpec"),
+											Ref: ref("github.com/openshift/api/build/v1.SecretSpec"),
 										},
 									},
 								},
@@ -4525,9 +4525,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SecretSpec", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
+				"github.com/openshift/api/build/v1.SecretSpec", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.DockerBuildStrategy": {
+		"github.com/openshift/api/build/v1.DockerBuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DockerBuildStrategy defines input parameters specific to Docker build.",
@@ -4604,7 +4604,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions": {
+		"github.com/openshift/api/build/v1.DockerStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DockerStrategyOptions contains extra strategy options for Docker builds",
@@ -4635,7 +4635,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.EnvVar"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.GenericWebHookCause": {
+		"github.com/openshift/api/build/v1.GenericWebHookCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GenericWebHookCause holds information about a generic WebHook that triggered a build.",
@@ -4643,7 +4643,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "revision is an optional field that stores the git source revision information of the generic webhook trigger when it is available.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"secret": {
@@ -4657,9 +4657,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"},
+				"github.com/openshift/api/build/v1.SourceRevision"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.GenericWebHookEvent": {
+		"github.com/openshift/api/build/v1.GenericWebHookEvent": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GenericWebHookEvent is the payload expected for a generic webhook post",
@@ -4674,7 +4674,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"git": {
 							SchemaProps: spec.SchemaProps{
 								Description: "git is the git information if the Type is BuildSourceGit",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.GitInfo"),
+								Ref:         ref("github.com/openshift/api/build/v1.GitInfo"),
 							},
 						},
 						"env": {
@@ -4693,16 +4693,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"dockerStrategyOptions": {
 							SchemaProps: spec.SchemaProps{
 								Description: "DockerStrategyOptions contains additional docker-strategy specific options for the build",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions"),
+								Ref:         ref("github.com/openshift/api/build/v1.DockerStrategyOptions"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions", "github.com/openshift/origin/pkg/build/apis/build/v1.GitInfo", "k8s.io/api/core/v1.EnvVar"},
+				"github.com/openshift/api/build/v1.DockerStrategyOptions", "github.com/openshift/api/build/v1.GitInfo", "k8s.io/api/core/v1.EnvVar"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.GitBuildSource": {
+		"github.com/openshift/api/build/v1.GitBuildSource": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GitBuildSource defines the parameters of a Git SCM",
@@ -4748,7 +4748,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.GitHubWebHookCause": {
+		"github.com/openshift/api/build/v1.GitHubWebHookCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GitHubWebHookCause has information about a GitHub webhook that triggered a build.",
@@ -4756,7 +4756,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "revision is the git revision information of the trigger.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"secret": {
@@ -4770,9 +4770,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"},
+				"github.com/openshift/api/build/v1.SourceRevision"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.GitInfo": {
+		"github.com/openshift/api/build/v1.GitInfo": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GitInfo is the aggregated git information for a generic webhook post",
@@ -4822,13 +4822,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"author": {
 							SchemaProps: spec.SchemaProps{
 								Description: "author is the author of a specific commit",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceControlUser"),
 							},
 						},
 						"committer": {
 							SchemaProps: spec.SchemaProps{
 								Description: "committer is the committer of a specific commit",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceControlUser"),
 							},
 						},
 						"message": {
@@ -4843,9 +4843,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser"},
+				"github.com/openshift/api/build/v1.SourceControlUser"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.GitLabWebHookCause": {
+		"github.com/openshift/api/build/v1.GitLabWebHookCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GitLabWebHookCause has information about a GitLab webhook that triggered a build.",
@@ -4853,7 +4853,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"revision": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Revision is the git source revision information of the trigger.",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceRevision"),
 							},
 						},
 						"secret": {
@@ -4867,9 +4867,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision"},
+				"github.com/openshift/api/build/v1.SourceRevision"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.GitSourceRevision": {
+		"github.com/openshift/api/build/v1.GitSourceRevision": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GitSourceRevision is the commit information from a git source for a build",
@@ -4884,13 +4884,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"author": {
 							SchemaProps: spec.SchemaProps{
 								Description: "author is the author of a specific commit",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceControlUser"),
 							},
 						},
 						"committer": {
 							SchemaProps: spec.SchemaProps{
 								Description: "committer is the committer of a specific commit",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser"),
+								Ref:         ref("github.com/openshift/api/build/v1.SourceControlUser"),
 							},
 						},
 						"message": {
@@ -4904,9 +4904,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser"},
+				"github.com/openshift/api/build/v1.SourceControlUser"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.ImageChangeCause": {
+		"github.com/openshift/api/build/v1.ImageChangeCause": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageChangeCause contains information about the image that triggered a build",
@@ -4930,7 +4930,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.ImageChangeTrigger": {
+		"github.com/openshift/api/build/v1.ImageChangeTrigger": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageChangeTrigger allows builds to be triggered when an ImageStream changes",
@@ -4954,7 +4954,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.ImageLabel": {
+		"github.com/openshift/api/build/v1.ImageLabel": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageLabel represents a label applied to the resulting image.",
@@ -4979,7 +4979,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.ImageSource": {
+		"github.com/openshift/api/build/v1.ImageSource": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageSource is used to describe build source that will be extracted from an image. A reference of type ImageStreamTag, ImageStreamImage or DockerImage may be used. A pull secret can be specified to pull the image from an external registry or override the default service account secret if pulling from the internal registry. A list of paths to copy from the image and their respective destination within the build directory must be specified in the paths array.",
@@ -4997,7 +4997,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.ImageSourcePath"),
+											Ref: ref("github.com/openshift/api/build/v1.ImageSourcePath"),
 										},
 									},
 								},
@@ -5014,9 +5014,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.ImageSourcePath", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
+				"github.com/openshift/api/build/v1.ImageSourcePath", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.ImageSourcePath": {
+		"github.com/openshift/api/build/v1.ImageSourcePath": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.",
@@ -5041,7 +5041,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.JenkinsPipelineBuildStrategy": {
+		"github.com/openshift/api/build/v1.JenkinsPipelineBuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
@@ -5079,7 +5079,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.EnvVar"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.ProxyConfig": {
+		"github.com/openshift/api/build/v1.ProxyConfig": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ProxyConfig defines what proxies to use for an operation",
@@ -5110,7 +5110,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.SecretBuildSource": {
+		"github.com/openshift/api/build/v1.SecretBuildSource": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SecretBuildSource describes a secret and its destination directory that will be used only at the build time. The content of the secret referenced here will be copied into the destination directory instead of mounting.",
@@ -5135,7 +5135,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.LocalObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.SecretSpec": {
+		"github.com/openshift/api/build/v1.SecretSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SecretSpec specifies a secret to be included in a build pod and its corresponding mount point",
@@ -5160,7 +5160,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.LocalObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.SourceBuildStrategy": {
+		"github.com/openshift/api/build/v1.SourceBuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SourceBuildStrategy defines input parameters specific to an Source build.",
@@ -5218,7 +5218,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser": {
+		"github.com/openshift/api/build/v1.SourceControlUser": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SourceControlUser defines the identity of a user of source control",
@@ -5242,7 +5242,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision": {
+		"github.com/openshift/api/build/v1.SourceRevision": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SourceRevision is the revision or commit information from the source for the build",
@@ -5257,7 +5257,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"git": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Git contains information about git-based build source",
-								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.GitSourceRevision"),
+								Ref:         ref("github.com/openshift/api/build/v1.GitSourceRevision"),
 							},
 						},
 					},
@@ -5265,9 +5265,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.GitSourceRevision"},
+				"github.com/openshift/api/build/v1.GitSourceRevision"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.SourceStrategyOptions": {
+		"github.com/openshift/api/build/v1.SourceStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SourceStrategyOptions contains extra strategy options for Source builds",
@@ -5284,7 +5284,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.StageInfo": {
+		"github.com/openshift/api/build/v1.StageInfo": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "StageInfo contains details about a build stage.",
@@ -5316,7 +5316,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.StepInfo"),
+											Ref: ref("github.com/openshift/api/build/v1.StepInfo"),
 										},
 									},
 								},
@@ -5326,9 +5326,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.StepInfo", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"github.com/openshift/api/build/v1.StepInfo", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.StepInfo": {
+		"github.com/openshift/api/build/v1.StepInfo": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "StepInfo contains details about a build step.",
@@ -5359,7 +5359,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/build/apis/build/v1.WebHookTrigger": {
+		"github.com/openshift/api/build/v1.WebHookTrigger": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "WebHookTrigger is a trigger that gets invoked using a webhook type of post",
@@ -5383,7 +5383,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.DockerImageReference": {
+		"github.com/openshift/api/image/v1.DockerImageReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "DockerImageReference points to a Docker image.",
@@ -5429,7 +5429,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.Image": {
+		"github.com/openshift/api/image/v1.Image": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Image is an immutable representation of a Docker image and metadata at a point in time.",
@@ -5493,7 +5493,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageLayer"),
+											Ref: ref("github.com/openshift/api/image/v1.ImageLayer"),
 										},
 									},
 								},
@@ -5512,7 +5512,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageSignature"),
+											Ref: ref("github.com/openshift/api/image/v1.ImageSignature"),
 										},
 									},
 								},
@@ -5551,9 +5551,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageLayer", "github.com/openshift/origin/pkg/image/apis/image/v1.ImageSignature", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+				"github.com/openshift/api/image/v1.ImageLayer", "github.com/openshift/api/image/v1.ImageSignature", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportSpec": {
+		"github.com/openshift/api/image/v1.ImageImportSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageImportSpec describes a request to import a specific image.",
@@ -5573,13 +5573,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"importPolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ImportPolicy is the policy controlling how the image is imported",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.TagImportPolicy"),
 							},
 						},
 						"referencePolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ReferencePolicy defines how other components should consume the image",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.TagReferencePolicy"),
 							},
 						},
 						"includeManifest": {
@@ -5594,9 +5594,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy", "github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
+				"github.com/openshift/api/image/v1.TagImportPolicy", "github.com/openshift/api/image/v1.TagReferencePolicy", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportStatus": {
+		"github.com/openshift/api/image/v1.ImageImportStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageImportStatus describes the result of an image import.",
@@ -5610,7 +5610,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"image": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Image is the metadata of that image, if the image was located",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.Image"),
+								Ref:         ref("github.com/openshift/api/image/v1.Image"),
 							},
 						},
 						"tag": {
@@ -5625,9 +5625,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.Status"},
+				"github.com/openshift/api/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.Status"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageLayer": {
+		"github.com/openshift/api/image/v1.ImageLayer": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.",
@@ -5659,7 +5659,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageList": {
+		"github.com/openshift/api/image/v1.ImageList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageList is a list of Image objects.",
@@ -5691,7 +5691,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.Image"),
+											Ref: ref("github.com/openshift/api/image/v1.Image"),
 										},
 									},
 								},
@@ -5702,9 +5702,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageLookupPolicy": {
+		"github.com/openshift/api/image/v1.ImageLookupPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageLookupPolicy describes how an image stream can be used to override the image references used by pods, builds, and other resources in a namespace.",
@@ -5722,7 +5722,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageSignature": {
+		"github.com/openshift/api/image/v1.ImageSignature": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. Mandatory fields should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
@@ -5774,7 +5774,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.SignatureCondition"),
+											Ref: ref("github.com/openshift/api/image/v1.SignatureCondition"),
 										},
 									},
 								},
@@ -5810,13 +5810,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"issuedBy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "If specified, it holds information about an issuer of signing certificate or key (a person or entity who signed the signing certificate or key).",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.SignatureIssuer"),
+								Ref:         ref("github.com/openshift/api/image/v1.SignatureIssuer"),
 							},
 						},
 						"issuedTo": {
 							SchemaProps: spec.SchemaProps{
 								Description: "If specified, it holds information about a subject of signing certificate or key (a person or entity who signed the image).",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.SignatureSubject"),
+								Ref:         ref("github.com/openshift/api/image/v1.SignatureSubject"),
 							},
 						},
 					},
@@ -5824,9 +5824,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.SignatureCondition", "github.com/openshift/origin/pkg/image/apis/image/v1.SignatureIssuer", "github.com/openshift/origin/pkg/image/apis/image/v1.SignatureSubject", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+				"github.com/openshift/api/image/v1.SignatureCondition", "github.com/openshift/api/image/v1.SignatureIssuer", "github.com/openshift/api/image/v1.SignatureSubject", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStream": {
+		"github.com/openshift/api/image/v1.ImageStream": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStream stores a mapping of tags to images, metadata overrides that are applied when images are tagged in a stream, and an optional reference to a Docker image repository on a registry.",
@@ -5854,13 +5854,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec describes the desired state of this stream",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamSpec"),
+								Ref:         ref("github.com/openshift/api/image/v1.ImageStreamSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status describes the current state of this stream",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamStatus"),
+								Ref:         ref("github.com/openshift/api/image/v1.ImageStreamStatus"),
 							},
 						},
 					},
@@ -5868,9 +5868,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamSpec", "github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/image/v1.ImageStreamSpec", "github.com/openshift/api/image/v1.ImageStreamStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImage": {
+		"github.com/openshift/api/image/v1.ImageStreamImage": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.",
@@ -5898,7 +5898,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"image": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Image associated with the ImageStream and image name.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.Image"),
+								Ref:         ref("github.com/openshift/api/image/v1.Image"),
 							},
 						},
 					},
@@ -5906,9 +5906,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImport": {
+		"github.com/openshift/api/image/v1.ImageStreamImport": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "The image stream import resource provides an easy way for a user to find and import Docker images from other Docker registries into the server. Individual images or an entire image repository may be imported, and users may choose to see the results of the import prior to tagging the resulting images into the specified image stream.\n\nThis API is intended for end-user tools that need to see the metadata of the image prior to import (for instance, to generate an application from it). Clients that know the desired image can continue to create spec.tags directly into their image streams.",
@@ -5936,13 +5936,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec is a description of the images that the user wishes to import",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImportSpec"),
+								Ref:         ref("github.com/openshift/api/image/v1.ImageStreamImportSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status is the the result of importing the image",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImportStatus"),
+								Ref:         ref("github.com/openshift/api/image/v1.ImageStreamImportStatus"),
 							},
 						},
 					},
@@ -5950,9 +5950,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImportSpec", "github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImportStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/image/v1.ImageStreamImportSpec", "github.com/openshift/api/image/v1.ImageStreamImportStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImportSpec": {
+		"github.com/openshift/api/image/v1.ImageStreamImportSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamImportSpec defines what images should be imported.",
@@ -5967,7 +5967,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"repository": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Repository is an optional import of an entire Docker image repository. A maximum limit on the number of tags imported this way is imposed by the server.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.RepositoryImportSpec"),
+								Ref:         ref("github.com/openshift/api/image/v1.RepositoryImportSpec"),
 							},
 						},
 						"images": {
@@ -5977,7 +5977,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportSpec"),
+											Ref: ref("github.com/openshift/api/image/v1.ImageImportSpec"),
 										},
 									},
 								},
@@ -5988,9 +5988,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportSpec", "github.com/openshift/origin/pkg/image/apis/image/v1.RepositoryImportSpec"},
+				"github.com/openshift/api/image/v1.ImageImportSpec", "github.com/openshift/api/image/v1.RepositoryImportSpec"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamImportStatus": {
+		"github.com/openshift/api/image/v1.ImageStreamImportStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamImportStatus contains information about the status of an image stream import.",
@@ -5998,13 +5998,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"import": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Import is the image stream that was successfully updated or created when 'to' was set.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageStream"),
+								Ref:         ref("github.com/openshift/api/image/v1.ImageStream"),
 							},
 						},
 						"repository": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Repository is set if spec.repository was set to the outcome of the import",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.RepositoryImportStatus"),
+								Ref:         ref("github.com/openshift/api/image/v1.RepositoryImportStatus"),
 							},
 						},
 						"images": {
@@ -6014,7 +6014,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportStatus"),
+											Ref: ref("github.com/openshift/api/image/v1.ImageImportStatus"),
 										},
 									},
 								},
@@ -6024,9 +6024,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportStatus", "github.com/openshift/origin/pkg/image/apis/image/v1.ImageStream", "github.com/openshift/origin/pkg/image/apis/image/v1.RepositoryImportStatus"},
+				"github.com/openshift/api/image/v1.ImageImportStatus", "github.com/openshift/api/image/v1.ImageStream", "github.com/openshift/api/image/v1.RepositoryImportStatus"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamList": {
+		"github.com/openshift/api/image/v1.ImageStreamList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamList is a list of ImageStream objects.",
@@ -6058,7 +6058,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageStream"),
+											Ref: ref("github.com/openshift/api/image/v1.ImageStream"),
 										},
 									},
 								},
@@ -6069,9 +6069,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStream", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/image/v1.ImageStream", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamMapping": {
+		"github.com/openshift/api/image/v1.ImageStreamMapping": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamMapping represents a mapping from a single tag to a Docker image as well as the reference to the Docker image stream the image came from.",
@@ -6099,7 +6099,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"image": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Image is a Docker image.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.Image"),
+								Ref:         ref("github.com/openshift/api/image/v1.Image"),
 							},
 						},
 						"tag": {
@@ -6114,9 +6114,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamSpec": {
+		"github.com/openshift/api/image/v1.ImageStreamSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamSpec represents options for ImageStreams.",
@@ -6124,7 +6124,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"lookupPolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "lookupPolicy controls how other resources reference images within this namespace.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageLookupPolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.ImageLookupPolicy"),
 							},
 						},
 						"dockerImageRepository": {
@@ -6147,7 +6147,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagReference"),
+											Ref: ref("github.com/openshift/api/image/v1.TagReference"),
 										},
 									},
 								},
@@ -6157,9 +6157,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageLookupPolicy", "github.com/openshift/origin/pkg/image/apis/image/v1.TagReference"},
+				"github.com/openshift/api/image/v1.ImageLookupPolicy", "github.com/openshift/api/image/v1.TagReference"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamStatus": {
+		"github.com/openshift/api/image/v1.ImageStreamStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamStatus contains information about the state of this image stream.",
@@ -6191,7 +6191,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.NamedTagEventList"),
+											Ref: ref("github.com/openshift/api/image/v1.NamedTagEventList"),
 										},
 									},
 								},
@@ -6202,9 +6202,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.NamedTagEventList"},
+				"github.com/openshift/api/image/v1.NamedTagEventList"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamTag": {
+		"github.com/openshift/api/image/v1.ImageStreamTag": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.",
@@ -6232,7 +6232,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"tag": {
 							SchemaProps: spec.SchemaProps{
 								Description: "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagReference"),
+								Ref:         ref("github.com/openshift/api/image/v1.TagReference"),
 							},
 						},
 						"generation": {
@@ -6245,7 +6245,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"lookupPolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "lookupPolicy indicates whether this tag will handle image references in this namespace.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageLookupPolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.ImageLookupPolicy"),
 							},
 						},
 						"conditions": {
@@ -6255,7 +6255,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagEventCondition"),
+											Ref: ref("github.com/openshift/api/image/v1.TagEventCondition"),
 										},
 									},
 								},
@@ -6264,7 +6264,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"image": {
 							SchemaProps: spec.SchemaProps{
 								Description: "image associated with the ImageStream and tag.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.Image"),
+								Ref:         ref("github.com/openshift/api/image/v1.Image"),
 							},
 						},
 					},
@@ -6272,9 +6272,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.Image", "github.com/openshift/origin/pkg/image/apis/image/v1.ImageLookupPolicy", "github.com/openshift/origin/pkg/image/apis/image/v1.TagEventCondition", "github.com/openshift/origin/pkg/image/apis/image/v1.TagReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/image/v1.Image", "github.com/openshift/api/image/v1.ImageLookupPolicy", "github.com/openshift/api/image/v1.TagEventCondition", "github.com/openshift/api/image/v1.TagReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamTagList": {
+		"github.com/openshift/api/image/v1.ImageStreamTagList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ImageStreamTagList is a list of ImageStreamTag objects.",
@@ -6306,7 +6306,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamTag"),
+											Ref: ref("github.com/openshift/api/image/v1.ImageStreamTag"),
 										},
 									},
 								},
@@ -6317,9 +6317,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamTag", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/image/v1.ImageStreamTag", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.NamedTagEventList": {
+		"github.com/openshift/api/image/v1.NamedTagEventList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NamedTagEventList relates a tag to its image history.",
@@ -6338,7 +6338,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagEvent"),
+											Ref: ref("github.com/openshift/api/image/v1.TagEvent"),
 										},
 									},
 								},
@@ -6351,7 +6351,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagEventCondition"),
+											Ref: ref("github.com/openshift/api/image/v1.TagEventCondition"),
 										},
 									},
 								},
@@ -6362,9 +6362,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.TagEvent", "github.com/openshift/origin/pkg/image/apis/image/v1.TagEventCondition"},
+				"github.com/openshift/api/image/v1.TagEvent", "github.com/openshift/api/image/v1.TagEventCondition"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.RepositoryImportSpec": {
+		"github.com/openshift/api/image/v1.RepositoryImportSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RepositoryImportSpec describes a request to import images from a Docker image repository.",
@@ -6378,13 +6378,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"importPolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ImportPolicy is the policy controlling how the image is imported",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.TagImportPolicy"),
 							},
 						},
 						"referencePolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ReferencePolicy defines how other components should consume the image",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.TagReferencePolicy"),
 							},
 						},
 						"includeManifest": {
@@ -6399,9 +6399,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy", "github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy", "k8s.io/api/core/v1.ObjectReference"},
+				"github.com/openshift/api/image/v1.TagImportPolicy", "github.com/openshift/api/image/v1.TagReferencePolicy", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.RepositoryImportStatus": {
+		"github.com/openshift/api/image/v1.RepositoryImportStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RepositoryImportStatus describes the result of an image repository import",
@@ -6419,7 +6419,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportStatus"),
+											Ref: ref("github.com/openshift/api/image/v1.ImageImportStatus"),
 										},
 									},
 								},
@@ -6443,9 +6443,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageImportStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.Status"},
+				"github.com/openshift/api/image/v1.ImageImportStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.Status"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.SignatureCondition": {
+		"github.com/openshift/api/image/v1.SignatureCondition": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SignatureCondition describes an image signature condition of particular kind at particular probe time.",
@@ -6497,7 +6497,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.SignatureGenericEntity": {
+		"github.com/openshift/api/image/v1.SignatureGenericEntity": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SignatureGenericEntity holds a generic information about a person or entity who is an issuer or a subject of signing certificate or key.",
@@ -6521,7 +6521,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.SignatureIssuer": {
+		"github.com/openshift/api/image/v1.SignatureIssuer": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SignatureIssuer holds information about an issuer of signing certificate or key.",
@@ -6545,7 +6545,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.SignatureSubject": {
+		"github.com/openshift/api/image/v1.SignatureSubject": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SignatureSubject holds information about a person or entity who created the signature.",
@@ -6577,7 +6577,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.TagEvent": {
+		"github.com/openshift/api/image/v1.TagEvent": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TagEvent is used by ImageStreamStatus to keep a historical record of images associated with a tag.",
@@ -6616,7 +6616,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.TagEventCondition": {
+		"github.com/openshift/api/image/v1.TagEventCondition": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TagEventCondition contains condition information for a tag event.",
@@ -6669,7 +6669,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy": {
+		"github.com/openshift/api/image/v1.TagImportPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TagImportPolicy controls how images related to this tag will be imported.",
@@ -6693,7 +6693,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.TagReference": {
+		"github.com/openshift/api/image/v1.TagReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.",
@@ -6742,13 +6742,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"importPolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ImportPolicy is information that controls how images may be imported by the server.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.TagImportPolicy"),
 							},
 						},
 						"referencePolicy": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ReferencePolicy defines how other components should consume the image.",
-								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy"),
+								Ref:         ref("github.com/openshift/api/image/v1.TagReferencePolicy"),
 							},
 						},
 					},
@@ -6756,9 +6756,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy", "github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy", "k8s.io/api/core/v1.ObjectReference"},
+				"github.com/openshift/api/image/v1.TagImportPolicy", "github.com/openshift/api/image/v1.TagReferencePolicy", "k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy": {
+		"github.com/openshift/api/image/v1.TagReferencePolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TagReferencePolicy describes how pull-specs for images in this image stream tag are generated when image change triggers in deployment configs or builds are resolved. This allows the image stream author to control how images are accessed.",
@@ -6776,7 +6776,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork": {
+		"github.com/openshift/api/network/v1.ClusterNetwork": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterNetwork describes the cluster network. There is normally only one object of this type, named \"default\", which is created by the SDN network plugin based on the master configuration when the cluster is brought up for the first time.",
@@ -6836,7 +6836,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkEntry"),
+											Ref: ref("github.com/openshift/api/network/v1.ClusterNetworkEntry"),
 										},
 									},
 								},
@@ -6847,9 +6847,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkEntry", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/network/v1.ClusterNetworkEntry", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkEntry": {
+		"github.com/openshift/api/network/v1.ClusterNetworkEntry": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
@@ -6874,7 +6874,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkList": {
+		"github.com/openshift/api/network/v1.ClusterNetworkList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterNetworkList is a collection of ClusterNetworks",
@@ -6906,7 +6906,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork"),
+											Ref: ref("github.com/openshift/api/network/v1.ClusterNetwork"),
 										},
 									},
 								},
@@ -6917,9 +6917,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/network/v1.ClusterNetwork", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy": {
+		"github.com/openshift/api/network/v1.EgressNetworkPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicy describes the current egress network policy for a Namespace. When using the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy is present) then the traffic will be allowed by default.",
@@ -6947,7 +6947,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec is the specification of the current egress network policy",
-								Ref:         ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec"),
+								Ref:         ref("github.com/openshift/api/network/v1.EgressNetworkPolicySpec"),
 							},
 						},
 					},
@@ -6955,9 +6955,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/network/v1.EgressNetworkPolicySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyList": {
+		"github.com/openshift/api/network/v1.EgressNetworkPolicyList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicyList is a collection of EgressNetworkPolicy",
@@ -6989,7 +6989,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy"),
+											Ref: ref("github.com/openshift/api/network/v1.EgressNetworkPolicy"),
 										},
 									},
 								},
@@ -7000,9 +7000,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/network/v1.EgressNetworkPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer": {
+		"github.com/openshift/api/network/v1.EgressNetworkPolicyPeer": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
@@ -7026,7 +7026,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule": {
+		"github.com/openshift/api/network/v1.EgressNetworkPolicyRule": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicyRule contains a single egress network policy rule",
@@ -7041,7 +7041,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"to": {
 							SchemaProps: spec.SchemaProps{
 								Description: "to is the target that traffic is allowed/denied to",
-								Ref:         ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer"),
+								Ref:         ref("github.com/openshift/api/network/v1.EgressNetworkPolicyPeer"),
 							},
 						},
 					},
@@ -7049,9 +7049,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer"},
+				"github.com/openshift/api/network/v1.EgressNetworkPolicyPeer"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec": {
+		"github.com/openshift/api/network/v1.EgressNetworkPolicySpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicySpec provides a list of policies on outgoing network traffic",
@@ -7063,7 +7063,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule"),
+											Ref: ref("github.com/openshift/api/network/v1.EgressNetworkPolicyRule"),
 										},
 									},
 								},
@@ -7074,9 +7074,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule"},
+				"github.com/openshift/api/network/v1.EgressNetworkPolicyRule"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet": {
+		"github.com/openshift/api/network/v1.HostSubnet": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
@@ -7143,7 +7143,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnetList": {
+		"github.com/openshift/api/network/v1.HostSubnetList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "HostSubnetList is a collection of HostSubnets",
@@ -7175,7 +7175,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet"),
+											Ref: ref("github.com/openshift/api/network/v1.HostSubnet"),
 										},
 									},
 								},
@@ -7186,9 +7186,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/network/v1.HostSubnet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace": {
+		"github.com/openshift/api/network/v1.NetNamespace": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
@@ -7248,7 +7248,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespaceList": {
+		"github.com/openshift/api/network/v1.NetNamespaceList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NetNamespaceList is a collection of NetNamespaces",
@@ -7280,7 +7280,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace"),
+											Ref: ref("github.com/openshift/api/network/v1.NetNamespace"),
 										},
 									},
 								},
@@ -7291,9 +7291,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/network/v1.NetNamespace", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.ClusterRoleScopeRestriction": {
+		"github.com/openshift/api/oauth/v1.ClusterRoleScopeRestriction": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterRoleScopeRestriction describes restrictions on cluster role scopes",
@@ -7339,7 +7339,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAccessToken": {
+		"github.com/openshift/api/oauth/v1.OAuthAccessToken": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthAccessToken describes an OAuth access token",
@@ -7433,7 +7433,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAccessTokenList": {
+		"github.com/openshift/api/oauth/v1.OAuthAccessTokenList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthAccessTokenList is a collection of OAuth access tokens",
@@ -7465,7 +7465,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAccessToken"),
+											Ref: ref("github.com/openshift/api/oauth/v1.OAuthAccessToken"),
 										},
 									},
 								},
@@ -7476,9 +7476,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAccessToken", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/oauth/v1.OAuthAccessToken", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAuthorizeToken": {
+		"github.com/openshift/api/oauth/v1.OAuthAuthorizeToken": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthAuthorizeToken describes an OAuth authorization token",
@@ -7579,7 +7579,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAuthorizeTokenList": {
+		"github.com/openshift/api/oauth/v1.OAuthAuthorizeTokenList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthAuthorizeTokenList is a collection of OAuth authorization tokens",
@@ -7611,7 +7611,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAuthorizeToken"),
+											Ref: ref("github.com/openshift/api/oauth/v1.OAuthAuthorizeToken"),
 										},
 									},
 								},
@@ -7622,9 +7622,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthAuthorizeToken", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/oauth/v1.OAuthAuthorizeToken", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClient": {
+		"github.com/openshift/api/oauth/v1.OAuthClient": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthClient describes an OAuth client",
@@ -7710,7 +7710,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/oauth/apis/oauth/v1.ScopeRestriction"),
+											Ref: ref("github.com/openshift/api/oauth/v1.ScopeRestriction"),
 										},
 									},
 								},
@@ -7727,9 +7727,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.ScopeRestriction", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/oauth/v1.ScopeRestriction", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClientAuthorization": {
+		"github.com/openshift/api/oauth/v1.OAuthClientAuthorization": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthClientAuthorization describes an authorization created by an OAuth client",
@@ -7795,7 +7795,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClientAuthorizationList": {
+		"github.com/openshift/api/oauth/v1.OAuthClientAuthorizationList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthClientAuthorizationList is a collection of OAuth client authorizations",
@@ -7827,7 +7827,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClientAuthorization"),
+											Ref: ref("github.com/openshift/api/oauth/v1.OAuthClientAuthorization"),
 										},
 									},
 								},
@@ -7838,9 +7838,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClientAuthorization", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/oauth/v1.OAuthClientAuthorization", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClientList": {
+		"github.com/openshift/api/oauth/v1.OAuthClientList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthClientList is a collection of OAuth clients",
@@ -7872,7 +7872,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClient"),
+											Ref: ref("github.com/openshift/api/oauth/v1.OAuthClient"),
 										},
 									},
 								},
@@ -7883,9 +7883,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthClient", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/oauth/v1.OAuthClient", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.OAuthRedirectReference": {
+		"github.com/openshift/api/oauth/v1.OAuthRedirectReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "OAuthRedirectReference is a reference to an OAuth redirect object.",
@@ -7913,16 +7913,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"reference": {
 							SchemaProps: spec.SchemaProps{
 								Description: "The reference to an redirect object in the current namespace.",
-								Ref:         ref("github.com/openshift/origin/pkg/oauth/apis/oauth/v1.RedirectReference"),
+								Ref:         ref("github.com/openshift/api/oauth/v1.RedirectReference"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.RedirectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/oauth/v1.RedirectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.RedirectReference": {
+		"github.com/openshift/api/oauth/v1.RedirectReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RedirectReference specifies the target in the current namespace that resolves into redirect URIs.  Only the 'Route' kind is currently allowed.",
@@ -7954,7 +7954,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.ScopeRestriction": {
+		"github.com/openshift/api/oauth/v1.ScopeRestriction": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ScopeRestriction describe one restriction on scopes.  Exactly one option must be non-nil.",
@@ -7976,16 +7976,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"clusterRole": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ClusterRole describes a set of restrictions for cluster role scoping.",
-								Ref:         ref("github.com/openshift/origin/pkg/oauth/apis/oauth/v1.ClusterRoleScopeRestriction"),
+								Ref:         ref("github.com/openshift/api/oauth/v1.ClusterRoleScopeRestriction"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.ClusterRoleScopeRestriction"},
+				"github.com/openshift/api/oauth/v1.ClusterRoleScopeRestriction"},
 		},
-		"github.com/openshift/origin/pkg/project/apis/project/v1.Project": {
+		"github.com/openshift/api/project/v1.Project": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Projects are the unit of isolation and collaboration in OpenShift. A project has one or more members, a quota on the resources that the project may consume, and the security controls on the resources in the project. Within a project, members may have different roles - project administrators can set membership, editors can create and manage the resources, and viewers can see but not access running containers. In a normal cluster project administrators are not able to alter their quotas - that is restricted to cluster administrators.\n\nListing or watching projects will return only projects the user has the reader role on.\n\nAn OpenShift project is an alternative representation of a Kubernetes namespace. Projects are exposed as editable to end users while namespaces are not. Direct creation of a project is typically restricted to administrators, while end users should use the requestproject resource.",
@@ -8013,22 +8013,22 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec defines the behavior of the Namespace.",
-								Ref:         ref("github.com/openshift/origin/pkg/project/apis/project/v1.ProjectSpec"),
+								Ref:         ref("github.com/openshift/api/project/v1.ProjectSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status describes the current status of a Namespace",
-								Ref:         ref("github.com/openshift/origin/pkg/project/apis/project/v1.ProjectStatus"),
+								Ref:         ref("github.com/openshift/api/project/v1.ProjectStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/project/apis/project/v1.ProjectSpec", "github.com/openshift/origin/pkg/project/apis/project/v1.ProjectStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/project/v1.ProjectSpec", "github.com/openshift/api/project/v1.ProjectStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/project/apis/project/v1.ProjectList": {
+		"github.com/openshift/api/project/v1.ProjectList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ProjectList is a list of Project objects.",
@@ -8060,7 +8060,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/project/apis/project/v1.Project"),
+											Ref: ref("github.com/openshift/api/project/v1.Project"),
 										},
 									},
 								},
@@ -8071,9 +8071,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/project/apis/project/v1.Project", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/project/v1.Project", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/project/apis/project/v1.ProjectRequest": {
+		"github.com/openshift/api/project/v1.ProjectRequest": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ProjecRequest is the set of options necessary to fully qualify a project request",
@@ -8118,7 +8118,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/project/apis/project/v1.ProjectSpec": {
+		"github.com/openshift/api/project/v1.ProjectSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ProjectSpec describes the attributes on a Project",
@@ -8142,7 +8142,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/project/apis/project/v1.ProjectStatus": {
+		"github.com/openshift/api/project/v1.ProjectStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ProjectStatus is information about the current status of a Project",
@@ -8159,7 +8159,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.AppliedClusterResourceQuota": {
+		"github.com/openshift/api/quota/v1.AppliedClusterResourceQuota": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "AppliedClusterResourceQuota mirrors ClusterResourceQuota at a project scope, for projection into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to his project and their associated usage.",
@@ -8187,13 +8187,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec defines the desired quota",
-								Ref:         ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSpec"),
+								Ref:         ref("github.com/openshift/api/quota/v1.ClusterResourceQuotaSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status defines the actual enforced quota and its current usage",
-								Ref:         ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaStatus"),
+								Ref:         ref("github.com/openshift/api/quota/v1.ClusterResourceQuotaStatus"),
 							},
 						},
 					},
@@ -8201,9 +8201,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSpec", "github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/quota/v1.ClusterResourceQuotaSpec", "github.com/openshift/api/quota/v1.ClusterResourceQuotaStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.AppliedClusterResourceQuotaList": {
+		"github.com/openshift/api/quota/v1.AppliedClusterResourceQuotaList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "AppliedClusterResourceQuotaList is a collection of AppliedClusterResourceQuotas",
@@ -8235,7 +8235,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.AppliedClusterResourceQuota"),
+											Ref: ref("github.com/openshift/api/quota/v1.AppliedClusterResourceQuota"),
 										},
 									},
 								},
@@ -8246,9 +8246,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/quota/apis/quota/v1.AppliedClusterResourceQuota", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/quota/v1.AppliedClusterResourceQuota", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuota": {
+		"github.com/openshift/api/quota/v1.ClusterResourceQuota": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to synthetic ResourceQuota object to allow quota evaluation re-use.",
@@ -8276,13 +8276,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Spec defines the desired quota",
-								Ref:         ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSpec"),
+								Ref:         ref("github.com/openshift/api/quota/v1.ClusterResourceQuotaSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Status defines the actual enforced quota and its current usage",
-								Ref:         ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaStatus"),
+								Ref:         ref("github.com/openshift/api/quota/v1.ClusterResourceQuotaStatus"),
 							},
 						},
 					},
@@ -8290,9 +8290,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSpec", "github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/quota/v1.ClusterResourceQuotaSpec", "github.com/openshift/api/quota/v1.ClusterResourceQuotaStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaList": {
+		"github.com/openshift/api/quota/v1.ClusterResourceQuotaList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterResourceQuotaList is a collection of ClusterResourceQuotas",
@@ -8324,7 +8324,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuota"),
+											Ref: ref("github.com/openshift/api/quota/v1.ClusterResourceQuota"),
 										},
 									},
 								},
@@ -8335,9 +8335,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuota", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/quota/v1.ClusterResourceQuota", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSelector": {
+		"github.com/openshift/api/quota/v1.ClusterResourceQuotaSelector": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterResourceQuotaSelector is used to select projects.  At least one of LabelSelector or AnnotationSelector must present.  If only one is present, it is the only selection criteria.  If both are specified, the project must match both restrictions.",
@@ -8369,7 +8369,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSpec": {
+		"github.com/openshift/api/quota/v1.ClusterResourceQuotaSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterResourceQuotaSpec defines the desired quota restrictions",
@@ -8377,7 +8377,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"selector": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Selector is the selector used to match projects. It should only select active projects on the scale of dozens (though it can select many more less active projects).  These projects will contend on object creation through this resource.",
-								Ref:         ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSelector"),
+								Ref:         ref("github.com/openshift/api/quota/v1.ClusterResourceQuotaSelector"),
 							},
 						},
 						"quota": {
@@ -8391,9 +8391,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaSelector", "k8s.io/api/core/v1.ResourceQuotaSpec"},
+				"github.com/openshift/api/quota/v1.ClusterResourceQuotaSelector", "k8s.io/api/core/v1.ResourceQuotaSpec"},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.ClusterResourceQuotaStatus": {
+		"github.com/openshift/api/quota/v1.ClusterResourceQuotaStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterResourceQuotaStatus defines the actual enforced quota and its current usage",
@@ -8411,7 +8411,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/quota/apis/quota/v1.ResourceQuotaStatusByNamespace"),
+											Ref: ref("github.com/openshift/api/quota/v1.ResourceQuotaStatusByNamespace"),
 										},
 									},
 								},
@@ -8422,9 +8422,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/quota/apis/quota/v1.ResourceQuotaStatusByNamespace", "k8s.io/api/core/v1.ResourceQuotaStatus"},
+				"github.com/openshift/api/quota/v1.ResourceQuotaStatusByNamespace", "k8s.io/api/core/v1.ResourceQuotaStatus"},
 		},
-		"github.com/openshift/origin/pkg/quota/apis/quota/v1.ResourceQuotaStatusByNamespace": {
+		"github.com/openshift/api/quota/v1.ResourceQuotaStatusByNamespace": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ResourceQuotaStatusByNamespace gives status for a particular project",
@@ -8449,7 +8449,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ResourceQuotaStatus"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.Route": {
+		"github.com/openshift/api/route/v1.Route": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "A route allows developers to expose services through an HTTP(S) aware load balancing and proxy layer via a public DNS entry. The route may further specify TLS options and a certificate, or specify a public CNAME that the router should also accept for HTTP and HTTPS traffic. An administrator typically configures their router to be visible outside the cluster firewall, and may also add additional security, caching, or traffic controls on the service content. Routers usually talk directly to the service endpoints.\n\nOnce a route is created, the `host` field may not be changed. Generally, routers use the oldest route with a given host when resolving conflicts.\n\nRouters are subject to additional customization and may support additional controls via the annotations field.\n\nBecause administrators may configure multiple routers, the route status field is used to return information to clients about the names and states of the route under each router. If a client chooses a duplicate name, for instance, the route status conditions are used to indicate the route cannot be chosen.",
@@ -8477,13 +8477,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec is the desired state of the route",
-								Ref:         ref("github.com/openshift/origin/pkg/route/apis/route/v1.RouteSpec"),
+								Ref:         ref("github.com/openshift/api/route/v1.RouteSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "status is the current state of the route",
-								Ref:         ref("github.com/openshift/origin/pkg/route/apis/route/v1.RouteStatus"),
+								Ref:         ref("github.com/openshift/api/route/v1.RouteStatus"),
 							},
 						},
 					},
@@ -8491,9 +8491,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/route/apis/route/v1.RouteSpec", "github.com/openshift/origin/pkg/route/apis/route/v1.RouteStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/route/v1.RouteSpec", "github.com/openshift/api/route/v1.RouteStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RouteIngress": {
+		"github.com/openshift/api/route/v1.RouteIngress": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RouteIngress holds information about the places where a route is exposed.",
@@ -8519,7 +8519,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/route/apis/route/v1.RouteIngressCondition"),
+											Ref: ref("github.com/openshift/api/route/v1.RouteIngressCondition"),
 										},
 									},
 								},
@@ -8543,9 +8543,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/route/apis/route/v1.RouteIngressCondition"},
+				"github.com/openshift/api/route/v1.RouteIngressCondition"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RouteIngressCondition": {
+		"github.com/openshift/api/route/v1.RouteIngressCondition": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RouteIngressCondition contains details for the current condition of this route on a particular router.",
@@ -8591,7 +8591,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RouteList": {
+		"github.com/openshift/api/route/v1.RouteList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RouteList is a collection of Routes.",
@@ -8623,7 +8623,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/route/apis/route/v1.Route"),
+											Ref: ref("github.com/openshift/api/route/v1.Route"),
 										},
 									},
 								},
@@ -8634,9 +8634,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/route/apis/route/v1.Route", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/route/v1.Route", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RoutePort": {
+		"github.com/openshift/api/route/v1.RoutePort": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RoutePort defines a port mapping from a router to an endpoint in the service endpoints.",
@@ -8654,7 +8654,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RouteSpec": {
+		"github.com/openshift/api/route/v1.RouteSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RouteSpec describes the hostname or path the route exposes, any security information, and one to four backends (services) the route points to. Requests are distributed among the backends depending on the weights assigned to each backend. When using roundrobin scheduling the portion of requests that go to each backend is the backend weight divided by the sum of all of the backend weights. When the backend has more than one endpoint the requests that end up on the backend are roundrobin distributed among the endpoints. Weights are between 0 and 256 with default 1. Weight 0 causes no requests to the backend. If all weights are zero the route will be considered to have no backends and return a standard 503 response.\n\nThe `tls` field is optional and allows specific certificates or behavior for the route. Routers typically configure a default certificate on a wildcard domain to terminate routes without explicit certificates, but custom hostnames usually must choose passthrough (send traffic directly to the backend via the TLS Server-Name- Indication field) or provide a certificate.",
@@ -8676,7 +8676,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"to": {
 							SchemaProps: spec.SchemaProps{
 								Description: "to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1) is set to zero, no traffic will be sent to this backend.",
-								Ref:         ref("github.com/openshift/origin/pkg/route/apis/route/v1.RouteTargetReference"),
+								Ref:         ref("github.com/openshift/api/route/v1.RouteTargetReference"),
 							},
 						},
 						"alternateBackends": {
@@ -8686,7 +8686,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/route/apis/route/v1.RouteTargetReference"),
+											Ref: ref("github.com/openshift/api/route/v1.RouteTargetReference"),
 										},
 									},
 								},
@@ -8695,13 +8695,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"port": {
 							SchemaProps: spec.SchemaProps{
 								Description: "If specified, the port to be used by the router. Most routers will use all endpoints exposed by the service by default - set this value to instruct routers which port to use.",
-								Ref:         ref("github.com/openshift/origin/pkg/route/apis/route/v1.RoutePort"),
+								Ref:         ref("github.com/openshift/api/route/v1.RoutePort"),
 							},
 						},
 						"tls": {
 							SchemaProps: spec.SchemaProps{
 								Description: "The tls field provides the ability to configure certificates and termination for the route.",
-								Ref:         ref("github.com/openshift/origin/pkg/route/apis/route/v1.TLSConfig"),
+								Ref:         ref("github.com/openshift/api/route/v1.TLSConfig"),
 							},
 						},
 						"wildcardPolicy": {
@@ -8716,9 +8716,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/route/apis/route/v1.RoutePort", "github.com/openshift/origin/pkg/route/apis/route/v1.RouteTargetReference", "github.com/openshift/origin/pkg/route/apis/route/v1.TLSConfig"},
+				"github.com/openshift/api/route/v1.RoutePort", "github.com/openshift/api/route/v1.RouteTargetReference", "github.com/openshift/api/route/v1.TLSConfig"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RouteStatus": {
+		"github.com/openshift/api/route/v1.RouteStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RouteStatus provides relevant info about the status of a route, including which routers acknowledge it.",
@@ -8730,7 +8730,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/route/apis/route/v1.RouteIngress"),
+											Ref: ref("github.com/openshift/api/route/v1.RouteIngress"),
 										},
 									},
 								},
@@ -8741,9 +8741,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/route/apis/route/v1.RouteIngress"},
+				"github.com/openshift/api/route/v1.RouteIngress"},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RouteTargetReference": {
+		"github.com/openshift/api/route/v1.RouteTargetReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service' kind is allowed. Use 'weight' field to emphasize one over others.",
@@ -8775,7 +8775,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.RouterShard": {
+		"github.com/openshift/api/route/v1.RouterShard": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RouterShard has information of a routing shard and is used to generate host names and routing table entries when a routing shard is allocated for a specific route. Caveat: This is WIP and will likely undergo modifications when sharding\n        support is added.",
@@ -8800,7 +8800,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/route/apis/route/v1.TLSConfig": {
+		"github.com/openshift/api/route/v1.TLSConfig": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TLSConfig defines config used to secure a route and provide termination",
@@ -8853,7 +8853,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume": {
+		"github.com/openshift/api/security/v1.AllowedFlexVolume": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "AllowedFlexVolume represents a single Flexvolume that is allowed to be used.",
@@ -8870,7 +8870,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions": {
+		"github.com/openshift/api/security/v1.FSGroupStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "FSGroupStrategyOptions defines the strategy type and options used to create the strategy.",
@@ -8889,7 +8889,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/security/apis/security/v1.IDRange"),
+											Ref: ref("github.com/openshift/api/security/v1.IDRange"),
 										},
 									},
 								},
@@ -8899,9 +8899,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.IDRange"},
+				"github.com/openshift/api/security/v1.IDRange"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.IDRange": {
+		"github.com/openshift/api/security/v1.IDRange": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "IDRange provides a min/max of an allowed range of IDs.",
@@ -8925,7 +8925,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicyReview": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicyReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodTemplateSpec` in question.",
@@ -8947,13 +8947,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec is the PodSecurityPolicy to check.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicyReviewSpec"),
+								Ref:         ref("github.com/openshift/api/security/v1.PodSecurityPolicyReviewSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "status represents the current information/status for the PodSecurityPolicyReview.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicyReviewStatus"),
+								Ref:         ref("github.com/openshift/api/security/v1.PodSecurityPolicyReviewStatus"),
 							},
 						},
 					},
@@ -8961,9 +8961,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicyReviewSpec", "github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicyReviewStatus"},
+				"github.com/openshift/api/security/v1.PodSecurityPolicyReviewSpec", "github.com/openshift/api/security/v1.PodSecurityPolicyReviewStatus"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicyReviewSpec": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicyReviewSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicyReviewSpec defines specification for PodSecurityPolicyReview",
@@ -8995,7 +8995,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.PodTemplateSpec"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicyReviewStatus": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicyReviewStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.",
@@ -9007,7 +9007,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/security/apis/security/v1.ServiceAccountPodSecurityPolicyReviewStatus"),
+											Ref: ref("github.com/openshift/api/security/v1.ServiceAccountPodSecurityPolicyReviewStatus"),
 										},
 									},
 								},
@@ -9018,9 +9018,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.ServiceAccountPodSecurityPolicyReviewStatus"},
+				"github.com/openshift/api/security/v1.ServiceAccountPodSecurityPolicyReviewStatus"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySelfSubjectReview": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicySelfSubjectReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodTemplateSpec",
@@ -9042,13 +9042,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec defines specification the PodSecurityPolicySelfSubjectReview.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySelfSubjectReviewSpec"),
+								Ref:         ref("github.com/openshift/api/security/v1.PodSecurityPolicySelfSubjectReviewSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "status represents the current information/status for the PodSecurityPolicySelfSubjectReview.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewStatus"),
+								Ref:         ref("github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewStatus"),
 							},
 						},
 					},
@@ -9056,9 +9056,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySelfSubjectReviewSpec", "github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewStatus"},
+				"github.com/openshift/api/security/v1.PodSecurityPolicySelfSubjectReviewSpec", "github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewStatus"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySelfSubjectReviewSpec": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicySelfSubjectReviewSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicySelfSubjectReviewSpec contains specification for PodSecurityPolicySelfSubjectReview.",
@@ -9076,7 +9076,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.PodTemplateSpec"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReview": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicySubjectReview": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.",
@@ -9098,13 +9098,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec defines specification for the PodSecurityPolicySubjectReview.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewSpec"),
+								Ref:         ref("github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "status represents the current information/status for the PodSecurityPolicySubjectReview.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewStatus"),
+								Ref:         ref("github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewStatus"),
 							},
 						},
 					},
@@ -9112,9 +9112,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewSpec", "github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewStatus"},
+				"github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewSpec", "github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewStatus"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewSpec": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicySubjectReviewSpec defines specification for PodSecurityPolicySubjectReview",
@@ -9153,7 +9153,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.PodTemplateSpec"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.PodSecurityPolicySubjectReviewStatus": {
+		"github.com/openshift/api/security/v1.PodSecurityPolicySubjectReviewStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "PodSecurityPolicySubjectReviewStatus contains information/status for PodSecurityPolicySubjectReview.",
@@ -9183,7 +9183,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference", "k8s.io/api/core/v1.PodTemplateSpec"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.RunAsUserStrategyOptions": {
+		"github.com/openshift/api/security/v1.RunAsUserStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.",
@@ -9221,7 +9221,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.SELinuxContextStrategyOptions": {
+		"github.com/openshift/api/security/v1.SELinuxContextStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.",
@@ -9245,7 +9245,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.SELinuxOptions"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.SecurityContextConstraints": {
+		"github.com/openshift/api/security/v1.SecurityContextConstraints": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container.",
@@ -9354,7 +9354,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume"),
+											Ref: ref("github.com/openshift/api/security/v1.AllowedFlexVolume"),
 										},
 									},
 								},
@@ -9391,25 +9391,25 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"seLinuxContext": {
 							SchemaProps: spec.SchemaProps{
 								Description: "SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.SELinuxContextStrategyOptions"),
+								Ref:         ref("github.com/openshift/api/security/v1.SELinuxContextStrategyOptions"),
 							},
 						},
 						"runAsUser": {
 							SchemaProps: spec.SchemaProps{
 								Description: "RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.RunAsUserStrategyOptions"),
+								Ref:         ref("github.com/openshift/api/security/v1.RunAsUserStrategyOptions"),
 							},
 						},
 						"supplementalGroups": {
 							SchemaProps: spec.SchemaProps{
 								Description: "SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.SupplementalGroupsStrategyOptions"),
+								Ref:         ref("github.com/openshift/api/security/v1.SupplementalGroupsStrategyOptions"),
 							},
 						},
 						"fsGroup": {
 							SchemaProps: spec.SchemaProps{
 								Description: "FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.",
-								Ref:         ref("github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions"),
+								Ref:         ref("github.com/openshift/api/security/v1.FSGroupStrategyOptions"),
 							},
 						},
 						"readOnlyRootFilesystem": {
@@ -9466,9 +9466,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume", "github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.RunAsUserStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SELinuxContextStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SupplementalGroupsStrategyOptions", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/security/v1.AllowedFlexVolume", "github.com/openshift/api/security/v1.FSGroupStrategyOptions", "github.com/openshift/api/security/v1.RunAsUserStrategyOptions", "github.com/openshift/api/security/v1.SELinuxContextStrategyOptions", "github.com/openshift/api/security/v1.SupplementalGroupsStrategyOptions", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.SecurityContextConstraintsList": {
+		"github.com/openshift/api/security/v1.SecurityContextConstraintsList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SecurityContextConstraintsList is a list of SecurityContextConstraints objects",
@@ -9500,7 +9500,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/security/apis/security/v1.SecurityContextConstraints"),
+											Ref: ref("github.com/openshift/api/security/v1.SecurityContextConstraints"),
 										},
 									},
 								},
@@ -9511,9 +9511,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.SecurityContextConstraints", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/security/v1.SecurityContextConstraints", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.ServiceAccountPodSecurityPolicyReviewStatus": {
+		"github.com/openshift/api/security/v1.ServiceAccountPodSecurityPolicyReviewStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ServiceAccountPodSecurityPolicyReviewStatus represents ServiceAccount name and related review status",
@@ -9551,7 +9551,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference", "k8s.io/api/core/v1.PodTemplateSpec"},
 		},
-		"github.com/openshift/origin/pkg/security/apis/security/v1.SupplementalGroupsStrategyOptions": {
+		"github.com/openshift/api/security/v1.SupplementalGroupsStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.",
@@ -9570,7 +9570,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/security/apis/security/v1.IDRange"),
+											Ref: ref("github.com/openshift/api/security/v1.IDRange"),
 										},
 									},
 								},
@@ -9580,9 +9580,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.IDRange"},
+				"github.com/openshift/api/security/v1.IDRange"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.BrokerTemplateInstance": {
+		"github.com/openshift/api/template/v1.BrokerTemplateInstance": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BrokerTemplateInstance holds the service broker-related state associated with a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.",
@@ -9610,7 +9610,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec describes the state of this BrokerTemplateInstance.",
-								Ref:         ref("github.com/openshift/origin/pkg/template/apis/template/v1.BrokerTemplateInstanceSpec"),
+								Ref:         ref("github.com/openshift/api/template/v1.BrokerTemplateInstanceSpec"),
 							},
 						},
 					},
@@ -9618,9 +9618,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.BrokerTemplateInstanceSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/template/v1.BrokerTemplateInstanceSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.BrokerTemplateInstanceList": {
+		"github.com/openshift/api/template/v1.BrokerTemplateInstanceList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.",
@@ -9652,7 +9652,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.BrokerTemplateInstance"),
+											Ref: ref("github.com/openshift/api/template/v1.BrokerTemplateInstance"),
 										},
 									},
 								},
@@ -9663,9 +9663,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.BrokerTemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/template/v1.BrokerTemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.BrokerTemplateInstanceSpec": {
+		"github.com/openshift/api/template/v1.BrokerTemplateInstanceSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "BrokerTemplateInstanceSpec describes the state of a BrokerTemplateInstance.",
@@ -9703,7 +9703,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.Parameter": {
+		"github.com/openshift/api/template/v1.Parameter": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Parameter defines a name/value variable that is to be processed during the Template to Config transformation.",
@@ -9763,7 +9763,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.Template": {
+		"github.com/openshift/api/template/v1.Template": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Template contains the inputs needed to produce a Config.",
@@ -9815,7 +9815,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.Parameter"),
+											Ref: ref("github.com/openshift/api/template/v1.Parameter"),
 										},
 									},
 								},
@@ -9840,9 +9840,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.Parameter", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+				"github.com/openshift/api/template/v1.Parameter", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstance": {
+		"github.com/openshift/api/template/v1.TemplateInstance": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateInstance requests and records the instantiation of a Template. TemplateInstance is part of an experimental API.",
@@ -9870,13 +9870,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec describes the desired state of this TemplateInstance.",
-								Ref:         ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceSpec"),
+								Ref:         ref("github.com/openshift/api/template/v1.TemplateInstanceSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
 								Description: "status describes the current state of this TemplateInstance.",
-								Ref:         ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceStatus"),
+								Ref:         ref("github.com/openshift/api/template/v1.TemplateInstanceStatus"),
 							},
 						},
 					},
@@ -9884,9 +9884,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceSpec", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/api/template/v1.TemplateInstanceSpec", "github.com/openshift/api/template/v1.TemplateInstanceStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition": {
+		"github.com/openshift/api/template/v1.TemplateInstanceCondition": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateInstanceCondition contains condition information for a TemplateInstance.",
@@ -9932,7 +9932,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceList": {
+		"github.com/openshift/api/template/v1.TemplateInstanceList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateInstanceList is a list of TemplateInstance objects.",
@@ -9964,7 +9964,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstance"),
+											Ref: ref("github.com/openshift/api/template/v1.TemplateInstance"),
 										},
 									},
 								},
@@ -9975,9 +9975,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/template/v1.TemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject": {
+		"github.com/openshift/api/template/v1.TemplateInstanceObject": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateInstanceObject references an object created by a TemplateInstance.",
@@ -9994,7 +9994,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceRequester": {
+		"github.com/openshift/api/template/v1.TemplateInstanceRequester": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
@@ -10053,7 +10053,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceSpec": {
+		"github.com/openshift/api/template/v1.TemplateInstanceSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateInstanceSpec describes the desired state of a TemplateInstance.",
@@ -10061,7 +10061,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"template": {
 							SchemaProps: spec.SchemaProps{
 								Description: "template is a full copy of the template for instantiation.",
-								Ref:         ref("github.com/openshift/origin/pkg/template/apis/template/v1.Template"),
+								Ref:         ref("github.com/openshift/api/template/v1.Template"),
 							},
 						},
 						"secret": {
@@ -10073,7 +10073,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"requester": {
 							SchemaProps: spec.SchemaProps{
 								Description: "requester holds the identity of the agent requesting the template instantiation.",
-								Ref:         ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceRequester"),
+								Ref:         ref("github.com/openshift/api/template/v1.TemplateInstanceRequester"),
 							},
 						},
 					},
@@ -10081,9 +10081,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.Template", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceRequester", "k8s.io/api/core/v1.LocalObjectReference"},
+				"github.com/openshift/api/template/v1.Template", "github.com/openshift/api/template/v1.TemplateInstanceRequester", "k8s.io/api/core/v1.LocalObjectReference"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceStatus": {
+		"github.com/openshift/api/template/v1.TemplateInstanceStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateInstanceStatus describes the current state of a TemplateInstance.",
@@ -10095,7 +10095,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition"),
+											Ref: ref("github.com/openshift/api/template/v1.TemplateInstanceCondition"),
 										},
 									},
 								},
@@ -10108,7 +10108,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"),
+											Ref: ref("github.com/openshift/api/template/v1.TemplateInstanceObject"),
 										},
 									},
 								},
@@ -10118,9 +10118,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"},
+				"github.com/openshift/api/template/v1.TemplateInstanceCondition", "github.com/openshift/api/template/v1.TemplateInstanceObject"},
 		},
-		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateList": {
+		"github.com/openshift/api/template/v1.TemplateList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "TemplateList is a list of Template objects.",
@@ -10152,7 +10152,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.Template"),
+											Ref: ref("github.com/openshift/api/template/v1.Template"),
 										},
 									},
 								},
@@ -10163,9 +10163,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.Template", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/template/v1.Template", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/user/apis/user/v1.Group": {
+		"github.com/openshift/api/user/v1.Group": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Group represents a referenceable set of Users",
@@ -10211,7 +10211,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/user/apis/user/v1.GroupList": {
+		"github.com/openshift/api/user/v1.GroupList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "GroupList is a collection of Groups",
@@ -10243,7 +10243,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/user/apis/user/v1.Group"),
+											Ref: ref("github.com/openshift/api/user/v1.Group"),
 										},
 									},
 								},
@@ -10254,9 +10254,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/user/apis/user/v1.Group", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/user/v1.Group", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/user/apis/user/v1.Identity": {
+		"github.com/openshift/api/user/v1.Identity": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Identity records a successful authentication of a user with an identity provider. The information about the source of authentication is stored on the identity, and the identity is then associated with a single user object. Multiple identities can reference a single user. Information retrieved from the authentication provider is stored in the extra field using a schema determined by the provider.",
@@ -10322,7 +10322,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/user/apis/user/v1.IdentityList": {
+		"github.com/openshift/api/user/v1.IdentityList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "IdentityList is a collection of Identities",
@@ -10354,7 +10354,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/user/apis/user/v1.Identity"),
+											Ref: ref("github.com/openshift/api/user/v1.Identity"),
 										},
 									},
 								},
@@ -10365,9 +10365,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/user/apis/user/v1.Identity", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/user/v1.Identity", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/user/apis/user/v1.User": {
+		"github.com/openshift/api/user/v1.User": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "Upon log in, every user of the system receives a User and Identity resource. Administrators may directly manipulate the attributes of the users for their own tracking, or set groups via the API. The user name is unique and is chosen based on the value provided by the identity provider - if a user already exists with the incoming name, the user name may have a number appended to it depending on the configuration of the system.",
@@ -10434,7 +10434,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/user/apis/user/v1.UserIdentityMapping": {
+		"github.com/openshift/api/user/v1.UserIdentityMapping": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "UserIdentityMapping maps a user to an identity",
@@ -10477,7 +10477,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/user/apis/user/v1.UserList": {
+		"github.com/openshift/api/user/v1.UserList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "UserList is a collection of Users",
@@ -10509,7 +10509,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/user/apis/user/v1.User"),
+											Ref: ref("github.com/openshift/api/user/v1.User"),
 										},
 									},
 								},
@@ -10520,7 +10520,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/user/apis/user/v1.User", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/api/user/v1.User", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
 		"k8s.io/api/admissionregistration/v1alpha1.AdmissionHookClientConfig": {
 			Schema: spec.Schema{

@@ -23,9 +23,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
-	appsv1client "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"

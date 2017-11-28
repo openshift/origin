@@ -13,9 +13,9 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/version"
 )

@@ -26,10 +26,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
+	buildv1 "github.com/openshift/api/build/v1"
 	deploy "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	build "github.com/openshift/origin/pkg/build/apis/build"
-	buildv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	route "github.com/openshift/origin/pkg/route/apis/route"

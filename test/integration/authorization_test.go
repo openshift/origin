@@ -22,11 +22,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	authorizationapiv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	authorizationclientscheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"

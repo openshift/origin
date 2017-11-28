@@ -18,6 +18,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	projectapiv1 "github.com/openshift/api/project/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -25,7 +26,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

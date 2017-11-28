@@ -1,7 +1,7 @@
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openshift/api/quota/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -16,10 +16,10 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, addConversionFuncs, RegisterDeepCopies, RegisterDefaults, RegisterConversions)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.LegacySchemeBuilder.AddToScheme, addConversionFuncs, v1.RegisterDeepCopies, RegisterDefaults, RegisterConversions)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs)
+	SchemeBuilder = runtime.NewSchemeBuilder(v1.SchemeBuilder.AddToScheme, addConversionFuncs)
 	AddToScheme   = SchemeBuilder.AddToScheme
 
 	localSchemeBuilder = &SchemeBuilder
@@ -33,27 +33,4 @@ func Kind(kind string) schema.GroupKind {
 // Resource takes an unqualified resource and returns back a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}
-
-// Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&ClusterResourceQuota{},
-		&ClusterResourceQuotaList{},
-		&AppliedClusterResourceQuota{},
-		&AppliedClusterResourceQuotaList{},
-	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-	return nil
-}
-
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&ClusterResourceQuota{},
-		&ClusterResourceQuotaList{},
-		&AppliedClusterResourceQuota{},
-		&AppliedClusterResourceQuotaList{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
-	return nil
 }

@@ -15,7 +15,7 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
-	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorizationapiv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrole"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"

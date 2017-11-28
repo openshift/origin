@@ -41,7 +41,7 @@ if [[ -z "${verify}" ]]; then
   for pkg in "${packages[@]}"; do
     grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${pkg}/../..)
     # delete all generated go files excluding files named *_expansion.go
-    go list -f '{{.Dir}}' "${grouppkg}/generated/clientset" "${grouppkg}/generated/internalclientset" \
+    go list -f '{{.Dir}}' "${grouppkg}/generated/internalclientset" \
 		| xargs -n1 -I{} find {} -type f -not -name "*_expansion.go" -delete
   done
 fi
@@ -50,5 +50,4 @@ for pkg in "${packages[@]}"; do
   shortGroup=$(basename "${pkg}")
   containingPackage=$(dirname "${pkg}")
   generate_clientset_for "${containingPackage}" "internalclientset"  --input=${shortGroup} ${verify} "$@"
-  generate_clientset_for "${containingPackage}" "clientset" --input=${shortGroup}/v1 ${verify} "$@"
 done

@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	dockerapi "github.com/docker/engine-api/client"
-	dockertypes "github.com/docker/engine-api/types"
-	dockercontainer "github.com/docker/engine-api/types/container"
+	dockertypes "github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	dockerapi "github.com/docker/docker/client"
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build/strategies"
@@ -125,7 +125,7 @@ type integrationTest struct {
 func (i integrationTest) InspectImage(name string) (*dockertypes.ImageInspect, error) {
 	ctx, cancel := getDefaultContext()
 	defer cancel()
-	resp, _, err := engineClient.ImageInspectWithRaw(ctx, name, false)
+	resp, _, err := engineClient.ImageInspectWithRaw(ctx, name)
 	if err != nil {
 		if dockerapi.IsErrImageNotFound(err) {
 			return nil, fmt.Errorf("no such image :%q", name)
@@ -541,7 +541,7 @@ func (i *integrationTest) createContainer(image string) string {
 
 	ctx, cancel = getDefaultContext()
 	defer cancel()
-	err = engineClient.ContainerStart(ctx, container.ID)
+	err = engineClient.ContainerStart(ctx, container.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
 		i.t.Errorf("Couldn't start container: %s with error %+v", container.ID, err)
 		return ""
@@ -549,12 +549,17 @@ func (i *integrationTest) createContainer(image string) string {
 
 	ctx, cancel = getDefaultContext()
 	defer cancel()
-	exitCode, _ := engineClient.ContainerWait(ctx, container.ID)
-	if exitCode != 0 {
-		i.t.Errorf("Bad exit code from container: %d", exitCode)
+	waitC, errC := engineClient.ContainerWait(ctx, container.ID, dockercontainer.WaitConditionNextExit)
+	select {
+	case result := <-waitC:
+		if result.StatusCode != 0 {
+			i.t.Errorf("Bad exit code from container: %d", result.StatusCode)
+			return ""
+		}
+	case err := <-errC:
+		i.t.Errorf("Error waiting for container: %v", err)
 		return ""
 	}
-
 	return container.ID
 }
 
@@ -570,15 +575,19 @@ func (i *integrationTest) runInContainer(image string, command []string) int {
 
 	ctx, cancel = getDefaultContext()
 	defer cancel()
-	err = engineClient.ContainerStart(ctx, container.ID)
+	err = engineClient.ContainerStart(ctx, container.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
 		i.t.Errorf("Couldn't start container: %s", container.ID)
 	}
 	ctx, cancel = getDefaultContext()
 	defer cancel()
-	exitCode, err := engineClient.ContainerWait(ctx, container.ID)
-	if err != nil {
-		i.t.Errorf("Couldn't wait for container: %s", container.ID)
+	waitC, errC := engineClient.ContainerWait(ctx, container.ID, dockercontainer.WaitConditionNextExit)
+	exitCode := -1
+	select {
+	case result := <-waitC:
+		exitCode = int(result.StatusCode)
+	case err := <-errC:
+		i.t.Errorf("Couldn't wait for container: %s: %v", container.ID, err)
 	}
 	ctx, cancel = getDefaultContext()
 	defer cancel()

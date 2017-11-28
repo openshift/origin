@@ -9,9 +9,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	projectapiv1 "github.com/openshift/api/project/v1"
 	oapi "github.com/openshift/origin/pkg/api"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 )
 
 // Associated returns true if the spec.finalizers contains the origin finalizer

@@ -16,7 +16,7 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	appsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	oappsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	deployconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"

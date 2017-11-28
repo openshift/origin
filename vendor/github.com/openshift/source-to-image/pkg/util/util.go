@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/docker/engine-api/types/container"
+	"github.com/docker/docker/api/types/container"
 
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )

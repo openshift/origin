@@ -8,9 +8,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	deployv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	cmdtest "github.com/openshift/origin/pkg/apps/cmd/test"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	deployutil "github.com/openshift/origin/pkg/apps/util"

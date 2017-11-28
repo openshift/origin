@@ -3,7 +3,7 @@ package v1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build/v1"
+	buildapi "github.com/openshift/api/build/v1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

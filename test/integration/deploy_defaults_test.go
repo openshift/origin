@@ -13,8 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	appsapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
 	testutil "github.com/openshift/origin/test/util"

@@ -23,8 +23,8 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/build/generator"

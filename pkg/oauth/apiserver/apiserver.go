@@ -12,9 +12,9 @@ import (
 	restclient "k8s.io/client-go/rest"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"

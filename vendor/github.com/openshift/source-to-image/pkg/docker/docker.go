@@ -18,12 +18,12 @@ import (
 	"syscall"
 	"time"
 
+	dockertypes "github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	dockernetwork "github.com/docker/docker/api/types/network"
+	dockerapi "github.com/docker/docker/client"
 	dockermessage "github.com/docker/docker/pkg/jsonmessage"
 	dockerstdcopy "github.com/docker/docker/pkg/stdcopy"
-	dockerapi "github.com/docker/engine-api/client"
-	dockertypes "github.com/docker/engine-api/types"
-	dockercontainer "github.com/docker/engine-api/types/container"
-	dockernetwork "github.com/docker/engine-api/types/network"
 	"github.com/docker/go-connections/tlsconfig"
 	"golang.org/x/net/context"
 
@@ -142,19 +142,19 @@ type Docker interface {
 // Client contains all methods used when interacting directly with docker engine-api
 type Client interface {
 	ContainerAttach(ctx context.Context, container string, options dockertypes.ContainerAttachOptions) (dockertypes.HijackedResponse, error)
-	ContainerCommit(ctx context.Context, container string, options dockertypes.ContainerCommitOptions) (dockertypes.ContainerCommitResponse, error)
-	ContainerCreate(ctx context.Context, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig, networkingConfig *dockernetwork.NetworkingConfig, containerName string) (dockertypes.ContainerCreateResponse, error)
-	ContainerInspect(ctx context.Context, containerID string) (dockertypes.ContainerJSON, error)
-	ContainerRemove(ctx context.Context, containerID string, options dockertypes.ContainerRemoveOptions) error
-	ContainerStart(ctx context.Context, containerID string) error
-	ContainerKill(ctx context.Context, containerID, signal string) error
-	ContainerWait(ctx context.Context, containerID string) (int, error)
+	ContainerCommit(ctx context.Context, container string, options dockertypes.ContainerCommitOptions) (dockertypes.IDResponse, error)
+	ContainerCreate(ctx context.Context, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig, networkingConfig *dockernetwork.NetworkingConfig, containerName string) (dockercontainer.ContainerCreateCreatedBody, error)
+	ContainerInspect(ctx context.Context, container string) (dockertypes.ContainerJSON, error)
+	ContainerRemove(ctx context.Context, container string, options dockertypes.ContainerRemoveOptions) error
+	ContainerStart(ctx context.Context, container string, options dockertypes.ContainerStartOptions) error
+	ContainerKill(ctx context.Context, container, signal string) error
+	ContainerWait(ctx context.Context, container string, condition dockercontainer.WaitCondition) (<-chan dockercontainer.ContainerWaitOKBody, <-chan error)
 	CopyToContainer(ctx context.Context, container, path string, content io.Reader, opts dockertypes.CopyToContainerOptions) error
 	CopyFromContainer(ctx context.Context, container, srcPath string) (io.ReadCloser, dockertypes.ContainerPathStat, error)
 	ImageBuild(ctx context.Context, buildContext io.Reader, options dockertypes.ImageBuildOptions) (dockertypes.ImageBuildResponse, error)
-	ImageInspectWithRaw(ctx context.Context, imageID string, getSize bool) (dockertypes.ImageInspect, []byte, error)
+	ImageInspectWithRaw(ctx context.Context, image string) (dockertypes.ImageInspect, []byte, error)
 	ImagePull(ctx context.Context, ref string, options dockertypes.ImagePullOptions) (io.ReadCloser, error)
-	ImageRemove(ctx context.Context, imageID string, options dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDelete, error)
+	ImageRemove(ctx context.Context, image string, options dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDeleteResponseItem, error)
 	ServerVersion(ctx context.Context) (dockertypes.Version, error)
 }
 
@@ -167,7 +167,7 @@ type stiDocker struct {
 func (d stiDocker) InspectImage(name string) (*dockertypes.ImageInspect, error) {
 	ctx, cancel := getDefaultContext()
 	defer cancel()
-	resp, _, err := d.client.ImageInspectWithRaw(ctx, name, false)
+	resp, _, err := d.client.ImageInspectWithRaw(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -819,7 +819,7 @@ func determineCommandBaseDir(opts RunContainerOptions, imageMetadata *api.Image,
 }
 
 // dumpContainerInfo dumps information about a running container (port/IP/etc).
-func dumpContainerInfo(container dockertypes.ContainerCreateResponse, d *stiDocker, image string) {
+func dumpContainerInfo(container dockercontainer.ContainerCreateCreatedBody, d *stiDocker, image string) {
 	ctx, cancel := getDefaultContext()
 	defer cancel()
 
@@ -1024,7 +1024,7 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		glog.V(2).Infof("Starting container %q ...", container.ID)
 		ctx, cancel = getDefaultContext()
 		defer cancel()
-		err = d.client.ContainerStart(ctx, container.ID)
+		err = d.client.ContainerStart(ctx, container.ID, dockertypes.ContainerStartOptions{})
 		if err != nil {
 			return err
 		}
@@ -1053,18 +1053,20 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		// Return an error if the exit code of the container is
 		// non-zero.
 		glog.V(4).Infof("Waiting for container %q to stop ...", container.ID)
-		exitCode, err := d.client.ContainerWait(context.Background(), container.ID)
-		if err != nil {
-			return fmt.Errorf("waiting for container %q to stop: %v", container.ID, err)
-		}
-		if exitCode != 0 {
-			var output string
-			json, _ := d.client.ContainerInspect(ctx, container.ID)
-			if err == nil && json.ContainerJSONBase != nil && json.ContainerJSONBase.State != nil {
-				state := json.ContainerJSONBase.State
-				output = fmt.Sprintf("Status: %s, Error: %s, OOMKilled: %v, Dead: %v", state.Status, state.Error, state.OOMKilled, state.Dead)
+		waitC, errC := d.client.ContainerWait(context.Background(), container.ID, dockercontainer.WaitConditionNextExit)
+		select {
+		case result := <-waitC:
+			if result.StatusCode != 0 {
+				var output string
+				json, _ := d.client.ContainerInspect(ctx, container.ID)
+				if err == nil && json.ContainerJSONBase != nil && json.ContainerJSONBase.State != nil {
+					state := json.ContainerJSONBase.State
+					output = fmt.Sprintf("Status: %s, Error: %s, OOMKilled: %v, Dead: %v", state.Status, state.Error, state.OOMKilled, state.Dead)
+				}
+				return s2ierr.NewContainerError(container.ID, int(result.StatusCode), output)
 			}
-			return s2ierr.NewContainerError(container.ID, exitCode, output)
+		case err := <-errC:
+			return fmt.Errorf("waiting for container %q to stop: %v", container.ID, err)
 		}
 
 		// OnStart must be done before we move on.

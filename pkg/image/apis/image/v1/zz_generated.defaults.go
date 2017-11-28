@@ -5,6 +5,7 @@
 package v1
 
 import (
+	v1 "github.com/openshift/api/image/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -12,22 +13,22 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&ImageStream{}, func(obj interface{}) { SetObjectDefaults_ImageStream(obj.(*ImageStream)) })
-	scheme.AddTypeDefaultingFunc(&ImageStreamImport{}, func(obj interface{}) { SetObjectDefaults_ImageStreamImport(obj.(*ImageStreamImport)) })
-	scheme.AddTypeDefaultingFunc(&ImageStreamList{}, func(obj interface{}) { SetObjectDefaults_ImageStreamList(obj.(*ImageStreamList)) })
-	scheme.AddTypeDefaultingFunc(&ImageStreamTag{}, func(obj interface{}) { SetObjectDefaults_ImageStreamTag(obj.(*ImageStreamTag)) })
-	scheme.AddTypeDefaultingFunc(&ImageStreamTagList{}, func(obj interface{}) { SetObjectDefaults_ImageStreamTagList(obj.(*ImageStreamTagList)) })
+	scheme.AddTypeDefaultingFunc(&v1.ImageStream{}, func(obj interface{}) { SetObjectDefaults_ImageStream(obj.(*v1.ImageStream)) })
+	scheme.AddTypeDefaultingFunc(&v1.ImageStreamImport{}, func(obj interface{}) { SetObjectDefaults_ImageStreamImport(obj.(*v1.ImageStreamImport)) })
+	scheme.AddTypeDefaultingFunc(&v1.ImageStreamList{}, func(obj interface{}) { SetObjectDefaults_ImageStreamList(obj.(*v1.ImageStreamList)) })
+	scheme.AddTypeDefaultingFunc(&v1.ImageStreamTag{}, func(obj interface{}) { SetObjectDefaults_ImageStreamTag(obj.(*v1.ImageStreamTag)) })
+	scheme.AddTypeDefaultingFunc(&v1.ImageStreamTagList{}, func(obj interface{}) { SetObjectDefaults_ImageStreamTagList(obj.(*v1.ImageStreamTagList)) })
 	return nil
 }
 
-func SetObjectDefaults_ImageStream(in *ImageStream) {
+func SetObjectDefaults_ImageStream(in *v1.ImageStream) {
 	for i := range in.Spec.Tags {
 		a := &in.Spec.Tags[i]
 		SetDefaults_TagReferencePolicy(&a.ReferencePolicy)
 	}
 }
 
-func SetObjectDefaults_ImageStreamImport(in *ImageStreamImport) {
+func SetObjectDefaults_ImageStreamImport(in *v1.ImageStreamImport) {
 	if in.Spec.Repository != nil {
 		SetDefaults_TagReferencePolicy(&in.Spec.Repository.ReferencePolicy)
 	}
@@ -41,20 +42,20 @@ func SetObjectDefaults_ImageStreamImport(in *ImageStreamImport) {
 	}
 }
 
-func SetObjectDefaults_ImageStreamList(in *ImageStreamList) {
+func SetObjectDefaults_ImageStreamList(in *v1.ImageStreamList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_ImageStream(a)
 	}
 }
 
-func SetObjectDefaults_ImageStreamTag(in *ImageStreamTag) {
+func SetObjectDefaults_ImageStreamTag(in *v1.ImageStreamTag) {
 	if in.Tag != nil {
 		SetDefaults_TagReferencePolicy(&in.Tag.ReferencePolicy)
 	}
 }
 
-func SetObjectDefaults_ImageStreamTagList(in *ImageStreamTagList) {
+func SetObjectDefaults_ImageStreamTagList(in *v1.ImageStreamTagList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_ImageStreamTag(a)

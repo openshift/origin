@@ -19,10 +19,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
+	deployapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 )
 

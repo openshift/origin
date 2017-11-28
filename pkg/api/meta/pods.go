@@ -17,10 +17,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
+	deployapiv1 "github.com/openshift/api/apps/v1"
+	securityapiv1 "github.com/openshift/api/security/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 type ContainerMutator interface {

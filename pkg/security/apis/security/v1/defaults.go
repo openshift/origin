@@ -4,23 +4,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/openshift/api/security/v1"
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	RegisterDefaults(scheme)
-	scheme.AddTypeDefaultingFunc(&SecurityContextConstraints{}, func(obj interface{}) { SetDefaults_SCC(obj.(*SecurityContextConstraints)) })
+	scheme.AddTypeDefaultingFunc(&v1.SecurityContextConstraints{}, func(obj interface{}) { SetDefaults_SCC(obj.(*v1.SecurityContextConstraints)) })
 	return nil
 }
 
 // Default SCCs for new fields.  FSGroup and SupplementalGroups are
 // set to the RunAsAny strategy if they are unset on the scc.
-func SetDefaults_SCC(scc *SecurityContextConstraints) {
+func SetDefaults_SCC(scc *v1.SecurityContextConstraints) {
 	if len(scc.FSGroup.Type) == 0 {
-		scc.FSGroup.Type = FSGroupStrategyRunAsAny
+		scc.FSGroup.Type = v1.FSGroupStrategyRunAsAny
 	}
 	if len(scc.SupplementalGroups.Type) == 0 {
-		scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
+		scc.SupplementalGroups.Type = v1.SupplementalGroupsStrategyRunAsAny
 	}
 
 	if scc.Users == nil {
@@ -34,16 +35,16 @@ func SetDefaults_SCC(scc *SecurityContextConstraints) {
 	switch {
 	case scc.Volumes == nil:
 		// assume a nil volume slice is allowing everything for backwards compatibility
-		defaultAllowedVolumes = sets.NewString(string(FSTypeAll))
+		defaultAllowedVolumes = sets.NewString(string(v1.FSTypeAll))
 
 	case len(scc.Volumes) == 0 && scc.AllowHostDirVolumePlugin:
 		// an empty volume slice means "allow no volumes", but the boolean fields will always take precedence.
-		defaultAllowedVolumes = sets.NewString(string(FSTypeHostPath))
+		defaultAllowedVolumes = sets.NewString(string(v1.FSTypeHostPath))
 
 	case len(scc.Volumes) == 0 && !scc.AllowHostDirVolumePlugin:
 		// an empty volume slice means "allow no volumes", but cannot be persisted in protobuf.
 		// convert this to volumes:["none"]
-		defaultAllowedVolumes = sets.NewString(string(FSTypeNone))
+		defaultAllowedVolumes = sets.NewString(string(v1.FSTypeNone))
 
 	default:
 		// defaults the volume slice of the SCC.
@@ -53,21 +54,21 @@ func SetDefaults_SCC(scc *SecurityContextConstraints) {
 
 	if scc.AllowHostDirVolumePlugin {
 		// if already allowing all then there is no reason to add
-		if !defaultAllowedVolumes.Has(string(FSTypeAll)) {
-			defaultAllowedVolumes.Insert(string(FSTypeHostPath))
+		if !defaultAllowedVolumes.Has(string(v1.FSTypeAll)) {
+			defaultAllowedVolumes.Insert(string(v1.FSTypeHostPath))
 		}
 	} else {
 		// we should only default all volumes if the SCC came in with FSTypeAll or we defaulted it
 		// otherwise we should only change the volumes slice to ensure that it does not conflict with
 		// the AllowHostDirVolumePlugin setting
-		shouldDefaultAllVolumes := defaultAllowedVolumes.Has(string(FSTypeAll))
+		shouldDefaultAllVolumes := defaultAllowedVolumes.Has(string(v1.FSTypeAll))
 
 		// remove anything from volumes that conflicts with AllowHostDirVolumePlugin = false
-		defaultAllowedVolumes.Delete(string(FSTypeAll))
-		defaultAllowedVolumes.Delete(string(FSTypeHostPath))
+		defaultAllowedVolumes.Delete(string(v1.FSTypeAll))
+		defaultAllowedVolumes.Delete(string(v1.FSTypeHostPath))
 
 		if shouldDefaultAllVolumes {
-			allVolumes := sccutil.GetAllFSTypesExcept(string(FSTypeHostPath))
+			allVolumes := sccutil.GetAllFSTypesExcept(string(v1.FSTypeHostPath))
 			defaultAllowedVolumes.Insert(allVolumes.List()...)
 		}
 	}
@@ -75,18 +76,18 @@ func SetDefaults_SCC(scc *SecurityContextConstraints) {
 	scc.Volumes = StringSetToFSType(defaultAllowedVolumes)
 }
 
-func StringSetToFSType(set sets.String) []FSType {
+func StringSetToFSType(set sets.String) []v1.FSType {
 	if set == nil {
 		return nil
 	}
-	volumes := []FSType{}
+	volumes := []v1.FSType{}
 	for _, v := range set.List() {
-		volumes = append(volumes, FSType(v))
+		volumes = append(volumes, v1.FSType(v))
 	}
 	return volumes
 }
 
-func fsTypeToStringSet(volumes []FSType) sets.String {
+func fsTypeToStringSet(volumes []v1.FSType) sets.String {
 	if volumes == nil {
 		return nil
 	}

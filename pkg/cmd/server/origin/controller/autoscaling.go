@@ -6,8 +6,8 @@ import (
 	hpacontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	hpametrics "k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
-	appstypedclient "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 

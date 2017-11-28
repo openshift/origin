@@ -12,6 +12,8 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
+	userclient "github.com/openshift/client-go/user/clientset/versioned"
+	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
 	appclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appslisters "github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
@@ -28,8 +30,6 @@ import (
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/clientset"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"
 )
 
 // informers is a convenient way for us to keep track of the informers, but

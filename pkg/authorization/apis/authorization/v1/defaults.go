@@ -1,13 +1,14 @@
 package v1
 
 import (
+	"github.com/openshift/api/authorization/v1"
 	internal "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/equality"
 )
 
-var oldAllowAllPolicyRule = PolicyRule{APIGroups: nil, Verbs: []string{internal.VerbAll}, Resources: []string{internal.ResourceAll}}
+var oldAllowAllPolicyRule = v1.PolicyRule{APIGroups: nil, Verbs: []string{internal.VerbAll}, Resources: []string{internal.ResourceAll}}
 
-func SetDefaults_PolicyRule(obj *PolicyRule) {
+func SetDefaults_PolicyRule(obj *v1.PolicyRule) {
 	if obj == nil {
 		return
 	}

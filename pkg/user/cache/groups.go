@@ -5,8 +5,8 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions/user/v1"
+	userapi "github.com/openshift/api/user/v1"
+	userinformer "github.com/openshift/client-go/user/informers/externalversions/user/v1"
 )
 
 // GroupCache is a skin on an indexer to provide the reverse index from user to groups.

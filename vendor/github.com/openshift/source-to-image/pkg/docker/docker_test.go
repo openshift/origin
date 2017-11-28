@@ -16,9 +16,9 @@ import (
 	"github.com/openshift/source-to-image/pkg/errors"
 	testfs "github.com/openshift/source-to-image/pkg/test/fs"
 
-	dockertypes "github.com/docker/engine-api/types"
-	dockercontainer "github.com/docker/engine-api/types/container"
-	dockerstrslice "github.com/docker/engine-api/types/strslice"
+	dockertypes "github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	dockerstrslice "github.com/docker/docker/api/types/strslice"
 )
 
 func TestContainerName(t *testing.T) {
@@ -82,7 +82,7 @@ func TestCommitContainer(t *testing.T) {
 		param := dockertypes.ContainerCommitOptions{
 			Reference: tst.containerTag,
 		}
-		resp := dockertypes.ContainerCommitResponse{
+		resp := dockertypes.IDResponse{
 			ID: tst.expectedImageID,
 		}
 		fakeDocker := &dockertest.FakeDockerClient{

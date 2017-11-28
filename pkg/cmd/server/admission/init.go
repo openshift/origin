@@ -8,8 +8,10 @@ import (
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota"
 
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/clientset"
-	buildclient "github.com/openshift/origin/pkg/build/generated/clientset"
+	authorizationclient "github.com/openshift/client-go/authorization/clientset/versioned"
+	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	userclient "github.com/openshift/client-go/user/clientset/versioned"
+	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -19,8 +21,6 @@ import (
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/clientset"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"
 )
 
 type PluginInitializer struct {

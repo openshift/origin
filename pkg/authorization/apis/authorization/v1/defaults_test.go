@@ -6,6 +6,7 @@ import (
 
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
+	v1 "github.com/openshift/api/authorization/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
@@ -19,7 +20,7 @@ func init() {
 }
 
 func TestDefaults(t *testing.T) {
-	obj := &PolicyRule{
+	obj := &v1.PolicyRule{
 		APIGroups: nil,
 		Verbs:     []string{authorizationapi.VerbAll},
 		Resources: []string{authorizationapi.ResourceAll},

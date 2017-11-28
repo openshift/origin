@@ -23,9 +23,9 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
+	deployapiv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 )
 
 var (

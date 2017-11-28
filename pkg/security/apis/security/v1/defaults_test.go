@@ -8,8 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
 
+	versioned "github.com/openshift/api/security/v1"
 	_ "github.com/openshift/origin/pkg/api/install"
-	versioned "github.com/openshift/origin/pkg/security/apis/security/v1"
+	conversionv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
@@ -123,7 +124,7 @@ func TestDefaultSCCVolumes(t *testing.T) {
 		// but since the host dir setting is false it should be all - host dir
 		"old client - default allow* fields, no volumes slice": {
 			scc:             &versioned.SecurityContextConstraints{},
-			expectedVolumes: versioned.StringSetToFSType(sccutil.GetAllFSTypesExcept(string(versioned.FSTypeHostPath))),
+			expectedVolumes: conversionv1.StringSetToFSType(sccutil.GetAllFSTypesExcept(string(versioned.FSTypeHostPath))),
 			expectedHostDir: false,
 		},
 		// this expects the volumes to default to all for an empty volume slice
@@ -155,7 +156,7 @@ func TestDefaultSCCVolumes(t *testing.T) {
 				Volumes:                  []versioned.FSType{versioned.FSTypeAll},
 				AllowHostDirVolumePlugin: false,
 			},
-			expectedVolumes: versioned.StringSetToFSType(sccutil.GetAllFSTypesExcept(string(versioned.FSTypeHostPath))),
+			expectedVolumes: conversionv1.StringSetToFSType(sccutil.GetAllFSTypesExcept(string(versioned.FSTypeHostPath))),
 			expectedHostDir: false,
 		},
 		"new client - allow* fields unset with volume slice": {

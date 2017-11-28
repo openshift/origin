@@ -66,6 +66,10 @@ import:
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
   version: release-1.8.1
+- package: github.com/openshift/api
+  version: master
+- package: github.com/openshift/client-go
+  version: master
 # only used by pkg/build/builder
 - package: github.com/kubernetes-incubator/cri-o
   version: a8ee86b1cce0c13bd541a99140682a92635ba9f7

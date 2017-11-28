@@ -22,9 +22,9 @@ INPUT_DIRS=(
 
   # origin apis
   $(
-    grep --color=never -rl '+k8s:openapi-gen=' pkg | \
+    grep --color=never -rl '+k8s:openapi-gen=' vendor/github.com/openshift/api | \
     xargs -n1 dirname | \
-    sed "s,^,${ORIGIN_PREFIX}," | \
+    sed "s,^vendor/,," | \
     sort -u
   )
 )

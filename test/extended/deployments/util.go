@@ -21,8 +21,9 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	deployapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	deployconversionsv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -612,7 +613,7 @@ func readDCFixture(path string) (*deployapi.DeploymentConfig, error) {
 	}
 
 	dc := new(deployapi.DeploymentConfig)
-	err = deployapiv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(dcv1, dc, nil)
+	err = deployconversionsv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(dcv1, dc, nil)
 	return dc, err
 }
 

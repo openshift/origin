@@ -34,8 +34,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclientinternal "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"

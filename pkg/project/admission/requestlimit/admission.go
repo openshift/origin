@@ -12,6 +12,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	userclient "github.com/openshift/client-go/user/clientset/versioned"
+	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	requestlimitapi "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
@@ -19,8 +21,6 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
-	userclient "github.com/openshift/origin/pkg/user/generated/clientset"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/clientset/typed/user/v1"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,

@@ -24,6 +24,7 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
+	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -37,7 +38,6 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
