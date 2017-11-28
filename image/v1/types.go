@@ -184,6 +184,8 @@ type ImageStreamSpec struct {
 	// Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.
 	DockerImageRepository string `json:"dockerImageRepository,omitempty" protobuf:"bytes,1,opt,name=dockerImageRepository"`
 	// tags map arbitrary string values to specific image locators
+	// +patchMergeKey=name
+	// +patchStrategy=merge
 	Tags []TagReference `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
 }
 
@@ -203,6 +205,7 @@ type TagReference struct {
 	// Name of the tag
 	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
 	// Optional; if specified, annotations that are applied to images retrieved via ImageStreamTags.
+	// +optional
 	Annotations map[string]string `json:"annotations" protobuf:"bytes,2,rep,name=annotations"`
 	// Optional; if specified, a reference to another image that this tag should point to. Valid values
 	// are ImageStreamTag, ImageStreamImage, and DockerImage.
@@ -217,6 +220,7 @@ type TagReference struct {
 	// to import the newest remote tag. To trigger a new import, clients may set this value to zero which
 	// will reset the generation to the latest stream generation. Legacy clients will send this value as
 	// nil which will be merged with the current tag generation.
+	// +optional
 	Generation *int64 `json:"generation" protobuf:"varint,5,opt,name=generation"`
 	// ImportPolicy is information that controls how images may be imported by the server.
 	ImportPolicy TagImportPolicy `json:"importPolicy,omitempty" protobuf:"bytes,6,opt,name=importPolicy"`
@@ -272,6 +276,8 @@ type ImageStreamStatus struct {
 	PublicDockerImageRepository string `json:"publicDockerImageRepository,omitempty" protobuf:"bytes,3,opt,name=publicDockerImageRepository"`
 	// Tags are a historical record of images associated with each tag. The first entry in the
 	// TagEvent array is the currently tagged image.
+	// +patchMergeKey=tag
+	// +patchStrategy=merge
 	Tags []NamedTagEventList `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
 }
 
