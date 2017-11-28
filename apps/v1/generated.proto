@@ -129,6 +129,7 @@ message DeploymentConfigRollbackSpec {
 // DeploymentConfigSpec represents the desired state of the deployment.
 message DeploymentConfigSpec {
   // Strategy describes how a deployment is executed.
+  // +optional
   optional DeploymentStrategy strategy = 1;
 
   // MinReadySeconds is the minimum number of seconds for which a newly created pod should
@@ -139,9 +140,11 @@ message DeploymentConfigSpec {
   // Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
   // are defined, a new deployment can only occur as a result of an explicit client update to the
   // DeploymentConfig with a new LatestVersion. If null, defaults to having a config change trigger.
+  // +optional
   optional DeploymentTriggerPolicies triggers = 2;
 
   // Replicas is the number of desired replicas.
+  // +optional
   optional int32 replicas = 3;
 
   // RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks.
@@ -152,6 +155,7 @@ message DeploymentConfigSpec {
   // Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
   // deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
   // or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
+  // +optional
   optional bool test = 5;
 
   // Paused indicates that the deployment config is paused resulting in no new deployments on template

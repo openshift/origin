@@ -33,12 +33,13 @@ type DeploymentConfig struct {
 	Spec DeploymentConfigSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status represents the current deployment state.
-	Status DeploymentConfigStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
+	Status DeploymentConfigStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // DeploymentConfigSpec represents the desired state of the deployment.
 type DeploymentConfigSpec struct {
 	// Strategy describes how a deployment is executed.
+	// +optional
 	Strategy DeploymentStrategy `json:"strategy" protobuf:"bytes,1,opt,name=strategy"`
 
 	// MinReadySeconds is the minimum number of seconds for which a newly created pod should
@@ -49,9 +50,11 @@ type DeploymentConfigSpec struct {
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion. If null, defaults to having a config change trigger.
+	// +optional
 	Triggers DeploymentTriggerPolicies `json:"triggers" protobuf:"bytes,2,rep,name=triggers"`
 
 	// Replicas is the number of desired replicas.
+	// +optional
 	Replicas int32 `json:"replicas" protobuf:"varint,3,opt,name=replicas"`
 
 	// RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks.
@@ -62,6 +65,7 @@ type DeploymentConfigSpec struct {
 	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
 	// deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding
 	// or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.
+	// +optional
 	Test bool `json:"test" protobuf:"varint,5,opt,name=test"`
 
 	// Paused indicates that the deployment config is paused resulting in no new deployments on template

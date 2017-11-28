@@ -465,6 +465,7 @@ message TagReference {
   optional string name = 1;
 
   // Optional; if specified, annotations that are applied to images retrieved via ImageStreamTags.
+  // +optional
   map<string, string> annotations = 2;
 
   // Optional; if specified, a reference to another image that this tag should point to. Valid values
@@ -482,6 +483,7 @@ message TagReference {
   // to import the newest remote tag. To trigger a new import, clients may set this value to zero which
   // will reset the generation to the latest stream generation. Legacy clients will send this value as
   // nil which will be merged with the current tag generation.
+  // +optional
   optional int64 generation = 5;
 
   // ImportPolicy is information that controls how images may be imported by the server.
