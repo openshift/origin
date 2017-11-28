@@ -33,6 +33,11 @@ var (
 	// deployment config. This is used in the ownerRef and GC client picks the appropriate
 	// client to get the deployment config.
 	DeploymentConfigControllerRefKind = deployapiv1.SchemeGroupVersion.WithKind("DeploymentConfig")
+
+	// RCControllerRefKind contains the schema.GroupVersionKind for the
+	// replication controller. This is used in the ownerRef and GC client picks the appropriate
+	// client to get the replication controller.
+	RCControllerRefKind = v1.SchemeGroupVersion.WithKind("ReplicationController")
 )
 
 // NewDeploymentCondition creates a new deployment condition.

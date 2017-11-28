@@ -384,6 +384,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 	podSecurityContextCopy := rc.Spec.Template.Spec.SecurityContext.DeepCopy()
 	securityContextCopy := baseContainer.SecurityContext.DeepCopy()
 
+	t := true
 	pod := &kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: apihelpers.GetPodName(rc.Name, suffix),
@@ -394,6 +395,16 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 				deployapi.DeploymentPodTypeLabel:        suffix,
 				deployapi.DeployerPodForDeploymentLabel: rc.Name,
 			},
+			// Set the owner reference to current RC, so in case the deployment fails
+			// and the deployer pod is preserved when a revisionHistory limit is reached and the
+			// deployment is removed, we also remove the deployer pod with it.
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: deployutil.RCControllerRefKind.GroupVersion().String(),
+				Kind:       deployutil.RCControllerRefKind.Kind,
+				Name:       rc.Name,
+				UID:        rc.UID,
+				Controller: &t,
+			}},
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{

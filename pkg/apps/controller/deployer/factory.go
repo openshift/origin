@@ -40,6 +40,10 @@ func NewDeployerController(
 	c := &DeploymentController{
 		rn: kubeClientset.Core(),
 		pn: kubeClientset.Core(),
+		pc: kcontroller.RealPodControl{
+			KubeClient: kubeClientset,
+			Recorder:   eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "replicaset-controller"}),
+		},
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 

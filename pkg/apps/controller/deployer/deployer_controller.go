@@ -9,17 +9,14 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	kcorelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
@@ -67,6 +64,9 @@ type DeploymentController struct {
 	// pn is used for creating, updating, and deleting deployer pods.
 	pn kcoreclient.PodsGetter
 
+	// pc is a control interface used for controllerRefManager
+	pc kcontroller.PodControlInterface
+
 	// queue contains replication controllers that need to be synced.
 	queue workqueue.RateLimitingInterface
 
@@ -108,6 +108,32 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 	deployer, deployerErr := c.podLister.Pods(deployment.Namespace).Get(deployerPodName)
+
+	selector := deployutil.DeployerPodSelector(deployment.Name)
+	cm := kcontroller.NewPodControllerRefManager(c.pc, deployment, selector, deployutil.RCControllerRefKind, c.canAdoptFunc(deployment))
+	_, err := cm.ClaimPods([]*v1.Pod{deployer})
+	if err != nil {
+		return err
+	}
+
+	{
+		// TODO: Remove this in 3.9+
+		// Because we now (correctly) rely on deployerPod to set controllerRef for lifecycle hooks
+		// we need to bridge the n+1 compatibility and adopt lifecycle hook pods here.
+		// This will make sure that whenever RC is deleted (e.g. due to RevisionHistoryLimit)
+		// all the hook pods will be cleanup by GC
+		allDeployerPods, err := c.podLister.Pods(deployment.Namespace).List(cm.BaseControllerRefManager.Selector)
+		if err != nil {
+			return err
+		}
+
+		// ClaimPod will try to adopt loose pods and set controllerRef correctly
+		_, err = cm.ClaimPods(allDeployerPods)
+		if err != nil {
+			return err
+		}
+	}
+
 	if deployerErr == nil {
 		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
 	}
@@ -122,7 +148,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		// then it can be transitioned to Failed by this controller.
 		if deployutil.IsDeploymentCancelled(deployment) {
 			nextStatus = deployapi.DeploymentStatusPending
-			if err := c.cleanupDeployerPods(deployment); err != nil {
+			if err := c.cleanupDeployerPods(deployment, cm); err != nil {
 				return err
 			}
 			break
@@ -233,13 +259,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// a requeue of this deployment and then it can be transitioned to
 			// Failed.
 			if deployutil.IsDeploymentCancelled(deployment) {
-				if err := c.cleanupDeployerPods(deployment); err != nil {
-					return err
-				}
-			} else {
-				// Set an ownerRef for the deployment lifecycle pods so they are cleaned up when the
-				// replication controller is deleted.
-				if err := c.setDeployerPodsOwnerRef(deployment); err != nil {
+				if err := c.cleanupDeployerPods(deployment, cm); err != nil {
 					return err
 				}
 			}
@@ -249,19 +269,13 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		// Try to cleanup once more a cancelled deployment in case hook pods
 		// were created just after we issued the first cleanup request.
 		if deployutil.IsDeploymentCancelled(deployment) {
-			if err := c.cleanupDeployerPods(deployment); err != nil {
-				return err
-			}
-		} else {
-			// Set an ownerRef for the deployment lifecycle pods so they are cleaned up when the
-			// replication controller is deleted.
-			if err := c.setDeployerPodsOwnerRef(deployment); err != nil {
+			if err := c.cleanupDeployerPods(deployment, cm); err != nil {
 				return err
 			}
 		}
 
 	case deployapi.DeploymentStatusComplete:
-		if err := c.cleanupDeployerPods(deployment); err != nil {
+		if err := c.cleanupDeployerPods(deployment, cm); err != nil {
 			return err
 		}
 	}
@@ -375,6 +389,7 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 
 	gracePeriod := int64(10)
 
+	t := true
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
@@ -388,10 +403,11 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 			// and the deployer pod is preserved when a revisionHistory limit is reached and the
 			// deployment is removed, we also remove the deployer pod with it.
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "v1",
-				Kind:       "ReplicationController",
+				APIVersion: deployutil.RCControllerRefKind.GroupVersion().String(),
+				Kind:       deployutil.RCControllerRefKind.Kind,
 				Name:       deployment.Name,
 				UID:        deployment.UID,
+				Controller: &t,
 			}},
 		},
 		Spec: v1.PodSpec{
@@ -471,62 +487,32 @@ func (c *DeploymentController) makeDeployerContainer(strategy *deployapi.Deploym
 	}
 }
 
-func (c *DeploymentController) getDeployerPods(deployment *v1.ReplicationController) ([]*v1.Pod, error) {
-	return c.podLister.Pods(deployment.Namespace).List(deployutil.DeployerPodSelector(deployment.Name))
+func (c *DeploymentController) canAdoptFunc(deployment *v1.ReplicationController) func() error {
+	return kcontroller.RecheckDeletionTimestamp(func() (metav1.Object, error) {
+		fresh, err := c.rn.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		if fresh.UID != deployment.UID {
+			return nil, fmt.Errorf("original ReplicationController %v/%v is gone: got uid %v, wanted %v", deployment.Namespace, deployment.Name, fresh.UID, deployment.UID)
+		}
+		return fresh, nil
+	})
 }
 
-func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *v1.ReplicationController) error {
-	deployerPodsList, err := c.getDeployerPods(deployment)
+func (c *DeploymentController) cleanupDeployerPods(deployment *v1.ReplicationController, cm *kcontroller.PodControllerRefManager) error {
+	deployerPods, err := c.podLister.Pods(deployment.Namespace).List(cm.BaseControllerRefManager.Selector)
 	if err != nil {
-		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", deployutil.LabelForDeploymentV1(deployment), err)
+		return fmt.Errorf("couldn't list deployer pods for %s/%s (uid=%s): %v", deployment.Namespace, deployment.Name, deployment.UID, err)
 	}
 
-	encoder := kapi.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...)
-	glog.V(4).Infof("deployment %s/%s owning %d pods", deployment.Namespace, deployment.Name, len(deployerPodsList))
-
-	var errors []error
-	for _, pod := range deployerPodsList {
-		if len(pod.OwnerReferences) > 0 {
-			continue
-		}
-		glog.V(4).Infof("setting ownerRef for pod %s/%s to deployment %s/%s", pod.Namespace, pod.Name, deployment.Namespace, deployment.Name)
-		newPod := pod.DeepCopy()
-		newPod.SetOwnerReferences([]metav1.OwnerReference{{
-			APIVersion: "v1",
-			Name:       deployment.Name,
-			Kind:       kapi.Kind("ReplicationController").Kind,
-			UID:        deployment.UID,
-		}})
-		newPodBytes, err := runtime.Encode(encoder, newPod)
-		if err != nil {
-			errors = append(errors, err)
-			continue
-		}
-		oldPodBytes, err := runtime.Encode(encoder, pod)
-		if err != nil {
-			errors = append(errors, err)
-			continue
-		}
-		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldPodBytes, newPodBytes, &v1.Pod{})
-		if err != nil {
-			errors = append(errors, err)
-			continue
-		}
-		if _, err := c.pn.Pods(pod.Namespace).Patch(pod.Name, types.StrategicMergePatchType, patchBytes); err != nil {
-			errors = append(errors, err)
-		}
-	}
-	return kutilerrors.NewAggregate(errors)
-}
-
-func (c *DeploymentController) cleanupDeployerPods(deployment *v1.ReplicationController) error {
-	deployerList, err := c.getDeployerPods(deployment)
+	deployerPods, err = cm.ClaimPods(deployerPods)
 	if err != nil {
-		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", deployutil.LabelForDeploymentV1(deployment), err)
+		return fmt.Errorf("couldn't claim deployer pods for %s/%s (uid=%s): %v", deployment.Namespace, deployment.Name, deployment.UID, err)
 	}
 
 	cleanedAll := true
-	for _, deployerPod := range deployerList {
+	for _, deployerPod := range deployerPods {
 		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later
