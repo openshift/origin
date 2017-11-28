@@ -141,7 +141,9 @@ func CalculatePatches(infos []*resource.Info, encoder runtime.Encoder, mutateFn 
 	var patches []*Patch
 	for _, info := range infos {
 		patch := &Patch{Info: info}
-		patch.Before, patch.Err = runtime.Encode(encoder, info.Object)
+
+		versionedEncoder := kapi.Codecs.EncoderForVersion(encoder, patch.Info.Mapping.GroupVersionKind.GroupVersion())
+		patch.Before, patch.Err = runtime.Encode(versionedEncoder, info.Object)
 
 		ok, err := mutateFn(info)
 		if !ok {
@@ -155,7 +157,7 @@ func CalculatePatches(infos []*resource.Info, encoder runtime.Encoder, mutateFn 
 			continue
 		}
 
-		patch.After, patch.Err = runtime.Encode(encoder, info.Object)
+		patch.After, patch.Err = runtime.Encode(versionedEncoder, info.Object)
 		if patch.Err != nil {
 			continue
 		}
