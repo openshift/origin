@@ -670,6 +670,24 @@ items:
     verbs:
     - impersonate
   - apiGroups:
+    - apps
+    resources:
+    - deployments
+    - deployments/scale
+    - deployments/status
+    - replicasets
+    - replicasets/scale
+    - statefulsets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - autoscaling
     resources:
     - horizontalpodautoscalers
@@ -697,13 +715,11 @@ items:
     - update
     - watch
   - apiGroups:
-    - apps
     - extensions
     resources:
     - deployments
     - deployments/rollback
     - deployments/scale
-    - networkpolicies
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -724,22 +740,6 @@ items:
     verbs:
     - get
     - list
-    - watch
-  - apiGroups:
-    - apps
-    resources:
-    - deployments
-    - deployments/scale
-    - deployments/status
-    - statefulsets
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
     - watch
   - apiGroups:
     - ""
@@ -1103,6 +1103,24 @@ items:
     verbs:
     - impersonate
   - apiGroups:
+    - apps
+    resources:
+    - deployments
+    - deployments/rollback
+    - deployments/scale
+    - replicasets
+    - replicasets/scale
+    - statefulsets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - autoscaling
     resources:
     - horizontalpodautoscalers
@@ -1130,7 +1148,6 @@ items:
     - update
     - watch
   - apiGroups:
-    - apps
     - extensions
     resources:
     - deployments
@@ -1156,22 +1173,6 @@ items:
     verbs:
     - get
     - list
-    - watch
-  - apiGroups:
-    - apps
-    resources:
-    - deployments
-    - deployments/scale
-    - deployments/status
-    - statefulsets
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
     - watch
   - apiGroups:
     - ""
@@ -1424,6 +1425,19 @@ items:
     - list
     - watch
   - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    - deployments
+    - deployments/scale
+    - replicasets
+    - replicasets/scale
+    - statefulsets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - autoscaling
     resources:
     - horizontalpodautoscalers
@@ -1441,32 +1455,14 @@ items:
     - list
     - watch
   - apiGroups:
-    - apps
     - extensions
     resources:
+    - daemonsets
     - deployments
     - deployments/scale
     - replicasets
     - replicasets/scale
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    - extensions
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    resources:
-    - deployments
-    - deployments/scale
-    - statefulsets
+    - replicationcontrollers/scale
     verbs:
     - get
     - list
