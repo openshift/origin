@@ -14,9 +14,9 @@ import (
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
+	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrole"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
 	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
@@ -34,7 +34,7 @@ type ExtraConfig struct {
 	CoreAPIServerClientConfig *restclient.Config
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	RuleResolver              rbacregistryvalidation.AuthorizationRuleResolver
-	SubjectLocator            authorizer.SubjectLocator
+	SubjectLocator            authorizerrbac.SubjectLocator
 
 	// TODO these should all become local eventually
 	Scheme   *runtime.Scheme
