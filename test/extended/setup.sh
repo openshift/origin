@@ -113,24 +113,24 @@ function os::test::extended::setup () {
 	# put change there - only want this for extended tests
 	os::log::info "Turn on audit logging"
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
-	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"auditConfig\": {\"enabled\": true, \"auditFilePath\": \"${LOG_DIR}/audit.log\"}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"auditConfig\": {\"enabled\": true, \"auditFilePath\": \"${LOG_DIR}/audit.log\"}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
-	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"templateServiceBrokerConfig\": {\"templateNamespaces\": [\"openshift\"]}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"templateServiceBrokerConfig\": {\"templateNamespaces\": [\"openshift\"]}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
 	# If the XFS volume dir mount point exists enable local storage quota in node-config.yaml so these tests can pass:
 	if [[ -n "${LOCAL_STORAGE_QUOTA}" ]]; then
 		# The ec2 images usually have ~5Gi of space defined for the xfs vol for the registry; want to give /registry a good chunk of that
 		# to store the images created when the extended tests run
 		cp "${NODE_CONFIG_DIR}/node-config.yaml" "${NODE_CONFIG_DIR}/node-config.orig2.yaml"
-		openshift ex config patch "${NODE_CONFIG_DIR}/node-config.orig2.yaml" --patch='{"volumeConfig":{"localQuota":{"perFSGroup":"4480Mi"}}}' > "${NODE_CONFIG_DIR}/node-config.yaml"
+		oc ex config patch "${NODE_CONFIG_DIR}/node-config.orig2.yaml" --patch='{"volumeConfig":{"localQuota":{"perFSGroup":"4480Mi"}}}' > "${NODE_CONFIG_DIR}/node-config.yaml"
 	fi
 	os::log::info "Using VOLUME_DIR=${VOLUME_DIR}"
 
 	# This is a bit hacky, but set the pod gc threshold appropriately for the garbage_collector test
 	# and enable-hostpath-provisioner for StatefulSet tests
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml"
-	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"], "enable-hostpath-provisioner":["true"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig3.yaml" --patch='{"kubernetesMasterConfig":{"controllerArguments":{"terminated-pod-gc-threshold":["100"], "enable-hostpath-provisioner":["true"]}}}' > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
 	os::start::server "${API_SERVER_VERSION:-}" "${CONTROLLER_VERSION:-}" "${SKIP_NODE:-}"
 

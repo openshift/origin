@@ -41,7 +41,7 @@ os::cmd::expect_failure_and_text 'oc adm diagnostics AnalyzeLogs AlsoMissing' 'N
 os::cmd::expect_success_and_text 'oc adm diagnostics MetricsApiProxy'  'Skipping diagnostic: MetricsApiProxy'
 os::cmd::expect_success_and_text 'oc adm diagnostics NetworkCheck --prevent-modification' 'Skipping diagnostic: NetworkCheck'
 
-# openshift ex diagnostics is deprecated but not removed. Make sure it works until we consciously remove it.
-os::cmd::expect_success 'openshift ex diagnostics ClusterRoleBindings ClusterRoles ConfigContexts '
+# oc ex diagnostics is deprecated but not removed. Make sure it works until we consciously remove it.
+os::cmd::expect_success 'oc ex diagnostics ClusterRoleBindings ClusterRoles ConfigContexts '
 echo "diagnostics: ok"
 os::test::junit::declare_suite_end
