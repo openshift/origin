@@ -1,6 +1,7 @@
 package rollout
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,7 +11,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	kapps "k8s.io/kubernetes/pkg/apis/apps"
+	kbatch "k8s.io/kubernetes/pkg/apis/batch"
+	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -19,6 +25,10 @@ import (
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	"github.com/openshift/origin/pkg/image/trigger/annotations"
+	triggerresolve "github.com/openshift/origin/pkg/image/trigger/resolve"
 )
 
 var (
@@ -48,6 +58,7 @@ type RolloutLatestOptions struct {
 	again  bool
 
 	appsClient      appsclientinternal.DeploymentConfigsGetter
+	imageClient     imageclientinternal.ImageStreamTagsGetter
 	kc              kclientset.Interface
 	baseCommandName string
 }
@@ -59,8 +70,8 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 	}
 
 	cmd := &cobra.Command{
-		Use:     "latest DEPLOYMENTCONFIG",
-		Short:   "Start a new rollout for a deployment config with the latest state from its triggers",
+		Use:     "latest RESOURCE/NAME",
+		Short:   "Start a new rollout for a resource with the latest state from its triggers",
 		Long:    rolloutLatestLong,
 		Example: fmt.Sprintf(rolloutLatestExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -86,7 +97,7 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 
 func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
-		return errors.New("one deployment config name is needed as argument.")
+		return errors.New("one deployment config name is needed as argument")
 	}
 
 	namespace, _, err := f.DefaultNamespace()
@@ -105,6 +116,12 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 		return err
 	}
 	o.appsClient = appsClient.Apps()
+
+	imageClient, err := f.OpenshiftInternalImageClient()
+	if err != nil {
+		return err
+	}
+	o.imageClient = imageClient.Image()
 
 	o.mapper, o.typer = f.Object()
 	o.infos, err = f.NewBuilder(true).
@@ -126,22 +143,68 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 func (o RolloutLatestOptions) Validate() error {
 	if len(o.infos) != 1 {
-		return errors.New("a deployment config name is required.")
+		return errors.New("a resource name is required")
 	}
 	return nil
 }
 
-func (o RolloutLatestOptions) RunRolloutLatest() error {
-	info := o.infos[0]
-	config, ok := info.Object.(*deployapi.DeploymentConfig)
-	if !ok {
-		return fmt.Errorf("%s is not a deployment config", info.Name)
+// rolloutFromAnnotation will rollout any type that support annotation trigger
+// and the trigger is currently paused.
+func (o RolloutLatestOptions) rolloutFromAnnotation(obj runtime.Object, updateFn func(runtime.Object) (runtime.Object, error)) (runtime.Object, error) {
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return nil, err
 	}
+	out, ok := accessor.GetAnnotations()[triggerapi.TriggerAnnotationKey]
+	if !ok {
+		return nil, fmt.Errorf("%s does not have any triggers defined", accessor.GetName())
+	}
+	triggers := []triggerapi.ObjectFieldTrigger{}
+	if err := json.Unmarshal([]byte(out), &triggers); err != nil {
+		return nil, err
+	}
+	var (
+		errors                []error
+		hasPausedImageTrigger bool
+		hasUpdatedImages      bool
+	)
+	for _, trigger := range triggers {
+		if !trigger.Paused {
+			continue
+		}
+		container, remainder, err := annotations.ContainerForObjectFieldPath(obj, trigger.FieldPath)
+		if err != nil || remainder != "image" {
+			continue
+		}
+		hasPausedImageTrigger = true
+		spec, err := triggerresolve.LatestTriggerImagePullSpec(o.imageClient, accessor.GetNamespace(), trigger.From)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("unable to resolve image %s for container %q: %v", trigger.From.Name, container.GetName(), err))
+			continue
+		}
+		if container.GetImage() != spec.String() {
+			container.SetImage(spec.String())
+			hasUpdatedImages = true
+		}
+	}
+	if !hasPausedImageTrigger {
+		return nil, fmt.Errorf("%q has no paused triggers", accessor.GetName())
+	}
+	if !hasUpdatedImages {
+		return nil, fmt.Errorf("%q already runs the latest images", accessor.GetName())
+	}
+	if len(errors) > 0 {
+		return nil, fmt.Errorf("%q: %v", accessor.GetName(), utilerrors.NewAggregate(errors))
+	}
+	return updateFn(obj)
+}
 
+// rolloutDeploymentConfig rollouts the latest version for deployment config.
+func (o RolloutLatestOptions) rolloutDeploymentConfig(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	// TODO: Consider allowing one-off deployments for paused configs
 	// See https://github.com/openshift/origin/issues/9903
 	if config.Spec.Paused {
-		return fmt.Errorf("cannot deploy a paused deployment config")
+		return nil, fmt.Errorf("cannot deploy a paused deployment config")
 	}
 
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
@@ -151,10 +214,10 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 		// Reject attempts to start a concurrent deployment.
 		if !deployutil.IsTerminatedDeployment(deployment) {
 			status := deployutil.DeploymentStatusFor(deployment)
-			return fmt.Errorf("#%d is already in progress (%s).", config.Status.LatestVersion, status)
+			return nil, fmt.Errorf("#%d is already in progress (%s)", config.Status.LatestVersion, status)
 		}
 	case !kerrors.IsNotFound(err):
-		return err
+		return nil, err
 	}
 
 	dc := config
@@ -175,17 +238,70 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 		}
 
 		if err != nil {
+			return nil, err
+		}
+	}
+
+	return dc, nil
+}
+
+// RunRolloutLatest runs the latest rollouts.
+func (o RolloutLatestOptions) RunRolloutLatest() error {
+	var revision string
+	info := o.infos[0]
+	switch obj := info.Object.(type) {
+	case *deployapi.DeploymentConfig:
+		dc, err := o.rolloutDeploymentConfig(obj)
+		if err != nil {
 			return err
 		}
-
+		revision = fmt.Sprintf("%d", dc.Status.LatestVersion)
 		info.Refresh(dc, true)
+	case *kextensions.Deployment:
+		updatedObj, err := o.rolloutFromAnnotation(obj, func(in runtime.Object) (runtime.Object, error) {
+			return o.kc.Extensions().Deployments(obj.Namespace).Update(in.(*kextensions.Deployment))
+		})
+		if err != nil {
+			return fmt.Errorf("%s %v", info.Mapping.Resource, err)
+		}
+		currentRevision, _ := util.Revision(updatedObj)
+		revision = fmt.Sprintf("%d", currentRevision)
+		info.Refresh(updatedObj, true)
+	case *kextensions.DaemonSet:
+		updatedObj, err := o.rolloutFromAnnotation(obj, func(in runtime.Object) (runtime.Object, error) {
+			return o.kc.Extensions().DaemonSets(obj.Namespace).Update(in.(*kextensions.DaemonSet))
+		})
+		if err != nil {
+			return fmt.Errorf("%s %v", info.Mapping.Resource, err)
+		}
+		// TODO: Does DaemonSets have revision?
+		info.Refresh(updatedObj, true)
+	case *kapps.StatefulSet:
+		updatedObj, err := o.rolloutFromAnnotation(obj, func(in runtime.Object) (runtime.Object, error) {
+			return o.kc.Apps().StatefulSets(obj.Namespace).Update(in.(*kapps.StatefulSet))
+		})
+		if err != nil {
+			return fmt.Errorf("%s %v", info.Mapping.Resource, err)
+		}
+		s := updatedObj.(*kapps.StatefulSet)
+		revision = s.Status.CurrentRevision
+		info.Refresh(updatedObj, true)
+	case *kbatch.CronJob:
+		updatedObj, err := o.rolloutFromAnnotation(obj, func(in runtime.Object) (runtime.Object, error) {
+			return o.kc.Batch().CronJobs(obj.Namespace).Update(in.(*kbatch.CronJob))
+		})
+		if err != nil {
+			return fmt.Errorf("%s %v", info.Mapping.Resource, err)
+		}
+		info.Refresh(updatedObj, true)
+	default:
+		return fmt.Errorf("manual rollouts are not supported for %s", info.Mapping.Resource)
 	}
 
-	if o.output == "revision" {
-		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
+	if o.output == "revision" && len(revision) > 0 {
+		fmt.Fprintf(o.out, revision)
 		return nil
 	}
-
 	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, o.DryRun, "rolled out")
 	return nil
 }
