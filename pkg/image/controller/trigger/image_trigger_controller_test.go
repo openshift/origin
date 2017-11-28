@@ -958,7 +958,7 @@ func updateBuildConfigImages(bc *buildapi.BuildConfig, tagRetriever trigger.TagR
 		if updated == nil {
 			updated = bc.DeepCopy()
 		}
-		p = bc.Spec.Triggers[i].ImageChange
+		p = updated.Spec.Triggers[i].ImageChange
 		p.LastTriggeredImageID = latest
 	}
 	return updated, nil
