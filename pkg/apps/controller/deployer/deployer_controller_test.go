@@ -2,15 +2,21 @@ package deployment
 
 import (
 	"fmt"
+	"math/rand"
 	"reflect"
 	"sort"
 	"testing"
 
+	fuzz "github.com/google/gofuzz"
+
 	"k8s.io/api/core/v1"
+	kapiv1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
 	kinformers "k8s.io/client-go/informers"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -18,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 
 	deployapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -1073,5 +1080,78 @@ func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 			expectMapContains(t, podTemplate.Labels, test.labels, "labels")
 		}
 		expectMapContains(t, podTemplate.Annotations, test.annotations, "annotations")
+	}
+}
+
+func TestMakeDeployerPod(t *testing.T) {
+	client := &fake.Clientset{}
+	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+	config := deploytest.OkDeploymentConfig(1)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	container := controller.makeDeployerContainer(&config.Spec.Strategy)
+	container.Resources = deployutil.CopyApiResourcesToV1Resources(&config.Spec.Strategy.Resources)
+	defaultGracePeriod := int64(10)
+	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+
+	for i := 1; i <= 25; i++ {
+		seed := rand.Int63()
+		f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), kapi.Codecs)
+		f.Funcs(
+			func(p *kapiv1.PodTemplateSpec, c fuzz.Continue) {
+				c.FuzzNoCustom(p)
+				p.Spec.InitContainers = nil
+
+				// These are specific for deployer pod container:
+				p.Spec.Containers = []kapiv1.Container{*container}
+				p.Spec.Containers[0].Name = "deployment"
+				p.Spec.Containers[0].Command = container.Command
+				p.Spec.Containers[0].Args = container.Args
+				p.Spec.Containers[0].Image = container.Image
+				p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, kapiv1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: "config-1"})
+				p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, kapiv1.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: "default"})
+				p.Spec.Containers[0].Resources = container.Resources
+				p.Spec.Containers[0].ImagePullPolicy = kapiv1.PullIfNotPresent
+
+				// These are hardcoded for deployer pod spec
+				p.Spec.RestartPolicy = kapiv1.RestartPolicyNever
+				p.Spec.TerminationGracePeriodSeconds = &defaultGracePeriod
+				p.Spec.ActiveDeadlineSeconds = &maxDeploymentDurationSeconds
+				p.Spec.ServiceAccountName = "sa:test"
+
+				// FIXME: These are weird or missing. If you get an error below, consider
+				// adding this field into deployer controller or to this list:
+				p.Spec.DeprecatedServiceAccount = ""
+				p.Spec.AutomountServiceAccountToken = nil
+				p.Spec.Tolerations = nil
+				p.Spec.Volumes = nil
+				p.Spec.NodeName = ""
+				p.Spec.HostNetwork = false
+				p.Spec.HostPID = false
+				p.Spec.HostIPC = false
+				p.Spec.Hostname = ""
+				p.Spec.Subdomain = ""
+				p.Spec.Affinity = nil
+				p.Spec.SchedulerName = ""
+				p.Spec.HostAliases = nil
+				p.Spec.Priority = nil
+				p.Spec.PriorityClassName = ""
+				p.Spec.SecurityContext = nil
+			},
+		)
+		inputPodTemplate := &kapiv1.PodTemplateSpec{}
+		f.Fuzz(&inputPodTemplate)
+		deployment.Spec.Template = inputPodTemplate
+
+		outputPodTemplate, err := controller.makeDeployerPod(deployment)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !reflect.DeepEqual(inputPodTemplate.Spec, outputPodTemplate.Spec) {
+			t.Fatalf("Deployer pod is missing fields:\n%s\n\n%s",
+				diff.ObjectReflectDiff(inputPodTemplate.Spec, outputPodTemplate.Spec),
+				diff.ObjectDiff(inputPodTemplate.Spec, outputPodTemplate.Spec),
+			)
+		}
 	}
 }
