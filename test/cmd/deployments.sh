@@ -153,6 +153,33 @@ os::cmd::expect_success 'oc delete dc/test-deployment-config'
 echo "set image: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/deployments/setdeploymentstrategy"
+dc="dc/test-deployment-config"
+os::cmd::expect_success "oc create -f test/integration/testdata/test-deployment-config.yaml"
+os::cmd::expect_failure "oc set deployment-strategy ${dc} --recreate"
+os::cmd::expect_failure "oc set deployment-strategy ${dc} --recreate --partition=10"
+os::cmd::expect_success "oc set deployment-strategy ${dc} --recreate --timeout-seconds=100" 
+os::cmd::expect_success "oc set deployment-strategy ${dc} --rolling" 
+os::cmd::expect_success_and_text "oc get ${dc} -o jsonpath='{.spec.strategy.type}'" "Rolling"
+os::cmd::expect_success_and_text "oc get ${dc} -o jsonpath='{.spec.strategy.rollingParams.timeoutSeconds}'" "100"
+os::cmd::expect_success "oc set deployment-strategy ${dc} --rolling --max-surge=10%"
+os::cmd::expect_success_and_text "oc get ${dc} -o jsonpath='{.spec.strategy.rollingParams.maxSurge}'" "10%"
+os::cmd::expect_success "oc set deployment-strategy ${dc} --recreate"
+os::cmd::expect_success_and_text "oc get ${dc} -o jsonpath='{.spec.strategy.type}'" "Recreate"
+os::cmd::expect_success_and_text "oc get ${dc} -o jsonpath='{.spec.strategy.recreateParams.timeoutSeconds}'" "100"
+os::cmd::expect_success "oc set deployment-strategy ${dc} --custom --image=foo --environment=FOO=bar -- /bin/false"
+os::cmd::expect_success_and_text "oc get ${dc} -o jsonpath='{.spec.strategy.customParams.command[0]}'" "/bin/false"
+os::cmd::expect_success_and_text "oc get ${dc} -o jsonpath='{.spec.strategy.customParams.image}'" "foo"
+os::cmd::expect_success 'oc delete dc/test-deployment-config'
+os::cmd::expect_success "oc run test-deployment --image=openshift/origin-pod --generator=deployment/v1beta1"
+os::cmd::expect_failure "oc set deployment-strategy deploy/test-deployment --rolling"
+os::cmd::expect_success "oc set deployment-strategy deploy/test-deployment --recreate"
+os::cmd::expect_success_and_text "oc get deploy/test-deployment -o jsonpath='{.spec.strategy.type}'" "Recreate"
+os::cmd::expect_success "oc set deployment-strategy deploy/test-deployment --rolling --max-unavailable=50%"
+os::cmd::expect_success_and_text "oc get deploy/test-deployment -o jsonpath='{.spec.strategy.rollingUpdate.maxUnavailable}'" "50%"
+os::cmd::expect_success 'oc delete deploy/test-deployment'
+echo "set deployment-strategy: ok"
+
 os::test::junit::declare_suite_start "cmd/deployments/setdeploymenthook"
 # Validate the set deployment-hook command
 arg="-f test/integration/testdata/test-deployment-config.yaml"
