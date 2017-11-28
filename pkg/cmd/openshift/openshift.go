@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
+	"github.com/openshift/origin/pkg/cmd/infra/buildproxy"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/recycle"
@@ -119,6 +120,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 		deployer.NewCommandDeployer("deploy"),
 		recycle.NewCommandRecycle("recycle", out),
 		builder.NewCommandS2IBuilder("sti-build"),
+		buildproxy.NewCommandBuildProxy("build-proxy"),
 		builder.NewCommandDockerBuilder("docker-build"),
 		diagnostics.NewCommandPodDiagnostics("diagnostic-pod", out),
 		diagnostics.NewCommandNetworkPodDiagnostics("network-diagnostic-pod", out),
