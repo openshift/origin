@@ -184,6 +184,8 @@ type ImageStreamSpec struct {
 	// Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.
 	DockerImageRepository string `json:"dockerImageRepository,omitempty" protobuf:"bytes,1,opt,name=dockerImageRepository"`
 	// tags map arbitrary string values to specific image locators
+	// +patchMergeKey=name
+	// +patchStrategy=merge
 	Tags []TagReference `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
 }
 
@@ -272,6 +274,8 @@ type ImageStreamStatus struct {
 	PublicDockerImageRepository string `json:"publicDockerImageRepository,omitempty" protobuf:"bytes,3,opt,name=publicDockerImageRepository"`
 	// Tags are a historical record of images associated with each tag. The first entry in the
 	// TagEvent array is the currently tagged image.
+	// +patchMergeKey=tag
+	// +patchStrategy=merge
 	Tags []NamedTagEventList `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
 }
 

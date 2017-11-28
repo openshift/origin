@@ -270,6 +270,8 @@ message ImageStreamSpec {
   optional string dockerImageRepository = 1;
 
   // tags map arbitrary string values to specific image locators
+  // +patchMergeKey=name
+  // +patchStrategy=merge
   repeated TagReference tags = 2;
 }
 
@@ -286,6 +288,8 @@ message ImageStreamStatus {
 
   // Tags are a historical record of images associated with each tag. The first entry in the
   // TagEvent array is the currently tagged image.
+  // +patchMergeKey=tag
+  // +patchStrategy=merge
   repeated NamedTagEventList tags = 2;
 }
 
