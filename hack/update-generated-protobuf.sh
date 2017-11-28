@@ -16,8 +16,8 @@ install the platform appropriate Protobuf package for your OS:
 To skip protobuf generation, set \$PROTO_OPTIONAL."
 fi
 
-os::util::ensure::gopath_binary_exists 'goimports'
 os::build::setup_env
+os::util::find::system_binary 'goimports' >/dev/null 2>&1 || os::util::ensure::gopath_binary_exists 'goimports'
 
 os::util::ensure::built_binary_exists 'go-to-protobuf' vendor/k8s.io/code-generator/cmd/go-to-protobuf
 os::util::ensure::built_binary_exists 'protoc-gen-gogo' vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
