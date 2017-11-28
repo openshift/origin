@@ -230,6 +230,7 @@ type genDeepCopy struct {
 	allTypes      bool
 	registerTypes bool
 	imports       namer.ImportTracker
+	universe      types.Universe
 	typesForInit  []*types.Type
 }
 
@@ -328,7 +329,7 @@ func copyableType(t *types.Type) bool {
 		return false
 	}
 	// TODO: Consider generating functions for other kinds too.
-	if t.Kind != types.Struct {
+	if t.Kind != types.Struct && t.Kind != types.Alias {
 		return false
 	}
 	// Also, filter out private types.
@@ -370,6 +371,7 @@ func argsFromType(ts ...*types.Type) generator.Args {
 
 func (g *genDeepCopy) Init(c *generator.Context, w io.Writer) error {
 	glog.V(5).Infof("Registering types in pkg %q", g.targetPackage)
+	g.universe = c.Universe
 
 	// the legacy restration will go away when the cloner is removed from Kubernetes, replaced
 	// with static function calls to the DeepCopy methods.
@@ -392,7 +394,7 @@ func (g *genDeepCopy) legacyRegistration(c *generator.Context, w io.Writer) erro
 		for _, t := range g.typesForInit {
 			args := argsFromType(t).
 				With("typeof", c.Universe.Package("reflect").Function("TypeOf"))
-			sw.Do("{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {in.(*$.type|raw$).DeepCopyInto(out.(*$.type|raw$)); return nil}, InType: $.typeof|raw$(&$.type|raw${})},\n", args)
+			sw.Do("{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {in.(*$.type|raw$).DeepCopyInto(out.(*$.type|raw$)); return nil}, InType: $.typeof|raw$(new($.type|raw$))},\n", args)
 		}
 		sw.Do("}\n", nil)
 		sw.Do("}\n\n", nil)
@@ -418,7 +420,7 @@ func (g *genDeepCopy) legacyRegistration(c *generator.Context, w io.Writer) erro
 	for _, t := range g.typesForInit {
 		args := argsFromType(t).
 			With("typeof", c.Universe.Package("reflect").Function("TypeOf"))
-		sw.Do("conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {in.(*$.type|raw$).DeepCopyInto(out.(*$.type|raw$)); return nil}, InType: $.typeof|raw$(&$.type|raw${})},\n", args)
+		sw.Do("conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {in.(*$.type|raw$).DeepCopyInto(out.(*$.type|raw$)); return nil}, InType: $.typeof|raw$(new($.type|raw$))},\n", args)
 	}
 	sw.Do(")\n", nil)
 	sw.Do("}\n\n", nil)
@@ -719,6 +721,8 @@ func (g *genDeepCopy) doSlice(t *types.Type, sw *generator.SnippetWriter) {
 			sw.Do("}\n", nil)
 		} else if t.Elem.Kind == types.Struct {
 			sw.Do("(*in)[i].DeepCopyInto(&(*out)[i])\n", nil)
+		} else if t.Elem.Kind == types.Alias {
+			sw.Do("(*in)[i].DeepCopyInto(&(*out)[i])\n", nil)
 		} else {
 			sw.Do("(*out)[i] = (*in)[i].DeepCopy()\n", nil)
 		}
@@ -815,8 +819,18 @@ func (g *genDeepCopy) doPointer(t *types.Type, sw *generator.SnippetWriter) {
 }
 
 func (g *genDeepCopy) doAlias(t *types.Type, sw *generator.SnippetWriter) {
-	// TODO: Add support for aliases.
-	g.doUnknown(t, sw)
+	unsafePointer := g.universe.Type(types.Name{Package: "unsafe", Name: "Pointer"})
+	g.imports.AddType(unsafePointer)
+
+	args := generator.Args{
+		"type":          t,
+		"unsafePointer": unsafePointer,
+	}
+
+	// memory layout of aliases is the same as the underlying type. Hence, unsafe.Pointer helps.
+	sw.Do("{ in := (*$.type.Underlying|raw$)($.unsafePointer$(in)); out := (*$.type.Underlying|raw$)($.unsafePointer$(out))\n", args)
+	g.generateFor(t.Underlying, sw)
+	sw.Do("}\n", nil)
 }
 
 func (g *genDeepCopy) doUnknown(t *types.Type, sw *generator.SnippetWriter) {

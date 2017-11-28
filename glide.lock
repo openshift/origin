@@ -1,6 +1,10 @@
 hash: 746bd3380908dac017b4dd01521923beae08dff3391da8c65c38b8fe60592d3a
-updated: 2017-10-27T08:00:40.857148245-04:00
+updated: 2017-11-28T08:06:26.858865308-05:00
 imports:
+- name: github.com/davecgh/go-spew
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
+  subpackages:
+  - spew
 - name: github.com/emicklei/go-restful
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
@@ -58,7 +62,7 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: k8s.io/api
-  version: 6c6dac0277229b9e9578c5ca3f74a4345d35cdc2
+  version: 4df58c811fe2e65feb879227b2b245e4dc26e7ad
   subpackages:
   - apps/v1beta1
   - core/v1
@@ -66,18 +70,23 @@ imports:
 - name: k8s.io/apimachinery
   version: 019ae5ada31de202164b118aee88ee2d14075c31
   subpackages:
+  - pkg/api/equality
   - pkg/api/resource
   - pkg/apis/meta/v1
+  - pkg/apis/meta/v1/unstructured
   - pkg/conversion
   - pkg/conversion/queryparams
+  - pkg/conversion/unstructured
   - pkg/fields
   - pkg/labels
   - pkg/runtime
   - pkg/runtime/schema
   - pkg/selection
   - pkg/types
+  - pkg/util/diff
   - pkg/util/errors
   - pkg/util/intstr
+  - pkg/util/json
   - pkg/util/net
   - pkg/util/runtime
   - pkg/util/sets
@@ -87,7 +96,7 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/code-generator
-  version: 0c5165a97e055df28cca8bbcb8b7c8ae1019b3f1
+  version: 6db2ee6aa9ab51230d6e0d970b398274a88e81b0
 - name: k8s.io/gengo
   version: 9e661e9308f078838e266cca1c673922088c0ea4
 - name: k8s.io/kube-openapi

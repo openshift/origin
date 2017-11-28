@@ -10,6 +10,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -25,127 +26,139 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DockerImageReference).DeepCopyInto(out.(*DockerImageReference))
 			return nil
-		}, InType: reflect.TypeOf(&DockerImageReference{})},
+		}, InType: reflect.TypeOf(new(DockerImageReference))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*Image).DeepCopyInto(out.(*Image))
 			return nil
-		}, InType: reflect.TypeOf(&Image{})},
+		}, InType: reflect.TypeOf(new(Image))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageImportSpec).DeepCopyInto(out.(*ImageImportSpec))
 			return nil
-		}, InType: reflect.TypeOf(&ImageImportSpec{})},
+		}, InType: reflect.TypeOf(new(ImageImportSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageImportStatus).DeepCopyInto(out.(*ImageImportStatus))
 			return nil
-		}, InType: reflect.TypeOf(&ImageImportStatus{})},
+		}, InType: reflect.TypeOf(new(ImageImportStatus))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageLayer).DeepCopyInto(out.(*ImageLayer))
 			return nil
-		}, InType: reflect.TypeOf(&ImageLayer{})},
+		}, InType: reflect.TypeOf(new(ImageLayer))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageList).DeepCopyInto(out.(*ImageList))
 			return nil
-		}, InType: reflect.TypeOf(&ImageList{})},
+		}, InType: reflect.TypeOf(new(ImageList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageLookupPolicy).DeepCopyInto(out.(*ImageLookupPolicy))
 			return nil
-		}, InType: reflect.TypeOf(&ImageLookupPolicy{})},
+		}, InType: reflect.TypeOf(new(ImageLookupPolicy))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageSignature).DeepCopyInto(out.(*ImageSignature))
 			return nil
-		}, InType: reflect.TypeOf(&ImageSignature{})},
+		}, InType: reflect.TypeOf(new(ImageSignature))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStream).DeepCopyInto(out.(*ImageStream))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStream{})},
+		}, InType: reflect.TypeOf(new(ImageStream))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamImage).DeepCopyInto(out.(*ImageStreamImage))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamImage{})},
+		}, InType: reflect.TypeOf(new(ImageStreamImage))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamImport).DeepCopyInto(out.(*ImageStreamImport))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamImport{})},
+		}, InType: reflect.TypeOf(new(ImageStreamImport))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamImportSpec).DeepCopyInto(out.(*ImageStreamImportSpec))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamImportSpec{})},
+		}, InType: reflect.TypeOf(new(ImageStreamImportSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamImportStatus).DeepCopyInto(out.(*ImageStreamImportStatus))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamImportStatus{})},
+		}, InType: reflect.TypeOf(new(ImageStreamImportStatus))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamList).DeepCopyInto(out.(*ImageStreamList))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamList{})},
+		}, InType: reflect.TypeOf(new(ImageStreamList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamMapping).DeepCopyInto(out.(*ImageStreamMapping))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamMapping{})},
+		}, InType: reflect.TypeOf(new(ImageStreamMapping))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamSpec).DeepCopyInto(out.(*ImageStreamSpec))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamSpec{})},
+		}, InType: reflect.TypeOf(new(ImageStreamSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamStatus).DeepCopyInto(out.(*ImageStreamStatus))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamStatus{})},
+		}, InType: reflect.TypeOf(new(ImageStreamStatus))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamTag).DeepCopyInto(out.(*ImageStreamTag))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamTag{})},
+		}, InType: reflect.TypeOf(new(ImageStreamTag))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ImageStreamTagList).DeepCopyInto(out.(*ImageStreamTagList))
 			return nil
-		}, InType: reflect.TypeOf(&ImageStreamTagList{})},
+		}, InType: reflect.TypeOf(new(ImageStreamTagList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*NamedTagEventList).DeepCopyInto(out.(*NamedTagEventList))
 			return nil
-		}, InType: reflect.TypeOf(&NamedTagEventList{})},
+		}, InType: reflect.TypeOf(new(NamedTagEventList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*RepositoryImportSpec).DeepCopyInto(out.(*RepositoryImportSpec))
 			return nil
-		}, InType: reflect.TypeOf(&RepositoryImportSpec{})},
+		}, InType: reflect.TypeOf(new(RepositoryImportSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*RepositoryImportStatus).DeepCopyInto(out.(*RepositoryImportStatus))
 			return nil
-		}, InType: reflect.TypeOf(&RepositoryImportStatus{})},
+		}, InType: reflect.TypeOf(new(RepositoryImportStatus))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*SignatureCondition).DeepCopyInto(out.(*SignatureCondition))
 			return nil
-		}, InType: reflect.TypeOf(&SignatureCondition{})},
+		}, InType: reflect.TypeOf(new(SignatureCondition))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*SignatureConditionType).DeepCopyInto(out.(*SignatureConditionType))
+			return nil
+		}, InType: reflect.TypeOf(new(SignatureConditionType))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*SignatureGenericEntity).DeepCopyInto(out.(*SignatureGenericEntity))
 			return nil
-		}, InType: reflect.TypeOf(&SignatureGenericEntity{})},
+		}, InType: reflect.TypeOf(new(SignatureGenericEntity))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*SignatureIssuer).DeepCopyInto(out.(*SignatureIssuer))
 			return nil
-		}, InType: reflect.TypeOf(&SignatureIssuer{})},
+		}, InType: reflect.TypeOf(new(SignatureIssuer))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*SignatureSubject).DeepCopyInto(out.(*SignatureSubject))
 			return nil
-		}, InType: reflect.TypeOf(&SignatureSubject{})},
+		}, InType: reflect.TypeOf(new(SignatureSubject))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TagEvent).DeepCopyInto(out.(*TagEvent))
 			return nil
-		}, InType: reflect.TypeOf(&TagEvent{})},
+		}, InType: reflect.TypeOf(new(TagEvent))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TagEventCondition).DeepCopyInto(out.(*TagEventCondition))
 			return nil
-		}, InType: reflect.TypeOf(&TagEventCondition{})},
+		}, InType: reflect.TypeOf(new(TagEventCondition))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagEventConditionType).DeepCopyInto(out.(*TagEventConditionType))
+			return nil
+		}, InType: reflect.TypeOf(new(TagEventConditionType))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TagImportPolicy).DeepCopyInto(out.(*TagImportPolicy))
 			return nil
-		}, InType: reflect.TypeOf(&TagImportPolicy{})},
+		}, InType: reflect.TypeOf(new(TagImportPolicy))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TagReference).DeepCopyInto(out.(*TagReference))
 			return nil
-		}, InType: reflect.TypeOf(&TagReference{})},
+		}, InType: reflect.TypeOf(new(TagReference))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TagReferencePolicy).DeepCopyInto(out.(*TagReferencePolicy))
 			return nil
-		}, InType: reflect.TypeOf(&TagReferencePolicy{})},
+		}, InType: reflect.TypeOf(new(TagReferencePolicy))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TagReferencePolicyType).DeepCopyInto(out.(*TagReferencePolicyType))
+			return nil
+		}, InType: reflect.TypeOf(new(TagReferencePolicyType))},
 	)
 }
 
@@ -853,6 +866,26 @@ func (in *SignatureCondition) DeepCopy() *SignatureCondition {
 }
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *SignatureConditionType) DeepCopyInto(out *SignatureConditionType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new SignatureConditionType.
+func (in *SignatureConditionType) DeepCopy() *SignatureConditionType {
+	if in == nil {
+		return nil
+	}
+	out := new(SignatureConditionType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *SignatureGenericEntity) DeepCopyInto(out *SignatureGenericEntity) {
 	*out = *in
 	return
@@ -937,6 +970,26 @@ func (in *TagEventCondition) DeepCopy() *TagEventCondition {
 }
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagEventConditionType) DeepCopyInto(out *TagEventConditionType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagEventConditionType.
+func (in *TagEventConditionType) DeepCopy() *TagEventConditionType {
+	if in == nil {
+		return nil
+	}
+	out := new(TagEventConditionType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *TagImportPolicy) DeepCopyInto(out *TagImportPolicy) {
 	*out = *in
 	return
@@ -1007,6 +1060,26 @@ func (in *TagReferencePolicy) DeepCopy() *TagReferencePolicy {
 		return nil
 	}
 	out := new(TagReferencePolicy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TagReferencePolicyType) DeepCopyInto(out *TagReferencePolicyType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TagReferencePolicyType.
+func (in *TagReferencePolicyType) DeepCopy() *TagReferencePolicyType {
+	if in == nil {
+		return nil
+	}
+	out := new(TagReferencePolicyType)
 	in.DeepCopyInto(out)
 	return out
 }

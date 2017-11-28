@@ -23,11 +23,11 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DockerConfig).DeepCopyInto(out.(*DockerConfig))
 			return nil
-		}, InType: reflect.TypeOf(&DockerConfig{})},
+		}, InType: reflect.TypeOf(new(DockerConfig))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*DockerImage).DeepCopyInto(out.(*DockerImage))
 			return nil
-		}, InType: reflect.TypeOf(&DockerImage{})},
+		}, InType: reflect.TypeOf(new(DockerImage))},
 	)
 }
 

@@ -24,23 +24,23 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*Project).DeepCopyInto(out.(*Project))
 			return nil
-		}, InType: reflect.TypeOf(&Project{})},
+		}, InType: reflect.TypeOf(new(Project))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ProjectList).DeepCopyInto(out.(*ProjectList))
 			return nil
-		}, InType: reflect.TypeOf(&ProjectList{})},
+		}, InType: reflect.TypeOf(new(ProjectList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ProjectRequest).DeepCopyInto(out.(*ProjectRequest))
 			return nil
-		}, InType: reflect.TypeOf(&ProjectRequest{})},
+		}, InType: reflect.TypeOf(new(ProjectRequest))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ProjectSpec).DeepCopyInto(out.(*ProjectSpec))
 			return nil
-		}, InType: reflect.TypeOf(&ProjectSpec{})},
+		}, InType: reflect.TypeOf(new(ProjectSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*ProjectStatus).DeepCopyInto(out.(*ProjectStatus))
 			return nil
-		}, InType: reflect.TypeOf(&ProjectStatus{})},
+		}, InType: reflect.TypeOf(new(ProjectStatus))},
 	)
 }
 

@@ -9,6 +9,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -24,55 +25,63 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*BrokerTemplateInstance).DeepCopyInto(out.(*BrokerTemplateInstance))
 			return nil
-		}, InType: reflect.TypeOf(&BrokerTemplateInstance{})},
+		}, InType: reflect.TypeOf(new(BrokerTemplateInstance))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*BrokerTemplateInstanceList).DeepCopyInto(out.(*BrokerTemplateInstanceList))
 			return nil
-		}, InType: reflect.TypeOf(&BrokerTemplateInstanceList{})},
+		}, InType: reflect.TypeOf(new(BrokerTemplateInstanceList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*BrokerTemplateInstanceSpec).DeepCopyInto(out.(*BrokerTemplateInstanceSpec))
 			return nil
-		}, InType: reflect.TypeOf(&BrokerTemplateInstanceSpec{})},
+		}, InType: reflect.TypeOf(new(BrokerTemplateInstanceSpec))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*ExtraValue).DeepCopyInto(out.(*ExtraValue))
+			return nil
+		}, InType: reflect.TypeOf(new(ExtraValue))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*Parameter).DeepCopyInto(out.(*Parameter))
 			return nil
-		}, InType: reflect.TypeOf(&Parameter{})},
+		}, InType: reflect.TypeOf(new(Parameter))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*Template).DeepCopyInto(out.(*Template))
 			return nil
-		}, InType: reflect.TypeOf(&Template{})},
+		}, InType: reflect.TypeOf(new(Template))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateInstance).DeepCopyInto(out.(*TemplateInstance))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateInstance{})},
+		}, InType: reflect.TypeOf(new(TemplateInstance))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateInstanceCondition).DeepCopyInto(out.(*TemplateInstanceCondition))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateInstanceCondition{})},
+		}, InType: reflect.TypeOf(new(TemplateInstanceCondition))},
+		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
+			in.(*TemplateInstanceConditionType).DeepCopyInto(out.(*TemplateInstanceConditionType))
+			return nil
+		}, InType: reflect.TypeOf(new(TemplateInstanceConditionType))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateInstanceList).DeepCopyInto(out.(*TemplateInstanceList))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateInstanceList{})},
+		}, InType: reflect.TypeOf(new(TemplateInstanceList))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateInstanceObject).DeepCopyInto(out.(*TemplateInstanceObject))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateInstanceObject{})},
+		}, InType: reflect.TypeOf(new(TemplateInstanceObject))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateInstanceRequester).DeepCopyInto(out.(*TemplateInstanceRequester))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateInstanceRequester{})},
+		}, InType: reflect.TypeOf(new(TemplateInstanceRequester))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateInstanceSpec).DeepCopyInto(out.(*TemplateInstanceSpec))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateInstanceSpec{})},
+		}, InType: reflect.TypeOf(new(TemplateInstanceSpec))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateInstanceStatus).DeepCopyInto(out.(*TemplateInstanceStatus))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateInstanceStatus{})},
+		}, InType: reflect.TypeOf(new(TemplateInstanceStatus))},
 		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
 			in.(*TemplateList).DeepCopyInto(out.(*TemplateList))
 			return nil
-		}, InType: reflect.TypeOf(&TemplateList{})},
+		}, InType: reflect.TypeOf(new(TemplateList))},
 	)
 }
 
@@ -157,6 +166,27 @@ func (in *BrokerTemplateInstanceSpec) DeepCopy() *BrokerTemplateInstanceSpec {
 		return nil
 	}
 	out := new(BrokerTemplateInstanceSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ExtraValue) DeepCopyInto(out *ExtraValue) {
+	{
+		in := (*[]string)(unsafe.Pointer(in))
+		out := (*[]string)(unsafe.Pointer(out))
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ExtraValue.
+func (in *ExtraValue) DeepCopy() *ExtraValue {
+	if in == nil {
+		return nil
+	}
+	out := new(ExtraValue)
 	in.DeepCopyInto(out)
 	return out
 }
@@ -270,6 +300,26 @@ func (in *TemplateInstanceCondition) DeepCopy() *TemplateInstanceCondition {
 }
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TemplateInstanceConditionType) DeepCopyInto(out *TemplateInstanceConditionType) {
+	{
+		in := (*string)(unsafe.Pointer(in))
+		out := (*string)(unsafe.Pointer(out))
+		*out = *in
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TemplateInstanceConditionType.
+func (in *TemplateInstanceConditionType) DeepCopy() *TemplateInstanceConditionType {
+	if in == nil {
+		return nil
+	}
+	out := new(TemplateInstanceConditionType)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *TemplateInstanceList) DeepCopyInto(out *TemplateInstanceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
@@ -332,8 +382,9 @@ func (in *TemplateInstanceRequester) DeepCopyInto(out *TemplateInstanceRequester
 		in, out := &in.Extra, &out.Extra
 		*out = make(map[string]ExtraValue, len(*in))
 		for key, val := range *in {
-			(*out)[key] = make(ExtraValue, len(val))
-			copy((*out)[key], val)
+			newVal := new(ExtraValue)
+			val.DeepCopyInto(newVal)
+			(*out)[key] = *newVal
 		}
 	}
 	return
