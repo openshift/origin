@@ -249,6 +249,7 @@ oc-serviceaccounts.1
 oc-set-build-hook.1
 oc-set-build-secret.1
 oc-set-deployment-hook.1
+oc-set-deployment-strategy.1
 oc-set-env.1
 oc-set-image-lookup.1
 oc-set-image.1
