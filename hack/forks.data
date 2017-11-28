@@ -1,0 +1,13 @@
+git@github.com:openshift/origin master vendor/k8s.io/kubernetes git@github.com:openshift/kubernetes release-1.7.0
+git@github.com:openshift/origin master vendor/k8s.io/kubernetes/staging/sr/k8s.io/code-generator git@github.com:openshift/kubernetes-code-generator master
+git@github.com:openshift/kubernetes release-1.7.0 staging/src/k8s.io/apimachinery git@github.com:openshift/kubernetes-apimachinery release-1.7.0
+git@github.com:openshift/kubernetes release-1.7.0 staging/src/k8s.io/apiserver git@github.com:openshift/kubernetes-apiserver release-1.7.0
+git@github.com:openshift/kubernetes release-1.7.0 staging/src/k8s.io/client-go git@github.com:openshift/kubernetes-client-go release-1.7.0
+git@github.com:openshift/kubernetes release-1.7.0 staging/src/k8s.io/metrics git@github.com:openshift/kubernetes-metrics release-1.7.0
+git@github.com:openshift/origin master vendor/github.com/docker/distribution git@github.com:openshift/docker-distribution release-2.6.2
+git@github.com:openshift/origin master vendor/github.com/emicklei/go-restful-swagger12 git@github.com:openshift/emicklei-go-restful-swagger12 release-1.0.1
+git@github.com:openshift/origin master vendor/github.com/google/cadvisor git@github.com:openshift/google-cadvisor release-0.26.1
+git@github.com:openshift/origin master vendor/github.com/google/certificate-transparency git@github.com:openshift/google-certificate-transparency master
+git@github.com:openshift/origin master vendor/github.com/skynetservices/skydns git@github.com:openshift/skynetservices-skydns release-2.5.3
+git@github.com:openshift/origin master vendor/github.com/coreos/etcd git@github.com:openshift/coreos-etcd release-3.2.1
+git@github.com:openshift/origin master vendor/github.com/cloudflare/cfssl git@github.com:openshift/cloudflare-cfssl release-1.2.0
