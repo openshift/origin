@@ -543,6 +543,11 @@ func (client *Client) Capture(packet *Packet, captureTags map[string]string) (ev
 		return
 	}
 
+	if packet == nil {
+		close(ch)
+		return
+	}
+
 	if client.shouldExcludeErr(packet.Message) {
 		return
 	}
@@ -658,6 +663,10 @@ func CaptureMessageAndWait(message string, tags map[string]string, interfaces ..
 // Adds a stacktrace to the packet, excluding the call to this method.
 func (client *Client) CaptureError(err error, tags map[string]string, interfaces ...Interface) string {
 	if client == nil {
+		return ""
+	}
+
+	if err == nil {
 		return ""
 	}
 

@@ -255,3 +255,24 @@ func TestNilClient(t *testing.T) {
                 t.Error("expected nil err:", err)
         }
 }
+
+func TestCaptureNil(t *testing.T) {
+        var client *Client = DefaultClient
+        eventID, ch := client.Capture(nil, nil)
+        if eventID != "" {
+                t.Error("expected empty eventID:", eventID)
+        }
+        // wait on ch: no send should succeed immediately
+        err := <-ch
+        if err != nil {
+                t.Error("expected nil err:", err)
+        }
+}
+
+func TestCaptureNilError(t *testing.T) {
+        var client *Client = DefaultClient
+        eventID := client.CaptureError(nil, nil)
+        if eventID != "" {
+                t.Error("expected empty eventID:", eventID)
+        }
+}
