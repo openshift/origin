@@ -255,7 +255,7 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 
 // waitForTerminatedPods waits until all pods for the provided replication controller are terminated.
 func (s *RecreateDeploymentStrategy) waitForTerminatedPods(from *kapi.ReplicationController, timeout time.Duration) {
-	selector := labels.Set(from.Spec.Selector).AsSelector()
+	selector := labels.SelectorFromValidatedSet(labels.Set(from.Spec.Selector))
 	options := metav1.ListOptions{LabelSelector: selector.String()}
 	podList, err := s.podClient.Pods(from.Namespace).List(options)
 	if err != nil {
