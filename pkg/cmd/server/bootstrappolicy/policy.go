@@ -555,7 +555,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: ImagePrunerRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("get", "list").Groups(kapiGroup).Resources("pods", "replicationcontrollers").RuleOrDie(),
+				rbac.NewRule("get", "list").Groups(kapiGroup).Resources("namespaces", "pods", "replicationcontrollers").RuleOrDie(),
 				rbac.NewRule("list").Groups(kapiGroup).Resources("limitranges").RuleOrDie(),
 				rbac.NewRule("get", "list").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs", "builds").RuleOrDie(),
 				rbac.NewRule("get", "list").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),

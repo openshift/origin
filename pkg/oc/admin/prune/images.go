@@ -19,8 +19,10 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	knet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
 	discovery "k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
@@ -97,7 +99,19 @@ var (
 	  %[1]s %[2]s --registry-url=http://registry.example.org --confirm
 
 	  # Force a secure connection with a custom certificate authority to the particular registry host name
-	  %[1]s %[2]s --registry-url=registry.example.org --certificate-authority=/path/to/custom/ca.crt --confirm`)
+	  %[1]s %[2]s --registry-url=registry.example.org --certificate-authority=/path/to/custom/ca.crt --confirm
+
+	  # prune images, but only in unprotected namespaces (label of my choosing)
+	  %[1]s %[2]s  -l 'cluster-admin-protection-status notin (special)'
+
+	  # prune images, but only gold level, then prune silver with different args
+	  %[1]s %[2]s --keep-tag-revisions=5 -l 'plan=gold'
+	  %[1]s %[2]s --keep-tag-revisions=3 -l 'plan=silver'
+
+	  # protect particular images, you don't get to choose this label.  myspecial:latest isn't pruned
+	  %[1]s label ns/my-namespace "image.openshift.io/allow-prune-immunity=true"
+	  %[1]s annotate -n my-namespace istag/myspecial:latest "image.openshift.io/prune-immunity=true"
+	  %[1]s %[2]s`)
 )
 
 var (
@@ -105,20 +119,25 @@ var (
 	defaultKeepTagRevisions        = 3
 	defaultPruneImageOverSizeLimit = false
 	defaultPruneRegistry           = true
+
+	// TODO choose final name and promote to API
+	protectionLabel = "image.openshift.io/allow-prune-immunity"
 )
 
 // PruneImagesOptions holds all the required options for pruning images.
 type PruneImagesOptions struct {
-	Confirm             bool
-	KeepYoungerThan     *time.Duration
-	KeepTagRevisions    *int
-	PruneOverSizeLimit  *bool
-	AllImages           *bool
-	CABundle            string
-	RegistryUrlOverride string
-	Namespace           string
-	ForceInsecure       bool
-	PruneRegistry       *bool
+	Confirm                             bool
+	KeepYoungerThan                     *time.Duration
+	KeepTagRevisions                    *int
+	PruneOverSizeLimit                  *bool
+	AllImages                           *bool
+	CABundle                            string
+	RegistryUrlOverride                 string
+	Namespace                           string
+	ForceInsecure                       bool
+	PruneRegistry                       *bool
+	NamespacesToPruneSelector           string
+	NamespacesToAllowProtectionSelector labels.Selector
 
 	ClientConfig    *restclient.Config
 	AppsClient      appsclient.AppsInterface
@@ -135,12 +154,13 @@ type PruneImagesOptions struct {
 func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	allImages := true
 	opts := &PruneImagesOptions{
-		Confirm:            false,
-		KeepYoungerThan:    &defaultKeepYoungerThan,
-		KeepTagRevisions:   &defaultKeepTagRevisions,
-		PruneOverSizeLimit: &defaultPruneImageOverSizeLimit,
-		PruneRegistry:      &defaultPruneRegistry,
-		AllImages:          &allImages,
+		Confirm:                             false,
+		KeepYoungerThan:                     &defaultKeepYoungerThan,
+		KeepTagRevisions:                    &defaultKeepTagRevisions,
+		PruneOverSizeLimit:                  &defaultPruneImageOverSizeLimit,
+		PruneRegistry:                       &defaultPruneRegistry,
+		AllImages:                           &allImages,
+		NamespacesToAllowProtectionSelector: labels.SelectorFromSet(labels.Set{protectionLabel: "true"}),
 	}
 
 	cmd := &cobra.Command{
@@ -166,6 +186,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd.Flags().StringVar(&opts.RegistryUrlOverride, "registry-url", opts.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works. Particular transport protocol can be enforced using '<scheme>://' prefix.")
 	cmd.Flags().BoolVar(&opts.ForceInsecure, "force-insecure", opts.ForceInsecure, "If true, allow an insecure connection to the docker registry that is hosted via HTTP or has an invalid HTTPS certificate. Whenever possible, use --certificate-authority instead of this dangerous option.")
 	cmd.Flags().BoolVar(opts.PruneRegistry, "prune-registry", *opts.PruneRegistry, "If false, the prune operation will clean up image API objects, but the none of the associated content in the registry is removed.  Note, if only image API objects are cleaned up through use of this flag, the only means for subsequently cleaning up registry data corresponding to those image API objects is to employ the 'hard prune' administrative task.")
+	cmd.Flags().StringVarP(&opts.NamespacesToPruneSelector, "selector", "l", "", "Selector (label query) to filter on, not including uninitialized ones, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2).")
 
 	return cmd
 }
@@ -247,6 +268,32 @@ func (o PruneImagesOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune images command.
 func (o PruneImagesOptions) Run() error {
+	specifiedNamespace := len(o.Namespace) > 0
+	namespacesToPrune := sets.String{}
+	namespacesToAllowImmunity := sets.String{}
+
+	if specifiedNamespace {
+		ns, err := o.KubeClient.Core().Namespaces().Get(o.Namespace, metav1.GetOptions{})
+		if err != nil {
+			return nil
+		}
+		namespacesToPrune.Insert(ns.Name)
+		if o.NamespacesToAllowProtectionSelector.Matches(labels.Set(ns.Labels)) {
+			namespacesToAllowImmunity.Insert(ns.Name)
+		}
+	} else {
+		nsList, err := o.KubeClient.Core().Namespaces().List(metav1.ListOptions{LabelSelector: o.NamespacesToPruneSelector})
+		if err != nil {
+			return nil
+		}
+		for _, ns := range nsList.Items {
+			namespacesToPrune.Insert(ns.Name)
+			if o.NamespacesToAllowProtectionSelector.Matches(labels.Set(ns.Labels)) {
+				namespacesToAllowImmunity.Insert(ns.Name)
+			}
+		}
+	}
+
 	allImages, err := o.ImageClient.Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -369,25 +416,27 @@ func (o PruneImagesOptions) Run() error {
 	}
 
 	options := prune.PrunerOptions{
-		KeepYoungerThan:    o.KeepYoungerThan,
-		KeepTagRevisions:   o.KeepTagRevisions,
-		PruneOverSizeLimit: o.PruneOverSizeLimit,
-		AllImages:          o.AllImages,
-		Images:             allImages,
-		Streams:            allStreams,
-		Pods:               allPods,
-		RCs:                allRCs,
-		BCs:                allBCs,
-		Builds:             allBuilds,
-		DSs:                allDSs,
-		Deployments:        allDeployments,
-		DCs:                allDCs,
-		RSs:                allRSs,
-		LimitRanges:        limitRangesMap,
-		DryRun:             o.Confirm == false,
-		RegistryClient:     registryClient,
-		RegistryURL:        registryURL,
-		PruneRegistry:      o.PruneRegistry,
+		KeepYoungerThan:           o.KeepYoungerThan,
+		KeepTagRevisions:          o.KeepTagRevisions,
+		PruneOverSizeLimit:        o.PruneOverSizeLimit,
+		AllImages:                 o.AllImages,
+		NamespacesToPrune:         namespacesToPrune,
+		NamespacesToAllowImmunity: namespacesToAllowImmunity,
+		Images:         allImages,
+		Streams:        allStreams,
+		Pods:           allPods,
+		RCs:            allRCs,
+		BCs:            allBCs,
+		Builds:         allBuilds,
+		DSs:            allDSs,
+		Deployments:    allDeployments,
+		DCs:            allDCs,
+		RSs:            allRSs,
+		LimitRanges:    limitRangesMap,
+		DryRun:         o.Confirm == false,
+		RegistryClient: registryClient,
+		RegistryURL:    registryURL,
+		PruneRegistry:  o.PruneRegistry,
 	}
 	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace

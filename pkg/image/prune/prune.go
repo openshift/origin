@@ -55,6 +55,9 @@ const (
 	// ReferencedImageLayerEdgeKind defines an edge from an ImageStreamNode or an
 	// ImageNode to an ImageComponentNode.
 	ReferencedImageLayerEdgeKind = "ReferencedImageLayer"
+
+	// TODO choose final name and promote to API
+	protectionAnnotation = "image.openshift.io/prune-immunity"
 )
 
 // pruneAlgorithm contains the various settings to use when evaluating images
@@ -126,6 +129,12 @@ type PrunerOptions struct {
 	PruneRegistry *bool
 	// Namespace to be pruned, if specified it should never remove Images.
 	Namespace string
+
+	// NamespacesToPrune is the set of namespaces which are eligible to prune
+	NamespacesToPrune sets.String
+	// NamespacesToAllowImmunity  is the set of namespaces which allow imagestreamtags to be excluded
+	NamespacesToAllowImmunity sets.String
+
 	// Images is the entire list of images in OpenShift. An image must be in this
 	// list to be a candidate for pruning.
 	Images *imageapi.ImageList
@@ -176,6 +185,9 @@ type pruner struct {
 	algorithm      pruneAlgorithm
 	registryClient *http.Client
 	registryURL    *url.URL
+
+	namespacesToPrune         sets.String
+	namespacesToAllowImmunity sets.String
 }
 
 var _ Pruner = &pruner{}
@@ -252,9 +264,11 @@ func NewPruner(options PrunerOptions) (Pruner, kerrors.Aggregate) {
 	algorithm.namespace = options.Namespace
 
 	p := &pruner{
-		algorithm:      algorithm,
-		registryClient: options.RegistryClient,
-		registryURL:    options.RegistryURL,
+		algorithm:                 algorithm,
+		registryClient:            options.RegistryClient,
+		registryURL:               options.RegistryURL,
+		namespacesToPrune:         options.NamespacesToPrune,
+		namespacesToAllowImmunity: options.NamespacesToAllowImmunity,
 	}
 
 	if err := p.buildGraph(options); err != nil {
@@ -361,8 +375,18 @@ func (p *pruner) addImageStreamsToGraph(streams *imageapi.ImageStreamList, limit
 					continue
 				}
 
+				isNamespaceEligible := p.namespacesToPrune.Has(stream.Namespace)
+				doesNamespaceAllowImmunity := p.namespacesToAllowImmunity.Has(stream.Namespace)
+				isISTagImmune := stream.Spec.Tags[tag].Annotations[protectionAnnotation] == "true"
+
 				kind := oldImageRevisionReferenceKind
-				if p.algorithm.pruneOverSizeLimit {
+				if !isNamespaceEligible {
+					glog.V(4).Infof("Namespace %q is not included", istNode.Namespace)
+					kind = ReferencedImageEdgeKind
+				} else if doesNamespaceAllowImmunity && isISTagImmune {
+					glog.V(4).Infof("%v/%v is protected from pruning", istNode.Namespace, istNode.Name)
+					kind = ReferencedImageEdgeKind
+				} else if p.algorithm.pruneOverSizeLimit {
 					if exceedsLimits(stream, imageNode.Image, limits) {
 						kind = WeakReferencedImageEdgeKind
 					} else {

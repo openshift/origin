@@ -44,28 +44,30 @@ func TestImagePruning(t *testing.T) {
 	registryURL := "https://" + registryHost
 
 	tests := []struct {
-		name                       string
-		pruneOverSizeLimit         *bool
-		allImages                  *bool
-		pruneRegistry              *bool
-		keepTagRevisions           *int
-		namespace                  string
-		images                     imageapi.ImageList
-		pods                       kapi.PodList
-		streams                    imageapi.ImageStreamList
-		rcs                        kapi.ReplicationControllerList
-		bcs                        buildapi.BuildConfigList
-		builds                     buildapi.BuildList
-		dss                        kapisext.DaemonSetList
-		deployments                kapisext.DeploymentList
-		dcs                        appsapi.DeploymentConfigList
-		rss                        kapisext.ReplicaSetList
-		limits                     map[string][]*kapi.LimitRange
-		expectedImageDeletions     []string
-		expectedStreamUpdates      []string
-		expectedLayerLinkDeletions []string
-		expectedBlobDeletions      []string
-		expectedErrorString        string
+		name                        string
+		pruneOverSizeLimit          *bool
+		allImages                   *bool
+		pruneRegistry               *bool
+		keepTagRevisions            *int
+		namespace                   string
+		namespacesToPrune           []string
+		namespacesToAllowProtection []string
+		images                      imageapi.ImageList
+		pods                        kapi.PodList
+		streams                     imageapi.ImageStreamList
+		rcs                         kapi.ReplicationControllerList
+		bcs                         buildapi.BuildConfigList
+		builds                      buildapi.BuildList
+		dss                         kapisext.DaemonSetList
+		deployments                 kapisext.DeploymentList
+		dcs                         appsapi.DeploymentConfigList
+		rss                         kapisext.ReplicaSetList
+		limits                      map[string][]*kapi.LimitRange
+		expectedImageDeletions      []string
+		expectedStreamUpdates       []string
+		expectedLayerLinkDeletions  []string
+		expectedBlobDeletions       []string
+		expectedErrorString         string
 	}{
 		{
 			name:   "1 pod - phase pending - don't prune",
@@ -372,6 +374,29 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000004"},
 			expectedStreamUpdates:  []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000004"},
+		},
+
+		{
+			name: "image stream - keep most recent n images - only prune in bar, so nothing is removed",
+			images: testutil.ImageList(
+				testutil.UnmanagedImage("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", false, "", ""),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream(registryHost, "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", "otherregistry/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000004", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000004"),
+					),
+				)),
+			),
+			namespacesToPrune:      []string{"bar"},
+			expectedImageDeletions: []string{},
+			expectedStreamUpdates:  []string{},
 		},
 
 		{
@@ -879,20 +904,24 @@ func TestImagePruning(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			options := PrunerOptions{
-				Namespace:   test.namespace,
-				AllImages:   test.allImages,
-				Images:      &test.images,
-				Streams:     &test.streams,
-				Pods:        &test.pods,
-				RCs:         &test.rcs,
-				BCs:         &test.bcs,
-				Builds:      &test.builds,
-				DSs:         &test.dss,
-				Deployments: &test.deployments,
-				DCs:         &test.dcs,
-				RSs:         &test.rss,
-				LimitRanges: test.limits,
-				RegistryURL: &url.URL{Scheme: "https", Host: registryHost},
+				Namespace:         test.namespace,
+				NamespacesToPrune: sets.NewString("foo", "bar"),
+				AllImages:         test.allImages,
+				Images:            &test.images,
+				Streams:           &test.streams,
+				Pods:              &test.pods,
+				RCs:               &test.rcs,
+				BCs:               &test.bcs,
+				Builds:            &test.builds,
+				DSs:               &test.dss,
+				Deployments:       &test.deployments,
+				DCs:               &test.dcs,
+				RSs:               &test.rss,
+				LimitRanges:       test.limits,
+				RegistryURL:       &url.URL{Scheme: "https", Host: registryHost},
+			}
+			if len(test.namespacesToPrune) > 0 {
+				options.NamespacesToPrune = sets.NewString(test.namespacesToPrune...)
 			}
 			if test.pruneOverSizeLimit != nil {
 				options.PruneOverSizeLimit = test.pruneOverSizeLimit
@@ -1181,20 +1210,21 @@ func TestRegistryPruning(t *testing.T) {
 			keepYoungerThan := 60 * time.Minute
 			keepTagRevisions := 1
 			options := PrunerOptions{
-				KeepYoungerThan:  &keepYoungerThan,
-				KeepTagRevisions: &keepTagRevisions,
-				PruneRegistry:    &test.pruneRegistry,
-				Images:           &test.images,
-				Streams:          &test.streams,
-				Pods:             &kapi.PodList{},
-				RCs:              &kapi.ReplicationControllerList{},
-				BCs:              &buildapi.BuildConfigList{},
-				Builds:           &buildapi.BuildList{},
-				DSs:              &kapisext.DaemonSetList{},
-				Deployments:      &kapisext.DeploymentList{},
-				DCs:              &appsapi.DeploymentConfigList{},
-				RSs:              &kapisext.ReplicaSetList{},
-				RegistryURL:      &url.URL{Scheme: "https", Host: "registry1.io"},
+				NamespacesToPrune: sets.NewString("foo", "bar"),
+				KeepYoungerThan:   &keepYoungerThan,
+				KeepTagRevisions:  &keepTagRevisions,
+				PruneRegistry:     &test.pruneRegistry,
+				Images:            &test.images,
+				Streams:           &test.streams,
+				Pods:              &kapi.PodList{},
+				RCs:               &kapi.ReplicationControllerList{},
+				BCs:               &buildapi.BuildConfigList{},
+				Builds:            &buildapi.BuildList{},
+				DSs:               &kapisext.DaemonSetList{},
+				Deployments:       &kapisext.DeploymentList{},
+				DCs:               &appsapi.DeploymentConfigList{},
+				RSs:               &kapisext.ReplicaSetList{},
+				RegistryURL:       &url.URL{Scheme: "https", Host: "registry1.io"},
 			}
 			p, err := NewPruner(options)
 			if err != nil {
@@ -1258,16 +1288,17 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 	rss := testutil.RSList()
 
 	options := PrunerOptions{
-		Images:      &images,
-		Streams:     &streams,
-		Pods:        &pods,
-		RCs:         &rcs,
-		BCs:         &bcs,
-		Builds:      &builds,
-		DSs:         &dss,
-		Deployments: &deployments,
-		DCs:         &dcs,
-		RSs:         &rss,
+		NamespacesToPrune: sets.NewString("foo", "bar"),
+		Images:            &images,
+		Streams:           &streams,
+		Pods:              &pods,
+		RCs:               &rcs,
+		BCs:               &bcs,
+		Builds:            &builds,
+		DSs:               &dss,
+		Deployments:       &deployments,
+		DCs:               &dcs,
+		RSs:               &rss,
 	}
 	keepYoungerThan := 24 * time.Hour
 	keepTagRevisions := 2

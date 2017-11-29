@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	fakediscovery "k8s.io/client-go/discovery/fake"
@@ -35,10 +37,12 @@ var logLevel = flag.Int("loglevel", 0, "")
 
 func TestImagePruneNamespaced(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
-	kFake := fake.NewSimpleClientset()
+	ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "foo"}}
+	kFake := fake.NewSimpleClientset(ns)
 	imageFake := imageclient.NewSimpleClientset()
 	opts := &PruneImagesOptions{
-		Namespace: "foo",
+		Namespace:                           "foo",
+		NamespacesToAllowProtectionSelector: labels.SelectorFromSet(labels.Set{protectionLabel: "true"}),
 
 		AppsClient:  appsclient.NewSimpleClientset().Apps(),
 		BuildClient: buildclient.NewSimpleClientset().Build(),
@@ -65,6 +69,9 @@ func TestImagePruneNamespaced(t *testing.T) {
 		}
 	}
 	for _, a := range kFake.Actions() {
+		if a.GetResource().Resource == "namespaces" {
+			continue
+		}
 		if a.GetNamespace() != "foo" {
 			t.Errorf("Unexpected namespace while pruning %s: %s", a.GetResource(), a.GetNamespace())
 		}
@@ -73,12 +80,13 @@ func TestImagePruneNamespaced(t *testing.T) {
 
 func TestImagePruneErrOnBadReference(t *testing.T) {
 	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "foo"}}
 	podBad := testutil.Pod("foo", "pod1", kapi.PodRunning, "invalid image reference")
 	podGood := testutil.Pod("foo", "pod2", kapi.PodRunning, "example.com/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")
 	dep := testutil.Deployment("foo", "dep1", "do not blame me")
 	bcBad := testutil.BC("foo", "bc1", "source", "ImageStreamImage", "foo", "bar:invalid-digest")
 
-	kFake := fake.NewSimpleClientset(&podBad, &podGood, &dep)
+	kFake := fake.NewSimpleClientset(ns, &podBad, &podGood, &dep)
 	imageFake := imageclient.NewSimpleClientset()
 	fakeDiscovery := &fakeVersionDiscovery{
 		masterVersion: version.Get(),
@@ -93,14 +101,15 @@ func TestImagePruneErrOnBadReference(t *testing.T) {
 
 	errBuf := bytes.NewBuffer(make([]byte, 0, 4096))
 	opts := &PruneImagesOptions{
-		AppsClient:      appsclient.NewSimpleClientset().Apps(),
-		BuildClient:     buildclient.NewSimpleClientset(&bcBad).Build(),
-		ImageClient:     imageFake.Image(),
-		KubeClient:      kFake,
-		DiscoveryClient: fakeDiscovery,
-		Timeout:         time.Second,
-		Out:             ioutil.Discard,
-		ErrOut:          errBuf,
+		NamespacesToAllowProtectionSelector: labels.SelectorFromSet(labels.Set{protectionLabel: "true"}),
+		AppsClient:                          appsclient.NewSimpleClientset().Apps(),
+		BuildClient:                         buildclient.NewSimpleClientset(&bcBad).Build(),
+		ImageClient:                         imageFake.Image(),
+		KubeClient:                          kFake,
+		DiscoveryClient:                     fakeDiscovery,
+		Timeout:                             time.Second,
+		Out:                                 ioutil.Discard,
+		ErrOut:                              errBuf,
 	}
 
 	verifyOutput := func(out string, expectClientVersionMismatch bool) {
