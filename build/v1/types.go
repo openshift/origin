@@ -899,14 +899,27 @@ type BuildConfigStatus struct {
 	LastVersion int64 `json:"lastVersion" protobuf:"varint,1,opt,name=lastVersion"`
 }
 
+// SecretLocalReference contains information that points to the local secret being used
+type SecretLocalReference struct {
+	// Name is the name of the resource in the same namespace being referenced
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+}
+
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
 type WebHookTrigger struct {
 	// secret used to validate requests.
+	// Deprecated: use SecretReference instead.
 	Secret string `json:"secret,omitempty" protobuf:"bytes,1,opt,name=secret"`
 
 	// allowEnv determines whether the webhook can set environment variables; can only
 	// be set to true for GenericWebHook.
 	AllowEnv bool `json:"allowEnv,omitempty" protobuf:"varint,2,opt,name=allowEnv"`
+
+	// secretReference is a reference to a secret in the same namespace,
+	// containing the value to be validated when the webhook is invoked.
+	// The secret being referenced must contain a key named "WebHookSecretKey", the value
+	// of which will be checked against the value supplied in the webhook invocation.
+	SecretReference *SecretLocalReference `json:"secretReference,omitempty" protobuf:"bytes,3,opt,name=secretReference"`
 }
 
 // ImageChangeTrigger allows builds to be triggered when an ImageStream changes
