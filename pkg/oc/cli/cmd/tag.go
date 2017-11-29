@@ -202,7 +202,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 				ref.Namespace = o.namespace
 			}
 			if sourceKind == "ImageStreamTag" {
-				if len(ref.Tag) == 0 {
+				if len(ref.Tag) == 0 && !o.aliasTag {
 					return fmt.Errorf("--source=ImageStreamTag requires a valid <name>:<tag> in SOURCE")
 				}
 			} else {
@@ -349,7 +349,7 @@ func (o TagOptions) Validate() error {
 		if err != nil {
 			return err
 		}
-		if cross {
+		if cross && o.ref.Tag != "" {
 			return errors.New("cannot set alias across different Image Streams")
 		}
 	}
