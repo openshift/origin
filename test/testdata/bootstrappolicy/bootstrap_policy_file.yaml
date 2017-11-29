@@ -4452,6 +4452,7 @@ items:
     verbs:
     - update
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -4505,6 +4506,7 @@ items:
     - list
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -4719,6 +4721,7 @@ items:
     resources:
     - '*'
     verbs:
+    - get
     - list
   - apiGroups:
     - ""
@@ -5024,6 +5027,7 @@ items:
     name: system:controller:replicaset-controller
   rules:
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -5034,6 +5038,7 @@ items:
     - update
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -5041,6 +5046,7 @@ items:
     verbs:
     - update
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
@@ -5725,6 +5731,7 @@ items:
     - list
     - watch
   - apiGroups:
+    - apps
     - extensions
     attributeRestrictions: null
     resources:
