@@ -16,8 +16,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 

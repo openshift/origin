@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )

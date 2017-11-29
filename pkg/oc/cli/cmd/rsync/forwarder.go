@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/transport/spdy"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // portForwarder starts port forwarding to a given pod

@@ -15,7 +15,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/oc/admin"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
@@ -30,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/policy"
 	"github.com/openshift/origin/pkg/oc/cli/sa"
 	"github.com/openshift/origin/pkg/oc/cli/secrets"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const productName = `OpenShift`

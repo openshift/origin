@@ -13,12 +13,12 @@ import (
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	clustdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster"
 	agldiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/aggregated_logging"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"

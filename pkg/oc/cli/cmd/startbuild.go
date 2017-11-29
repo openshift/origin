@@ -39,8 +39,8 @@ import (
 	buildclientinternal "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	oerrors "github.com/openshift/origin/pkg/util/errors"
 )
 

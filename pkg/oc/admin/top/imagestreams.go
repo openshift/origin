@@ -16,9 +16,9 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const TopImageStreamsRecommendedName = "imagestreams"

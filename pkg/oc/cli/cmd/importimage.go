@@ -18,10 +18,10 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	imageapiv1 "github.com/openshift/api/image/v1"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 

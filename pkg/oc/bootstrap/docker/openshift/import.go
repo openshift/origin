@@ -8,8 +8,8 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // ImportObjects imports objects into OpenShift from a particular location

@@ -11,9 +11,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/ipfailover"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // KeepalivedPlugin is an IP Failover configurator plugin for keepalived sidecar.
