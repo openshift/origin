@@ -414,10 +414,11 @@
         },
         {
 	    "type": "bind",
-	    "source": "/var/lib/docker",
-	    "destination": "/var/lib/docker",
+	    "source": "/var/lib/docker/containers",
+	    "destination": "/var/lib/docker/containers",
 	    "options": [
 		"bind",
+                "slave",
 		"rw",
 		"mode=755"
 	    ]
