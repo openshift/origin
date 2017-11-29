@@ -10,7 +10,6 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
-	v1beta1extensions "k8s.io/api/extensions/v1beta1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -617,9 +616,8 @@ func apiLegacyV1(all map[string]rest.Storage) *genericapiserver.APIGroupInfo {
 		VersionedResourcesStorageMap: map[string]map[string]rest.Storage{},
 		Scheme: kapi.Scheme,
 		// version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-		ParameterCodec:              kapi.ParameterCodec,
-		NegotiatedSerializer:        kapi.Codecs,
-		SubresourceGroupVersionKind: map[string]schema.GroupVersionKind{},
+		ParameterCodec:       kapi.ParameterCodec,
+		NegotiatedSerializer: kapi.Codecs,
 	}
 
 	// TODO, just create this with lowercase names
@@ -628,7 +626,6 @@ func apiLegacyV1(all map[string]rest.Storage) *genericapiserver.APIGroupInfo {
 		storage[strings.ToLower(k)] = v
 	}
 	apiGroupInfo.VersionedResourcesStorageMap["v1"] = storage
-	apiGroupInfo.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return apiGroupInfo
 }
 
