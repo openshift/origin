@@ -24741,8 +24741,18 @@ objects:
           image: ${IMAGE_PROMETHEUS}
           imagePullPolicy: IfNotPresent
           volumeMounts:
-          - mountPath: /etc/prometheus
+          - mountPath: /etc/prometheus/prometheus.yml
             name: prometheus-config
+            readOnly: true
+            # ..data/ is a workaround for wrong permissions applied
+            # with subPath. https://github.com/kubernetes/kubernetes/issues/54487
+            subPath: ..data/prometheus.yml
+          - mountPath: /etc/prometheus/prometheus.rules
+            name: prometheus-rules
+            readOnly: true
+            # ..data/ is a workaround for wrong permissions applied
+            # with subPath. https://github.com/kubernetes/kubernetes/issues/54487
+            subPath: ..data/prometheus.rules
           - mountPath: /prometheus
             name: prometheus-data
 
@@ -24807,6 +24817,10 @@ objects:
           configMap:
             defaultMode: 420
             name: prometheus
+        - name: prometheus-rules
+          configMap:
+            defaultMode: 420
+            name: prometheus-rules
         - name: prometheus-secrets
           secret:
             secretName: prometheus-proxy
@@ -24836,17 +24850,6 @@ objects:
     name: prometheus
     namespace: "${NAMESPACE}"
   data:
-    prometheus.rules: |
-      groups:
-      - name: example-rules
-        interval: 30s # defaults to global interval
-        rules:
-        - alert: Node Down
-          expr: up{job="kubernetes-nodes"} == 0
-          annotations:
-            miqTarget: "ContainerNode"
-            severity: "HIGH"
-            message: "{{$labels.instance}} is down"
     prometheus.yml: |
       rule_files:
         - 'prometheus.rules'
@@ -25029,6 +25032,24 @@ objects:
           static_configs:
           - targets:
             - "localhost:9093"
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: prometheus-rules
+    namespace: "${NAMESPACE}"
+  data:
+    prometheus.rules: |
+      groups:
+      - name: example-rules
+        interval: 30s # defaults to global interval
+        rules:
+        - alert: Node Down
+          expr: up{job="kubernetes-nodes"} == 0
+          annotations:
+            miqTarget: "ContainerNode"
+            severity: "HIGH"
+            message: "{{$labels.instance}} is down"
 
 # Create a fully end-to-end TLS connection to the alert proxy
 - apiVersion: route.openshift.io/v1
