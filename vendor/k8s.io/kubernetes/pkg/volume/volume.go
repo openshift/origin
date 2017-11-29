@@ -228,3 +228,6 @@ func IsDeletedVolumeInUse(err error) bool {
 func (err deletedVolumeInUseError) Error() string {
 	return string(err)
 }
+
+func HelloWorld() {
+}
