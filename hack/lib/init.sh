@@ -51,7 +51,11 @@ os::log::stacktrace::install
 os::util::environment::update_path_var
 
 if [[ -z "${OS_TMP_ENV_SET-}" ]]; then
-	os::util::environment::setup_tmpdir_vars "$( basename "$0" ".sh" )"
+    if [[ "$0" =~ *.sh ]]; then
+       os::util::environment::setup_tmpdir_vars "$( basename "$0" ".sh" )"
+    else
+        os::util::environment::setup_tmpdir_vars "shell"
+    fi
 fi
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
