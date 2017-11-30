@@ -30,7 +30,7 @@ function os::util::absolute_path() {
 readonly -f os::util::absolute_path
 
 # find the absolute path to the root of the Origin source tree
-init_source="$( dirname "${BASH_SOURCE}" )/../.."
+init_source="$( dirname "${BASH_SOURCE[0]}" )/../.."
 OS_ROOT="$( os::util::absolute_path "${init_source}" )"
 export OS_ROOT
 cd "${OS_ROOT}"
@@ -51,14 +51,14 @@ os::log::stacktrace::install
 os::util::environment::update_path_var
 
 if [[ -z "${OS_TMP_ENV_SET-}" ]]; then
-    if [[ "$0" =~ *.sh ]]; then
-       os::util::environment::setup_tmpdir_vars "$( basename "$0" ".sh" )"
-    else
-        os::util::environment::setup_tmpdir_vars "shell"
-    fi
+	if [[ "${BASH_SOURCE[0]}" =~ .*\.sh ]]; then
+		os::util::environment::setup_tmpdir_vars "$( basename "${BASH_SOURCE[0]}" ".sh" )"
+	else
+		os::util::environment::setup_tmpdir_vars "shell"
+	fi
 fi
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
 if [[ -n "${JUNIT_REPORT:-}" ]]; then
-  export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
 fi
