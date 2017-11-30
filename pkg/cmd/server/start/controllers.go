@@ -75,6 +75,7 @@ func getOpenshiftControllerOptions(args map[string][]string) (origincontrollers.
 	}
 
 	return origincontrollers.OpenshiftControllerOptions{
+		Controllers: cmserver.KubeControllerManagerConfiguration.Controllers,
 		HPAControllerOptions: origincontrollers.HPAControllerOptions{
 			SyncPeriod:               cmserver.KubeControllerManagerConfiguration.HorizontalPodAutoscalerSyncPeriod,
 			UpscaleForbiddenWindow:   cmserver.KubeControllerManagerConfiguration.HorizontalPodAutoscalerUpscaleForbiddenWindow,

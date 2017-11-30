@@ -4,7 +4,9 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kexternalinformers "k8s.io/client-go/informers"
+	"k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
@@ -24,6 +26,8 @@ import (
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
+
+var ControllersDisabledByDefault = sets.NewString()
 
 type ControllerContext struct {
 	OpenshiftControllerOptions OpenshiftControllerOptions
@@ -48,6 +52,13 @@ type ControllerContext struct {
 // OpenshiftControllerOptions contain the options used to run the controllers.  Eventually we need to construct a way to properly
 // configure these in a config struct.  This at least lets us know what we have.
 type OpenshiftControllerOptions struct {
+	// Controllers is the list of controllers to enable or disable
+	// '*' means "all enabled by default controllers"
+	// 'foo' means "enable 'foo'"
+	// '-foo' means "disable 'foo'"
+	// first item for a particular name wins
+	Controllers []string
+
 	HPAControllerOptions       HPAControllerOptions
 	ResourceQuotaOptions       ResourceQuotaOptions
 	ServiceAccountTokenOptions ServiceAccountTokenOptions
@@ -69,9 +80,10 @@ type ServiceAccountTokenOptions struct {
 	ConcurrentSyncs int32
 }
 
-// TODO wire this up to something that handles the names.  The logic is available upstream, we just have to wire to it
+// IsControllerEnabled checks if the given controller should be enabled.
 func (c ControllerContext) IsControllerEnabled(name string) bool {
-	return true
+	glog.Infof("DEBUGG: controllers=%#v", c.OpenshiftControllerOptions.Controllers)
+	return app.IsControllerEnabled(name, ControllersDisabledByDefault, c.OpenshiftControllerOptions.Controllers...)
 }
 
 type ControllerClientBuilder interface {

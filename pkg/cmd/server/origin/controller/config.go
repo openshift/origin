@@ -55,6 +55,8 @@ func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, e
 // OpenshiftControllerConfig is the runtime (non-serializable) config object used to
 // launch the set of openshift (not kube) controllers.
 type OpenshiftControllerConfig struct {
+	Initializers map[string]InitFunc
+
 	ServiceAccountTokenControllerOptions ServiceAccountTokenControllerOptions
 
 	ServiceAccountControllerOptions ServiceAccountControllerOptions
@@ -79,39 +81,80 @@ type OpenshiftControllerConfig struct {
 	HorizontalPodAutoscalerControllerConfig HorizontalPodAutoscalerControllerConfig
 }
 
-func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]InitFunc, error) {
+// NewOpenShiftControllerInitializers returns a map of Openshift controller.
+// If this function is called with nil config it will return the map still but
+// running it this way will result in nil panics as some of the controller
+// require further initialization based on config.
+func NewOpenShiftControllerInitializers(config *OpenshiftControllerConfig) map[string]InitFunc {
 	ret := map[string]InitFunc{}
 
-	ret["openshift.io/serviceaccount"] = c.ServiceAccountControllerOptions.RunController
+	ret["openshift.io/serviceaccount"] = func(c ControllerContext) (bool, error) {
+		return config.ServiceAccountControllerOptions.RunController(c)
+	}
 
 	ret["openshift.io/serviceaccount-pull-secrets"] = RunServiceAccountPullSecretsController
 	ret["openshift.io/origin-namespace"] = RunOriginNamespaceController
-	ret["openshift.io/service-serving-cert"] = c.ServiceServingCertsControllerOptions.RunController
 
-	ret["openshift.io/build"] = c.BuildControllerConfig.RunController
+	ret["openshift.io/service-serving-cert"] = func(c ControllerContext) (bool, error) {
+		return config.ServiceServingCertsControllerOptions.RunController(c)
+	}
+
+	ret["openshift.io/build"] = func(c ControllerContext) (bool, error) {
+		return config.BuildControllerConfig.RunController(c)
+	}
 	ret["openshift.io/build-config-change"] = RunBuildConfigChangeController
 
-	ret["openshift.io/deployer"] = c.DeployerControllerConfig.RunController
-	ret["openshift.io/deploymentconfig"] = c.DeploymentConfigControllerConfig.RunController
+	ret["openshift.io/deployer"] = func(c ControllerContext) (bool, error) {
+		return config.DeployerControllerConfig.RunController(c)
+	}
 
-	ret["openshift.io/image-trigger"] = c.ImageTriggerControllerConfig.RunController
-	ret["openshift.io/image-import"] = c.ImageImportControllerConfig.RunController
-	ret["openshift.io/image-signature-import"] = c.ImageSignatureImportControllerConfig.RunController
+	ret["openshift.io/deploymentconfig"] = func(c ControllerContext) (bool, error) {
+		return config.DeploymentConfigControllerConfig.RunController(c)
+	}
+
+	ret["openshift.io/image-trigger"] = func(c ControllerContext) (bool, error) {
+		return config.ImageTriggerControllerConfig.RunController(c)
+	}
+
+	ret["openshift.io/image-import"] = func(c ControllerContext) (bool, error) {
+		return config.ImageImportControllerConfig.RunController(c)
+	}
+
+	ret["openshift.io/image-signature-import"] = func(c ControllerContext) (bool, error) {
+		return config.ImageSignatureImportControllerConfig.RunController(c)
+	}
 
 	ret["openshift.io/templateinstance"] = RunTemplateInstanceController
 
-	ret["openshift.io/sdn"] = c.SDNControllerConfig.RunController
-	ret["openshift.io/unidling"] = c.UnidlingControllerConfig.RunController
-	ret["openshift.io/ingress-ip"] = c.IngressIPControllerConfig.RunController
+	ret["openshift.io/sdn"] = func(c ControllerContext) (bool, error) {
+		return config.SDNControllerConfig.RunController(c)
+	}
+
+	ret["openshift.io/unidling"] = func(c ControllerContext) (bool, error) {
+		return config.UnidlingControllerConfig.RunController(c)
+	}
+
+	ret["openshift.io/ingress-ip"] = func(c ControllerContext) (bool, error) {
+		return config.IngressIPControllerConfig.RunController(c)
+	}
 
 	ret["openshift.io/resourcequota"] = RunResourceQuotaManager
-	ret["openshift.io/cluster-quota-reconciliation"] = c.ClusterQuotaReconciliationControllerConfig.RunController
+
+	ret["openshift.io/cluster-quota-reconciliation"] = func(c ControllerContext) (bool, error) {
+		return config.ClusterQuotaReconciliationControllerConfig.RunController(c)
+	}
 
 	// overrides the Kube HPA controller config, so that we can point it at an HTTPS Heapster
 	// in openshift-infra, and pass it a scale client that knows how to scale DCs
-	ret["openshift.io/horizontalpodautoscaling"] = c.HorizontalPodAutoscalerControllerConfig.RunController
+	ret["openshift.io/horizontalpodautoscaling"] = func(c ControllerContext) (bool, error) {
+		return config.HorizontalPodAutoscalerControllerConfig.RunController(c)
+	}
 
-	return ret, nil
+	return ret
+}
+
+func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]InitFunc, error) {
+	return NewOpenShiftControllerInitializers(c), nil
 }
 
 // NewOpenShiftControllerPreStartInitializers returns list of initializers for controllers
@@ -131,11 +174,10 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		return nil, err
 	}
 
-	ret.ServiceAccountTokenControllerOptions = ServiceAccountTokenControllerOptions{
-		RootClientBuilder: kcontroller.SimpleControllerClientBuilder{
-			ClientConfig: loopbackClientConfig,
-		},
+	ret.ServiceAccountTokenControllerOptions.RootClientBuilder = kcontroller.SimpleControllerClientBuilder{
+		ClientConfig: loopbackClientConfig,
 	}
+
 	if len(options.ServiceAccountConfig.PrivateKeyFile) > 0 {
 		ret.ServiceAccountTokenControllerOptions.PrivateKey, err = cert.PrivateKeyFromFile(options.ServiceAccountConfig.PrivateKeyFile)
 		if err != nil {
@@ -171,9 +213,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		ret.ServiceAccountTokenControllerOptions.ServiceServingCA = append(ret.ServiceAccountTokenControllerOptions.ServiceServingCA, serviceServingCA...)
 	}
 
-	ret.ServiceAccountControllerOptions = ServiceAccountControllerOptions{
-		ManagedNames: options.ServiceAccountConfig.ManagedNames,
-	}
+	ret.ServiceAccountControllerOptions.ManagedNames = options.ServiceAccountConfig.ManagedNames
 
 	storageVersion := options.EtcdStorageConfig.OpenShiftStorageVersion
 	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
