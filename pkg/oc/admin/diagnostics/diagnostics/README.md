@@ -52,7 +52,7 @@ logic. This provides two major benefits:
 Having configuration files where ansible places them means you will generally
 not even need to specify where to find them. Running:
 
-    openshift ex diagnostics
+    oc ex diagnostics
 
 by itself will look for master and node configs (in addition to client
 config file) in the standard locations and use them if found; so this
@@ -60,7 +60,7 @@ should make the ansible-installed use case as simple as possible. It's also
 very easy to use configuration files when they are not in the expected
 Enterprise locations:
 
-    openshift ex diagnostics --master-config=... --node-config=...
+    oc ex diagnostics --master-config=... --node-config=...
 
 Having logs in journald is necessary for the current log analysis
 logic. Other usage may have logs going into files, output to stdout,

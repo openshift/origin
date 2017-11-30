@@ -29,7 +29,7 @@ Commands are organized in the package structure as:
 
 * https://github.com/openshift/origin/tree/master/pkg/oc[pkg/oc]
 ** https://github.com/openshift/origin/tree/master/pkg/oc/cli[pkg/cmd/cli] - `oc` or `openshift cli`, and `kubectl` commands.
-** https://github.com/openshift/origin/tree/master/pkg/oc/experimental[pkg/cmd/experimental] - `openshift ex` command.
+** https://github.com/openshift/origin/tree/master/pkg/oc/experimental[pkg/cmd/experimental] - `oc ex` command.
 
 === Command Structure
 

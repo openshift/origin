@@ -7,9 +7,9 @@ os::test::junit::declare_suite_start "cmd/help"
 
 # verify some default commands
 os::cmd::expect_success 'openshift'
-os::cmd::expect_success 'openshift ex'
 os::cmd::expect_success 'kubectl'
 os::cmd::expect_success 'oc'
+os::cmd::expect_success 'oc ex'
 os::cmd::expect_success 'origin'
 
 # help for root commands must be consistent
@@ -75,9 +75,9 @@ os::cmd::expect_failure_and_text 'oc login --certificate-authority=/path/to/inva
 os::cmd::expect_failure 'oc policy TYPO'
 os::cmd::expect_failure 'oc secrets TYPO'
 
-# make sure that LDAP group sync and prune exist under both parents
-os::cmd::expect_success_and_text 'openshift ex sync-groups --help' 'external provider'
-os::cmd::expect_success_and_text 'openshift ex prune-groups --help' 'external provider'
+# make sure that LDAP group sync and prune exist under both experimental and `oc adm`
+os::cmd::expect_success_and_text 'oc ex sync-groups --help' 'external provider'
+os::cmd::expect_success_and_text 'oc ex prune-groups --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm groups sync --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm groups prune --help' 'external provider'
 os::cmd::expect_success_and_text 'oc adm prune groups --help' 'external provider'
