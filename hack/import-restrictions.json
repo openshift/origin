@@ -21,6 +21,22 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/oc"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/oc"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/build/builder",
       "github.com/openshift/origin/pkg/cmd/infra/builder"
     ],
