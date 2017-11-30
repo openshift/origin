@@ -19461,8 +19461,8 @@
      },
      "x-kubernetes-action": "get",
      "x-kubernetes-group-version-kind": {
-      "group": "apps.openshift.io",
-      "version": "v1",
+      "group": "extensions",
+      "version": "v1beta1",
       "kind": "Scale"
      }
     },
@@ -19506,8 +19506,8 @@
      },
      "x-kubernetes-action": "put",
      "x-kubernetes-group-version-kind": {
-      "group": "apps.openshift.io",
-      "version": "v1",
+      "group": "extensions",
+      "version": "v1beta1",
       "kind": "Scale"
      }
     },
@@ -19553,8 +19553,8 @@
      },
      "x-kubernetes-action": "patch",
      "x-kubernetes-group-version-kind": {
-      "group": "apps.openshift.io",
-      "version": "v1",
+      "group": "extensions",
+      "version": "v1beta1",
       "kind": "Scale"
      }
     },
