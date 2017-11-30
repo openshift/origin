@@ -1,11 +1,13 @@
 package integration
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	internalextensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
@@ -49,6 +51,40 @@ func TestDeployScale(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 	generation := dc.Generation
+
+	{
+		// Get scale subresource
+		legacyPath := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", dc.Namespace, dc.Name)
+		legacyScale := &unstructured.Unstructured{}
+		if err := adminAppsClient.RESTClient().Get().AbsPath(legacyPath).Do().Into(legacyScale); err != nil {
+			t.Fatal(err)
+		}
+		// Ensure correct type
+		if legacyScale.GetAPIVersion() != "extensions/v1beta1" {
+			t.Fatalf("Expected extensions/v1beta1, got %v", legacyScale.GetAPIVersion())
+		}
+		// Ensure we can submit the same type back
+		if err := adminAppsClient.RESTClient().Put().AbsPath(legacyPath).Body(legacyScale).Do().Error(); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	{
+		// Get scale subresource
+		scalePath := fmt.Sprintf("/apis/apps.openshift.io/v1/namespaces/%s/deploymentconfigs/%s/scale", dc.Namespace, dc.Name)
+		scale := &unstructured.Unstructured{}
+		if err := adminAppsClient.RESTClient().Get().AbsPath(scalePath).Do().Into(scale); err != nil {
+			t.Fatal(err)
+		}
+		// Ensure correct type
+		if scale.GetAPIVersion() != "extensions/v1beta1" {
+			t.Fatalf("Expected extensions/v1beta1, got %v", scale.GetAPIVersion())
+		}
+		// Ensure we can submit the same type back
+		if err := adminAppsClient.RESTClient().Put().AbsPath(scalePath).Body(scale).Do().Error(); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	condition := func() (bool, error) {
 		config, err := adminAppsClient.DeploymentConfigs(namespace).Get(dc.Name, metav1.GetOptions{})
