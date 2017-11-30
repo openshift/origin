@@ -379,7 +379,8 @@ func (c *DeploymentController) makeDeployerPod(deployment *v1.ReplicationControl
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deployutil.DeployerPodNameForDeployment(deployment.Name),
 			Annotations: map[string]string{
-				deployapi.DeploymentAnnotation: deployment.Name,
+				deployapi.DeploymentAnnotation:       deployment.Name,
+				deployapi.DeploymentConfigAnnotation: deployutil.DeploymentConfigNameFor(deployment),
 			},
 			Labels: map[string]string{
 				deployapi.DeployerPodForDeploymentLabel: deployment.Name,
