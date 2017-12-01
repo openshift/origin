@@ -33,7 +33,6 @@
 // examples/quickstarts/rails-postgresql.json
 // examples/logging/logging-deployer.yaml
 // examples/heapster/heapster-standalone.yaml
-// examples/prometheus/node-exporter.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
@@ -13199,101 +13198,6 @@ func examplesHeapsterHeapsterStandaloneYaml() (*asset, error) {
 	return a, nil
 }
 
-var _examplesPrometheusNodeExporterYaml = []byte(`# node-exporter is an optional component that collects host level metrics from the nodes 
-# in the cluster. This group of resources will require the 'hostaccess' level of privilege, which
-# should only be granted to namespaces that administrators can access.
-apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: ServiceAccount
-  metadata:
-    name: prometheus-node-exporter
-  # You must grant hostaccess via: oadm policy add-scc-to-user -z prometheus-node-exporter hostaccess
-  # in order for the node-exporter to access the host network and mount /proc and /sys from the host
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      prometheus.io/scrape: "true"
-    labels:
-      app: prometheus-node-exporter
-    name: prometheus-node-exporter
-  spec:
-    clusterIP: None
-    ports:
-    - name: scrape
-      port: 9100
-      protocol: TCP
-      targetPort: 9100
-    selector:
-      app: prometheus-node-exporter
-- apiVersion: extensions/v1beta1
-  kind: DaemonSet
-  metadata:
-    name: prometheus-node-exporter
-    labels:
-      app: prometheus-node-exporter
-      role: monitoring
-  spec:
-    updateStrategy:
-      type: RollingUpdate
-    template:
-      metadata:
-        labels:
-          app: prometheus-node-exporter
-          role: monitoring
-        name: prometheus-exporter
-      spec:
-        serviceAccountName: prometheus-node-exporter
-        hostNetwork: true
-        hostPID: true
-        containers:
-        - image: openshift/prometheus-node-exporter:v0.14.0
-          args:
-          - "--collector.procfs=/host/proc"
-          - "--collector.sysfs=/host/sys"
-          name: node-exporter
-          ports:
-          - containerPort: 9100
-            name: scrape
-          resources:
-            requests:
-              memory: 30Mi
-              cpu: 100m
-            limits:
-              memory: 50Mi
-              cpu: 200m
-          volumeMounts:
-          - name: proc
-            readOnly:  true
-            mountPath: /host/proc
-          - name: sys
-            readOnly: true
-            mountPath: /host/sys
-        volumes:
-        - name: proc
-          hostPath:
-            path: /proc
-        - name: sys
-          hostPath:
-            path: /sys`)
-
-func examplesPrometheusNodeExporterYamlBytes() ([]byte, error) {
-	return _examplesPrometheusNodeExporterYaml, nil
-}
-
-func examplesPrometheusNodeExporterYaml() (*asset, error) {
-	bytes, err := examplesPrometheusNodeExporterYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "examples/prometheus/node-exporter.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _examplesPrometheusPrometheusYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -13324,6 +13228,7 @@ parameters:
   name: SESSION_SECRET
   generate: expression
   from: "[a-zA-Z0-9]{43}"
+
 objects:
 # Authorize the prometheus service account to read data about the cluster
 - apiVersion: v1
@@ -13540,7 +13445,7 @@ objects:
     name: prometheus
     namespace: "${NAMESPACE}"
   data:
-    prometheus.rules: |
+    alerting.rules: |
       groups:
       - name: example-rules
         interval: 30s # defaults to global interval
@@ -13551,9 +13456,23 @@ objects:
             miqTarget: "ContainerNode"
             severity: "HIGH"
             message: "{{$labels.instance}} is down"
+    
+    recording.rules: |
+      groups:
+      - name: aggregate_container_resources
+        rules:
+        - record: container_cpu_usage_rate
+          expr: sum without (cpu) (rate(container_cpu_usage_seconds_total[5m]))
+        - record: container_memory_rss_by_type
+          expr: container_memory_rss{id=~"/|/system.slice|/kubepods.slice"} > 0
+        - record: container_cpu_usage_percent_by_host
+          expr: sum by (hostname,type)(rate(container_cpu_usage_seconds_total{id="/"}[5m])) / on (hostname,type) machine_cpu_cores
+        - record: apiserver_request_count_rate_by_resources
+          expr: sum without (client,instance,contentType) (rate(apiserver_request_count[5m]))
+
     prometheus.yml: |
       rule_files:
-        - 'prometheus.rules'
+        - '*.rules'
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
       # This uses separate scrape configs for cluster components (i.e. API server, node)
@@ -13588,24 +13507,6 @@ objects:
           action: keep
           regex: default;kubernetes;https
 
-      # Scrape config for nodes.
-      #
-      # Each node exposes a /metrics endpoint that contains operational metrics for
-      # the Kubelet and other components.
-      - job_name: 'kubernetes-nodes'
-
-        scheme: https
-        tls_config:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
-        kubernetes_sd_configs:
-        - role: node
-
-        relabel_configs:
-        - action: labelmap
-          regex: __meta_kubernetes_node_label_(.+)
-
       # Scrape config for controllers.
       #
       # Each master node exposes a /metrics endpoint on :8444 that contains operational metrics for
@@ -13636,6 +13537,31 @@ objects:
           regex: (.+)(?::\d+)
           replacement: $1:8444
 
+      # Scrape config for nodes.
+      #
+      # Each node exposes a /metrics endpoint that contains operational metrics for
+      # the Kubelet and other components.
+      - job_name: 'kubernetes-nodes'
+
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: node
+
+        # Drop a very high cardinality metric that is incorrect in 3.7. It will be
+        # fixed in 3.9.
+        metric_relabel_configs:
+        - source_labels: [__name__]
+          action: drop
+          regex: 'openshift_sdn_pod_(setup|teardown)_latency(.*)'
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
       # Scrape config for cAdvisor.
       #
       # Beginning in Kube 1.7, each node exposes a /metrics/cadvisor endpoint that
@@ -13651,6 +13577,14 @@ objects:
 
         kubernetes_sd_configs:
         - role: node
+
+        # Exclude a set of high cardinality metrics that can contribute to significant
+        # memory use in large clusters. These can be selectively enabled as necessary
+        # for medium or small clusters.
+        metric_relabel_configs:
+        - source_labels: [__name__]
+          action: drop
+          regex: 'container_(cpu_user_seconds_total|cpu_cfs_periods_total|memory_usage_bytes|memory_swap|memory_working_set_bytes|memory_cache|last_seen|fs_(read_seconds_total|write_seconds_total|sector_(.*)|io_(.*)|reads_merged_total|writes_merged_total)|tasks_state|memory_failcnt|memory_failures_total|spec_memory_swap_limit_bytes|fs_(.*)_bytes_total|spec_(.*))'
 
         relabel_configs:
         - action: labelmap
@@ -14838,7 +14772,6 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
 	"examples/logging/logging-deployer.yaml": examplesLoggingLoggingDeployerYaml,
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
-	"examples/prometheus/node-exporter.yaml": examplesPrometheusNodeExporterYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
@@ -14925,7 +14858,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"logging-deployer.yaml": &bintree{examplesLoggingLoggingDeployerYaml, map[string]*bintree{}},
 		}},
 		"prometheus": &bintree{nil, map[string]*bintree{
-			"node-exporter.yaml": &bintree{examplesPrometheusNodeExporterYaml, map[string]*bintree{}},
 			"prometheus.yaml": &bintree{examplesPrometheusPrometheusYaml, map[string]*bintree{}},
 		}},
 		"quickstarts": &bintree{nil, map[string]*bintree{
