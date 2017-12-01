@@ -14327,7 +14327,7 @@ metadata:
   name: template-service-broker-apiserver
 parameters:
 - name: IMAGE
-  value: openshift/origin:latest
+  value: openshift/origin-template-service-broker:latest
 - name: NAMESPACE
   value: openshift-template-service-broker
 - name: LOGLEVEL
@@ -14363,7 +14363,7 @@ objects:
           image: ${IMAGE}
           imagePullPolicy: IfNotPresent
           command:
-          - "/usr/bin/openshift"
+          - "/usr/bin/template-service-broker"
           - "start"
           - "template-service-broker"
           - "--secure-port=8443"
