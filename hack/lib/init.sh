@@ -51,8 +51,8 @@ os::log::stacktrace::install
 os::util::environment::update_path_var
 
 if [[ -z "${OS_TMP_ENV_SET-}" ]]; then
-	if [[ "${BASH_SOURCE[0]}" =~ .*\.sh ]]; then
-		os::util::environment::setup_tmpdir_vars "$( basename "${BASH_SOURCE[0]}" ".sh" )"
+	if [[ "${0}" =~ .*\.sh ]]; then
+		os::util::environment::setup_tmpdir_vars "$( basename "${0}" ".sh" )"
 	else
 		os::util::environment::setup_tmpdir_vars "shell"
 	fi
