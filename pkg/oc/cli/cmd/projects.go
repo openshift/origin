@@ -13,6 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	clientcfg "github.com/openshift/origin/pkg/client/config"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -140,7 +141,7 @@ func (o ProjectsOptions) RunProjects() error {
 
 	var defaultContextName string
 	if currentContext != nil {
-		defaultContextName = cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+		defaultContextName = clientcfg.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
 	}
 
 	var msg string

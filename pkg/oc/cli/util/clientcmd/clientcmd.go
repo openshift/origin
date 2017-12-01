@@ -6,17 +6,15 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/spf13/pflag"
+
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/kubernetes/pkg/api"
+
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util"
 )
-
-const ConfigSyntax = " --master=<addr>"
 
 // Config contains all the necessary bits for client configuration
 type Config struct {
@@ -35,62 +33,6 @@ type Config struct {
 	// If true, no environment is loaded (for testing, primarily)
 	SkipEnv      bool
 	clientConfig clientcmd.ClientConfig
-}
-
-// NewConfig returns a new configuration
-func NewConfig() *Config {
-	return &Config{
-		MasterAddr:     flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080, AllowPrefix: true}.Default(),
-		KubernetesAddr: flagtypes.Addr{Value: "localhost:8080", DefaultScheme: "http", DefaultPort: 8080}.Default(),
-		CommonConfig:   restclient.Config{},
-	}
-}
-
-// BindClientConfigSecurityFlags adds flags for the supplied client config
-func BindClientConfigSecurityFlags(config *restclient.Config, flags *pflag.FlagSet) {
-	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
-	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client certificate file for TLS.")
-	flags.StringVar(&config.KeyFile, "client-key", config.KeyFile, "Path to a client key file for TLS.")
-	flags.StringVar(&config.CAFile, "certificate-authority", config.CAFile, "Path to a cert. file for the certificate authority")
-	flags.StringVar(&config.BearerToken, "token", config.BearerToken, "If present, the bearer token for this request.")
-}
-
-// Bind binds configuration values to the passed flagset
-func (cfg *Config) Bind(flags *pflag.FlagSet) {
-	flags.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
-	flags.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.")
-
-	if cfg.FromFile {
-		cfg.clientConfig = DefaultClientConfig(flags)
-	} else {
-		BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
-	}
-}
-
-// BindToFile is used when this config will not be bound to flags, but should load the config file
-// from disk if available.
-func (cfg *Config) BindToFile() *Config {
-	cfg.clientConfig = DefaultClientConfig(pflag.NewFlagSet("empty", pflag.ContinueOnError))
-	return cfg
-}
-
-func EnvVars(host string, caData []byte, insecure bool, bearerTokenFile string) []api.EnvVar {
-	envvars := []api.EnvVar{
-		{Name: "KUBERNETES_MASTER", Value: host},
-		{Name: "OPENSHIFT_MASTER", Value: host},
-	}
-
-	if len(bearerTokenFile) > 0 {
-		envvars = append(envvars, api.EnvVar{Name: "BEARER_TOKEN_FILE", Value: bearerTokenFile})
-	}
-
-	if len(caData) > 0 {
-		envvars = append(envvars, api.EnvVar{Name: "OPENSHIFT_CA_DATA", Value: string(caData)})
-	} else if insecure {
-		envvars = append(envvars, api.EnvVar{Name: "OPENSHIFT_INSECURE", Value: "true"})
-	}
-
-	return envvars
 }
 
 func (cfg *Config) bindEnv() error {

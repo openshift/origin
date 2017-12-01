@@ -13,8 +13,8 @@ import (
 	"k8s.io/kubernetes/federation/pkg/kubefed/util"
 	kubectl "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -51,7 +51,8 @@ func NewKubeFedCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	// Use an openshift command factory to ensure CmdNewVersion will work.
 	// It is interface compatible with the kube equivalent, so any calls to
 	// kube code will continue to work.
-	f := osclientcmd.New(cmds.PersistentFlags())
+	//f := osclientcmd.New(cmds.PersistentFlags())
+	f := kcmdutil.NewFactory(nil)
 
 	// From this point and forward we get warnings on flags that contain "_" separators
 	cmds.SetGlobalNormalizationFunc(flag.WarnWordSepNormalizeFunc)
@@ -73,7 +74,6 @@ func NewKubeFedCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	}
 	templates.ActsAsRootCommand(cmds, filters, groups...)
 
-	// Use the openshift-specific version command
 	cmds.AddCommand(kubectl.NewCmdOptions(out))
 
 	return cmds

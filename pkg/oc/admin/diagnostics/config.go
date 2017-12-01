@@ -5,9 +5,9 @@ import (
 
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	"github.com/openshift/origin/pkg/client/config"
 	clientdiagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
-	"github.com/openshift/origin/pkg/oc/cli/config"
 )
 
 // determine if we even have a client config

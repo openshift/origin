@@ -27,10 +27,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	clientcmd "github.com/openshift/origin/pkg/client/cmd"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router"

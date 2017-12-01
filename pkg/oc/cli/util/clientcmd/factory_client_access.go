@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,7 +38,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
@@ -63,7 +63,7 @@ func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) Client
 	clientConfig := optionalClientConfig
 	if optionalClientConfig == nil {
 		// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
-		clientConfig = DefaultClientConfig(flags)
+		clientConfig = osclientcmd.DefaultClientConfig(flags)
 		clientConfig = defaultingClientConfig{clientConfig}
 	}
 	factory := &ring0Factory{
@@ -113,30 +113,6 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	// cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery"), cfg.Host)
 	cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
 	return kcmdutil.NewCachedDiscoveryClient(newLegacyDiscoveryClient(kubeClient.Discovery().RESTClient()), cacheDir, time.Duration(10*time.Minute)), nil
-}
-
-func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
-	loadingRules := config.NewOpenShiftClientConfigLoadingRules()
-	flags.StringVar(&loadingRules.ExplicitPath, config.OpenShiftConfigFlagName, "", "Path to the config file to use for CLI requests.")
-	cobra.MarkFlagFilename(flags, config.OpenShiftConfigFlagName)
-
-	// set our explicit defaults
-	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}}
-	loadingRules.DefaultClientConfig = kclientcmd.NewDefaultClientConfig(kclientcmdapi.Config{}, defaultOverrides)
-
-	overrides := &kclientcmd.ConfigOverrides{ClusterDefaults: defaultOverrides.ClusterDefaults}
-	overrideFlags := kclientcmd.RecommendedConfigOverrideFlags("")
-	overrideFlags.ContextOverrideFlags.Namespace.ShortName = "n"
-	overrideFlags.AuthOverrideFlags.Username.LongName = ""
-	overrideFlags.AuthOverrideFlags.Password.LongName = ""
-	kclientcmd.BindOverrideFlags(overrides, flags, overrideFlags)
-	cobra.MarkFlagFilename(flags, overrideFlags.AuthOverrideFlags.ClientCertificate.LongName)
-	cobra.MarkFlagFilename(flags, overrideFlags.AuthOverrideFlags.ClientKey.LongName)
-	cobra.MarkFlagFilename(flags, overrideFlags.ClusterOverrideFlags.CertificateAuthority.LongName)
-
-	clientConfig := kclientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-
-	return clientConfig
 }
 
 func (f *ring0Factory) OpenShiftClientConfig() kclientcmd.ClientConfig {

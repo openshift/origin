@@ -6,7 +6,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/ipfailover"
+	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
 )
 
 func makeIPFailoverConfigOptions(selector string, replicas int32, serviceAccount string) *ipfailover.IPFailoverConfigCmdOptions {

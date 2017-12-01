@@ -12,8 +12,8 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/ipfailover"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
 )
 
 // KeepalivedPlugin is an IP Failover configurator plugin for keepalived sidecar.

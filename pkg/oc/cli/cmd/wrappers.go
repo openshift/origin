@@ -18,9 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	cmdconfig "github.com/openshift/origin/pkg/client/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/create"
-	cmdconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -229,7 +229,7 @@ var (
 	  * zsh completions are only supported in versions of zsh >= 5.2`)
 )
 
-func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCompletion(fullName string, out io.Writer) *cobra.Command {
 	cmdHelpName := fullName
 
 	if strings.HasSuffix(fullName, "completion") {

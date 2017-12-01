@@ -15,8 +15,26 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
+
+func envVars(host string, caData []byte, insecure bool, bearerTokenFile string) []kapi.EnvVar {
+	envvars := []kapi.EnvVar{
+		{Name: "KUBERNETES_MASTER", Value: host},
+		{Name: "OPENSHIFT_MASTER", Value: host},
+	}
+
+	if len(bearerTokenFile) > 0 {
+		envvars = append(envvars, kapi.EnvVar{Name: "BEARER_TOKEN_FILE", Value: bearerTokenFile})
+	}
+
+	if len(caData) > 0 {
+		envvars = append(envvars, kapi.EnvVar{Name: "OPENSHIFT_CA_DATA", Value: string(caData)})
+	} else if insecure {
+		envvars = append(envvars, kapi.EnvVar{Name: "OPENSHIFT_INSECURE", Value: "true"})
+	}
+
+	return envvars
+}
 
 func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, error) {
 	_, kclientConfig, err := configapi.GetInternalKubeClient(
@@ -26,7 +44,7 @@ func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, e
 	if err != nil {
 		return nil, err
 	}
-	return clientcmd.EnvVars(
+	return envVars(
 		kclientConfig.Host,
 		kclientConfig.CAData,
 		kclientConfig.Insecure,

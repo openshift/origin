@@ -3,7 +3,7 @@ package keepalived
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/ipfailover"
+	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
 )
 
 func TestNewIPFailoverConfiguratorPlugin(t *testing.T) {

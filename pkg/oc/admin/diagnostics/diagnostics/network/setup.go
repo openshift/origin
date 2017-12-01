@@ -16,11 +16,11 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
 	diagutil "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
-	"github.com/openshift/origin/pkg/oc/cli/config"
 )
 
 func (d *NetworkDiagnostic) TestSetup() error {
