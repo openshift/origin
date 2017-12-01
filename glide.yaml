@@ -13,16 +13,11 @@ import:
   version: master
 - package: github.com/vishvananda/netlink
   version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
-- package: github.com/google/cadvisor
-  repo:    git@github.com:openshift/google-cadvisor
-  version: release-0.27.1
 - package: github.com/emicklei/go-restful-swagger12
   repo:    https://github.com/openshift/emicklei-go-restful-swagger12
   version: release-1.0.1
 - package: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
-- package: github.com/docker/docker
-  version: 4f3616fb1c112e206b88cb7a9922bf49067a7756
 - package: github.com/fsouza/go-dockerclient
   version: 3f9370a4738ba8d0ed6eea63582ca6db5eb48032
 - package: github.com/cloudflare/cfssl
@@ -36,40 +31,40 @@ import:
   version: release-v1.2.0
 - package: k8s.io/gengo
   repo:    git@github.com:openshift/kubernetes-gengo
-  version: openshift-3.8
+  version: openshift-3.9
 - package: k8s.io/kube-openapi
-  version: 868f2f29720b192240e18284659231b440f9cda5
+  version: 39a7bf85c140f972372c2a0d1ee40adbf0c8bfe1
 - package: k8s.io/code-generator
   repo:    git@github.com:openshift/kubernetes-code-generator
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/apimachinery
   repo:    git@github.com:openshift/kubernetes-apimachinery
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/api
   repo:    git@github.com:openshift/kubernetes-api
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/client-go
   repo:    git@github.com:openshift/kubernetes-client-go
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/metrics
   repo:    git@github.com:openshift/kubernetes-metrics
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/apiserver
   repo:    git@github.com:openshift/kubernetes-apiserver
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/kube-aggregator
   repo:    git@github.com:openshift/kube-aggregator
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/apiextensions-apiserver
   repo:    git@github.com:openshift/kubernetes-apiextensions-apiserver
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
-  version: release-1.8.1
+  version: release-1.9.0-beta.1
 - package: github.com/openshift/api
-  version: master
+  version: release-3.9
 - package: github.com/openshift/client-go
-  version: master
+  version: release-3.9
 # only used by pkg/build/builder
 - package: github.com/kubernetes-incubator/cri-o
   version: a8ee86b1cce0c13bd541a99140682a92635ba9f7
