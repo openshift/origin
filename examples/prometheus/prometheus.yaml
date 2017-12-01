@@ -244,7 +244,7 @@ objects:
     name: prometheus
     namespace: "${NAMESPACE}"
   data:
-    prometheus.rules: |
+    alerting.rules: |
       groups:
       - name: example-rules
         interval: 30s # defaults to global interval
@@ -255,9 +255,21 @@ objects:
             miqTarget: "ContainerNode"
             severity: "HIGH"
             message: "{{$labels.instance}} is down"
+    recording.rules: |
+      groups:
+      - name: aggregate_container_resources
+        rules:
+        - record: container_cpu_usage_rate
+          expr: sum without (cpu) (rate(container_cpu_usage_seconds_total[3m]))
+        - record: container_memory_rss_by_type
+          expr: container_memory_rss{id=~"/|/system.slice|/kubepods.slice"} > 0
+        - record: container_cpu_usage_percent_by_host
+          expr: sum by (hostname,type)(rate(container_cpu_usage_seconds_total{id="/"}[3m])) / on (hostname,type) machine_cpu_cores
+        - record: apiserver_request_count_by_resources
+          expr: sum without (client,instance,contentType) (rate(apiserver_request_count[5m]))
     prometheus.yml: |
       rule_files:
-        - 'prometheus.rules'
+        - '*.rules'
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
       # This uses separate scrape configs for cluster components (i.e. API server, node)
