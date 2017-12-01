@@ -251,7 +251,7 @@ var _ = g.Describe("idling and unidling", func() {
 		os.Remove(idlingFile)
 	})
 
-	g.Describe("idling", func() {
+	g.Describe("idling [local]", func() {
 		g.Context("with a single service and DeploymentConfig [Conformance]", func() {
 			g.BeforeEach(func() {
 				framework.BeforeEach()
