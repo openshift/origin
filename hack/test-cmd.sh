@@ -104,7 +104,7 @@ for test in "${tests[@]}"; do
 
   os::test::junit::declare_suite_start "cmd/${namespace}-namespace-setup"
   # switch back to a standard identity. This prevents individual tests from changing contexts and messing up other tests
-  os::cmd::expect_success "oc login --server='${KUBERNETES_MASTER}' --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
+  os::cmd::try_until_success "oc login --server='${KUBERNETES_MASTER}' --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
   os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
   os::cmd::expect_success "oc new-project '${namespace}'"
   # wait for the project cache to catch up and correctly list us in the new project
