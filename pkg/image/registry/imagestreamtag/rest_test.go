@@ -16,8 +16,9 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
 	"github.com/openshift/origin/pkg/image/admission/testutil"
@@ -178,14 +179,14 @@ func TestGetImageStreamTag(t *testing.T) {
 				client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/images/"+testCase.image.Name),
-					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.image),
+					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.image),
 				)
 			}
 			if testCase.repo != nil {
 				client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/default/test"),
-					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
+					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
 				)
 			}
 
@@ -252,12 +253,12 @@ func TestGetImageStreamTagDIR(t *testing.T) {
 	client.Put(
 		context.TODO(),
 		etcdtest.AddPrefix("/images/"+image.Name),
-		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), image),
+		runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), image),
 	)
 	client.Put(
 		context.TODO(),
 		etcdtest.AddPrefix("/imagestreams/default/test"),
-		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo),
+		runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo),
 	)
 	obj, err := storage.Get(apirequest.NewDefaultContext(), "test:latest", &metav1.GetOptions{})
 	if err != nil {
@@ -382,7 +383,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				client.Put(
 					context.TODO(),
 					etcdtest.AddPrefix("/imagestreams/default/test"),
-					runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
+					runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), testCase.repo),
 				)
 			}
 
@@ -518,7 +519,7 @@ func TestCreateImageStreamTag(t *testing.T) {
 			client.Put(
 				context.TODO(),
 				etcdtest.AddPrefix("/imagestreams/default/test"),
-				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion),
+				runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion),
 					&imageapi.ImageStream{
 						ObjectMeta: metav1.ObjectMeta{
 							CreationTimestamp: metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),

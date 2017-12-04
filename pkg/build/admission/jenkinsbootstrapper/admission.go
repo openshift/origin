@@ -11,7 +11,7 @@ import (
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/admission"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
@@ -99,8 +99,8 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 
 	bulk := &cmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:   kapi.Registry.RESTMapper(),
-			ObjectTyper:  kapi.Scheme,
+			RESTMapper:   legacyscheme.Registry.RESTMapper(),
+			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: cmd.ClientMapperFromConfig(&impersonatingConfig),
 		},
 		Op: cmd.Create,
@@ -154,7 +154,7 @@ func (a *jenkinsBootstrapper) SetOpenshiftInternalTemplateClient(c templateclien
 	a.templateClient = c
 }
 
-func (a *jenkinsBootstrapper) Validate() error {
+func (a *jenkinsBootstrapper) ValidateInitialization() error {
 	if a.serviceClient == nil {
 		return fmt.Errorf("missing serviceClient")
 	}

@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -20,7 +20,7 @@ func GetTemplateFixture(filename string) (*templateapi.Template, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), jsonData)
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func GetImageFixture(filename string) (*imageapi.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), jsonData)
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
 	if err != nil {
 		return nil, err
 	}

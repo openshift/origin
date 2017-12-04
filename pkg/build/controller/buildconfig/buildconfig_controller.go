@@ -15,7 +15,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -82,7 +83,7 @@ func NewBuildConfigController(buildInternalClient buildinternalclient.Interface,
 		buildConfigInformer: buildConfigInformer.Informer(),
 
 		queue:    workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		recorder: eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "buildconfig-controller"}),
+		recorder: eventBroadcaster.NewRecorder(legacyscheme.Scheme, clientv1.EventSource{Component: "buildconfig-controller"}),
 	}
 
 	c.buildConfigInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{

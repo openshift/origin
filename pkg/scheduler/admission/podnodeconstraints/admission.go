@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	admission "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/api/meta"
@@ -166,7 +166,7 @@ func (o *podNodeConstraints) SetAuthorizer(a authorizer.Authorizer) {
 	o.authorizer = a
 }
 
-func (o *podNodeConstraints) Validate() error {
+func (o *podNodeConstraints) ValidateInitialization() error {
 	if o.authorizer == nil {
 		return fmt.Errorf("PodNodeConstraints needs an Openshift Authorizer")
 	}

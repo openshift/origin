@@ -5,7 +5,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
@@ -22,7 +21,6 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against brokertemplateinstances.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &templateapi.BrokerTemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.BrokerTemplateInstanceList{} },
 		DefaultQualifiedResource: templateapi.Resource("brokertemplateinstances"),

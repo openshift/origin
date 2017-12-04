@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -161,7 +161,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	t.Run("Legacy API", func(t *testing.T) {
 		for _, tc := range ttLegacy {
 			t.Run("", func(t *testing.T) {
-				dcBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), tc.obj)
+				dcBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), tc.obj)
 				if err != nil {
 					t.Fatal(err)
 				}

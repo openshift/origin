@@ -10,7 +10,7 @@ import (
 
 	admission "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission"
@@ -55,7 +55,7 @@ func (r *restrictedEndpointsAdmission) SetAuthorizer(a authorizer.Authorizer) {
 	r.authorizer = a
 }
 
-func (r *restrictedEndpointsAdmission) Validate() error {
+func (r *restrictedEndpointsAdmission) ValidateInitialization() error {
 	if r.authorizer == nil {
 		return fmt.Errorf("missing authorizer")
 	}

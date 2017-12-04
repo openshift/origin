@@ -69,7 +69,8 @@ var (
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -112,7 +113,8 @@ var (
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -202,7 +204,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 				return nil, err
 			}
 			admissionInitializer.Initialize(lc)
-			if err := lc.(admission.Validator).Validate(); err != nil {
+			if err := lc.ValidateInitialization(); err != nil {
 				return nil, err
 			}
 			plugin = lc

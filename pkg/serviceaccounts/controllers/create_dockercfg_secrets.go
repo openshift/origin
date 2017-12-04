@@ -21,7 +21,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
@@ -318,11 +317,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		return nil
 	}
 
-	uncastSA, err := api.Scheme.DeepCopy(obj)
-	if err != nil {
-		return err
-	}
-	serviceAccount := uncastSA.(*v1.ServiceAccount)
+	serviceAccount := obj.(*v1.ServiceAccount).DeepCopyObject().(*v1.ServiceAccount)
 
 	mountableDockercfgSecrets, imageDockercfgPullSecrets := getGeneratedDockercfgSecretNames(serviceAccount)
 
@@ -370,11 +365,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 				return nil
 			}
 
-			uncastSA, err := api.Scheme.DeepCopy(obj)
-			if err != nil {
-				return err
-			}
-			serviceAccount = uncastSA.(*v1.ServiceAccount)
+			serviceAccount = obj.(*v1.ServiceAccount).DeepCopyObject().(*v1.ServiceAccount)
 		}
 		first = false
 

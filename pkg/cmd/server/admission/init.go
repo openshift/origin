@@ -2,6 +2,7 @@ package admission
 
 import (
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	restclient "k8s.io/client-go/rest"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -73,7 +74,7 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsAuthorizer, ok := plugin.(WantsAuthorizer); ok {
 		wantsAuthorizer.SetAuthorizer(i.Authorizer)
 	}
-	if kubeWantsAuthorizer, ok := plugin.(kubeapiserveradmission.WantsAuthorizer); ok {
+	if kubeWantsAuthorizer, ok := plugin.(initializer.WantsAuthorizer); ok {
 		kubeWantsAuthorizer.SetAuthorizer(i.Authorizer)
 	}
 	if wantsJenkinsPipelineConfig, ok := plugin.(WantsJenkinsPipelineConfig); ok {
@@ -106,8 +107,8 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 // the Validator interface.
 func Validate(plugins []admission.Interface) error {
 	for _, plugin := range plugins {
-		if validater, ok := plugin.(admission.Validator); ok {
-			err := validater.Validate()
+		if validater, ok := plugin.(admission.InitializationValidator); ok {
+			err := validater.ValidateInitialization()
 			if err != nil {
 				return err
 			}

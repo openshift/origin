@@ -12,7 +12,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -134,10 +135,10 @@ func NewDeployer(client kclientset.Interface, images imageclientinternal.Interfa
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, legacyscheme.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
@@ -177,7 +178,7 @@ func (d *Deployer) Deploy(namespace, rcName string) error {
 	}
 
 	// Decode the config from the deployment.
-	config, err := deployutil.DecodeDeploymentConfig(to, kapi.Codecs.UniversalDecoder())
+	config, err := deployutil.DecodeDeploymentConfig(to, legacyscheme.Codecs.UniversalDecoder())
 	if err != nil {
 		return fmt.Errorf("couldn't decode deployment config from deployment %s: %v", to.Name, err)
 	}

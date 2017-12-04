@@ -15,7 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -312,7 +313,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
 	gv := *clientConfig.GroupVersion
-	oldObjects, err := resource.AsVersionedObjects(infos, gv, kapi.Codecs.LegacyCodec(gv))
+	oldObjects, err := resource.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
 	if err != nil {
 		return err
 	}
@@ -444,7 +445,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		return f.PrintResourceInfos(o.Cmd, o.Local, infos, o.Out)
 	}
 
-	objects, err := resource.AsVersionedObjects(infos, gv, kapi.Codecs.LegacyCodec(gv))
+	objects, err := resource.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
 	if err != nil {
 		return err
 	}

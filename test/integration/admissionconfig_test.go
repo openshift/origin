@@ -13,7 +13,7 @@ import (
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -100,7 +100,7 @@ func registerAdmissionPlugins(t *testing.T, names ...string) {
 						return nil, err
 					}
 					configObj := &testtypes.TestPluginConfig{}
-					err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), configData, configObj)
+					err = runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), configData, configObj)
 					if err != nil {
 						return nil, err
 					}

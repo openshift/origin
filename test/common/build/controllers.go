@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -650,7 +650,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildtypedclien
 	foundFailed := false
 
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		events, err := clusterAdminKubeClientset.Core().Events(testutil.Namespace()).Search(kapi.Scheme, newBuild)
+		events, err := clusterAdminKubeClientset.Core().Events(testutil.Namespace()).Search(legacyscheme.Scheme, newBuild)
 		if err != nil {
 			t.Fatalf("error getting build events: %v", err)
 			return false, fmt.Errorf("error getting build events: %v", err)

@@ -1,7 +1,6 @@
 package dockerpre012
 
 import (
-	"github.com/openshift/api/image/dockerpre012"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -15,7 +14,7 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "pre012"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "pre012"}
 
-	SchemeBuilder = runtime.NewSchemeBuilder(addConversionFuncs, dockerpre012.RegisterDeepCopies)
+	SchemeBuilder = runtime.NewSchemeBuilder(addConversionFuncs)
 	AddToScheme   = SchemeBuilder.AddToScheme
 
 	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addConversionFuncs)

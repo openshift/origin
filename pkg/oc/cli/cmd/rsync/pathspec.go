@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 

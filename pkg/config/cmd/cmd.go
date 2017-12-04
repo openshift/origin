@@ -18,7 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -407,7 +408,7 @@ func SetLegacyOpenShiftDefaults(config *rest.Config) error {
 		config.APIPath = "/oapi"
 	}
 	if config.NegotiatedSerializer == nil {
-		config.NegotiatedSerializer = kapi.Codecs
+		config.NegotiatedSerializer = legacyscheme.Codecs
 	}
 	return nil
 }

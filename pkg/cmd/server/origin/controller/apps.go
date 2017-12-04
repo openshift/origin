@@ -2,7 +2,7 @@ package controller
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployercontroller "github.com/openshift/origin/pkg/apps/controller/deployer"
 	deployconfigcontroller "github.com/openshift/origin/pkg/apps/controller/deploymentconfig"

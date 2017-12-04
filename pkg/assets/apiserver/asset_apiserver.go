@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/elazarl/go-bindata-assetfs"
 
@@ -22,7 +23,6 @@ import (
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api"
@@ -93,7 +93,7 @@ func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, err
 		secureServingOptions.SNICertKeys = append(secureServingOptions.SNICertKeys, sniCert)
 	}
 
-	genericConfig := genericapiserver.NewConfig(kapi.Codecs)
+	genericConfig := genericapiserver.NewConfig(legacyscheme.Codecs)
 	genericConfig.EnableDiscovery = false
 	genericConfig.BuildHandlerChainFunc = buildHandlerChainForAssets(publicURL.Path)
 	if err := secureServingOptions.ApplyTo(genericConfig); err != nil {

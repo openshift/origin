@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	"k8s.io/api/core/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )

@@ -6,7 +6,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestLegacyKinds(t *testing.T) {

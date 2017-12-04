@@ -14,7 +14,7 @@ import (
 
 	etcdtest "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/capabilities"
 
 	serveretcd "github.com/openshift/origin/pkg/cmd/server/etcd"
@@ -43,7 +43,7 @@ type EtcdTestServer struct {
 
 // RequireEtcd verifies if the etcd is running and accessible for testing
 func RequireEtcd(t *testing.T) EtcdTestServer {
-	s, _ := etcdtest.NewUnsecuredEtcd3TestClientServer(t, kapi.Scheme)
+	s, _ := etcdtest.NewUnsecuredEtcd3TestClientServer(t, legacyscheme.Scheme)
 	t.Logf("endpoints: %v", s.V3Client.Endpoints())
 	url = s.V3Client.Endpoints()[0]
 	return EtcdTestServer{s}
@@ -58,7 +58,7 @@ func RequireEtcd2(t *testing.T) EtcdTestServer {
 }
 
 func RequireEtcd3(t *testing.T) (*etcdtest.EtcdTestServer, *storagebackend.Config) {
-	s, c := etcdtest.NewUnsecuredEtcd3TestClientServer(t, kapi.Scheme)
+	s, c := etcdtest.NewUnsecuredEtcd3TestClientServer(t, legacyscheme.Scheme)
 	url = s.V3Client.Endpoints()[0]
 	return s, c
 }

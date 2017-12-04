@@ -16,7 +16,7 @@ import (
 	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"

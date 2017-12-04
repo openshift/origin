@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
@@ -72,7 +72,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	groupMeta, err := kapi.Registry.Group(a.GetKind().Group)
+	groupMeta, err := legacyscheme.Registry.Group(a.GetKind().Group)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (q *lifecycle) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.client = c
 }
 
-func (e *lifecycle) Validate() error {
+func (e *lifecycle) ValidateInitialization() error {
 	if e.cache == nil {
 		return fmt.Errorf("project lifecycle plugin needs a project cache")
 	}

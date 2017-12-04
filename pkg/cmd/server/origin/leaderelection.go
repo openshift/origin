@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	rl "k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -76,7 +76,7 @@ func NewLeaderElection(options configapi.MasterConfig, leader componentconfig.Le
 	events.StartRecordingToSink(&v1core.EventSinkImpl{Interface: eventClient})
 	lock, err := rl.New(election.LockResource.Resource, namespace, name, kc.Core(), rl.ResourceLockConfig{
 		Identity:      id,
-		EventRecorder: events.NewRecorder(kapi.Scheme, v1corev1.EventSource{Component: name}),
+		EventRecorder: events.NewRecorder(legacyscheme.Scheme, v1corev1.EventSource{Component: name}),
 	})
 	if err != nil {
 		return nil, nil, err

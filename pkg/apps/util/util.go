@@ -18,8 +18,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
@@ -270,42 +271,20 @@ func RecordImageChangeCauses(config *deployapi.DeploymentConfig, imageNames []st
 }
 
 func CopyApiResourcesToV1Resources(in *api.ResourceRequirements) v1.ResourceRequirements {
-	copied, err := api.Scheme.DeepCopy(in)
-	if err != nil {
-		panic(err)
-	}
-	in = copied.(*api.ResourceRequirements)
+	in = in.DeepCopy()
 	out := v1.ResourceRequirements{}
-	if err := kapiv1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
+	if err := kapiv1.Convert_core_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
 		panic(err)
 	}
 	return out
 }
 
 func CopyApiEnvVarToV1EnvVar(in []api.EnvVar) []v1.EnvVar {
-	copied, err := api.Scheme.DeepCopy(in)
-	if err != nil {
-		panic(err)
-	}
-	in = copied.([]api.EnvVar)
 	out := make([]v1.EnvVar, len(in))
 	for i := range in {
-		if err := kapiv1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
+		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(in[i].DeepCopy(), &out[i], nil); err != nil {
 			panic(err)
 		}
-	}
-	return out
-}
-
-func CopyPodTemplateSpecToV1PodTemplateSpec(spec *api.PodTemplateSpec) *v1.PodTemplateSpec {
-	copied, err := api.Scheme.DeepCopy(spec)
-	if err != nil {
-		panic(err)
-	}
-	in := copied.(*api.PodTemplateSpec)
-	out := &v1.PodTemplateSpec{}
-	if err := kapiv1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
-		panic(err)
 	}
 	return out
 }
@@ -396,7 +375,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 		return nil, err
 	}
 	kapiv1.SetObjectDefaults_ReplicationController(obj)
-	converted, err := api.Scheme.ConvertToVersion(obj, api.SchemeGroupVersion)
+	converted, err := legacyscheme.Scheme.ConvertToVersion(obj, api.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +396,7 @@ func MakeDeploymentV1(config *deployapi.DeploymentConfig, codec runtime.Codec) (
 	deploymentName := LatestDeploymentNameForConfig(config)
 
 	podSpec := v1.PodSpec{}
-	if err := api.Scheme.Convert(&config.Spec.Template.Spec, &podSpec, nil); err != nil {
+	if err := legacyscheme.Scheme.Convert(&config.Spec.Template.Spec, &podSpec, nil); err != nil {
 		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
 	}
 

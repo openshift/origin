@@ -7,8 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	deployv1 "github.com/openshift/api/apps/v1"
@@ -20,7 +21,7 @@ import (
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
-var codec = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
+var codec = legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
 // TestProcess_changeForNonAutomaticTag ensures that an image update for which
 // there is a matching trigger results in a no-op due to the trigger's

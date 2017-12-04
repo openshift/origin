@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -15,7 +15,7 @@ import (
 
 func TestResolveResource(t *testing.T) {
 	dc := fake.NewSimpleClientset().Discovery()
-	mapper, err := kcmdutil.NewShortcutExpander(kapi.Registry.RESTMapper(), dc)
+	mapper, err := kcmdutil.NewShortcutExpander(legacyscheme.Registry.RESTMapper(), dc)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

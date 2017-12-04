@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestPointValue(t *testing.T) {

@@ -29,7 +29,7 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	kbatchclient "k8s.io/client-go/kubernetes/typed/batch/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	kinternalcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
@@ -1317,7 +1317,7 @@ func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) st
 func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
 	var expectedEvent *kapiv1.Event
 	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
-		events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
+		events, err := client.Events(build.Namespace).Search(legacyscheme.Scheme, build)
 		if err != nil {
 			return false, err
 		}

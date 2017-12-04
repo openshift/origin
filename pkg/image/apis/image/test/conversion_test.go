@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/diff"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	newer "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/v1"
@@ -25,7 +25,7 @@ func TestImageStreamStatusConversionPreservesTags(t *testing.T) {
 	}
 
 	outVersioned := v1.ImageStreamStatus{Tags: []v1.NamedTagEventList{}}
-	err := kapi.Scheme.Convert(in, &outVersioned, nil)
+	err := legacyscheme.Scheme.Convert(in, &outVersioned, nil)
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestImageStreamStatusConversionPreservesTags(t *testing.T) {
 
 	// convert back from v1 to internal scheme
 	out := newer.ImageStreamStatus{}
-	err = kapi.Scheme.Convert(&outVersioned, &out, nil)
+	err = legacyscheme.Scheme.Convert(&outVersioned, &out, nil)
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}

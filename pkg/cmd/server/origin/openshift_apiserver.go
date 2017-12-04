@@ -10,7 +10,6 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
-	v1beta1extensions "k8s.io/api/extensions/v1beta1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,7 +19,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -227,9 +227,9 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 		ExtraConfig: oappsapiserver.ExtraConfig{
 			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
 			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
-			Codecs:                    kapi.Codecs,
-			Registry:                  kapi.Registry,
-			Scheme:                    kapi.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Registry:                  legacyscheme.Registry,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -258,9 +258,9 @@ func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericap
 			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
 			RuleResolver:              c.ExtraConfig.RuleResolver,
 			SubjectLocator:            c.ExtraConfig.SubjectLocator,
-			Codecs:                    kapi.Codecs,
-			Registry:                  kapi.Registry,
-			Scheme:                    kapi.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Registry:                  legacyscheme.Registry,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -287,9 +287,9 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 		ExtraConfig: buildapiserver.ExtraConfig{
 			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
 			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
-			Codecs:                    kapi.Codecs,
-			Registry:                  kapi.Registry,
-			Scheme:                    kapi.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Registry:                  legacyscheme.Registry,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -315,9 +315,9 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 			RegistryHostnameRetriever:          c.ExtraConfig.RegistryHostnameRetriever,
 			AllowedRegistriesForImport:         c.ExtraConfig.AllowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: c.ExtraConfig.MaxImagesBulkImportedPerRepository,
-			Codecs:   kapi.Codecs,
-			Registry: kapi.Registry,
-			Scheme:   kapi.Scheme,
+			Codecs:   legacyscheme.Codecs,
+			Registry: legacyscheme.Registry,
+			Scheme:   legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -338,9 +338,9 @@ func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserve
 	cfg := &networkapiserver.NetworkAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: networkapiserver.ExtraConfig{
-			Codecs:   kapi.Codecs,
-			Registry: kapi.Registry,
-			Scheme:   kapi.Scheme,
+			Codecs:   legacyscheme.Codecs,
+			Registry: legacyscheme.Registry,
+			Scheme:   legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -363,9 +363,9 @@ func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.
 		ExtraConfig: oauthapiserver.ExtraConfig{
 			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
 			ServiceAccountMethod:      c.ExtraConfig.ServiceAccountMethod,
-			Codecs:                    kapi.Codecs,
-			Registry:                  kapi.Registry,
-			Scheme:                    kapi.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Registry:                  legacyscheme.Registry,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -392,9 +392,9 @@ func (c *completedConfig) withProjectAPIServer(delegateAPIServer genericapiserve
 			ProjectCache:              c.ExtraConfig.ProjectCache,
 			ProjectRequestTemplate:    c.ExtraConfig.ProjectRequestTemplate,
 			ProjectRequestMessage:     c.ExtraConfig.ProjectRequestMessage,
-			Codecs:                    kapi.Codecs,
-			Registry:                  kapi.Registry,
-			Scheme:                    kapi.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Registry:                  legacyscheme.Registry,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -418,9 +418,9 @@ func (c *completedConfig) withQuotaAPIServer(delegateAPIServer genericapiserver.
 			ClusterQuotaMappingController: c.ExtraConfig.ClusterQuotaMappingController,
 			QuotaInformers:                c.ExtraConfig.QuotaInformers,
 			KubeInternalInformers:         c.ExtraConfig.KubeInternalInformers,
-			Codecs:                        kapi.Codecs,
-			Registry:                      kapi.Registry,
-			Scheme:                        kapi.Scheme,
+			Codecs:                        legacyscheme.Codecs,
+			Registry:                      legacyscheme.Registry,
+			Scheme:                        legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -443,9 +443,9 @@ func (c *completedConfig) withRouteAPIServer(delegateAPIServer genericapiserver.
 		ExtraConfig: routeapiserver.ExtraConfig{
 			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
 			RouteAllocator:            c.ExtraConfig.RouteAllocator,
-			Codecs:                    kapi.Codecs,
-			Registry:                  kapi.Registry,
-			Scheme:                    kapi.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Registry:                  legacyscheme.Registry,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -472,9 +472,9 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 			SCCStorage:            c.ExtraConfig.SCCStorage,
 			SecurityInformers:     c.ExtraConfig.SecurityInformers,
 			KubeInternalInformers: c.ExtraConfig.KubeInternalInformers,
-			Codecs:                kapi.Codecs,
-			Registry:              kapi.Registry,
-			Scheme:                kapi.Scheme,
+			Codecs:                legacyscheme.Codecs,
+			Registry:              legacyscheme.Registry,
+			Scheme:                legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -496,9 +496,9 @@ func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserv
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: templateapiserver.ExtraConfig{
 			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
-			Codecs:   kapi.Codecs,
-			Registry: kapi.Registry,
-			Scheme:   kapi.Scheme,
+			Codecs:   legacyscheme.Codecs,
+			Registry: legacyscheme.Registry,
+			Scheme:   legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -519,9 +519,9 @@ func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.D
 	cfg := &userapiserver.UserConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: userapiserver.ExtraConfig{
-			Codecs:   kapi.Codecs,
-			Registry: kapi.Registry,
-			Scheme:   kapi.Scheme,
+			Codecs:   legacyscheme.Codecs,
+			Registry: legacyscheme.Registry,
+			Scheme:   legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -613,13 +613,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 // apiLegacyV1 returns the resources and codec for API version v1.
 func apiLegacyV1(all map[string]rest.Storage) *genericapiserver.APIGroupInfo {
 	apiGroupInfo := &genericapiserver.APIGroupInfo{
-		GroupMeta:                    *kapi.Registry.GroupOrDie(api.GroupName),
+		GroupMeta:                    *legacyscheme.Registry.GroupOrDie(api.GroupName),
 		VersionedResourcesStorageMap: map[string]map[string]rest.Storage{},
-		Scheme: kapi.Scheme,
-		// version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-		ParameterCodec:              kapi.ParameterCodec,
-		NegotiatedSerializer:        kapi.Codecs,
-		SubresourceGroupVersionKind: map[string]schema.GroupVersionKind{},
+		Scheme: legacyscheme.Scheme,
+		// version.ParameterCodec = runtime.NewParameterCodec(legacyscheme.Scheme)
+		ParameterCodec:       legacyscheme.ParameterCodec,
+		NegotiatedSerializer: legacyscheme.Codecs,
 	}
 
 	// TODO, just create this with lowercase names
@@ -628,7 +627,6 @@ func apiLegacyV1(all map[string]rest.Storage) *genericapiserver.APIGroupInfo {
 		storage[strings.ToLower(k)] = v
 	}
 	apiGroupInfo.VersionedResourcesStorageMap["v1"] = storage
-	apiGroupInfo.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 	return apiGroupInfo
 }
 

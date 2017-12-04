@@ -10,9 +10,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/authorization"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
@@ -30,7 +30,7 @@ type templateInstanceStrategy struct {
 }
 
 func NewStrategy(authorizationClient authorizationinternalversion.AuthorizationInterface) *templateInstanceStrategy {
-	return &templateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator, authorizationClient}
+	return &templateInstanceStrategy{legacyscheme.Scheme, names.SimpleNameGenerator, authorizationClient}
 }
 
 // NamespaceScoped is true for templateinstances.
@@ -165,7 +165,7 @@ type statusStrategy struct {
 	names.NameGenerator
 }
 
-var StatusStrategy = statusStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var StatusStrategy = statusStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 func (statusStrategy) NamespaceScoped() bool {
 	return true

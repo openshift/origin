@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // ByRestrictions is a helper to sort SCCs in order of most restrictive to least restrictive.

@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 type bypassAuthorizer struct {
@@ -58,7 +57,7 @@ func Forbidden(reason string, attributes kauthorizer.Attributes, w http.Response
 	forbiddenError.ErrStatus.Message = reason
 
 	formatted := &bytes.Buffer{}
-	output, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.SchemeGroupVersion), &forbiddenError.ErrStatus)
+	output, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.SchemeGroupVersion), &forbiddenError.ErrStatus)
 	if err != nil {
 		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
 	} else {

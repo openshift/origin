@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	build "github.com/openshift/origin/pkg/build/apis/build"
@@ -427,7 +427,7 @@ func TestApiGroups(t *testing.T) {
 		t.Fatalf("Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
-	codec := kapi.Codecs.LegacyCodec(buildv1.SchemeGroupVersion)
+	codec := legacyscheme.Codecs.LegacyCodec(buildv1.SchemeGroupVersion)
 	respBuild := &buildv1.Build{}
 	gvk := buildv1.SchemeGroupVersion.WithKind("Build")
 	respObj, _, err := codec.Decode(body, &gvk, respBuild)

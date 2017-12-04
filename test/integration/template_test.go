@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/client/internalversion"
@@ -129,7 +129,7 @@ func TestTemplateTransformationFromConfig(t *testing.T) {
 	}
 
 	walkJSONFiles("../templates/fixtures", func(name, path string, data []byte) {
-		template, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
+		template, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), data)
 		if err != nil {
 			t.Errorf("%q: unexpected error: %v", path, err)
 			return

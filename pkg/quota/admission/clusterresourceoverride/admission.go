@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
@@ -136,15 +136,15 @@ func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error
 	return config, nil
 }
 
-func (a *clusterResourceOverridePlugin) Validate() error {
+func (a *clusterResourceOverridePlugin) ValidateInitialization() error {
 	if a.ProjectCache == nil {
 		return fmt.Errorf("%s did not get a project cache", api.PluginName)
 	}
-	v, ok := a.LimitRanger.(admission.Validator)
+	v, ok := a.LimitRanger.(admission.InitializationValidator)
 	if !ok {
 		return fmt.Errorf("LimitRanger does not implement kadmission.Validator")
 	}
-	return v.Validate()
+	return v.ValidateInitialization()
 }
 
 func isExemptedNamespace(name string) bool {

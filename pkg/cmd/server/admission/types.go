@@ -23,102 +23,102 @@ import (
 
 type WantsOpenshiftInternalAuthorizationClient interface {
 	SetOpenshiftInternalAuthorizationClient(authorizationclient.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 type WantsOpenshiftInternalBuildClient interface {
 	SetOpenshiftInternalBuildClient(buildclient.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsOpenshiftInternalQuotaClient should be implemented by admission plugins that need
 // an Openshift internal quota client
 type WantsOpenshiftInternalQuotaClient interface {
 	SetOpenshiftInternalQuotaClient(quotaclient.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsOpenshiftInternalUserClient should be implemented by admission plugins that need
 // an Openshift internal user client
 type WantsOpenshiftInternalUserClient interface {
 	SetOpenshiftInternalUserClient(userclient.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsOpenshiftInternalImageClient should be implemented by admission plugins that need
 // an Openshift internal image client
 type WantsOpenshiftInternalImageClient interface {
 	SetOpenshiftInternalImageClient(imageclient.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsOpenshiftInternalTemplateClient should be implemented by admission plugins that need
 // an Openshift internal template client
 type WantsOpenshiftInternalTemplateClient interface {
 	SetOpenshiftInternalTemplateClient(templateclient.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsProjectCache should be implemented by admission plugins that need a
 // project cache
 type WantsProjectCache interface {
 	SetProjectCache(*cache.ProjectCache)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsQuotaRegistry should be implemented by admission plugins that need a quota registry
 type WantsOriginQuotaRegistry interface {
 	SetOriginQuotaRegistry(quota.Registry)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsAuthorizer should be implemented by admission plugins that
 // need access to the Authorizer interface
 type WantsAuthorizer interface {
 	SetAuthorizer(kauthorizer.Authorizer)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsJenkinsPipelineConfig gives access to the JenkinsPipelineConfig.  This is a historical oddity.
 // It's likely that what we really wanted was this as an admission plugin config
 type WantsJenkinsPipelineConfig interface {
 	SetJenkinsPipelineConfig(jenkinsConfig configapi.JenkinsPipelineConfig)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsRESTClientConfig gives access to a RESTClientConfig.  It's useful for doing unusual things with transports.
 type WantsRESTClientConfig interface {
 	SetRESTClientConfig(restclient.Config)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsInternalKubernetesInformers should be implemented by admission plugins that need the internal kubernetes
 // informers.
 type WantsInternalKubernetesInformers interface {
 	SetInternalKubernetesInformers(kinternalinformers.SharedInformerFactory)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsClusterQuota should be implemented by admission plugins that need to know how to map between
 // cluster quota and namespaces and get access to the informer.
 type WantsClusterQuota interface {
 	SetClusterQuota(clusterquotamapping.ClusterQuotaMapper, quotainformer.ClusterResourceQuotaInformer)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 type WantsSecurityInformer interface {
 	SetSecurityInformers(securityinformer.SharedInformerFactory)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsDefaultRegistryFunc should be implemented by admission plugins that need to know the default registry
 // address.
 type WantsDefaultRegistryFunc interface {
 	SetDefaultRegistryFunc(func() (string, bool))
-	admission.Validator
+	admission.InitializationValidator
 }
 
 type WantsUserInformer interface {
 	SetUserInformer(userinformer.SharedInformerFactory)
-	admission.Validator
+	admission.InitializationValidator
 }

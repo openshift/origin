@@ -3,17 +3,18 @@ package install
 import (
 	kv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/conversion"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	// we have a strong dependency on kube objects for deployments and scale
-	_ "k8s.io/kubernetes/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/apps/install"
 	_ "k8s.io/kubernetes/pkg/apis/authentication/install"
 	_ "k8s.io/kubernetes/pkg/apis/authorization/install"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/certificates/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 	_ "k8s.io/kubernetes/pkg/apis/policy/install"
 	_ "k8s.io/kubernetes/pkg/apis/rbac/install"
@@ -73,7 +74,7 @@ func init() {
 	// This is a "fast-path" that avoids reflection for common types. It focuses on the objects that are
 	// converted the most in the cluster.
 	// TODO: generate one of these for every external API group - this is to prove the impact
-	kapi.Scheme.AddGenericConversionFunc(func(objA, objB interface{}, s conversion.Scope) (bool, error) {
+	legacyscheme.Scheme.AddGenericConversionFunc(func(objA, objB interface{}, s conversion.Scope) (bool, error) {
 		switch a := objA.(type) {
 		case *metav1.WatchEvent:
 			switch b := objB.(type) {
@@ -107,34 +108,34 @@ func init() {
 		case *kv1.ServiceAccount:
 			switch b := objB.(type) {
 			case *kapi.ServiceAccount:
-				return true, kapiv1.Convert_v1_ServiceAccount_To_api_ServiceAccount(a, b, s)
+				return true, kapiv1.Convert_v1_ServiceAccount_To_core_ServiceAccount(a, b, s)
 			}
 		case *kapi.ServiceAccount:
 			switch b := objB.(type) {
 			case *kv1.ServiceAccount:
-				return true, kapiv1.Convert_api_ServiceAccount_To_v1_ServiceAccount(a, b, s)
+				return true, kapiv1.Convert_core_ServiceAccount_To_v1_ServiceAccount(a, b, s)
 			}
 
 		case *kv1.SecretList:
 			switch b := objB.(type) {
 			case *kapi.SecretList:
-				return true, kapiv1.Convert_v1_SecretList_To_api_SecretList(a, b, s)
+				return true, kapiv1.Convert_v1_SecretList_To_core_SecretList(a, b, s)
 			}
 		case *kapi.SecretList:
 			switch b := objB.(type) {
 			case *kv1.SecretList:
-				return true, kapiv1.Convert_api_SecretList_To_v1_SecretList(a, b, s)
+				return true, kapiv1.Convert_core_SecretList_To_v1_SecretList(a, b, s)
 			}
 
 		case *kv1.Secret:
 			switch b := objB.(type) {
 			case *kapi.Secret:
-				return true, kapiv1.Convert_v1_Secret_To_api_Secret(a, b, s)
+				return true, kapiv1.Convert_v1_Secret_To_core_Secret(a, b, s)
 			}
 		case *kapi.Secret:
 			switch b := objB.(type) {
 			case *kv1.Secret:
-				return true, kapiv1.Convert_api_Secret_To_v1_Secret(a, b, s)
+				return true, kapiv1.Convert_core_Secret_To_v1_Secret(a, b, s)
 			}
 
 		case *routev1.RouteList:

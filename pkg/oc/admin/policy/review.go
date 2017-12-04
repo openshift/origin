@@ -12,8 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -209,7 +210,7 @@ var _ sccReviewPrinter = &sccReviewOutputPrinter{}
 
 func (s *sccReviewOutputPrinter) print(unused *resource.Info, obj runtime.Object, out io.Writer) error {
 	versionedObj := &securityapiv1.PodSecurityPolicyReview{}
-	if err := kapi.Scheme.Convert(obj, versionedObj, nil); err != nil {
+	if err := legacyscheme.Scheme.Convert(obj, versionedObj, nil); err != nil {
 		return err
 	}
 	return s.ResourcePrinter.PrintObj(versionedObj, out)
@@ -241,7 +242,7 @@ func (s *sccReviewHumanReadablePrinter) print(info *resource.Info, obj runtime.O
 	if !ok {
 		return fmt.Errorf("unexpected object %T", obj)
 	}
-	gvk, _, err := kapi.Scheme.ObjectKind(info.Object)
+	gvk, _, err := legacyscheme.Scheme.ObjectKind(info.Object)
 	if err != nil {
 		return err
 	}

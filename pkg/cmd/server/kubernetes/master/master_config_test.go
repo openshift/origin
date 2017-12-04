@@ -20,11 +20,11 @@ import (
 	utilconfig "k8s.io/apiserver/pkg/util/flag"
 	kubeapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
+	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -55,7 +55,7 @@ var expectedGroupPreferredVersions []string = []string{
 }
 
 func TestPreferredGroupVersions(t *testing.T) {
-	s := kapi.Registry.AllPreferredGroupVersions()
+	s := legacyscheme.Registry.AllPreferredGroupVersions()
 	expected := strings.Join(expectedGroupPreferredVersions, ",")
 	if s != expected {
 		t.Logf("expected: %#v", expected)
@@ -87,7 +87,6 @@ func TestAPIServerDefaults(t *testing.T) {
 				ServerList: nil,
 				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
-				Copier: kapi.Scheme,
 			},
 			DefaultStorageMediaType: "application/vnd.kubernetes.protobuf",
 			DeleteCollectionWorkers: 1,
@@ -156,8 +155,8 @@ func TestAPIServerDefaults(t *testing.T) {
 		},
 		CloudProvider: &kubeoptions.CloudProviderOptions{},
 		StorageSerialization: &kubeoptions.StorageSerializationOptions{
-			StorageVersions:        kapi.Registry.AllPreferredGroupVersions(),
-			DefaultStorageVersions: kapi.Registry.AllPreferredGroupVersions(),
+			StorageVersions:        legacyscheme.Registry.AllPreferredGroupVersions(),
+			DefaultStorageVersions: legacyscheme.Registry.AllPreferredGroupVersions(),
 		},
 		APIEnablement: &kubeoptions.APIEnablementOptions{
 			RuntimeConfig: utilconfig.ConfigurationMap{},

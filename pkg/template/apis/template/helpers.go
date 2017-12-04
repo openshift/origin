@@ -7,7 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // AddObjectsToTemplate adds the objects to the template using the target versions to choose the conversion destination
@@ -21,7 +22,7 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 		// We currently add legacy types first to the scheme, followed by the types in the new api
 		// groups. We have to check all ObjectKinds and not just use the first one returned by
 		// ObjectKind().
-		gvks, _, err := kapi.Scheme.ObjectKinds(obj)
+		gvks, _, err := legacyscheme.Scheme.ObjectKinds(obj)
 		if err != nil {
 			return err
 		}
@@ -41,7 +42,7 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 			return fmt.Errorf("no target version found for object[%d], gvks %v in %v", i, gvks, targetVersions)
 		}
 
-		wrappedObject := runtime.NewEncodable(kapi.Codecs.LegacyCodec(*targetVersion), obj)
+		wrappedObject := runtime.NewEncodable(legacyscheme.Codecs.LegacyCodec(*targetVersion), obj)
 		template.Objects = append(template.Objects, wrappedObject)
 	}
 

@@ -2,7 +2,7 @@ package internalversion
 
 import (
 	rest "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
@@ -27,5 +27,5 @@ func (c *rolloutLogs) Logs(name string, options appsapi.DeploymentLogOptions) *r
 		Resource("deploymentConfigs").
 		Name(name).
 		SubResource("log").
-		VersionedParams(&options, kapi.ParameterCodec)
+		VersionedParams(&options, legacyscheme.ParameterCodec)
 }

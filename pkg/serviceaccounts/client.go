@@ -1,7 +1,7 @@
 package serviceaccounts
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // IsValidServiceAccountToken returns true if the given secret contains a service account token valid for the given service account

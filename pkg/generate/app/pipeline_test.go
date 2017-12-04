@@ -9,7 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -140,7 +141,7 @@ func TestAcceptUnique(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		au := NewAcceptUnique(kapi.Scheme)
+		au := NewAcceptUnique(legacyscheme.Scheme)
 		cnt := 0
 		for _, obj := range tc.objs {
 			if au.Accept(obj) {

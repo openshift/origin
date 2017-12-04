@@ -12,18 +12,19 @@ import (
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func makePod(name, rcName string, t *testing.T) kapi.Pod {
 	// this snippet is from kube's code to set the created-by annotation
 	// (which itself does not do quite what we want here)
 
-	codec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
+	codec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
 
 	createdByRefJson, err := kruntime.Encode(codec, &kapi.SerializedReference{
 		Reference: kapi.ObjectReference{
@@ -58,7 +59,7 @@ func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.Replicatio
 	}
 
 	if createdByDCName != "" {
-		codec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
+		codec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
 		createdByRefJson, err := kruntime.Encode(codec, &kapi.SerializedReference{
 			Reference: kapi.ObjectReference{
 				Kind:      "DeploymentConfig",
@@ -171,7 +172,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 
 	}
 
-	codec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
+	codec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
 	refSet, err := findScalableResourcesForEndpoints(endpoints, codec, getPod, getController)
 
 	if err != nil {

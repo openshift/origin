@@ -9,7 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	deployv1 "github.com/openshift/api/apps/v1"
@@ -20,7 +21,7 @@ import (
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 )
 
-var codec = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
+var codec = legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
 type terribleGenerator struct{}
 
@@ -123,7 +124,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		generator: &terribleGenerator{},
 		dn:        oc.Apps(),
 		rn:        kc.Core(),
-		codec:     kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
+		codec:     legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	_, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{

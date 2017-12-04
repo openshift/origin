@@ -10,7 +10,7 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kexternalinformers "k8s.io/client-go/informers"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 

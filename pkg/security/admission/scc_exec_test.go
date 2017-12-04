@@ -9,7 +9,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"

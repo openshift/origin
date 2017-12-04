@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/kubectl/validation"
 )
 
@@ -122,13 +122,13 @@ func (v *RuntimeObjectsValidator) getSpecificValidationInfo(obj runtime.Object) 
 }
 
 func GetRequiresNamespace(obj runtime.Object) (bool, error) {
-	groupVersionKinds, _, err := kapi.Scheme.ObjectKinds(obj)
+	groupVersionKinds, _, err := legacyscheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return false, err
 	}
 
 	for _, gvk := range groupVersionKinds {
-		restMapping, err := kapi.Registry.RESTMapper().RESTMapping(gvk.GroupKind())
+		restMapping, err := legacyscheme.Registry.RESTMapper().RESTMapping(gvk.GroupKind())
 		if err != nil {
 			return false, err
 		}

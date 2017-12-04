@@ -6,7 +6,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
@@ -81,7 +81,7 @@ func (q *podNodeEnvironment) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.client = c
 }
 
-func (p *podNodeEnvironment) Validate() error {
+func (p *podNodeEnvironment) ValidateInitialization() error {
 	if p.cache == nil {
 		return fmt.Errorf("project node environment plugin needs a project cache")
 	}

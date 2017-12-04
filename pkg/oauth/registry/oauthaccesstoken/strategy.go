@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -25,7 +25,7 @@ var _ rest.RESTCreateStrategy = strategy{}
 var _ rest.RESTUpdateStrategy = strategy{}
 
 func NewStrategy(clientGetter oauthclient.Getter) strategy {
-	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
+	return strategy{ObjectTyper: legacyscheme.Scheme, clientGetter: clientGetter}
 }
 
 func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {

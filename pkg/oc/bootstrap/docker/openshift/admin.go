@@ -15,7 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
@@ -69,13 +70,13 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 		return errors.NewError("cannot generate registry resources").WithCause(err).WithDetails(stdErr)
 	}
 
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), []byte(registryJSON))
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), []byte(registryJSON))
 	if err != nil {
 		return errors.NewError("cannot decode registry JSON output").WithCause(err).WithDetails(registryJSON)
 	}
 	objList := obj.(*kapi.List)
 
-	if errs := runtime.DecodeList(objList.Items, kapi.Codecs.UniversalDecoder()); len(errs) > 0 {
+	if errs := runtime.DecodeList(objList.Items, legacyscheme.Codecs.UniversalDecoder()); len(errs) > 0 {
 		return errors.NewError("cannot decode registry objects").WithCause(utilerrors.NewAggregate(errs))
 	}
 
