@@ -43,9 +43,11 @@ To recreate these results
 Nightly conformance tests are run against release branches and reported https://openshift-gce-devel.appspot.com/builds/origin-ci-test/logs/test_branch_origin_extended_conformance_k8s/
 END
 
-version="${KUBERNETES_VERSION:-release-1.7}"
+version="${KUBERNETES_VERSION:-release-1.8}"
 kubernetes="${KUBERNETES_ROOT:-${OS_ROOT}/../../../k8s.io/kubernetes}"
-if [[ ! -d "${kubernetes}" ]]; then
+if [[ -d "${kubernetes}" ]]; then
+  git fetch origin --tags
+else
   if [[ -n "${KUBERNETES_ROOT-}" ]]; then
     os::log::fatal "Cannot find Kubernetes source directory, set KUBERNETES_ROOT"
   fi
