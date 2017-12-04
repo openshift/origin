@@ -20,6 +20,7 @@ import (
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	openshiftauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
@@ -88,7 +89,8 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper)
+		validators := []openshiftauthenticator.OAuthTokenValidator{authnregistry.NewExpirationValidator(), authnregistry.NewUIDValidator()}
+		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
