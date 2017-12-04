@@ -12,7 +12,7 @@ import (
 	utildiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
 	quotaapiv1 "github.com/openshift/api/quota/v1"

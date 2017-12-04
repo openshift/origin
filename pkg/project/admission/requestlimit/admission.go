@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"

@@ -14,7 +14,7 @@ import (
 
 	etcdtest "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/capabilities"
 
 	serveretcd "github.com/openshift/origin/pkg/cmd/server/etcd"

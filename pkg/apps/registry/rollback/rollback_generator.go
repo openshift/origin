@@ -3,7 +3,7 @@ package rollback
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )

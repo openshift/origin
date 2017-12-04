@@ -2,7 +2,7 @@ package graph
 
 import (
 	"github.com/gonum/graph"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"

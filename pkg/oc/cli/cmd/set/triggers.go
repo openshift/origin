@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"

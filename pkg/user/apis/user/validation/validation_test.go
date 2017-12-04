@@ -5,7 +5,7 @@ import (
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestValidateGroup(t *testing.T) {

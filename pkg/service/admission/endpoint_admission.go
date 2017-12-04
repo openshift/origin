@@ -10,7 +10,7 @@ import (
 
 	admission "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission"

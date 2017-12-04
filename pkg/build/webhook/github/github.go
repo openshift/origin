@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"

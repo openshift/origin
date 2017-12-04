@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kprinters "k8s.io/kubernetes/pkg/printers"

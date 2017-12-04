@@ -5,7 +5,7 @@ import (
 
 	"github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"

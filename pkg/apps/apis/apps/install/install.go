@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/announced"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	legacy "github.com/openshift/origin/pkg/api/legacy"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"

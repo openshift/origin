@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/diff"
 

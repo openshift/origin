@@ -7,7 +7,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
-	api "k8s.io/kubernetes/pkg/api"
+	api api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // ImageStreamsGetter has a method to return a ImageStreamInterface.

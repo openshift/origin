@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"

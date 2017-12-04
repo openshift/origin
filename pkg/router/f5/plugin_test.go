@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )

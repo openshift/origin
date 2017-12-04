@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // HACK TO ELIMINATE CYCLES UNTIL WE KILL THIS PACKAGE

@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	quotaapiv1 "github.com/openshift/api/quota/v1"

@@ -15,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kapiv1pod "k8s.io/kubernetes/pkg/api/v1/pod"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 

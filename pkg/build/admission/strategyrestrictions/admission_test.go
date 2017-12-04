@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	fakekubeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
