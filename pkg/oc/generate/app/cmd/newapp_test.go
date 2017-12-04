@@ -121,7 +121,7 @@ func TestValidate(t *testing.T) {
 			continue
 		}
 
-		if err := AddComponentInputsToRefBuilder(b, &c.cfg.Resolvers, &c.cfg.ComponentInputs, &c.cfg.GenerationInputs); err != nil {
+		if err := AddComponentInputsToRefBuilder(b, &c.cfg.Resolvers, &c.cfg.ComponentInputs, &c.cfg.GenerationInputs, &c.cfg.SourceRepositories, &c.cfg.ImageStreams); err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue
 		}

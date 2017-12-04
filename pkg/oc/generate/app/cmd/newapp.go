@@ -651,7 +651,9 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	}
 
 	b := &app.ReferenceBuilder{}
-	if err := AddComponentInputsToRefBuilder(b, &c.Resolvers, &c.ComponentInputs, &c.GenerationInputs); err != nil {
+	s := &c.SourceRepositories
+	i := &c.ImageStreams
+	if err := AddComponentInputsToRefBuilder(b, &c.Resolvers, &c.ComponentInputs, &c.GenerationInputs, s, i); err != nil {
 		return nil, err
 	}
 	components, repositories, errs := b.Result()

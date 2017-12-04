@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/generate/git"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
@@ -99,9 +100,11 @@ func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
 	r := &appConfig.Resolvers
 	c := &appConfig.ComponentInputs
 	g := &appConfig.GenerationInputs
+	s := &appConfig.SourceRepositories
+	i := &appConfig.ImageStreams
 	b := &app.ReferenceBuilder{}
 
-	if err := AddComponentInputsToRefBuilder(b, r, c, g); err != nil {
+	if err := AddComponentInputsToRefBuilder(b, r, c, g, s, i); err != nil {
 		return nil, err
 	}
 	components, repositories, errs := b.Result()
@@ -184,14 +187,25 @@ func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
 
 // AddSourceRepositoriesToRefBuilder adds the provided repositories to the reference builder, identifies which
 // should be built using Docker, and then returns the full list of source repositories.
-func AddSourceRepositoriesToRefBuilder(b *app.ReferenceBuilder, repos []string, g *GenerationInputs) (app.SourceRepositories, error) {
+func AddSourceRepositoriesToRefBuilder(b *app.ReferenceBuilder, c *ComponentInputs, g *GenerationInputs, s, i *[]string) (app.SourceRepositories, error) {
 	strategy := g.Strategy
 	if strategy == generate.StrategyUnspecified {
 		strategy = generate.StrategySource
 	}
-	for _, s := range repos {
-		if repo, ok := b.AddSourceRepository(s, strategy); ok {
-			repo.SetContextDir(g.ContextDir)
+	// when git is installed we keep default logic. sourcelookup.go will do sorting of images, repos
+	if git.IsGitInstalled() || len(c.SourceRepositories) > 0 {
+		for _, s := range c.SourceRepositories {
+			if repo, ok := b.AddSourceRepository(s, strategy); ok {
+				repo.SetContextDir(g.ContextDir)
+			}
+		}
+		// when git is not installed we need to parse some logic to decide if we got 'new-app -i image code' or 'image -c code' syntax
+	} else if len(c.Components) > 0 && len(*i) > 0 && len(*s) == 0 || len(c.Components) > 0 && len(*i) == 0 && len(*s) > 0 {
+		for _, s := range c.Components {
+			if repo, ok := b.AddSourceRepository(s, strategy); ok {
+				repo.SetContextDir(g.ContextDir)
+				c.Components = []string{}
+			}
 		}
 	}
 	if len(g.Dockerfile) > 0 {
@@ -263,18 +277,16 @@ func DetectSource(repositories []*app.SourceRepository, d app.Detector, g *Gener
 }
 
 // AddComponentInputsToRefBuilder set up the components to be used by the reference builder.
-func AddComponentInputsToRefBuilder(b *app.ReferenceBuilder, r *Resolvers, c *ComponentInputs, g *GenerationInputs) error {
+func AddComponentInputsToRefBuilder(b *app.ReferenceBuilder, r *Resolvers, c *ComponentInputs, g *GenerationInputs, s, i *[]string) error {
 	// lookup source repositories first (before processing the component inputs)
-	repositories, err := AddSourceRepositoriesToRefBuilder(b, c.SourceRepositories, g)
+	repositories, err := AddSourceRepositoriesToRefBuilder(b, c, g, s, i)
 	if err != nil {
 		return err
 	}
-
 	// identify the types of the provided source locations
 	if err := DetectSource(repositories, r.Detector, g); err != nil {
 		return err
 	}
-
 	b.AddComponents(c.DockerImages, func(input *app.ComponentInput) app.ComponentReference {
 		input.Argument = fmt.Sprintf("--docker-image=%q", input.From)
 		input.Searcher = r.DockerSearcher

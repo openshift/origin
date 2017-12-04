@@ -314,6 +314,7 @@ func (r *SourceRepository) DetectAuth() error {
 	_, _, err = gitRepo.TimedListRemote(10*time.Second, url.StringNoFragment(), "--heads")
 	if err != nil {
 		r.requiresAuth = true
+		fmt.Print("warning: Cannot check if git requires authentication.\n")
 	}
 	return nil
 }
