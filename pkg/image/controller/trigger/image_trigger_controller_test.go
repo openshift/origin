@@ -936,8 +936,9 @@ func benchmark_1_imageStream(identity, maxTags, sequence int32, round, index int
 // updateBuildConfigImages updates the LastTriggeredImageID field on a build config.
 func updateBuildConfigImages(bc *buildapi.BuildConfig, tagRetriever trigger.TagRetriever) (*buildapi.BuildConfig, error) {
 	var updated *buildapi.BuildConfig
-	for i, t := range bc.Spec.Triggers {
-		p := t.ImageChange
+	bcCopy := bc.DeepCopy()
+	for i := range bcCopy.Spec.Triggers {
+		p := bcCopy.Spec.Triggers[i].ImageChange
 		if p == nil || (p.From != nil && p.From.Kind != "ImageStreamTag") {
 			continue
 		}
@@ -945,7 +946,7 @@ func updateBuildConfigImages(bc *buildapi.BuildConfig, tagRetriever trigger.TagR
 		if p.From != nil {
 			from = p.From
 		} else {
-			from = buildapi.GetInputReference(bc.Spec.Strategy)
+			from = buildapi.GetInputReference(bcCopy.Spec.Strategy)
 		}
 		namespace := from.Namespace
 		if len(namespace) == 0 {
@@ -956,10 +957,9 @@ func updateBuildConfigImages(bc *buildapi.BuildConfig, tagRetriever trigger.TagR
 			continue
 		}
 		if updated == nil {
-			updated = bc.DeepCopy()
+			updated = bcCopy
 		}
-		p = updated.Spec.Triggers[i].ImageChange
-		p.LastTriggeredImageID = latest
+		updated.Spec.Triggers[i].ImageChange.LastTriggeredImageID = latest
 	}
 	return updated, nil
 }
