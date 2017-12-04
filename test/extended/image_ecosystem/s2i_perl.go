@@ -43,7 +43,13 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 
 				exutil.CheckOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app -f %q", dancerTemplate))
-				err := oc.Run("new-app").Args("-f", dancerTemplate).Execute()
+				// prefork MPM workers read the application source lazily.  For
+				// this test to succeed reliably, we must have one worker only
+				// (HTTPD_START_SERVERS=1, HTTPD_MAX_REQUEST_WORKERS=1).  Having
+				// primed the worker via assertPageCountIs, we can then expect
+				// it not to read in the modified application source when hot
+				// deploy is disabled.
+				err := oc.Run("new-app").Args("-f", dancerTemplate, "-e", "HTTPD_START_SERVERS=1", "-e", "HTTPD_MAX_REQUEST_WORKERS=1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")
