@@ -19,30 +19,32 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // OAuthAccessTokens returns a OAuthAccessTokenInformer.
 func (v *version) OAuthAccessTokens() OAuthAccessTokenInformer {
-	return &oAuthAccessTokenInformer{factory: v.SharedInformerFactory}
+	return &oAuthAccessTokenInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // OAuthAuthorizeTokens returns a OAuthAuthorizeTokenInformer.
 func (v *version) OAuthAuthorizeTokens() OAuthAuthorizeTokenInformer {
-	return &oAuthAuthorizeTokenInformer{factory: v.SharedInformerFactory}
+	return &oAuthAuthorizeTokenInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // OAuthClients returns a OAuthClientInformer.
 func (v *version) OAuthClients() OAuthClientInformer {
-	return &oAuthClientInformer{factory: v.SharedInformerFactory}
+	return &oAuthClientInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // OAuthClientAuthorizations returns a OAuthClientAuthorizationInformer.
 func (v *version) OAuthClientAuthorizations() OAuthClientAuthorizationInformer {
-	return &oAuthClientAuthorizationInformer{factory: v.SharedInformerFactory}
+	return &oAuthClientAuthorizationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

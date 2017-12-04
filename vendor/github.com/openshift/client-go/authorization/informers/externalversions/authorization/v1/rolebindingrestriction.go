@@ -22,19 +22,34 @@ type RoleBindingRestrictionInformer interface {
 }
 
 type roleBindingRestrictionInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewRoleBindingRestrictionInformer constructs a new informer for RoleBindingRestriction type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewRoleBindingRestrictionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredRoleBindingRestrictionInformer(client, namespace, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredRoleBindingRestrictionInformer constructs a new informer for RoleBindingRestriction type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredRoleBindingRestrictionInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.AuthorizationV1().RoleBindingRestrictions(namespace).List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.AuthorizationV1().RoleBindingRestrictions(namespace).Watch(options)
 			},
 		},
@@ -44,12 +59,12 @@ func NewRoleBindingRestrictionInformer(client versioned.Interface, namespace str
 	)
 }
 
-func defaultRoleBindingRestrictionInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewRoleBindingRestrictionInformer(client, meta_v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *roleBindingRestrictionInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredRoleBindingRestrictionInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *roleBindingRestrictionInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization_v1.RoleBindingRestriction{}, defaultRoleBindingRestrictionInformer)
+	return f.factory.InformerFor(&authorization_v1.RoleBindingRestriction{}, f.defaultInformer)
 }
 
 func (f *roleBindingRestrictionInformer) Lister() v1.RoleBindingRestrictionLister {

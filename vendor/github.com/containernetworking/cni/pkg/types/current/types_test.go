@@ -15,6 +15,7 @@
 package current_test
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net"
 	"os"
@@ -47,6 +48,7 @@ func testResult() *current.Result {
 
 	// Set every field of the struct to ensure source compatibility
 	return &current.Result{
+		CNIVersion: "0.3.1",
 		Interfaces: []*current.Interface{
 			{
 				Name:    "eth0",
@@ -57,13 +59,13 @@ func testResult() *current.Result {
 		IPs: []*current.IPConfig{
 			{
 				Version:   "4",
-				Interface: 0,
+				Interface: current.Int(0),
 				Address:   *ipv4,
 				Gateway:   net.ParseIP("1.2.3.1"),
 			},
 			{
 				Version:   "6",
-				Interface: 0,
+				Interface: current.Int(0),
 				Address:   *ipv6,
 				Gateway:   net.ParseIP("abcd:1234:ffff::1"),
 			},
@@ -85,8 +87,6 @@ var _ = Describe("Current types operations", func() {
 	It("correctly encodes a 0.3.x Result", func() {
 		res := testResult()
 
-		Expect(res.String()).To(Equal("Interfaces:[{Name:eth0 Mac:00:11:22:33:44:55 Sandbox:/proc/3553/ns/net}], IP:[{Version:4 Interface:0 Address:{IP:1.2.3.30 Mask:ffffff00} Gateway:1.2.3.1} {Version:6 Interface:0 Address:{IP:abcd:1234:ffff::cdde Mask:ffffffffffffffff0000000000000000} Gateway:abcd:1234:ffff::1}], Routes:[{Dst:{IP:15.5.6.0 Mask:ffffff00} GW:15.5.6.8} {Dst:{IP:1111:dddd:: Mask:ffffffffffffffffffff000000000000} GW:1111:dddd::aaaa}], DNS:{Nameservers:[1.2.3.4 1::cafe] Domain:acompany.com Search:[somedomain.com otherdomain.net] Options:[foo bar]}"))
-
 		// Redirect stdout to capture JSON result
 		oldStdout := os.Stdout
 		r, w, err := os.Pipe()
@@ -102,7 +102,8 @@ var _ = Describe("Current types operations", func() {
 		os.Stdout = oldStdout
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(string(out)).To(Equal(`{
+		Expect(string(out)).To(MatchJSON(`{
+    "cniVersion": "0.3.1",
     "interfaces": [
         {
             "name": "eth0",
@@ -113,11 +114,13 @@ var _ = Describe("Current types operations", func() {
     "ips": [
         {
             "version": "4",
+            "interface": 0,
             "address": "1.2.3.30/24",
             "gateway": "1.2.3.1"
         },
         {
             "version": "6",
+            "interface": 0,
             "address": "abcd:1234:ffff::cdde/64",
             "gateway": "abcd:1234:ffff::1"
         }
@@ -171,7 +174,8 @@ var _ = Describe("Current types operations", func() {
 		os.Stdout = oldStdout
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(string(out)).To(Equal(`{
+		Expect(string(out)).To(MatchJSON(`{
+    "cniVersion": "0.2.0",
     "ip4": {
         "ip": "1.2.3.30/24",
         "gateway": "1.2.3.1",
@@ -207,6 +211,42 @@ var _ = Describe("Current types operations", func() {
             "bar"
         ]
     }
+}`))
+	})
+
+	It("correctly marshals interface index 0", func() {
+		ipc := &current.IPConfig{
+			Version:   "4",
+			Interface: current.Int(0),
+			Address: net.IPNet{
+				IP:   net.ParseIP("10.1.2.3"),
+				Mask: net.IPv4Mask(255, 255, 255, 0),
+			},
+		}
+
+		json, err := json.Marshal(ipc)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(json).To(MatchJSON(`{
+    "version": "4",
+    "interface": 0,
+    "address": "10.1.2.3/24"
+}`))
+	})
+
+	It("correctly marshals a missing interface index", func() {
+		ipc := &current.IPConfig{
+			Version: "4",
+			Address: net.IPNet{
+				IP:   net.ParseIP("10.1.2.3"),
+				Mask: net.IPv4Mask(255, 255, 255, 0),
+			},
+		}
+
+		json, err := json.Marshal(ipc)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(json).To(MatchJSON(`{
+    "version": "4",
+    "address": "10.1.2.3/24"
 }`))
 	})
 })

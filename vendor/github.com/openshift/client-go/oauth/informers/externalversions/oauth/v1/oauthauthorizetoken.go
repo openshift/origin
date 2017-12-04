@@ -22,19 +22,33 @@ type OAuthAuthorizeTokenInformer interface {
 }
 
 type oAuthAuthorizeTokenInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewOAuthAuthorizeTokenInformer constructs a new informer for OAuthAuthorizeToken type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewOAuthAuthorizeTokenInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredOAuthAuthorizeTokenInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredOAuthAuthorizeTokenInformer constructs a new informer for OAuthAuthorizeToken type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredOAuthAuthorizeTokenInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.OauthV1().OAuthAuthorizeTokens().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.OauthV1().OAuthAuthorizeTokens().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewOAuthAuthorizeTokenInformer(client versioned.Interface, resyncPeriod tim
 	)
 }
 
-func defaultOAuthAuthorizeTokenInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewOAuthAuthorizeTokenInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *oAuthAuthorizeTokenInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredOAuthAuthorizeTokenInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *oAuthAuthorizeTokenInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&oauth_v1.OAuthAuthorizeToken{}, defaultOAuthAuthorizeTokenInformer)
+	return f.factory.InformerFor(&oauth_v1.OAuthAuthorizeToken{}, f.defaultInformer)
 }
 
 func (f *oAuthAuthorizeTokenInformer) Lister() v1.OAuthAuthorizeTokenLister {

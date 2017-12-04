@@ -13,7 +13,7 @@ netnspath=/proc/$pid/ns/net
 
 function cleanup() {
 	./exec-plugins.sh del $contid $netnspath
-	docker kill $contid >/dev/null
+	docker rm -f $contid >/dev/null
 }
 trap cleanup EXIT
 

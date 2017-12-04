@@ -65,12 +65,21 @@ var _ = SIGDescribe("Services", func() {
 
 	// TODO: We get coverage of TCP/UDP and multi-port services through the DNS test. We should have a simpler test for multi-port TCP here.
 
-	It("should provide secure master service [Conformance]", func() {
+	/*
+	   Testname: service-kubernetes-exists
+	   Description: Make sure kubernetes service does exist.
+	*/
+	framework.ConformanceIt("should provide secure master service ", func() {
 		_, err := cs.CoreV1().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("should serve a basic endpoint from pods [Conformance]", func() {
+	/*
+		    Testname: service-valid-endpoints
+		    Description: Ensure a service with no pod, one pod or two pods has
+			valid/accessible endpoints (same port number for service and pods).
+	*/
+	framework.ConformanceIt("should serve a basic endpoint from pods ", func() {
 		// TODO: use the ServiceTestJig here
 		serviceName := "endpoint-test2"
 		ns := f.Namespace.Name
@@ -130,7 +139,12 @@ var _ = SIGDescribe("Services", func() {
 		framework.ValidateEndpointsOrFail(cs, ns, serviceName, framework.PortsByPodName{})
 	})
 
-	It("should serve multiport endpoints from pods [Conformance]", func() {
+	/*
+		    Testname: service-valid-endpoints-multiple-ports
+		    Description: Ensure a service with no pod, one pod or two pods has
+			valid/accessible endpoints (different port number for pods).
+	*/
+	framework.ConformanceIt("should serve multiport endpoints from pods ", func() {
 		// TODO: use the ServiceTestJig here
 		// repacking functionality is intentionally not tested here - it's better to test it in an integration test.
 		serviceName := "multi-endpoint-test"
@@ -467,7 +481,8 @@ var _ = SIGDescribe("Services", func() {
 		}
 	})
 
-	It("should be able to change the type and ports of a service [Slow]", func() {
+	// TODO: Get rid of [DisabledForLargeClusters] tag when issue #52495 is fixed.
+	It("should be able to change the type and ports of a service [Slow] [DisabledForLargeClusters]", func() {
 		// requires cloud load-balancer support
 		framework.SkipUnlessProviderIs("gce", "gke", "aws")
 
@@ -786,6 +801,53 @@ var _ = SIGDescribe("Services", func() {
 		if loadBalancerSupportsUDP {
 			By("checking the UDP LoadBalancer is closed")
 			jig.TestNotReachableUDP(udpIngressIP, svcPort, loadBalancerLagTimeout)
+		}
+	})
+
+	It("should be able to update NodePorts with two same port numbers but different protocols", func() {
+		serviceName := "nodeport-update-service"
+		ns := f.Namespace.Name
+		jig := framework.NewServiceTestJig(cs, serviceName)
+
+		By("creating a TCP service " + serviceName + " with type=ClusterIP in namespace " + ns)
+		tcpService := jig.CreateTCPServiceOrFail(ns, nil)
+		defer func() {
+			framework.Logf("Cleaning up the updating NodePorts test service")
+			err := cs.Core().Services(ns).Delete(serviceName, nil)
+			Expect(err).NotTo(HaveOccurred())
+		}()
+		jig.SanityCheckService(tcpService, v1.ServiceTypeClusterIP)
+		svcPort := int(tcpService.Spec.Ports[0].Port)
+		framework.Logf("service port TCP: %d", svcPort)
+
+		// Change the services to NodePort and add a UDP port.
+
+		By("changing the TCP service to type=NodePort and add a UDP port")
+		newService := jig.UpdateServiceOrFail(ns, tcpService.Name, func(s *v1.Service) {
+			s.Spec.Type = v1.ServiceTypeNodePort
+			s.Spec.Ports = []v1.ServicePort{
+				{
+					Name:     "tcp-port",
+					Port:     80,
+					Protocol: v1.ProtocolTCP,
+				},
+				{
+					Name:     "udp-port",
+					Port:     80,
+					Protocol: v1.ProtocolUDP,
+				},
+			}
+		})
+		jig.SanityCheckService(newService, v1.ServiceTypeNodePort)
+		if len(newService.Spec.Ports) != 2 {
+			framework.Failf("new service should have two Ports")
+		}
+		for _, port := range newService.Spec.Ports {
+			if port.NodePort == 0 {
+				framework.Failf("new service failed to allocate NodePort for Port %s", port.Name)
+			}
+
+			framework.Logf("new service allocates NodePort %d for Port %s", port.NodePort, port.Name)
 		}
 	})
 
@@ -1246,7 +1308,7 @@ var _ = SIGDescribe("Services", func() {
 		By("Remove pods immediately")
 		label := labels.SelectorFromSet(labels.Set(t.Labels))
 		options := metav1.ListOptions{LabelSelector: label.String()}
-		podClient := t.Client.Core().Pods(f.Namespace.Name)
+		podClient := t.Client.CoreV1().Pods(f.Namespace.Name)
 		pods, err := podClient.List(options)
 		if err != nil {
 			framework.Logf("warning: error retrieving pods: %s", err)
@@ -1337,10 +1399,15 @@ var _ = SIGDescribe("Services", func() {
 		framework.CheckReachabilityFromPod(true, normalReachabilityTimeout, namespace, dropPodName, svcIP)
 	})
 
-	It("should be able to create an internal type load balancer [Slow]", func() {
+	// TODO: Get rid of [DisabledForLargeClusters] tag when issue #52495 is fixed.
+	It("should be able to create an internal type load balancer [Slow] [DisabledForLargeClusters]", func() {
 		framework.SkipUnlessProviderIs("azure", "gke", "gce")
 
 		createTimeout := framework.LoadBalancerCreateTimeoutDefault
+		if nodes := framework.GetReadySchedulableNodesOrDie(cs); len(nodes.Items) > framework.LargeClusterMinNodesNumber {
+			createTimeout = framework.LoadBalancerCreateTimeoutLarge
+		}
+
 		pollInterval := framework.Poll * 10
 
 		namespace := f.Namespace.Name
@@ -1375,7 +1442,7 @@ var _ = SIGDescribe("Services", func() {
 		})
 		framework.Logf("Waiting up to %v for service %q to have an external LoadBalancer", createTimeout, serviceName)
 		if pollErr := wait.PollImmediate(pollInterval, createTimeout, func() (bool, error) {
-			svc, err := jig.Client.Core().Services(namespace).Get(serviceName, metav1.GetOptions{})
+			svc, err := jig.Client.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -1399,7 +1466,7 @@ var _ = SIGDescribe("Services", func() {
 			})
 			framework.Logf("Waiting up to %v for service %q to have an internal LoadBalancer", createTimeout, serviceName)
 			if pollErr := wait.PollImmediate(pollInterval, createTimeout, func() (bool, error) {
-				svc, err := jig.Client.Core().Services(namespace).Get(serviceName, metav1.GetOptions{})
+				svc, err := jig.Client.CoreV1().Services(namespace).Get(serviceName, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -1418,7 +1485,8 @@ var _ = SIGDescribe("Services", func() {
 	})
 })
 
-var _ = SIGDescribe("ESIPP [Slow]", func() {
+// TODO: Get rid of [DisabledForLargeClusters] tag when issue #52495 is fixed.
+var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 	f := framework.NewDefaultFramework("esipp")
 	loadBalancerCreateTimeout := framework.LoadBalancerCreateTimeoutDefault
 
@@ -1597,7 +1665,7 @@ var _ = SIGDescribe("ESIPP [Slow]", func() {
 			err := cs.CoreV1().Pods(namespace).Delete(execPodName, nil)
 			Expect(err).NotTo(HaveOccurred())
 		}()
-		execPod, err := f.ClientSet.Core().Pods(namespace).Get(execPodName, metav1.GetOptions{})
+		execPod, err := f.ClientSet.CoreV1().Pods(namespace).Get(execPodName, metav1.GetOptions{})
 		framework.ExpectNoError(err)
 
 		framework.Logf("Waiting up to %v wget %v", framework.KubeProxyLagTimeout, path)
@@ -1729,10 +1797,10 @@ func execSourceipTest(f *framework.Framework, c clientset.Interface, ns, nodeNam
 	})
 	defer func() {
 		framework.Logf("Cleaning up the exec pod")
-		err := c.Core().Pods(ns).Delete(execPodName, nil)
+		err := c.CoreV1().Pods(ns).Delete(execPodName, nil)
 		Expect(err).NotTo(HaveOccurred())
 	}()
-	execPod, err := f.ClientSet.Core().Pods(ns).Get(execPodName, metav1.GetOptions{})
+	execPod, err := f.ClientSet.CoreV1().Pods(ns).Get(execPodName, metav1.GetOptions{})
 	framework.ExpectNoError(err)
 
 	var stdout string

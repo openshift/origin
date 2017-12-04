@@ -21,8 +21,9 @@ go_library(
         "sysctl.go",
         "upgrade.go",
     ],
+    importpath = "k8s.io/kubernetes/test/e2e/upgrades",
     deps = [
-        "//pkg/api/v1/helper:go_default_library",
+        "//pkg/apis/core/v1/helper:go_default_library",
         "//pkg/kubelet/sysctl:go_default_library",
         "//pkg/util/version:go_default_library",
         "//test/e2e/common:go_default_library",

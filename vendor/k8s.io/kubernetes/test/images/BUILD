@@ -1,13 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
 filegroup(
-    name = "sources",
-    srcs = glob([
-        "**/*",
-    ]),
-)
-
-filegroup(
     name = "package-srcs",
     srcs = glob(["**"]),
     tags = ["automanaged"],
@@ -38,6 +31,7 @@ filegroup(
         "//test/images/resource-consumer:all-srcs",
         "//test/images/serve-hostname:all-srcs",
         "//test/images/test-webserver:all-srcs",
+        "//test/images/webhook:all-srcs",
     ],
     tags = ["automanaged"],
 )
