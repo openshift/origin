@@ -25,7 +25,7 @@ func (i Isolation) IsDefault() bool {
 // IpcMode represents the container ipc stack.
 type IpcMode string
 
-// IsPrivate indicates whether the container uses its private ipc stack.
+// IsPrivate indicates whether the container uses it's private ipc stack.
 func (n IpcMode) IsPrivate() bool {
 	return !(n.IsHost() || n.IsContainer())
 }
@@ -136,47 +136,28 @@ func (n UTSMode) Valid() bool {
 	return true
 }
 
-// PidMode represents the pid namespace of the container.
+// PidMode represents the pid stack of the container.
 type PidMode string
 
-// IsPrivate indicates whether the container uses its own new pid namespace.
+// IsPrivate indicates whether the container uses its private pid stack.
 func (n PidMode) IsPrivate() bool {
-	return !(n.IsHost() || n.IsContainer())
+	return !(n.IsHost())
 }
 
-// IsHost indicates whether the container uses the host's pid namespace.
+// IsHost indicates whether the container uses the host's pid stack.
 func (n PidMode) IsHost() bool {
 	return n == "host"
 }
 
-// IsContainer indicates whether the container uses a container's pid namespace.
-func (n PidMode) IsContainer() bool {
-	parts := strings.SplitN(string(n), ":", 2)
-	return len(parts) > 1 && parts[0] == "container"
-}
-
-// Valid indicates whether the pid namespace is valid.
+// Valid indicates whether the pid stack is valid.
 func (n PidMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
 	case "", "host":
-	case "container":
-		if len(parts) != 2 || parts[1] == "" {
-			return false
-		}
 	default:
 		return false
 	}
 	return true
-}
-
-// Container returns the name of the container whose pid namespace is going to be used.
-func (n PidMode) Container() string {
-	parts := strings.SplitN(string(n), ":", 2)
-	if len(parts) > 1 {
-		return parts[1]
-	}
-	return ""
 }
 
 // DeviceMapping represents the device mapping between the host and the container.
@@ -205,7 +186,7 @@ func (rp *RestartPolicy) IsAlways() bool {
 }
 
 // IsOnFailure indicates whether the container has the "on-failure" restart policy.
-// This means the container will automatically restart of exiting with a non-zero exit status.
+// This means the contain will automatically restart of exiting with a non-zero exit status.
 func (rp *RestartPolicy) IsOnFailure() bool {
 	return rp.Name == "on-failure"
 }

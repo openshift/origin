@@ -9,9 +9,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// SecurityContextConstraintsLister helps list SecurityContextConstraintses.
+// SecurityContextConstraintsLister helps list SecurityContextConstraints.
 type SecurityContextConstraintsLister interface {
-	// List lists all SecurityContextConstraintses in the indexer.
+	// List lists all SecurityContextConstraints in the indexer.
 	List(selector labels.Selector) (ret []*v1.SecurityContextConstraints, err error)
 	// Get retrieves the SecurityContextConstraints from the index for a given name.
 	Get(name string) (*v1.SecurityContextConstraints, error)
@@ -28,7 +28,7 @@ func NewSecurityContextConstraintsLister(indexer cache.Indexer) SecurityContextC
 	return &securityContextConstraintsLister{indexer: indexer}
 }
 
-// List lists all SecurityContextConstraintses in the indexer.
+// List lists all SecurityContextConstraints in the indexer.
 func (s *securityContextConstraintsLister) List(selector labels.Selector) (ret []*v1.SecurityContextConstraints, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
 		ret = append(ret, m.(*v1.SecurityContextConstraints))

@@ -57,7 +57,6 @@ type ContainerLogsOptions struct {
 	Timestamps bool
 	Follow     bool
 	Tail       string
-	Details    bool
 }
 
 // ContainerRemoveOptions holds parameters to remove containers.
@@ -70,6 +69,9 @@ type ContainerRemoveOptions struct {
 // CopyToContainerOptions holds information
 // about files to copy into a container
 type CopyToContainerOptions struct {
+	ContainerID               string
+	Path                      string
+	Content                   io.Reader
 	AllowOverwriteDirWithFile bool
 }
 
@@ -173,14 +175,12 @@ type ImageListOptions struct {
 
 // ImageLoadResponse returns information to the client about a load process.
 type ImageLoadResponse struct {
-	// Body must be closed to avoid a resource leak
 	Body io.ReadCloser
 	JSON bool
 }
 
 // ImagePullOptions holds information to pull images.
 type ImagePullOptions struct {
-	All           bool
 	RegistryAuth  string // RegistryAuth is the base64 encoded credentials for the registry
 	PrivilegeFunc RequestPrivilegeFunc
 }
@@ -206,7 +206,6 @@ type ImageRemoveOptions struct {
 type ImageSearchOptions struct {
 	RegistryAuth  string
 	PrivilegeFunc RequestPrivilegeFunc
-	Filters       filters.Args
 }
 
 // ImageTagOptions holds parameters to tag an image

@@ -15,22 +15,42 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/containernetworking/cni/libcni"
 )
 
 const (
-	EnvCNIPath = "CNI_PATH"
-	EnvNetDir  = "NETCONFPATH"
+	EnvCNIPath        = "CNI_PATH"
+	EnvNetDir         = "NETCONFPATH"
+	EnvCapabilityArgs = "CAP_ARGS"
+	EnvCNIArgs        = "CNI_ARGS"
 
 	DefaultNetDir = "/etc/cni/net.d"
 
 	CmdAdd = "add"
 	CmdDel = "del"
 )
+
+func parseArgs(args string) ([][2]string, error) {
+	var result [][2]string
+
+	pairs := strings.Split(args, ";")
+	for _, pair := range pairs {
+		kv := strings.Split(pair, "=")
+		if len(kv) != 2 || kv[0] == "" || kv[1] == "" {
+			return nil, fmt.Errorf("invalid CNI_ARGS pair %q", pair)
+		}
+
+		result = append(result, [2]string{kv[0], kv[1]})
+	}
+
+	return result, nil
+}
 
 func main() {
 	if len(os.Args) < 3 {
@@ -47,6 +67,23 @@ func main() {
 		exit(err)
 	}
 
+	var capabilityArgs map[string]interface{}
+	capabilityArgsValue := os.Getenv(EnvCapabilityArgs)
+	if len(capabilityArgsValue) > 0 {
+		if err = json.Unmarshal([]byte(capabilityArgsValue), &capabilityArgs); err != nil {
+			exit(err)
+		}
+	}
+
+	var cniArgs [][2]string
+	args := os.Getenv(EnvCNIArgs)
+	if len(args) > 0 {
+		cniArgs, err = parseArgs(args)
+		if err != nil {
+			exit(err)
+		}
+	}
+
 	netns := os.Args[3]
 
 	cninet := &libcni.CNIConfig{
@@ -54,9 +91,11 @@ func main() {
 	}
 
 	rt := &libcni.RuntimeConf{
-		ContainerID: "cni",
-		NetNS:       netns,
-		IfName:      "eth0",
+		ContainerID:    "cni",
+		NetNS:          netns,
+		IfName:         "eth0",
+		Args:           cniArgs,
+		CapabilityArgs: capabilityArgs,
 	}
 
 	switch os.Args[1] {

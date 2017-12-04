@@ -75,6 +75,9 @@ func IsFullyQualifiedName(fldPath *field.Path, name string) field.ErrorList {
 	if len(name) == 0 {
 		return append(allErrors, field.Required(fldPath, ""))
 	}
+	if errs := IsDNS1123Subdomain(name); len(errs) > 0 {
+		return append(allErrors, field.Invalid(fldPath, name, strings.Join(errs, ",")))
+	}
 	if len(strings.Split(name, ".")) < 3 {
 		return append(allErrors, field.Invalid(fldPath, name, "should be a domain with at least three segments separated by dots"))
 	}

@@ -12,6 +12,7 @@ go_library(
         "fake_host.go",
         "mock_network_plugin.go",
     ],
+    importpath = "k8s.io/kubernetes/pkg/kubelet/network/testing",
     deps = [
         "//pkg/kubelet/apis/kubeletconfig:go_default_library",
         "//pkg/kubelet/container:go_default_library",
@@ -28,12 +29,15 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = ["plugins_test.go"],
+    importpath = "k8s.io/kubernetes/pkg/kubelet/network/testing",
     library = ":go_default_library",
     deps = [
         "//pkg/kubelet/apis/kubeletconfig:go_default_library",
         "//pkg/kubelet/container:go_default_library",
         "//pkg/kubelet/network:go_default_library",
+        "//pkg/util/sysctl/testing:go_default_library",
         "//vendor/github.com/golang/mock/gomock:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
     ],
 )

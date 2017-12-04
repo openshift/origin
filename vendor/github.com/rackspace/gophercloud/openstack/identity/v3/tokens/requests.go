@@ -20,142 +20,155 @@ func subjectTokenHeaders(c *gophercloud.ServiceClient, subjectToken string) map[
 	}
 }
 
-// AuthOptionsV3er describes any argument that may be passed to the Create call.
-type AuthOptionsV3er interface {
+// Create authenticates and either generates a new token, or changes the Scope of an existing token.
+func Create(c *gophercloud.ServiceClient, options gophercloud.AuthOptions, scope *Scope) CreateResult {
+	type domainReq struct {
+		ID   *string `json:"id,omitempty"`
+		Name *string `json:"name,omitempty"`
+	}
 
-        // ToTokenCreateMap assembles the Create request body, returning an error if parameters are
-        // missing or inconsistent.
-        ToAuthOptionsV3Map(c *gophercloud.ServiceClient, scope *Scope) (map[string]interface{}, error)
-}
+	type projectReq struct {
+		Domain *domainReq `json:"domain,omitempty"`
+		Name   *string    `json:"name,omitempty"`
+		ID     *string    `json:"id,omitempty"`
+	}
 
-// AuthOptions wraps a gophercloud AuthOptions in order to adhere to the AuthOptionsV3er
-// interface.
-type AuthOptions struct {
-        gophercloud.AuthOptions
-}
+	type userReq struct {
+		ID       *string    `json:"id,omitempty"`
+		Name     *string    `json:"name,omitempty"`
+		Password string     `json:"password"`
+		Domain   *domainReq `json:"domain,omitempty"`
+	}
 
-func (options AuthOptions) ToAuthOptionsV3Map(c *gophercloud.ServiceClient, scope *Scope) (map[string]interface{}, error) {
-	// tokens3.Create logic
+	type passwordReq struct {
+		User userReq `json:"user"`
+	}
+
+	type tokenReq struct {
+		ID string `json:"id"`
+	}
+
+	type identityReq struct {
+		Methods  []string     `json:"methods"`
+		Password *passwordReq `json:"password,omitempty"`
+		Token    *tokenReq    `json:"token,omitempty"`
+	}
+
+	type scopeReq struct {
+		Domain  *domainReq  `json:"domain,omitempty"`
+		Project *projectReq `json:"project,omitempty"`
+	}
+
+	type authReq struct {
+		Identity identityReq `json:"identity"`
+		Scope    *scopeReq   `json:"scope,omitempty"`
+	}
+
+	type request struct {
+		Auth authReq `json:"auth"`
+	}
 
 	// Populate the request structure based on the provided arguments. Create and return an error
 	// if insufficient or incompatible information is present.
-	authMap := make(map[string]interface{})
+	var req request
 
 	// Test first for unrecognized arguments.
 	if options.APIKey != "" {
-		return nil, ErrAPIKeyProvided
+		return createErr(ErrAPIKeyProvided)
 	}
 	if options.TenantID != "" {
-		return nil, ErrTenantIDProvided
+		return createErr(ErrTenantIDProvided)
 	}
 	if options.TenantName != "" {
-		return nil, ErrTenantNameProvided
+		return createErr(ErrTenantNameProvided)
 	}
 
 	if options.Password == "" {
-		if options.TokenID != "" {
-			c.TokenID = options.TokenID
-		}
 		if c.TokenID != "" {
 			// Because we aren't using password authentication, it's an error to also provide any of the user-based authentication
 			// parameters.
 			if options.Username != "" {
-				return nil, ErrUsernameWithToken
+				return createErr(ErrUsernameWithToken)
 			}
 			if options.UserID != "" {
-				return nil, ErrUserIDWithToken
+				return createErr(ErrUserIDWithToken)
+			}
+			if options.DomainID != "" {
+				return createErr(ErrDomainIDWithToken)
+			}
+			if options.DomainName != "" {
+				return createErr(ErrDomainNameWithToken)
 			}
 
 			// Configure the request for Token authentication.
-                        authMap["identity"] = map[string]interface{}{
-                                "methods": []string{"token"},
-                                "token": map[string]interface{}{
-                                        "id": c.TokenID,
-				},
+			req.Auth.Identity.Methods = []string{"token"}
+			req.Auth.Identity.Token = &tokenReq{
+				ID: c.TokenID,
 			}
-
 		} else {
 			// If no password or token ID are available, authentication can't continue.
-			return nil, ErrMissingPassword
+			return createErr(ErrMissingPassword)
 		}
 	} else {
 		// Password authentication.
+		req.Auth.Identity.Methods = []string{"password"}
 
 		// At least one of Username and UserID must be specified.
 		if options.Username == "" && options.UserID == "" {
-			return nil, ErrUsernameOrUserID
+			return createErr(ErrUsernameOrUserID)
 		}
 
 		if options.Username != "" {
 			// If Username is provided, UserID may not be provided.
 			if options.UserID != "" {
-				return nil, ErrUsernameOrUserID
+				return createErr(ErrUsernameOrUserID)
 			}
 
 			// Either DomainID or DomainName must also be specified.
 			if options.DomainID == "" && options.DomainName == "" {
-				return nil, ErrDomainIDOrDomainName
+				return createErr(ErrDomainIDOrDomainName)
 			}
 
 			if options.DomainID != "" {
 				if options.DomainName != "" {
-					return nil, ErrDomainIDOrDomainName
+					return createErr(ErrDomainIDOrDomainName)
 				}
 
 				// Configure the request for Username and Password authentication with a DomainID.
-                                authMap["identity"] = map[string]interface{}{
-					"methods": []string{"password"},
-                                	"password" : map[string]interface{}{
-                                                "user": map[string]interface{}{
-                                                        "name": &options.Username,
-                                                        "password": options.Password,
-                                                        "domain": map[string]interface{}{
-                                                                "id": &options.DomainID,
-                                                        },
-                                                },
+				req.Auth.Identity.Password = &passwordReq{
+					User: userReq{
+						Name:     &options.Username,
+						Password: options.Password,
+						Domain:   &domainReq{ID: &options.DomainID},
 					},
 				}
-
 			}
 
 			if options.DomainName != "" {
 				// Configure the request for Username and Password authentication with a DomainName.
-                                authMap["identity"] = map[string]interface{}{
-					"methods": []string{"password"},
-                                        "password": map[string]interface{}{
-                                                 "user": map[string]interface{}{
-                                                         "name": &options.Username,
-                                                         "password": options.Password,
-                                                         "domain": map[string]interface{}{
-                                                                 "name": &options.DomainName,
-                                                         },
-                                                },
-                                         },
-                                 }
-
+				req.Auth.Identity.Password = &passwordReq{
+					User: userReq{
+						Name:     &options.Username,
+						Password: options.Password,
+						Domain:   &domainReq{Name: &options.DomainName},
+					},
+				}
 			}
 		}
 
 		if options.UserID != "" {
 			// If UserID is specified, neither DomainID nor DomainName may be.
 			if options.DomainID != "" {
-				return nil, ErrDomainIDWithUserID
+				return createErr(ErrDomainIDWithUserID)
 			}
 			if options.DomainName != "" {
-				return nil, ErrDomainNameWithUserID
+				return createErr(ErrDomainNameWithUserID)
 			}
 
 			// Configure the request for UserID and Password authentication.
-                        authMap["identity"] = map[string]interface{}{
-				"methods": []string{"password"},
-                                "password" : map[string]interface{}{
-                                        "user": map[string]interface{}{
-                                                "id": &options.UserID,
-                                                "password": options.Password,
-                                        },
-                                },
+			req.Auth.Identity.Password = &passwordReq{
+				User: userReq{ID: &options.UserID, Password: options.Password},
 			}
-
 		}
 	}
 
@@ -165,81 +178,64 @@ func (options AuthOptions) ToAuthOptionsV3Map(c *gophercloud.ServiceClient, scop
 			// ProjectName provided: either DomainID or DomainName must also be supplied.
 			// ProjectID may not be supplied.
 			if scope.DomainID == "" && scope.DomainName == "" {
-				return nil, ErrScopeDomainIDOrDomainName
+				return createErr(ErrScopeDomainIDOrDomainName)
 			}
 			if scope.ProjectID != "" {
-				return nil, ErrScopeProjectIDOrProjectName
+				return createErr(ErrScopeProjectIDOrProjectName)
 			}
 
 			if scope.DomainID != "" {
 				// ProjectName + DomainID
-                                authMap["scope"] = map[string]interface{}{
-                                        "project": map[string]interface{}{
-                                                "domain": map[string]interface{}{
-                                                        "id": &scope.DomainID,
-                                                        },
-                                                "name": &scope.ProjectName,
-                                        },
+				req.Auth.Scope = &scopeReq{
+					Project: &projectReq{
+						Name:   &scope.ProjectName,
+						Domain: &domainReq{ID: &scope.DomainID},
+					},
 				}
 			}
 
 			if scope.DomainName != "" {
 				// ProjectName + DomainName
-                                authMap["scope"] = map[string]interface{}{
-                                        "project": map[string]interface{}{
-                                                "domain": map[string]interface{}{
-                                                        "name": &scope.DomainName,
-                                                        },
-                                                "name": &scope.ProjectName,
-                                        },
+				req.Auth.Scope = &scopeReq{
+					Project: &projectReq{
+						Name:   &scope.ProjectName,
+						Domain: &domainReq{Name: &scope.DomainName},
+					},
 				}
 			}
 		} else if scope.ProjectID != "" {
 			// ProjectID provided. ProjectName, DomainID, and DomainName may not be provided.
 			if scope.DomainID != "" {
-				return nil, ErrScopeProjectIDAlone
+				return createErr(ErrScopeProjectIDAlone)
 			}
 			if scope.DomainName != "" {
-				return nil, ErrScopeProjectIDAlone
+				return createErr(ErrScopeProjectIDAlone)
 			}
 
 			// ProjectID
-                        authMap["scope"] = map[string]interface{}{
-                                "project": map[string]interface{}{
-                                        "id": &scope.ProjectID,
-                                        },
+			req.Auth.Scope = &scopeReq{
+				Project: &projectReq{ID: &scope.ProjectID},
 			}
 		} else if scope.DomainID != "" {
 			// DomainID provided. ProjectID, ProjectName, and DomainName may not be provided.
 			if scope.DomainName != "" {
-				return nil, ErrScopeDomainIDOrDomainName
+				return createErr(ErrScopeDomainIDOrDomainName)
 			}
 
 			// DomainID
-                        authMap["scope"] = map[string]interface{}{
-                                 "domain": map[string]interface{}{
-                                         "id": &scope.DomainID,
-                                         },
+			req.Auth.Scope = &scopeReq{
+				Domain: &domainReq{ID: &scope.DomainID},
 			}
 		} else if scope.DomainName != "" {
-			return nil, ErrScopeDomainName
+			return createErr(ErrScopeDomainName)
 		} else {
-			return nil, ErrScopeEmpty
+			return createErr(ErrScopeEmpty)
 		}
 	}
-	return map[string]interface{}{"auth": authMap}, nil
-}
-
-// Create authenticates and either generates a new token, or changes the Scope of an existing token.
-func Create(c *gophercloud.ServiceClient, options AuthOptionsV3er, scope *Scope) CreateResult {
-        request, err := options.ToAuthOptionsV3Map(c, scope)
-        if err != nil {
-                return CreateResult{commonResult{gophercloud.Result{Err: err}}}
-        }
 
 	var result CreateResult
 	var response *http.Response
-	response, result.Err = c.Post(tokenURL(c), request, &result.Body, nil)
+	response, result.Err = c.Post(tokenURL(c), req, &result.Body, nil)
 	if result.Err != nil {
 		return result
 	}

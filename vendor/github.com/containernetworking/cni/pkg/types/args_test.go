@@ -118,4 +118,15 @@ var _ = Describe("LoadArgs", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+
+	Context("When known arguments are passed and cannot be unmarshalled", func() {
+		It("LoadArgs should fail", func() {
+			conf := struct {
+				IP IPNet
+			}{}
+			err := LoadArgs("IP=10.0.0.0/24", &conf)
+			Expect(err).To(HaveOccurred())
+
+		})
+	})
 })

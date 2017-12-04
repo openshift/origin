@@ -493,6 +493,11 @@ func TestIsFullyQualifiedName(t *testing.T) {
 			targetName: "",
 			err:        "Required value",
 		},
+		{
+			name:       "name must conform to RFC 1123",
+			targetName: "A.B.C",
+			err:        "a DNS-1123 subdomain must consist of lower case alphanumeric characters",
+		},
 	}
 	for _, tc := range tests {
 		err := IsFullyQualifiedName(field.NewPath(""), tc.targetName).ToAggregate()

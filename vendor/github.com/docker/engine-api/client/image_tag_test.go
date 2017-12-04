@@ -66,7 +66,7 @@ func TestImageTag(t *testing.T) {
 			expectedQueryParams: map[string]string{
 				"force": "1",
 				"repo":  "another_repository",
-				"tag":   "latest",
+				"tag":   "",
 			},
 		}, {
 			force:     true,
@@ -74,7 +74,7 @@ func TestImageTag(t *testing.T) {
 			expectedQueryParams: map[string]string{
 				"force": "1",
 				"repo":  "test/another_repository",
-				"tag":   "latest",
+				"tag":   "",
 			},
 		}, {
 			force:     true,
@@ -106,7 +106,7 @@ func TestImageTag(t *testing.T) {
 			expectedQueryParams: map[string]string{
 				"force": "1",
 				"repo":  "test:5000/test/another_repository",
-				"tag":   "latest",
+				"tag":   "",
 			},
 		},
 	}
