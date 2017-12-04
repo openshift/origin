@@ -48,6 +48,7 @@ var _ = Describe("Ensures compatibility with the 0.1.0/0.2.0 spec", func() {
 
 		// Set every field of the struct to ensure source compatibility
 		res := types020.Result{
+			CNIVersion: types020.ImplementedSpecVersion,
 			IP4: &types020.IPConfig{
 				IP:      *ipv4,
 				Gateway: net.ParseIP("1.2.3.1"),
@@ -88,6 +89,7 @@ var _ = Describe("Ensures compatibility with the 0.1.0/0.2.0 spec", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(string(out)).To(Equal(`{
+    "cniVersion": "0.2.0",
     "ip4": {
         "ip": "1.2.3.30/24",
         "gateway": "1.2.3.1",

@@ -12,6 +12,7 @@ go_test(
         "etcd_storage_path_test.go",
         "main_test.go",
     ],
+    importpath = "k8s.io/kubernetes/test/integration/etcd",
     tags = [
         "etcd",
         "integration",
@@ -19,7 +20,8 @@ go_test(
     deps = [
         "//cmd/kube-apiserver/app:go_default_library",
         "//cmd/kube-apiserver/app/options:go_default_library",
-        "//pkg/api:go_default_library",
+        "//pkg/api/legacyscheme:go_default_library",
+        "//pkg/apis/core:go_default_library",
         "//pkg/kubectl/cmd/util:go_default_library",
         "//pkg/master:go_default_library",
         "//test/integration/framework:go_default_library",

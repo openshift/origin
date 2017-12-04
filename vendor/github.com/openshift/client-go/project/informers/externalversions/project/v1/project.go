@@ -22,19 +22,33 @@ type ProjectInformer interface {
 }
 
 type projectInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewProjectInformer constructs a new informer for Project type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewProjectInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredProjectInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredProjectInformer constructs a new informer for Project type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredProjectInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.ProjectV1().Projects().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.ProjectV1().Projects().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewProjectInformer(client versioned.Interface, resyncPeriod time.Duration, 
 	)
 }
 
-func defaultProjectInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewProjectInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *projectInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredProjectInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *projectInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&project_v1.Project{}, defaultProjectInformer)
+	return f.factory.InformerFor(&project_v1.Project{}, f.defaultInformer)
 }
 
 func (f *projectInformer) Lister() v1.ProjectLister {

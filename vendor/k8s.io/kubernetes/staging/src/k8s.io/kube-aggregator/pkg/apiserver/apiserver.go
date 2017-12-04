@@ -207,7 +207,7 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		c.GenericConfig.SharedInformerFactory.Core().V1().Services(),
 		c.GenericConfig.SharedInformerFactory.Core().V1().Endpoints(),
 		apiregistrationClient.Apiregistration(),
-		c.ExtraConfig.ProxyTransport != nil,
+		c.ExtraConfig.ProxyTransport,
 		s.serviceResolver,
 	)
 
@@ -221,7 +221,8 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHook("apiservice-status-available-controller", func(context genericapiserver.PostStartHookContext) error {
-		go availableController.Run(context.StopCh)
+		// if we end up blocking for long periods of time, we may need to increase threadiness.
+		go availableController.Run(5, context.StopCh)
 		return nil
 	})
 

@@ -17,25 +17,27 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // Groups returns a GroupInformer.
 func (v *version) Groups() GroupInformer {
-	return &groupInformer{factory: v.SharedInformerFactory}
+	return &groupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Identities returns a IdentityInformer.
 func (v *version) Identities() IdentityInformer {
-	return &identityInformer{factory: v.SharedInformerFactory}
+	return &identityInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Users returns a UserInformer.
 func (v *version) Users() UserInformer {
-	return &userInformer{factory: v.SharedInformerFactory}
+	return &userInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

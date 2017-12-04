@@ -96,19 +96,6 @@ func TestCreateObject(t *testing.T) {
 	th.AssertNoErr(t, res.Err)
 }
 
-func TestCreateObjectWithCacheControl(t *testing.T) {
-	th.SetupHTTP()
-	defer th.TeardownHTTP()
-
-	content := "All mimsy were the borogoves"
-
-	HandleCreateTextWithCacheControlSuccessfully(t, content)
-
-	options := &CreateOpts{CacheControl: `max-age="3600", public`}
-	res := Create(fake.ServiceClient(), "testContainer", "testObject", strings.NewReader(content), options)
-	th.AssertNoErr(t, res.Err)
-}
-
 func TestCreateObjectWithoutContentType(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()

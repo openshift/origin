@@ -4,6 +4,7 @@ package internalinterfaces
 
 import (
 	versioned "github.com/openshift/client-go/route/clientset/versioned"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	cache "k8s.io/client-go/tools/cache"
 	time "time"
@@ -16,3 +17,5 @@ type SharedInformerFactory interface {
 	Start(stopCh <-chan struct{})
 	InformerFor(obj runtime.Object, newFunc NewInformerFunc) cache.SharedIndexInformer
 }
+
+type TweakListOptionsFunc func(*v1.ListOptions)

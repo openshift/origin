@@ -854,6 +854,12 @@ message SecretBuildSource {
   optional string destinationDir = 2;
 }
 
+// SecretLocalReference contains information that points to the local secret being used
+message SecretLocalReference {
+  // Name is the name of the resource in the same namespace being referenced
+  optional string name = 1;
+}
+
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
 message SecretSpec {
   // secretSource is a reference to the secret
@@ -949,10 +955,17 @@ message StepInfo {
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
 message WebHookTrigger {
   // secret used to validate requests.
+  // Deprecated: use SecretReference instead.
   optional string secret = 1;
 
   // allowEnv determines whether the webhook can set environment variables; can only
   // be set to true for GenericWebHook.
   optional bool allowEnv = 2;
+
+  // secretReference is a reference to a secret in the same namespace,
+  // containing the value to be validated when the webhook is invoked.
+  // The secret being referenced must contain a key named "WebHookSecretKey", the value
+  // of which will be checked against the value supplied in the webhook invocation.
+  optional SecretLocalReference secretReference = 3;
 }
 
