@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapivalidation "k8s.io/kubernetes/pkg/api/validation"
+	kapivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )

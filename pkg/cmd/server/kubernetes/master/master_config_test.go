@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
+	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )

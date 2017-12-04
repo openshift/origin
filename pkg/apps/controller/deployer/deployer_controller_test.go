@@ -23,7 +23,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 
 	deployapiv1 "github.com/openshift/api/apps/v1"

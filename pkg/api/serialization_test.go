@@ -21,7 +21,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
@@ -41,7 +41,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
