@@ -311,7 +311,10 @@ func IsControllerEnabled(name string, disabledByDefaultControllers sets.String, 
 // The bool indicates whether the controller was enabled.
 type InitFunc func(ctx ControllerContext) (bool, error)
 
-func KnownControllers() []string {
+// KnownControllersFn allows to override the function that returns the known
+// controllers, which allows to pass an additional controllers that might be
+// known to kubernetes controller manager.
+var KnownControllersFn = func() []string {
 	ret := sets.StringKeySet(NewControllerInitializers())
 
 	// add "special" controllers that aren't initialized normally.  These controllers cannot be initialized
@@ -323,6 +326,11 @@ func KnownControllers() []string {
 	)
 
 	return ret.List()
+}
+
+// KnownControllers returns controllers known to controller manager.
+func KnownControllers() []string {
+	return KnownControllersFn()
 }
 
 var ControllersDisabledByDefault = sets.NewString(
