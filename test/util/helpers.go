@@ -20,7 +20,7 @@ func GetTemplateFixture(filename string) (*templateapi.Template, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), jsonData)
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func GetImageFixture(filename string) (*imageapi.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), jsonData)
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), jsonData)
 	if err != nil {
 		return nil, err
 	}

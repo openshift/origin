@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/gofuzz"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	apitesting "k8s.io/apimachinery/pkg/api/testing"
 	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
@@ -18,11 +19,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
@@ -45,7 +46,7 @@ import (
 )
 
 func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
-	f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), kapi.Codecs)
+	f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), legacyscheme.Codecs)
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
 		func(j *authorizationapi.Policy, c fuzz.Continue) {
@@ -192,11 +193,11 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				var codec runtime.Codec
 				switch obj.(type) {
 				case *extensions.Deployment:
-					codec = apitesting.TestCodec(kapi.Codecs, extensionsv1beta1.SchemeGroupVersion)
+					codec = apitesting.TestCodec(legacyscheme.Codecs, extensionsv1beta1.SchemeGroupVersion)
 				case *build.BuildConfig:
-					codec = apitesting.TestCodec(kapi.Codecs, buildv1.SchemeGroupVersion)
+					codec = apitesting.TestCodec(legacyscheme.Codecs, buildv1.SchemeGroupVersion)
 				default:
-					codec = apitesting.TestCodec(kapi.Codecs, v1.SchemeGroupVersion)
+					codec = apitesting.TestCodec(legacyscheme.Codecs, v1.SchemeGroupVersion)
 				}
 
 				b, err := runtime.Encode(codec, obj)
@@ -559,14 +560,14 @@ func TestSpecificKind(t *testing.T) {
 	seed := int64(2703387474910584091)
 	fuzzer := originFuzzer(t, seed)
 
-	kapi.Scheme.Log(t)
-	defer kapi.Scheme.Log(nil)
+	legacyscheme.Scheme.Log(t)
+	defer legacyscheme.Scheme.Log(nil)
 
 	gvk := authorizationapi.SchemeGroupVersion.WithKind("ClusterRole")
 	// TODO: make upstream CodecFactory customizable
-	codecs := serializer.NewCodecFactory(kapi.Scheme)
+	codecs := serializer.NewCodecFactory(legacyscheme.Scheme)
 	for i := 0; i < fuzzIters; i++ {
-		roundtrip.RoundTripSpecificKindWithoutProtobuf(t, gvk, kapi.Scheme, codecs, fuzzer, nil)
+		roundtrip.RoundTripSpecificKindWithoutProtobuf(t, gvk, legacyscheme.Scheme, codecs, fuzzer, nil)
 	}
 }
 
@@ -587,7 +588,7 @@ func TestRoundTripTypes(t *testing.T) {
 		componentconfig.SchemeGroupVersion.WithKind("KubeSchedulerConfiguration"): true,
 	}
 
-	roundtrip.RoundTripTypes(t, kapi.Scheme, kapi.Codecs, fuzzer, mergeGvks(kubeExceptions, dockerImageTypes))
+	roundtrip.RoundTripTypes(t, legacyscheme.Scheme, legacyscheme.Codecs, fuzzer, mergeGvks(kubeExceptions, dockerImageTypes))
 }
 
 // TestRoundTripDockerImage tests DockerImage whether it serializes from/into docker's registry API.
@@ -596,8 +597,8 @@ func TestRoundTripDockerImage(t *testing.T) {
 	fuzzer := originFuzzer(t, seed)
 
 	for gvk := range dockerImageTypes {
-		roundtrip.RoundTripSpecificKindWithoutProtobuf(t, gvk, kapi.Scheme, kapi.Codecs, fuzzer, nil)
-		roundtrip.RoundTripSpecificKindWithoutProtobuf(t, gvk, kapi.Scheme, kapi.Codecs, fuzzer, nil)
+		roundtrip.RoundTripSpecificKindWithoutProtobuf(t, gvk, legacyscheme.Scheme, legacyscheme.Codecs, fuzzer, nil)
+		roundtrip.RoundTripSpecificKindWithoutProtobuf(t, gvk, legacyscheme.Scheme, legacyscheme.Codecs, fuzzer, nil)
 	}
 }
 

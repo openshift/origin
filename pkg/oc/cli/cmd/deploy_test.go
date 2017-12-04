@@ -25,7 +25,7 @@ import (
 )
 
 func deploymentFor(config *deployapi.DeploymentConfig, status deployapi.DeploymentStatus) *kapi.ReplicationController {
-	d, err := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	d, err := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	if err != nil {
 		panic(err)
 	}
@@ -242,7 +242,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 		config := deploytest.OkDeploymentConfig(scenario.version)
 		existingDeployments := &kapi.ReplicationControllerList{}
 		for _, e := range scenario.existing {
-			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 			d.Annotations[deployapi.DeploymentStatusAnnotation] = string(e.status)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}

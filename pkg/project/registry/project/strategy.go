@@ -19,7 +19,7 @@ type projectStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating Project
 // objects via the REST API.
-var Strategy = projectStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = projectStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is false for projects.
 func (projectStrategy) NamespaceScoped() bool {

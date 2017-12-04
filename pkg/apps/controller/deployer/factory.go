@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
@@ -35,7 +36,7 @@ func NewDeployerController(
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kubeClientset.CoreV1().RESTClient()).Events("")})
-	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "deployer-controller"})
+	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "deployer-controller"})
 
 	c := &DeploymentController{
 		rn: kubeClientset.Core(),

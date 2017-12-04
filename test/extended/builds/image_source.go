@@ -127,7 +127,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundEnv = true
 
-						obj, _, err := kapi.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
+						obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						ok := false
 						build, ok := obj.(*buildapi.Build)
@@ -173,7 +173,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundEnv = true
 
-						obj, _, err := kapi.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
+						obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						ok := false
 						build, ok := obj.(*buildapi.Build)
@@ -220,7 +220,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 					if env.Name == "BUILD" {
 						foundBuildEnv = true
 
-						obj, _, err := kapi.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
+						obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(env.Value), nil, nil)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						ok := false
 						build, ok := obj.(*buildapi.Build)

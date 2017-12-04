@@ -142,7 +142,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	}
 
 	// Send back the build name so that the client can alert the user.
-	if newBuildEncoded, err := runtime.Encode(kapi.Codecs.LegacyCodec(w.groupVersion), newBuild); err != nil {
+	if newBuildEncoded, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(w.groupVersion), newBuild); err != nil {
 		utilruntime.HandleError(err)
 	} else {
 		writer.Write(newBuildEncoded)

@@ -177,7 +177,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 
 	if local {
 		// TODO: Change f.Object() so that it can fall back to local RESTMapper safely (currently glog.Fatals)
-		mapper = kapi.Registry.RESTMapper()
+		mapper = legacyscheme.Registry.RESTMapper()
 		// client is deliberately left nil
 	} else {
 		templateClient, err := f.OpenshiftInternalTemplateClient()
@@ -307,7 +307,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	if outputFormat == "describe" {
 		if s, err := (&describe.TemplateDescriber{
 			MetadataAccessor: meta.NewAccessor(),
-			ObjectTyper:      kapi.Scheme,
+			ObjectTyper:      legacyscheme.Scheme,
 			ObjectDescriber:  nil,
 		}).DescribeTemplate(resultObj); err != nil {
 			return fmt.Errorf("error describing %q: %v\n", obj.Name, err)
@@ -334,7 +334,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	}
 	// Prefer the Kubernetes core group for the List over the template.openshift.io
 	version.Group = kapi.GroupName
-	p = kprinters.NewVersionedPrinter(p, kapi.Scheme, version)
+	p = kprinters.NewVersionedPrinter(p, legacyscheme.Scheme, version)
 
 	// use generic output
 	if kcmdutil.GetFlagBool(cmd, "raw") {

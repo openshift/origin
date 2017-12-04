@@ -58,7 +58,7 @@ func Forbidden(reason string, attributes kauthorizer.Attributes, w http.Response
 	forbiddenError.ErrStatus.Message = reason
 
 	formatted := &bytes.Buffer{}
-	output, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.SchemeGroupVersion), &forbiddenError.ErrStatus)
+	output, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.SchemeGroupVersion), &forbiddenError.ErrStatus)
 	if err != nil {
 		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
 	} else {

@@ -18,7 +18,7 @@ type sdnStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating NetNamespace
 // objects via the REST API.
-var Strategy = sdnStrategy{kapi.Scheme}
+var Strategy = sdnStrategy{legacyscheme.Scheme}
 
 func (sdnStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -153,7 +154,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 				t.Logf("%q is skipped", path)
 				return
 			}
-			if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), data, expectedType); err != nil {
+			if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), data, expectedType); err != nil {
 				t.Errorf("%s did not decode correctly: %v\n%s", path, err, string(data))
 				return
 			}
@@ -203,7 +204,7 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 
 	case *kapi.List, *imageapi.ImageStreamList:
 		if list, err := meta.ExtractList(typedObj); err == nil {
-			runtime.DecodeList(list, kapi.Codecs.UniversalDecoder())
+			runtime.DecodeList(list, legacyscheme.Codecs.UniversalDecoder())
 			for i := range list {
 				validateObject(path, list[i], t)
 			}

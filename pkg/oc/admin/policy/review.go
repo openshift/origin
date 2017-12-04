@@ -209,7 +209,7 @@ var _ sccReviewPrinter = &sccReviewOutputPrinter{}
 
 func (s *sccReviewOutputPrinter) print(unused *resource.Info, obj runtime.Object, out io.Writer) error {
 	versionedObj := &securityapiv1.PodSecurityPolicyReview{}
-	if err := kapi.Scheme.Convert(obj, versionedObj, nil); err != nil {
+	if err := legacyscheme.Scheme.Convert(obj, versionedObj, nil); err != nil {
 		return err
 	}
 	return s.ResourcePrinter.PrintObj(versionedObj, out)
@@ -241,7 +241,7 @@ func (s *sccReviewHumanReadablePrinter) print(info *resource.Info, obj runtime.O
 	if !ok {
 		return fmt.Errorf("unexpected object %T", obj)
 	}
-	gvk, _, err := kapi.Scheme.ObjectKind(info.Object)
+	gvk, _, err := legacyscheme.Scheme.ObjectKind(info.Object)
 	if err != nil {
 		return err
 	}

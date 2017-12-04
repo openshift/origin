@@ -25,7 +25,7 @@ func TestImageStreamStatusConversionPreservesTags(t *testing.T) {
 	}
 
 	outVersioned := v1.ImageStreamStatus{Tags: []v1.NamedTagEventList{}}
-	err := kapi.Scheme.Convert(in, &outVersioned, nil)
+	err := legacyscheme.Scheme.Convert(in, &outVersioned, nil)
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestImageStreamStatusConversionPreservesTags(t *testing.T) {
 
 	// convert back from v1 to internal scheme
 	out := newer.ImageStreamStatus{}
-	err = kapi.Scheme.Convert(&outVersioned, &out, nil)
+	err = legacyscheme.Scheme.Convert(&outVersioned, &out, nil)
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}

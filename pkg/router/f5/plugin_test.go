@@ -1427,7 +1427,7 @@ func TestInitializeF5Plugin(t *testing.T) {
 
 	// Initialization should be idempotent.
 	// Warning: This is off-label use of DeepCopy!
-	savedMockF5State, err := kapi.Scheme.DeepCopy(mockF5.state)
+	savedMockF5State, err := legacyscheme.Scheme.DeepCopy(mockF5.state)
 	if err != nil {
 		t.Errorf("Failed to deepcopy mock F5 state for idempotency check: %v", err)
 	}

@@ -1001,7 +1001,7 @@ func alterPodFromTriggers(podWatch *watch.RaceFreeFakeWatcher) imageReactorFunc 
 	return imageReactorFunc(func(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
 		pod := obj.DeepCopyObject()
 
-		updated, err := annotations.UpdateObjectFromImages(pod.(*kapi.Pod), kapi.Scheme, tagRetriever)
+		updated, err := annotations.UpdateObjectFromImages(pod.(*kapi.Pod), legacyscheme.Scheme, tagRetriever)
 		if err != nil {
 			return err
 		}
@@ -1309,7 +1309,7 @@ func verifyState(
 	for i := 0; i < times; i++ {
 		var failures []string
 		for _, obj := range podInformer.GetStore().List() {
-			if updated, err := annotations.UpdateObjectFromImages(obj.(*kapi.Pod), kapi.Scheme, c.tagRetriever); updated != nil || err != nil {
+			if updated, err := annotations.UpdateObjectFromImages(obj.(*kapi.Pod), legacyscheme.Scheme, c.tagRetriever); updated != nil || err != nil {
 				failures = append(failures, fmt.Sprintf("%s is not fully resolved: %v", obj.(*kapi.Pod).Name, err))
 				continue
 			}

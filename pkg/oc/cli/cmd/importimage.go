@@ -345,12 +345,12 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		stream, isi = o.newImageStream()
 		// ensure defaulting is applied by round trip converting
 		// TODO: convert to using versioned types.
-		external, err := kapi.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
+		external, err := legacyscheme.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
 		if err != nil {
 			return nil, nil, err
 		}
-		kapi.Scheme.Default(external)
-		internal, err := kapi.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
+		legacyscheme.Scheme.Default(external)
+		internal, err := legacyscheme.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
 		if err != nil {
 			return nil, nil, err
 		}

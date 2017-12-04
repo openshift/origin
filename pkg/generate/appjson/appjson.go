@@ -289,7 +289,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		return nil, utilerrs.NewAggregate(errs)
 	}
 
-	acceptors := app.Acceptors{app.NewAcceptUnique(kapi.Scheme), app.AcceptNew}
+	acceptors := app.Acceptors{app.NewAcceptUnique(legacyscheme.Scheme), app.AcceptNew}
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
 	for _, p := range pipelines {

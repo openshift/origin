@@ -25,7 +25,7 @@ type strategy struct {
 }
 
 func NewStrategy(clientGetter oauthclient.Getter) strategy {
-	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
+	return strategy{ObjectTyper: legacyscheme.Scheme, clientGetter: clientGetter}
 }
 
 func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {

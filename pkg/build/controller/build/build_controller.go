@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -202,7 +203,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		imageStreamQueue: newResourceTriggerQueue(),
 		buildConfigQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
-		recorder:    eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "build-controller"}),
+		recorder:    eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "build-controller"}),
 		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
 	}
 

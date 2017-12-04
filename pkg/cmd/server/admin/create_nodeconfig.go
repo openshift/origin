@@ -483,9 +483,9 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	groupMeta := kapi.Registry.GroupOrDie(kapi.GroupName)
+	groupMeta := legacyscheme.Registry.GroupOrDie(kapi.GroupName)
 
-	json, err := runtime.Encode(kapi.Codecs.LegacyCodec(groupMeta.GroupVersions[0]), node)
+	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(groupMeta.GroupVersions[0]), node)
 	if err != nil {
 		return err
 	}

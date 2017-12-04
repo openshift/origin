@@ -1011,7 +1011,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	ephemeralSeen := map[schema.GroupVersionResource]empty{}
 	cohabitatingResources := map[string]map[schema.GroupVersionKind]empty{}
 
-	for gvk, apiType := range kapi.Scheme.AllKnownTypes() {
+	for gvk, apiType := range legacyscheme.Scheme.AllKnownTypes() {
 		// we do not care about internal objects or lists // TODO make sure this is always true
 		if gvk.Version == runtime.APIVersionInternal || strings.HasSuffix(apiType.Name(), "List") {
 			continue
@@ -1347,7 +1347,7 @@ func (c *allClient) createPrerequisites(mapper meta.RESTMapper, ns string, prere
 }
 
 func newClient(config restclient.Config) (*allClient, error) {
-	config.ContentConfig.NegotiatedSerializer = kapi.Codecs
+	config.ContentConfig.NegotiatedSerializer = legacyscheme.Codecs
 	config.ContentConfig.ContentType = "application/json"
 	config.Timeout = 30 * time.Second
 	config.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(3, 10)
@@ -1448,7 +1448,7 @@ func (e *etcd3Getter) getFromEtcd(path string) (*metaObject, error) {
 	}
 
 	into := &metaObject{}
-	if _, _, err := kapi.Codecs.UniversalDeserializer().Decode(response.Kvs[0].Value, nil, into); err != nil {
+	if _, _, err := legacyscheme.Codecs.UniversalDeserializer().Decode(response.Kvs[0].Value, nil, into); err != nil {
 		return nil, err
 	}
 

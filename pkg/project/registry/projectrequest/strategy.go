@@ -15,7 +15,7 @@ type strategy struct {
 	runtime.ObjectTyper
 }
 
-var Strategy = strategy{kapi.Scheme}
+var Strategy = strategy{legacyscheme.Scheme}
 
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 

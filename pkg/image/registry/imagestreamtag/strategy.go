@@ -22,7 +22,7 @@ type strategy struct {
 }
 
 var Strategy = &strategy{
-	ObjectTyper: kapi.Scheme,
+	ObjectTyper: legacyscheme.Scheme,
 }
 
 func (s *strategy) NamespaceScoped() bool {

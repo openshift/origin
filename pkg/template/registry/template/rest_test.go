@@ -22,7 +22,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 		t.Errorf("Expected type error.")
 	}
 
-	if _, err := kapi.Registry.RESTMapper().KindFor(template.LegacyResource("processedtemplates").WithVersion("")); err != nil {
+	if _, err := legacyscheme.Registry.RESTMapper().KindFor(template.LegacyResource("processedtemplates").WithVersion("")); err != nil {
 		t.Errorf("no processed templates: %v", err)
 	}
 }
@@ -92,12 +92,12 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 			},
 		},
 	}
-	template.AddObjectsToTemplate(templateToCreate, templateObjects, kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
-	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
+	originalBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	objToCreate, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), originalBytes)
+	objToCreate, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), originalBytes)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -108,17 +108,17 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	obj, err = runtime.Decode(kapi.Codecs.UniversalDecoder(), bytes)
+	obj, err = runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), bytes)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	config := obj.(*template.Template)
-	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, kapi.Codecs.UniversalDecoder())); err != nil {
+	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, legacyscheme.Codecs.UniversalDecoder())); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -166,12 +166,12 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 			},
 		},
 	}
-	template.AddObjectsToTemplate(templateToCreate, templateObjects, kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
-	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
+	originalBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	objToCreate, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), originalBytes)
+	objToCreate, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), originalBytes)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -182,17 +182,17 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	obj, err = runtime.Decode(kapi.Codecs.UniversalDecoder(), bytes)
+	obj, err = runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), bytes)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	config := obj.(*template.Template)
-	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, kapi.Codecs.UniversalDecoder())); err != nil {
+	if err := utilerrors.NewAggregate(runtime.DecodeList(config.Objects, legacyscheme.Codecs.UniversalDecoder())); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

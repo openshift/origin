@@ -25,7 +25,7 @@ func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
 	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: kapi.Registry.GroupOrDie(api.GroupName).GroupVersion.String(),
+			APIVersion: legacyscheme.Registry.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dns-test-" + string(uuid.NewUUID()),

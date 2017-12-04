@@ -87,7 +87,7 @@ var MissingDescriberCoverageExceptions = []reflect.Type{
 func TestDescriberCoverage(t *testing.T) {
 
 main:
-	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
+	for _, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if !strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin") || strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}

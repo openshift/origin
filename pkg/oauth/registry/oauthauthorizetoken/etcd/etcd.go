@@ -25,7 +25,7 @@ var _ rest.StandardStorage = &REST{}
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
 	strategy := oauthauthorizetoken.NewStrategy(clientGetter)
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthAuthorizeToken{} },
 		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthAuthorizeTokenList{} },
 		DefaultQualifiedResource: oauthapi.Resource("oauthauthorizetokens"),

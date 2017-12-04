@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -54,7 +55,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 	strategy := &RecreateDeploymentStrategy{
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
-		decoder:           kapi.Codecs.UniversalDecoder(),
+		decoder:           legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
 		scaler:            scaler,
@@ -63,7 +64,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", "")
-	deployment, _ = deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
 	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
@@ -84,14 +85,14 @@ func TestRecreate_initialDeployment(t *testing.T) {
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, deployapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
-		decoder:           kapi.Codecs.UniversalDecoder(),
+		decoder:           legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
 		eventClient:       fake.NewSimpleClientset().Core(),
@@ -118,13 +119,13 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPreHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, deployapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
-		decoder:           kapi.Codecs.UniversalDecoder(),
+		decoder:           legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod:       1 * time.Millisecond,
 		getUpdateAcceptor: getUpdateAcceptor,
 		eventClient:       fake.NewSimpleClientset().Core(),
@@ -150,13 +151,13 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", deployapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	scaler := &cmdtest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
-		decoder:           kapi.Codecs.UniversalDecoder(),
+		decoder:           legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod:       1 * time.Millisecond,
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		eventClient:       fake.NewSimpleClientset().Core(),
@@ -181,14 +182,14 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
-		decoder:           kapi.Codecs.UniversalDecoder(),
+		decoder:           legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod:       1 * time.Millisecond,
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		eventClient:       fake.NewSimpleClientset().Core(),
@@ -215,14 +216,14 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 func TestRecreate_deploymentPostHookFail(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	hookExecuted := false
 	strategy := &RecreateDeploymentStrategy{
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
-		decoder:           kapi.Codecs.UniversalDecoder(),
+		decoder:           legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod:       1 * time.Millisecond,
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		eventClient:       fake.NewSimpleClientset().Core(),
@@ -254,7 +255,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		out:         &bytes.Buffer{},
 		errOut:      &bytes.Buffer{},
 		eventClient: fake.NewSimpleClientset().Core(),
-		decoder:     kapi.Codecs.UniversalDecoder(),
+		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod: 1 * time.Millisecond,
 		scaler:      scaler,
 	}
@@ -267,8 +268,8 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
 	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
 
@@ -300,7 +301,7 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 		out:         &bytes.Buffer{},
 		errOut:      &bytes.Buffer{},
 		eventClient: fake.NewSimpleClientset().Core(),
-		decoder:     kapi.Codecs.UniversalDecoder(),
+		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod: 1 * time.Millisecond,
 		scaler:      scaler,
 	}
@@ -313,8 +314,8 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
 	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
 
@@ -348,7 +349,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 	strategy := &RecreateDeploymentStrategy{
 		out:         &bytes.Buffer{},
 		errOut:      &bytes.Buffer{},
-		decoder:     kapi.Codecs.UniversalDecoder(),
+		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		retryPeriod: 1 * time.Millisecond,
 		scaler:      scaler,
 		eventClient: fake.NewSimpleClientset().Core(),
@@ -360,8 +361,8 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
 	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)

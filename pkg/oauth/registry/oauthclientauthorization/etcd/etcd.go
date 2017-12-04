@@ -26,7 +26,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 	strategy := oauthclientauthorization.NewStrategy(clientGetter)
 
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthClientAuthorization{} },
 		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthClientAuthorizationList{} },
 		DefaultQualifiedResource: oauthapi.Resource("oauthclientauthorizations"),

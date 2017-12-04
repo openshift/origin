@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	encoder                 = kapi.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
-	decoder                 = kapi.Codecs.UniversalDecoder()
+	encoder                 = legacyscheme.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
+	decoder                 = legacyscheme.Codecs.UniversalDecoder()
 	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "serviceaccounts"}
 	secretsResource         = schema.GroupVersionResource{Group: "", Version: "", Resource: "secrets"}
 	secretKind              = schema.GroupVersionKind{Group: "", Version: "", Kind: "Secret"}
@@ -578,7 +578,7 @@ func TestGetClient(t *testing.T) {
 			routeClient:   tc.routeClient.Route(),
 			delegate:      delegate,
 			grantMethod:   oauthapi.GrantHandlerPrompt,
-			decoder:       kapi.Codecs.UniversalDecoder(),
+			decoder:       legacyscheme.Codecs.UniversalDecoder(),
 		}
 		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
 		switch {

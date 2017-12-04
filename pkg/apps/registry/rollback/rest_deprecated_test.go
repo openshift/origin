@@ -9,6 +9,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployv1 "github.com/openshift/api/apps/v1"
@@ -51,14 +52,14 @@ func TestCreateOkDepr(t *testing.T) {
 				return &deployapi.DeploymentConfig{}, nil
 			},
 			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
 			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
-		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
+		codec: legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -90,14 +91,14 @@ func TestCreateGeneratorErrorDepr(t *testing.T) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("something terrible happened"))
 			},
 			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
 			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 		},
-		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
+		codec: legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	_, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -130,7 +131,7 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},
-		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
+		codec: legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -160,7 +161,7 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 			},
 			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
 				// invalidate the encoded config
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
 				return deployment, nil
 			},
@@ -170,7 +171,7 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},
-		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
+		codec: legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -199,14 +200,14 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 				return nil, errors.New("something terrible happened")
 			},
 			RCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
-				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+				deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 				return deployment, nil
 			},
 			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), name)
 			},
 		},
-		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
+		codec: legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -229,7 +230,7 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 
 func TestNewDepr(t *testing.T) {
 	// :)
-	rest := NewDeprecatedREST(TestClient{}, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	rest := NewDeprecatedREST(TestClient{}, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	rest.New()
 }
 

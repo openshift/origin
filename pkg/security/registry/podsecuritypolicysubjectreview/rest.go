@@ -105,7 +105,7 @@ func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySu
 		s.Reason = "CantAssignSecurityContextConstraintProvider"
 		return false, fmt.Errorf("unable to assign SecurityContextConstraints provider: %v", errs.ToAggregate())
 	}
-	ref, err := kapiref.GetReference(kapi.Scheme, constraint)
+	ref, err := kapiref.GetReference(legacyscheme.Scheme, constraint)
 	if err != nil {
 		s.Reason = "CantObtainReference"
 		return false, fmt.Errorf("unable to get SecurityContextConstraints reference: %v", err)

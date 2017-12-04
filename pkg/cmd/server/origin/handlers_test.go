@@ -264,7 +264,7 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 }
 
 func testHandlerChain(handler http.Handler, contextMapper apirequest.RequestContextMapper) http.Handler {
-	kgenericconfig := apiserver.NewConfig(kapi.Codecs)
+	kgenericconfig := apiserver.NewConfig(legacyscheme.Codecs)
 	kgenericconfig.LegacyAPIGroupPrefixes = kubernetes.LegacyAPIGroupPrefixes
 
 	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kgenericconfig), contextMapper)

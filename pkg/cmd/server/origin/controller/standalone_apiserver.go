@@ -60,8 +60,8 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal cli
 
 	// we use direct bypass to allow readiness and health to work regardless of the master health
 	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
-	handler := apifilters.WithAuthorization(mux, requestContextMapper, authz, kapi.Codecs)
-	handler = apifilters.WithAuthentication(handler, requestContextMapper, authn, apifilters.Unauthorized(requestContextMapper, kapi.Codecs, false))
+	handler := apifilters.WithAuthorization(mux, requestContextMapper, authz, legacyscheme.Codecs)
+	handler = apifilters.WithAuthentication(handler, requestContextMapper, authn, apifilters.Unauthorized(requestContextMapper, legacyscheme.Codecs, false))
 	handler = apiserverfilters.WithPanicRecovery(handler)
 	handler = apifilters.WithRequestInfo(handler, requestInfoResolver, requestContextMapper)
 	handler = apirequest.WithRequestContext(handler, requestContextMapper)

@@ -15,9 +15,9 @@ import (
 func init() {
 	legacy.InstallLegacy(quotaapi.GroupName, quotaapi.AddToSchemeInCoreGroup, quotaapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("ClusterResourceQuota"),
-		kapi.Registry, kapi.Scheme,
+		legacyscheme.Registry, legacyscheme.Scheme,
 	)
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

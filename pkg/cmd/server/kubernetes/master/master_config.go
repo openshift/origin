@@ -190,7 +190,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 // BuildStorageFactory builds a storage factory based on server.Etcd.StorageConfig with overrides from masterConfig.
 // This storage factory is used for kubernetes and origin registries. Compare pkg/util/restoptions/configgetter.go.
 func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedStorageVersions map[schema.GroupResource]schema.GroupVersion) (*apiserverstorage.DefaultStorageFactory, error) {
-	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(kapi.Registry)
+	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(legacyscheme.Registry)
 
 	storageGroupsToEncodingVersion, err := server.StorageSerialization.StorageGroupsToEncodingVersion()
 	if err != nil {
@@ -208,7 +208,7 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 	storageFactory := apiserverstorage.NewDefaultStorageFactory(
 		server.Etcd.StorageConfig,
 		server.Etcd.DefaultStorageMediaType,
-		kapi.Codecs,
+		legacyscheme.Codecs,
 		resourceEncodingConfig,
 		master.DefaultAPIResourceConfigSource(),
 	)
@@ -267,7 +267,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	}
 
 	// create config from options
-	genericConfig := apiserver.NewConfig(kapi.Codecs)
+	genericConfig := apiserver.NewConfig(legacyscheme.Codecs)
 
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
@@ -616,7 +616,7 @@ func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			},
 		}
 	}
-	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(kapi.Scheme)
+	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(legacyscheme.Scheme)
 	return &openapicommon.Config{
 		ProtocolList:      []string{"https"},
 		GetDefinitions:    openapigenerated.GetOpenAPIDefinitions,

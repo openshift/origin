@@ -200,7 +200,7 @@ func NewServiceAccountOAuthClientGetter(
 ) oauthclient.Getter {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: eventClient})
-	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "service-account-oauth-client-getter"})
+	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, clientv1.EventSource{Component: "service-account-oauth-client-getter"})
 	return &saOAuthClientAdapter{
 		saClient:      saClient,
 		secretClient:  secretClient,
@@ -208,7 +208,7 @@ func NewServiceAccountOAuthClientGetter(
 		routeClient:   routeClient,
 		delegate:      delegate,
 		grantMethod:   grantMethod,
-		decoder:       kapi.Codecs.UniversalDecoder(),
+		decoder:       legacyscheme.Codecs.UniversalDecoder(),
 	}
 }
 

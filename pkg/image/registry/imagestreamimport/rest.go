@@ -306,12 +306,12 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 	// ensure defaulting is applied by round trip converting
 	// TODO: convert to using versioned types.
-	external, err := kapi.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
+	external, err := legacyscheme.Scheme.ConvertToVersion(stream, imageapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
-	kapi.Scheme.Default(external)
-	internal, err := kapi.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
+	legacyscheme.Scheme.Default(external)
+	internal, err := legacyscheme.Scheme.ConvertToVersion(external, imageapi.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +333,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 				glog.V(4).Infof("updating stream %s", diff.ObjectDiff(original, stream))
 			}
 			stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
-			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream, kapi.Scheme))
+			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream, legacyscheme.Scheme))
 		}
 	}
 
@@ -344,7 +344,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 			originalStream := original
 			recordLimitExceededStatus(originalStream, stream, err, now, nextGeneration)
 			var limitErr error
-			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream, kapi.Scheme))
+			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream, legacyscheme.Scheme))
 			if limitErr != nil {
 				utilruntime.HandleError(fmt.Errorf("failed to record limit exceeded status in image stream %s/%s: %v", stream.Namespace, stream.Name, limitErr))
 			}

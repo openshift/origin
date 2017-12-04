@@ -69,7 +69,7 @@ func TestPrinterCoverage(t *testing.T) {
 	printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
 
 main:
-	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
+	for _, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if !strings.Contains(apiType.PkgPath(), "github.com/openshift/origin") || strings.Contains(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}

@@ -399,7 +399,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return err
 	}
 
-	errs := runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder())
+	errs := runtime.DecodeList(template.Objects, legacyscheme.Codecs.UniversalDecoder())
 	if len(errs) > 0 {
 		return kerrs.NewAggregate(errs)
 	}
@@ -425,7 +425,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	bulk := cmd.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:   c.restmapper,
-			ObjectTyper:  kapi.Scheme,
+			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: cmd.ClientMapperFromConfig(c.config),
 		},
 		Op: func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {

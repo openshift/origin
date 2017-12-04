@@ -39,7 +39,7 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageStreamList{} },
 		DefaultQualifiedResource: imageapi.Resource("imagestreams"),

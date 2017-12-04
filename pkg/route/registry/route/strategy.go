@@ -39,7 +39,7 @@ type routeStrategy struct {
 // Route objects via the REST API.
 func NewStrategy(allocator route.RouteAllocator, sarClient SubjectAccessReviewInterface) routeStrategy {
 	return routeStrategy{
-		ObjectTyper:    kapi.Scheme,
+		ObjectTyper:    legacyscheme.Scheme,
 		NameGenerator:  names.SimpleNameGenerator,
 		RouteAllocator: allocator,
 		sarClient:      sarClient,

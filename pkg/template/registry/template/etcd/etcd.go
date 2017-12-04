@@ -22,7 +22,7 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against templates.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &templateapi.Template{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.TemplateList{} },
 		DefaultQualifiedResource: templateapi.Resource("templates"),

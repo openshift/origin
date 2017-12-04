@@ -199,7 +199,7 @@ func createRecylerTemplate(recyclerImage string) (string, error) {
 	template.Spec.Containers[0].SecurityContext = &kapiv1.SecurityContext{RunAsUser: &uid}
 	template.Spec.Containers[0].ImagePullPolicy = kapiv1.PullIfNotPresent
 
-	templateBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapiv1.SchemeGroupVersion), template)
+	templateBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(kapiv1.SchemeGroupVersion), template)
 	if err != nil {
 		return "", err
 	}

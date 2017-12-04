@@ -420,7 +420,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Copy the resource version into our update object
 		test.image.ResourceVersion = created.(*imageapi.Image).ResourceVersion
-		obj, _, err := storage.Update(apirequest.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
+		obj, _, err := storage.Update(apirequest.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, legacyscheme.Scheme))
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue

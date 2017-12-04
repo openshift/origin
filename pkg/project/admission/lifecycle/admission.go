@@ -72,7 +72,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	groupMeta, err := kapi.Registry.Group(a.GetKind().Group)
+	groupMeta, err := legacyscheme.Registry.Group(a.GetKind().Group)
 	if err != nil {
 		return err
 	}

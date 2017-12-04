@@ -201,7 +201,7 @@ func TestChainDescriber(t *testing.T) {
 		objs := []runtime.Object{}
 		if len(test.path) > 0 {
 			var err error
-			objs, err = readObjectsFromPath(test.path, test.defaultNamespace, kapi.Codecs.UniversalDecoder(), kapi.Scheme)
+			objs, err = readObjectsFromPath(test.path, test.defaultNamespace, legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
 			if err != nil {
 				t.Fatal(err)
 			}

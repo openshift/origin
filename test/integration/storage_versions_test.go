@@ -43,7 +43,7 @@ func getGVKFromEtcd3(etcdClient *clientv3.Client, masterConfig *configapi.Master
 	if len(resp.Kvs) == 0 {
 		return nil, fmt.Errorf("no key found for %s", key)
 	}
-	_, gvk, err := kapi.Codecs.UniversalDeserializer().Decode(resp.Kvs[0].Value, nil, nil)
+	_, gvk, err := legacyscheme.Codecs.UniversalDeserializer().Decode(resp.Kvs[0].Value, nil, nil)
 	return gvk, err
 }
 
@@ -161,7 +161,7 @@ func TestStorageVersions(t *testing.T) {
 
 // 	// Ensure that both versions of the same object are equal when converted
 // 	convertedExtensionsHPA := &autoscaling.HorizontalPodAutoscaler{}
-// 	if err := kapi.Scheme.Convert(extensionsHPA, convertedExtensionsHPA, nil); err != nil {
+// 	if err := legacyscheme.Scheme.Convert(extensionsHPA, convertedExtensionsHPA, nil); err != nil {
 // 		t.Fatalf("Conversion error from extensions.HPA to autoscaling.HPA: %v", err)
 // 	}
 // 	if !kapihelper.Semantic.DeepEqual(autoscalingHPA.Spec, convertedExtensionsHPA.Spec) {

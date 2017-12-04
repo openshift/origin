@@ -27,7 +27,7 @@ func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationint
 	strategy := templateinstance.NewStrategy(authorizationClient)
 
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &templateapi.TemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.TemplateInstanceList{} },
 		DefaultQualifiedResource: templateapi.Resource("templateinstances"),

@@ -161,7 +161,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	t.Run("Legacy API", func(t *testing.T) {
 		for _, tc := range ttLegacy {
 			t.Run("", func(t *testing.T) {
-				dcBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), tc.obj)
+				dcBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), tc.obj)
 				if err != nil {
 					t.Fatal(err)
 				}

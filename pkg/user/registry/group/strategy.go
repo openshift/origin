@@ -18,7 +18,7 @@ type groupStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating Group
 // objects via the REST API.
-var Strategy = groupStrategy{kapi.Scheme}
+var Strategy = groupStrategy{legacyscheme.Scheme}
 
 func (groupStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

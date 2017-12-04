@@ -138,7 +138,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	if err != nil {
 		return nil, err
 	}
-	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, kapi.Codecs.UniversalDecoder())); err != nil {
+	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, legacyscheme.Codecs.UniversalDecoder())); err != nil {
 		return nil, kapierror.NewInternalError(err)
 	}
 
@@ -188,7 +188,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	bulk := configcmd.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:   restutil.DefaultMultiRESTMapper(),
-			ObjectTyper:  kapi.Scheme,
+			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
 		},
 		After: stopOnErr,

@@ -217,7 +217,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 }
 
 func mkdeployment(version int64, status deployapi.DeploymentStatus) *kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }

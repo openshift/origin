@@ -17,9 +17,9 @@ import (
 func init() {
 	legacy.InstallLegacy(imageapi.GroupName, imageapi.AddToSchemeInCoreGroup, imageapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("Image", "ImageSignature"),
-		kapi.Registry, kapi.Scheme,
+		legacyscheme.Registry, legacyscheme.Scheme,
 	)
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

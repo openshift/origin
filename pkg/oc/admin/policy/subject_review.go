@@ -165,7 +165,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
 			}
 			versionedObj := &securityapiv1.PodSecurityPolicySubjectReview{}
-			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
 				return err
 			}
 			response = versionedObj
@@ -175,7 +175,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
 			}
 			versionedObj := &securityapiv1.PodSecurityPolicySelfSubjectReview{}
-			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
 				return err
 			}
 			response = versionedObj
@@ -245,7 +245,7 @@ func (s *sccSubjectReviewHumanReadablePrinter) print(info *resource.Info, obj ru
 		fmt.Fprintf(w, "%s\t\n", strings.Join(columns, "\t"))
 		s.noHeaders = true // printed only the first time if requested
 	}
-	gvk, _, err := kapi.Scheme.ObjectKind(info.Object)
+	gvk, _, err := legacyscheme.Scheme.ObjectKind(info.Object)
 	if err != nil {
 		return err
 	}
