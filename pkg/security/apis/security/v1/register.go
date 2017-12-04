@@ -16,7 +16,7 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.LegacySchemeBuilder.AddToScheme, addConversionFuncs, addDefaultingFuncs, v1.RegisterDeepCopies, RegisterDefaults, RegisterConversions)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.LegacySchemeBuilder.AddToScheme, addConversionFuncs, addDefaultingFuncs, RegisterDefaults, RegisterConversions)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(v1.SchemeBuilder.AddToScheme, addConversionFuncs, addDefaultingFuncs)
