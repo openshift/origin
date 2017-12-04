@@ -27,8 +27,6 @@ readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
 
 readonly OS_SDN_COMPILE_TARGETS_LINUX=(
   pkg/network/sdn-cni-plugin
-  vendor/github.com/containernetworking/cni/plugins/ipam/host-local
-  vendor/github.com/containernetworking/cni/plugins/main/loopback
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"

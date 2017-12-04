@@ -33,12 +33,12 @@ import (
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/containernetworking/cni/pkg/invoke"
-	"github.com/containernetworking/cni/pkg/ip"
-	"github.com/containernetworking/cni/pkg/ipam"
-	"github.com/containernetworking/cni/pkg/ns"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containernetworking/plugins/pkg/ip"
+	"github.com/containernetworking/plugins/pkg/ipam"
+	"github.com/containernetworking/plugins/pkg/ns"
 
 	"github.com/vishvananda/netlink"
 )
@@ -613,7 +613,8 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 				Sandbox: req.Netns,
 			},
 		}
-		result030.IPs[0].Interface = 0
+		intPtr := 0
+		result030.IPs[0].Interface = &intPtr
 
 		if err = ipam.ConfigureIface(podInterfaceName, result030); err != nil {
 			return fmt.Errorf("failed to configure container IPAM: %v", err)
