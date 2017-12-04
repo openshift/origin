@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
 
 	"github.com/openshift/origin/pkg/api/validation"
@@ -28,7 +28,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 

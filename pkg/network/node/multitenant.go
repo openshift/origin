@@ -9,7 +9,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"

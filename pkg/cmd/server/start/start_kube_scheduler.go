@@ -5,13 +5,12 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
-	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
-func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[string][]string) (*scheduleroptions.SchedulerServer, error) {
+func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[string][]string) (*schedulerapp.SchedulerServer, error) {
 	cmdLineArgs := map[string][]string{}
 	// deep-copy the input args to avoid mutation conflict.
 	for k, v := range schedulerArgs {
@@ -33,7 +32,7 @@ func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[
 	}
 
 	// resolve arguments
-	schedulerServer := scheduleroptions.NewSchedulerServer()
+	schedulerServer := schedulerapp.NewSchedulerServer()
 	if err := cmdflags.Resolve(cmdLineArgs, schedulerServer.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}

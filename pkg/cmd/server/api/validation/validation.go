@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"

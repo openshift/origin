@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"

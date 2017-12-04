@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kuval "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	deploy "github.com/openshift/origin/pkg/apps/apis/apps"

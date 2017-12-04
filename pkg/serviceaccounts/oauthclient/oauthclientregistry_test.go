@@ -13,7 +13,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"

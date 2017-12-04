@@ -21,7 +21,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func deploymentFor(config *deployapi.DeploymentConfig, status deployapi.DeploymentStatus) *kapi.ReplicationController {

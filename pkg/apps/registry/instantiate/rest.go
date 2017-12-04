@@ -16,7 +16,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 

@@ -17,7 +17,7 @@ import (
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/generate"

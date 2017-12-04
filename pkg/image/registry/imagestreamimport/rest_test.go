@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )

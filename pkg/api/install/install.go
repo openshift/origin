@@ -7,7 +7,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	// we have a strong dependency on kube objects for deployments and scale
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	_ "k8s.io/kubernetes/pkg/apis/apps/install"
 	_ "k8s.io/kubernetes/pkg/apis/authentication/install"
 	_ "k8s.io/kubernetes/pkg/apis/authorization/install"

@@ -32,7 +32,7 @@ import (
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	_ "github.com/openshift/origin/pkg/image/apis/image/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 

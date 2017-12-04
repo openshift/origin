@@ -19,7 +19,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 // this groups of methods force all the unit tests to share the same config directory

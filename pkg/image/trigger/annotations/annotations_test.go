@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/util/jsonpath"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 )
