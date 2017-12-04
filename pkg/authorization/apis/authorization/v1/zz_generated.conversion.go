@@ -7,12 +7,14 @@ package v1
 import (
 	v1 "github.com/openshift/api/authorization/v1"
 	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	core_v1 "k8s.io/api/core/v1"
+	api_core_v1 "k8s.io/api/core/v1"
+	rbac_v1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 	unsafe "unsafe"
 )
 
@@ -167,7 +169,7 @@ func Convert_authorization_ClusterPolicy_To_v1_ClusterPolicy(in *authorization.C
 func autoConvert_v1_ClusterPolicyBinding_To_authorization_ClusterPolicyBinding(in *v1.ClusterPolicyBinding, out *authorization.ClusterPolicyBinding, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
 	}
 	if err := Convert_v1_NamedClusterRoleBindings_To_authorization_ClusterRoleBindingsByName(&in.RoleBindings, &out.RoleBindings, s); err != nil {
@@ -179,7 +181,7 @@ func autoConvert_v1_ClusterPolicyBinding_To_authorization_ClusterPolicyBinding(i
 func autoConvert_authorization_ClusterPolicyBinding_To_v1_ClusterPolicyBinding(in *authorization.ClusterPolicyBinding, out *v1.ClusterPolicyBinding, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
 	}
 	if err := Convert_authorization_ClusterRoleBindingsByName_To_v1_NamedClusterRoleBindings(&in.RoleBindings, &out.RoleBindings, s); err != nil {
@@ -290,6 +292,7 @@ func autoConvert_v1_ClusterRole_To_authorization_ClusterRole(in *v1.ClusterRole,
 	} else {
 		out.Rules = nil
 	}
+	out.AggregationRule = (*rbac.AggregationRule)(unsafe.Pointer(in.AggregationRule))
 	return nil
 }
 
@@ -311,6 +314,7 @@ func autoConvert_authorization_ClusterRole_To_v1_ClusterRole(in *authorization.C
 	} else {
 		out.Rules = nil
 	}
+	out.AggregationRule = (*rbac_v1.AggregationRule)(unsafe.Pointer(in.AggregationRule))
 	return nil
 }
 
@@ -325,16 +329,16 @@ func autoConvert_v1_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *v
 	// INFO: in.GroupNames opted out of conversion generation
 	if in.Subjects != nil {
 		in, out := &in.Subjects, &out.Subjects
-		*out = make([]api.ObjectReference, len(*in))
+		*out = make([]core.ObjectReference, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Subjects = nil
 	}
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
 		return err
 	}
 	return nil
@@ -344,16 +348,16 @@ func autoConvert_authorization_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *a
 	out.ObjectMeta = in.ObjectMeta
 	if in.Subjects != nil {
 		in, out := &in.Subjects, &out.Subjects
-		*out = make([]core_v1.ObjectReference, len(*in))
+		*out = make([]api_core_v1.ObjectReference, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Subjects = nil
 	}
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
 		return err
 	}
 	return nil
@@ -553,7 +557,7 @@ func Convert_authorization_Policy_To_v1_Policy(in *authorization.Policy, out *v1
 func autoConvert_v1_PolicyBinding_To_authorization_PolicyBinding(in *v1.PolicyBinding, out *authorization.PolicyBinding, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
 	}
 	if err := Convert_v1_NamedRoleBindings_To_authorization_RoleBindingsByName(&in.RoleBindings, &out.RoleBindings, s); err != nil {
@@ -565,7 +569,7 @@ func autoConvert_v1_PolicyBinding_To_authorization_PolicyBinding(in *v1.PolicyBi
 func autoConvert_authorization_PolicyBinding_To_v1_PolicyBinding(in *authorization.PolicyBinding, out *v1.PolicyBinding, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
 	}
 	if err := Convert_authorization_RoleBindingsByName_To_v1_NamedRoleBindings(&in.RoleBindings, &out.RoleBindings, s); err != nil {
@@ -775,16 +779,16 @@ func autoConvert_v1_RoleBinding_To_authorization_RoleBinding(in *v1.RoleBinding,
 	// INFO: in.GroupNames opted out of conversion generation
 	if in.Subjects != nil {
 		in, out := &in.Subjects, &out.Subjects
-		*out = make([]api.ObjectReference, len(*in))
+		*out = make([]core.ObjectReference, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Subjects = nil
 	}
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
 		return err
 	}
 	return nil
@@ -794,16 +798,16 @@ func autoConvert_authorization_RoleBinding_To_v1_RoleBinding(in *authorization.R
 	out.ObjectMeta = in.ObjectMeta
 	if in.Subjects != nil {
 		in, out := &in.Subjects, &out.Subjects
-		*out = make([]core_v1.ObjectReference, len(*in))
+		*out = make([]api_core_v1.ObjectReference, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Subjects = nil
 	}
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
 		return err
 	}
 	return nil

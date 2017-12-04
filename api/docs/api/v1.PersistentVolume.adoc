@@ -28,7 +28,7 @@ Expand or mouse-over a field for more information about it.
 
 Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">creationTimestamp</span>:
 </div><div style="margin-left:13px;">  <span title="(integer) Number of seconds allowed for this object to gracefully terminate before it will be removed from the system. Only set when deletionTimestamp is also set. May only be shortened. Read-only.">deletionGracePeriodSeconds</span>:
-</div><div style="margin-left:13px;">  <span title="(v1.Time) DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource is expected to be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field. Once set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. After that 30 seconds, the Kubelet will send a hard termination signal (SIGKILL) to the container and after cleanup, remove the pod from the API. In the presence of network partitions, this object may still exist after this timestamp, until an administrator or automated process can determine the resource is fully terminated. If not set, graceful deletion of the object has not been requested.
+</div><div style="margin-left:13px;">  <span title="(v1.Time) DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource is expected to be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field, once the finalizers list is empty. As long as the finalizers list contains items, deletion is blocked. Once the deletionTimestamp is set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. After that 30 seconds, the Kubelet will send a hard termination signal (SIGKILL) to the container and after cleanup, remove the pod from the API. In the presence of network partitions, this object may still exist after this timestamp, until an administrator or automated process can determine the resource is fully terminated. If not set, graceful deletion of the object has not been requested.
 
 Populated by the system when a graceful deletion is requested. Read-only. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">deletionTimestamp</span>:
 </div><details><summary>  <span title="(array) Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed.">finalizers</span>:
@@ -102,7 +102,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div><div style="margin-left:13px;">    <span title="(string) The Name of the data disk in the blob storage">diskName</span>:
 </div><div style="margin-left:13px;">    <span title="(string) The URI the data disk in the blob storage">diskURI</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
-</div><div style="margin-left:13px;">    <span title="(string) Expected values Shared: mulitple blob disks per storage account  Dedicated: single blob disk per storage account  Managed: azure managed data disk (only in managed availability set). defaults to shared">kind</span>:
+</div><div style="margin-left:13px;">    <span title="(string) Expected values Shared: multiple blob disks per storage account  Dedicated: single blob disk per storage account  Managed: azure managed data disk (only in managed availability set). defaults to shared">kind</span>:
 </div><div style="margin-left:13px;">    <span title="(boolean) Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.">readOnly</span>:
 </div></details><details><summary>  <span title="(v1.AzureFilePersistentVolumeSource) AzureFile represents an Azure File Service mount on the host and bind mount to the pod.">azureFile</span>:
 </summary><div style="margin-left:13px;">    <span title="(boolean) Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.">readOnly</span>:
@@ -133,6 +133,10 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div><div style="margin-left:13px;">    <span title="(string) Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/">namespace</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency">resourceVersion</span>:
 </div><div style="margin-left:13px;">    <span title="(string) UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids">uid</span>:
+</div></details><details><summary>  <span title="(v1.CSIPersistentVolumeSource) CSI represents storage that handled by an external CSI driver">csi</span>:
+</summary><div style="margin-left:13px;">    <span title="(string) Driver is the name of the driver to use for this volume. Required.">driver</span>:
+</div><div style="margin-left:13px;">    <span title="(boolean) Optional: The value to pass to ControllerPublishVolumeRequest. Defaults to false (read/write).">readOnly</span>:
+</div><div style="margin-left:13px;">    <span title="(string) VolumeHandle is the unique volume name returned by the CSI volume plugin’s CreateVolume to refer to the volume on all subsequent calls. Required.">volumeHandle</span>:
 </div></details><details><summary>  <span title="(v1.FCVolumeSource) FC represents a Fibre Channel resource that is attached to a kubelet&#39;s host machine and then exposed to the pod.">fc</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
 </div><div style="margin-left:13px;">    <span title="(integer) Optional: FC target lun number">lun</span>:
@@ -164,20 +168,21 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div></details><details><summary>  <span title="(v1.HostPathVolumeSource) HostPath represents a directory on the host. Provisioned by a developer or tester. This is useful for single-node development and testing only! On-host storage is not supported in any way and WILL NOT WORK in a multi-node cluster. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath">hostPath</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Path of the directory on the host. If the path is a symlink, it will follow the link to the real path. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath">path</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Type for HostPath Volume Defaults to &#34;&#34; More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath">type</span>:
-</div></details><details><summary>  <span title="(v1.ISCSIVolumeSource) ISCSI represents an ISCSI Disk resource that is attached to a kubelet&#39;s host machine and then exposed to the pod. Provisioned by an admin.">iscsi</span>:
+</div></details><details><summary>  <span title="(v1.ISCSIPersistentVolumeSource) ISCSI represents an ISCSI Disk resource that is attached to a kubelet&#39;s host machine and then exposed to the pod. Provisioned by an admin.">iscsi</span>:
 </summary><div style="margin-left:13px;">    <span title="(boolean) whether support iSCSI Discovery CHAP authentication">chapAuthDiscovery</span>:
 </div><div style="margin-left:13px;">    <span title="(boolean) whether support iSCSI Session CHAP authentication">chapAuthSession</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified. More info: https://kubernetes.io/docs/concepts/storage/volumes#iscsi">fsType</span>:
-</div><div style="margin-left:13px;">    <span title="(string) Custom iSCSI initiator name. If initiatorName is specified with iscsiInterface simultaneously, new iSCSI interface &lt;target portal&gt;:&lt;volume name&gt; will be created for the connection.">initiatorName</span>:
+</div><div style="margin-left:13px;">    <span title="(string) Custom iSCSI Initiator Name. If initiatorName is specified with iscsiInterface simultaneously, new iSCSI interface &lt;target portal&gt;:&lt;volume name&gt; will be created for the connection.">initiatorName</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Target iSCSI Qualified Name.">iqn</span>:
-</div><div style="margin-left:13px;">    <span title="(string) Optional: Defaults to &#39;default&#39; (tcp). iSCSI interface name that uses an iSCSI transport.">iscsiInterface</span>:
-</div><div style="margin-left:13px;">    <span title="(integer) iSCSI target lun number.">lun</span>:
-</div><details><summary>    <span title="(array) iSCSI target portal List. The portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260).">portals</span>:
+</div><div style="margin-left:13px;">    <span title="(string) iSCSI Interface Name that uses an iSCSI transport. Defaults to &#39;default&#39; (tcp).">iscsiInterface</span>:
+</div><div style="margin-left:13px;">    <span title="(integer) iSCSI Target Lun number.">lun</span>:
+</div><details><summary>    <span title="(array) iSCSI Target Portal List. The Portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260).">portals</span>:
 </summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
 </div></details><div style="margin-left:13px;">    <span title="(boolean) ReadOnly here will force the ReadOnly setting in VolumeMounts. Defaults to false.">readOnly</span>:
-</div><details><summary>    <span title="(v1.LocalObjectReference) CHAP secret for iSCSI target and initiator authentication">secretRef</span>:
-</summary><div style="margin-left:13px;">      <span title="(string) Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names">name</span>:
-</div></details><div style="margin-left:13px;">    <span title="(string) iSCSI target portal. The portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260).">targetPortal</span>:
+</div><details><summary>    <span title="(v1.SecretReference) CHAP Secret for iSCSI target and initiator authentication">secretRef</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
+</div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
+</div></details><div style="margin-left:13px;">    <span title="(string) iSCSI Target Portal. The Portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260).">targetPortal</span>:
 </div></details><details><summary>  <span title="(v1.LocalVolumeSource) Local represents directly-attached storage with node affinity">local</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) The full path to the volume on the node For alpha, this path must be a directory Once block as a source is supported, then this path can point to a block device">path</span>:
 </div></details><details><summary>  <span title="(array) A list of mount options, e.g. [&#34;ro&#34;, &#34;soft&#34;]. Not validated - mount will simply fail if one is invalid. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#mount-options">mountOptions</span>:
@@ -200,7 +205,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div><div style="margin-left:13px;">    <span title="(string) Registry represents a single or multiple Quobyte Registry services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes">registry</span>:
 </div><div style="margin-left:13px;">    <span title="(string) User to map volume access to Defaults to serivceaccount user">user</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Volume is a string that references an already created Quobyte volume by name.">volume</span>:
-</div></details><details><summary>  <span title="(v1.RBDVolumeSource) RBD represents a Rados Block Device mount on the host that shares a pod&#39;s lifetime. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md">rbd</span>:
+</div></details><details><summary>  <span title="(v1.RBDPersistentVolumeSource) RBD represents a Rados Block Device mount on the host that shares a pod&#39;s lifetime. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md">rbd</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Filesystem type of the volume that you want to mount. Tip: Ensure that the filesystem type is supported by the host operating system. Examples: &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified. More info: https://kubernetes.io/docs/concepts/storage/volumes#rbd">fsType</span>:
 </div><div style="margin-left:13px;">    <span title="(string) The rados image name. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md#how-to-use-it">image</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Keyring is the path to key ring for RBDUser. Default is /etc/ceph/keyring. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md#how-to-use-it">keyring</span>:
@@ -208,19 +213,21 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
 </div></details><div style="margin-left:13px;">    <span title="(string) The rados pool name. Default is rbd. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md#how-to-use-it">pool</span>:
 </div><div style="margin-left:13px;">    <span title="(boolean) ReadOnly here will force the ReadOnly setting in VolumeMounts. Defaults to false. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md#how-to-use-it">readOnly</span>:
-</div><details><summary>    <span title="(v1.LocalObjectReference) SecretRef is name of the authentication secret for RBDUser. If provided overrides keyring. Default is nil. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md#how-to-use-it">secretRef</span>:
-</summary><div style="margin-left:13px;">      <span title="(string) Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names">name</span>:
+</div><details><summary>    <span title="(v1.SecretReference) SecretRef is name of the authentication secret for RBDUser. If provided overrides keyring. Default is nil. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md#how-to-use-it">secretRef</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
+</div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
 </div></details><div style="margin-left:13px;">    <span title="(string) The rados user name. Default is admin. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md#how-to-use-it">user</span>:
-</div></details><details><summary>  <span title="(v1.ScaleIOVolumeSource) ScaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.">scaleIO</span>:
+</div></details><details><summary>  <span title="(v1.ScaleIOPersistentVolumeSource) ScaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.">scaleIO</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
 </div><div style="margin-left:13px;">    <span title="(string) The host address of the ScaleIO API Gateway.">gateway</span>:
-</div><div style="margin-left:13px;">    <span title="(string) The name of the Protection Domain for the configured storage (defaults to &#34;default&#34;).">protectionDomain</span>:
+</div><div style="margin-left:13px;">    <span title="(string) The name of the ScaleIO Protection Domain for the configured storage.">protectionDomain</span>:
 </div><div style="margin-left:13px;">    <span title="(boolean) Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts.">readOnly</span>:
-</div><details><summary>    <span title="(v1.LocalObjectReference) SecretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail.">secretRef</span>:
-</summary><div style="margin-left:13px;">      <span title="(string) Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names">name</span>:
+</div><details><summary>    <span title="(v1.SecretReference) SecretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail.">secretRef</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Name is unique within a namespace to reference a secret resource.">name</span>:
+</div><div style="margin-left:13px;">      <span title="(string) Namespace defines the space within which the secret name must be unique.">namespace</span>:
 </div></details><div style="margin-left:13px;">    <span title="(boolean) Flag to enable/disable SSL communication with Gateway, default false">sslEnabled</span>:
-</div><div style="margin-left:13px;">    <span title="(string) Indicates whether the storage for a volume should be thick or thin (defaults to &#34;thin&#34;).">storageMode</span>:
-</div><div style="margin-left:13px;">    <span title="(string) The Storage Pool associated with the protection domain (defaults to &#34;default&#34;).">storagePool</span>:
+</div><div style="margin-left:13px;">    <span title="(string) Indicates whether the storage for a volume should be ThickProvisioned or ThinProvisioned.">storageMode</span>:
+</div><div style="margin-left:13px;">    <span title="(string) The ScaleIO Storage Pool associated with the protection domain.">storagePool</span>:
 </div><div style="margin-left:13px;">    <span title="(string) The name of the storage system as configured in ScaleIO.">system</span>:
 </div><div style="margin-left:13px;">    <span title="(string) The name of a volume already created in the ScaleIO system that is associated with this volume source.">volumeName</span>:
 </div></details><div style="margin-left:13px;">  <span title="(string) Name of StorageClass to which this persistent volume belongs. Empty value means that this volume does not belong to any StorageClass.">storageClassName</span>:
@@ -237,7 +244,8 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </div><div style="margin-left:13px;">      <span title="(string) UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids">uid</span>:
 </div></details><div style="margin-left:13px;">    <span title="(string) VolumeName is the human-readable name of the StorageOS volume.  Volume names are only unique within a namespace.">volumeName</span>:
 </div><div style="margin-left:13px;">    <span title="(string) VolumeNamespace specifies the scope of the volume within StorageOS.  If no namespace is specified then the Pod&#39;s namespace will be used.  This allows the Kubernetes name scoping to be mirrored within StorageOS for tighter integration. Set VolumeName to any name to override the default behaviour. Set to &#34;default&#34; if you are not using namespaces within StorageOS. Namespaces that do not pre-exist within StorageOS will be created.">volumeNamespace</span>:
-</div></details><details><summary>  <span title="(v1.VsphereVirtualDiskVolumeSource) VsphereVolume represents a vSphere volume attached and mounted on kubelets host machine">vsphereVolume</span>:
+</div></details><div style="margin-left:13px;">  <span title="(string) volumeMode defines if a volume is intended to be used with a formatted filesystem or to remain in raw block state. Value of Filesystem is implied when not included in spec. This is an alpha feature and may change in the future.">volumeMode</span>:
+</div><details><summary>  <span title="(v1.VsphereVirtualDiskVolumeSource) VsphereVolume represents a vSphere volume attached and mounted on kubelets host machine">vsphereVolume</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. Implicitly inferred to be &#34;ext4&#34; if unspecified.">fsType</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Storage Policy Based Management (SPBM) profile ID associated with the StoragePolicyName.">storagePolicyID</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Storage Policy Based Management (SPBM) profile name.">storagePolicyName</span>:
@@ -308,6 +316,8 @@ EOF
 |===
 |HTTP Code|Schema
 |200 OK|v1.PersistentVolume
+|201 Created|v1.PersistentVolume
+|202 Accepted|v1.PersistentVolume
 |401 Unauthorized|
 |===
 
@@ -621,6 +631,7 @@ EOF
 |===
 |HTTP Code|Schema
 |200 OK|v1.PersistentVolume
+|201 Created|v1.PersistentVolume
 |401 Unauthorized|
 |===
 
@@ -764,7 +775,7 @@ EOF
 |pretty|If 'true', then the output is pretty printed.
 |gracePeriodSeconds|The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.
 |orphanDependents|Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the "orphan" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.
-|propagationPolicy|Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.
+|propagationPolicy|Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy. Acceptable values are: 'Orphan' - orphan the dependents; 'Background' - allow the garbage collector to delete the dependents in the background; 'Foreground' - a cascading policy that deletes all dependents in the foreground.
 |===
 
 ==== Responses
@@ -959,6 +970,7 @@ EOF
 |===
 |HTTP Code|Schema
 |200 OK|v1.PersistentVolume
+|201 Created|v1.PersistentVolume
 |401 Unauthorized|
 |===
 

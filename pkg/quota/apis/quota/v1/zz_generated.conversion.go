@@ -10,7 +10,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	unsafe "unsafe"
 )
 
@@ -213,7 +213,7 @@ func autoConvert_v1_ClusterResourceQuotaSpec_To_quota_ClusterResourceQuotaSpec(i
 	if err := Convert_v1_ClusterResourceQuotaSelector_To_quota_ClusterResourceQuotaSelector(&in.Selector, &out.Selector, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_v1_ResourceQuotaSpec_To_api_ResourceQuotaSpec(&in.Quota, &out.Quota, s); err != nil {
+	if err := core_v1.Convert_v1_ResourceQuotaSpec_To_core_ResourceQuotaSpec(&in.Quota, &out.Quota, s); err != nil {
 		return err
 	}
 	return nil
@@ -228,7 +228,7 @@ func autoConvert_quota_ClusterResourceQuotaSpec_To_v1_ClusterResourceQuotaSpec(i
 	if err := Convert_quota_ClusterResourceQuotaSelector_To_v1_ClusterResourceQuotaSelector(&in.Selector, &out.Selector, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_api_ResourceQuotaSpec_To_v1_ResourceQuotaSpec(&in.Quota, &out.Quota, s); err != nil {
+	if err := core_v1.Convert_core_ResourceQuotaSpec_To_v1_ResourceQuotaSpec(&in.Quota, &out.Quota, s); err != nil {
 		return err
 	}
 	return nil
@@ -240,7 +240,7 @@ func Convert_quota_ClusterResourceQuotaSpec_To_v1_ClusterResourceQuotaSpec(in *q
 }
 
 func autoConvert_v1_ClusterResourceQuotaStatus_To_quota_ClusterResourceQuotaStatus(in *v1.ClusterResourceQuotaStatus, out *quota.ClusterResourceQuotaStatus, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ResourceQuotaStatus_To_api_ResourceQuotaStatus(&in.Total, &out.Total, s); err != nil {
+	if err := core_v1.Convert_v1_ResourceQuotaStatus_To_core_ResourceQuotaStatus(&in.Total, &out.Total, s); err != nil {
 		return err
 	}
 	if err := Convert_v1_ResourceQuotasStatusByNamespace_To_quota_ResourceQuotasStatusByNamespace(&in.Namespaces, &out.Namespaces, s); err != nil {
@@ -255,7 +255,7 @@ func Convert_v1_ClusterResourceQuotaStatus_To_quota_ClusterResourceQuotaStatus(i
 }
 
 func autoConvert_quota_ClusterResourceQuotaStatus_To_v1_ClusterResourceQuotaStatus(in *quota.ClusterResourceQuotaStatus, out *v1.ClusterResourceQuotaStatus, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(&in.Total, &out.Total, s); err != nil {
+	if err := core_v1.Convert_core_ResourceQuotaStatus_To_v1_ResourceQuotaStatus(&in.Total, &out.Total, s); err != nil {
 		return err
 	}
 	if err := Convert_quota_ResourceQuotasStatusByNamespace_To_v1_ResourceQuotasStatusByNamespace(&in.Namespaces, &out.Namespaces, s); err != nil {

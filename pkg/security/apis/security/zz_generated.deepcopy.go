@@ -5,113 +5,10 @@
 package security
 
 import (
-	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
-	reflect "reflect"
+	core "k8s.io/kubernetes/pkg/apis/core"
 	unsafe "unsafe"
 )
-
-func init() {
-	SchemeBuilder.Register(RegisterDeepCopies)
-}
-
-// RegisterDeepCopies adds deep-copy functions to the given scheme. Public
-// to allow building arbitrary schemes.
-//
-// Deprecated: deepcopy registration will go away when static deepcopy is fully implemented.
-func RegisterDeepCopies(scheme *runtime.Scheme) error {
-	return scheme.AddGeneratedDeepCopyFuncs(
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*AllowedFlexVolume).DeepCopyInto(out.(*AllowedFlexVolume))
-			return nil
-		}, InType: reflect.TypeOf(new(AllowedFlexVolume))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*FSGroupStrategyOptions).DeepCopyInto(out.(*FSGroupStrategyOptions))
-			return nil
-		}, InType: reflect.TypeOf(new(FSGroupStrategyOptions))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*FSGroupStrategyType).DeepCopyInto(out.(*FSGroupStrategyType))
-			return nil
-		}, InType: reflect.TypeOf(new(FSGroupStrategyType))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*FSType).DeepCopyInto(out.(*FSType))
-			return nil
-		}, InType: reflect.TypeOf(new(FSType))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*IDRange).DeepCopyInto(out.(*IDRange))
-			return nil
-		}, InType: reflect.TypeOf(new(IDRange))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicyReview).DeepCopyInto(out.(*PodSecurityPolicyReview))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicyReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicyReviewSpec).DeepCopyInto(out.(*PodSecurityPolicyReviewSpec))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicyReviewSpec))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicyReviewStatus).DeepCopyInto(out.(*PodSecurityPolicyReviewStatus))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicyReviewStatus))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicySelfSubjectReview).DeepCopyInto(out.(*PodSecurityPolicySelfSubjectReview))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicySelfSubjectReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicySelfSubjectReviewSpec).DeepCopyInto(out.(*PodSecurityPolicySelfSubjectReviewSpec))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicySelfSubjectReviewSpec))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicySubjectReview).DeepCopyInto(out.(*PodSecurityPolicySubjectReview))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicySubjectReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicySubjectReviewSpec).DeepCopyInto(out.(*PodSecurityPolicySubjectReviewSpec))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicySubjectReviewSpec))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PodSecurityPolicySubjectReviewStatus).DeepCopyInto(out.(*PodSecurityPolicySubjectReviewStatus))
-			return nil
-		}, InType: reflect.TypeOf(new(PodSecurityPolicySubjectReviewStatus))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RunAsUserStrategyOptions).DeepCopyInto(out.(*RunAsUserStrategyOptions))
-			return nil
-		}, InType: reflect.TypeOf(new(RunAsUserStrategyOptions))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RunAsUserStrategyType).DeepCopyInto(out.(*RunAsUserStrategyType))
-			return nil
-		}, InType: reflect.TypeOf(new(RunAsUserStrategyType))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SELinuxContextStrategyOptions).DeepCopyInto(out.(*SELinuxContextStrategyOptions))
-			return nil
-		}, InType: reflect.TypeOf(new(SELinuxContextStrategyOptions))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SELinuxContextStrategyType).DeepCopyInto(out.(*SELinuxContextStrategyType))
-			return nil
-		}, InType: reflect.TypeOf(new(SELinuxContextStrategyType))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SecurityContextConstraints).DeepCopyInto(out.(*SecurityContextConstraints))
-			return nil
-		}, InType: reflect.TypeOf(new(SecurityContextConstraints))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SecurityContextConstraintsList).DeepCopyInto(out.(*SecurityContextConstraintsList))
-			return nil
-		}, InType: reflect.TypeOf(new(SecurityContextConstraintsList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ServiceAccountPodSecurityPolicyReviewStatus).DeepCopyInto(out.(*ServiceAccountPodSecurityPolicyReviewStatus))
-			return nil
-		}, InType: reflect.TypeOf(new(ServiceAccountPodSecurityPolicyReviewStatus))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SupplementalGroupsStrategyOptions).DeepCopyInto(out.(*SupplementalGroupsStrategyOptions))
-			return nil
-		}, InType: reflect.TypeOf(new(SupplementalGroupsStrategyOptions))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SupplementalGroupsStrategyType).DeepCopyInto(out.(*SupplementalGroupsStrategyType))
-			return nil
-		}, InType: reflect.TypeOf(new(SupplementalGroupsStrategyType))},
-	)
-}
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *AllowedFlexVolume) DeepCopyInto(out *AllowedFlexVolume) {
@@ -382,7 +279,7 @@ func (in *PodSecurityPolicySubjectReviewStatus) DeepCopyInto(out *PodSecurityPol
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(api.ObjectReference)
+			*out = new(core.ObjectReference)
 			**out = **in
 		}
 	}
@@ -471,7 +368,7 @@ func (in *SELinuxContextStrategyOptions) DeepCopyInto(out *SELinuxContextStrateg
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(api.SELinuxOptions)
+			*out = new(core.SELinuxOptions)
 			**out = **in
 		}
 	}
@@ -524,17 +421,17 @@ func (in *SecurityContextConstraints) DeepCopyInto(out *SecurityContextConstrain
 	}
 	if in.DefaultAddCapabilities != nil {
 		in, out := &in.DefaultAddCapabilities, &out.DefaultAddCapabilities
-		*out = make([]api.Capability, len(*in))
+		*out = make([]core.Capability, len(*in))
 		copy(*out, *in)
 	}
 	if in.RequiredDropCapabilities != nil {
 		in, out := &in.RequiredDropCapabilities, &out.RequiredDropCapabilities
-		*out = make([]api.Capability, len(*in))
+		*out = make([]core.Capability, len(*in))
 		copy(*out, *in)
 	}
 	if in.AllowedCapabilities != nil {
 		in, out := &in.AllowedCapabilities, &out.AllowedCapabilities
-		*out = make([]api.Capability, len(*in))
+		*out = make([]core.Capability, len(*in))
 		copy(*out, *in)
 	}
 	if in.Volumes != nil {

@@ -22,19 +22,33 @@ type ClusterResourceQuotaInformer interface {
 }
 
 type clusterResourceQuotaInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewClusterResourceQuotaInformer constructs a new informer for ClusterResourceQuota type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewClusterResourceQuotaInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredClusterResourceQuotaInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredClusterResourceQuotaInformer constructs a new informer for ClusterResourceQuota type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredClusterResourceQuotaInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Quota().ClusterResourceQuotas().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Quota().ClusterResourceQuotas().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewClusterResourceQuotaInformer(client internalclientset.Interface, resyncP
 	)
 }
 
-func defaultClusterResourceQuotaInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterResourceQuotaInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *clusterResourceQuotaInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredClusterResourceQuotaInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *clusterResourceQuotaInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&quota.ClusterResourceQuota{}, defaultClusterResourceQuotaInformer)
+	return f.factory.InformerFor(&quota.ClusterResourceQuota{}, f.defaultInformer)
 }
 
 func (f *clusterResourceQuotaInformer) Lister() internalversion.ClusterResourceQuotaLister {

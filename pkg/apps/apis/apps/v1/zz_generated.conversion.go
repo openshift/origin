@@ -7,12 +7,12 @@ package v1
 import (
 	v1 "github.com/openshift/api/apps/v1"
 	apps "github.com/openshift/origin/pkg/apps/apis/apps"
-	core_v1 "k8s.io/api/core/v1"
+	api_core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	unsafe "unsafe"
 )
 
@@ -75,9 +75,9 @@ func autoConvert_v1_CustomDeploymentStrategyParams_To_apps_CustomDeploymentStrat
 	out.Image = in.Image
 	if in.Environment != nil {
 		in, out := &in.Environment, &out.Environment
-		*out = make([]api.EnvVar, len(*in))
+		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_v1_EnvVar_To_api_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -97,9 +97,9 @@ func autoConvert_apps_CustomDeploymentStrategyParams_To_v1_CustomDeploymentStrat
 	out.Image = in.Image
 	if in.Environment != nil {
 		in, out := &in.Environment, &out.Environment
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]api_core_v1.EnvVar, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -154,7 +154,7 @@ func Convert_apps_DeploymentCause_To_v1_DeploymentCause(in *apps.DeploymentCause
 }
 
 func autoConvert_v1_DeploymentCauseImageTrigger_To_apps_DeploymentCauseImageTrigger(in *v1.DeploymentCauseImageTrigger, out *apps.DeploymentCauseImageTrigger, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	return nil
@@ -166,7 +166,7 @@ func Convert_v1_DeploymentCauseImageTrigger_To_apps_DeploymentCauseImageTrigger(
 }
 
 func autoConvert_apps_DeploymentCauseImageTrigger_To_v1_DeploymentCauseImageTrigger(in *apps.DeploymentCauseImageTrigger, out *v1.DeploymentCauseImageTrigger, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	return nil
@@ -179,7 +179,7 @@ func Convert_apps_DeploymentCauseImageTrigger_To_v1_DeploymentCauseImageTrigger(
 
 func autoConvert_v1_DeploymentCondition_To_apps_DeploymentCondition(in *v1.DeploymentCondition, out *apps.DeploymentCondition, s conversion.Scope) error {
 	out.Type = apps.DeploymentConditionType(in.Type)
-	out.Status = api.ConditionStatus(in.Status)
+	out.Status = core.ConditionStatus(in.Status)
 	out.LastUpdateTime = in.LastUpdateTime
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = apps.DeploymentConditionReason(in.Reason)
@@ -194,7 +194,7 @@ func Convert_v1_DeploymentCondition_To_apps_DeploymentCondition(in *v1.Deploymen
 
 func autoConvert_apps_DeploymentCondition_To_v1_DeploymentCondition(in *apps.DeploymentCondition, out *v1.DeploymentCondition, s conversion.Scope) error {
 	out.Type = v1.DeploymentConditionType(in.Type)
-	out.Status = core_v1.ConditionStatus(in.Status)
+	out.Status = api_core_v1.ConditionStatus(in.Status)
 	out.LastUpdateTime = in.LastUpdateTime
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = string(in.Reason)
@@ -310,7 +310,7 @@ func Convert_apps_DeploymentConfigRollback_To_v1_DeploymentConfigRollback(in *ap
 }
 
 func autoConvert_v1_DeploymentConfigRollbackSpec_To_apps_DeploymentConfigRollbackSpec(in *v1.DeploymentConfigRollbackSpec, out *apps.DeploymentConfigRollbackSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	out.Revision = in.Revision
@@ -327,7 +327,7 @@ func Convert_v1_DeploymentConfigRollbackSpec_To_apps_DeploymentConfigRollbackSpe
 }
 
 func autoConvert_apps_DeploymentConfigRollbackSpec_To_v1_DeploymentConfigRollbackSpec(in *apps.DeploymentConfigRollbackSpec, out *v1.DeploymentConfigRollbackSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	out.Revision = in.Revision
@@ -366,8 +366,8 @@ func autoConvert_v1_DeploymentConfigSpec_To_apps_DeploymentConfigSpec(in *v1.Dep
 	out.Selector = *(*map[string]string)(unsafe.Pointer(&in.Selector))
 	if in.Template != nil {
 		in, out := &in.Template, &out.Template
-		*out = new(api.PodTemplateSpec)
-		if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(*in, *out, s); err != nil {
+		*out = new(core.PodTemplateSpec)
+		if err := core_v1.Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -404,8 +404,8 @@ func autoConvert_apps_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *apps.D
 	out.Selector = *(*map[string]string)(unsafe.Pointer(&in.Selector))
 	if in.Template != nil {
 		in, out := &in.Template, &out.Template
-		*out = new(core_v1.PodTemplateSpec)
-		if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(*in, *out, s); err != nil {
+		*out = new(api_core_v1.PodTemplateSpec)
+		if err := core_v1.Convert_core_PodTemplateSpec_To_v1_PodTemplateSpec(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -624,7 +624,7 @@ func autoConvert_v1_DeploymentStrategy_To_apps_DeploymentStrategy(in *v1.Deploym
 	} else {
 		out.RollingParams = nil
 	}
-	if err := api_v1.Convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+	if err := core_v1.Convert_v1_ResourceRequirements_To_core_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
@@ -667,7 +667,7 @@ func autoConvert_apps_DeploymentStrategy_To_v1_DeploymentStrategy(in *apps.Deplo
 	} else {
 		out.RollingParams = nil
 	}
-	if err := api_v1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
+	if err := core_v1.Convert_core_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
@@ -684,7 +684,7 @@ func Convert_apps_DeploymentStrategy_To_v1_DeploymentStrategy(in *apps.Deploymen
 func autoConvert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams(in *v1.DeploymentTriggerImageChangeParams, out *apps.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 	out.Automatic = in.Automatic
 	out.ContainerNames = *(*[]string)(unsafe.Pointer(&in.ContainerNames))
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	out.LastTriggeredImage = in.LastTriggeredImage
@@ -694,7 +694,7 @@ func autoConvert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTrigger
 func autoConvert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in *apps.DeploymentTriggerImageChangeParams, out *v1.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 	out.Automatic = in.Automatic
 	out.ContainerNames = *(*[]string)(unsafe.Pointer(&in.ContainerNames))
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	out.LastTriggeredImage = in.LastTriggeredImage
@@ -743,9 +743,9 @@ func autoConvert_v1_ExecNewPodHook_To_apps_ExecNewPodHook(in *v1.ExecNewPodHook,
 	out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]api.EnvVar, len(*in))
+		*out = make([]core.EnvVar, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_v1_EnvVar_To_api_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_v1_EnvVar_To_core_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -766,9 +766,9 @@ func autoConvert_apps_ExecNewPodHook_To_v1_ExecNewPodHook(in *apps.ExecNewPodHoo
 	out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]api_core_v1.EnvVar, len(*in))
 		for i := range *in {
-			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := core_v1.Convert_core_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -975,7 +975,7 @@ func autoConvert_apps_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 
 func autoConvert_v1_TagImageHook_To_apps_TagImageHook(in *v1.TagImageHook, out *apps.TagImageHook, s conversion.Scope) error {
 	out.ContainerName = in.ContainerName
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.To, &out.To, s); err != nil {
 		return err
 	}
 	return nil
@@ -988,7 +988,7 @@ func Convert_v1_TagImageHook_To_apps_TagImageHook(in *v1.TagImageHook, out *apps
 
 func autoConvert_apps_TagImageHook_To_v1_TagImageHook(in *apps.TagImageHook, out *v1.TagImageHook, s conversion.Scope) error {
 	out.ContainerName = in.ContainerName
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.To, &out.To, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.To, &out.To, s); err != nil {
 		return err
 	}
 	return nil

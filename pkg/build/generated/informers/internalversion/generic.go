@@ -35,7 +35,7 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=Build, Version=InternalVersion
+	// Group=build.openshift.io, Version=internalVersion
 	case build.SchemeGroupVersion.WithResource("builds"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Build().InternalVersion().Builds().Informer()}, nil
 	case build.SchemeGroupVersion.WithResource("buildconfigs"):

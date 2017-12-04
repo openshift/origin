@@ -81,6 +81,88 @@ $ curl -k \
 * application/vnd.kubernetes.protobuf
 
 
+[[Get-apis-admissionregistration.k8s.io-v1beta1]]
+=== Get all APIResourceLists
+Get available resources
+
+==== HTTP request
+----
+GET /apis/admissionregistration.k8s.io/v1beta1/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/admissionregistration.k8s.io/v1beta1/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIResourceList
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-apps-v1]]
+=== Get all APIResourceLists
+Get available resources
+
+==== HTTP request
+----
+GET /apis/apps/v1/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/apps/v1/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIResourceList
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
 [[Get-apis-apps-v1beta1]]
 === Get all APIResourceLists
 Get available resources
@@ -550,6 +632,47 @@ $ curl -k \
     -H "Authorization: Bearer $TOKEN" \
     -H 'Accept: application/json' \
     https://$ENDPOINT/apis/certificates.k8s.io/v1beta1/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIResourceList
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-events.k8s.io-v1beta1]]
+=== Get all APIResourceLists
+Get available resources
+
+==== HTTP request
+----
+GET /apis/events.k8s.io/v1beta1/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/events.k8s.io/v1beta1/
 ----
 
 ==== Responses

@@ -7,7 +7,7 @@ package v1
 import (
 	v1 "github.com/openshift/api/build/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 // RegisterDefaults adds defaulters functions to the given scheme.
@@ -31,7 +31,7 @@ func SetObjectDefaults_Build(in *v1.Build) {
 			a := &in.Spec.CommonSpec.Strategy.DockerStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -39,7 +39,7 @@ func SetObjectDefaults_Build(in *v1.Build) {
 			a := &in.Spec.CommonSpec.Strategy.DockerStrategy.BuildArgs[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -50,7 +50,7 @@ func SetObjectDefaults_Build(in *v1.Build) {
 			a := &in.Spec.CommonSpec.Strategy.SourceStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -61,7 +61,7 @@ func SetObjectDefaults_Build(in *v1.Build) {
 			a := &in.Spec.CommonSpec.Strategy.CustomStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -71,13 +71,13 @@ func SetObjectDefaults_Build(in *v1.Build) {
 			a := &in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
 	}
-	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Limits)
-	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Requests)
+	core_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Limits)
+	core_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Requests)
 }
 
 func SetObjectDefaults_BuildConfig(in *v1.BuildConfig) {
@@ -94,7 +94,7 @@ func SetObjectDefaults_BuildConfig(in *v1.BuildConfig) {
 			a := &in.Spec.CommonSpec.Strategy.DockerStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -102,7 +102,7 @@ func SetObjectDefaults_BuildConfig(in *v1.BuildConfig) {
 			a := &in.Spec.CommonSpec.Strategy.DockerStrategy.BuildArgs[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -113,7 +113,7 @@ func SetObjectDefaults_BuildConfig(in *v1.BuildConfig) {
 			a := &in.Spec.CommonSpec.Strategy.SourceStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -124,7 +124,7 @@ func SetObjectDefaults_BuildConfig(in *v1.BuildConfig) {
 			a := &in.Spec.CommonSpec.Strategy.CustomStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
@@ -134,13 +134,13 @@ func SetObjectDefaults_BuildConfig(in *v1.BuildConfig) {
 			a := &in.Spec.CommonSpec.Strategy.JenkinsPipelineStrategy.Env[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}
 	}
-	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Limits)
-	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Requests)
+	core_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Limits)
+	core_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Requests)
 }
 
 func SetObjectDefaults_BuildConfigList(in *v1.BuildConfigList) {
@@ -162,7 +162,7 @@ func SetObjectDefaults_BuildRequest(in *v1.BuildRequest) {
 		a := &in.Env[i]
 		if a.ValueFrom != nil {
 			if a.ValueFrom.FieldRef != nil {
-				api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+				core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 			}
 		}
 	}
@@ -171,7 +171,7 @@ func SetObjectDefaults_BuildRequest(in *v1.BuildRequest) {
 			a := &in.DockerStrategyOptions.BuildArgs[i]
 			if a.ValueFrom != nil {
 				if a.ValueFrom.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
+					core_v1.SetDefaults_ObjectFieldSelector(a.ValueFrom.FieldRef)
 				}
 			}
 		}

@@ -9,7 +9,7 @@ import (
 	user "github.com/openshift/origin/pkg/user/apis/user"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	unsafe "unsafe"
 )
 
@@ -86,7 +86,7 @@ func autoConvert_v1_Identity_To_user_Identity(in *v1.Identity, out *user.Identit
 	out.ObjectMeta = in.ObjectMeta
 	out.ProviderName = in.ProviderName
 	out.ProviderUserName = in.ProviderUserName
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.User, &out.User, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.User, &out.User, s); err != nil {
 		return err
 	}
 	out.Extra = *(*map[string]string)(unsafe.Pointer(&in.Extra))
@@ -102,7 +102,7 @@ func autoConvert_user_Identity_To_v1_Identity(in *user.Identity, out *v1.Identit
 	out.ObjectMeta = in.ObjectMeta
 	out.ProviderName = in.ProviderName
 	out.ProviderUserName = in.ProviderUserName
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.User, &out.User, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.User, &out.User, s); err != nil {
 		return err
 	}
 	out.Extra = *(*map[string]string)(unsafe.Pointer(&in.Extra))
@@ -184,10 +184,10 @@ func Convert_user_User_To_v1_User(in *user.User, out *v1.User, s conversion.Scop
 
 func autoConvert_v1_UserIdentityMapping_To_user_UserIdentityMapping(in *v1.UserIdentityMapping, out *user.UserIdentityMapping, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.User, &out.User, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.User, &out.User, s); err != nil {
 		return err
 	}
 	return nil
@@ -200,10 +200,10 @@ func Convert_v1_UserIdentityMapping_To_user_UserIdentityMapping(in *v1.UserIdent
 
 func autoConvert_user_UserIdentityMapping_To_v1_UserIdentityMapping(in *user.UserIdentityMapping, out *v1.UserIdentityMapping, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.User, &out.User, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.User, &out.User, s); err != nil {
 		return err
 	}
 	return nil

@@ -13,15 +13,17 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // SecurityContextConstraints returns a SecurityContextConstraintsInformer.
 func (v *version) SecurityContextConstraints() SecurityContextConstraintsInformer {
-	return &securityContextConstraintsInformer{factory: v.SharedInformerFactory}
+	return &securityContextConstraintsInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
