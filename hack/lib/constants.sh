@@ -42,7 +42,6 @@ readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
-  cmd/kubefed
   cmd/openshift-diagnostics
   cmd/template-service-broker
   vendor/k8s.io/kubernetes/cmd/hyperkube
@@ -138,10 +137,8 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.buildDate" "${buildDate}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitTreeState" "clean"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/federation/kubefed.serverImageName" "${OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME}"))
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/federation/kubefed.defaultEtcdImage" "${OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE}
-"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitTreeState" "clean")
+)
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"
