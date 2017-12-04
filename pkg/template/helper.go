@@ -2,9 +2,10 @@ package template
 
 import (
 	"fmt"
+	"strings"
+
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"strings"
 )
 
 // TemplateReference points to a stored template

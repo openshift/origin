@@ -3,9 +3,9 @@ package nodes
 import (
 	"github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 )

@@ -3,7 +3,7 @@ package rest
 import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 // DefaultMultiRESTMapper returns the multi REST mapper with all OpenShift and

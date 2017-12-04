@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/transport"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )

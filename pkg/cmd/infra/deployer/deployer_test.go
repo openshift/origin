@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployv1 "github.com/openshift/api/apps/v1"

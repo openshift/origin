@@ -1,8 +1,9 @@
 package aggregated_logging
 
 import (
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"testing"
+
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 )
 
 const fakeProject = "someProject"

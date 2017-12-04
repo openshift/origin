@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	graphapi "github.com/gonum/graph"
 	"github.com/gonum/graph/path"

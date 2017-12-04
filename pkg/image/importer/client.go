@@ -25,7 +25,7 @@ import (
 	godigest "github.com/opencontainers/go-digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/api/image/dockerpre012"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"

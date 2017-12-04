@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kprinters "k8s.io/kubernetes/pkg/printers"

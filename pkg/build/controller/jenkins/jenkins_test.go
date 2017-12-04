@@ -2,8 +2,9 @@ package jenkins
 
 import (
 	"fmt"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"testing"
+
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 func TestSubstituteTemplateParameters(t *testing.T) {

@@ -1,10 +1,11 @@
 package dockerhelper
 
 import (
-	"github.com/docker/engine-api/types"
-	"github.com/docker/engine-api/types/registry"
 	"net"
 	"testing"
+
+	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/registry"
 )
 
 // NetIPNet is a helper function for converting a CIDR string to a corresponding NetIPNet

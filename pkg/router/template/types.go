@@ -1,8 +1,9 @@
 package templaterouter
 
 import (
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"strings"
+
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // ServiceUnit represents a service and its endpoints.
