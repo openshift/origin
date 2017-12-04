@@ -24,6 +24,7 @@ import (
 
 func newControllerContext(
 	openshiftControllerOptions origincontrollers.OpenshiftControllerOptions,
+	enabledControllers []string,
 	privilegedLoopbackConfig *rest.Config,
 	kubeExternal kclientsetexternal.Interface,
 	informers *informers,
@@ -42,6 +43,7 @@ func newControllerContext(
 
 	openshiftControllerContext := origincontrollers.ControllerContext{
 		OpenshiftControllerOptions: openshiftControllerOptions,
+		EnabledControllers:         enabledControllers,
 
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
 			ControllerClientBuilder: controller.SAControllerClientBuilder{

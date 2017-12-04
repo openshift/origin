@@ -1519,6 +1519,10 @@ type AdmissionConfig struct {
 
 // ControllerConfig holds configuration values for controllers
 type ControllerConfig struct {
+	// Controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller "+
+	// named 'foo', '-foo' disables the controller named 'foo'.
+	// Defaults to "*".
+	Controllers []string
 	// Election defines the configuration for electing a controller instance to make changes to
 	// the cluster. If unspecified, the ControllerTTL value is checked to determine whether the
 	// legacy direct etcd election code will be used.

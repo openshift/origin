@@ -22,6 +22,14 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 	if len(obj.Controllers) == 0 {
 		obj.Controllers = ControllersAll
 	}
+	if len(obj.ControllerConfig.Controllers) == 0 {
+		switch {
+		case obj.Controllers == ControllersAll:
+			obj.ControllerConfig.Controllers = []string{"*"}
+		case obj.Controllers == ControllersDisabled:
+			obj.ControllerConfig.Controllers = []string{}
+		}
+	}
 	if election := obj.ControllerConfig.Election; election != nil {
 		if len(election.LockNamespace) == 0 {
 			election.LockNamespace = "kube-system"
@@ -30,6 +38,7 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 			election.LockResource.Resource = "configmaps"
 		}
 	}
+
 	if obj.ServingInfo.RequestTimeoutSeconds == 0 {
 		obj.ServingInfo.RequestTimeoutSeconds = 60 * 60
 	}
@@ -194,6 +203,7 @@ func SetDefaults_EtcdStorageConfig(obj *EtcdStorageConfig) {
 		obj.OpenShiftStoragePrefix = "openshift.io"
 	}
 }
+
 func SetDefaults_DockerConfig(obj *DockerConfig) {
 	if len(obj.ExecHandlerName) == 0 {
 		obj.ExecHandlerName = DockerExecHandlerNative
