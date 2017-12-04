@@ -40,8 +40,8 @@ func main() {
 	// These are the packages containing types and conversion functions used by the packages we want to generate for
 	supportingPackages := sets.NewString(
 		"k8s.io/api/core/v1",
-		"k8s.io/kubernetes/pkg/api",
-		"k8s.io/kubernetes/pkg/api/v1",
+		"k8s.io/kubernetes/pkg/apis/core",
+		"k8s.io/kubernetes/pkg/apis/core/v1",
 		"k8s.io/apimachinery/pkg/apis/meta/v1",
 		"k8s.io/apimachinery/pkg/apis/meta/internalversion",
 		"k8s.io/apimachinery/pkg/runtime",

@@ -75,9 +75,8 @@
       "vendor/github.com/openshift/api"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "vendor/k8s.io/kubernetes/pkg/apis/extensions",
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
       "github.com/openshift/origin/pkg/image/apis/image"
     ]
   },
@@ -94,9 +93,10 @@
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
       "vendor/k8s.io/kubernetes/pkg/apis/rbac",
+      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/internal/serviceaccount"
     ]
   },
@@ -113,8 +113,8 @@
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
       "github.com/openshift/origin/pkg/image/apis/image",
       "vendor/github.com/golang/glog"
     ]
@@ -135,8 +135,8 @@
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
       "vendor/github.com/golang/glog",
       "vendor/github.com/blang/semver"
     ]
@@ -181,7 +181,7 @@
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api"
+      "vendor/k8s.io/kubernetes/pkg/apis/core"
     ]
   },
 
@@ -196,8 +196,8 @@
       "vendor/github.com/openshift/api"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1"
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1"
     ]
   },
 
@@ -213,7 +213,7 @@
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api"
+      "vendor/k8s.io/kubernetes/pkg/apis/core"
     ]
   },
 
@@ -241,8 +241,9 @@
       "vendor/github.com/openshift/api"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1"
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
+      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme"
     ]
   },
 
@@ -258,8 +259,8 @@
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1"
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/v1"
     ]
   },
 
@@ -294,8 +295,9 @@
       "vendor/github.com/golang/glog",
       "vendor/k8s.io/api/core/v1",
       "vendor/k8s.io/api/authorization/v1",
-      "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/install",
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/apis/core/install",
+      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "vendor/github.com/emicklei/go-restful",
       "vendor/github.com/lestrrat/go-jsschema",
       "vendor/k8s.io/kubernetes/pkg/controller",
