@@ -8,7 +8,7 @@ import (
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func mustParseCIDR(cidr string) *net.IPNet {

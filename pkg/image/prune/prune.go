@@ -21,7 +21,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiref "k8s.io/kubernetes/pkg/api/ref"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 

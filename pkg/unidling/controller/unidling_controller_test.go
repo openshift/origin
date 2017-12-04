@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kexternalfake "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kinternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 

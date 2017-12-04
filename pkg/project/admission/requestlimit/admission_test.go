@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	userapi "github.com/openshift/api/user/v1"

@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	apiendpointhandlers "k8s.io/apiserver/pkg/endpoints/handlers"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	templatesapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"

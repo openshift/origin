@@ -3,8 +3,8 @@ package install
 import (
 	kv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/conversion"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	// we have a strong dependency on kube objects for deployments and scale
 	_ "k8s.io/kubernetes/pkg/apis/core/install"

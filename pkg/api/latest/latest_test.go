@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 
 	userapiv1 "github.com/openshift/api/user/v1"

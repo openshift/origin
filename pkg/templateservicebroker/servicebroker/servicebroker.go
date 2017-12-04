@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	templateclientset "github.com/openshift/client-go/template/clientset/versioned"
 	v1template "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"

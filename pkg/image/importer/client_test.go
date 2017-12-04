@@ -19,7 +19,7 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	godigest "github.com/opencontainers/go-digest"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
