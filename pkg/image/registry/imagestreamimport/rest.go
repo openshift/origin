@@ -16,10 +16,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
-	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	imageapiv1 "github.com/openshift/api/image/v1"

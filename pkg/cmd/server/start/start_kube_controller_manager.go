@@ -16,7 +16,7 @@ import (
 	kinformers "k8s.io/client-go/informers"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/volume"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"

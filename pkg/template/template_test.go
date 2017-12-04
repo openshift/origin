@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"

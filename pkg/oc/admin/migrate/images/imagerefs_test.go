@@ -5,9 +5,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
+	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"

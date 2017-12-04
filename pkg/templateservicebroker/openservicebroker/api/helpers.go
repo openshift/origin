@@ -1,9 +1,10 @@
 package api
 
 import (
+	"net/http"
+
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"net/http"
 )
 
 func NewResponse(code int, body interface{}, err error) *Response {

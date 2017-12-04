@@ -15,7 +15,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kubefakeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
 

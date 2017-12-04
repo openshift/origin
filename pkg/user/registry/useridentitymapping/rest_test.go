@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapirest "k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
