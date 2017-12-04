@@ -8,7 +8,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	api api "k8s.io/kubernetes/pkg/apis/core"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // FakeImageStreams implements ImageStreamInterface
@@ -123,12 +123,12 @@ func (c *FakeImageStreams) Patch(name string, pt types.PatchType, data []byte, s
 }
 
 // Secrets takes label and field selectors, and returns the list of Secrets that match those selectors.
-func (c *FakeImageStreams) Secrets(imageStreamName string, opts v1.ListOptions) (result *api.SecretList, err error) {
+func (c *FakeImageStreams) Secrets(imageStreamName string, opts v1.ListOptions) (result *core.SecretList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListSubresourceAction(imagestreamsResource, imageStreamName, "secrets", imagestreamsKind, c.ns, opts), &api.SecretList{})
+		Invokes(testing.NewListSubresourceAction(imagestreamsResource, imageStreamName, "secrets", imagestreamsKind, c.ns, opts), &core.SecretList{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.SecretList), err
+	return obj.(*core.SecretList), err
 }
