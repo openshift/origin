@@ -13,9 +13,9 @@ import (
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/certificate"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network/transport"
@@ -35,7 +35,7 @@ type NetworkConfig struct {
 	InternalKubeInformers kinternalinformers.SharedInformerFactory
 
 	// ProxyConfig is the configuration for the kube-proxy, fully initialized
-	ProxyConfig *componentconfig.KubeProxyConfiguration
+	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
 	// EnableUnidling indicates whether or not the unidling hybrid proxy should be used
 	EnableUnidling bool
 
@@ -67,7 +67,7 @@ func configureKubeConfigForClientCertRotation(options configapi.NodeConfig, kube
 }
 
 // New creates a new network config object for running the networking components of the OpenShift node.
-func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *componentconfig.KubeProxyConfiguration, enableProxy, enableDNS bool) (*NetworkConfig, error) {
+func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubeproxyconfig.KubeProxyConfiguration, enableProxy, enableDNS bool) (*NetworkConfig, error) {
 	kubeConfig, err := configapi.GetKubeConfigOrInClusterConfig(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err

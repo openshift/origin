@@ -64,6 +64,12 @@ func Build(options configapi.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguratio
 	masqueradeBit := int32(0)
 	proxyconfig.IPTables.MasqueradeBit = &masqueradeBit
 
+	defaultedProxyConfig, err := proxyOptions.ApplyDefaults(proxyconfig)
+	if err != nil {
+		return nil, err
+	}
+	*proxyconfig = *defaultedProxyConfig
+
 	// PortRange, use default
 	// HostnameOverride, use default
 	// ConfigSyncPeriod, use default
