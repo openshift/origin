@@ -30,7 +30,6 @@ type DeploymentConfigInterface interface {
 	Instantiate(deploymentConfigName string, deploymentRequest *apps.DeploymentRequest) (*apps.DeploymentConfig, error)
 	Rollback(deploymentConfigName string, deploymentConfigRollback *apps.DeploymentConfigRollback) (*apps.DeploymentConfig, error)
 	GetScale(deploymentConfigName string, options v1.GetOptions) (*v1beta1.Scale, error)
-	UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (*v1beta1.Scale, error)
 
 	DeploymentConfigExpansion
 }
@@ -198,20 +197,6 @@ func (c *deploymentConfigs) GetScale(deploymentConfigName string, options v1.Get
 		Name(deploymentConfigName).
 		SubResource("scale").
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// UpdateScale takes the top resource name and the representation of a scale and updates it. Returns the server's representation of the scale, and an error, if there is any.
-func (c *deploymentConfigs) UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (result *v1beta1.Scale, err error) {
-	result = &v1beta1.Scale{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("deploymentconfigs").
-		Name(deploymentConfigName).
-		SubResource("scale").
-		Body(scale).
 		Do().
 		Into(result)
 	return
