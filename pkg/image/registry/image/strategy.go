@@ -24,7 +24,7 @@ type imageStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating
 // Image objects via the REST API.
-var Strategy = imageStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = imageStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 func (imageStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

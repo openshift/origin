@@ -17,7 +17,7 @@ type strategy struct {
 
 // Strategy is the default logic that applies when creating or updating OAuthClient objects
 // objects via the REST API.
-var Strategy = strategy{kapi.Scheme}
+var Strategy = strategy{legacyscheme.Scheme}
 
 func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

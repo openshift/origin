@@ -72,7 +72,7 @@ func (s *storage) CreateImage(ctx apirequest.Context, image *imageapi.Image) err
 }
 
 func (s *storage) UpdateImage(ctx apirequest.Context, image *imageapi.Image) (*imageapi.Image, error) {
-	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image, kapi.Scheme))
+	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image, legacyscheme.Scheme))
 	if err != nil {
 		return nil, err
 	}

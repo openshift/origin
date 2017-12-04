@@ -294,7 +294,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check the namespace is empty
-		for gvk := range kapi.Scheme.AllKnownTypes() {
+		for gvk := range legacyscheme.Scheme.AllKnownTypes() {
 			if gvk.Version == runtime.APIVersionInternal {
 				continue
 			}

@@ -81,7 +81,7 @@ func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
+	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, legacyscheme.Scheme))
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
+	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, legacyscheme.Scheme))
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *ima
 }
 
 func (s *storage) UpdateImageStreamStatus(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
+	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, legacyscheme.Scheme))
 	if err != nil {
 		return nil, err
 	}

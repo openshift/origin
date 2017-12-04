@@ -143,7 +143,7 @@ func (q *clusterQuotaAdmission) SetClusterQuota(clusterQuotaMapper clusterquotam
 	q.clusterQuotaSynced = informers.Informer().HasSynced
 }
 
-func (q *clusterQuotaAdmission) Validate() error {
+func (q *clusterQuotaAdmission) ValidateInitialization() error {
 	if q.clusterQuotaLister == nil {
 		return errors.New("missing clusterQuotaLister")
 	}

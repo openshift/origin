@@ -177,7 +177,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 
 	storageVersion := options.EtcdStorageConfig.OpenShiftStorageVersion
 	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
-	annotationCodec := kapi.Codecs.LegacyCodec(groupVersion)
+	annotationCodec := legacyscheme.Codecs.LegacyCodec(groupVersion)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format

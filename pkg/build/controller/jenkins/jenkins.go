@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -58,7 +59,7 @@ func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 	var items []runtime.Object
 	for _, obj := range pTemplate.Objects {
 		if unknownObj, ok := obj.(*runtime.Unknown); ok {
-			decodedObj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), unknownObj.Raw)
+			decodedObj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), unknownObj.Raw)
 			if err != nil {
 				errors = append(errors, err)
 			}
@@ -74,7 +75,7 @@ func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 func (t *PipelineTemplate) HasJenkinsService(items *kapi.List) bool {
 	accessor := meta.NewAccessor()
 	for _, item := range items.Items {
-		kind, _, err := kapi.Scheme.ObjectKind(item)
+		kinds, _, err := legacyscheme.Scheme.ObjectKinds(item)
 		if err != nil {
 			glog.Infof("Error checking Jenkins service kind: %v", err)
 			return false
@@ -84,9 +85,12 @@ func (t *PipelineTemplate) HasJenkinsService(items *kapi.List) bool {
 			glog.Infof("Error checking Jenkins service name: %v", err)
 			return false
 		}
-		glog.Infof("Jenkins Pipeline template object %q with name %q", name, kind.Kind)
-		if name == t.Config.ServiceName && kind.Kind == "Service" {
-			return true
+		glog.Infof("Jenkins Pipeline template object %q with name %q", name, kinds[0].Kind)
+
+		for _, kind := range kinds {
+			if name == t.Config.ServiceName && kind.GroupKind() == kapi.Kind("Service") {
+				return true
+			}
 		}
 	}
 	return false

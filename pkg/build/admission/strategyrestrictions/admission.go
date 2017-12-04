@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
@@ -184,7 +184,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 			return admission.NewForbidden(attr, err)
 		}
 		internalBuild := &buildapi.Build{}
-		if err := kapi.Scheme.Convert(build, internalBuild, nil); err != nil {
+		if err := legacyscheme.Scheme.Convert(build, internalBuild, nil); err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(internalBuild, attr)
@@ -194,7 +194,7 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 			return admission.NewForbidden(attr, err)
 		}
 		internalBuildConfig := &buildapi.BuildConfig{}
-		if err := kapi.Scheme.Convert(buildConfig, internalBuildConfig, nil); err != nil {
+		if err := legacyscheme.Scheme.Convert(buildConfig, internalBuildConfig, nil); err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildConfigAuthorization(internalBuildConfig, attr)

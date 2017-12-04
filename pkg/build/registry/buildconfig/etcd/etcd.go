@@ -33,7 +33,7 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a RESTStorage object that will work against BuildConfig.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &buildapi.BuildConfig{} },
 		NewListFunc:              func() runtime.Object { return &buildapi.BuildConfigList{} },
 		DefaultQualifiedResource: buildapi.Resource("buildconfigs"),

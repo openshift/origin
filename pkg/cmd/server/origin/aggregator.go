@@ -50,9 +50,9 @@ func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Con
 	genericConfig.SwaggerConfig = nil
 	genericConfig.OpenAPIConfig = nil
 
-	// This depends on aggregator types being registered into the kapi.Scheme, which is currently done in Start() to avoid concurrent scheme modification
+	// This depends on aggregator types being registered into the legacyscheme.Scheme, which is currently done in Start() to avoid concurrent scheme modification
 	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
-	// install.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	// install.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 
 	serviceResolver := aggregatorapiserver.NewClusterIPServiceResolver(
 		c.ClientGoKubeInformers.Core().V1().Services().Lister(),

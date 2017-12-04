@@ -20,7 +20,7 @@ func TestCredentialsForSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), data)
 	if err != nil {
 		t.Fatal(err)
 	}

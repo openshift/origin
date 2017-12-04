@@ -407,7 +407,7 @@ func SetLegacyOpenShiftDefaults(config *rest.Config) error {
 		config.APIPath = "/oapi"
 	}
 	if config.NegotiatedSerializer == nil {
-		config.NegotiatedSerializer = kapi.Codecs
+		config.NegotiatedSerializer = legacyscheme.Codecs
 	}
 	return nil
 }

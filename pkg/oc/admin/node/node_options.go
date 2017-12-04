@@ -179,7 +179,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 }
 
 func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kprinters.ResourcePrinter, error) {
-	gvk, _, err := kapi.Scheme.ObjectKinds(obj)
+	gvk, _, err := legacyscheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return nil, err
 	}

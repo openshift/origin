@@ -30,7 +30,7 @@ type templateInstanceStrategy struct {
 }
 
 func NewStrategy(authorizationClient authorizationinternalversion.AuthorizationInterface) *templateInstanceStrategy {
-	return &templateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator, authorizationClient}
+	return &templateInstanceStrategy{legacyscheme.Scheme, names.SimpleNameGenerator, authorizationClient}
 }
 
 // NamespaceScoped is true for templateinstances.
@@ -165,7 +165,7 @@ type statusStrategy struct {
 	names.NameGenerator
 }
 
-var StatusStrategy = statusStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var StatusStrategy = statusStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 func (statusStrategy) NamespaceScoped() bool {
 	return true

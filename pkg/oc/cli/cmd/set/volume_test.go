@@ -90,7 +90,7 @@ func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
 	infos := []*resource.Info{info}
 	vOptions := &VolumeOptions{}
 	vOptions.Name = "fake-mount"
-	vOptions.Encoder = api.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...)
+	vOptions.Encoder = api.Codecs.LegacyCodec(legacyscheme.Registry.EnabledVersions()...)
 	vOptions.Containers = "*"
 	vOptions.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	return infos, vOptions

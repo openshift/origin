@@ -52,7 +52,7 @@ func NewBroker(saKubeClientConfig *restclient.Config, informer templateinformer.
 	}
 
 	configCopy := *saKubeClientConfig
-	configCopy.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: kapi.Codecs}
+	configCopy.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: legacyscheme.Codecs}
 
 	delay := 5 * time.Second
 	value := os.Getenv("TEMPLATE_SERVICE_BROKER_GC_DELAY")

@@ -1355,7 +1355,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
-		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		sarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1386,7 +1386,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource:  "imagestreams/layers",
 			},
 		}
-		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		sarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1436,7 +1436,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
-		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		sarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1496,7 +1496,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
-		rarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
+		rarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1527,7 +1527,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 				Resource:  "imagestreams/layers",
 			},
 		}
-		rarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
+		rarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1571,7 +1571,7 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 	// this client has no API token so it is unsafe (like a browser)
 	anonymousConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	anonymousConfig.ContentConfig.GroupVersion = &schema.GroupVersion{}
-	anonymousConfig.ContentConfig.NegotiatedSerializer = kapi.Codecs
+	anonymousConfig.ContentConfig.NegotiatedSerializer = legacyscheme.Codecs
 	anonymousClient, err := rest.RESTClientFor(anonymousConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

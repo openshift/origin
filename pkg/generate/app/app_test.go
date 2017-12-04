@@ -221,7 +221,7 @@ func TestGenerateSimpleDockerApp(t *testing.T) {
 		Items: items,
 	}
 
-	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), out)
+	data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), out)
 	if err != nil {
 		log.Fatalf("Unable to generate output: %v", err)
 	}

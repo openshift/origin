@@ -18,7 +18,7 @@ type identityStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating Identity
 // objects via the REST API.
-var Strategy = identityStrategy{kapi.Scheme}
+var Strategy = identityStrategy{legacyscheme.Scheme}
 
 func (identityStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

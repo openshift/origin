@@ -163,7 +163,7 @@ func TestCancelBuildRun(t *testing.T) {
 			test.opts.HasError = true
 			t.Logf("got error: %v", err)
 		}
-		test.opts.Mapper = kapi.Registry.RESTMapper()
+		test.opts.Mapper = legacyscheme.Registry.RESTMapper()
 		test.opts.BuildNames = []string{"ruby-ex"}
 		test.opts.States = []string{"new", "pending", "running"}
 

@@ -21,7 +21,7 @@ type strategy struct {
 
 func NewStrategy(registries *serverapi.AllowedRegistries, registry imageapi.RegistryHostnameRetriever) *strategy {
 	return &strategy{
-		ObjectTyper:           kapi.Scheme,
+		ObjectTyper:           legacyscheme.Scheme,
 		allowedRegistries:     registries,
 		registryHostRetriever: registry,
 	}

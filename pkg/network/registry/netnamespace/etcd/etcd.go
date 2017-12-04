@@ -22,7 +22,7 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against netnamespaces
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &networkapi.NetNamespace{} },
 		NewListFunc:              func() runtime.Object { return &networkapi.NetNamespaceList{} },
 		DefaultQualifiedResource: networkapi.Resource("netnamespaces"),

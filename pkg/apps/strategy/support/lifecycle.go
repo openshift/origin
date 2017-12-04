@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -333,7 +334,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 
 	// Inherit resources from the base container
 	resources := kapi.ResourceRequirements{}
-	if err := kapi.Scheme.Convert(&baseContainer.Resources, &resources, nil); err != nil {
+	if err := legacyscheme.Scheme.Convert(&baseContainer.Resources, &resources, nil); err != nil {
 		return nil, fmt.Errorf("couldn't clone ResourceRequirements: %v", err)
 	}
 

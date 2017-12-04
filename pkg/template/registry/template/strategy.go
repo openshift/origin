@@ -19,7 +19,7 @@ type templateStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating Template
 // objects via the REST API.
-var Strategy = templateStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = templateStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is true for templates.
 func (templateStrategy) NamespaceScoped() bool {

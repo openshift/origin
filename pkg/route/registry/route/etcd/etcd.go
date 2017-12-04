@@ -34,7 +34,7 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 	strategy := routeregistry.NewStrategy(allocator, sarClient)
 
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &routeapi.Route{} },
 		NewListFunc:              func() runtime.Object { return &routeapi.RouteList{} },
 		DefaultQualifiedResource: routeapi.Resource("routes"),

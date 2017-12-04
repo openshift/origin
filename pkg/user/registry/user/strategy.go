@@ -18,7 +18,7 @@ type userStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating User
 // objects via the REST API.
-var Strategy = userStrategy{kapi.Scheme}
+var Strategy = userStrategy{legacyscheme.Scheme}
 
 func (userStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

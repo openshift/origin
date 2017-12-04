@@ -31,7 +31,7 @@ import (
 // type into an api type.  Localize the crazy here.
 // TODO this scheme needs to be configurable or we're going to end up with weird problems.
 func init() {
-	err := kapi.Scheme.AddConversionFuncs(
+	err := legacyscheme.Scheme.AddConversionFuncs(
 		// Convert docker client object to internal object
 		func(in *docker.Image, out *imageapi.DockerImage, s conversion.Scope) error {
 			if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {

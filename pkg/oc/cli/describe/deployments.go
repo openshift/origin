@@ -145,7 +145,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 
 		if settings.ShowEvents {
 			// Events
-			if events, err := d.kubeClient.Core().Events(deploymentConfig.Namespace).Search(kapi.Scheme, deploymentConfig); err == nil && events != nil {
+			if events, err := d.kubeClient.Core().Events(deploymentConfig.Namespace).Search(legacyscheme.Scheme, deploymentConfig); err == nil && events != nil {
 				latestDeploymentEvents := &kapi.EventList{Items: []kapi.Event{}}
 				for i := len(events.Items); i != 0 && i > len(events.Items)-maxDisplayDeploymentsEvents; i-- {
 					latestDeploymentEvents.Items = append(latestDeploymentEvents.Items, events.Items[i-1])

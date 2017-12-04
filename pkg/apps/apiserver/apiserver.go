@@ -12,7 +12,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -114,7 +114,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	// TODO sort out who is using this and why.  it was hardcoded before the migration and I suspect that it is being used
 	// to serialize out objects into annotations.
-	externalVersionCodec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
+	externalVersionCodec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
 	openshiftInternalAppsClient, err := appsclientinternal.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ type LegacyLegacyDCRollbackMutator struct {
 }
 
 func (l LegacyLegacyDCRollbackMutator) Mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
-	externalVersionCodec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
+	externalVersionCodec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
 	originAppsClient := oappsclient.NewForConfigOrDie(l.CoreAPIServerClientConfig)
 	kubeInternalClient := kclientsetinternal.NewForConfigOrDie(l.CoreAPIServerClientConfig)
 	deployRollbackClient := deployrollback.Client{

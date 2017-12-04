@@ -15,7 +15,7 @@ import (
 
 func TestResolveResource(t *testing.T) {
 	dc := fake.NewSimpleClientset().Discovery()
-	mapper, err := kcmdutil.NewShortcutExpander(kapi.Registry.RESTMapper(), dc)
+	mapper, err := kcmdutil.NewShortcutExpander(legacyscheme.Registry.RESTMapper(), dc)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

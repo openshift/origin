@@ -76,7 +76,7 @@ func NewLeaderElection(options configapi.MasterConfig, leader componentconfig.Le
 	events.StartRecordingToSink(&v1core.EventSinkImpl{Interface: eventClient})
 	lock, err := rl.New(election.LockResource.Resource, namespace, name, kc.Core(), rl.ResourceLockConfig{
 		Identity:      id,
-		EventRecorder: events.NewRecorder(kapi.Scheme, v1corev1.EventSource{Component: name}),
+		EventRecorder: events.NewRecorder(legacyscheme.Scheme, v1corev1.EventSource{Component: name}),
 	})
 	if err != nil {
 		return nil, nil, err

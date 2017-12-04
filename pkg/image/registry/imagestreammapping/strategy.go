@@ -23,7 +23,7 @@ type Strategy struct {
 // objects via the REST API.
 func NewStrategy(registryHost imageapi.RegistryHostnameRetriever) Strategy {
 	return Strategy{
-		ObjectTyper:           kapi.Scheme,
+		ObjectTyper:           legacyscheme.Scheme,
 		NameGenerator:         names.SimpleNameGenerator,
 		registryHostRetriever: registryHost,
 	}

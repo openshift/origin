@@ -11,12 +11,12 @@ import (
 func DefaultMultiRESTMapper() meta.MultiRESTMapper {
 	var restMapper meta.MultiRESTMapper
 	seenGroups := sets.String{}
-	for _, gv := range kapi.Registry.EnabledVersions() {
+	for _, gv := range legacyscheme.Registry.EnabledVersions() {
 		if seenGroups.Has(gv.Group) {
 			continue
 		}
 		seenGroups.Insert(gv.Group)
-		groupMeta, err := kapi.Registry.Group(gv.Group)
+		groupMeta, err := legacyscheme.Registry.Group(gv.Group)
 		if err != nil {
 			continue
 		}

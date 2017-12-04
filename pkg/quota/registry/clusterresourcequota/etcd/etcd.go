@@ -29,7 +29,7 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a RESTStorage object that will work against ClusterResourceQuota objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
 		NewListFunc:              func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
 		DefaultQualifiedResource: quotaapi.Resource("clusterresourcequotas"),

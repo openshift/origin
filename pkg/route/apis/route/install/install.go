@@ -13,8 +13,8 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(routeapi.GroupName, routeapi.AddToSchemeInCoreGroup, routeapiv1.AddToSchemeInCoreGroup, sets.NewString(), kapi.Registry, kapi.Scheme)
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	legacy.InstallLegacy(routeapi.GroupName, routeapi.AddToSchemeInCoreGroup, routeapiv1.AddToSchemeInCoreGroup, sets.NewString(), legacyscheme.Registry, legacyscheme.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

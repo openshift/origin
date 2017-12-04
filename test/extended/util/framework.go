@@ -1317,7 +1317,7 @@ func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) st
 func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
 	var expectedEvent *kapiv1.Event
 	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
-		events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
+		events, err := client.Events(build.Namespace).Search(legacyscheme.Scheme, build)
 		if err != nil {
 			return false, err
 		}

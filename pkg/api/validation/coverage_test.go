@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -38,7 +38,7 @@ var MissingValidationExceptions = []reflect.Type{
 }
 
 func TestCoverage(t *testing.T) {
-	for kind, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
+	for kind, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if strings.HasPrefix(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}

@@ -161,7 +161,7 @@ type fakeVersionDiscovery struct {
 
 func (f *fakeVersionDiscovery) RESTClient() restclient.Interface {
 	return &restfake.RESTClient{
-		APIRegistry:          kapi.Registry,
+		APIRegistry:          legacyscheme.Registry,
 		NegotiatedSerializer: scheme.Codecs,
 		Client: restfake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 			if req.URL.Path != "/version/openshift" {

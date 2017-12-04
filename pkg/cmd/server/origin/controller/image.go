@@ -79,7 +79,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer(),
 			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
 		})
 	}
 	if !c.HasDaemonSetsEnabled {
@@ -88,7 +88,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer(),
 			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
 		})
 	}
 	if !c.HasStatefulSetsEnabled {
@@ -97,7 +97,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer(),
 			Store:     ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
 		})
 	}
 	if !c.HasCronJobsEnabled {
@@ -106,7 +106,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer(),
 			Store:     ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
 		})
 	}
 

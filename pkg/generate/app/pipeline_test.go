@@ -140,7 +140,7 @@ func TestAcceptUnique(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		au := NewAcceptUnique(kapi.Scheme)
+		au := NewAcceptUnique(legacyscheme.Scheme)
 		cnt := 0
 		for _, obj := range tc.objs {
 			if au.Accept(obj) {

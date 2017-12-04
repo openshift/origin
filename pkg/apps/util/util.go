@@ -396,7 +396,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 		return nil, err
 	}
 	kapiv1.SetObjectDefaults_ReplicationController(obj)
-	converted, err := api.Scheme.ConvertToVersion(obj, api.SchemeGroupVersion)
+	converted, err := legacyscheme.Scheme.ConvertToVersion(obj, api.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +417,7 @@ func MakeDeploymentV1(config *deployapi.DeploymentConfig, codec runtime.Codec) (
 	deploymentName := LatestDeploymentNameForConfig(config)
 
 	podSpec := v1.PodSpec{}
-	if err := api.Scheme.Convert(&config.Spec.Template.Spec, &podSpec, nil); err != nil {
+	if err := legacyscheme.Scheme.Convert(&config.Spec.Template.Spec, &podSpec, nil); err != nil {
 		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
 	}
 

@@ -29,7 +29,7 @@ func (r *REST) Categories() []string {
 // NewREST returns a RESTStorage object that will work against Build objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
+		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &buildapi.Build{} },
 		NewListFunc:              func() runtime.Object { return &buildapi.BuildList{} },
 		DefaultQualifiedResource: buildapi.Resource("builds"),

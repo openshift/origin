@@ -122,7 +122,7 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		}
 		o.OutputVersions = append(o.OutputVersions, gv)
 	}
-	o.OutputVersions = append(o.OutputVersions, kapi.Registry.EnabledVersions()...)
+	o.OutputVersions = append(o.OutputVersions, legacyscheme.Registry.EnabledVersions()...)
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	o.Action.Bulk.Op = configcmd.Create
@@ -188,7 +188,7 @@ func (o *AppJSONOptions) Run() error {
 	template.ObjectLabels = map[string]string{"app.json": template.Name}
 
 	// all the types generated into the template should be known
-	if errs := app.AsVersionedObjects(template.Objects, kapi.Scheme, kapi.Scheme, o.OutputVersions...); len(errs) > 0 {
+	if errs := app.AsVersionedObjects(template.Objects, legacyscheme.Scheme, legacyscheme.Scheme, o.OutputVersions...); len(errs) > 0 {
 		for _, err := range errs {
 			fmt.Fprintf(o.Action.ErrOut, "error: %v\n", err)
 		}

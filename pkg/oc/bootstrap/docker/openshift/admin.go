@@ -69,13 +69,13 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 		return errors.NewError("cannot generate registry resources").WithCause(err).WithDetails(stdErr)
 	}
 
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), []byte(registryJSON))
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), []byte(registryJSON))
 	if err != nil {
 		return errors.NewError("cannot decode registry JSON output").WithCause(err).WithDetails(registryJSON)
 	}
 	objList := obj.(*kapi.List)
 
-	if errs := runtime.DecodeList(objList.Items, kapi.Codecs.UniversalDecoder()); len(errs) > 0 {
+	if errs := runtime.DecodeList(objList.Items, legacyscheme.Codecs.UniversalDecoder()); len(errs) > 0 {
 		return errors.NewError("cannot decode registry objects").WithCause(utilerrors.NewAggregate(errs))
 	}
 

@@ -18,7 +18,7 @@ type enpStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating EgressNetworkPolicy
 // objects via the REST API.
-var Strategy = enpStrategy{kapi.Scheme}
+var Strategy = enpStrategy{legacyscheme.Scheme}
 
 func (enpStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

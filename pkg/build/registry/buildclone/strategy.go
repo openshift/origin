@@ -14,7 +14,7 @@ type strategy struct {
 	runtime.ObjectTyper
 }
 
-var Strategy = strategy{kapi.Scheme}
+var Strategy = strategy{legacyscheme.Scheme}
 
 func (s strategy) NamespaceScoped() bool {
 	return true

@@ -743,7 +743,7 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 		// In later server versions we return the created Build in the body.
 		var newBuild buildapi.Build
 		if err = json.Unmarshal(body, &buildapiv1.Build{}); err == nil {
-			if err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), body, &newBuild); err != nil {
+			if err = runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), body, &newBuild); err != nil {
 				return err
 			}
 

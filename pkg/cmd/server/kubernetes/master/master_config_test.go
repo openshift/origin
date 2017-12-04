@@ -55,7 +55,7 @@ var expectedGroupPreferredVersions []string = []string{
 }
 
 func TestPreferredGroupVersions(t *testing.T) {
-	s := kapi.Registry.AllPreferredGroupVersions()
+	s := legacyscheme.Registry.AllPreferredGroupVersions()
 	expected := strings.Join(expectedGroupPreferredVersions, ",")
 	if s != expected {
 		t.Logf("expected: %#v", expected)
@@ -87,7 +87,7 @@ func TestAPIServerDefaults(t *testing.T) {
 				ServerList: nil,
 				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
-				Copier: kapi.Scheme,
+				Copier: legacyscheme.Scheme,
 			},
 			DefaultStorageMediaType: "application/vnd.kubernetes.protobuf",
 			DeleteCollectionWorkers: 1,
@@ -156,8 +156,8 @@ func TestAPIServerDefaults(t *testing.T) {
 		},
 		CloudProvider: &kubeoptions.CloudProviderOptions{},
 		StorageSerialization: &kubeoptions.StorageSerializationOptions{
-			StorageVersions:        kapi.Registry.AllPreferredGroupVersions(),
-			DefaultStorageVersions: kapi.Registry.AllPreferredGroupVersions(),
+			StorageVersions:        legacyscheme.Registry.AllPreferredGroupVersions(),
+			DefaultStorageVersions: legacyscheme.Registry.AllPreferredGroupVersions(),
 		},
 		APIEnablement: &kubeoptions.APIEnablementOptions{
 			RuntimeConfig: utilconfig.ConfigurationMap{},

@@ -9,12 +9,12 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
@@ -53,7 +53,7 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	buildStr := os.Getenv("BUILD")
 	cfg.build = &buildapi.Build{}
 
-	obj, groupVersionKind, err := kapi.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, nil)
+	obj, groupVersionKind, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse build string: %v", err)
 	}
@@ -67,7 +67,7 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 		if err != nil {
 			return nil, fmt.Errorf("unable to strip proxy credentials from build: %v", err)
 		}
-		bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(groupVersionKind.GroupVersion()), redactedBuild)
+		bytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(groupVersionKind.GroupVersion()), redactedBuild)
 		if err != nil {
 			return nil, fmt.Errorf("unable to serialize build: %v", err)
 		}

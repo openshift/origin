@@ -283,7 +283,7 @@ func TestAnnotationsReactor(t *testing.T) {
 
 	for i, test := range testCases {
 		u := &fakeUpdater{}
-		r := AnnotationReactor{Copier: kapi.Scheme, Updater: u}
+		r := AnnotationReactor{Copier: legacyscheme.Scheme, Updater: u}
 		initial := test.obj.DeepCopy()
 		err := r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
 		if !kapihelper.Semantic.DeepEqual(initial, test.obj) {

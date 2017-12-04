@@ -62,7 +62,7 @@ func TestStartBuildWebHook(t *testing.T) {
 		Out:          buf,
 		ClientConfig: cfg,
 		FromWebhook:  server.URL + "/webhook",
-		Mapper:       kapi.Registry.RESTMapper(),
+		Mapper:       legacyscheme.Registry.RESTMapper(),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unable to start hook: %v", err)
@@ -96,7 +96,7 @@ func TestStartBuildWebHookHTTPS(t *testing.T) {
 		Out:          buf,
 		ClientConfig: cfg,
 		FromWebhook:  server.URL + "/webhook",
-		Mapper:       kapi.Registry.RESTMapper(),
+		Mapper:       legacyscheme.Registry.RESTMapper(),
 	}
 	if err := o.Run(); err == nil || !strings.Contains(err.Error(), "certificate signed by unknown authority") {
 		t.Fatalf("unexpected non-error: %v", err)
@@ -132,7 +132,7 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 		ClientConfig:   cfg,
 		FromWebhook:    server.URL + "/webhook",
 		GitPostReceive: f.Name(),
-		Mapper:         kapi.Registry.RESTMapper(),
+		Mapper:         legacyscheme.Registry.RESTMapper(),
 	}
 	if err := o.Run(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

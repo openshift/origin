@@ -1301,7 +1301,7 @@ func getKindName(obj *kapi.ObjectReference) string {
 }
 
 func getRef(obj runtime.Object) *kapi.ObjectReference {
-	ref, err := kapiref.GetReference(kapi.Scheme, obj)
+	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
 	if err != nil {
 		glog.Errorf("failed to get reference to object %T: %v", obj, err)
 		return nil

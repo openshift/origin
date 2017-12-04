@@ -15,9 +15,9 @@ import (
 func init() {
 	legacy.InstallLegacy(projectapi.GroupName, projectapi.AddToSchemeInCoreGroup, projectapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("Project", "ProjectRequest"),
-		kapi.Registry, kapi.Scheme,
+		legacyscheme.Registry, legacyscheme.Scheme,
 	)
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

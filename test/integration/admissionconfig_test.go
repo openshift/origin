@@ -100,7 +100,7 @@ func registerAdmissionPlugins(t *testing.T, names ...string) {
 						return nil, err
 					}
 					configObj := &testtypes.TestPluginConfig{}
-					err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), configData, configObj)
+					err = runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), configData, configObj)
 					if err != nil {
 						return nil, err
 					}

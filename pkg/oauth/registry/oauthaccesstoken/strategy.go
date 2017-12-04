@@ -25,7 +25,7 @@ var _ rest.RESTCreateStrategy = strategy{}
 var _ rest.RESTUpdateStrategy = strategy{}
 
 func NewStrategy(clientGetter oauthclient.Getter) strategy {
-	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
+	return strategy{ObjectTyper: legacyscheme.Scheme, clientGetter: clientGetter}
 }
 
 func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {

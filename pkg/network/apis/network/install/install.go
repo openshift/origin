@@ -15,9 +15,9 @@ import (
 func init() {
 	legacy.InstallLegacy(sdnapi.GroupName, sdnapi.AddToSchemeInCoreGroup, sdnapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("ClusterNetwork", "HostSubnet", "NetNamespace"),
-		kapi.Registry, kapi.Scheme,
+		legacyscheme.Registry, legacyscheme.Scheme,
 	)
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

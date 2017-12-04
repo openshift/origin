@@ -14,7 +14,7 @@ type strategy struct {
 	runtime.ObjectTyper
 }
 
-var Strategy = strategy{kapi.Scheme}
+var Strategy = strategy{legacyscheme.Scheme}
 
 func (strategy) NamespaceScoped() bool {
 	return true
@@ -45,7 +45,7 @@ type binaryStrategy struct {
 	runtime.ObjectTyper
 }
 
-var BinaryStrategy = binaryStrategy{kapi.Scheme}
+var BinaryStrategy = binaryStrategy{legacyscheme.Scheme}
 
 func (binaryStrategy) NamespaceScoped() bool {
 	return true

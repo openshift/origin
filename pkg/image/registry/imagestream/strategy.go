@@ -42,7 +42,7 @@ type Strategy struct {
 // ImageStream objects via the REST API.
 func NewStrategy(registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
 	return Strategy{
-		ObjectTyper:               kapi.Scheme,
+		ObjectTyper:               legacyscheme.Scheme,
 		NameGenerator:             names.SimpleNameGenerator,
 		registryHostnameRetriever: registryHostname,
 		tagVerifier:               &TagVerifier{subjectAccessReviewClient},

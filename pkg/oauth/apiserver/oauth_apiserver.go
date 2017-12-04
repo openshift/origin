@@ -31,7 +31,7 @@ import (
 )
 
 func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
-	genericConfig := genericapiserver.NewRecommendedConfig(kapi.Codecs)
+	genericConfig := genericapiserver.NewRecommendedConfig(legacyscheme.Codecs)
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper

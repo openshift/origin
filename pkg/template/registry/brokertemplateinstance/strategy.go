@@ -19,7 +19,7 @@ type brokerTemplateInstanceStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating BrokerTemplateInstance
 // objects via the REST API.
-var Strategy = brokerTemplateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = brokerTemplateInstanceStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is false for brokertemplateinstances.
 func (brokerTemplateInstanceStrategy) NamespaceScoped() bool {

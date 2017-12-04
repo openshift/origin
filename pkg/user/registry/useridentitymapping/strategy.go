@@ -17,7 +17,7 @@ type userIdentityMappingStrategy struct {
 
 // Strategy is the default logic that applies when creating UserIdentityMapping
 // objects via the REST API.
-var Strategy = userIdentityMappingStrategy{kapi.Scheme}
+var Strategy = userIdentityMappingStrategy{legacyscheme.Scheme}
 
 // NamespaceScoped is true for image repository mappings.
 func (s userIdentityMappingStrategy) NamespaceScoped() bool {

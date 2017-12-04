@@ -7,7 +7,7 @@ import (
 	extensions "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
@@ -47,7 +47,7 @@ func TestScale(t *testing.T) {
 
 		config := deploytest.OkDeploymentConfig(1)
 		config.Spec.Replicas = 1
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 
 		var wait *kubectl.RetryParams
 		if test.wait {
