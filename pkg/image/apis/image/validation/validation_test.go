@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
 	"testing"
@@ -11,7 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 )
 
 func TestValidateImageOK(t *testing.T) {
@@ -364,7 +367,7 @@ func TestValidateImageStream(t *testing.T) {
 	missingNameErr := field.Required(field.NewPath("metadata", "name"), "")
 	missingNameErr.Detail = "name or generateName is required"
 
-	tests := map[string]struct {
+	for name, test := range map[string]struct {
 		namespace             string
 		name                  string
 		dockerImageRepository string
@@ -578,27 +581,461 @@ func TestValidateImageStream(t *testing.T) {
 				field.Invalid(field.NewPath("metadata", "name"), name192Char, "'namespace/name' cannot be longer than 255 characters"),
 			},
 		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			stream := imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: test.namespace,
+					Name:      test.name,
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: test.dockerImageRepository,
+					Tags: test.specTags,
+				},
+				Status: imageapi.ImageStreamStatus{
+					Tags: test.statusTags,
+				},
+			}
+
+			errs := ValidateImageStream(&stream)
+			if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
+				t.Errorf("unexpected errors: %s", diff.ObjectDiff(e, a))
+			}
+		})
 	}
+}
 
-	for name, test := range tests {
-		stream := imageapi.ImageStream{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: test.namespace,
-				Name:      test.name,
+func TestValidateImageStreamWithWhitelister(t *testing.T) {
+	for name, test := range map[string]struct {
+		namespace             string
+		name                  string
+		dockerImageRepository string
+		specTags              map[string]imageapi.TagReference
+		statusTags            map[string]imageapi.TagEventList
+		whitelist             *serverapi.AllowedRegistries
+		expected              field.ErrorList
+	}{
+		"forbid spec references not on the whitelist": {
+			namespace: "foo",
+			name:      "bar",
+			whitelist: mkAllowed(false, "example.com", "localhost:5000", "dev.null.io:80"),
+			specTags: map[string]imageapi.TagReference{
+				"fail": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "registry.ltd/a/b",
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
 			},
-			Spec: imageapi.ImageStreamSpec{
-				DockerImageRepository: test.dockerImageRepository,
-				Tags: test.specTags,
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "tags").Key("fail").Child("from", "name"),
+					`registry "registry.ltd" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
 			},
-			Status: imageapi.ImageStreamStatus{
-				Tags: test.statusTags,
-			},
-		}
+		},
 
-		errs := ValidateImageStream(&stream)
-		if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: unexpected errors: %s", name, diff.ObjectReflectDiff(e, a))
-		}
+		"forbid status references not on the whitelist - secure": {
+			namespace: "foo",
+			name:      "bar",
+			whitelist: mkAllowed(false, "example.com", "localhost:5000", "dev.null.io:80"),
+			specTags: map[string]imageapi.TagReference{
+				"secure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com:443/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: false,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+				"insecure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: true,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			statusTags: map[string]imageapi.TagEventList{
+				"secure": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "docker.io/foo/bar:latest"},
+						{DockerImageReference: "example.com/bar:latest"},
+						{DockerImageReference: "example.com:80/repo:latest"},
+						{DockerImageReference: "dev.null.io/myapp"},
+						{DockerImageReference: "dev.null.io:80/myapp"},
+					},
+				},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("status", "tags").Key("secure").Child("items").Index(0).Child("dockerImageReference"),
+					`registry "docker.io" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+				field.Forbidden(field.NewPath("status", "tags").Key("secure").Child("items").Index(2).Child("dockerImageReference"),
+					`registry "example.com:80" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+				field.Forbidden(field.NewPath("status", "tags").Key("secure").Child("items").Index(3).Child("dockerImageReference"),
+					`registry "dev.null.io" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+			},
+		},
+
+		"forbid status references not on the whitelist - insecure": {
+			namespace: "foo",
+			name:      "bar",
+			whitelist: mkAllowed(false, "example.com", "localhost:5000", "dev.null.io:80"),
+			specTags: map[string]imageapi.TagReference{
+				"secure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com:443/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: false,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+				"insecure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: true,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			statusTags: map[string]imageapi.TagEventList{
+				"insecure": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "localhost:5000/baz:latest"},
+						{DockerImageReference: "example.com:80/bar:latest"},
+						{DockerImageReference: "registry.ltd/repo:latest"},
+						{DockerImageReference: "dev.null.io/myapp"},
+						{DockerImageReference: "dev.null.io:80/myapp"},
+					},
+				},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("status", "tags").Key("insecure").Child("items").Index(1).Child("dockerImageReference"),
+					`registry "example.com:80" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+				field.Forbidden(field.NewPath("status", "tags").Key("insecure").Child("items").Index(2).Child("dockerImageReference"),
+					`registry "registry.ltd" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+			},
+		},
+
+		"forbid status references not on the whitelist": {
+			namespace: "foo",
+			name:      "bar",
+			whitelist: mkAllowed(false, "example.com", "localhost:5000", "dev.null.io:80"),
+			specTags: map[string]imageapi.TagReference{
+				"secure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com:443/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: false,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+				"insecure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: true,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			statusTags: map[string]imageapi.TagEventList{
+				"securebydefault": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "localhost/repo:latest"},
+						{DockerImageReference: "example.com:443/bar:latest"},
+						{DockerImageReference: "example.com/repo:latest"},
+					},
+				},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("status", "tags").Key("securebydefault").Child("items").Index(0).Child("dockerImageReference"),
+					`registry "localhost" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+			},
+		},
+
+		"local reference policy does not matter": {
+			namespace: "foo",
+			name:      "bar",
+			whitelist: mkAllowed(false, "example.com", "localhost:5000", "dev.null.io:80"),
+			specTags: map[string]imageapi.TagReference{
+				"secure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com:443/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: false,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+				},
+				"insecure": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ImportPolicy: imageapi.TagImportPolicy{
+						Insecure: true,
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+				},
+			},
+			statusTags: map[string]imageapi.TagEventList{
+				"securebydefault": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "localhost/repo:latest"},
+						{DockerImageReference: "example.com:443/bar:latest"},
+						{DockerImageReference: "example.com/repo:latest"},
+					},
+				},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("status", "tags").Key("securebydefault").Child("items").Index(0).Child("dockerImageReference"),
+					`registry "localhost" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+			},
+		},
+
+		"whitelisted repository": {
+			namespace:             "foo",
+			name:                  "bar",
+			whitelist:             mkAllowed(false, "example.com"),
+			dockerImageRepository: "example.com/openshift/origin",
+			expected:              field.ErrorList{},
+		},
+
+		"not whitelisted repository": {
+			namespace:             "foo",
+			name:                  "bar",
+			whitelist:             mkAllowed(false, "*.example.com"),
+			dockerImageRepository: "example.com/openshift/origin",
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "dockerImageRepository"),
+					`registry "example.com" not allowed by whitelist { "*.example.com:443" }`),
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			stream := imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: test.namespace,
+					Name:      test.name,
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: test.dockerImageRepository,
+					Tags: test.specTags,
+				},
+				Status: imageapi.ImageStreamStatus{
+					Tags: test.statusTags,
+				},
+			}
+
+			errs := ValidateImageStreamWithWhitelister(mkWhitelister(t, test.whitelist), &stream)
+			if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
+				t.Errorf("unexpected errors: %s", diff.ObjectDiff(e, a))
+			}
+		})
+	}
+}
+
+func TestValidateImageStreamUpdateWithWhitelister(t *testing.T) {
+	for _, tc := range []struct {
+		name                     string
+		whitelist                *serverapi.AllowedRegistries
+		oldDockerImageRepository string
+		newDockerImageRepository string
+		oldSpecTags              map[string]imageapi.TagReference
+		oldStatusTags            map[string]imageapi.TagEventList
+		newSpecTags              map[string]imageapi.TagReference
+		newStatusTags            map[string]imageapi.TagEventList
+		expected                 field.ErrorList
+	}{
+		{
+			name:      "no old referencess",
+			whitelist: mkAllowed(false, "docker.io", "example.com"),
+			newSpecTags: map[string]imageapi.TagReference{
+				"latest": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			newStatusTags: map[string]imageapi.TagEventList{
+				"latest": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "example.com"},
+					},
+				},
+			},
+		},
+
+		{
+			name:      "report not whitelisted",
+			whitelist: mkAllowed(false, "docker.io"),
+			newSpecTags: map[string]imageapi.TagReference{
+				"fail": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+				"ok": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "docker.io/busybox",
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			newStatusTags: map[string]imageapi.TagEventList{
+				"fail": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "example.com/repo@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25"},
+					},
+				},
+				"ok": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "docker.io/library/busybox:latest"},
+					},
+				},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "tags").Key("fail").Child("from", "name"),
+					`registry "example.com" not allowed by whitelist { "docker.io:443" }`),
+				field.Forbidden(field.NewPath("status", "tags").Key("fail").Child("items").Index(0).Child("dockerImageReference"),
+					`registry "example.com" not allowed by whitelist { "docker.io:443" }`),
+			},
+		},
+
+		{
+			name:      "allow old not whitelisted references",
+			whitelist: mkAllowed(false, "docker.io"),
+			oldSpecTags: map[string]imageapi.TagReference{
+				"fail": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			newSpecTags: map[string]imageapi.TagReference{
+				"fail": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "example.com/repo",
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			newStatusTags: map[string]imageapi.TagEventList{
+				"fail": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "example.com/repo"},
+					},
+				},
+			},
+		},
+
+		{
+			name:      "allow old not whitelisted references from status",
+			whitelist: mkAllowed(false, "docker.io"),
+			oldStatusTags: map[string]imageapi.TagEventList{
+				"latest": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "abcd.com/repo/myapp:latest"},
+					},
+				},
+			},
+			newSpecTags: map[string]imageapi.TagReference{
+				"whitelisted": {
+					From: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "abcd.com/repo/myapp:latest",
+					},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+			newStatusTags: map[string]imageapi.TagEventList{
+				"fail": {
+					Items: []imageapi.TagEvent{
+						{DockerImageReference: "abcd.com/repo/myapp@sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25"},
+					},
+				},
+			},
+		},
+
+		{
+			name:                     "allow whitelisted dockerImageRepository",
+			whitelist:                mkAllowed(false, "docker.io"),
+			oldDockerImageRepository: "example.com/my/app",
+			newDockerImageRepository: "docker.io/my/newapp",
+		},
+
+		{
+			name:                     "forbid not whitelisted dockerImageRepository",
+			whitelist:                mkAllowed(false, "docker.io"),
+			oldDockerImageRepository: "docker.io/my/app",
+			newDockerImageRepository: "example.com/my/newapp",
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "dockerImageRepository"),
+					`registry "example.com" not allowed by whitelist { "docker.io:443" }`)},
+		},
+
+		{
+			name:                     "permit no change to not whitelisted dockerImageRepository",
+			whitelist:                mkAllowed(false, "docker.io"),
+			oldDockerImageRepository: "example.com/my/newapp",
+			newDockerImageRepository: "example.com/my/newapp",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			whitelister := mkWhitelister(t, tc.whitelist)
+			objMeta := metav1.ObjectMeta{
+				Namespace:       "nm",
+				Name:            "testis",
+				ResourceVersion: "1",
+			}
+			oldStream := imageapi.ImageStream{
+				ObjectMeta: objMeta,
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: tc.oldDockerImageRepository,
+					Tags: tc.oldSpecTags,
+				},
+				Status: imageapi.ImageStreamStatus{
+					Tags: tc.oldStatusTags,
+				},
+			}
+			newStream := imageapi.ImageStream{
+				ObjectMeta: objMeta,
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: tc.newDockerImageRepository,
+					Tags: tc.newSpecTags,
+				},
+				Status: imageapi.ImageStreamStatus{
+					Tags: tc.newStatusTags,
+				},
+			}
+			errs := ValidateImageStreamUpdateWithWhitelister(whitelister, &newStream, &oldStream)
+			if e, a := tc.expected, errs; !reflect.DeepEqual(e, a) {
+				t.Errorf("unexpected errors: %s", diff.ObjectDiff(a, e))
+			}
+		})
 	}
 }
 
@@ -681,6 +1118,190 @@ func TestValidateISTUpdate(t *testing.T) {
 				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
 			}
 		}
+	}
+}
+
+func TestValidateISTUpdateWithWhitelister(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		whitelist   *serverapi.AllowedRegistries
+		oldTagRef   *imageapi.TagReference
+		newTagRef   *imageapi.TagReference
+		registryURL string
+		expected    field.ErrorList
+	}{
+		{
+			name:      "allow whitelisted",
+			whitelist: mkAllowed(false, "docker.io"),
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "foo/bar:biz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+		},
+
+		{
+			name:      "forbid not whitelisted",
+			whitelist: mkAllowed(false, "example.com:*"),
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "foo/bar:biz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("tag", "from", "name"),
+					`registry "docker.io:443" not allowed by whitelist { "example.com:*" }`),
+			},
+		},
+
+		{
+			name:      "allow old not whitelisted",
+			whitelist: mkAllowed(false, "example.com:*"),
+			oldTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "foo/bar:biz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "foo/bar:biz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+		},
+
+		{
+			name:      "exact match not old references",
+			whitelist: mkAllowed(false, "example.com:*"),
+			oldTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "foo/bar:biz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "foo/bar:baz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("tag", "from", "name"),
+					`registry "docker.io:443" not allowed by whitelist { "example.com:*" }`),
+			},
+		},
+
+		{
+			name:      "do not match insecure registries if not flagged as insecure",
+			whitelist: mkAllowed(true, "example.com"),
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "example.com/foo/bar:baz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("tag", "from", "name"),
+					`registry "example.com" not allowed by whitelist { "example.com:80" }`),
+			},
+		},
+
+		{
+			name:      "match insecure registry if flagged",
+			whitelist: mkAllowed(false, "example.com"),
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "example.com/foo/bar:baz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+				ImportPolicy: imageapi.TagImportPolicy{
+					Insecure: true,
+				},
+			},
+		},
+
+		{
+			name:      "match integrated registry URL",
+			whitelist: mkAllowed(false, "example.com"),
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "172.30.30.30:5000/foo/bar:baz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+			registryURL: "172.30.30.30:5000",
+		},
+
+		{
+			name:      "ignore old reference of unexpected kind",
+			whitelist: mkAllowed(false, "example.com"),
+			oldTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "bar:biz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+			newTagRef: &imageapi.TagReference{
+				From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "bar:biz"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+				ImportPolicy: imageapi.TagImportPolicy{
+					Insecure: true,
+				},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("tag", "from", "name"),
+					`registry "docker.io" not allowed by whitelist { "example.com:443" }`),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			objMeta := metav1.ObjectMeta{
+				Namespace:       metav1.NamespaceDefault,
+				Name:            "foo:bar",
+				ResourceVersion: "1",
+			}
+			istOld := imageapi.ImageStreamTag{
+				ObjectMeta: objMeta,
+				Tag:        tc.oldTagRef,
+			}
+			istNew := imageapi.ImageStreamTag{
+				ObjectMeta: objMeta,
+				Tag:        tc.newTagRef,
+			}
+
+			hostnameFunc := imageapi.DefaultRegistryHostnameRetriever(func() (string, bool) {
+				return tc.registryURL, len(tc.registryURL) > 0
+			}, "", "")
+			whitelister, err := whitelist.NewRegistryWhitelister(*tc.whitelist, hostnameFunc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			errs := ValidateImageStreamTagUpdateWithWhitelister(whitelister, &istNew, &istOld)
+			if e, a := tc.expected, errs; !reflect.DeepEqual(e, a) {
+				t.Errorf("unexpected errors: %s", diff.ObjectDiff(a, e))
+			}
+		})
+	}
+}
+
+func TestValidateRegistryAllowedForImport(t *testing.T) {
+	const fieldName = "fieldName"
+
+	for _, tc := range []struct {
+		name      string
+		hostname  string
+		whitelist serverapi.AllowedRegistries
+		expected  field.ErrorList
+	}{
+		{
+			name:      "allow whitelisted",
+			hostname:  "example.com:443",
+			whitelist: *mkAllowed(false, "example.com"),
+			expected:  nil,
+		},
+
+		{
+			name:      "fail when not on whitelist",
+			hostname:  "example.com:443",
+			whitelist: *mkAllowed(false, "foo.bar"),
+			expected: field.ErrorList{field.Forbidden(nil,
+				`importing images from registry "example.com:443" is forbidden: registry "example.com:443" not allowed by whitelist { "foo.bar:443" }`)},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			whitelister := mkWhitelister(t, &tc.whitelist)
+			host, port, err := net.SplitHostPort(tc.hostname)
+			if err != nil {
+				t.Fatal(err)
+			}
+			errs := ValidateRegistryAllowedForImport(whitelister, nil, fieldName, host, port)
+			if e, a := tc.expected, errs; !reflect.DeepEqual(e, a) {
+				t.Errorf("unexpected errors: %s", diff.ObjectDiff(e, a))
+			}
+		})
 	}
 }
 
@@ -868,4 +1489,26 @@ func TestValidateImageStreamImport(t *testing.T) {
 			t.Errorf("%s: unexpected errors: %s", name, diff.ObjectDiff(e, a))
 		}
 	}
+}
+
+func mkAllowed(insecure bool, regs ...string) *serverapi.AllowedRegistries {
+	ret := make(serverapi.AllowedRegistries, 0, len(regs))
+	for _, reg := range regs {
+		ret = append(ret, serverapi.RegistryLocation{DomainName: reg, Insecure: insecure})
+	}
+	return &ret
+}
+
+func mkWhitelister(t *testing.T, wl *serverapi.AllowedRegistries) whitelist.RegistryWhitelister {
+	var whitelister whitelist.RegistryWhitelister
+	if wl == nil {
+		whitelister = whitelist.WhitelistAllRegistries()
+	} else {
+		rw, err := whitelist.NewRegistryWhitelister(*wl, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		whitelister = rw
+	}
+	return whitelister
 }

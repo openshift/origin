@@ -6,24 +6,21 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 )
 
 // strategy implements behavior for ImageStreamImports.
 type strategy struct {
 	runtime.ObjectTyper
-	allowedRegistries     *serverapi.AllowedRegistries
-	registryHostRetriever imageapi.RegistryHostnameRetriever
+	registryWhitelister whitelist.RegistryWhitelister
 }
 
-func NewStrategy(registries *serverapi.AllowedRegistries, registry imageapi.RegistryHostnameRetriever) *strategy {
+func NewStrategy(rw whitelist.RegistryWhitelister) *strategy {
 	return &strategy{
-		ObjectTyper:           legacyscheme.Scheme,
-		allowedRegistries:     registries,
-		registryHostRetriever: registry,
+		ObjectTyper:         legacyscheme.Scheme,
+		registryWhitelister: rw,
 	}
 }
 
@@ -40,17 +37,10 @@ func (s *strategy) Canonicalize(runtime.Object) {
 
 func (s *strategy) ValidateAllowedRegistries(isi *imageapi.ImageStreamImport) field.ErrorList {
 	errs := field.ErrorList{}
-	if s.allowedRegistries == nil {
-		return errs
-	}
-	allowedRegistries := *s.allowedRegistries
-	if localRegistry, ok := s.registryHostRetriever.InternalRegistryHostname(); ok {
-		allowedRegistries = append([]configapi.RegistryLocation{{DomainName: localRegistry}}, allowedRegistries...)
-	}
 	validate := func(path *field.Path, name string, insecure bool) field.ErrorList {
 		ref, _ := imageapi.ParseDockerImageReference(name)
 		registryHost, registryPort := ref.RegistryHostPort(insecure)
-		return validation.ValidateRegistryAllowedForImport(path.Child("from", "name"), ref.Name, registryHost, registryPort, &allowedRegistries)
+		return validation.ValidateRegistryAllowedForImport(s.registryWhitelister, path.Child("from", "name"), ref.Name, registryHost, registryPort)
 	}
 	if spec := isi.Spec.Repository; spec != nil && spec.From.Kind == "DockerImage" {
 		errs = append(errs, validate(field.NewPath("spec").Child("repository"), spec.From.Name, spec.ImportPolicy.Insecure)...)

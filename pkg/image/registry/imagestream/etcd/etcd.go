@@ -12,6 +12,7 @@ import (
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -36,7 +37,13 @@ func (r *REST) ShortNames() []string {
 }
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
+func NewREST(
+	optsGetter restoptions.Getter,
+	registryHostname imageapi.RegistryHostnameRetriever,
+	subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface,
+	limitVerifier imageadmission.LimitVerifier,
+	registryWhitelister whitelist.RegistryWhitelister,
+) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageStreamList{} },
@@ -47,7 +54,7 @@ func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHo
 		Store: &store,
 	}
 	// strategy must be able to load image streams across namespaces during tag verification
-	strategy := imagestream.NewStrategy(registryHostname, subjectAccessReviewRegistry, limitVerifier, rest)
+	strategy := imagestream.NewStrategy(registryHostname, subjectAccessReviewRegistry, limitVerifier, registryWhitelister, rest)
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy

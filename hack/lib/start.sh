@@ -155,11 +155,21 @@ readonly -f os::start::internal::configure_master
 #  - ETCD_PEER_PORT
 #  - USE_SUDO
 #  - MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY
+#  - ADDITIONAL_ALLOWED_REGISTRIES
 # Returns:
 #  - export ADMIN_KUBECONFIG
 #  - export CLUSTER_ADMIN_CONTEXT
 function os::start::internal::patch_master_config() {
 	local sudo=${USE_SUDO:+sudo}
+
+	readarray -t allowed_registries <<<"$(sed -n \
+		'/^imagePolicyConfig/,/^[^[:space:]]/s/.*domainName:\s*'"'"'\?\([^'"'"']\+\).*/\1/p' \
+		"${SERVER_CONFIG_DIR}/master/master-config.yaml")"
+	for reg in "${ADDITIONAL_ALLOWED_REGISTRIES[@]:-}"; do
+		[[ -z "${reg:-}" ]] && continue
+		allowed_registries+=( "${reg}" )
+	done
+
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml"
 	oc ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig.yaml" --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
 	oc ex config patch - --patch="{\"admissionConfig\": {\"pluginConfig\": {\"openshift.io/ImagePolicy\": {\"configuration\": {\"apiVersion\": \"v1\", \"executionRules\": [{\"matchImageAnnotations\": [{\"key\": \"images.openshift.io/deny-execution\", \"value\": \"true\"}], \"name\": \"execution-denied\", \"onResources\": [{\"resource\": \"pods\"}, {\"resource\": \"builds\"}], \"reject\": true, \"skipOnResolutionFailure\": true }], \"kind\": \"ImagePolicyConfig\" }, \"location\": \"\"}}}}" | \
@@ -168,7 +178,9 @@ function os::start::internal::patch_master_config() {
 	oc ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
 	oc ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" | \
 	oc ex config patch - --patch="{\"auditConfig\": {\"enabled\": true}}" | \
-	oc ex config patch - --patch="{\"imagePolicyConfig\": {\"maxImagesBulkImportedPerRepository\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}}" > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	oc ex config patch - --patch="{\"imagePolicyConfig\": {\"maxImagesBulkImportedPerRepository\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}}" | \
+	oc ex config patch - --patch="{\"imagePolicyConfig\":{\"allowedRegistriesForImport\":[$(echo "${allowed_registries[@]}" | xargs printf '{"domainName":"%s"},' | sed 's/,$//')]}}" \
+	> "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"

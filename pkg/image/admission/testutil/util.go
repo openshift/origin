@@ -30,18 +30,6 @@ func MakeDockerImageReference(ns, isName, imageID string) string {
 	return fmt.Sprintf("%s/%s/%s@%s", InternalRegistryURL, ns, isName, imageID)
 }
 
-type FakeImageStreamLimitVerifier struct {
-	ImageStreamEvaluator func(ns string, is *imageapi.ImageStream) error
-	Err                  error
-}
-
-func (f *FakeImageStreamLimitVerifier) VerifyLimits(ns string, is *imageapi.ImageStream) error {
-	if f.ImageStreamEvaluator != nil {
-		return f.ImageStreamEvaluator(ns, is)
-	}
-	return f.Err
-}
-
 // GetFakeImageStreamListHandler creates a test handler that lists given image streams matching requested
 // namespace. Additionally, a shared image stream will be listed if the requested namespace is "shared".
 func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) clientgotesting.ReactionFunc {
