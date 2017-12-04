@@ -10,7 +10,7 @@ import (
 	core_v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
+	core "k8s.io/kubernetes/pkg/apis/core"
 	unsafe "unsafe"
 )
 
@@ -114,7 +114,7 @@ func Convert_project_ProjectRequest_To_v1_ProjectRequest(in *project.ProjectRequ
 }
 
 func autoConvert_v1_ProjectSpec_To_project_ProjectSpec(in *v1.ProjectSpec, out *project.ProjectSpec, s conversion.Scope) error {
-	out.Finalizers = *(*[]api.FinalizerName)(unsafe.Pointer(&in.Finalizers))
+	out.Finalizers = *(*[]core.FinalizerName)(unsafe.Pointer(&in.Finalizers))
 	return nil
 }
 
@@ -134,7 +134,7 @@ func Convert_project_ProjectSpec_To_v1_ProjectSpec(in *project.ProjectSpec, out 
 }
 
 func autoConvert_v1_ProjectStatus_To_project_ProjectStatus(in *v1.ProjectStatus, out *project.ProjectStatus, s conversion.Scope) error {
-	out.Phase = api.NamespacePhase(in.Phase)
+	out.Phase = core.NamespacePhase(in.Phase)
 	return nil
 }
 

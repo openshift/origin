@@ -35,7 +35,7 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=Oauth, Version=InternalVersion
+	// Group=oauth.openshift.io, Version=internalVersion
 	case oauth.SchemeGroupVersion.WithResource("oauthaccesstokens"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Oauth().InternalVersion().OAuthAccessTokens().Informer()}, nil
 	case oauth.SchemeGroupVersion.WithResource("oauthauthorizetokens"):

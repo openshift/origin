@@ -19,30 +19,32 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // ClusterNetworks returns a ClusterNetworkInformer.
 func (v *version) ClusterNetworks() ClusterNetworkInformer {
-	return &clusterNetworkInformer{factory: v.SharedInformerFactory}
+	return &clusterNetworkInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // EgressNetworkPolicies returns a EgressNetworkPolicyInformer.
 func (v *version) EgressNetworkPolicies() EgressNetworkPolicyInformer {
-	return &egressNetworkPolicyInformer{factory: v.SharedInformerFactory}
+	return &egressNetworkPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // HostSubnets returns a HostSubnetInformer.
 func (v *version) HostSubnets() HostSubnetInformer {
-	return &hostSubnetInformer{factory: v.SharedInformerFactory}
+	return &hostSubnetInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // NetNamespaces returns a NetNamespaceInformer.
 func (v *version) NetNamespaces() NetNamespaceInformer {
-	return &netNamespaceInformer{factory: v.SharedInformerFactory}
+	return &netNamespaceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

@@ -7,12 +7,12 @@ package v1
 import (
 	v1 "github.com/openshift/api/image/v1"
 	image "github.com/openshift/origin/pkg/image/apis/image"
-	core_v1 "k8s.io/api/core/v1"
+	api_core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	unsafe "unsafe"
 )
 
@@ -150,13 +150,13 @@ func autoConvert_image_Image_To_v1_Image(in *image.Image, out *v1.Image, s conve
 }
 
 func autoConvert_v1_ImageImportSpec_To_image_ImageImportSpec(in *v1.ImageImportSpec, out *image.ImageImportSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if in.To != nil {
 		in, out := &in.To, &out.To
-		*out = new(api.LocalObjectReference)
-		if err := api_v1.Convert_v1_LocalObjectReference_To_api_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(core.LocalObjectReference)
+		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -178,13 +178,13 @@ func Convert_v1_ImageImportSpec_To_image_ImageImportSpec(in *v1.ImageImportSpec,
 }
 
 func autoConvert_image_ImageImportSpec_To_v1_ImageImportSpec(in *image.ImageImportSpec, out *v1.ImageImportSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if in.To != nil {
 		in, out := &in.To, &out.To
-		*out = new(core_v1.LocalObjectReference)
-		if err := api_v1.Convert_api_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(api_core_v1.LocalObjectReference)
+		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -783,7 +783,7 @@ func Convert_image_ImageStreamTagList_To_v1_ImageStreamTagList(in *image.ImageSt
 }
 
 func autoConvert_v1_RepositoryImportSpec_To_image_RepositoryImportSpec(in *v1.RepositoryImportSpec, out *image.RepositoryImportSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if err := Convert_v1_TagImportPolicy_To_image_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
@@ -802,7 +802,7 @@ func Convert_v1_RepositoryImportSpec_To_image_RepositoryImportSpec(in *v1.Reposi
 }
 
 func autoConvert_image_RepositoryImportSpec_To_v1_RepositoryImportSpec(in *image.RepositoryImportSpec, out *v1.RepositoryImportSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
 	if err := Convert_image_TagImportPolicy_To_v1_TagImportPolicy(&in.ImportPolicy, &out.ImportPolicy, s); err != nil {
@@ -866,7 +866,7 @@ func Convert_image_RepositoryImportStatus_To_v1_RepositoryImportStatus(in *image
 
 func autoConvert_v1_SignatureCondition_To_image_SignatureCondition(in *v1.SignatureCondition, out *image.SignatureCondition, s conversion.Scope) error {
 	out.Type = image.SignatureConditionType(in.Type)
-	out.Status = api.ConditionStatus(in.Status)
+	out.Status = core.ConditionStatus(in.Status)
 	out.LastProbeTime = in.LastProbeTime
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
@@ -881,7 +881,7 @@ func Convert_v1_SignatureCondition_To_image_SignatureCondition(in *v1.SignatureC
 
 func autoConvert_image_SignatureCondition_To_v1_SignatureCondition(in *image.SignatureCondition, out *v1.SignatureCondition, s conversion.Scope) error {
 	out.Type = v1.SignatureConditionType(in.Type)
-	out.Status = core_v1.ConditionStatus(in.Status)
+	out.Status = api_core_v1.ConditionStatus(in.Status)
 	out.LastProbeTime = in.LastProbeTime
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
@@ -994,7 +994,7 @@ func Convert_image_TagEvent_To_v1_TagEvent(in *image.TagEvent, out *v1.TagEvent,
 
 func autoConvert_v1_TagEventCondition_To_image_TagEventCondition(in *v1.TagEventCondition, out *image.TagEventCondition, s conversion.Scope) error {
 	out.Type = image.TagEventConditionType(in.Type)
-	out.Status = api.ConditionStatus(in.Status)
+	out.Status = core.ConditionStatus(in.Status)
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
@@ -1009,7 +1009,7 @@ func Convert_v1_TagEventCondition_To_image_TagEventCondition(in *v1.TagEventCond
 
 func autoConvert_image_TagEventCondition_To_v1_TagEventCondition(in *image.TagEventCondition, out *v1.TagEventCondition, s conversion.Scope) error {
 	out.Type = v1.TagEventConditionType(in.Type)
-	out.Status = core_v1.ConditionStatus(in.Status)
+	out.Status = api_core_v1.ConditionStatus(in.Status)
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
@@ -1049,8 +1049,8 @@ func autoConvert_v1_TagReference_To_image_TagReference(in *v1.TagReference, out 
 	out.Annotations = *(*map[string]string)(unsafe.Pointer(&in.Annotations))
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		*out = new(api.ObjectReference)
-		if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(*in, *out, s); err != nil {
+		*out = new(core.ObjectReference)
+		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -1077,8 +1077,8 @@ func autoConvert_image_TagReference_To_v1_TagReference(in *image.TagReference, o
 	out.Annotations = *(*map[string]string)(unsafe.Pointer(&in.Annotations))
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		*out = new(core_v1.ObjectReference)
-		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(api_core_v1.ObjectReference)
+		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
