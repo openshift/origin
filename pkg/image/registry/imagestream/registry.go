@@ -72,7 +72,7 @@ func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string, o
 }
 
 func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := s.Create(ctx, imageStream, false)
+	obj, err := s.Create(ctx, imageStream, rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream))
+	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream))
+	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *ima
 }
 
 func (s *storage) UpdateImageStreamStatus(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream))
+	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}
