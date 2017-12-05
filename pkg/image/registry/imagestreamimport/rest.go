@@ -88,7 +88,7 @@ func (r *REST) New() runtime.Object {
 	return &imageapi.ImageStreamImport{}
 }
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	isi, ok := obj.(*imageapi.ImageStreamImport)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamImport: %#v", obj))
@@ -97,6 +97,9 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	inputMeta := isi.ObjectMeta
 
 	if err := rest.BeforeCreate(r.strategy, ctx, obj); err != nil {
+		return nil, err
+	}
+	if err := createValidation(obj.DeepCopyObject()); err != nil {
 		return nil, err
 	}
 

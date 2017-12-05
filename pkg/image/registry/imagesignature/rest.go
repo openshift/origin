@@ -31,11 +31,18 @@ func (r *REST) New() runtime.Object {
 	return &imageapi.ImageSignature{}
 }
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	signature := obj.(*imageapi.ImageSignature)
 
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
+	}
+	// at this point we have a fully formed object.  It is time to call the validators that the apiserver
+	// handling chain wants to enforce.
+	if createValidation != nil {
+		if err := createValidation(obj.DeepCopyObject()); err != nil {
+			return nil, err
+		}
 	}
 
 	imageName, _, err := imageapi.SplitImageSignatureName(signature.Name)
