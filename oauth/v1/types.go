@@ -37,6 +37,9 @@ type OAuthAccessToken struct {
 
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string `json:"refreshToken,omitempty" protobuf:"bytes,9,opt,name=refreshToken"`
+
+	// TimeoutsIn is the seconds from CreationTime before this token timeouts.
+	TimeoutsIn int32 `json:"timeoutsIn,omitempty" protobuf:"varint,10,opt,name=timeoutsIn"`
 }
 
 // +genclient
@@ -117,6 +120,10 @@ type OAuthClient struct {
 	// AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client.
 	// 0 means no expiration.
 	AccessTokenMaxAgeSeconds *int32 `json:"accessTokenMaxAgeSeconds,omitempty" protobuf:"varint,8,opt,name=accessTokenMaxAgeSeconds"`
+
+	// AccessTokenTimeoutSeconds overrides the default token timeout for tokens
+	// granted to this client. 0 means no timeout.
+	AccessTokenTimeoutSeconds *int32 `json:"accessTokenTimeoutSeconds,omitempty" protobuf:"varint,9,opt,name=accessTokenTimeoutSeconds"`
 }
 
 type GrantHandlerType string

@@ -33,6 +33,7 @@ var map_OAuthAccessToken = map[string]string{
 	"userUID":        "UserUID is the unique UID associated with this token",
 	"authorizeToken": "AuthorizeToken contains the token that authorized this token",
 	"refreshToken":   "RefreshToken is the value by which this token can be renewed. Can be blank.",
+	"timeoutsIn":     "TimeoutsIn is the seconds from CreationTime before this token timeouts.",
 }
 
 func (OAuthAccessToken) SwaggerDoc() map[string]string {
@@ -78,15 +79,16 @@ func (OAuthAuthorizeTokenList) SwaggerDoc() map[string]string {
 }
 
 var map_OAuthClient = map[string]string{
-	"":                         "OAuthClient describes an OAuth client",
-	"metadata":                 "Standard object's metadata.",
-	"secret":                   "Secret is the unique secret associated with a client",
-	"additionalSecrets":        "AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation and for service account token validation",
-	"respondWithChallenges":    "RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects",
-	"redirectURIs":             "RedirectURIs is the valid redirection URIs associated with a client",
-	"grantMethod":              "GrantMethod determines how to handle grants for this client. If no method is provided, the cluster default grant handling method will be used. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients",
-	"scopeRestrictions":        "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied.",
-	"accessTokenMaxAgeSeconds": "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration.",
+	"":                          "OAuthClient describes an OAuth client",
+	"metadata":                  "Standard object's metadata.",
+	"secret":                    "Secret is the unique secret associated with a client",
+	"additionalSecrets":         "AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation and for service account token validation",
+	"respondWithChallenges":     "RespondWithChallenges indicates whether the client wants authentication needed responses made in the form of challenges instead of redirects",
+	"redirectURIs":              "RedirectURIs is the valid redirection URIs associated with a client",
+	"grantMethod":               "GrantMethod determines how to handle grants for this client. If no method is provided, the cluster default grant handling method will be used. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients",
+	"scopeRestrictions":         "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied.",
+	"accessTokenMaxAgeSeconds":  "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration.",
+	"accessTokenTimeoutSeconds": "AccessTokenTimeoutSeconds overrides the default token timeout for tokens granted to this client. 0 means no timeout.",
 }
 
 func (OAuthClient) SwaggerDoc() map[string]string {

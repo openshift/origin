@@ -285,6 +285,15 @@ func (in *OAuthClient) DeepCopyInto(out *OAuthClient) {
 			**out = **in
 		}
 	}
+	if in.AccessTokenTimeoutSeconds != nil {
+		in, out := &in.AccessTokenTimeoutSeconds, &out.AccessTokenTimeoutSeconds
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int32)
+			**out = **in
+		}
+	}
 	return
 }
 
