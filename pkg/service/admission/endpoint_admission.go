@@ -90,8 +90,8 @@ func (r *restrictedEndpointsAdmission) checkAccess(attr admission.Attributes) (b
 		Name:            attr.GetName(),
 		ResourceRequest: true,
 	}
-	allow, _, err := r.authorizer.Authorize(authzAttr)
-	return allow, err
+	authorized, _, err := r.authorizer.Authorize(authzAttr)
+	return authorized == authorizer.DecisionAllow, err
 }
 
 // Admit determines if the endpoints object should be admitted
