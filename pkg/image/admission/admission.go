@@ -46,7 +46,6 @@ type imageLimitRangerPlugin struct {
 
 // imageLimitRangerPlugin implements the LimitRangerActions interface.
 var _ limitranger.LimitRangerActions = &imageLimitRangerPlugin{}
-var _ admission.Validator = &imageLimitRangerPlugin{}
 var _ kadmission.WantsInternalKubeInformerFactory = &imageLimitRangerPlugin{}
 var _ kadmission.WantsInternalKubeClientSet = &imageLimitRangerPlugin{}
 
@@ -71,12 +70,12 @@ func (a *imageLimitRangerPlugin) SetInternalKubeInformerFactory(f informers.Shar
 	a.limitRanger.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(f)
 }
 
-func (a *imageLimitRangerPlugin) Validate() error {
-	v, ok := a.limitRanger.(admission.Validator)
+func (a *imageLimitRangerPlugin) ValidateInitialization() error {
+	v, ok := a.limitRanger.(admission.InitializationValidator)
 	if !ok {
 		return fmt.Errorf("limitRanger does not implement kadmission.Validator")
 	}
-	return v.Validate()
+	return v.ValidateInitialization()
 }
 
 // Admit invokes the admission logic for checking against LimitRanges.
@@ -85,7 +84,11 @@ func (a *imageLimitRangerPlugin) Admit(attr admission.Attributes) error {
 		return nil // not applicable
 	}
 
-	return a.limitRanger.Admit(attr)
+	err := a.limitRanger.(admission.MutationInterface).Admit(attr)
+	if err != nil {
+		return err
+	}
+	return a.limitRanger.(admission.ValidationInterface).Validate(attr)
 }
 
 // SupportsAttributes is a helper that returns true if the resource is supported by the plugin.
