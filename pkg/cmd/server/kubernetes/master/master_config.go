@@ -57,6 +57,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
+	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
@@ -212,6 +213,7 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 		legacyscheme.Codecs,
 		resourceEncodingConfig,
 		master.DefaultAPIResourceConfigSource(),
+		kubeapiserver.SpecialDefaultResourcePrefixes,
 	)
 	if err != nil {
 		return nil, err
