@@ -21,4 +21,8 @@ const (
 
 	// OpenShiftLongDescriptionAnnotation is a resource's long description
 	OpenShiftLongDescriptionAnnotation = "openshift.io/long-description"
+
+	// DeprecatedKubeCreatedByAnnotation was removed by https://github.com/kubernetes/kubernetes/pull/54445 (liggitt approved).
+	// TODO need to figure out who and how this affects.
+	DeprecatedKubeCreatedByAnnotation = "kubernetes.io/created-by"
 )

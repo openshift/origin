@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 
@@ -134,7 +135,7 @@ type DockercfgController struct {
 // token data and triggers re-sync of service account when the data are observed.
 func (e *DockercfgController) handleTokenSecretUpdate(oldObj, newObj interface{}) {
 	secret := newObj.(*v1.Secret)
-	if secret.Annotations[v1.CreatedByAnnotation] != CreateDockercfgSecretsController {
+	if secret.Annotations[oapi.DeprecatedKubeCreatedByAnnotation] != CreateDockercfgSecretsController {
 		return
 	}
 	isPopulated := len(secret.Data[v1.ServiceAccountTokenKey]) > 0
@@ -169,7 +170,7 @@ func (e *DockercfgController) handleTokenSecretDelete(obj interface{}) {
 			return
 		}
 	}
-	if secret.Annotations[v1.CreatedByAnnotation] != CreateDockercfgSecretsController {
+	if secret.Annotations[oapi.DeprecatedKubeCreatedByAnnotation] != CreateDockercfgSecretsController {
 		return
 	}
 	if len(secret.Data[v1.ServiceAccountTokenKey]) > 0 {
@@ -428,9 +429,9 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *v1.ServiceAccoun
 			Name:      pendingTokenName,
 			Namespace: serviceAccount.Namespace,
 			Annotations: map[string]string{
-				v1.ServiceAccountNameKey: serviceAccount.Name,
-				v1.ServiceAccountUIDKey:  string(serviceAccount.UID),
-				v1.CreatedByAnnotation:   CreateDockercfgSecretsController,
+				v1.ServiceAccountNameKey:               serviceAccount.Name,
+				v1.ServiceAccountUIDKey:                string(serviceAccount.UID),
+				oapi.DeprecatedKubeCreatedByAnnotation: CreateDockercfgSecretsController,
 			},
 		},
 		Type: v1.SecretTypeServiceAccountToken,

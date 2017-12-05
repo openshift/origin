@@ -43,7 +43,7 @@ func makePod(name, rcName string, t *testing.T) kapi.Pod {
 			Name:      name,
 			Namespace: "somens",
 			Annotations: map[string]string{
-				kapi.CreatedByAnnotation: string(createdByRefJson),
+				api.DeprecatedKubeCreatedByAnnotation: string(createdByRefJson),
 			},
 		},
 	}
@@ -72,7 +72,7 @@ func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.Replicatio
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		rc.Annotations[kapi.CreatedByAnnotation] = string(createdByRefJson)
+		rc.Annotations[api.DeprecatedKubeCreatedByAnnotation] = string(createdByRefJson)
 	}
 
 	if dcName != "" {
