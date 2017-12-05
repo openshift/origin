@@ -278,7 +278,7 @@
       "name": "JENKINS_IMAGE_STREAM_TAG",
       "displayName": "Jenkins ImageStreamTag",
       "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
-      "value": "jenkins:latest"
+      "value": "jenkins:2"
     }
   ],
   "labels": {

@@ -15445,7 +15445,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/jenkins-2-centos7:latest"
+              "name": "openshift/jenkins-2-centos7:v3.9"
             }
           }
         ]
@@ -16335,7 +16335,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:latest"
+              "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:v3.9"
             }
           }
         ]
@@ -25865,7 +25865,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "name": "JENKINS_IMAGE_STREAM_TAG",
       "displayName": "Jenkins ImageStreamTag",
       "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
-      "value": "jenkins:latest"
+      "value": "jenkins:2"
     }
   ],
   "labels": {
@@ -26193,7 +26193,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "name": "JENKINS_IMAGE_STREAM_TAG",
       "displayName": "Jenkins ImageStreamTag",
       "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
-      "value": "jenkins:latest"
+      "value": "jenkins:2"
     }
   ],
   "labels": {
