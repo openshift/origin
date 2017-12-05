@@ -284,7 +284,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift kubefed template-service-broker
+for bin in oc openshift template-service-broker
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -573,7 +573,6 @@ fi
 %license LICENSE
 %{_bindir}/oc
 %{_bindir}/kubectl
-%{_bindir}/kubefed
 %{_sysconfdir}/bash_completion.d/oc
 %{_mandir}/man1/oc*
 
