@@ -261,6 +261,7 @@ var (
 		`\[Slow\]`,
 		`\[Flaky\]`,
 		`\[Disruptive\]`,
+		`\[local\]`,
 
 		// not enabled in Origin yet
 		//`\[Feature:GarbageCollector\]`,
