@@ -17,10 +17,10 @@ import (
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	oquota "github.com/openshift/origin/pkg/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
+	"github.com/openshift/origin/pkg/quota/image"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -42,6 +42,8 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	"k8s.io/kubernetes/pkg/quota/generic"
+	"k8s.io/kubernetes/pkg/quota/install"
 )
 
 type InformerAccess interface {
@@ -99,12 +101,15 @@ func NewPluginInitializer(
 		return nil, nil, err
 	}
 
-	quotaRegistry := oquota.NewAllResourceQuotaRegistryForAdmission(
-		informers.GetExternalKubeInformers(),
+	// TODO make a union registry
+	quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
+	imageEvaluators := image.NewReplenishmentEvaluatorsForAdmission(
 		informers.GetImageInformers().Image().InternalVersion().ImageStreams(),
 		imageClient.Image(),
-		kubeExternalClient,
 	)
+	for i := range imageEvaluators {
+		quotaRegistry.Add(imageEvaluators[i])
+	}
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(kubeInternalClient.Core().Services(metav1.NamespaceDefault).Get)

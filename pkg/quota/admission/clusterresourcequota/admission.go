@@ -13,6 +13,7 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
+	"k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
 
@@ -88,7 +89,7 @@ func (q *clusterQuotaAdmission) Admit(a admission.Attributes) (err error) {
 
 	q.init.Do(func() {
 		clusterQuotaAccessor := newQuotaAccessor(q.clusterQuotaLister, q.namespaceLister, q.clusterQuotaClient, q.clusterQuotaMapper)
-		q.evaluator = resourcequota.NewQuotaEvaluator(clusterQuotaAccessor, q.registry, q.lockAquisition, &resourcequotaapi.Configuration{}, numEvaluatorThreads, utilwait.NeverStop)
+		q.evaluator = resourcequota.NewQuotaEvaluator(clusterQuotaAccessor, install.DefaultIgnoredResources(), q.registry, q.lockAquisition, &resourcequotaapi.Configuration{}, numEvaluatorThreads, utilwait.NeverStop)
 	})
 
 	return q.evaluator.Evaluate(a)
