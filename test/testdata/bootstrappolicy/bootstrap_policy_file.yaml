@@ -1959,6 +1959,14 @@ items:
     verbs:
     - get
     - update
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - create
 - apiVersion: v1
   kind: ClusterRole
   metadata:

@@ -522,6 +522,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			Rules: []rbac.PolicyRule{
 				// push and pull images
 				rbac.NewRule("get", "update").Groups(imageGroup, legacyImageGroup).Resources("imagestreams/layers").RuleOrDie(),
+				rbac.NewRule("create").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
 			},
 		},
 		{
