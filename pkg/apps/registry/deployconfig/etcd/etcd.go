@@ -10,8 +10,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	autoscalingvalidation "k8s.io/kubernetes/pkg/apis/autoscaling/validation"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/labels"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
@@ -77,7 +79,7 @@ var _ = rest.Patcher(&ScaleREST{})
 
 // New creates a new Scale object
 func (r *ScaleREST) New() runtime.Object {
-	return &extensions.Scale{}
+	return &autoscaling.Scale{}
 }
 
 // Get retrieves (computes) the Scale subresource for the given DeploymentConfig name.
@@ -87,7 +89,7 @@ func (r *ScaleREST) Get(ctx apirequest.Context, name string, options *metav1.Get
 		return nil, err
 	}
 
-	return deployapi.ScaleFromConfig(deploymentConfig.(*deployapi.DeploymentConfig)), nil
+	return scaleFromConfig(deploymentConfig.(*deployapi.DeploymentConfig)), nil
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
@@ -98,18 +100,18 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 	}
 	deploymentConfig := uncastObj.(*deployapi.DeploymentConfig)
 
-	old := deployapi.ScaleFromConfig(deploymentConfig)
+	old := scaleFromConfig(deploymentConfig)
 	obj, err := objInfo.UpdatedObject(ctx, old)
 	if err != nil {
 		return nil, false, err
 	}
 
-	scale, ok := obj.(*extensions.Scale)
+	scale, ok := obj.(*autoscaling.Scale)
 	if !ok {
 		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
 	}
 
-	if errs := extvalidation.ValidateScale(scale); len(errs) > 0 {
+	if errs := autoscalingvalidation.ValidateScale(scale); len(errs) > 0 {
 		return nil, false, errors.NewInvalid(extensions.Kind("Scale"), scale.Name, errs)
 	}
 
@@ -119,6 +121,26 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 	}
 
 	return scale, false, nil
+}
+
+// scaleFromConfig builds a scale resource out of a deployment config.
+func scaleFromConfig(dc *deployapi.DeploymentConfig) *autoscaling.Scale {
+	return &autoscaling.Scale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              dc.Name,
+			Namespace:         dc.Namespace,
+			UID:               dc.UID,
+			ResourceVersion:   dc.ResourceVersion,
+			CreationTimestamp: dc.CreationTimestamp,
+		},
+		Spec: autoscaling.ScaleSpec{
+			Replicas: dc.Spec.Replicas,
+		},
+		Status: autoscaling.ScaleStatus{
+			Replicas: dc.Status.Replicas,
+			Selector: labels.Set(dc.Spec.Selector).String(),
+		},
+	}
 }
 
 // StatusREST implements the REST endpoint for changing the status of a DeploymentConfig.
