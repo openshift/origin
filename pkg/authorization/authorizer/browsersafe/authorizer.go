@@ -24,7 +24,7 @@ func NewBrowserSafeAuthorizer(delegate authorizer.Authorizer, authenticatedGroup
 	}
 }
 
-func (a *browserSafeAuthorizer) Authorize(attributes authorizer.Attributes) (bool, string, error) {
+func (a *browserSafeAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	browserSafeAttributes := a.getBrowserSafeAttributes(attributes)
 	return a.delegate.Authorize(browserSafeAttributes)
 }

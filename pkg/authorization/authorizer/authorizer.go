@@ -27,17 +27,17 @@ func NewSubjectLocator(delegate authorizerrbac.SubjectLocator) SubjectLocator {
 	return &openshiftSubjectLocator{delegate: delegate}
 }
 
-func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (bool, string, error) {
+func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	if attributes.GetUser() == nil {
-		return false, "", errors.New("no user available on context")
+		return authorizer.DecisionDeny, "", errors.New("no user available on context")
 	}
-	allowed, delegateReason, err := a.delegate.Authorize(attributes)
-	if allowed {
-		return true, reason(attributes), nil
+	authorized, delegateReason, err := a.delegate.Authorize(attributes)
+	if authorized == authorizer.DecisionAllow {
+		return authorizer.DecisionAllow, reason(attributes), nil
 	}
 	// errors are allowed to occur
 	if err != nil {
-		return false, "", err
+		return authorizer.DecisionDeny, "", err
 	}
 
 	denyReason, err := a.forbiddenMessageMaker.MakeMessage(attributes)
@@ -48,7 +48,7 @@ func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (bool,
 		denyReason += ": " + delegateReason
 	}
 
-	return false, denyReason, nil
+	return authorizer.DecisionDeny, denyReason, nil
 }
 
 // GetAllowedSubjects returns the subjects it knows can perform the action.
