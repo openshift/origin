@@ -276,7 +276,7 @@ func CopyApiResourcesToV1Resources(in *api.ResourceRequirements) v1.ResourceRequ
 	}
 	in = copied.(*api.ResourceRequirements)
 	out := v1.ResourceRequirements{}
-	if err := kapiv1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
+	if err := kapiv1.Convert_core_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
 		panic(err)
 	}
 	return out
@@ -290,7 +290,7 @@ func CopyApiEnvVarToV1EnvVar(in []api.EnvVar) []v1.EnvVar {
 	in = copied.([]api.EnvVar)
 	out := make([]v1.EnvVar, len(in))
 	for i := range in {
-		if err := kapiv1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
+		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
 			panic(err)
 		}
 	}
@@ -304,7 +304,7 @@ func CopyPodTemplateSpecToV1PodTemplateSpec(spec *api.PodTemplateSpec) *v1.PodTe
 	}
 	in := copied.(*api.PodTemplateSpec)
 	out := &v1.PodTemplateSpec{}
-	if err := kapiv1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
+	if err := kapiv1.Convert_core_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
 		panic(err)
 	}
 	return out

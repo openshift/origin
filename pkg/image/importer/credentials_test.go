@@ -28,7 +28,7 @@ func TestCredentialsForSecrets(t *testing.T) {
 	secrets := obj.(*kapi.SecretList)
 	secretsv1 := make([]corev1.Secret, len(secrets.Items))
 	for i, secret := range secrets.Items {
-		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
+		err := kapiv1.Convert_core_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
 		if err != nil {
 			t.Logf("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue

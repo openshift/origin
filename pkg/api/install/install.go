@@ -108,34 +108,34 @@ func init() {
 		case *kv1.ServiceAccount:
 			switch b := objB.(type) {
 			case *kapi.ServiceAccount:
-				return true, kapiv1.Convert_v1_ServiceAccount_To_api_ServiceAccount(a, b, s)
+				return true, kapiv1.Convert_v1_ServiceAccount_To_core_ServiceAccount(a, b, s)
 			}
 		case *kapi.ServiceAccount:
 			switch b := objB.(type) {
 			case *kv1.ServiceAccount:
-				return true, kapiv1.Convert_api_ServiceAccount_To_v1_ServiceAccount(a, b, s)
+				return true, kapiv1.Convert_core_ServiceAccount_To_v1_ServiceAccount(a, b, s)
 			}
 
 		case *kv1.SecretList:
 			switch b := objB.(type) {
 			case *kapi.SecretList:
-				return true, kapiv1.Convert_v1_SecretList_To_api_SecretList(a, b, s)
+				return true, kapiv1.Convert_v1_SecretList_To_core_SecretList(a, b, s)
 			}
 		case *kapi.SecretList:
 			switch b := objB.(type) {
 			case *kv1.SecretList:
-				return true, kapiv1.Convert_api_SecretList_To_v1_SecretList(a, b, s)
+				return true, kapiv1.Convert_core_SecretList_To_v1_SecretList(a, b, s)
 			}
 
 		case *kv1.Secret:
 			switch b := objB.(type) {
 			case *kapi.Secret:
-				return true, kapiv1.Convert_v1_Secret_To_api_Secret(a, b, s)
+				return true, kapiv1.Convert_v1_Secret_To_core_Secret(a, b, s)
 			}
 		case *kapi.Secret:
 			switch b := objB.(type) {
 			case *kv1.Secret:
-				return true, kapiv1.Convert_api_Secret_To_v1_Secret(a, b, s)
+				return true, kapiv1.Convert_core_Secret_To_v1_Secret(a, b, s)
 			}
 
 		case *routev1.RouteList:

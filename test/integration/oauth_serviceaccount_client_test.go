@@ -120,7 +120,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 		for i := range allSecrets.Items {
 			secret := &allSecrets.Items[i]
 			secretv1 := &corev1.Secret{}
-			err := kapiv1.Convert_api_Secret_To_v1_Secret(secret, secretv1, nil)
+			err := kapiv1.Convert_core_Secret_To_v1_Secret(secret, secretv1, nil)
 			if err != nil {
 				return false, err
 			}
