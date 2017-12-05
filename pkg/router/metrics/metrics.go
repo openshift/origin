@@ -97,8 +97,8 @@ func (l Listener) authorizeHandler(protected http.Handler) http.Handler {
 			scopedRecord.Subresource = "debug"
 		}
 		scopedRecord.User = user
-		ok, reason, err := l.Authorizer.Authorize(scopedRecord)
-		if !ok || err != nil {
+		authorized, reason, err := l.Authorizer.Authorize(scopedRecord)
+		if authorized != authorizer.DecisionAllow || err != nil {
 			if !ok || errors.IsUnauthorized(err) {
 				glog.V(5).Infof("Unable to authorize: %v", err)
 				http.Error(w, fmt.Sprintf("Forbidden: %s", reason), http.StatusForbidden)
