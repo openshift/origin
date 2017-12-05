@@ -13,7 +13,6 @@ import (
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
@@ -90,11 +89,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(appsapiv1.GroupName, c.ExtraConfig.Registry, c.ExtraConfig.Scheme, parameterCodec, c.ExtraConfig.Codecs)
 	apiGroupInfo.GroupMeta.GroupVersion = appsapiv1.SchemeGroupVersion
 	apiGroupInfo.VersionedResourcesStorageMap[appsapiv1.SchemeGroupVersion.Version] = v1Storage
-
-	if apiGroupInfo.SubresourceGroupVersionKind == nil {
-		apiGroupInfo.SubresourceGroupVersionKind = map[string]schema.GroupVersionKind{}
-	}
-	apiGroupInfo.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
 
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
