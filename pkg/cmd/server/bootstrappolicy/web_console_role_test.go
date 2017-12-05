@@ -24,6 +24,7 @@ var rolesToHide = sets.NewString(
 	"storage-admin",
 	"sudoer",
 	"system:auth-delegator",
+	"system:aws-cloud-provider",
 	"system:basic-user",
 	"system:build-strategy-custom",
 	"system:build-strategy-docker",
