@@ -166,7 +166,7 @@ func (o *podNodeConstraints) SetAuthorizer(a authorizer.Authorizer) {
 	o.authorizer = a
 }
 
-func (o *podNodeConstraints) Validate() error {
+func (o *podNodeConstraints) ValidateInitialization() error {
 	if o.authorizer == nil {
 		return fmt.Errorf("PodNodeConstraints needs an Openshift Authorizer")
 	}

@@ -134,7 +134,7 @@ func (q *lifecycle) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.client = c
 }
 
-func (e *lifecycle) Validate() error {
+func (e *lifecycle) ValidateInitialization() error {
 	if e.cache == nil {
 		return fmt.Errorf("project lifecycle plugin needs a project cache")
 	}

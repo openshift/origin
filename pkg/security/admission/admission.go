@@ -148,7 +148,7 @@ func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {
 }
 
 // Validate defines actions to vallidate security admission
-func (c *constraint) Validate() error {
+func (c *constraint) ValidateInitialization() error {
 	if c.sccLister == nil {
 		return fmt.Errorf("sccLister not initialized")
 	}

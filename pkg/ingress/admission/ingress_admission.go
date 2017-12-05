@@ -73,7 +73,7 @@ func (r *ingressAdmission) SetAuthorizer(a authorizer.Authorizer) {
 	r.authorizer = a
 }
 
-func (r *ingressAdmission) Validate() error {
+func (r *ingressAdmission) ValidateInitialization() error {
 	if r.authorizer == nil {
 		return fmt.Errorf("%s needs an Openshift Authorizer", IngressAdmission)
 	}

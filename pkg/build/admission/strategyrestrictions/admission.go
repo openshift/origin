@@ -85,7 +85,7 @@ func (a *buildByStrategy) SetOpenshiftInternalBuildClient(c buildclient.Interfac
 	a.buildClient = c
 }
 
-func (a *buildByStrategy) Validate() error {
+func (a *buildByStrategy) ValidateInitialization() error {
 	if a.buildClient == nil {
 		return fmt.Errorf("BuildByStrategy needs an Openshift buildClient")
 	}
