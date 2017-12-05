@@ -243,11 +243,7 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 	}
 	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
 
-	legacyDCRollbackMutator := oappsapiserver.LegacyLegacyDCRollbackMutator{
-		CoreAPIServerClientConfig: config.ExtraConfig.CoreAPIServerClientConfig,
-		Version:                   v1.SchemeGroupVersion,
-	}
-	return server.GenericAPIServer, legacyStorageMutators{legacyStorageMutatorFunc(legacyDCRollbackMutator.Mutate), &legacyStorageVersionMutator{version: oappsapiv1.SchemeGroupVersion, storage: storage}}, nil
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: oappsapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
 func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {

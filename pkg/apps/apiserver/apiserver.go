@@ -18,7 +18,6 @@ import (
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	oappsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	deployconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/apps/registry/deploylog"
 	deployconfiginstantiate "github.com/openshift/origin/pkg/apps/registry/instantiate"
@@ -151,23 +150,4 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient.Apps(), kubeInternalClient.Core(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
 	v1Storage["deploymentConfigs/instantiate"] = dcInstantiateStorage
 	return v1Storage, nil
-}
-
-// LegacyLegacyDCRollbackMutator allows us to inject a one-off endpoint into oapi
-type LegacyLegacyDCRollbackMutator struct {
-	CoreAPIServerClientConfig *restclient.Config
-	Version                   schema.GroupVersion
-}
-
-func (l LegacyLegacyDCRollbackMutator) Mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
-	externalVersionCodec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
-	originAppsClient := oappsclient.NewForConfigOrDie(l.CoreAPIServerClientConfig)
-	kubeInternalClient := kclientsetinternal.NewForConfigOrDie(l.CoreAPIServerClientConfig)
-	deployRollbackClient := deployrollback.Client{
-		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
-		DeploymentConfigGetter:      originAppsClient.Apps(),
-		ReplicationControllerGetter: kubeInternalClient.Core(),
-	}
-	// TODO: Deprecate this
-	legacyStorage[l.Version]["deploymentConfigRollbacks"] = deployrollback.NewDeprecatedREST(deployRollbackClient, externalVersionCodec)
 }
