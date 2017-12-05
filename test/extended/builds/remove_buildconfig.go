@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[Feature:Builds][Conformance] remove all builds when build configuration is removed", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture = exutil.FixturePath("testdata", "builds", "test-build.json")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-build.yaml")
 		oc           = exutil.NewCLI("cli-remove-build", exutil.KubeConfigPath())
 	)
 

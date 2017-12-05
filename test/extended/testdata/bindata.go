@@ -55,7 +55,7 @@
 // test/extended/testdata/builds/test-build-postcommit.json
 // test/extended/testdata/builds/test-build-proxy.yaml
 // test/extended/testdata/builds/test-build-revision.json
-// test/extended/testdata/builds/test-build.json
+// test/extended/testdata/builds/test-build.yaml
 // test/extended/testdata/builds/test-buildconfigsecretinjector.yaml
 // test/extended/testdata/builds/test-cds-dockerbuild.json
 // test/extended/testdata/builds/test-cds-sourcebuild.json
@@ -2301,307 +2301,244 @@ func testExtendedTestdataBuildsTestBuildRevisionJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestBuildJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
-      },
-      "spec": {},
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-verbose-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "git://github.com/openshift/ruby-hello-world.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-binary",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Binary",
-          "binary": {}
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-github-archive",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Binary",
-          "binary": {},
-          "contextDir": "ruby-hello-world-master"
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-binary-invalidnodeselector",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Binary",
-          "binary": {}
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "env": [
-              { "name": "FOO", "value": "test" },
-              { "name": "BAR", "value": "test" },
-              { "name": "BUILD_LOGLEVEL", "value": "5" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {},
-        "nodeSelector": {"nodelabelkey":"nodelabelvalue"}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-docker-args",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Dockerfile",
-          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {},
-        "postCommit": {},
-        "nodeSelector": null
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-docker-args-preset",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Dockerfile",
-          "dockerfile": "FROM centos/ruby-22-centos7\nARG foo\nRUN echo $foo"
-        },
-        "strategy": {
-          "type": "Docker",
-          "dockerStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            },
-            "buildArgs": [
-              { "name": "foo", "value": "default" }
-            ]
-          }
-        },
-        "resources": {},
-        "postCommit": {},
-        "nodeSelector": null
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
-  ]
-}
+var _testExtendedTestdataBuildsTestBuildYaml = []byte(`kind: List
+apiVersion: v1
+metadata: {}
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: origin-ruby-sample
+    creationTimestamp: 
+  spec: {}
+  status:
+    dockerImageRepository: ''
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: webhooksecret
+    creationTimestamp: 
+  data:
+    WebHookSecretKey: c2VjcmV0dmFsdWUx
+  type: Opaque
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: ImageChange
+      imageChange: {}
+    - type: Generic
+      generic:
+        secret: "mysecret"
+        secretReference: 
+          name: "webhooksecret"
+    source:
+      type: Git
+      git:
+        uri: git://github.com/openshift/ruby-hello-world.git
+    strategy:
+      type: Source
+      sourceStrategy:
+        env:
+        - name: FOO
+          value: test
+        - name: BAR
+          value: test
+        - name: BUILD_LOGLEVEL
+          value: '5'
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+    resources: {}
+  status:
+    lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-verbose-build
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: git://github.com/openshift/ruby-hello-world.git
+    strategy:
+      type: Source
+      sourceStrategy:
+        env:
+        - name: FOO
+          value: test
+        - name: BAR
+          value: test
+        - name: BUILD_LOGLEVEL
+          value: '5'
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+    resources: {}
+  status:
+    lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build-binary
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Binary
+      binary: {}
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+        - name: FOO
+          value: test
+        - name: BAR
+          value: test
+        - name: BUILD_LOGLEVEL
+          value: '5'
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+    resources: {}
+  status:
+    lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build-github-archive
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Binary
+      binary: {}
+      contextDir: ruby-hello-world-master
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+        - name: FOO
+          value: test
+        - name: BAR
+          value: test
+        - name: BUILD_LOGLEVEL
+          value: '5'
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+    resources: {}
+  status:
+    lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build-binary-invalidnodeselector
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Binary
+      binary: {}
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+        - name: FOO
+          value: test
+        - name: BAR
+          value: test
+        - name: BUILD_LOGLEVEL
+          value: '5'
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+    resources: {}
+    nodeSelector:
+      nodelabelkey: nodelabelvalue
+  status:
+    lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build-docker-args
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: ImageChange
+      imageChange: {}
+    source:
+      type: Dockerfile
+      dockerfile: |-
+        FROM centos/ruby-22-centos7
+        ARG foo
+        RUN echo $foo
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+    resources: {}
+    postCommit: {}
+    nodeSelector: 
+  status:
+    lastVersion: 0
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build-docker-args-preset
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: ImageChange
+      imageChange: {}
+    source:
+      type: Dockerfile
+      dockerfile: |-
+        FROM centos/ruby-22-centos7
+        ARG foo
+        RUN echo $foo
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        buildArgs:
+        - name: foo
+          value: default
+    resources: {}
+    postCommit: {}
+    nodeSelector: 
+  status:
+    lastVersion: 0
 `)
 
-func testExtendedTestdataBuildsTestBuildJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsTestBuildJson, nil
+func testExtendedTestdataBuildsTestBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildYaml, nil
 }
 
-func testExtendedTestdataBuildsTestBuildJson() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsTestBuildJsonBytes()
+func testExtendedTestdataBuildsTestBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28729,7 +28666,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-build-postcommit.json": testExtendedTestdataBuildsTestBuildPostcommitJson,
 	"test/extended/testdata/builds/test-build-proxy.yaml": testExtendedTestdataBuildsTestBuildProxyYaml,
 	"test/extended/testdata/builds/test-build-revision.json": testExtendedTestdataBuildsTestBuildRevisionJson,
-	"test/extended/testdata/builds/test-build.json": testExtendedTestdataBuildsTestBuildJson,
+	"test/extended/testdata/builds/test-build.yaml": testExtendedTestdataBuildsTestBuildYaml,
 	"test/extended/testdata/builds/test-buildconfigsecretinjector.yaml": testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml,
 	"test/extended/testdata/builds/test-cds-dockerbuild.json": testExtendedTestdataBuildsTestCdsDockerbuildJson,
 	"test/extended/testdata/builds/test-cds-sourcebuild.json": testExtendedTestdataBuildsTestCdsSourcebuildJson,
@@ -29137,7 +29074,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-build-postcommit.json": &bintree{testExtendedTestdataBuildsTestBuildPostcommitJson, map[string]*bintree{}},
 					"test-build-proxy.yaml": &bintree{testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},
 					"test-build-revision.json": &bintree{testExtendedTestdataBuildsTestBuildRevisionJson, map[string]*bintree{}},
-					"test-build.json": &bintree{testExtendedTestdataBuildsTestBuildJson, map[string]*bintree{}},
+					"test-build.yaml": &bintree{testExtendedTestdataBuildsTestBuildYaml, map[string]*bintree{}},
 					"test-buildconfigsecretinjector.yaml": &bintree{testExtendedTestdataBuildsTestBuildconfigsecretinjectorYaml, map[string]*bintree{}},
 					"test-cds-dockerbuild.json": &bintree{testExtendedTestdataBuildsTestCdsDockerbuildJson, map[string]*bintree{}},
 					"test-cds-sourcebuild.json": &bintree{testExtendedTestdataBuildsTestCdsSourcebuildJson, map[string]*bintree{}},

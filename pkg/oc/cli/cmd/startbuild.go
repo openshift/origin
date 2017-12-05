@@ -470,14 +470,15 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		default:
 			continue
 		}
-		url, err := webhookClient.WebHookURL(o.Name, &t)
+		u, err := webhookClient.WebHookURL(o.Name, &t)
 		if err != nil {
 			if err != buildclientinternal.ErrTriggerIsNotAWebHook {
 				fmt.Fprintf(o.ErrOut, "error: unable to get webhook for %s: %v", o.Name, err)
 			}
 			continue
 		}
-		fmt.Fprintf(o.Out, "%s%s\n", hookType, url.String())
+		urlStr, _ := url.PathUnescape(u.String())
+		fmt.Fprintf(o.Out, "%s%s\n", hookType, urlStr)
 	}
 	return nil
 }
