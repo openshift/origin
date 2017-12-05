@@ -44,8 +44,8 @@ func (i *imageStreamTagEvaluator) Constraints(required []kapi.ResourceName, obje
 	return nil
 }
 
-func (i *imageStreamTagEvaluator) GroupKind() schema.GroupKind {
-	return imageapi.Kind("ImageStreamTag")
+func (i *imageStreamTagEvaluator) GroupResource() schema.GroupResource {
+	return imageapi.Resource("imagestreamtags")
 }
 
 func (i *imageStreamTagEvaluator) Handles(a kadmission.Attributes) bool {
