@@ -568,7 +568,7 @@ func StartAPI(oc *origin.MasterConfig, controllerPlug plug.Plug) error {
 
 	// if the webconsole is configured to be standalone, go ahead and create and run it
 	if oc.WebConsoleEnabled() && oc.WebConsoleStandalone() {
-		config, err := assetapiserver.NewAssetServerConfig(*oc.Options.AssetConfig)
+		config, err := assetapiserver.NewAssetServerConfig(*oc.Options.AssetConfig, nil)
 		if err != nil {
 			return err
 		}
