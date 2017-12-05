@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/template"
@@ -105,7 +106,7 @@ type TemplateFileSearcher struct {
 	Mapper           meta.RESTMapper
 	Typer            runtime.ObjectTyper
 	ClientMapper     resource.ClientMapper
-	CategoryExpander resource.CategoryExpander
+	CategoryExpander categories.CategoryExpander
 	Namespace        string
 }
 

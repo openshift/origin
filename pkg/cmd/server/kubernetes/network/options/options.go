@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -16,11 +16,8 @@ import (
 
 // Build creates the network Kubernetes component configs for a given NodeConfig, or returns
 // an error
-func Build(options configapi.NodeConfig) (*componentconfig.KubeProxyConfiguration, error) {
-	proxyOptions, err := kubeproxyoptions.NewOptions()
-	if err != nil {
-		return nil, err
-	}
+func Build(options configapi.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguration, error) {
+	proxyOptions := kubeproxyoptions.NewOptions()
 	// get default config
 	proxyconfig := proxyOptions.GetConfig()
 
