@@ -24,6 +24,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
@@ -43,6 +45,7 @@ type informers struct {
 	authorizationInformers authorizationinformer.SharedInformerFactory
 	buildInformers         buildinformer.SharedInformerFactory
 	imageInformers         imageinformer.SharedInformerFactory
+	oauthInformers         oauthinformer.SharedInformerFactory
 	quotaInformers         quotainformer.SharedInformerFactory
 	securityInformers      securityinformer.SharedInformerFactory
 	templateInformers      templateinformer.SharedInformerFactory
@@ -69,6 +72,10 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 		return nil, err
 	}
 	imageClient, err := imageclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	oauthClient, err := oauthclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +112,7 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 		authorizationInformers: authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
 		buildInformers:         buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
 		imageInformers:         imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
+		oauthInformers:         oauthinformer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
 		quotaInformers:         quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		securityInformers:      securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		templateInformers:      templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod),
@@ -133,6 +141,9 @@ func (i *informers) GetBuildInformers() buildinformer.SharedInformerFactory {
 func (i *informers) GetImageInformers() imageinformer.SharedInformerFactory {
 	return i.imageInformers
 }
+func (i *informers) GetOauthInformers() oauthinformer.SharedInformerFactory {
+	return i.oauthInformers
+}
 func (i *informers) GetQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.quotaInformers
 }
@@ -155,6 +166,7 @@ func (i *informers) Start(stopCh <-chan struct{}) {
 	i.authorizationInformers.Start(stopCh)
 	i.buildInformers.Start(stopCh)
 	i.imageInformers.Start(stopCh)
+	i.oauthInformers.Start(stopCh)
 	i.quotaInformers.Start(stopCh)
 	i.securityInformers.Start(stopCh)
 	i.templateInformers.Start(stopCh)

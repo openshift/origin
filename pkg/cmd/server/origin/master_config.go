@@ -34,6 +34,7 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
@@ -99,6 +100,7 @@ type InformerAccess interface {
 	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
 	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
 	GetImageInformers() imageinformer.SharedInformerFactory
+	GetOauthInformers() oauthinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
 	GetUserInformers() userinformer.SharedInformerFactory
