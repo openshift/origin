@@ -200,7 +200,7 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []*corev1.R
 	}
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_api_ReplicationController(rcv1, rc, nil)
+	kapiv1.Convert_v1_ReplicationController_To_core_ReplicationController(rcv1, rc, nil)
 	version := deployutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
@@ -234,7 +234,7 @@ func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []*corev1.ReplicationC
 	}
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_api_ReplicationController(rcv1, rc, nil)
+	kapiv1.Convert_v1_ReplicationController_To_core_ReplicationController(rcv1, rc, nil)
 	version := deployutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
@@ -252,7 +252,7 @@ func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []*corev1.Replication
 	}
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_api_ReplicationController(rcv1, rc, nil)
+	kapiv1.Convert_v1_ReplicationController_To_core_ReplicationController(rcv1, rc, nil)
 	version := deployutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		//e2e.Logf("deployment %s is not the latest version on DC: %d", rc.Name, version)
