@@ -136,7 +136,7 @@ func BuildMasterConfig(
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	authenticator, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
+	authenticator, authenticatorPostStartHooks, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +204,10 @@ func BuildMasterConfig(
 		AuthorizationInformers: informers.GetAuthorizationInformers(),
 		QuotaInformers:         informers.GetQuotaInformers(),
 		SecurityInformers:      informers.GetSecurityInformers(),
+	}
+
+	for name, hook := range authenticatorPostStartHooks {
+		config.additionalPostStartHooks[name] = hook
 	}
 
 	// ensure that the limit range informer will be started
