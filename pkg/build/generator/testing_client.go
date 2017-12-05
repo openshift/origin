@@ -21,41 +21,41 @@ type TestingClient struct {
 }
 
 // GetBuildConfig retrieves a named build config
-func (c TestingClient) GetBuildConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+func (c *TestingClient) GetBuildConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 	return c.GetBuildConfigFunc(ctx, name, options)
 }
 
 // UpdateBuildConfig updates a named build config
-func (c TestingClient) UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
+func (c *TestingClient) UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
 	return c.UpdateBuildConfigFunc(ctx, buildConfig)
 }
 
 // GetBuild retrieves a build
-func (c TestingClient) GetBuild(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
+func (c *TestingClient) GetBuild(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
 	return c.GetBuildFunc(ctx, name, options)
 }
 
 // CreateBuild creates a new build
-func (c TestingClient) CreateBuild(ctx apirequest.Context, build *buildapi.Build) error {
+func (c *TestingClient) CreateBuild(ctx apirequest.Context, build *buildapi.Build) error {
 	return c.CreateBuildFunc(ctx, build)
 }
 
 // UpdateBuild updates a build
-func (c TestingClient) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error {
+func (c *TestingClient) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error {
 	return c.UpdateBuildFunc(ctx, build)
 }
 
 // GetImageStream retrieves a named image stream
-func (c TestingClient) GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+func (c *TestingClient) GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 	return c.GetImageStreamFunc(ctx, name, options)
 }
 
 // GetImageStreamImage retrieves an image stream image
-func (c TestingClient) GetImageStreamImage(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
+func (c *TestingClient) GetImageStreamImage(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
 	return c.GetImageStreamImageFunc(ctx, name, options)
 }
 
 // GetImageStreamTag retrieves and image stream tag
-func (c TestingClient) GetImageStreamTag(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
+func (c *TestingClient) GetImageStreamTag(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
 	return c.GetImageStreamTagFunc(ctx, name, options)
 }
