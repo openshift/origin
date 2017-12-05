@@ -276,7 +276,11 @@ function os::start::master() {
 
 	os::test::junit::declare_suite_start "setup/start-master"
 	os::cmd::try_until_text "oc get --raw /healthz --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
-	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
+	os::cmd::try_until_text \
+		"curl --silent --cacert '$MASTER_CONFIG_DIR/ca.crt' '$API_SCHEME://$API_HOST:$API_PORT/healthz/ready'" \
+		'ok' \
+		$(( 160 * second )) \
+		0.25
 	os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 	os::test::junit::declare_suite_end
 
