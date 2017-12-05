@@ -98,11 +98,11 @@ func (r *ingressAdmission) Admit(a admission.Attributes) error {
 							ResourceRequest: true,
 						}
 						kind := schema.GroupKind{Group: a.GetResource().Group, Kind: a.GetResource().Resource}
-						allow, _, err := r.authorizer.Authorize(attr)
+						authorized, _, err := r.authorizer.Authorize(attr)
 						if err != nil {
 							return errors.NewInvalid(kind, ingress.Name, field.ErrorList{field.InternalError(field.NewPath("spec", "rules").Index(i), err)})
 						}
-						if !allow {
+						if authorized != authorizer.DecisionAllow {
 							return errors.NewInvalid(kind, ingress.Name, field.ErrorList{field.Forbidden(field.NewPath("spec", "rules").Index(i), "you do not have permission to set host fields in ingress rules")})
 						}
 						break
@@ -131,11 +131,11 @@ func (r *ingressAdmission) Admit(a admission.Attributes) error {
 						ResourceRequest: true,
 					}
 					kind := schema.GroupKind{Group: a.GetResource().Group, Kind: a.GetResource().Resource}
-					allow, _, err := r.authorizer.Authorize(attr)
+					authorized, _, err := r.authorizer.Authorize(attr)
 					if err != nil {
 						return errors.NewInvalid(kind, newIngress.Name, field.ErrorList{field.InternalError(field.NewPath("spec", "rules"), err)})
 					}
-					if allow {
+					if authorized == authorizer.DecisionAllow {
 						return nil
 					}
 					return fmt.Errorf("cannot change hostname")

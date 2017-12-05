@@ -187,6 +187,6 @@ func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (boo
 	if attr.GetResource().GroupResource() == kapi.Resource("pods") {
 		authzAttr.Name = attr.GetName()
 	}
-	allow, _, err := o.authorizer.Authorize(authzAttr)
-	return allow, err
+	authorized, _, err := o.authorizer.Authorize(authzAttr)
+	return authorized == authorizer.DecisionAllow, err
 }
