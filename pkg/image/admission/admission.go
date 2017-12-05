@@ -46,7 +46,6 @@ type imageLimitRangerPlugin struct {
 
 // imageLimitRangerPlugin implements the LimitRangerActions interface.
 var _ limitranger.LimitRangerActions = &imageLimitRangerPlugin{}
-var _ admission.Validator = &imageLimitRangerPlugin{}
 var _ kadmission.WantsInternalKubeInformerFactory = &imageLimitRangerPlugin{}
 var _ kadmission.WantsInternalKubeClientSet = &imageLimitRangerPlugin{}
 
@@ -71,12 +70,12 @@ func (a *imageLimitRangerPlugin) SetInternalKubeInformerFactory(f informers.Shar
 	a.limitRanger.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(f)
 }
 
-func (a *imageLimitRangerPlugin) Validate() error {
-	v, ok := a.limitRanger.(admission.Validator)
+func (a *imageLimitRangerPlugin) ValidateInitialization() error {
+	v, ok := a.limitRanger.(admission.InitializationValidator)
 	if !ok {
 		return fmt.Errorf("limitRanger does not implement kadmission.Validator")
 	}
-	return v.Validate()
+	return v.ValidateInitialization()
 }
 
 // Admit invokes the admission logic for checking against LimitRanges.
@@ -85,7 +84,19 @@ func (a *imageLimitRangerPlugin) Admit(attr admission.Attributes) error {
 		return nil // not applicable
 	}
 
-	return a.limitRanger.Admit(attr)
+	err := a.limitRanger.(admission.MutationInterface).Admit(attr)
+	if err != nil {
+		return err
+	}
+	return a.limitRanger.(admission.ValidationInterface).Validate(attr)
+}
+
+func (a *imageLimitRangerPlugin) Validate(attr admission.Attributes) error {
+	if !a.SupportsAttributes(attr) {
+		return nil // not applicable
+	}
+
+	return a.limitRanger.(admission.ValidationInterface).Validate(attr)
 }
 
 // SupportsAttributes is a helper that returns true if the resource is supported by the plugin.
@@ -113,10 +124,13 @@ func (a *imageLimitRangerPlugin) SupportsLimit(limitRange *kapi.LimitRange) bool
 	return false
 }
 
-// Limit is the limit range implementation that checks resource against the
-// image limit ranges.
-// Implements the LimitRangerActions interface
-func (a *imageLimitRangerPlugin) Limit(limitRange *kapi.LimitRange, kind string, obj runtime.Object) error {
+// MutateLimit is a pluggable function to set limits on the object.
+func (a *imageLimitRangerPlugin) MutateLimit(limitRange *kapi.LimitRange, kind string, obj runtime.Object) error {
+	return nil
+}
+
+// ValidateLimits is a pluggable function to enforce limits on the object.
+func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *kapi.LimitRange, kind string, obj runtime.Object) error {
 	isObj, ok := obj.(*imageapi.ImageStreamMapping)
 	if !ok {
 		glog.V(5).Infof("%s: received object other than ImageStreamMapping (%T)", PluginName, obj)
@@ -129,7 +143,7 @@ func (a *imageLimitRangerPlugin) Limit(limitRange *kapi.LimitRange, kind string,
 	}
 
 	for _, limit := range limitRange.Spec.Limits {
-		if err := AdmitImage(image.DockerImageMetadata.Size, limit); err != nil {
+		if err := admitImage(image.DockerImageMetadata.Size, limit); err != nil {
 			return err
 		}
 	}
@@ -137,8 +151,8 @@ func (a *imageLimitRangerPlugin) Limit(limitRange *kapi.LimitRange, kind string,
 	return nil
 }
 
-// AdmitImage checks if the size is greater than the limit range.  Abstracted for reuse in the registry.
-func AdmitImage(size int64, limit kapi.LimitRangeItem) error {
+// admitImage checks if the size is greater than the limit range.  Abstracted for reuse in the registry.
+func admitImage(size int64, limit kapi.LimitRangeItem) error {
 	if limit.Type != imageapi.LimitTypeImage {
 		return nil
 	}
