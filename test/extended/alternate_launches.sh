@@ -49,8 +49,8 @@ sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift
  --loglevel=4 \
 &>"${LOG_DIR}/os-apiserver.log" &
 
-os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
-os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
+os::cmd::try_until_text "oc get --raw /healthz --as system:unauthenticated --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
+os::cmd::try_until_text "oc get --raw /healthz/ready --as system:unauthenticated --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
 os::log::info "OpenShift API server up at: "
 date
 
@@ -131,7 +131,7 @@ export OS_PID=$!
 os::log::info "OpenShift server start at: "
 date
 
-os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' minute 0.5
+os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --as system:unauthenticated --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' minute 0.5
 os::cmd::try_until_success "oc get --raw /api/v1/nodes/${KUBELET_HOST} --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" $(( 80 * second )) 0.25
 os::log::info "OpenShift node health checks done at: "
 date
