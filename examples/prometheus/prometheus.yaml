@@ -385,6 +385,7 @@ objects:
     prometheus.yml: |
       rule_files:
         - '*.rules'
+        - 'rules/*.rules'
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
       # This uses separate scrape configs for cluster components (i.e. API server, node)

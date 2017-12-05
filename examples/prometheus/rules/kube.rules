@@ -1,0 +1,68 @@
+groups:
+- name: kubernetes-rules
+  rules:
+
+    - alert: DockerLatencyHigh
+      expr: max(kubelet_docker_operations_latency_microseconds{quantile="0.9"}) / 1e+06 > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Docker latency is high
+        description: "Docker latency is {{ $value }} seconds for 90% of kubelet operations"
+        alertType: latency
+        component: container runtime
+        selfHealing: false
+        url:
+
+    - alert: KubernetesAPIDown
+      expr: up{job="kubernetes-apiservers"} == 0
+      for: 10m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kubernetes API server unreachable
+        description: "Kubernetes API server unreachable on {{ $labels.cluster }} instance {{ $labels.instance }}"
+        alertType: availability
+        component: kubernetes
+        selfHealing: false
+        url:
+
+    - alert: KubernetesAPIAbsent
+      expr: absent(up{job="kubernetes-apiservers"})
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: Kubernetes API server absent
+        description: Kubernetes API server absent
+        alertType: availability
+        component: kubernetes
+        selfHealing: false
+        url:
+
+    - alert: KubernetesAPIErrorsHigh
+      expr: rate(apiserver_request_count{code=~"^(?:5..)$"}[5m]) / rate(apiserver_request_count[5m]) * 100 > 5
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kubernetes API server errors high
+        description: "Kubernetes API server errors (response code 5xx) are {{ $value }}% of total requests"
+        alertType: errors
+        component: kubernetes
+        selfHealing: false
+        url:
+
+    - alert: KubernetesAPILatencyHigh
+      expr: apiserver_request_latencies_summary{quantile="0.9",subresource!="log",verb!~"^(?:WATCH|WATCHLIST|PROXY|CONNECT)$"} / 1e+06 > .5
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: Kubernetes API server latency high
+        description: "Kubernetes API server request latency is {{ $value }} seconds for 90% of requests. NOTE: long-standing requests have been removed from alert query."
+        alertType: latency
+        component: kubernetes
+        selfHealing: false
+        url:

@@ -53,6 +53,7 @@ $ oc process -f prometheus-standalone.yaml | oc apply -f -
 
 You can find the Prometheus route by invoking `oc get routes` and then browsing in your web console. Users who are granted `view` access on the namespace will have access to login to Prometheus.
 
+To load rules see [rules README](/examples/prometheus/rules/README.md).
 
 ## Useful metrics queries
 
