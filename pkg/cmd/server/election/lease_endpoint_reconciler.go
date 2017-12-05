@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/kubernetes/pkg/api/endpoints"
 	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/master/reconcilers"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
 )
 
@@ -89,7 +89,7 @@ type leaseEndpointReconciler struct {
 	masterLeases     Leases
 }
 
-var _ master.EndpointReconciler = &leaseEndpointReconciler{}
+var _ reconcilers.EndpointReconciler = &leaseEndpointReconciler{}
 
 func NewLeaseEndpointReconciler(endpointRegistry endpoint.Registry, masterLeases Leases) *leaseEndpointReconciler {
 	return &leaseEndpointReconciler{
@@ -174,7 +174,12 @@ func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.
 	}
 
 	glog.Warningf("Resetting endpoints for master service %q to %v", serviceName, masterIPs)
-	return r.endpointRegistry.UpdateEndpoints(ctx, e)
+	return r.endpointRegistry.UpdateEndpoints(ctx, e, nil, nil)
+}
+
+// TODO collapse onto upstream
+func (r *leaseEndpointReconciler) StopReconciling(serviceName string, ip net.IP, endpointPorts []api.EndpointPort) error {
+	return nil
 }
 
 // checkEndpointSubsetFormatWithLease determines if the endpoint is in the
