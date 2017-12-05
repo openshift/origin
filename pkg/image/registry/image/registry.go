@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -72,7 +71,7 @@ func (s *storage) CreateImage(ctx apirequest.Context, image *imageapi.Image) err
 }
 
 func (s *storage) UpdateImage(ctx apirequest.Context, image *imageapi.Image) (*imageapi.Image, error) {
-	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image, legacyscheme.Scheme))
+	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image))
 	if err != nil {
 		return nil, err
 	}

@@ -7,7 +7,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
@@ -29,7 +28,6 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a RESTStorage object that will work against ClusterResourceQuota objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 	store := &registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
 		NewListFunc:              func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
 		DefaultQualifiedResource: quotaapi.Resource("clusterresourcequotas"),

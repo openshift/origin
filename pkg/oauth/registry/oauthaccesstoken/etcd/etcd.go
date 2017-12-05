@@ -8,7 +8,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
@@ -28,7 +27,6 @@ var _ rest.StandardStorage = &REST{}
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, backends ...storage.Interface) (*REST, error) {
 	strategy := oauthaccesstoken.NewStrategy(clientGetter)
 	store := &registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthAccessToken{} },
 		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthAccessTokenList{} },
 		DefaultQualifiedResource: oauthapi.Resource("oauthaccesstokens"),

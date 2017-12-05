@@ -87,7 +87,6 @@ func TestAPIServerDefaults(t *testing.T) {
 				ServerList: nil,
 				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
-				Copier: legacyscheme.Scheme,
 			},
 			DefaultStorageMediaType: "application/vnd.kubernetes.protobuf",
 			DeleteCollectionWorkers: 1,

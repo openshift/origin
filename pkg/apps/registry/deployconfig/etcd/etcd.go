@@ -10,7 +10,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 
@@ -43,7 +42,6 @@ func (r *REST) ShortNames() []string {
 // and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &deployapi.DeploymentConfig{} },
 		NewListFunc:              func() runtime.Object { return &deployapi.DeploymentConfigList{} },
 		DefaultQualifiedResource: deployapi.Resource("deploymentconfigs"),
@@ -116,7 +114,7 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 	}
 
 	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
-	if _, _, err := r.store.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig, legacyscheme.Scheme)); err != nil {
+	if _, _, err := r.store.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig)); err != nil {
 		return nil, false, err
 	}
 

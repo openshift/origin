@@ -5,7 +5,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/registry/buildconfig"
@@ -33,7 +32,6 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a RESTStorage object that will work against BuildConfig.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &buildapi.BuildConfig{} },
 		NewListFunc:              func() runtime.Object { return &buildapi.BuildConfigList{} },
 		DefaultQualifiedResource: buildapi.Resource("buildconfigs"),

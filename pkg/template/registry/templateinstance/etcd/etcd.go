@@ -7,7 +7,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -27,7 +26,6 @@ func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationint
 	strategy := templateinstance.NewStrategy(authorizationClient)
 
 	store := &registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &templateapi.TemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.TemplateInstanceList{} },
 		DefaultQualifiedResource: templateapi.Resource("templateinstances"),

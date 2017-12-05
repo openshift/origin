@@ -4,7 +4,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -178,5 +177,3 @@ func (s *REST) getImpersonatingClient(ctx apirequest.Context) (rbacinternalversi
 	}
 	return rbacClient.RoleBindings(namespace), nil
 }
-
-var cloner = conversion.NewCloner()
