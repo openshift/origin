@@ -108,11 +108,18 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 	if err != nil {
 		return err
 	}
-	resp, err := request(rt, strings.TrimRight(o.ClientConfig.Host, "/")+oauthMetadataEndpoint, nil)
+
+	requestURL := strings.TrimRight(o.ClientConfig.Host, "/") + oauthMetadataEndpoint
+	resp, err := request(rt, requestURL, nil)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("couldn't get %v: unexpected response status %v", requestURL, resp.StatusCode)
+	}
+
 	metadata := &util.OauthAuthorizationServerMetadata{}
 	if err := json.NewDecoder(resp.Body).Decode(metadata); err != nil {
 		return err
