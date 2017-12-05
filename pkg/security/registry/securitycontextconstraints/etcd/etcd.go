@@ -5,7 +5,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	api "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/registry/securitycontextconstraints"
@@ -27,7 +26,6 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a RESTStorage object that will work against security context constraints objects.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &registry.Store{
-		Copier:      api.Scheme,
 		NewFunc:     func() runtime.Object { return &securityapi.SecurityContextConstraints{} },
 		NewListFunc: func() runtime.Object { return &securityapi.SecurityContextConstraintsList{} },
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {

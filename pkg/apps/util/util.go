@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -270,11 +271,7 @@ func RecordImageChangeCauses(config *deployapi.DeploymentConfig, imageNames []st
 }
 
 func CopyApiResourcesToV1Resources(in *api.ResourceRequirements) v1.ResourceRequirements {
-	copied, err := api.Scheme.DeepCopy(in)
-	if err != nil {
-		panic(err)
-	}
-	in = copied.(*api.ResourceRequirements)
+	in = in.DeepCopy()
 	out := v1.ResourceRequirements{}
 	if err := kapiv1.Convert_core_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
 		panic(err)
@@ -283,29 +280,11 @@ func CopyApiResourcesToV1Resources(in *api.ResourceRequirements) v1.ResourceRequ
 }
 
 func CopyApiEnvVarToV1EnvVar(in []api.EnvVar) []v1.EnvVar {
-	copied, err := api.Scheme.DeepCopy(in)
-	if err != nil {
-		panic(err)
-	}
-	in = copied.([]api.EnvVar)
 	out := make([]v1.EnvVar, len(in))
 	for i := range in {
-		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
+		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(in[i].DeepCopy(), &out[i], nil); err != nil {
 			panic(err)
 		}
-	}
-	return out
-}
-
-func CopyPodTemplateSpecToV1PodTemplateSpec(spec *api.PodTemplateSpec) *v1.PodTemplateSpec {
-	copied, err := api.Scheme.DeepCopy(spec)
-	if err != nil {
-		panic(err)
-	}
-	in := copied.(*api.PodTemplateSpec)
-	out := &v1.PodTemplateSpec{}
-	if err := kapiv1.Convert_core_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
-		panic(err)
 	}
 	return out
 }

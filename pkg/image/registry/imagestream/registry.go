@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -81,7 +80,7 @@ func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, legacyscheme.Scheme))
+	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream))
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +88,7 @@ func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, legacyscheme.Scheme))
+	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream))
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +96,7 @@ func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *ima
 }
 
 func (s *storage) UpdateImageStreamStatus(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, legacyscheme.Scheme))
+	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream))
 	if err != nil {
 		return nil, err
 	}

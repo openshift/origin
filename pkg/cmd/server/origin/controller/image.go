@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -79,7 +78,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer(),
 			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 		})
 	}
 	if !c.HasDaemonSetsEnabled {
@@ -88,7 +87,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer(),
 			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 		})
 	}
 	if !c.HasStatefulSetsEnabled {
@@ -97,7 +96,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer(),
 			Store:     ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 		})
 	}
 	if !c.HasCronJobsEnabled {
@@ -106,7 +105,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer(),
 			Store:     ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: legacyscheme.Scheme},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 		})
 	}
 

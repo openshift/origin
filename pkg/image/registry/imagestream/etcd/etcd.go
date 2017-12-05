@@ -8,7 +8,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -39,7 +38,6 @@ func (r *REST) ShortNames() []string {
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageStreamList{} },
 		DefaultQualifiedResource: imageapi.Resource("imagestreams"),

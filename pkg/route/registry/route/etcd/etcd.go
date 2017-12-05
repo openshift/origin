@@ -9,7 +9,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapirest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -34,7 +33,6 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 	strategy := routeregistry.NewStrategy(allocator, sarClient)
 
 	store := &registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &routeapi.Route{} },
 		NewListFunc:              func() runtime.Object { return &routeapi.RouteList{} },
 		DefaultQualifiedResource: routeapi.Resource("routes"),

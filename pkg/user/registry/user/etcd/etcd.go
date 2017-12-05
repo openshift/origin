@@ -13,7 +13,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -32,7 +31,6 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against users
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   legacyscheme.Scheme,
 		NewFunc:                  func() runtime.Object { return &userapi.User{} },
 		NewListFunc:              func() runtime.Object { return &userapi.UserList{} },
 		DefaultQualifiedResource: userapi.Resource("users"),
