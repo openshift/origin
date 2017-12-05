@@ -175,7 +175,7 @@ func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) 
 	o.cache = cache
 }
 
-func (o *projectRequestLimit) Validate() error {
+func (o *projectRequestLimit) ValidateInitialization() error {
 	if o.userClient == nil {
 		return fmt.Errorf("ProjectRequestLimit plugin requires an Openshift client")
 	}

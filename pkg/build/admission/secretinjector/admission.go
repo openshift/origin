@@ -103,6 +103,6 @@ func (si *secretInjector) SetRESTClientConfig(restClientConfig restclient.Config
 	si.restClientConfig = restClientConfig
 }
 
-func (si *secretInjector) Validate() error {
+func (si *secretInjector) ValidateInitialization() error {
 	return nil
 }

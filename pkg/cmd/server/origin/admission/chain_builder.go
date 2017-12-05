@@ -202,7 +202,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 				return nil, err
 			}
 			admissionInitializer.Initialize(lc)
-			if err := lc.(admission.Validator).Validate(); err != nil {
+			if err := lc.ValidateInitialization(); err != nil {
 				return nil, err
 			}
 			plugin = lc

@@ -78,6 +78,6 @@ func (d *sccExecRestrictions) SetSecurityInformers(informers securityinformer.Sh
 }
 
 // Validate defines actions to validate sccExecRestrictions
-func (d *sccExecRestrictions) Validate() error {
-	return d.constraintAdmission.Validate()
+func (d *sccExecRestrictions) ValidateInitialization() error {
+	return d.constraintAdmission.ValidateInitialization()
 }

@@ -200,7 +200,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 	return nil
 }
 
-func (q *restrictUsersAdmission) Validate() error {
+func (q *restrictUsersAdmission) ValidateInitialization() error {
 	if q.kclient == nil {
 		return errors.New("RestrictUsersAdmission plugin requires a Kubernetes client")
 	}

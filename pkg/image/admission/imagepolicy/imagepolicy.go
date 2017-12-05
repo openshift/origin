@@ -120,7 +120,7 @@ func (a *imagePolicyPlugin) SetProjectCache(c *cache.ProjectCache) {
 }
 
 // Validate ensures that all required interfaces have been provided, or returns an error.
-func (a *imagePolicyPlugin) Validate() error {
+func (a *imagePolicyPlugin) ValidateInitialization() error {
 	if a.client == nil {
 		return fmt.Errorf("%s needs an Openshift client", api.PluginName)
 	}

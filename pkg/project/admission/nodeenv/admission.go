@@ -81,7 +81,7 @@ func (q *podNodeEnvironment) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.client = c
 }
 
-func (p *podNodeEnvironment) Validate() error {
+func (p *podNodeEnvironment) ValidateInitialization() error {
 	if p.cache == nil {
 		return fmt.Errorf("project node environment plugin needs a project cache")
 	}

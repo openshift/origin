@@ -154,7 +154,7 @@ func (a *jenkinsBootstrapper) SetOpenshiftInternalTemplateClient(c templateclien
 	a.templateClient = c
 }
 
-func (a *jenkinsBootstrapper) Validate() error {
+func (a *jenkinsBootstrapper) ValidateInitialization() error {
 	if a.serviceClient == nil {
 		return fmt.Errorf("missing serviceClient")
 	}

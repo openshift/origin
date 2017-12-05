@@ -105,7 +105,7 @@ func (a *runOnceDuration) SetProjectCache(cache *projectcache.ProjectCache) {
 	a.cache = cache
 }
 
-func (a *runOnceDuration) Validate() error {
+func (a *runOnceDuration) ValidateInitialization() error {
 	if a.cache == nil {
 		return errors.New("RunOnceDuration plugin requires a project cache")
 	}

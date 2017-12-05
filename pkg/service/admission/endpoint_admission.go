@@ -55,7 +55,7 @@ func (r *restrictedEndpointsAdmission) SetAuthorizer(a authorizer.Authorizer) {
 	r.authorizer = a
 }
 
-func (r *restrictedEndpointsAdmission) Validate() error {
+func (r *restrictedEndpointsAdmission) ValidateInitialization() error {
 	if r.authorizer == nil {
 		return fmt.Errorf("missing authorizer")
 	}
