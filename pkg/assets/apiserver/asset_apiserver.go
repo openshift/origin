@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -55,6 +56,10 @@ type AssetServer struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 
 	PublicURL url.URL
+
+	// TODO figure out sttts envisions these being made available
+	BindAddress string
+	BindNetwork string
 }
 
 type completedConfig struct {
@@ -99,8 +104,10 @@ func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, err
 	if err := secureServingOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	genericConfig.SecureServingInfo.BindAddress = assetConfig.ServingInfo.BindAddress
-	genericConfig.SecureServingInfo.BindNetwork = assetConfig.ServingInfo.BindNetwork
+	genericConfig.SecureServingInfo.Listener, err = net.Listen(assetConfig.ServingInfo.BindNetwork, assetConfig.ServingInfo.BindAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to listen on %v: %v", assetConfig.ServingInfo.BindAddress, err)
+	}
 	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(assetConfig.ServingInfo.MinTLSVersion)
 	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(assetConfig.ServingInfo.CipherSuites)
 
@@ -131,7 +138,11 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 
 	s := &AssetServer{
 		GenericAPIServer: genericServer,
-		PublicURL:        c.ExtraConfig.PublicURL,
+
+		PublicURL: c.ExtraConfig.PublicURL,
+		// TODO figure out sttts envisions these being made available
+		BindAddress: c.ExtraConfig.Options.ServingInfo.BindAddress,
+		BindNetwork: c.ExtraConfig.Options.ServingInfo.BindNetwork,
 	}
 
 	if err := c.addAssets(s.GenericAPIServer.Handler.NonGoRestfulMux); err != nil {
@@ -308,11 +319,11 @@ func extensionPropertyArray(extensionProperties map[string]string) []assets.WebC
 func RunAssetServer(assetServer *AssetServer, stopCh <-chan struct{}) error {
 	go assetServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
-	glog.Infof("Web console listening at https://%s", assetServer.GenericAPIServer.SecureServingInfo.BindAddress)
+	glog.Infof("Web console listening at https://%s", assetServer.BindAddress)
 	glog.Infof("Web console available at %s", assetServer.PublicURL.String())
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	return cmdutil.WaitForSuccessfulDial(true, assetServer.GenericAPIServer.SecureServingInfo.BindNetwork, assetServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+	return cmdutil.WaitForSuccessfulDial(true, assetServer.BindNetwork, assetServer.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
 // If we know the location of the asset server, redirect to it when / is requested
