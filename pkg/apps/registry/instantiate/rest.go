@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +50,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create instantiates a deployment config
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	req, ok := obj.(*deployapi.DeploymentRequest)
 	if !ok {
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
@@ -105,11 +104,19 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 		userInfo, _ := apirequest.UserFrom(ctx)
 		attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
-		if err := r.admit.Admit(attrs); err != nil {
+		if err := r.admit.(admission.MutationInterface).Admit(attrs); err != nil {
+			return err
+		}
+		if err := r.admit.(admission.ValidationInterface).Validate(attrs); err != nil {
 			return err
 		}
 
-		ret, _, err = r.store.Update(ctx, config.Name, rest.DefaultUpdatedObjectInfo(config, legacyscheme.Scheme))
+		ret, _, err = r.store.Update(
+			ctx,
+			config.Name,
+			rest.DefaultUpdatedObjectInfo(config),
+			rest.AdmissionToValidateObjectFunc(r.admit, attrs),
+			rest.AdmissionToValidateObjectUpdateFunc(r.admit, attrs))
 		return err
 	})
 
