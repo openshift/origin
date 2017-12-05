@@ -24,6 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	"github.com/openshift/origin/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -302,7 +303,7 @@ func getControllerRef(obj runtime.Object, decoder runtime.Decoder) (*kapi.Object
 
 	annotations := objMeta.GetAnnotations()
 
-	creatorRefRaw, creatorListed := annotations[kapi.CreatedByAnnotation]
+	creatorRefRaw, creatorListed := annotations[api.DeprecatedKubeCreatedByAnnotation]
 	if !creatorListed {
 		// if we don't have a creator listed, try the openshift-specific Deployment annotation
 		dcName, dcNameListed := annotations[deployapi.DeploymentConfigAnnotation]
