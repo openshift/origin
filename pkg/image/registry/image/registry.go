@@ -34,8 +34,8 @@ type Storage interface {
 	rest.Getter
 	rest.Watcher
 
-	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
-	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
+	Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error)
+	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls

@@ -91,7 +91,7 @@ func (r *ScaleREST) Get(ctx apirequest.Context, name string, options *metav1.Get
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
-func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	uncastObj, err := r.store.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
@@ -114,7 +114,7 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 	}
 
 	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
-	if _, _, err := r.store.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig)); err != nil {
+	if _, _, err := r.store.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig), createValidation, updateValidation); err != nil {
 		return nil, false, err
 	}
 
@@ -139,6 +139,6 @@ func (r *StatusREST) Get(ctx apirequest.Context, name string, options *metav1.Ge
 }
 
 // Update alters the status subset of an deploymentConfig.
-func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }
