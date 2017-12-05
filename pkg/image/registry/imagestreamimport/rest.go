@@ -324,7 +324,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	if create {
 		stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
 		glog.V(4).Infof("create new stream: %#v", stream)
-		obj, err = r.internalStreams.Create(ctx, stream, false)
+		obj, err = r.internalStreams.Create(ctx, stream, rest.ValidateAllObjectFunc, false)
 	} else {
 		if hasAnnotation && !hasChanges {
 			glog.V(4).Infof("stream did not change: %#v", stream)
@@ -334,7 +334,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 				glog.V(4).Infof("updating stream %s", diff.ObjectDiff(original, stream))
 			}
 			stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = now.UTC().Format(time.RFC3339)
-			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream))
+			obj, _, err = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(stream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 		}
 	}
 
@@ -345,7 +345,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 			originalStream := original
 			recordLimitExceededStatus(originalStream, stream, err, now, nextGeneration)
 			var limitErr error
-			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream))
+			obj, _, limitErr = r.internalStreams.Update(ctx, stream.Name, rest.DefaultUpdatedObjectInfo(originalStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 			if limitErr != nil {
 				utilruntime.HandleError(fmt.Errorf("failed to record limit exceeded status in image stream %s/%s: %v", stream.Namespace, stream.Name, limitErr))
 			}
@@ -480,7 +480,7 @@ func (r *REST) importSuccessful(
 		return nil, false
 	}
 
-	updated, err := r.images.Create(ctx, image, false)
+	updated, err := r.images.Create(ctx, image, rest.ValidateAllObjectFunc, false)
 	switch {
 	case kapierrors.IsAlreadyExists(err):
 		if err := util.ImageWithMetadata(image); err != nil {

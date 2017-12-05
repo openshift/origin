@@ -66,12 +66,12 @@ func (s *storage) GetImage(ctx apirequest.Context, imageID string, options *meta
 }
 
 func (s *storage) CreateImage(ctx apirequest.Context, image *imageapi.Image) error {
-	_, err := s.Create(ctx, image, false)
+	_, err := s.Create(ctx, image, rest.ValidateAllObjectFunc, false)
 	return err
 }
 
 func (s *storage) UpdateImage(ctx apirequest.Context, image *imageapi.Image) (*imageapi.Image, error) {
-	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image))
+	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}
