@@ -414,8 +414,10 @@ func buildKubeApiserverConfig(
 	}
 	genericConfig.LoopbackClientConfig = loopbackClientConfig
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
-	genericConfig.SecureServingInfo.BindAddress = masterConfig.ServingInfo.BindAddress
-	genericConfig.SecureServingInfo.BindNetwork = masterConfig.ServingInfo.BindNetwork
+	genericConfig.SecureServingInfo.Listener, err = net.Listen(masterConfig.ServingInfo.BindNetwork, masterConfig.ServingInfo.BindAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to listen on %v: %v", masterConfig.ServingInfo.BindAddress, err)
+	}
 	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
 	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)
 	oAuthClientCertCAs, err := configapi.GetOAuthClientCertCAs(masterConfig)
