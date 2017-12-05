@@ -28,8 +28,11 @@ func (s *CloneREST) New() runtime.Object {
 }
 
 // Create instantiates a new build from an existing build
-func (s *CloneREST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (s *CloneREST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+		return nil, err
+	}
+	if err := createValidation(obj); err != nil {
 		return nil, err
 	}
 
