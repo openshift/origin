@@ -42,8 +42,8 @@ func (i *imageStreamImportEvaluator) Constraints(required []kapi.ResourceName, o
 	return nil
 }
 
-func (i *imageStreamImportEvaluator) GroupKind() schema.GroupKind {
-	return imageapi.Kind("ImageStreamImport")
+func (i *imageStreamImportEvaluator) GroupResource() schema.GroupResource {
+	return imageapi.Resource("imagestreamimports")
 }
 
 func (i *imageStreamImportEvaluator) Handles(a kadmission.Attributes) bool {

@@ -392,6 +392,7 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
+
 		_, config, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
@@ -489,12 +490,15 @@ func (m *Master) Start() error {
 			if err != nil {
 				glog.Fatal(err)
 			}
-			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop)
+
+			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop, make(chan struct{}))
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
 			informers.Start(utilwait.NeverStop)
+			close(controllerContext.InformersStarted)
+
 		}()
 	}
 
