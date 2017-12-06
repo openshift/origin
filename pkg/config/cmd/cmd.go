@@ -21,7 +21,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/unversioned"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -222,11 +221,34 @@ func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operatio
 	return func(info *resource.Info, err error) bool {
 		if err == nil {
 			fmt.Fprintf(out, indent)
-			cmdutil.PrintSuccess(mapper, short, out, info.Mapping.Resource, info.Name, dryRun, operation)
+			printSuccess(mapper, short, out, info.Mapping.Resource, info.Name, dryRun, operation)
 		} else {
 			fmt.Fprintf(errs, "%s%s: %v\n", indent, prefixForError(err), err)
 		}
 		return false
+	}
+}
+
+func printSuccess(mapper meta.RESTMapper, shortOutput bool, out io.Writer, resource, name string, dryRun bool, operation string) {
+	resource, _ = mapper.ResourceSingularizer(resource)
+	dryRunMsg := ""
+	if dryRun {
+		dryRunMsg = " (dry run)"
+	}
+	if shortOutput {
+		// -o name: prints resource/name
+		if len(resource) > 0 {
+			fmt.Fprintf(out, "%s/%s\n", resource, name)
+		} else {
+			fmt.Fprintf(out, "%s\n", name)
+		}
+	} else {
+		// understandable output by default
+		if len(resource) > 0 {
+			fmt.Fprintf(out, "%s \"%s\" %s%s\n", resource, name, operation, dryRunMsg)
+		} else {
+			fmt.Fprintf(out, "\"%s\" %s%s\n", name, operation, dryRunMsg)
+		}
 	}
 }
 
