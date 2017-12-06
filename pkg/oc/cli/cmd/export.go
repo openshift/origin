@@ -219,13 +219,13 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		outputFormat = "yaml"
 	}
 	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
+	printOpts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
+	printOpts.OutputFormatType = outputFormat
+	printOpts.OutputFormatArgument = templateFile
+	printOpts.AllowMissingKeys = kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
+
 	p, err := kprinters.GetStandardPrinter(
-		&kprinters.OutputOptions{
-			FmtType:          outputFormat,
-			FmtArg:           templateFile,
-			AllowMissingKeys: kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"),
-		},
-		kcmdutil.GetFlagBool(cmd, "no-headers"), mapper, typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, kprinters.PrintOptions{})
+		mapper, typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
 
 	if err != nil {
 		return err
