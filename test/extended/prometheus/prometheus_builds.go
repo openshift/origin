@@ -72,8 +72,8 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			activeTests := map[string][]metricTest{
 				activeBuildQuery: {
 					metricTest{
-						labels:      map[string]string{"name": "frontend-1"},
-						greaterThan: true,
+						labels:           map[string]string{"name": "frontend-1"},
+						greaterThanEqual: true,
 					},
 				},
 			}
@@ -88,14 +88,16 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			terminalTests := map[string][]metricTest{
 				buildCountQuery: {
 					metricTest{
-						labels:      map[string]string{"phase": string(buildapi.BuildPhaseComplete)},
-						greaterThan: true,
+						labels:           map[string]string{"phase": string(buildapi.BuildPhaseComplete)},
+						greaterThanEqual: true,
 					},
 					metricTest{
-						labels: map[string]string{"phase": string(buildapi.BuildPhaseCancelled)},
+						labels:           map[string]string{"phase": string(buildapi.BuildPhaseCancelled)},
+						greaterThanEqual: true,
 					},
 					metricTest{
-						labels: map[string]string{"phase": string(buildapi.BuildPhaseFailed)},
+						labels:           map[string]string{"phase": string(buildapi.BuildPhaseFailed)},
+						greaterThanEqual: true,
 					},
 				},
 			}
@@ -120,10 +122,14 @@ type prometheusResponseData struct {
 }
 
 type metricTest struct {
-	labels      map[string]string
-	greaterThan bool
-	value       float64
-	success     bool
+	labels map[string]string
+	// we are not more precise (greater than only, or equal only) becauses the extended build tests
+	// run in parallel on the CI system, and some of the metrics are cross namespace, so we cannot
+	// reliably filter; we do precise count validation in the unit tests, where "entire cluster" activity
+	// is more controlled :-)
+	greaterThanEqual bool
+	value            float64
+	success          bool
 }
 
 func runQueries(metricTests map[string][]metricTest) {
@@ -209,10 +215,10 @@ func labelsWeWant(sample *model.Sample, labels map[string]string) bool {
 }
 
 func valueWeWant(sample *model.Sample, tc metricTest) bool {
-	//NOTE - we could use SampleValue has an Equals func, but since SampleValue has no GreaterThan,
+	//NOTE - we could use SampleValue has an Equals func, but since SampleValue has no GreaterThanEqual,
 	// we have to go down the float64 compare anyway
-	if tc.greaterThan {
-		return float64(sample.Value) > tc.value
+	if tc.greaterThanEqual {
+		return float64(sample.Value) >= tc.value
 	}
-	return float64(sample.Value) == tc.value
+	return float64(sample.Value) < tc.value
 }
