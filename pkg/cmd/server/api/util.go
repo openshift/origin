@@ -4,3 +4,7 @@ package api
 func IsBuildEnabled(config *MasterConfig) bool {
 	return !config.DisabledFeatures.Has(FeatureBuilder)
 }
+
+func IsSignatureImportEnabled(config *MasterConfig) bool {
+	return !config.DisabledFeatures.Has(FeatureSignatureImport)
+}

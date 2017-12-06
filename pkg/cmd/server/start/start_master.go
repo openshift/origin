@@ -701,6 +701,9 @@ func getExcludedControllers(options configapi.MasterConfig) sets.String {
 		excludedControllers.Insert("openshift.io/build")
 		excludedControllers.Insert("openshift.io/build-config-change")
 	}
+	if !configapi.IsSignatureImportEnabled(&options) {
+		excludedControllers.Insert("openshift.io/image-signature-import")
+	}
 	return excludedControllers
 }
 
