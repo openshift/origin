@@ -20,35 +20,12 @@ function cleanup() {
 	os::test::junit::generate_report
 	os::cleanup::all
 
-	# restore journald to previous form
-	if os::util::ensure::system_binary_exists 'systemctl'; then
-		os::log::info "Restoring journald limits"
-		${USE_SUDO:+sudo} mv /etc/systemd/{journald.conf.bak,journald.conf}
-		${USE_SUDO:+sudo} systemctl restart systemd-journald.service
-		# Docker has "some" problems when journald is restarted, so we need to
-		# restart docker, as well.
-		${USE_SUDO:+sudo} systemctl restart docker.service
-	fi
-
 	os::util::describe_return_code "${return_code}"
 	exit "${return_code}"
 }
 trap "cleanup" EXIT
 
 os::log::system::start
-
-# This turns-off rate limiting in journald to bypass the problem from
-# https://github.com/openshift/origin/issues/12558.
-if os::util::ensure::system_binary_exists 'systemctl'; then
-	os::log::info "Turning off journald limits"
-	${USE_SUDO:+sudo} cp /etc/systemd/{journald.conf,journald.conf.bak}
-	os::util::sed "s/^.*RateLimitInterval.*$/RateLimitInterval=0/g" /etc/systemd/journald.conf
-	os::util::sed "s/^.*RateLimitBurst.*$/RateLimitBurst=0/g" /etc/systemd/journald.conf
-	${USE_SUDO:+sudo} systemctl restart systemd-journald.service
-	# Docker has "some" problems when journald is restarted, so we need to
-	# restart docker, as well.
-	${USE_SUDO:+sudo} systemctl restart docker.service
-fi
 
 # Setup
 os::log::info "openshift version: `openshift version`"
