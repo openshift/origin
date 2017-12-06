@@ -282,8 +282,10 @@ var _ = g.Describe("idling and unidling", func() {
 		})
 
 		g.It("should work with TCP (when fully idled) [Conformance] [local]", func() {
+			err := exutil.WaitForUserBeAuthorized(oc, oc.Username(), "create", "endpoints/restricted")
+			o.Expect(err).ToNot(o.HaveOccurred())
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			_, err = oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
@@ -311,8 +313,10 @@ var _ = g.Describe("idling and unidling", func() {
 		})
 
 		g.It("should work with TCP (while idling) [local]", func() {
+			err := exutil.WaitForUserBeAuthorized(oc, oc.Username(), "create", "endpoints/restricted")
+			o.Expect(err).ToNot(o.HaveOccurred())
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			_, err = oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP and repeatedly connecting, making sure we seamlessly idle and come back up")
@@ -335,8 +339,11 @@ var _ = g.Describe("idling and unidling", func() {
 		})
 
 		g.It("should handle many TCP connections by dropping those under a certain bound [local]", func() {
+			err := exutil.WaitForUserBeAuthorized(oc, oc.Username(), "create", "endpoints/restricted")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			_, err = oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
@@ -385,8 +392,11 @@ var _ = g.Describe("idling and unidling", func() {
 		})
 
 		g.It("should work with UDP [local]", func() {
+			err := exutil.WaitForUserBeAuthorized(oc, oc.Username(), "create", "endpoints/restricted")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			_, err = oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
@@ -415,8 +425,11 @@ var _ = g.Describe("idling and unidling", func() {
 
 		// TODO: Work out how to make this test work correctly when run on AWS
 		g.XIt("should handle many UDP senders (by continuing to drop all packets on the floor) [local]", func() {
+			err := exutil.WaitForUserBeAuthorized(oc, oc.Username(), "create", "endpoints/restricted")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
 			g.By("Idling the service")
-			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			_, err = oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Waiting for the pods to have terminated")
