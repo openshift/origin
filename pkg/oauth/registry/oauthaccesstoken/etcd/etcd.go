@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"time"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
@@ -13,7 +11,6 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	"github.com/openshift/origin/pkg/util/observe"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -25,7 +22,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against access tokens
-func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, backends ...storage.Interface) (*REST, error) {
+func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
 	strategy := oauthaccesstoken.NewStrategy(clientGetter)
 	store := &registry.Store{
 		Copier:                   kapi.Scheme,
@@ -50,22 +47,6 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 	}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
-	}
-
-	if len(backends) > 0 {
-		// Build identical stores that talk to a single etcd, so we can verify the token is distributed after creation
-		watchers := []rest.Watcher{}
-		for i := range backends {
-			watcher := *store
-			watcher.Storage = backends[i]
-			watchers = append(watchers, &watcher)
-		}
-		// Observe the cluster for the particular resource version, requiring at least one backend to succeed
-		observer := observe.NewClusterObserver(store.Storage.Versioner(), watchers, 1)
-		// After creation, wait for the new token to propagate
-		store.AfterCreate = func(obj runtime.Object) error {
-			return observer.ObserveResourceVersion(obj.(*oauthapi.OAuthAccessToken).ResourceVersion, 5*time.Second)
-		}
 	}
 
 	return &REST{store}, nil
