@@ -110,20 +110,11 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		return err
 	}
 
-	builder, err := f.NewUnstructuredBuilder(true)
-	if err != nil {
-		return err
-	}
-
-	mapper, typer, err := f.UnstructuredObject()
-	if err != nil {
-		return err
-	}
-
-	b := builder.
+	b := f.NewBuilder().
+		Unstructured().
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
-		LabelSelector(selector).
+		LabelSelectorParam(selector).
 		ResourceTypeOrNameArgs(true, args...).
 		Flatten()
 

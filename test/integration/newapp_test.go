@@ -31,7 +31,10 @@ import (
 	kwatch "k8s.io/apimachinery/pkg/watch"
 	krest "k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -585,7 +588,14 @@ func TestNewAppRunAll(t *testing.T) {
 						Client:     okTemplateClient.Template(),
 						Namespaces: []string{},
 					},
-					TemplateFileSearcher: &app.TemplateFileSearcher{},
+					TemplateFileSearcher: &app.TemplateFileSearcher{
+						Builder: resource.NewBuilder(&resource.Mapper{
+							RESTMapper:   legacyscheme.Registry.RESTMapper(),
+							ObjectTyper:  legacyscheme.Scheme,
+							ClientMapper: resource.DisabledClientForMapping{},
+							Decoder:      legacyscheme.Codecs.UniversalDecoder(),
+						}, nil, &categories.SimpleCategoryExpander{}),
+					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
 						DockerfileTester:  dockerfile.NewTester(),
@@ -844,132 +854,134 @@ func TestNewAppRunAll(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
-		test.config.Deploy = true
-		test.config.ImageClient = &NewAppFakeImageClient{
-			proxy: test.config.ImageClient,
-		}
-		res, err := test.config.Run()
-		if test.errFn != nil {
-			if !test.errFn(err) {
-				t.Errorf("%s: Error mismatch! Unexpected error: %#v", test.name, err)
-				continue
+		t.Run(test.name, func(t *testing.T) {
+			test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+			test.config.Deploy = true
+			test.config.ImageClient = &NewAppFakeImageClient{
+				proxy: test.config.ImageClient,
 			}
-		} else if err != test.expectedErr {
-			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
-			continue
-		}
-		if err != nil {
-			continue
-		}
-		if res.Name != test.expectedName {
-			t.Errorf("%s: Name was not correct: %v", test.name, res.Name)
-			continue
-		}
-		imageStreams := []*imageapi.ImageStream{}
-		got := map[string][]string{}
-		gotVolumes := map[string]string{}
-		for _, obj := range res.List.Items {
-			switch tp := obj.(type) {
-			case *buildapi.BuildConfig:
-				got["buildConfig"] = append(got["buildConfig"], tp.Name)
-			case *kapi.Service:
-				if test.checkPort != "" {
-					if len(tp.Spec.Ports) == 0 {
-						t.Errorf("%s: did not get any ports in service", test.name)
-						break
-					}
-					expectedPort, _ := strconv.Atoi(test.checkPort)
-					if tp.Spec.Ports[0].Port != int32(expectedPort) {
-						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n",
-							test.name, expectedPort, tp.Spec.Ports[0].Port)
-					}
+			res, err := test.config.Run()
+			if test.errFn != nil {
+				if !test.errFn(err) {
+					t.Errorf("%s: Error mismatch! Unexpected error: %#v", test.name, err)
+					return
 				}
-				if test.config.Labels != nil {
-					if !mapContains(test.config.Labels, tp.Spec.Selector) {
-						t.Errorf("%s: did not get expected service selector. Expected: %v. Got: %v",
-							test.name, test.config.Labels, tp.Spec.Selector)
-					}
-				}
-				got["service"] = append(got["service"], tp.Name)
-			case *imageapi.ImageStream:
-				got["imageStream"] = append(got["imageStream"], tp.Name)
-				imageStreams = append(imageStreams, tp)
-			case *deployapi.DeploymentConfig:
-				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
-				if podTemplate := tp.Spec.Template; podTemplate != nil {
-					for _, volume := range podTemplate.Spec.Volumes {
-						if volume.VolumeSource.EmptyDir != nil {
-							gotVolumes[volume.Name] = "EmptyDir"
-						} else {
-							gotVolumes[volume.Name] = "UNKNOWN"
+			} else if err != test.expectedErr {
+				t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+				return
+			}
+			if err != nil {
+				return
+			}
+			if res.Name != test.expectedName {
+				t.Errorf("%s: Name was not correct: %v", test.name, res.Name)
+				return
+			}
+			imageStreams := []*imageapi.ImageStream{}
+			got := map[string][]string{}
+			gotVolumes := map[string]string{}
+			for _, obj := range res.List.Items {
+				switch tp := obj.(type) {
+				case *buildapi.BuildConfig:
+					got["buildConfig"] = append(got["buildConfig"], tp.Name)
+				case *kapi.Service:
+					if test.checkPort != "" {
+						if len(tp.Spec.Ports) == 0 {
+							t.Errorf("%s: did not get any ports in service", test.name)
+							break
+						}
+						expectedPort, _ := strconv.Atoi(test.checkPort)
+						if tp.Spec.Ports[0].Port != int32(expectedPort) {
+							t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n",
+								test.name, expectedPort, tp.Spec.Ports[0].Port)
 						}
 					}
-					for _, container := range podTemplate.Spec.Containers {
-						for _, volumeMount := range container.VolumeMounts {
-							got["volumeMounts"] = append(got["volumeMounts"], volumeMount.Name)
+					if test.config.Labels != nil {
+						if !mapContains(test.config.Labels, tp.Spec.Selector) {
+							t.Errorf("%s: did not get expected service selector. Expected: %v. Got: %v",
+								test.name, test.config.Labels, tp.Spec.Selector)
+						}
+					}
+					got["service"] = append(got["service"], tp.Name)
+				case *imageapi.ImageStream:
+					got["imageStream"] = append(got["imageStream"], tp.Name)
+					imageStreams = append(imageStreams, tp)
+				case *deployapi.DeploymentConfig:
+					got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
+					if podTemplate := tp.Spec.Template; podTemplate != nil {
+						for _, volume := range podTemplate.Spec.Volumes {
+							if volume.VolumeSource.EmptyDir != nil {
+								gotVolumes[volume.Name] = "EmptyDir"
+							} else {
+								gotVolumes[volume.Name] = "UNKNOWN"
+							}
+						}
+						for _, container := range podTemplate.Spec.Containers {
+							for _, volumeMount := range container.VolumeMounts {
+								got["volumeMounts"] = append(got["volumeMounts"], volumeMount.Name)
+							}
+						}
+					}
+					if test.config.Labels != nil {
+						if !mapContains(test.config.Labels, tp.Spec.Selector) {
+							t.Errorf("%s: did not get expected deployment config rc selector. Expected: %v. Got: %v",
+								test.name, test.config.Labels, tp.Spec.Selector)
 						}
 					}
 				}
-				if test.config.Labels != nil {
-					if !mapContains(test.config.Labels, tp.Spec.Selector) {
-						t.Errorf("%s: did not get expected deployment config rc selector. Expected: %v. Got: %v",
-							test.name, test.config.Labels, tp.Spec.Selector)
-					}
+			}
+
+			if len(test.expected) != len(got) {
+				t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
+				return
+			}
+			for k, exp := range test.expected {
+				g, ok := got[k]
+				if !ok {
+					t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+				}
+
+				sort.Strings(g)
+				sort.Strings(exp)
+
+				if !reflect.DeepEqual(g, exp) {
+					t.Errorf("%s: %s resource names mismatch! Expected %v, got %v", test.name, k, exp, g)
+					continue
 				}
 			}
-		}
 
-		if len(test.expected) != len(got) {
-			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
-			continue
-		}
-		for k, exp := range test.expected {
-			g, ok := got[k]
-			if !ok {
-				t.Errorf("%s: Didn't find expected kind %s", test.name, k)
+			if len(test.expectedVolumes) != len(gotVolumes) {
+				t.Errorf("%s: Volume count mismatch! Expected %d, got %d", test.name, len(test.expectedVolumes), len(gotVolumes))
+				return
+			}
+			for k, exp := range test.expectedVolumes {
+				g, ok := gotVolumes[k]
+				if !ok {
+					t.Errorf("%s: Didn't find expected volume %s", test.name, k)
+				}
+
+				if g != exp {
+					t.Errorf("%s: Expected volume of type %s, got %s", test.name, g, exp)
+				}
 			}
 
-			sort.Strings(g)
-			sort.Strings(exp)
-
-			if !reflect.DeepEqual(g, exp) {
-				t.Errorf("%s: %s resource names mismatch! Expected %v, got %v", test.name, k, exp, g)
-				continue
-			}
-		}
-
-		if len(test.expectedVolumes) != len(gotVolumes) {
-			t.Errorf("%s: Volume count mismatch! Expected %d, got %d", test.name, len(test.expectedVolumes), len(gotVolumes))
-			continue
-		}
-		for k, exp := range test.expectedVolumes {
-			g, ok := gotVolumes[k]
-			if !ok {
-				t.Errorf("%s: Didn't find expected volume %s", test.name, k)
+			if test.expectedName != res.Name {
+				t.Errorf("%s: Unexpected name: %s", test.name, test.expectedName)
 			}
 
-			if g != exp {
-				t.Errorf("%s: Expected volume of type %s, got %s", test.name, g, exp)
+			if test.expectInsecure == nil {
+				return
 			}
-		}
-
-		if test.expectedName != res.Name {
-			t.Errorf("%s: Unexpected name: %s", test.name, test.expectedName)
-		}
-
-		if test.expectInsecure == nil {
-			continue
-		}
-		for _, stream := range imageStreams {
-			_, hasAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
-			if test.expectInsecure.Has(stream.Name) && !hasAnnotation {
-				t.Errorf("%s: Expected insecure annotation for stream: %s, but did not get one.", test.name, stream.Name)
+			for _, stream := range imageStreams {
+				_, hasAnnotation := stream.Annotations[imageapi.InsecureRepositoryAnnotation]
+				if test.expectInsecure.Has(stream.Name) && !hasAnnotation {
+					t.Errorf("%s: Expected insecure annotation for stream: %s, but did not get one.", test.name, stream.Name)
+				}
+				if !test.expectInsecure.Has(stream.Name) && hasAnnotation {
+					t.Errorf("%s: Got insecure annotation for stream: %s, and was not expecting one.", test.name, stream.Name)
+				}
 			}
-			if !test.expectInsecure.Has(stream.Name) && hasAnnotation {
-				t.Errorf("%s: Got insecure annotation for stream: %s, and was not expecting one.", test.name, stream.Name)
-			}
-		}
+		})
 
 	}
 }

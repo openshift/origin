@@ -126,7 +126,8 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
 
-	infos, err := f.NewBuilder(true).
+	infos, err := f.NewBuilder().
+		Internal().
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		ResourceNames("pods", args...).
 		SingleResourceType().RequireObject(false).

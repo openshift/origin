@@ -26,7 +26,7 @@ type SecretOptions struct {
 
 	Namespace string
 
-	BuilderFunc    func(bool) *resource.Builder
+	BuilderFunc    func() *resource.Builder
 	KubeCoreClient kcoreclient.CoreInterface
 
 	Out io.Writer
@@ -84,7 +84,8 @@ func (o SecretOptions) Validate() error {
 
 // GetServiceAccount Retrieve the service account object specified by the command
 func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
-	r := o.BuilderFunc(true).
+	r := o.BuilderFunc().
+		Internal().
 		NamespaceParam(o.Namespace).
 		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().

@@ -29,7 +29,6 @@ func instantiateTemplate(client templateclient.TemplateInterface, clientFactory 
 	}
 
 	mapper, typer := clientFactory.Object()
-	dynamicMapper, dynamicTyper, err := clientFactory.UnstructuredObject()
 	if err != nil {
 		return err
 	}
@@ -47,8 +46,8 @@ func instantiateTemplate(client templateclient.TemplateInterface, clientFactory 
 	bulk := &configcmd.Bulk{}
 
 	bulk.DynamicMapper = &resource.Mapper{
-		RESTMapper:   dynamicMapper,
-		ObjectTyper:  dynamicTyper,
+		RESTMapper:   mapper,
+		ObjectTyper:  typer,
 		ClientMapper: resource.ClientMapperFunc(clientFactory.UnstructuredClientForMapping),
 	}
 	bulk.Mapper = &resource.Mapper{
