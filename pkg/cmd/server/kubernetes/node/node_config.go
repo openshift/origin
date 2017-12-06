@@ -9,9 +9,9 @@ import (
 	"k8s.io/client-go/util/cert"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
+	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1alpha1"
 	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 
