@@ -9,9 +9,10 @@ import (
 	"path/filepath"
 	"time"
 
-	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim"
+	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +20,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
-	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	"k8s.io/kubernetes/pkg/volume"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -34,7 +34,7 @@ const minimumDockerAPIVersionWithPullByID = "1.22"
 // All errors here are fatal.
 func (c *NodeConfig) EnsureKubeletAccess() {
 	if _, err := os.Stat("/var/lib/docker"); os.IsPermission(err) {
-		c.HandleDockerError("Unable to view the /var/lib/docker directory - are you running as root?")
+		glog.Fatal("Unable to view the /var/lib/docker directory - are you running as root?")
 	}
 	if c.Containerized {
 		if _, err := os.Stat("/rootfs"); os.IsPermission(err) || os.IsNotExist(err) {
@@ -82,73 +82,67 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 	if c.KubeletServer.ContainerRuntime != "docker" {
 		return
 	}
-	dockerClient, dockerAddr, err := docker.GetKubeClient(c.KubeletServer.RuntimeRequestTimeout.Duration, c.KubeletServer.ImagePullProgressDeadline.Duration)
-	if err != nil {
-		c.HandleDockerError(fmt.Sprintf("Unable to create a Docker client for %s - Docker must be installed and running to start containers.\n%v", dockerAddr, err))
-		return
+
+	var endpoint string
+	if len(os.Getenv("DOCKER_HOST")) > 0 {
+		endpoint = os.Getenv("DOCKER_HOST")
+	} else {
+		endpoint = "unix:///var/run/docker.sock"
 	}
-	if url, err := url.Parse(dockerAddr); err == nil && url.Scheme == "unix" && len(url.Path) > 0 {
+
+	dockerClientConfig := &dockershim.ClientConfig{
+		DockerEndpoint:            endpoint,
+		RuntimeRequestTimeout:     c.KubeletServer.RuntimeRequestTimeout.Duration,
+		ImagePullProgressDeadline: c.KubeletServer.ImagePullProgressDeadline.Duration,
+	}
+	client := dockertools.ConnectToDockerOrDie(endpoint, c.KubeletServer.RuntimeRequestTimeout.Duration, c.KubeletServer.ImagePullProgressDeadline.Duration, false, false)
+	dockerClient := &dockerutil.KubeDocker{client}
+
+	if url, err := url.Parse(endpoint); err == nil && url.Scheme == "unix" && len(url.Path) > 0 {
 		s, err := os.Stat(url.Path)
 		switch {
 		case os.IsNotExist(err):
-			c.HandleDockerError(fmt.Sprintf("No Docker socket found at %s. Have you started the Docker daemon?", url.Path))
+			glog.Fatalf("No Docker socket found at %s. Have you started the Docker daemon?", url.Path)
 			return
 		case os.IsPermission(err):
-			c.HandleDockerError(fmt.Sprintf("You do not have permission to connect to the Docker daemon (via %s). This process requires running as the root user.", url.Path))
+			glog.Fatalf("You do not have permission to connect to the Docker daemon (via %s). This process requires running as the root user.", url.Path)
 			return
 		case err == nil && s.IsDir():
-			c.HandleDockerError(fmt.Sprintf("The Docker socket at %s is a directory instead of a unix socket - check that you have configured your connection to the Docker daemon properly.", url.Path))
+			glog.Fatalf("The Docker socket at %s is a directory instead of a unix socket - check that you have configured your connection to the Docker daemon properly.", url.Path)
 			return
 		}
 	}
 	if err := dockerClient.Ping(); err != nil {
-		c.HandleDockerError(fmt.Sprintf("Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", dockerAddr, err))
+		glog.Fatalf("Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", endpoint, err)
 		return
 	}
 
-	glog.Infof("Connecting to Docker at %s", dockerAddr)
+	glog.Infof("Connecting to Docker at %s", endpoint)
 
 	version, err := dockerClient.Version()
 	if err != nil {
-		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
+		glog.Fatalf("Unable to check for Docker server version.\n%v", err)
 		return
 	}
 
 	serverVersion, err := dockerclient.NewAPIVersion(version.APIVersion)
 	if err != nil {
-		c.HandleDockerError(fmt.Sprintf("Unable to determine Docker server version from %q.\n%v", version.APIVersion, err))
+		glog.Fatalf("Unable to determine Docker server version from %q.\n%v", version.APIVersion, err)
 		return
 	}
 
 	minimumPullByIDVersion, err := dockerclient.NewAPIVersion(minimumDockerAPIVersionWithPullByID)
 	if err != nil {
-		c.HandleDockerError(fmt.Sprintf("Unable to check for Docker server version.\n%v", err))
+		glog.Fatalf("Unable to check for Docker server version.\n%v", err)
 		return
 	}
 
 	if serverVersion.LessThan(minimumPullByIDVersion) {
-		c.HandleDockerError(fmt.Sprintf("Docker 1.6 or later (server API version %s or later) required.", minimumDockerAPIVersionWithPullByID))
+		glog.Fatalf("Docker 1.6 or later (server API version %s or later) required.", minimumDockerAPIVersionWithPullByID)
 		return
 	}
 
-	c.DockerClient = dockerClient
-}
-
-// HandleDockerError handles an an error from the docker daemon
-func (c *NodeConfig) HandleDockerError(message string) {
-	if !c.AllowDisabledDocker {
-		glog.Fatalf("error: %s", message)
-	}
-	glog.Errorf("WARNING: %s", message)
-	c.DockerClient = &dockertools.FakeDockerClient{
-		VersionInfo: dockertypes.Version{
-			APIVersion: minimumDockerAPIVersionWithPullByID,
-			Version:    "1.13",
-		},
-		Information: dockertypes.Info{
-			CgroupDriver: "systemd",
-		},
-	}
+	c.DockerClientConfig = dockerClientConfig
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
@@ -251,7 +245,7 @@ func (c *NodeConfig) RunKubelet() {
 	}
 
 	// only set when ContainerRuntime == "docker"
-	c.KubeletDeps.DockerClient = c.DockerClient
+	c.KubeletDeps.DockerClientConfig = c.DockerClientConfig
 	// updated by NodeConfig.EnsureVolumeDir
 	c.KubeletServer.RootDirectory = c.VolumeDir
 
