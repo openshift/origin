@@ -224,7 +224,7 @@ func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (str
 	selector := labels.SelectorFromValidatedSet(labels.Set(target.Spec.Selector))
 	sortBy := func(pods []*kapiv1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
-	pod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector, r.timeout, sortBy)
+	pod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector.String(), r.timeout, sortBy)
 	if err != nil {
 		return "", errors.NewInternalError(err)
 	}
