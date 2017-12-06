@@ -5,7 +5,6 @@ package node
 import (
 	"fmt"
 	"net"
-	"syscall"
 	"time"
 
 	"github.com/golang/glog"
@@ -67,7 +66,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 		return false
 	}
 
-	addrs, err := netlink.AddrList(l, syscall.AF_INET)
+	addrs, err := netlink.AddrList(l, netlink.FAMILY_V4)
 	if err != nil {
 		return false
 	}
@@ -82,7 +81,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 		return false
 	}
 
-	routes, err := netlink.RouteList(l, syscall.AF_INET)
+	routes, err := netlink.RouteList(l, netlink.FAMILY_V4)
 	if err != nil {
 		return false
 	}
@@ -117,7 +116,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 		if err != nil {
 			return false, fmt.Errorf("could not get interface %s: %v", device, err)
 		}
-		routes, err := netlink.RouteList(l, syscall.AF_INET)
+		routes, err := netlink.RouteList(l, netlink.FAMILY_V4)
 		if err != nil {
 			return false, fmt.Errorf("could not get routes: %v", err)
 		}
