@@ -101,7 +101,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
 	switch {
 	case len(o.Output) > 0:
-		printer, err := f.PrinterForCommand(c, false, nil, kprinters.PrintOptions{})
+		printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 		if err != nil {
 			return err
 		}
