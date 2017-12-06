@@ -107,7 +107,10 @@ func (d *limitRangerActions) SupportsAttributes(a admission.Attributes) bool {
 func (d *limitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
 	return true
 }
-func (d *limitRangerActions) Limit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
+func (d *limitRangerActions) MutateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
+	return nil
+}
+func (d *limitRangerActions) ValidateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
 	return nil
 }
 
@@ -194,7 +197,7 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
 	glog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
-	if err := a.LimitRanger.Admit(attr); err != nil {
+	if err := a.LimitRanger.(admission.MutationInterface).Admit(attr); err != nil {
 		glog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
 	}
 	glog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
