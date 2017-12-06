@@ -430,7 +430,7 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout tim
 		}
 		selector := labels.SelectorFromSet(t.Spec.Selector)
 		f := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), t.Namespace, selector, 1*time.Minute, f)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), t.Namespace, selector.String(), 1*time.Minute, f)
 		return pod, err
 	default:
 		return f.kubeObjectMappingFactory.AttachablePodForObject(object, timeout)
