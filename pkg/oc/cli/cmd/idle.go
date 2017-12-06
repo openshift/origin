@@ -115,7 +115,7 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 		return fmt.Errorf("resource names, selectors, and the all flag may not be be specified if a filename is specified")
 	}
 
-	o.svcBuilder = f.NewBuilder(true).
+	o.svcBuilder = f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
 		Flatten().
@@ -130,7 +130,7 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 	} else {
 		// NB: this is a bit weird because the resource builder will complain if we use ResourceTypes and ResourceNames when len(args) > 0
 		if o.selector != "" {
-			o.svcBuilder.SelectorParam(o.selector).ResourceTypes("endpoints")
+			o.svcBuilder.LabelSelectorParam(o.selector).ResourceTypes("endpoints")
 		}
 
 		o.svcBuilder.ResourceNames("endpoints", args...)

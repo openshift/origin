@@ -109,7 +109,7 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	}
 	o.sccSubjectReviewClient = securityClient.Security()
 	o.sccSelfSubjectReviewClient = securityClient.Security()
-	o.builder = f.NewBuilder(true)
+	o.builder = f.NewBuilder()
 	o.RESTClientFactory = f.ClientForMapping
 
 	output := kcmdutil.GetFlagString(cmd, "output")
