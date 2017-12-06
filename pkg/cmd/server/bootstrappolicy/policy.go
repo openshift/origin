@@ -274,15 +274,19 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
 				rbac.NewRule("impersonate").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 
+				rbac.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets",
+					"deployments", "deployments/scale", "deployments/status",
+					"replicasets", "replicasets/scale").RuleOrDie(),
+
 				rbac.NewRule(readWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(appsGroup, extensionsGroup).Resources("replicationcontrollers/scale",
-					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback", "networkpolicies").RuleOrDie(),
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
+				rbac.NewRule(readWrite...).Groups(extensionsGroup).Resources(
+					"deployments", "deployments/scale", "deployments/rollback",
+					"replicasets", "replicasets/scale", "replicationcontrollers/scale").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
+				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(authzGroup, legacyAuthzGroup).Resources("roles", "rolebindings").RuleOrDie(),
 				rbac.NewRule(readWrite...).Groups(rbacGroup).Resources("roles", "rolebindings").RuleOrDie(),
@@ -343,15 +347,19 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
 				rbac.NewRule("impersonate").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 
+				rbac.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets",
+					"deployments", "deployments/scale", "deployments/rollback",
+					"replicasets", "replicasets/scale").RuleOrDie(),
+
 				rbac.NewRule(readWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(appsGroup, extensionsGroup).Resources("replicationcontrollers/scale",
-					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
+				rbac.NewRule(readWrite...).Groups(extensionsGroup).Resources(
+					"deployments", "deployments/scale", "deployments/rollback",
+					"replicasets", "replicasets/scale", "replicationcontrollers/scale").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
+				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
@@ -400,14 +408,17 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(kapiGroup).Resources("limitranges", "resourcequotas", "bindings", "events",
 					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
 
+				rbac.NewRule(read...).Groups(appsGroup).Resources("statefulsets",
+					"daemonsets",
+					"deployments", "deployments/scale",
+					"replicasets", "replicasets/scale").RuleOrDie(),
+
 				rbac.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("deployments", "deployments/scale", "replicasets", "replicasets/scale").RuleOrDie(),
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
-
-				rbac.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale").RuleOrDie(),
+				rbac.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets", "deployments", "deployments/scale",
+					"replicasets", "replicasets/scale", "replicationcontrollers/scale").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
