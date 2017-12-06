@@ -88,12 +88,12 @@ func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	var err error
 	mapper, typer := f.Object()
 	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
+	printOpts := cmdutil.ExtractCmdPrintOptions(cmd, false)
+	printOpts.OutputFormatType = "yaml"
+
 	o.Printer, err = kprinters.GetStandardPrinter(
-		&kprinters.OutputOptions{
-			FmtType:          "yaml",
-			AllowMissingKeys: false,
-		},
-		false, mapper, typer, nil, decoders, kprinters.PrintOptions{})
+		mapper, typer, nil, decoders, *printOpts,
+	)
 	if err != nil {
 		return err
 	}

@@ -36,7 +36,7 @@ func (l *ListPodsOptions) Run() error {
 	if l.Options.CmdPrinterOutput {
 		printer = l.Options.CmdPrinter
 	} else {
-		printer, err = l.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"}, kprinters.PrintOptions{WithNamespace: true})
+		printer, err = l.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"}, true)
 		if err != nil {
 			return err
 		}

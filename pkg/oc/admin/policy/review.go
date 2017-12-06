@@ -108,14 +108,14 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 		return fmt.Errorf("unable to obtain client: %v", err)
 	}
 	o.client = securityClient.Security()
-	o.builder = f.NewBuilder(true)
+	o.builder = f.NewBuilder()
 	o.RESTClientFactory = f.ClientForMapping
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	wide := len(output) > 0 && output == "wide"
 
 	if len(output) != 0 && !wide {
-		printer, err := f.PrinterForCommand(cmd, false, nil, kprinters.PrintOptions{})
+		printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 		if err != nil {
 			return err
 		}
