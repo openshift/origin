@@ -17,6 +17,7 @@ limitations under the License.
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -25,6 +26,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -87,6 +89,11 @@ Example resource specifications include:
    '--filename=rsrc.json'
    '<resource> <name>'
    '<resource>'`)
+
+var LocalResourceError = errors.New(`error: you must specify resources by --filename when --local is set.
+Example resource specifications include:
+   '-f rsrc.yaml'
+   '--filename=rsrc.json'`)
 
 // TODO: expand this to include other errors.
 func IsUsageError(err error) bool {
@@ -151,6 +158,23 @@ func (b *Builder) FilenameParam(enforceNamespace bool, filenameOptions *Filename
 	if enforceNamespace {
 		b.RequireNamespace()
 	}
+
+	return b
+}
+
+// Local wraps the builder's clientMapper in a DisabledClientMapperForMapping
+func (b *Builder) Local(mapperFunc ClientMapperFunc) *Builder {
+	b.mapper.ClientMapper = DisabledClientForMapping{ClientMapper: ClientMapperFunc(mapperFunc)}
+	return b
+}
+
+// Unstructured updates the builder's ClientMapper, RESTMapper,
+// ObjectTyper, and codec for working with unstructured api objects
+func (b *Builder) Unstructured(mapperFunc ClientMapperFunc, mapper meta.RESTMapper, typer runtime.ObjectTyper) *Builder {
+	b.mapper.RESTMapper = mapper
+	b.mapper.ObjectTyper = typer
+	b.mapper.Decoder = unstructured.UnstructuredJSONScheme
+	b.mapper.ClientMapper = ClientMapperFunc(mapperFunc)
 
 	return b
 }

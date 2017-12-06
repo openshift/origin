@@ -107,7 +107,7 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 		return fmt.Errorf("unable to obtain client: %v", err)
 	}
 	o.client = securityClient.Security()
-	o.builder = f.NewBuilder(true)
+	o.builder = f.NewBuilder()
 	o.RESTClientFactory = f.ClientForMapping
 
 	output := kcmdutil.GetFlagString(cmd, "output")

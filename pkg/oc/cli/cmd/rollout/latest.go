@@ -107,7 +107,7 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	o.appsClient = appsClient.Apps()
 
 	o.mapper, o.typer = f.Object()
-	o.infos, err = f.NewBuilder(true).
+	o.infos, err = f.NewBuilder().
 		ContinueOnError().
 		NamespaceParam(namespace).
 		ResourceNames("deploymentconfigs", args[0]).

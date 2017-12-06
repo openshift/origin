@@ -221,8 +221,14 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		templateObj.CreationTimestamp = metav1.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
-		infos, err = f.NewBuilder(!local).
-			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
+		b := f.NewBuilder().
+			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}})
+
+		if local {
+			b = b.Local(f.ClientForMapping)
+		}
+
+		infos, err = b.
 			Do().
 			Infos()
 		if err != nil {

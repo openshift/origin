@@ -155,7 +155,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 		return err
 	}
 
-	o.builder = f.NewBuilder(true)
+	o.builder = f.NewBuilder()
 	o.out = out
 
 	if len(args) > 0 {
