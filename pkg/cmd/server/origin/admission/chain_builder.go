@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
@@ -39,7 +40,8 @@ var (
 		"PodNodeConstraints",
 		"OwnerReferencesPermissionEnforcement",
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"ResourceQuota",
 	}
 
@@ -67,7 +69,9 @@ var (
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
+		"ExtendedResourceToleration",
 		"DefaultTolerationSeconds",
+		"PVCProtection",
 		"Initializers",
 		"MutatingAdmissionWebhook",
 		"ValidatingAdmissionWebhook",
@@ -111,7 +115,9 @@ var (
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
+		"ExtendedResourceToleration",
 		"DefaultTolerationSeconds",
+		"PVCProtection",
 		"Initializers",
 		"MutatingAdmissionWebhook",
 		"ValidatingAdmissionWebhook",
@@ -247,11 +253,12 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 			admissionInitializer.Initialize(plugin)
 
 		default:
-			pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename)
+			// TODO this needs to be refactored to use the admission scheme we created upstream.  I think this holds us for the rebase.
+			pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename, configapi.Scheme)
 			if err != nil {
 				return nil, err
 			}
-			plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer)
+			plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer, admissionmetrics.WithControllerMetrics)
 			if err != nil {
 				// should have been caught with validation
 				return nil, err

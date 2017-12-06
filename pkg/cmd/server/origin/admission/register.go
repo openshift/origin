@@ -112,8 +112,11 @@ var (
 
 		// these are new, reassess post-rebase
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
+		"MutatingAdmissionWebhook",
 		"PodTolerationRestriction",
+		"ExtendedResourceToleration",
+		"PVCProtection",
 	)
 )
 

@@ -88,9 +88,12 @@ var usedKubeAdmissionPlugins = sets.NewString(
 	"DefaultTolerationSeconds",
 	"ResourceQuota",
 	"Initializers",
-	"GenericAdmissionWebhook",
-	"NodeRestriction",
+	"ValidatingAdmissionWebhook",
+	"MutatingAdmissionWebhook",
 	"PodTolerationRestriction",
+	"ExtendedResourceToleration",
+	"PVCProtection",
+	"NodeRestriction",
 )
 
 // TestAdmissionPluginNames makes sure that openshift admission plugins are prefixed with `openshift.io/`.
