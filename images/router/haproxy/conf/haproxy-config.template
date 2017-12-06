@@ -400,9 +400,15 @@ backend be_secure:{{$cfgIdx}}
           {{- if (eq $cfg.TLSTermination "reencrypt") }} ssl
             {{- if $cfg.VerifyServiceHostname }} verifyhost {{ $serviceUnit.Hostname }}
             {{- end }}
-            {{- if gt (len (index $cfg.Certificates (printf "%s_pod" $cfg.Host)).Contents) 0 }} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem
+            {{- if gt (len (index $cfg.Certificates (printf "%s_pod" $cfg.Host)).Contents) 0 }}
+              {{- if not (isTrue (index $cfg.Annotations "haproxy.router.openshift.io/verifyCACertificate")) }} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem
+              {{- else }} verify none ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem
+              {{- end}}
             {{- else }}
-              {{- if gt (len $defaultDestinationCA) 0 }} verify required ca-file {{ $defaultDestinationCA }}
+              {{- if gt (len $defaultDestinationCA) 0 }}
+                {{- if not (isTrue (index $cfg.Annotations "haproxy.router.openshift.io/verifyCACertificate")) }} verify required ca-file {{ $defaultDestinationCA }}
+                {{- else }} verify none ca-file {{ $defaultDestinationCA }}
+                {{- end }}
               {{- else }} verify none
               {{- end }}
             {{- end }}
