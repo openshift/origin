@@ -1,70 +1,61 @@
 package registry
 
 import (
-	"errors"
-	"fmt"
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
+	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
-type TokenAuthenticator struct {
+type tokenAuthenticator struct {
 	tokens      oauthclient.OAuthAccessTokenInterface
 	users       userclient.UserResourceInterface
 	groupMapper identitymapper.UserToGroupMapper
+	validators  authenticator.OAuthTokenValidator
 }
 
-var ErrExpired = errors.New("Token is expired")
-
-func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper) *TokenAuthenticator {
-	return &TokenAuthenticator{
+func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper, validators ...authenticator.OAuthTokenValidator) kauthenticator.Token {
+	return &tokenAuthenticator{
 		tokens:      tokens,
 		users:       users,
 		groupMapper: groupMapper,
+		validators:  authenticator.OAuthTokenValidators(validators),
 	}
 }
 
-func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, error) {
-	token, err := a.tokens.Get(value, metav1.GetOptions{})
+func (a *tokenAuthenticator) AuthenticateToken(name string) (kuser.Info, bool, error) {
+	token, err := a.tokens.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
-	}
-	if token.ExpiresIn > 0 {
-		if token.CreationTimestamp.Time.Add(time.Duration(token.ExpiresIn) * time.Second).Before(time.Now()) {
-			return nil, false, ErrExpired
-		}
-	}
-	if token.DeletionTimestamp != nil {
-		return nil, false, ErrExpired
 	}
 
-	u, err := a.users.Get(token.UserName, metav1.GetOptions{})
+	user, err := a.users.Get(token.UserName, metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
-	}
-	if string(u.UID) != token.UserUID {
-		return nil, false, fmt.Errorf("user.UID (%s) does not match token.userUID (%s)", u.UID, token.UserUID)
 	}
 
-	groups, err := a.groupMapper.GroupsFor(u.Name)
+	if err := a.validators.Validate(token, user); err != nil {
+		return nil, false, err
+	}
+
+	groups, err := a.groupMapper.GroupsFor(user.Name)
 	if err != nil {
 		return nil, false, err
 	}
-	groupNames := []string{}
+	groupNames := make([]string, 0, len(groups)+len(user.Groups))
 	for _, group := range groups {
 		groupNames = append(groupNames, group.Name)
 	}
-	groupNames = append(groupNames, u.Groups...)
+	groupNames = append(groupNames, user.Groups...)
 
 	return &kuser.DefaultInfo{
-		Name:   u.Name,
-		UID:    string(u.UID),
+		Name:   user.Name,
+		UID:    string(user.UID),
 		Groups: groupNames,
 		Extra: map[string][]string{
 			authorizationapi.ScopesKey: token.Scopes,

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/util/wsstream"
 )
