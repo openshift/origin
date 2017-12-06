@@ -150,8 +150,8 @@ func (c *dockerClient) ContainerWait(container string) (int, error) {
 	return rc, err
 }
 
-func (c *dockerClient) CopyToContainer(container string, dest string, src io.Reader, options types.CopyToContainerOptions) error {
-	return c.client.CopyToContainer(context.Background(), container, dest, src, options)
+func (c *dockerClient) CopyToContainer(options types.CopyToContainerOptions) error {
+	return c.client.CopyToContainer(context.Background(), options)
 }
 
 func (c *dockerClient) CopyFromContainer(container string, src string) (io.ReadCloser, error) {

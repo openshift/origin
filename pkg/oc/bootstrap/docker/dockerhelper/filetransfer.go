@@ -65,7 +65,11 @@ func newContainerUploader(client Interface, container, path string) (io.WriteClo
 	errch := make(chan error, 1)
 
 	go func() {
-		errch <- client.CopyToContainer(container, path, r, types.CopyToContainerOptions{})
+		errch <- client.CopyToContainer(types.CopyToContainerOptions{
+			ContainerID: container,
+			Path:        path,
+			Content:     r,
+		})
 	}()
 
 	return w, errch

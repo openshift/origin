@@ -20,7 +20,7 @@ type Interface interface {
 	ContainerStart(container string) error
 	ContainerStop(container string, timeout int) error
 	ContainerWait(container string) (int, error)
-	CopyToContainer(container string, dest string, src io.Reader, options types.CopyToContainerOptions) error
+	CopyToContainer(options types.CopyToContainerOptions) error
 	CopyFromContainer(container string, src string) (io.ReadCloser, error)
 	ContainerExecCreate(container string, config types.ExecConfig) (*types.ContainerExecCreateResponse, error)
 	ContainerExecAttach(execID string, stdIn io.Reader, stdOut, stdErr io.Writer) error

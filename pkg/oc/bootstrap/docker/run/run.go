@@ -196,7 +196,11 @@ func (h *Runner) copy(id string) error {
 	}
 	archive := streamingArchive(h.copies)
 	defer archive.Close()
-	err := h.client.CopyToContainer(id, "/", archive, types.CopyToContainerOptions{})
+	err := h.client.CopyToContainer(types.CopyToContainerOptions{
+		ContainerID: id,
+		Path:        "/",
+		Content:     archive,
+	})
 	return err
 }
 
