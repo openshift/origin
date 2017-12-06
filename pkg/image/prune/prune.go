@@ -64,6 +64,7 @@ type pruneAlgorithm struct {
 	pruneOverSizeLimit bool
 	namespace          string
 	allImages          bool
+	pruneRegistry      bool
 }
 
 // ImageDeleter knows how to remove images from OpenShift.
@@ -118,6 +119,10 @@ type PrunerOptions struct {
 	PruneOverSizeLimit *bool
 	// AllImages considers all images for pruning, not just those pushed directly to the registry.
 	AllImages *bool
+	// PruneRegistry controls whether to both prune the API Objects in etcd and corresponding
+	// data in the registry, or just prune the API Object and defer on the corresponding data in
+	// the registry
+	PruneRegistry *bool
 	// Namespace to be pruned, if specified it should never remove Images.
 	Namespace string
 	// Images is the entire list of images in OpenShift. An image must be in this
@@ -238,6 +243,10 @@ func NewPruner(options PrunerOptions) (Pruner, kerrors.Aggregate) {
 	algorithm.allImages = true
 	if options.AllImages != nil {
 		algorithm.allImages = *options.AllImages
+	}
+	algorithm.pruneRegistry = true
+	if options.PruneRegistry != nil {
+		algorithm.pruneRegistry = *options.PruneRegistry
 	}
 	algorithm.namespace = options.Namespace
 
@@ -1002,19 +1011,20 @@ func (p *pruner) Prune(
 		return err
 	}
 
-	prunableComponents := getPrunableComponents(p.g, prunableImageIDs)
-
 	var errs []error
 
-	errs = append(errs, pruneImageComponents(p.g, p.registryClient, p.registryURL, prunableComponents, layerLinkPruner)...)
-	errs = append(errs, pruneBlobs(p.g, p.registryClient, p.registryURL, prunableComponents, blobPruner)...)
-	errs = append(errs, pruneManifests(p.g, p.registryClient, p.registryURL, prunableImageNodes, manifestPruner)...)
+	if p.algorithm.pruneRegistry {
+		prunableComponents := getPrunableComponents(p.g, prunableImageIDs)
+		errs = append(errs, pruneImageComponents(p.g, p.registryClient, p.registryURL, prunableComponents, layerLinkPruner)...)
+		errs = append(errs, pruneBlobs(p.g, p.registryClient, p.registryURL, prunableComponents, blobPruner)...)
+		errs = append(errs, pruneManifests(p.g, p.registryClient, p.registryURL, prunableImageNodes, manifestPruner)...)
 
-	if len(errs) > 0 {
-		// If we had any errors deleting layers, blobs, or manifest data from the registry,
-		// stop here and don't delete any images. This way, you can rerun prune and retry
-		// things that failed.
-		return kerrors.NewAggregate(errs)
+		if len(errs) > 0 {
+			// If we had any errors deleting layers, blobs, or manifest data from the registry,
+			// stop here and don't delete any images. This way, you can rerun prune and retry
+			// things that failed.
+			return kerrors.NewAggregate(errs)
+		}
 	}
 
 	errs = pruneImages(p.g, prunableImageNodes, imagePruner)

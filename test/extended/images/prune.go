@@ -86,6 +86,25 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 		g.It("should prune old image with config", func() { testPruneImages(oc, 2) })
 	})
 
+	g.Describe("with --prune-registry==false", func() {
+		g.JustBeforeEach(func() {
+			if !*originalAcceptSchema2 {
+				g.By("ensure the registry accepts schema 2")
+				err := EnsureRegistryAcceptsSchema2(oc, true)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		})
+
+		g.AfterEach(func() {
+			if !*originalAcceptSchema2 {
+				err := EnsureRegistryAcceptsSchema2(oc, false)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		})
+
+		g.It("should prune old image but skip registry", func() { testSoftPruneImages(oc) })
+	})
+
 	g.Describe("with default --all flag", func() {
 		g.JustBeforeEach(func() {
 			if !*originalAcceptSchema2 {
@@ -237,6 +256,40 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(confirmSize < keepSize).To(o.BeTrue())
 	g.By(fmt.Sprintf("confirming pruned size: sizeOfPruneImage=%d <= (sizeAfterPrune=%d - sizeBeforePrune=%d)", imgPrune.DockerImageMetadata.Size, keepSize, confirmSize))
 	o.Expect(imgPrune.DockerImageMetadata.Size <= keepSize-confirmSize).To(o.BeTrue())
+}
+
+func testSoftPruneImages(oc *exutil.CLI) {
+	isName := "prune"
+
+	oc.SetOutputDir(exutil.TestContext.OutputDir)
+	outSink := g.GinkgoWriter
+
+	cleanUp := NewCleanUpContainer(oc)
+	defer cleanUp.Run()
+
+	dClient, err := testutil.NewDockerClient()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("build two images using Docker and push them")
+	imgPruneName, _, err := BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, "latest", testImageSize, 2, outSink, true, true)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	cleanUp.AddImage(imgPruneName, "", "")
+	cleanUp.AddImageStream(isName)
+	pruneSize, err := GetRegistryStorageSize(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("prune the first image uploaded (confirm, skipping registry)")
+	output, err := oc.WithoutNamespace().Run("adm").Args("prune", "images", "--keep-tag-revisions=1", "--keep-younger-than=0", "--confirm", "--prune-registry=false").Output()
+
+	g.By("verify images, layers and configs about to be pruned")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(output).NotTo(o.ContainSubstring(imgPruneName))
+	o.Expect(output).To(o.ContainSubstring("Only API objects will be removed"))
+
+	skipRegistrySize, err := GetRegistryStorageSize(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	g.By(fmt.Sprintf("confirming storage size: sizeAfterPrune=%d == beforePruneSize=%d", skipRegistrySize, pruneSize))
+	o.Expect(skipRegistrySize == pruneSize).To(o.BeTrue())
 }
 
 func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion int) {

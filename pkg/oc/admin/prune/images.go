@@ -104,6 +104,7 @@ var (
 	defaultKeepYoungerThan         = 60 * time.Minute
 	defaultKeepTagRevisions        = 3
 	defaultPruneImageOverSizeLimit = false
+	defaultPruneRegistry           = true
 )
 
 // PruneImagesOptions holds all the required options for pruning images.
@@ -117,6 +118,7 @@ type PruneImagesOptions struct {
 	RegistryUrlOverride string
 	Namespace           string
 	ForceInsecure       bool
+	PruneRegistry       *bool
 
 	ClientConfig    *restclient.Config
 	AppsClient      appsclient.AppsInterface
@@ -137,6 +139,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 		KeepYoungerThan:    &defaultKeepYoungerThan,
 		KeepTagRevisions:   &defaultKeepTagRevisions,
 		PruneOverSizeLimit: &defaultPruneImageOverSizeLimit,
+		PruneRegistry:      &defaultPruneRegistry,
 		AllImages:          &allImages,
 	}
 
@@ -162,6 +165,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd.Flags().StringVar(&opts.CABundle, "certificate-authority", opts.CABundle, "The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file. It cannot be used together with --force-insecure.")
 	cmd.Flags().StringVar(&opts.RegistryUrlOverride, "registry-url", opts.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works. Particular transport protocol can be enforced using '<scheme>://' prefix.")
 	cmd.Flags().BoolVar(&opts.ForceInsecure, "force-insecure", opts.ForceInsecure, "If true, allow an insecure connection to the docker registry that is hosted via HTTP or has an invalid HTTPS certificate. Whenever possible, use --certificate-authority instead of this dangerous option.")
+	cmd.Flags().BoolVar(opts.PruneRegistry, "prune-registry", *opts.PruneRegistry, "If false, the prune operation will clean up image API objects, but the none of the associated content in the registry is removed.  Note, if only image API objects are cleaned up through use of this flag, the only means for subsequently cleaning up registry data corresponding to those image API objects is to employ the 'hard prune' administrative task.")
 
 	return cmd
 }
@@ -383,6 +387,7 @@ func (o PruneImagesOptions) Run() error {
 		DryRun:             o.Confirm == false,
 		RegistryClient:     registryClient,
 		RegistryURL:        registryURL,
+		PruneRegistry:      o.PruneRegistry,
 	}
 	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace
@@ -410,6 +415,10 @@ func (o PruneImagesOptions) Run() error {
 		manifestDeleter.delegate = prune.NewManifestDeleter()
 	} else {
 		fmt.Fprintln(o.ErrOut, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
+	}
+
+	if o.PruneRegistry != nil && !*o.PruneRegistry {
+		fmt.Fprintln(o.Out, "Only API objects will be removed.  No modifications to the image registry will be made.")
 	}
 
 	return pruner.Prune(imageDeleter, imageStreamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
