@@ -123,6 +123,7 @@ type AppConfig struct {
 
 	Resolvers
 
+	Builder          *resource.Builder
 	Typer            runtime.ObjectTyper
 	Mapper           meta.RESTMapper
 	CategoryExpander categories.CategoryExpander
@@ -220,11 +221,8 @@ func (c *AppConfig) SetOpenShiftClient(imageClient imageclient.ImageInterface, t
 		Namespaces: namespaces,
 	}
 	c.TemplateFileSearcher = &app.TemplateFileSearcher{
-		Typer:            c.Typer,
-		Mapper:           c.Mapper,
-		ClientMapper:     c.ClientMapper,
-		CategoryExpander: c.CategoryExpander,
-		Namespace:        OriginNamespace,
+		Builder:   c.Builder,
+		Namespace: OriginNamespace,
 	}
 	// the hierarchy of docker searching is:
 	// 1) if we have an openshift client - query docker registries via openshift,
