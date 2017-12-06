@@ -92,7 +92,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Instantiate logging deployer account template
-	err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, loggingDeployerAccountTemplate, loggingNamespace, nil, false)
+	err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, loggingDeployerAccountTemplate, loggingNamespace, nil, false)
 	if err != nil {
 		return errors.NewError("cannot instantiate logger accounts").WithCause(err)
 	}
@@ -144,7 +144,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 		"IMAGE_PREFIX":  fmt.Sprintf("%s-", imagePrefix),
 		"MODE":          "install",
 	}
-	err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, loggingDeployerTemplate, loggingNamespace, deployerParams, false)
+	err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, loggingDeployerTemplate, loggingNamespace, deployerParams, false)
 	if err != nil {
 		return errors.NewError("cannot instantiate logging deployer").WithCause(err)
 	}

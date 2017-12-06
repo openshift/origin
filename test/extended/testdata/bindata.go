@@ -245,6 +245,7 @@
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
+// install/templateservicebroker/previous/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
 // DO NOT EDIT!
 
@@ -28232,6 +28233,149 @@ metadata:
   name: template-service-broker-apiserver
 parameters:
 - name: IMAGE
+  value: openshift/origin-template-service-broker:latest
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: LOGLEVEL
+  value: "0"
+- name: API_SERVER_CONFIG
+  value: |
+   kind: TemplateServiceBrokerConfig
+   apiVersion: config.templateservicebroker.openshift.io/v1
+   templateNamespaces:
+   - openshift
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+# to create the tsb server
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+    labels:
+      apiserver: "true"
+  spec:
+    template:
+      metadata:
+        name: apiserver
+        labels:
+          apiserver: "true"
+      spec:
+        serviceAccountName: apiserver
+        containers:
+        - name: c
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          command:
+          - "/usr/bin/template-service-broker"
+          - "start"
+          - "template-service-broker"
+          - "--secure-port=8443"
+          - "--audit-log-path=-"
+          - "--tls-cert-file=/var/serving-cert/tls.crt"
+          - "--tls-private-key-file=/var/serving-cert/tls.key"
+          - "-v=${LOGLEVEL}"
+          - "--config=/var/apiserver-config/apiserver-config.yaml"
+          ports:
+          - containerPort: 8443
+          volumeMounts:
+          - mountPath: /var/serving-cert
+            name: serving-cert
+          - mountPath: /var/apiserver-config
+            name: apiserver-config
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+        nodeSelector: "${{NODE_SELECTOR}}"
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 420
+            secretName: apiserver-serving-cert
+        - name: apiserver-config
+          configMap:
+            defaultMode: 420
+            name: apiserver-config
+
+# to create the config for the TSB
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver-config
+  data:
+    apiserver-config.yaml: ${API_SERVER_CONFIG}
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to be able to expose TSB inside the cluster
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+  spec:
+    selector:
+      apiserver: "true"
+    ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+
+# This service account will be granted permission to call the TSB.
+# The token for this SA will be provided to the service catalog for
+# use when calling the TSB.
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+
+# This secret will be populated with a copy of the templateservicebroker-client SA's
+# auth token.  Since this secret has a static name, it can be referenced more
+# easily than the auto-generated secret for the service account.
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+    annotations:
+      kubernetes.io/service-account.name: templateservicebroker-client
+  type: kubernetes.io/service-account-token
+`)
+
+func installTemplateservicebrokerApiserverTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerApiserverTemplateYaml, nil
+}
+
+func installTemplateservicebrokerApiserverTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerApiserverTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installTemplateservicebrokerPreviousApiserverTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-apiserver
+parameters:
+- name: IMAGE
   value: openshift/origin:latest
 - name: NAMESPACE
   value: openshift-template-service-broker
@@ -28354,17 +28498,17 @@ objects:
   type: kubernetes.io/service-account-token
 `)
 
-func installTemplateservicebrokerApiserverTemplateYamlBytes() ([]byte, error) {
-	return _installTemplateservicebrokerApiserverTemplateYaml, nil
+func installTemplateservicebrokerPreviousApiserverTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerPreviousApiserverTemplateYaml, nil
 }
 
-func installTemplateservicebrokerApiserverTemplateYaml() (*asset, error) {
-	bytes, err := installTemplateservicebrokerApiserverTemplateYamlBytes()
+func installTemplateservicebrokerPreviousApiserverTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerPreviousApiserverTemplateYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/templateservicebroker/previous/apiserver-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28775,6 +28919,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
+	"install/templateservicebroker/previous/apiserver-template.yaml": installTemplateservicebrokerPreviousApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
 }
 
@@ -28889,6 +29034,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
 			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
 			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
+			"previous": &bintree{nil, map[string]*bintree{
+				"apiserver-template.yaml": &bintree{installTemplateservicebrokerPreviousApiserverTemplateYaml, map[string]*bintree{}},
+			}},
 			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
 		}},
 	}},

@@ -39,81 +39,88 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 		cliUser            user.Info
 	)
 
-	g.BeforeEach(func() {
-		framework.SkipIfProviderIs("gce")
+	g.Context("", func() {
+		g.BeforeEach(func() {
+			framework.SkipIfProviderIs("gce")
 
-		var err error
+			var err error
 
-		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
+			brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
-		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
+			cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
-		// enable unauthenticated access to the service broker
-		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: cli.Namespace() + "templateservicebroker-client",
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,
-			},
-			Subjects: []kapi.ObjectReference{
-				{
-					Kind: authorizationapi.GroupKind,
-					Name: bootstrappolicy.UnauthenticatedGroup,
+			// enable unauthenticated access to the service broker
+			clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: cli.Namespace() + "templateservicebroker-client",
 				},
-			},
+				RoleRef: kapi.ObjectReference{
+					Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,
+				},
+				Subjects: []kapi.ObjectReference{
+					{
+						Kind: authorizationapi.GroupKind,
+						Name: bootstrappolicy.UnauthenticatedGroup,
+					},
+				},
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = cli.AsAdmin().Run("new-app").Args(fixture, "-p", "NAMESPACE="+cli.Namespace()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// wait for templateinstance controller to do its thing
+			err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
+				templateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+				if err != nil {
+					return false, err
+				}
+
+				for _, c := range templateinstance.Status.Conditions {
+					if c.Reason == "Failed" && c.Status == kapi.ConditionTrue {
+						return false, fmt.Errorf("failed condition: %s", c.Message)
+					}
+					if c.Reason == "Created" && c.Status == kapi.ConditionTrue {
+						return true, nil
+					}
+				}
+
+				return false, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = cli.AsAdmin().Run("new-app").Args(fixture, "-p", "NAMESPACE="+cli.Namespace()).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// wait for templateinstance controller to do its thing
-		err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
-			templateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
-			if err != nil {
-				return false, err
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(tsbOC)
+				exutil.DumpPodLogsStartingWith("", tsbOC)
 			}
 
-			for _, c := range templateinstance.Status.Conditions {
-				if c.Reason == "Failed" && c.Status == kapi.ConditionTrue {
-					return false, fmt.Errorf("failed condition: %s", c.Message)
-				}
-				if c.Reason == "Created" && c.Status == kapi.ConditionTrue {
-					return true, nil
-				}
-			}
+			err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-			return false, nil
+			err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = portForwardCmdClose()
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
 
-	g.AfterEach(func() {
-		err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		g.It("should pass bind tests", func() {
+			svc, err := cli.KubeClient().Core().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, &metav1.DeleteOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+			bind, err := brokercli.Bind(context.Background(), cliUser, instanceID, bindingID, &api.BindRequest{
+				ServiceID: serviceID,
+				PlanID:    uuid.NewRandom().String(),
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = portForwardCmdClose()
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
-	g.It("should pass bind tests", func() {
-		svc, err := cli.KubeClient().Core().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		bind, err := brokercli.Bind(context.Background(), cliUser, instanceID, bindingID, &api.BindRequest{
-			ServiceID: serviceID,
-			PlanID:    uuid.NewRandom().String(),
+			o.Expect(bind.Credentials).To(o.HaveKeyWithValue("configmap-username", "configmap-username"))
+			o.Expect(bind.Credentials).To(o.HaveKeyWithValue("secret-username", "secret-username"))
+			o.Expect(bind.Credentials).To(o.HaveKeyWithValue("secret-password", "c2VjcmV0LXBhc3N3b3Jk"))
+			o.Expect(bind.Credentials).To(o.HaveKeyWithValue("service-uri", "http://"+svc.Spec.ClusterIP+":1234"))
+			o.Expect(bind.Credentials).To(o.HaveKeyWithValue("route-uri", "http://host/path"))
 		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("configmap-username", "configmap-username"))
-		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("secret-username", "secret-username"))
-		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("secret-password", "c2VjcmV0LXBhc3N3b3Jk"))
-		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("service-uri", "http://"+svc.Spec.ClusterIP+":1234"))
-		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("route-uri", "http://host/path"))
 	})
 })

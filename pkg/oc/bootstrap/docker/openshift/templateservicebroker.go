@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -43,7 +42,7 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 		return errors.NewError("cannot create template service broker project").WithCause(err)
 	}
 
-	if err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbRBACTemplateName, tsbNamespace, map[string]string{}, true); err != nil {
+	if err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, tsbRBACTemplateName, tsbNamespace, map[string]string{}, true); err != nil {
 		return errors.NewError("cannot instantiate template service broker permissions").WithCause(err)
 	}
 
@@ -53,13 +52,13 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	imageTemplate.Latest = false
 
 	params := map[string]string{
-		"IMAGE":     imageTemplate.ExpandOrDie(""),
+		"IMAGE":     imageTemplate.ExpandOrDie("template-service-broker"),
 		"LOGLEVEL":  fmt.Sprint(serverLogLevel),
 		"NAMESPACE": tsbNamespace,
 	}
 	glog.V(2).Infof("instantiating template service broker template with parameters %v", params)
 
-	if err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, params, true); err != nil {
+	if err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, params, true); err != nil {
 		return errors.NewError("cannot instantiate template service broker resources").WithCause(err)
 	}
 
@@ -92,20 +91,12 @@ func (h *Helper) RegisterTemplateServiceBroker(f *clientcmd.Factory, configDir s
 	// Register the template broker with the service catalog
 	glog.V(2).Infof("registering the template broker with the service catalog")
 
-	// dynamic mapper is needed to support the broker resource which isn't part of the api.
-	dynamicMapper, dynamicTyper, err := f.UnstructuredObject()
-	dmapper := &resource.Mapper{
-		RESTMapper:   dynamicMapper,
-		ObjectTyper:  dynamicTyper,
-		ClientMapper: resource.ClientMapperFunc(f.UnstructuredClientForMapping),
-	}
-
 	serviceCABytes, err := ioutil.ReadFile(filepath.Join(configDir, "master", "service-signer.crt"))
 	serviceCAString := base64.StdEncoding.EncodeToString(serviceCABytes)
 	if err != nil {
 		return errors.NewError("unable to read service signer cert").WithCause(err)
 	}
-	if err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), dmapper, OpenshiftInfraNamespace, tsbRegistrationTemplateName, tsbNamespace, map[string]string{
+	if err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, tsbRegistrationTemplateName, tsbNamespace, map[string]string{
 		"TSB_NAMESPACE": tsbNamespace,
 		"CA_BUNDLE":     serviceCAString,
 	}, true); err != nil {
