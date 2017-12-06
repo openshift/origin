@@ -120,7 +120,7 @@ func TestAdmitImage(t *testing.T) {
 			}
 		}
 
-		err := AdmitImage(v.size.Value(), *limitRangeItem)
+		err := admitImage(v.size.Value(), *limitRangeItem)
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s expected to be admitted but received error %v", k, err)
 		}
