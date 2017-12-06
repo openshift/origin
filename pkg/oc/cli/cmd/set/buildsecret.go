@@ -121,7 +121,9 @@ func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 var supportedBuildTypes = []string{"buildconfigs"}
 
 func (o *BuildSecretOptions) secretFromArg(f *clientcmd.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
-	builder := f.NewBuilder(!o.Local).
+	builder := f.NewBuilder().
+		Internal().
+		LocalParam(o.Local).
 		NamespaceParam(namespace).DefaultNamespace().
 		RequireObject(false).
 		ContinueOnError().
@@ -173,7 +175,8 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return err
 		}
 	}
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
+		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -182,7 +185,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	if !o.Local {
 		o.Builder = o.Builder.
 			ResourceNames("buildconfigs", resources...).
-			SelectorParam(o.Selector).
+			LabelSelectorParam(o.Selector).
 			Latest()
 
 		if o.All {

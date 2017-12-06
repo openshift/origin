@@ -7,13 +7,9 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/template"
@@ -103,11 +99,8 @@ func IsPossibleTemplateFile(value string) (bool, error) {
 
 // TemplateFileSearcher resolves template files into template objects
 type TemplateFileSearcher struct {
-	Mapper           meta.RESTMapper
-	Typer            runtime.ObjectTyper
-	ClientMapper     resource.ClientMapper
-	CategoryExpander categories.CategoryExpander
-	Namespace        string
+	Builder   *resource.Builder
+	Namespace string
 }
 
 // Search attempts to read template files and transform it into template objects
@@ -121,7 +114,8 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 		}
 
 		var isSingleItemImplied bool
-		obj, err := resource.NewBuilder(r.Mapper, r.CategoryExpander, r.Typer, r.ClientMapper, legacyscheme.Codecs.UniversalDecoder()).
+		obj, err := r.Builder.
+			Internal().
 			NamespaceParam(r.Namespace).RequireNamespace().
 			FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: terms}).
 			Do().

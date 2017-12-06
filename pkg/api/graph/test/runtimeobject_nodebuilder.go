@@ -6,10 +6,13 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
@@ -136,7 +139,21 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 		return nil, nil
 	})
 
-	r := resource.NewBuilder(mapper, resource.SimpleCategoryExpander{}, typer, clientMapper, legacyscheme.Codecs.UniversalDecoder()).
+	r := resource.NewBuilder(
+		&resource.Mapper{
+			RESTMapper:   mapper,
+			ObjectTyper:  typer,
+			ClientMapper: clientMapper,
+			Decoder:      legacyscheme.Codecs.UniversalDecoder(),
+		},
+		&resource.Mapper{
+			RESTMapper:   mapper,
+			ObjectTyper:  typer,
+			ClientMapper: clientMapper,
+			Decoder:      unstructured.UnstructuredJSONScheme,
+		},
+		categories.SimpleCategoryExpander{}).
+		Internal().
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
 		Flatten().
 		Do()

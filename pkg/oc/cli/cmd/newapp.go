@@ -556,6 +556,9 @@ func getDockerClient() (*docker.Client, error) {
 
 func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.Command, args []string) error {
 	mapper, typer := f.Object()
+	if config.Builder == nil {
+		config.Builder = f.NewBuilder()
+	}
 	if config.Mapper == nil {
 		config.Mapper = mapper
 	}
