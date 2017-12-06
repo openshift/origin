@@ -164,7 +164,8 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	o.PrintTable = (len(args) == 0 && !o.All) || o.List
 
 	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
+		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -178,17 +179,17 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		// TODO: discovery still requires a running server, doesn't fall back correctly
 	case len(args) == 0 && len(o.Filenames) == 0:
 		o.Builder = o.Builder.
-			SelectorParam(o.Selector).
+			LabelSelectorParam(o.Selector).
 			SelectAllParam(true).
 			ResourceTypes("imagestreams")
 	case o.List:
 		o.Builder = o.Builder.
-			SelectorParam(o.Selector).
+			LabelSelectorParam(o.Selector).
 			SelectAllParam(o.All).
 			ResourceTypeOrNameArgs(true, args...)
 	default:
 		o.Builder = o.Builder.
-			SelectorParam(o.Selector).
+			LabelSelectorParam(o.Selector).
 			SelectAllParam(o.All).
 			ResourceNames("imagestreams", args...)
 	}

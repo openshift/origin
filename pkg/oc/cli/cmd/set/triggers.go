@@ -220,7 +220,8 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	}
 
 	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
+		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -228,7 +229,7 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	if !o.Local {
 		o.Builder = o.Builder.
-			SelectorParam(o.Selector).
+			LabelSelectorParam(o.Selector).
 			ResourceTypeOrNameArgs(o.All, args...)
 	}
 
