@@ -135,7 +135,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	// Set up client based support.
 	o.getBuilder = func() *resource.Builder {
-		return f.NewBuilder(true)
+		return f.NewBuilder()
 	}
 
 	kClient, err := f.ClientSet()
