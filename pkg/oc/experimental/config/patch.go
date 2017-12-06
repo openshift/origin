@@ -140,10 +140,7 @@ func (o *PatchOptions) RunPatch() error {
 	if err != nil {
 		return err
 	}
-	patchedObj, err := configapi.Scheme.DeepCopy(info.VersionedObject)
-	if err != nil {
-		return err
-	}
+	patchedObj := info.Object.DeepCopyObject()
 	originalPatchedObjJS, err := getPatchedJS(o.PatchType, originalObjJS, patchBytes, patchedObj.(runtime.Object))
 	if err != nil {
 		return err

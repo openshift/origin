@@ -24,6 +24,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -102,7 +103,7 @@ type VolumeOptions struct {
 	Err                    io.Writer
 	Mapper                 meta.RESTMapper
 	Typer                  runtime.ObjectTyper
-	CategoryExpander       resource.CategoryExpander
+	CategoryExpander       categories.CategoryExpander
 	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
