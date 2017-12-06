@@ -242,11 +242,11 @@ func (s *sccReviewHumanReadablePrinter) print(info *resource.Info, obj runtime.O
 	if !ok {
 		return fmt.Errorf("unexpected object %T", obj)
 	}
-	gvk, _, err := legacyscheme.Scheme.ObjectKind(info.Object)
+	gvks, _, err := legacyscheme.Scheme.ObjectKinds(info.Object)
 	if err != nil {
 		return err
 	}
-	kind := gvk.Kind
+	kind := gvks[0].Kind
 	for _, allowedSA := range pspreview.Status.AllowedServiceAccounts {
 		allowedBy := "<none>"
 		if allowedSA.AllowedBy != nil {

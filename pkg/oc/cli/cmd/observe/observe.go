@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -775,19 +774,11 @@ type restListWatcher struct {
 }
 
 func (lw restListWatcher) List(opt metav1.ListOptions) (runtime.Object, error) {
-	labelSelector, err := labels.Parse(opt.LabelSelector)
-	if err != nil {
-		return nil, err
-	}
-	return lw.Helper.List(lw.namespace, "", labelSelector, false, false)
+	return lw.Helper.List(lw.namespace, "", false, &opt)
 }
 
 func (lw restListWatcher) Watch(opt metav1.ListOptions) (watch.Interface, error) {
-	labelSelector, err := labels.Parse(opt.LabelSelector)
-	if err != nil {
-		return nil, err
-	}
-	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, "", labelSelector)
+	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, &opt)
 }
 
 type JSONPathColumnPrinter struct {

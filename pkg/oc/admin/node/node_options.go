@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
@@ -34,7 +35,7 @@ type NodeOptions struct {
 
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
-	CategoryExpander  resource.CategoryExpander
+	CategoryExpander  categories.CategoryExpander
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	Printer           func(mapping *meta.RESTMapping, printOptions kprinters.PrintOptions) (kprinters.ResourcePrinter, error)
 

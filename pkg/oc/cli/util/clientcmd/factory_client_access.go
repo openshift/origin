@@ -150,10 +150,6 @@ func (f *ring0Factory) RESTClient() (*restclient.RESTClient, error) {
 	return f.kubeClientAccessFactory.RESTClient()
 }
 
-func (f *ring0Factory) FederationClientForVersion(version *schema.GroupVersion) (*restclient.RESTClient, error) {
-	return f.kubeClientAccessFactory.FederationClientForVersion(version)
-}
-
 func (f *ring0Factory) Decoder(toInternal bool) runtime.Decoder {
 	return f.kubeClientAccessFactory.Decoder(toInternal)
 }
