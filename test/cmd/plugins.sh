@@ -11,7 +11,7 @@ os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plug
 os::cmd::expect_failure_and_text "oc plugin 2>&1" 'no plugins installed'
 
 # single plugins path
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'Echoes for test-cmd'
+os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'Echoes for test\-cmd'
 os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The wonderful new plugin-based get!'
 os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The tremendous plugin that always fails!'
 os::cmd::expect_success_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The hello plugin'

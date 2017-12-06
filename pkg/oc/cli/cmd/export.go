@@ -226,12 +226,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 
 	mapper, typer := f.Object()
 	p, err := kprinters.GetStandardPrinter(
-		&kprinters.OutputOptions{
-			FmtType:          outputFormat,
-			FmtArg:           templateFile,
-			AllowMissingKeys: kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"),
-		},
-		kcmdutil.GetFlagBool(cmd, "no-headers"), mapper, typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, kprinters.PrintOptions{})
+		mapper, typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
 
 	if err != nil {
 		return err

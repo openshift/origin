@@ -128,7 +128,7 @@ func (o *canIOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []
 	o.RulesReviewClient = authorizationClient.Authorization()
 	o.SARClient = authorizationClient.Authorization()
 
-	printer, err := f.PrinterForCommand(cmd, false, nil, printers.PrintOptions{})
+	printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 	if err != nil {
 		return err
 	}

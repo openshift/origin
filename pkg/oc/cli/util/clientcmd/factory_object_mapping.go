@@ -1,13 +1,11 @@
 package clientcmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 	"time"
 
-	"github.com/emicklei/go-restful-swagger12"
 	"k8s.io/kubernetes/pkg/kubectl/categories"
 
 	"k8s.io/api/core/v1"
@@ -61,10 +59,6 @@ func NewObjectMappingFactory(clientAccessFactory ClientAccessFactory) kcmdutil.O
 
 func (f *ring1Factory) Object() (meta.RESTMapper, runtime.ObjectTyper) {
 	return f.kubeObjectMappingFactory.Object()
-}
-
-func (f *ring1Factory) UnstructuredObject() (meta.RESTMapper, runtime.ObjectTyper, error) {
-	return f.kubeObjectMappingFactory.UnstructuredObject()
 }
 
 func (f *ring1Factory) CategoryExpander() categories.CategoryExpander {
@@ -438,38 +432,10 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout tim
 	}
 }
 
-func (f *ring1Factory) Validator(validate bool, openAPI bool, cacheDir string) (validation.Schema, error) {
-	return f.kubeObjectMappingFactory.Validator(validate, openAPI, cacheDir)
-}
-
-func (f *ring1Factory) SwaggerSchema(gvk schema.GroupVersionKind) (*swagger.ApiDeclaration, error) {
-	if !latest.OriginLegacyKind(gvk) {
-		return f.kubeObjectMappingFactory.SwaggerSchema(gvk)
-	}
-	kubeClient, err := f.clientAccessFactory.ClientSet()
-	if err != nil {
-		return nil, err
-	}
-	return f.OriginSwaggerSchema(kubeClient.Discovery().RESTClient(), gvk.GroupVersion())
+func (f *ring1Factory) Validator(validate bool) (validation.Schema, error) {
+	return f.kubeObjectMappingFactory.Validator(validate)
 }
 
 func (f *ring1Factory) OpenAPISchema() (openapi.Resources, error) {
 	return f.kubeObjectMappingFactory.OpenAPISchema()
-}
-
-// OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (f *ring1Factory) OriginSwaggerSchema(client restclient.Interface, version schema.GroupVersion) (*swagger.ApiDeclaration, error) {
-	if version.Empty() {
-		return nil, fmt.Errorf("groupVersion cannot be empty")
-	}
-	body, err := client.Get().AbsPath("/").Suffix("swaggerapi", "oapi", version.Version).Do().Raw()
-	if err != nil {
-		return nil, err
-	}
-	var schema swagger.ApiDeclaration
-	err = json.Unmarshal(body, &schema)
-	if err != nil {
-		return nil, fmt.Errorf("got '%s': %v", string(body), err)
-	}
-	return &schema, nil
 }
