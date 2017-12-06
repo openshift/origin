@@ -234,10 +234,6 @@ func (f *ring0Factory) BindExternalFlags(flags *pflag.FlagSet) {
 	f.kubeClientAccessFactory.BindExternalFlags(flags)
 }
 
-func (f *ring0Factory) DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *kprinters.PrintOptions {
-	return f.kubeClientAccessFactory.DefaultResourceFilterOptions(cmd, withNamespace)
-}
-
 func (f *ring0Factory) DefaultResourceFilterFunc() kubectl.Filters {
 	return f.kubeClientAccessFactory.DefaultResourceFilterFunc()
 }
