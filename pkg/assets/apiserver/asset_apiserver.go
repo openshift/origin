@@ -104,9 +104,12 @@ func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, err
 	if err := secureServingOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	genericConfig.SecureServingInfo.Listener, err = net.Listen(assetConfig.ServingInfo.BindNetwork, assetConfig.ServingInfo.BindAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to listen on %v: %v", assetConfig.ServingInfo.BindAddress, err)
+	// TODO this becomes necessary once the webconsole server is moved out of tree.
+	if false {
+		genericConfig.SecureServingInfo.Listener, err = net.Listen(assetConfig.ServingInfo.BindNetwork, assetConfig.ServingInfo.BindAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to listen on %v: %v", assetConfig.ServingInfo.BindAddress, err)
+		}
 	}
 	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(assetConfig.ServingInfo.MinTLSVersion)
 	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(assetConfig.ServingInfo.CipherSuites)

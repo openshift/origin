@@ -52,9 +52,12 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 	if err := secureServingOptions.ApplyTo(&oauthServerConfig.GenericConfig.Config); err != nil {
 		return nil, err
 	}
-	oauthServerConfig.GenericConfig.SecureServingInfo.Listener, err = net.Listen(servingConfig.BindNetwork, servingConfig.BindAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to listen on %v: %v", servingConfig.BindAddress, err)
+	// TODO this becomes necessary once the oauth server is moved out of tree.
+	if false {
+		oauthServerConfig.GenericConfig.SecureServingInfo.Listener, err = net.Listen(servingConfig.BindNetwork, servingConfig.BindAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to listen on %v: %v", servingConfig.BindAddress, err)
+		}
 	}
 	oauthServerConfig.GenericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(servingConfig.MinTLSVersion)
 	oauthServerConfig.GenericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(servingConfig.CipherSuites)
