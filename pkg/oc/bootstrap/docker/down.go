@@ -3,13 +3,13 @@ package docker
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
@@ -75,7 +75,7 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 		return err
 	}
 	for _, name := range names {
-		if _, _, err = dockertools.ParseDockerName(name); err != nil {
+		if _, err = parseDockerName(name); err != nil {
 			continue
 		}
 		name = strings.TrimLeft(name, "/")
@@ -89,4 +89,36 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// Unpacks a container name, returning the pod full name and container name we would have used to
+// construct the docker name. If we are unable to parse the name, an error is returned.
+func parseDockerName(name string) (hash uint64, err error) {
+	const containerNamePrefix = "k8s"
+	// For some reason docker appears to be appending '/' to names.
+	// If it's there, strip it.
+	name = strings.TrimPrefix(name, "/")
+	parts := strings.Split(name, "_")
+	if len(parts) == 0 || parts[0] != containerNamePrefix {
+		err = fmt.Errorf("failed to parse Docker container name %q into parts", name)
+		return 0, err
+	}
+	if len(parts) < 6 {
+		// We have at least 5 fields.  We may have more in the future.
+		// Anything with less fields than this is not something we can
+		// manage.
+		glog.Warningf("found a container with the %q prefix, but too few fields (%d): %q", containerNamePrefix, len(parts), name)
+		err = fmt.Errorf("Docker container name %q has less parts than expected %v", name, parts)
+		return 0, err
+	}
+
+	nameParts := strings.Split(parts[1], ".")
+	if len(nameParts) > 1 {
+		hash, err = strconv.ParseUint(nameParts[1], 16, 32)
+		if err != nil {
+			glog.Warningf("invalid container hash %q in container %q", nameParts[1], name)
+		}
+	}
+
+	return hash, nil
 }
