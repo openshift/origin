@@ -214,7 +214,7 @@ func TestBuildAdmission(t *testing.T) {
 				c.(kubeadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(fakeKubeClient)
 				c.(oadmission.WantsOpenshiftInternalBuildClient).SetOpenshiftInternalBuildClient(fakeBuildClient)
 				attrs := admission.NewAttributesRecord(test.object, test.oldObject, test.kind.WithVersion("version"), "foo", "test-build", test.resource.WithVersion("version"), test.subResource, op, fakeUser())
-				err := c.Admit(attrs)
+				err := c.(admission.MutationInterface).Admit(attrs)
 				if err != nil && test.expectAccept {
 					t.Errorf("unexpected error: %v", err)
 				}

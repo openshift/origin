@@ -68,7 +68,7 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 			v.operation,
 			nil)
 
-		err = plugin.Admit(attrs)
+		err = plugin.(kadmission.MutationInterface).Admit(attrs)
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s expected to be admitted but received error %v", k, err)
 		}
@@ -279,8 +279,8 @@ func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.
 		return nil, nil, err
 	}
 	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
-	pluginInitializer := kubeadmission.NewPluginInitializer(c, nil, f, nil, nil, nil, nil)
+	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil, nil)
 	pluginInitializer.Initialize(plugin)
-	err = kadmission.Validate(plugin)
+	err = kadmission.ValidateInitialization(plugin)
 	return plugin, f, err
 }

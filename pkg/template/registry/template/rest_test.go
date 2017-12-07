@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -18,7 +19,7 @@ import (
 
 func TestNewRESTInvalidType(t *testing.T) {
 	storage := NewREST()
-	_, err := storage.Create(nil, &kapi.Pod{}, false)
+	_, err := storage.Create(nil, &kapi.Pod{}, rest.ValidateAllObjectFunc, false)
 	if err == nil {
 		t.Errorf("Expected type error.")
 	}
@@ -34,7 +35,7 @@ func TestNewRESTDefaultsName(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-	}, false)
+	}, rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -57,7 +58,7 @@ func TestNewRESTInvalidParameter(t *testing.T) {
 			},
 		},
 		Objects: []runtime.Object{},
-	}, false)
+	}, rest.ValidateAllObjectFunc, false)
 	if err == nil {
 		t.Fatalf("Expected 'invalid parameter error', got nothing")
 	}
@@ -104,7 +105,7 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 	}
 	templateToCreate = objToCreate.(*template.Template)
 
-	obj, err := storage.Create(nil, templateToCreate, false)
+	obj, err := storage.Create(nil, templateToCreate, rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -178,7 +179,7 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 	}
 	templateToCreate = objToCreate.(*template.Template)
 
-	obj, err := storage.Create(nil, templateToCreate, false)
+	obj, err := storage.Create(nil, templateToCreate, rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

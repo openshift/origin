@@ -72,7 +72,7 @@ func getFakeMapping() *meta.RESTMapping {
 			Group:   "test.group",
 			Version: "v1",
 		},
-		ObjectConvertor: api.Scheme,
+		ObjectConvertor: legacyscheme.Scheme,
 	}
 	return fakeMapping
 }
@@ -90,7 +90,7 @@ func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
 	infos := []*resource.Info{info}
 	vOptions := &VolumeOptions{}
 	vOptions.Name = "fake-mount"
-	vOptions.Encoder = api.Codecs.LegacyCodec(legacyscheme.Registry.EnabledVersions()...)
+	vOptions.Encoder = legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.EnabledVersions()...)
 	vOptions.Containers = "*"
 	vOptions.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	return infos, vOptions

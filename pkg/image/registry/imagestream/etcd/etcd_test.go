@@ -7,6 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
+	"k8s.io/apiserver/pkg/registry/rest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
@@ -67,7 +69,7 @@ func validImageStream() *imageapi.ImageStream {
 
 func create(t *testing.T, storage *REST, obj *imageapi.ImageStream) *imageapi.ImageStream {
 	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
-	newObj, err := storage.Create(ctx, obj, false)
+	newObj, err := storage.Create(ctx, obj, rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -88,7 +90,7 @@ func TestList(t *testing.T) {
 	storage, _, _, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 	test.TestList(
 		validImageStream(),
 	)

@@ -279,10 +279,10 @@ func TestAdmit(t *testing.T) {
 		}
 		reqLimit.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(client)
 		reqLimit.(oadmission.WantsProjectCache).SetProjectCache(pCache)
-		if err = reqLimit.(admission.Validator).Validate(); err != nil {
+		if err = reqLimit.(admission.InitializationValidator).ValidateInitialization(); err != nil {
 			t.Fatalf("validation error: %v", err)
 		}
-		err = reqLimit.Admit(admission.NewAttributesRecord(
+		err = reqLimit.(admission.MutationInterface).Admit(admission.NewAttributesRecord(
 			&projectapi.ProjectRequest{},
 			nil,
 			projectapi.Kind("ProjectRequest").WithVersion("version"),

@@ -81,6 +81,7 @@ os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
 # ensure correct serialization of podList output
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector= -o jsonpath='{ .kind }'" 'List'
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector=" 'NAMESPACE'
+
 echo "manage-node: ok"
 os::test::junit::declare_suite_end
 
@@ -413,6 +414,9 @@ os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=
 os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
 echo "reconcile-scc: ok"
 os::test::junit::declare_suite_end
+
+# cleanup the fake node that has been created so that it doesn't confuse other test-cmd scripts
+os::cmd::expect_success "oc delete node/fake-node"
 
 os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
 # Admin can bind local roles without cluster-admin permissions

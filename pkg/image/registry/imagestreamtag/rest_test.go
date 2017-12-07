@@ -7,6 +7,7 @@ import (
 
 	etcd "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -533,7 +534,7 @@ func TestCreateImageStreamTag(t *testing.T) {
 				))
 
 			ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
-			_, err := storage.Create(ctx, tc.istag, false)
+			_, err := storage.Create(ctx, tc.istag, rest.ValidateAllObjectFunc, false)
 			gotErr := err != nil
 			if e, a := tc.expectError, gotErr; e != a {
 				t.Errorf("%s: Expected err=%v: got %v: %v", name, e, a, err)

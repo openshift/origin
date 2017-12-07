@@ -129,7 +129,7 @@ func TestDefaultPolicy(t *testing.T) {
 	plugin.SetDefaultRegistryFunc(func() (string, bool) {
 		return "integrated.registry", true
 	})
-	if err := plugin.Validate(); err != nil {
+	if err := plugin.ValidateInitialization(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1236,7 +1236,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			p.SetDefaultRegistryFunc(func() (string, bool) {
 				return "integrated.registry", true
 			})
-			if err := p.Validate(); err != nil {
+			if err := p.ValidateInitialization(); err != nil {
 				t.Fatal(err)
 			}
 

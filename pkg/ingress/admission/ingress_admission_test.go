@@ -12,11 +12,11 @@ import (
 )
 
 type fakeAuthorizer struct {
-	allow bool
+	allow authorizer.Decision
 	err   error
 }
 
-func (a *fakeAuthorizer) Authorize(authorizer.Attributes) (bool, string, error) {
+func (a *fakeAuthorizer) Authorize(authorizer.Attributes) (authorizer.Decision, string, error) {
 	return a.allow, "", a.err
 }
 
@@ -30,7 +30,7 @@ func TestAdmission(t *testing.T) {
 		oldHost, newHost string
 		op               admission.Operation
 		admit            bool
-		allow            bool
+		allow            authorizer.Decision
 	}{
 		{
 			admit:    true,
@@ -63,7 +63,7 @@ func TestAdmission(t *testing.T) {
 		},
 		{
 			admit:    true,
-			allow:    true,
+			allow:    authorizer.DecisionAllow,
 			config:   emptyConfig(),
 			op:       admission.Update,
 			newHost:  "foo.com",
@@ -95,7 +95,7 @@ func TestAdmission(t *testing.T) {
 		},
 		{
 			admit:    false,
-			allow:    false,
+			allow:    authorizer.DecisionDeny,
 			config:   emptyConfig(),
 			op:       admission.Create,
 			newHost:  "foo.com",
@@ -103,7 +103,7 @@ func TestAdmission(t *testing.T) {
 		},
 		{
 			admit:    true,
-			allow:    true,
+			allow:    authorizer.DecisionAllow,
 			config:   emptyConfig(),
 			op:       admission.Create,
 			newHost:  "foo.com",

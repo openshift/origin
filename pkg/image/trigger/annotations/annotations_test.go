@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/util/jsonpath"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
@@ -283,7 +282,7 @@ func TestAnnotationsReactor(t *testing.T) {
 
 	for i, test := range testCases {
 		u := &fakeUpdater{}
-		r := AnnotationReactor{Copier: legacyscheme.Scheme, Updater: u}
+		r := AnnotationReactor{Updater: u}
 		initial := test.obj.DeepCopy()
 		err := r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
 		if !kapihelper.Semantic.DeepEqual(initial, test.obj) {

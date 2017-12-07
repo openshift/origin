@@ -1,12 +1,10 @@
 package rulevalidation
 
 import (
-	"fmt"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	api "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
@@ -27,17 +25,8 @@ func CompactRules(rules []authorizationapi.PolicyRule) ([]authorizationapi.Polic
 				existingRule.Verbs.Insert(rule.Verbs.List()...)
 			} else {
 				// Copy the rule to accumulate matching simple resource rules into
-				objCopy, err := api.Scheme.DeepCopy(rule)
-				if err != nil {
-					// Unit tests ensure this should not ever happen
-					return nil, err
-				}
-				ruleCopy, ok := objCopy.(authorizationapi.PolicyRule)
-				if !ok {
-					// Unit tests ensure this should not ever happen
-					return nil, fmt.Errorf("expected authorizationapi.PolicyRule, got %#v", objCopy)
-				}
-				simpleRules[resource] = &ruleCopy
+				ruleCopy := rule.DeepCopy()
+				simpleRules[resource] = ruleCopy
 			}
 		} else {
 			compacted = append(compacted, rule)

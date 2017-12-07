@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"

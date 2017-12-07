@@ -370,7 +370,7 @@ func TestAdmission(t *testing.T) {
 		plugin.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(fakeUserClient)
 		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
 
-		err = admission.Validate(plugin)
+		err = admission.ValidateInitialization(plugin)
 		if err != nil {
 			t.Errorf("unexpected error validating admission plugin: %v", err)
 		}
@@ -387,7 +387,7 @@ func TestAdmission(t *testing.T) {
 			&user.DefaultInfo{},
 		)
 
-		err = plugin.Admit(attributes)
+		err = plugin.(admission.MutationInterface).Admit(attributes)
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil:

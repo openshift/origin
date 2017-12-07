@@ -119,7 +119,7 @@ os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template_multiple_
 # check that if an --output-version is requested on a list of varying resource kinds, an error is returned if
 # at least one of the resource groups does not support the given version
 os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml --output-version=v1' 'extensions.Deployment is not suitable for converting'
-os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml --output-version=extensions/v1beta1' 'api.Secret is not suitable for converting'
+os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml --output-version=extensions/v1beta1' 'core.Secret is not suitable for converting'
 os::cmd::expect_failure_and_not_text 'oc new-app -f test/testdata/template_multiple_resource_gvs.yaml -o yaml --output-version=apps/v1beta1' 'extensions.Deployment is not suitable for converting'
 
 # check that an error is produced when using --context-dir with a template

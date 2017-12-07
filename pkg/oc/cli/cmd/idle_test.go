@@ -15,6 +15,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	oapi "github.com/openshift/origin/pkg/api"
+
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -43,7 +45,7 @@ func makePod(name, rcName string, t *testing.T) kapi.Pod {
 			Name:      name,
 			Namespace: "somens",
 			Annotations: map[string]string{
-				api.DeprecatedKubeCreatedByAnnotation: string(createdByRefJson),
+				oapi.DeprecatedKubeCreatedByAnnotation: string(createdByRefJson),
 			},
 		},
 	}
@@ -72,7 +74,7 @@ func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.Replicatio
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		rc.Annotations[api.DeprecatedKubeCreatedByAnnotation] = string(createdByRefJson)
+		rc.Annotations[oapi.DeprecatedKubeCreatedByAnnotation] = string(createdByRefJson)
 	}
 
 	if dcName != "" {

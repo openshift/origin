@@ -56,6 +56,9 @@ var rolesToHide = sets.NewString(
 	"system:webhook",
 	"system:certificates.k8s.io:certificatesigningrequests:nodeclient",
 	"system:certificates.k8s.io:certificatesigningrequests:selfnodeclient",
+	"system:aggregate-to-admin",
+	"system:aggregate-to-edit",
+	"system:aggregate-to-view",
 )
 
 func TestSystemOnlyRoles(t *testing.T) {

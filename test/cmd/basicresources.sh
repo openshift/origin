@@ -60,7 +60,7 @@ echo "status help output: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/basicresources/explain"
-os::cmd::expect_success_and_text 'oc types' 'Deployment Configuration'
+os::cmd::expect_failure_and_text 'oc types' 'Deployment Configuration'
 os::cmd::expect_failure_and_text 'oc get' 'deploymentconfig'
 os::cmd::expect_success_and_text 'oc get all --loglevel=6' 'buildconfigs'
 os::cmd::expect_success_and_text 'oc explain pods' 'Pod is a collection of containers that can run on a host'

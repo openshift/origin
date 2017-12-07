@@ -17,6 +17,7 @@ import (
 
 	dockerClient "github.com/fsouza/go-dockerclient"
 	"golang.org/x/net/websocket"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kv1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"

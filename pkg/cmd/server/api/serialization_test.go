@@ -400,12 +400,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	// Make a copy of the originalItem to give to conversion functions
 	// This lets us know if conversion messed with the input object
-	deepCopy, err := configapi.Scheme.DeepCopy(originalItem)
-	if err != nil {
-		t.Errorf("Could not copy object: %v", err)
-		return
-	}
-	item := deepCopy.(runtime.Object)
+	item := originalItem.DeepCopyObject()
 
 	name := reflect.TypeOf(item).Elem().Name()
 	data, err := runtime.Encode(codec, item)

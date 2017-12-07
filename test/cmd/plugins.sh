@@ -11,12 +11,12 @@ os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plug
 os::cmd::expect_failure_and_text "oc plugin 2>&1" 'no plugins installed'
 
 # single plugins path
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'Echoes for test\-cmd'
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The wonderful new plugin-based get!'
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The tremendous plugin that always fails!'
-os::cmd::expect_success_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The hello plugin'
-os::cmd::expect_success_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'Incomplete plugin'
-os::cmd::expect_success_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'no plugins installed'
+os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'Echoes for test\-cmd'
+os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The wonderful new plugin-based get!'
+os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The tremendous plugin that always fails!'
+os::cmd::expect_failure_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'The hello plugin'
+os::cmd::expect_failure_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'Incomplete plugin'
+os::cmd::expect_failure_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin 2>&1" 'no plugins installed'
 
 # multiple plugins path
 os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins/:test/testdata/plugin/plugins2/ oc plugin -h 2>&1" 'Echoes for test-cmd'
@@ -40,10 +40,10 @@ os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plug
 os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin error 2>&1" 'error: exit status 1'
 
 # plugin tree
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'Plugin with a tree of commands'
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'The first child of a tree'
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'The second child of a tree'
-os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'The third child of a tree'
+os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'Plugin with a tree of commands'
+os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'The first child of a tree'
+os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'The second child of a tree'
+os::cmd::expect_failure_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree 2>&1" 'The third child of a tree'
 os::cmd::expect_success_and_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree child1 --help 2>&1" 'The first child of a tree'
 os::cmd::expect_success_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree child1 --help 2>&1" 'The second child'
 os::cmd::expect_success_and_not_text "KUBECTL_PLUGINS_PATH=test/testdata/plugin/plugins oc plugin tree child1 --help 2>&1" 'child2'

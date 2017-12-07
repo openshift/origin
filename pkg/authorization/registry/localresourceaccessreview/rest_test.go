@@ -10,6 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
@@ -29,13 +30,13 @@ type testAuthorizer struct {
 	actualAttributes kauthorizer.Attributes
 }
 
-func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (decision kauthorizer.Decision, reason string, err error) {
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
-		return true, "", nil
+		return kauthorizer.DecisionAllow, "", nil
 	}
 
-	return false, "", errors.New("Unsupported")
+	return kauthorizer.DecisionDeny, "", errors.New("Unsupported")
 }
 func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attributes) (sets.String, sets.String, error) {
 	a.actualAttributes = passedAttributes
@@ -74,7 +75,7 @@ func TestConflictingNamespace(t *testing.T) {
 
 	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer, authorizer)))
 	ctx := apirequest.WithNamespace(apirequest.NewContext(), "bar")
-	_, err := storage.Create(ctx, reviewRequest, false)
+	_, err := storage.Create(ctx, reviewRequest, apiserverrest.ValidateAllObjectFunc, false)
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
@@ -131,7 +132,7 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 	expectedAttributes := util.ToDefaultAuthorizationAttributes(nil, r.reviewRequest.Action.Namespace, r.reviewRequest.Action)
 
 	ctx := apirequest.WithNamespace(apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{}), r.reviewRequest.Action.Namespace)
-	obj, err := storage.Create(ctx, r.reviewRequest, false)
+	obj, err := storage.Create(ctx, r.reviewRequest, apiserverrest.ValidateAllObjectFunc, false)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)
 	}

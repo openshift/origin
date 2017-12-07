@@ -5,10 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -134,25 +132,24 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 	}
 
 	mapper := legacyscheme.Registry.RESTMapper()
-	typer := legacyscheme.Scheme
-	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-		return nil, nil
-	})
 
-	r := resource.NewBuilder(
+	builder := resource.NewBuilder(
 		&resource.Mapper{
 			RESTMapper:   mapper,
-			ObjectTyper:  typer,
-			ClientMapper: clientMapper,
+			ObjectTyper:  legacyscheme.Scheme,
+			ClientMapper: resource.DisabledClientForMapping{},
 			Decoder:      legacyscheme.Codecs.UniversalDecoder(),
 		},
 		&resource.Mapper{
 			RESTMapper:   mapper,
-			ObjectTyper:  typer,
-			ClientMapper: clientMapper,
+			ObjectTyper:  legacyscheme.Scheme,
+			ClientMapper: resource.DisabledClientForMapping{},
 			Decoder:      unstructured.UnstructuredJSONScheme,
 		},
-		categories.SimpleCategoryExpander{}).
+		categories.SimpleCategoryExpander{},
+	)
+
+	r := builder.
 		Internal().
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
 		Flatten().

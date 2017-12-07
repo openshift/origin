@@ -10,7 +10,6 @@ import (
 	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/api/testapi"
 )
 
@@ -25,7 +24,7 @@ func TestNewMasterLeasesHasCorrectTTL(t *testing.T) {
 	}
 
 	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
-	storageInterface, _ := restOptions.Decorator(legacyscheme.Scheme, restOptions.StorageConfig, nil, "masterleases", nil, nil, nil, nil)
+	storageInterface, _ := restOptions.Decorator(restOptions.StorageConfig, nil, "masterleases", nil, nil, nil, nil)
 	defer server.Terminate(t)
 
 	masterLeases := newMasterLeases(storageInterface, 15)
