@@ -246,11 +246,11 @@ func (s *sccSubjectReviewHumanReadablePrinter) print(info *resource.Info, obj ru
 		fmt.Fprintf(w, "%s\t\n", strings.Join(columns, "\t"))
 		s.noHeaders = true // printed only the first time if requested
 	}
-	gvk, _, err := legacyscheme.Scheme.ObjectKind(info.Object)
+	gvks, _, err := legacyscheme.Scheme.ObjectKinds(info.Object)
 	if err != nil {
 		return err
 	}
-	kind := gvk.Kind
+	kind := gvks[0].Kind
 	allowedBy, err := getAllowedBy(obj)
 	if err != nil {
 		return err
