@@ -150,6 +150,7 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 	)
 
 	r := builder.
+		Internal().
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
 		Flatten().
 		Do()

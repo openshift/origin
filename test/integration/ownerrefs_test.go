@@ -6,6 +6,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -64,8 +65,18 @@ func TestOwnerRefRestriction(t *testing.T) {
 
 	_, err = creatorClient.Core().Services("foo").Create(&kapi.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "my-service",
-			OwnerReferences: []metav1.OwnerReference{{}},
+			Name: "my-service",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "foo",
+				Kind:       "bar",
+				Name:       "baz",
+				UID:        types.UID("baq"),
+			}},
+		},
+		Spec: kapi.ServiceSpec{
+			Ports: []kapi.ServicePort{
+				{Port: 80},
+			},
 		},
 	})
 	if err == nil {
