@@ -2,6 +2,7 @@ package start
 
 import (
 	"github.com/golang/glog"
+	"github.com/spf13/pflag"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
@@ -32,9 +33,20 @@ func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[
 	}
 
 	// resolve arguments
-	schedulerServer := schedulerapp.NewSchedulerServer()
-	if err := cmdflags.Resolve(cmdLineArgs, schedulerServer.AddFlags); len(err) > 0 {
+	schedulerOptions, err := schedulerapp.NewOptions()
+	if err != nil {
+		return nil, err
+	}
+	if err := schedulerOptions.ReallyApplyDefaults(); err != nil {
+		return nil, err
+	}
+	if err := cmdflags.Resolve(cmdLineArgs, func(fs *pflag.FlagSet) {
+		schedulerapp.AddFlags(schedulerOptions, fs)
+	}); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
+	}
+	if err := schedulerOptions.Complete(); err != nil {
+		return nil, err
 	}
 
 	return schedulerServer, nil
