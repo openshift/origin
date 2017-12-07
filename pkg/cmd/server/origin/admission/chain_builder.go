@@ -70,7 +70,8 @@ var (
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -113,7 +114,8 @@ var (
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
