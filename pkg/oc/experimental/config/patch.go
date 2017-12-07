@@ -8,6 +8,7 @@ import (
 
 	"github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -83,7 +84,21 @@ func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return cmdutil.UsageErrorf(cmd, fmt.Sprintf("--type must be one of %v, not %q", sets.StringKeySet(patchTypes).List(), patchTypeString))
 	}
 
-	o.Builder = resource.NewBuilder(configapiinstall.NewRESTMapper(), f.CategoryExpander(), configapi.Scheme, resource.DisabledClientForMapping{}, configapi.Codecs.LegacyCodec())
+	o.Builder = resource.NewBuilder(
+		&resource.Mapper{
+			RESTMapper:   configapiinstall.NewRESTMapper(),
+			ObjectTyper:  configapi.Scheme,
+			ClientMapper: resource.DisabledClientForMapping{},
+			Decoder:      configapi.Codecs.LegacyCodec(),
+		},
+		&resource.Mapper{
+			RESTMapper:   configapiinstall.NewRESTMapper(),
+			ObjectTyper:  configapi.Scheme,
+			ClientMapper: resource.DisabledClientForMapping{},
+			Decoder:      unstructured.UnstructuredJSONScheme,
+		},
+		categories.SimpleCategoryExpander{},
+	)
 
 	var err error
 	mapper, typer := f.Object()
