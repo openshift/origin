@@ -37,10 +37,16 @@ func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[
 	if err != nil {
 		return nil, err
 	}
+	if err := schedulerOptions.ReallyApplyDefaults(); err != nil {
+		return nil, err
+	}
 	if err := cmdflags.Resolve(cmdLineArgs, func(fs *pflag.FlagSet) {
 		schedulerapp.AddFlags(schedulerOptions, fs)
 	}); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
+	}
+	if err := schedulerOptions.Complete(); err != nil {
+		return nil, err
 	}
 
 	return schedulerOptions, nil
