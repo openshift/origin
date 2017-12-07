@@ -6,6 +6,7 @@
 #
 FROM openshift/origin-source
 
+COPY *.repo /etc/yum.repos.d/
 RUN INSTALL_PKGS="bsdtar ceph-common device-mapper device-mapper-persistent-data e2fsprogs ethtool findutils git hostname iptables lsof nmap-ncat socat sysvinit-tools tar tree util-linux wget which xfsprogs" && \
     yum install -y centos-release-ceph-luminous && \
     rpm -V centos-release-ceph-luminous && \
