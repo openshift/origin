@@ -1,5 +1,5 @@
-hash: d6d9f8b7299316289df9ecc53a1626df4f2342c0bdacd10ea2536378e3d08875
-updated: 2017-12-05T16:20:01.213917531-05:00
+hash: f3bcbfcb58a3c02dd27f10003c5766eadf0ee6939fd644644b22a4440a5058bd
+updated: 2017-12-07T08:44:01.230404304-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -156,6 +156,8 @@ imports:
   - pkg/types/020
   - pkg/types/current
   - pkg/version
+- name: github.com/containernetworking/plugins
+  version: 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
 - name: github.com/containers/image
   version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
   repo: git@github.com:openshift/containers-image
@@ -434,7 +436,7 @@ imports:
   - external/golang.org/x/net/context
   - external/golang.org/x/sys/unix
 - name: github.com/getsentry/raven-go
-  version: c9de0b92586aaba092c2a231cb7384354b178544
+  version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/go-ini/ini
@@ -907,7 +909,7 @@ imports:
   subpackages:
   - imageprogress
 - name: github.com/openshift/source-to-image
-  version: e3e0eedc3f9dd55377ca2b8444769ec2ea54c895
+  version: 5bf2cb171c2cab1270fba80dc53ef4ff25b12c97
   subpackages:
   - pkg/api
   - pkg/errors
@@ -1388,6 +1390,7 @@ imports:
   - pkg/admission/plugin/webhook/config/apis/webhookadmission
   - pkg/admission/plugin/webhook/config/apis/webhookadmission/v1alpha1
   - pkg/admission/plugin/webhook/errors
+  - pkg/admission/plugin/webhook/initializer
   - pkg/admission/plugin/webhook/mutating
   - pkg/admission/plugin/webhook/namespace
   - pkg/admission/plugin/webhook/request
@@ -2003,6 +2006,7 @@ imports:
   - pkg/features
   - pkg/fieldpath
   - pkg/generated
+  - pkg/kubeapiserver
   - pkg/kubeapiserver/admission
   - pkg/kubeapiserver/admission/util
   - pkg/kubeapiserver/authenticator
