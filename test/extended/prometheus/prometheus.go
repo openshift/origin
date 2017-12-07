@@ -311,7 +311,7 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.WaitForDeploymentStatus(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
+		e2e.WaitForDeploymentComplete(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)
