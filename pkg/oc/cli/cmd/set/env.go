@@ -315,7 +315,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
 	gv := *clientConfig.GroupVersion
-	oldObjects, err := resource.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
+	oldObjects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
 	if err != nil {
 		return err
 	}
@@ -447,7 +447,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		return f.PrintResourceInfos(o.Cmd, o.Local, infos, o.Out)
 	}
 
-	objects, err := resource.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
+	objects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
 	if err != nil {
 		return err
 	}

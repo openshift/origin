@@ -136,11 +136,11 @@ func (o *PatchOptions) RunPatch() error {
 	}
 	info := infos[0]
 
-	originalObjJS, err := runtime.Encode(configapi.Codecs.LegacyCodec(info.Mapping.GroupVersionKind.GroupVersion()), info.VersionedObject.(runtime.Object))
+	originalObjJS, err := runtime.Encode(configapi.Codecs.LegacyCodec(info.Mapping.GroupVersionKind.GroupVersion()), info.Object.(runtime.Object))
 	if err != nil {
 		return err
 	}
-	patchedObj, err := configapi.Scheme.DeepCopy(info.VersionedObject)
+	patchedObj, err := configapi.Scheme.DeepCopy(info.Object)
 	if err != nil {
 		return err
 	}
