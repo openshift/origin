@@ -13,7 +13,6 @@ import (
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
-	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -27,7 +26,6 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	// required to be loaded before we register
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -66,7 +64,6 @@ func registerAll() {
 	Validator.MustRegister(&deployapi.DeploymentConfigRollback{}, deployvalidation.ValidateDeploymentConfigRollback, nil)
 	Validator.MustRegister(&deployapi.DeploymentLogOptions{}, deployvalidation.ValidateDeploymentLogOptions, nil)
 	Validator.MustRegister(&deployapi.DeploymentRequest{}, deployvalidation.ValidateDeploymentRequest, nil)
-	Validator.MustRegister(&extensions.Scale{}, extvalidation.ValidateScale, nil)
 
 	Validator.MustRegister(&imageapi.Image{}, imagevalidation.ValidateImage, imagevalidation.ValidateImageUpdate)
 	Validator.MustRegister(&imageapi.ImageSignature{}, imagevalidation.ValidateImageSignature, imagevalidation.ValidateImageSignatureUpdate)

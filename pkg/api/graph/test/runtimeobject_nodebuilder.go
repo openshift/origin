@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -131,12 +132,24 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 	}
 
 	mapper := legacyscheme.Registry.RESTMapper()
-	typer := legacyscheme.Scheme
-	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-		return nil, nil
-	})
 
-	r := resource.NewBuilder(mapper, resource.SimpleCategoryExpander{}, typer, clientMapper, legacyscheme.Codecs.UniversalDecoder()).
+	builder := resource.NewBuilder(
+		&resource.Mapper{
+			RESTMapper:   mapper,
+			ObjectTyper:  legacyscheme.Scheme,
+			ClientMapper: resource.DisabledClientForMapping{},
+			Decoder:      legacyscheme.Codecs.UniversalDecoder(),
+		},
+		&resource.Mapper{
+			RESTMapper:   mapper,
+			ObjectTyper:  legacyscheme.Scheme,
+			ClientMapper: resource.DisabledClientForMapping{},
+			Decoder:      unstructured.UnstructuredJSONScheme,
+		},
+		categories.SimpleCategoryExpander{},
+	)
+
+	r := builder.
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: []string{abspath}}).
 		Flatten().
 		Do()
