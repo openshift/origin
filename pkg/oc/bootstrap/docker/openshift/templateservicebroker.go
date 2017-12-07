@@ -93,7 +93,7 @@ func (h *Helper) RegisterTemplateServiceBroker(f *clientcmd.Factory, configDir s
 	glog.V(2).Infof("registering the template broker with the service catalog")
 
 	// dynamic mapper is needed to support the broker resource which isn't part of the api.
-	dynamicMapper, dynamicTyper, err := f.UnstructuredObject()
+	dynamicMapper, dynamicTyper := f.Object()
 	dmapper := &resource.Mapper{
 		RESTMapper:   dynamicMapper,
 		ObjectTyper:  dynamicTyper,
