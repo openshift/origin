@@ -1,5 +1,5 @@
 hash: f3bcbfcb58a3c02dd27f10003c5766eadf0ee6939fd644644b22a4440a5058bd
-updated: 2017-12-07T08:44:01.230404304-05:00
+updated: 2017-12-07T08:48:47.131486108-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -158,6 +158,11 @@ imports:
   - pkg/version
 - name: github.com/containernetworking/plugins
   version: 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
+  subpackages:
+  - pkg/ip
+  - pkg/ipam
+  - pkg/ns
+  - pkg/utils/hwaddr
 - name: github.com/containers/image
   version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
   repo: git@github.com:openshift/containers-image
@@ -257,6 +262,10 @@ imports:
   - version
   - wal
   - wal/walpb
+- name: github.com/coreos/go-iptables
+  version: 259c8e6a4275d497442c721fa52204d7a58bde8b
+  subpackages:
+  - iptables
 - name: github.com/coreos/go-oidc
   version: a4973d9a4225417aecf5d450a9522f00c1f7130f
   subpackages:
