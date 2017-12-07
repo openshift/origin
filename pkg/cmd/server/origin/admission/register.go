@@ -39,7 +39,7 @@ import (
 )
 
 // TODO register this per apiserver or at least per process
-var OriginAdmissionPlugins = &admission.Plugins{}
+var OriginAdmissionPlugins = admission.NewPlugins()
 
 func init() {
 	RegisterAllAdmissionPlugins(OriginAdmissionPlugins)
