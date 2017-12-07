@@ -11,7 +11,7 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
-func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[string][]string) (*schedulerapp.SchedulerServer, error) {
+func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[string][]string) (*schedulerapp.Options, error) {
 	cmdLineArgs := map[string][]string{}
 	// deep-copy the input args to avoid mutation conflict.
 	for k, v := range schedulerArgs {
@@ -49,20 +49,20 @@ func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[
 		return nil, err
 	}
 
-	return schedulerServer, nil
+	return schedulerOptions, nil
 }
 
 func runEmbeddedScheduler(kubeconfigFile, schedulerConfigFile string, cmdLineArgs map[string][]string) {
 	for {
 		// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
-		scheduler, err := newScheduler(kubeconfigFile, schedulerConfigFile, cmdLineArgs)
+		schedulerOptions, err := newScheduler(kubeconfigFile, schedulerConfigFile, cmdLineArgs)
 		if err != nil {
 			glog.Error(err)
 			continue
 		}
 		// this does a second leader election, but doing the second leader election will allow us to move out process in
 		// 3.8 if we so choose.
-		if err := schedulerapp.Run(scheduler); err != nil {
+		if err := schedulerOptions.Run(); err != nil {
 			glog.Error(err)
 			continue
 		}
