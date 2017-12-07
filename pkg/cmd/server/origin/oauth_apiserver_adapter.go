@@ -1,7 +1,6 @@
 package origin
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 
@@ -16,7 +15,7 @@ import (
 
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
 // we can run this in a pod.  This is an indication of leaky abstraction because it spent too much time in openshift start
-func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapiserver.OAuthServerConfig, error) {
+func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig, listener net.Listener) (*oauthapiserver.OAuthServerConfig, error) {
 	options := masterConfig.Options
 	servingConfig := options.ServingInfo
 	oauthConfig := masterConfig.Options.OAuthConfig
@@ -29,7 +28,7 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 	oauthServerConfig.GenericConfig.CorsAllowedOriginList = options.CORSAllowedOrigins
 
 	// TODO pull this out into a function
-	_, portString, err := net.SplitHostPort(servingConfig.BindAddress)
+	host, portString, err := net.SplitHostPort(servingConfig.BindAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +37,9 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 		return nil, err
 	}
 	secureServingOptions := apiserveroptions.SecureServingOptions{}
+	secureServingOptions.Listener = listener
+	secureServingOptions.BindAddress = net.ParseIP(host)
+	secureServingOptions.BindNetwork = servingConfig.BindNetwork
 	secureServingOptions.BindPort = port
 	secureServingOptions.ServerCert.CertKey.CertFile = servingConfig.ServerCert.CertFile
 	secureServingOptions.ServerCert.CertKey.KeyFile = servingConfig.ServerCert.KeyFile
@@ -51,13 +53,6 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 	}
 	if err := secureServingOptions.ApplyTo(&oauthServerConfig.GenericConfig.Config); err != nil {
 		return nil, err
-	}
-	// TODO this becomes necessary once the oauth server is moved out of tree.
-	if false {
-		oauthServerConfig.GenericConfig.SecureServingInfo.Listener, err = net.Listen(servingConfig.BindNetwork, servingConfig.BindAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to listen on %v: %v", servingConfig.BindAddress, err)
-		}
 	}
 	oauthServerConfig.GenericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(servingConfig.MinTLSVersion)
 	oauthServerConfig.GenericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(servingConfig.CipherSuites)

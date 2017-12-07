@@ -1,7 +1,6 @@
 package apiserver
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -72,12 +71,12 @@ type CompletedConfig struct {
 	*completedConfig
 }
 
-func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, error) {
+func NewAssetServerConfig(assetConfig oapi.AssetConfig, listener net.Listener) (*AssetServerConfig, error) {
 	publicURL, err := url.Parse(assetConfig.PublicURL)
 	if err != nil {
 		glog.Fatal(err)
 	}
-	_, portString, err := net.SplitHostPort(assetConfig.ServingInfo.BindAddress)
+	host, portString, err := net.SplitHostPort(assetConfig.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +85,9 @@ func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, err
 		return nil, err
 	}
 	secureServingOptions := genericapiserveroptions.SecureServingOptions{}
+	secureServingOptions.Listener = listener
+	secureServingOptions.BindAddress = net.ParseIP(host)
+	secureServingOptions.BindNetwork = assetConfig.ServingInfo.BindNetwork
 	secureServingOptions.BindPort = port
 	secureServingOptions.ServerCert.CertKey.CertFile = assetConfig.ServingInfo.ServerCert.CertFile
 	secureServingOptions.ServerCert.CertKey.KeyFile = assetConfig.ServingInfo.ServerCert.KeyFile
@@ -103,13 +105,6 @@ func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, err
 	genericConfig.BuildHandlerChainFunc = buildHandlerChainForAssets(publicURL.Path)
 	if err := secureServingOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
-	}
-	// TODO this becomes necessary once the webconsole server is moved out of tree.
-	if false {
-		genericConfig.SecureServingInfo.Listener, err = net.Listen(assetConfig.ServingInfo.BindNetwork, assetConfig.ServingInfo.BindAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to listen on %v: %v", assetConfig.ServingInfo.BindAddress, err)
-		}
 	}
 	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(assetConfig.ServingInfo.MinTLSVersion)
 	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(assetConfig.ServingInfo.CipherSuites)

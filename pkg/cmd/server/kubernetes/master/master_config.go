@@ -89,13 +89,15 @@ const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|im
 
 var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix)
 
+// TODO I'm honestly not sure this is worth it. We're not likely to ever be able to launch from flags, so this just
+// adds a layer of complexity that is driving me crazy.
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
 func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserveroptions.ServerRunOptions, error) {
 	if masterConfig.KubernetesMasterConfig == nil {
 		return nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
 	}
-	_, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
+	host, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +122,9 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Features.EnableProfiling = true
 	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
+	server.SecureServing.BindAddress = net.ParseIP(host)
 	server.SecureServing.BindPort = port
+	server.SecureServing.BindNetwork = masterConfig.ServingInfo.BindNetwork
 	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
 	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
 	server.InsecureServing.BindPort = 0
@@ -278,9 +282,6 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	if _, err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
-		return nil, err
-	}
 	if err := s.Audit.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
@@ -414,9 +415,12 @@ func buildKubeApiserverConfig(
 	}
 	genericConfig.LoopbackClientConfig = loopbackClientConfig
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
-	genericConfig.SecureServingInfo.Listener, err = net.Listen(masterConfig.ServingInfo.BindNetwork, masterConfig.ServingInfo.BindAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to listen on %v: %v", masterConfig.ServingInfo.BindAddress, err)
+	// I *think* that ApplyTo is doing this for us.
+	if false {
+		genericConfig.SecureServingInfo.Listener, err = net.Listen(masterConfig.ServingInfo.BindNetwork, masterConfig.ServingInfo.BindAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to listen on %v: %v", masterConfig.ServingInfo.BindAddress, err)
+		}
 	}
 	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
 	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)

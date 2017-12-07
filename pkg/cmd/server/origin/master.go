@@ -159,7 +159,7 @@ func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil
 	}
 
-	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig)
+	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig, genericConfig.SecureServingInfo.Listener)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil, nil
 	}
 
-	config, err := NewOAuthServerConfigFromMasterConfig(c)
+	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServingInfo.Listener)
 	if err != nil {
 		return nil, nil, err
 	}
