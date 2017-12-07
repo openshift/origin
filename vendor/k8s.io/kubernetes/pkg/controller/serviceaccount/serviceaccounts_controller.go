@@ -68,9 +68,11 @@ func NewServiceAccountsController(saInformer coreinformers.ServiceAccountInforme
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "serviceaccount"),
 	}
 	if cl != nil && cl.CoreV1().RESTClient().GetRateLimiter() != nil {
-		if err := metrics.RegisterMetricAndTrackRateLimiterUsage("serviceaccount_controller", cl.CoreV1().RESTClient().GetRateLimiter()); err != nil {
-			return nil, err
-		}
+		// skip the error.  We run two of these in the same process until we split
+		metrics.RegisterMetricAndTrackRateLimiterUsage("serviceaccount_controller", cl.CoreV1().RESTClient().GetRateLimiter())
+		//if err := metrics.RegisterMetricAndTrackRateLimiterUsage("serviceaccount_controller", cl.CoreV1().RESTClient().GetRateLimiter()); err != nil {
+		//	return nil, err
+		//}
 	}
 
 	saInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
