@@ -229,6 +229,13 @@ func installAPIs(c *OpenshiftAPIConfig, server *genericapiserver.GenericAPIServe
 			if isPreferredGroupVersion(gv) {
 				apiGroupInfo.GroupMeta.GroupVersion = gv
 			}
+
+			if group == "apps.openshift.io" && version == "v1" {
+				if apiGroupInfo.SubresourceGroupVersionKind == nil {
+					apiGroupInfo.SubresourceGroupVersionKind = map[string]schema.GroupVersionKind{}
+				}
+				apiGroupInfo.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+			}
 		}
 
 		if err := server.InstallAPIGroup(&apiGroupInfo); err != nil {
