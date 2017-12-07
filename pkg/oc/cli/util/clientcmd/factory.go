@@ -114,6 +114,11 @@ func AsVersionedObject(infos []*resource.Info, forceList bool, version schema.Gr
 		object = objects[0]
 	} else {
 		object = &api.List{Items: objects}
+
+		if version.Empty() {
+			version = schema.GroupVersion{Version: "v1"}
+		}
+
 		converted, err := tryConvert(legacyscheme.Scheme, object, version, legacyscheme.Registry.GroupOrDie(api.GroupName).GroupVersion)
 		if err != nil {
 			return nil, err
