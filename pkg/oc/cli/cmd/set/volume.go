@@ -606,9 +606,9 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
 	listingErrors := []error{}
 	for _, info := range infos {
-		_, err := v.UpdatePodSpecForObject(info.Object, func(spec *v1.PodSpec) error {
+		_, err := v.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			return v.listVolumeForSpec(spec, info)
-		})
+		}))
 		if err != nil {
 			listingErrors = append(listingErrors, err)
 			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
