@@ -1,0 +1,76 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: grafana-ocp
+  annotations:
+    "openshift.io/display-name": Grafana ocp
+    description: |
+      Grafana server with patched Prometheus datasource.
+    iconClass: icon-cogs
+    tags: "metrics,monitoring,grafana,prometheus"
+parameters:
+- description: External URL for the grafana route
+  name: ROUTE_URL
+  value: ""
+- description: The namespace to instantiate heapster under. Defaults to 'grafana'.
+  name: NAMESPACE
+  value: grafana
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: grafana-ocp
+    namespace: "${NAMESPACE}"
+  spec:
+    host: "${ROUTE_URL}"
+    to:
+      name: grafana-ocp
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: grafana-ocp
+    namespace: "${NAMESPACE}"
+    labels:
+      metrics-infra: grafana-ocp
+      name: grafana-ocp
+  spec:
+    selector:
+      name: grafana-ocp
+    ports:
+    - port: 8082
+      protocol: TCP
+      targetPort: grafana-http
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    name: grafana-ocp
+    namespace: "${NAMESPACE}"
+    labels:
+      metrics-infra: grafana-ocp
+      name: grafana-ocp
+  spec:
+    selector:
+      name: grafana-ocp
+    replicas: 1
+    template:
+      version: v1
+      metadata:
+        labels:
+          metrics-infra: grafana-ocp
+          name: grafana-ocp
+      spec:
+        volumes:
+        - name: data
+          emptyDir: {}
+        containers:
+        - image: "mrsiano/grafana-ocp:latest"
+          name: grafana-ocp
+          ports:
+          - name: grafana-http
+            containerPort: 3000
+          volumeMounts:
+          - name: data
+            mountPath: "/root/go/src/github.com/grafana/grafana/data"
+          command:
+          - "./bin/grafana-server"
