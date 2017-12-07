@@ -430,6 +430,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 
 func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
 	b := f.NewBuilder().
+		Internal().
 		LocalParam(v.Local).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().

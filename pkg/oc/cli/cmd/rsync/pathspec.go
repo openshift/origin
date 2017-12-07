@@ -93,6 +93,7 @@ func resolveResourceKindPath(f kcmdutil.Factory, path, namespace string) (string
 	}
 
 	r := f.NewBuilder().
+		Internal().
 		NamespaceParam(namespace).
 		SingleResourceType().
 		ResourceNames("pods", podName).

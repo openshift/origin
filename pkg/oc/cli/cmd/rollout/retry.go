@@ -91,6 +91,7 @@ func (o *RetryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io
 	}
 
 	r := f.NewBuilder().
+		Internal().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

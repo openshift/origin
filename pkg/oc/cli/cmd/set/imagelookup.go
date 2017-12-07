@@ -165,6 +165,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	mapper, _ := f.Object()
 	o.Builder = f.NewBuilder().
+		Internal().
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().

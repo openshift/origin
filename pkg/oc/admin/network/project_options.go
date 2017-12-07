@@ -108,6 +108,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	}
 
 	r := p.Builder.
+		Internal().
 		ContinueOnError().
 		NamespaceParam(p.DefaultNamespace).
 		LabelSelectorParam(p.Selector).

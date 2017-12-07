@@ -310,6 +310,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 	var obj runtime.Object
 	for _, name := range candidates {
 		r := o.getBuilder().
+			Internal().
 			NamespaceParam(o.Namespace).
 			ResourceTypeOrNameArgs(false, name).
 			SingleResourceType().

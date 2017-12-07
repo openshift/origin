@@ -135,6 +135,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 	}
 
 	r := n.Builder.
+		Internal().
 		ContinueOnError().
 		NamespaceParam(n.DefaultNamespace).
 		LabelSelectorParam(n.Selector).

@@ -85,6 +85,7 @@ func (o SecretOptions) Validate() error {
 // GetServiceAccount Retrieve the service account object specified by the command
 func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
 	r := o.BuilderFunc().
+		Internal().
 		NamespaceParam(o.Namespace).
 		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().

@@ -99,6 +99,7 @@ func (o *ExtractOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Wri
 	}
 
 	b := f.NewBuilder().
+		Internal().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ResourceNames("", args...).

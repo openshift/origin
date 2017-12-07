@@ -25,6 +25,7 @@ func ImportObjects(f *clientcmd.Factory, ns, location string) error {
 	}
 	glog.V(8).Infof("Importing data:\n%s\n", string(data))
 	r := f.NewBuilder().
+		Internal().
 		Schema(schema).
 		ContinueOnError().
 		NamespaceParam(ns).

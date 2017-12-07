@@ -90,6 +90,7 @@ func (o *CancelOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out i
 	}
 
 	r := f.NewBuilder().
+		Internal().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

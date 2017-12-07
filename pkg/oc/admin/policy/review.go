@@ -129,6 +129,7 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 
 func (o *sccReviewOptions) Run(args []string) error {
 	r := o.builder.
+		Internal().
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

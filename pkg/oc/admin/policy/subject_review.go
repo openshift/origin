@@ -134,6 +134,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 		userOrSA = o.serviceAccount
 	}
 	r := o.builder.
+		Internal().
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

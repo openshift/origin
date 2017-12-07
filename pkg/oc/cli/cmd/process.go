@@ -223,6 +223,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
 		infos, err = f.NewBuilder().
+			Internal().
 			LocalParam(local).
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().

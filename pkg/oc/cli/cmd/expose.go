@@ -94,6 +94,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	}
 
 	r := f.NewBuilder().
+		Internal().
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &resource.FilenameOptions{Recursive: false, Filenames: kcmdutil.GetFlagStringSlice(cmd, "filename")}).
