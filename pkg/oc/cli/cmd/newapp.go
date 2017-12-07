@@ -166,17 +166,14 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 	}
 
 	mapper, typer := f.Object()
-	dynamicMapper, dynamicTyper, err := f.UnstructuredObject()
-	if err != nil {
-		return err
-	}
+
 	// ignore errors.   We use this to make a best guess at preferred seralizations, but the command might run without a server
 	discoveryClient, _ := f.DiscoveryClient()
 
 	o.Action.Out, o.Action.ErrOut = out, o.ErrOut
 	o.Action.Bulk.DynamicMapper = &resource.Mapper{
-		RESTMapper:   dynamicMapper,
-		ObjectTyper:  dynamicTyper,
+		RESTMapper:   mapper,
+		ObjectTyper:  typer,
 		ClientMapper: resource.ClientMapperFunc(f.UnstructuredClientForMapping),
 	}
 	o.Action.Bulk.Mapper = &resource.Mapper{

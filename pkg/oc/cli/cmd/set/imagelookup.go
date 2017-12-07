@@ -268,7 +268,7 @@ func (o *ImageLookupOptions) Run() error {
 		return fmt.Errorf("%s/%s no changes", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, legacyscheme.Codecs.LegacyCodec(o.OutputVersion))
+		object, err := clientcmd.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, legacyscheme.Codecs.LegacyCodec(o.OutputVersion))
 		if err != nil {
 			return err
 		}

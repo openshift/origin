@@ -315,7 +315,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	// Keep a copy of the original objects prior to updating their environment.
 	// Used in constructing the patch(es) that will be applied in the server.
 	gv := *clientConfig.GroupVersion
-	oldObjects, err := resource.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
+	oldObjects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
 	if err != nil {
 		return err
 	}
@@ -334,7 +334,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	skipped := 0
 	errored := []*resource.Info{}
 	for _, info := range infos {
-		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+		ok, err := f.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
@@ -400,7 +400,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 				return errors.New("failed to retrieve valueFrom references")
 			}
 			return nil
-		})
+		}))
 		if !ok {
 			// This is a fallback function for objects that don't have pod spec.
 			ok, err = f.UpdateObjectEnvironment(info.Object, func(vars *[]kapi.EnvVar) error {
@@ -447,7 +447,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		return f.PrintResourceInfos(o.Cmd, o.Local, infos, o.Out)
 	}
 
-	objects, err := resource.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
+	objects, err := clientcmd.AsVersionedObjects(infos, gv, legacyscheme.Codecs.LegacyCodec(gv))
 	if err != nil {
 		return err
 	}

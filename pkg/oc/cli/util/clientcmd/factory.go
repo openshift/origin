@@ -91,7 +91,7 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*
 	}
 
 	printAsList := len(infos) != 1
-	object, err := asVersionedObject(infos, printAsList, schema.GroupVersion{}, legacyscheme.Codecs.LegacyCodec())
+	object, err := AsVersionedObject(infos, printAsList, schema.GroupVersion{}, legacyscheme.Codecs.LegacyCodec())
 	if err != nil {
 		return err
 	}
@@ -99,12 +99,12 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*
 	return printer.PrintObj(object, out)
 }
 
-// asVersionedObject converts a list of infos into a single object - either a List containing
+// AsVersionedObject converts a list of infos into a single object - either a List containing
 // the objects as children, or if only a single Object is present, as that object. The provided
 // version will be preferred as the conversion target, but the Object's mapping version will be
 // used if that version is not present.
-func asVersionedObject(infos []*resource.Info, forceList bool, version schema.GroupVersion, encoder runtime.Encoder) (runtime.Object, error) {
-	objects, err := asVersionedObjects(infos, version, encoder)
+func AsVersionedObject(infos []*resource.Info, forceList bool, version schema.GroupVersion, encoder runtime.Encoder) (runtime.Object, error) {
+	objects, err := AsVersionedObjects(infos, version, encoder)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func tryConvert(converter runtime.ObjectConvertor, object runtime.Object, versio
 // AsVersionedObjects converts a list of infos into versioned objects. The provided
 // version will be preferred as the conversion target, but the Object's mapping version will be
 // used if that version is not present.
-func asVersionedObjects(infos []*resource.Info, version schema.GroupVersion, encoder runtime.Encoder) ([]runtime.Object, error) {
+func AsVersionedObjects(infos []*resource.Info, version schema.GroupVersion, encoder runtime.Encoder) ([]runtime.Object, error) {
 	objects := []runtime.Object{}
 	for _, info := range infos {
 		if info.Object == nil {

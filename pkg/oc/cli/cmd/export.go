@@ -114,7 +114,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		Unstructured().
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
-		SelectorParam(selector).
+		LabelSelector(selector).
 		ResourceTypeOrNameArgs(true, args...).
 		Flatten()
 
@@ -180,7 +180,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 
 	var result runtime.Object
 	if len(asTemplate) > 0 {
-		objects, err := resource.AsVersionedObjects(infos, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
+		objects, err := clientcmd.AsVersionedObjects(infos, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
 			return err
 		}
@@ -193,7 +193,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 			return err
 		}
 	} else {
-		object, err := resource.AsVersionedObject(infos, !one, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
+		object, err := clientcmd.AsVersionedObject(infos, !one, outputVersion, legacyscheme.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
 			return err
 		}
@@ -215,6 +215,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	printOpts.OutputFormatArgument = templateFile
 	printOpts.AllowMissingKeys = kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
 
+	mapper, typer := f.Object()
 	p, err := kprinters.GetStandardPrinter(
 		mapper, typer, legacyscheme.Codecs.LegacyCodec(outputVersion), decoders, *printOpts)
 
