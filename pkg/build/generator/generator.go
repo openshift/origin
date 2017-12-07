@@ -51,10 +51,9 @@ func IsFatal(err error) bool {
 // BuildGenerator is a central place responsible for generating new Build objects
 // from BuildConfigs and other Builds.
 type BuildGenerator struct {
-	Client                    GeneratorClient
-	DefaultServiceAccountName string
-	ServiceAccounts           kcoreclient.ServiceAccountsGetter
-	Secrets                   kcoreclient.SecretsGetter
+	Client          GeneratorClient
+	ServiceAccounts kcoreclient.ServiceAccountsGetter
+	Secrets         kcoreclient.SecretsGetter
 }
 
 // GeneratorClient is the API client used by the generator
@@ -458,7 +457,10 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 	// the build object which could be (will be) modified later.
 	buildName := getNextBuildName(bc)
 	bcCopy := bc.DeepCopy()
-	serviceAccount := getServiceAccount(bcCopy, g.DefaultServiceAccountName)
+	serviceAccount := bcCopy.Spec.ServiceAccount
+	if len(serviceAccount) == 0 {
+		serviceAccount = bootstrappolicy.BuilderServiceAccountName
+	}
 	t := true
 	build := &buildapi.Build{
 		Spec: buildapi.BuildSpec{
@@ -875,18 +877,6 @@ func getImageChangeTriggerForRef(bc *buildapi.BuildConfig, ref *kapi.ObjectRefer
 		}
 	}
 	return nil
-}
-
-//getServiceAccount returns serviceaccount used by new build
-func getServiceAccount(buildConfig *buildapi.BuildConfig, defaultServiceAccount string) string {
-	serviceAccount := buildConfig.Spec.ServiceAccount
-	if len(serviceAccount) == 0 {
-		serviceAccount = defaultServiceAccount
-	}
-	if len(serviceAccount) == 0 {
-		serviceAccount = bootstrappolicy.BuilderServiceAccountName
-	}
-	return serviceAccount
 }
 
 //setBuildSource update build source by binary status
