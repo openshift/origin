@@ -227,6 +227,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 
 	if len(o.From) != 0 {
 		b := f.NewBuilder().
+			Internal().
 			LocalParam(o.Local).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
@@ -290,6 +291,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	b := f.NewBuilder().
+		Internal().
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
