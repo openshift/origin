@@ -171,6 +171,8 @@ func (d *NetworkDiagnostic) waitForTestPodAndService(nsList []string) error {
 				errList = append(errList, fmt.Errorf("Failed to run network diags test pods, failed: %d, total: %d", (totalPods-runningPods), totalPods))
 			}
 		}
+	} else {
+		errList = append(errList, fmt.Errorf("Failed to count test pods: %v ", err))
 	}
 	return kerrors.NewAggregate(errList)
 }
