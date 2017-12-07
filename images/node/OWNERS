@@ -3,7 +3,6 @@ reviewers:
   - sdodson
   - smarterclayton
   - stevekuznetsov
-  - tdawson
   - dcbw
   - rootfs
   - pravisankar
@@ -13,5 +12,4 @@ approvers:
   - sdodson
   - smarterclayton
   - stevekuznetsov
-  - tdawson
   - dcbw
