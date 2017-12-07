@@ -123,6 +123,10 @@ function start() {
     start-container "${config_root}" "${deployed_config_root}" "${NODE_IMAGE}" "${name}"
   done
 
+  if [[ -n "${ADDITIONAL_NETWORK_INTERFACE}" ]]; then
+    add-network-interface-to-nodes
+  fi
+
   local rc_file="dind-${cluster_id}.rc"
   local admin_config
   admin_config="$(get-admin-config "${CONFIG_ROOT}")"
@@ -154,6 +158,41 @@ cluster's rc file to configure the bash environment:
   $ oc get nodes
 "
   fi
+}
+
+function add-network-interface-to-nodes () {
+  local bridge_num=${BRIDGE_START_NUM}
+  local ipam_num=${IPAM_START_NUM}
+  local netns_path="/var/run/netns"
+
+  sudo mkdir -p "${netns_path}"
+
+  for pid in $( ${DOCKER_CMD} ps -q --filter "name=${NODE_PREFIX}" | xargs ${DOCKER_CMD} inspect --format '{{.State.Pid}}' ); do
+    local bridge="${BRIDGE_PREFIX}${bridge_num}"
+    # Create new bridge
+    sudo brctl addbr "${bridge}"
+    # Assign IPAM to the bridge
+    sudo ifconfig "${bridge}" "172.${ipam_num}.0.1/16"
+    # Link container network namespace so that 'ip netns' can recognize
+    sudo ln -s /proc/"${pid}"/ns/net "${netns_path}/ns-${pid}"
+    # Create veth pair
+    sudo ip link add veth1-ns-"${pid}" type veth peer name veth2-ns-"${pid}"
+    # Move one end of the veth pair inside the container
+    sudo ip link set veth1-ns-"${pid}" netns ns-"${pid}"
+    # Rename interface name inside the container
+    sudo ip netns exec ns-"${pid}" ip link set veth1-ns-"${pid}" name "${ADDITIONAL_IFACE_NAME}"
+    # Assign address to the added interface in the container
+    sudo ip netns exec ns-"${pid}" ifconfig "${ADDITIONAL_IFACE_NAME}" "172.${ipam_num}.0.3/16"
+    # Bring up the link connected to the container
+    sudo ip netns exec ns-"${pid}" ip link set "${ADDITIONAL_IFACE_NAME}" up
+    # Move other end of the veth pair to the bridge
+    sudo brctl addif "${bridge}" veth2-ns-"${pid}"
+    # Bring up the link connected to the bridge
+    sudo ip link set dev veth2-ns-"${pid}" up
+
+    (( bridge_num += 1 ))
+    (( ipam_num += 1 ))
+  done
 }
 
 function add-node () {
@@ -232,6 +271,17 @@ function stop() {
 
   echo "Stopping dind cluster '${cluster_id}'"
   sudo echo -n
+
+  # Delete additional network interface on the nodes if needed
+  local bridge_num=${BRIDGE_START_NUM}
+  for (( i=1; i<=NODE_COUNT; i++ )); do
+    local bridge="${BRIDGE_PREFIX}${bridge_num}"
+
+    sudo ip link set "${bridge}" down 2> /dev/null || "true"
+    sudo brctl delbr "${bridge}" 2> /dev/null || "true"
+
+    (( bridge_num += 1 ))
+  done
 
   # Delete the containers
   for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}|${NODE_PREFIX}" ); do
@@ -615,6 +665,11 @@ NODE_PREFIX="${CLUSTER_ID}-node-"
 NODE_COUNT=2
 NODE_NAMES=()
 
+BRIDGE_PREFIX="docker"
+BRIDGE_START_NUM=10
+IPAM_START_NUM=100
+ADDITIONAL_IFACE_NAME="${ADDITIONAL_IFACE_NAME:-eth1}"
+
 BASE_IMAGE="openshift/dind"
 NODE_IMAGE="openshift/dind-node"
 MASTER_IMAGE="openshift/dind-master"
@@ -630,8 +685,9 @@ case "${1:-""}" in
     WAIT_FOR_CLUSTER=1
     NETWORK_PLUGIN=
     REMOVE_EXISTING_CLUSTER=
+    ADDITIONAL_NETWORK_INTERFACE=
     OPTIND=2
-    while getopts ":bc:in:rsN:" opt; do
+    while getopts ":abc:in:rsN:" opt; do
       case $opt in
         b)
           BUILD=1
@@ -653,6 +709,9 @@ case "${1:-""}" in
           ;;
         c)
           CONTAINER_RUNTIME="${OPTARG}"
+          ;;
+        a)
+          ADDITIONAL_NETWORK_INTERFACE=1
           ;;
         \?)
           echo "Invalid option: -${OPTARG}" >&2
@@ -835,6 +894,7 @@ start accepts the following options:
  -c [runtime name] use the specified container runtime instead of dockershim (eg, "crio")
  -i                build container images before starting the cluster
  -r                remove an existing cluster
+ -a                add additional network interface to all nodes in the cluster
  -s                skip waiting for nodes to become ready
 
 Any of the arguments that would be used in creating openshift master can be passed
