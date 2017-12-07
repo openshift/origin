@@ -16,6 +16,8 @@ import:
 - package: github.com/emicklei/go-restful-swagger12
   repo:    https://github.com/openshift/emicklei-go-restful-swagger12
   version: release-1.0.1
+- package: github.com/containernetworking/plugins
+  version: ~0.6.0
 - package: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
 - package: github.com/fsouza/go-dockerclient
