@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -105,7 +106,7 @@ type VolumeOptions struct {
 	Typer                  runtime.ObjectTyper
 	CategoryExpander       categories.CategoryExpander
 	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
+	UpdatePodSpecForObject func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
 	Cmd                    *cobra.Command
@@ -538,7 +539,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleIte
 	skipped := 0
 	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
 		transformed := false
-		ok, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+		ok, err := v.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			var e error
 			switch {
 			case v.Add:
@@ -549,7 +550,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleIte
 				transformed = true
 			}
 			return e
-		})
+		}))
 		if !ok {
 			skipped++
 		}

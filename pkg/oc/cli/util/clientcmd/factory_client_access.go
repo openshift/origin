@@ -187,6 +187,42 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*corev
 	}
 }
 
+func ConvertInteralPodSpecToExternal(inFn func(*kapi.PodSpec) error) func(*corev1.PodSpec) error {
+	return func(specToMutate *corev1.PodSpec) error {
+		internalPodSpec := &kapi.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(specToMutate, internalPodSpec, nil); err != nil {
+			return err
+		}
+		if err := inFn(internalPodSpec); err != nil {
+			return err
+		}
+		externalPodSpec := &corev1.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(internalPodSpec, externalPodSpec, nil); err != nil {
+			return err
+		}
+		*specToMutate = *externalPodSpec
+		return nil
+	}
+}
+
+func ConvertExteralPodSpecToInternal(inFn func(*corev1.PodSpec) error) func(*kapi.PodSpec) error {
+	return func(specToMutate *kapi.PodSpec) error {
+		externalPodSpec := &corev1.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(specToMutate, externalPodSpec, nil); err != nil {
+			return err
+		}
+		if err := inFn(externalPodSpec); err != nil {
+			return err
+		}
+		internalPodSpec := &kapi.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(externalPodSpec, internalPodSpec, nil); err != nil {
+			return err
+		}
+		*specToMutate = *internalPodSpec
+		return nil
+	}
+}
+
 func (f *ring0Factory) MapBasedSelectorForObject(object runtime.Object) (string, error) {
 	switch t := object.(type) {
 	case *deployapi.DeploymentConfig:

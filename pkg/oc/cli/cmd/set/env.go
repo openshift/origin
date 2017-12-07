@@ -334,7 +334,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	skipped := 0
 	errored := []*resource.Info{}
 	for _, info := range infos {
-		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+		ok, err := f.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			resolutionErrorsEncountered := false
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
@@ -400,7 +400,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 				return errors.New("failed to retrieve valueFrom references")
 			}
 			return nil
-		})
+		}))
 		if !ok {
 			// This is a fallback function for objects that don't have pod spec.
 			ok, err = f.UpdateObjectEnvironment(info.Object, func(vars *[]kapi.EnvVar) error {
