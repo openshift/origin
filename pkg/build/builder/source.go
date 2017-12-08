@@ -17,7 +17,7 @@ import (
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -51,7 +51,7 @@ func (e gitNotFoundError) Error() string {
 }
 
 // GitClone clones the source associated with a build(if any) into the specified directory
-func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitBuildSource, revision *buildapi.SourceRevision, dir string) (*git.SourceInfo, error) {
+func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapiv1.GitBuildSource, revision *buildapiv1.SourceRevision, dir string) (*git.SourceInfo, error) {
 
 	// It is possible for the initcontainer to get restarted, thus we must wipe out the directory if it already exists.
 	err := os.RemoveAll(dir)
@@ -98,7 +98,7 @@ func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitB
 // with new FROM image information based on the imagestream/imagetrigger
 // and also adds some env and label values to the dockerfile based on
 // the build information.
-func ManageDockerfile(dir string, build *buildapi.Build) error {
+func ManageDockerfile(dir string, build *buildapiv1.Build) error {
 	os.MkdirAll(dir, 0777)
 	glog.V(5).Infof("Checking for presence of a Dockerfile")
 	// a Dockerfile has been specified, create or overwrite into the destination
@@ -124,7 +124,7 @@ func ManageDockerfile(dir string, build *buildapi.Build) error {
 	return nil
 }
 
-func ExtractImageContent(ctx context.Context, dockerClient DockerClient, dir string, build *buildapi.Build) error {
+func ExtractImageContent(ctx context.Context, dockerClient DockerClient, dir string, build *buildapiv1.Build) error {
 	os.MkdirAll(dir, 0777)
 	forcePull := false
 	switch {
@@ -205,7 +205,7 @@ func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) e
 
 // ExtractInputBinary processes the provided input stream as directed by BinaryBuildSource
 // into dir.
-func ExtractInputBinary(in io.Reader, source *buildapi.BinaryBuildSource, dir string) error {
+func ExtractInputBinary(in io.Reader, source *buildapiv1.BinaryBuildSource, dir string) error {
 	os.MkdirAll(dir, 0777)
 	if source == nil {
 		return nil
@@ -242,7 +242,7 @@ func ExtractInputBinary(in io.Reader, source *buildapi.BinaryBuildSource, dir st
 	return nil
 }
 
-func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitBuildSource, revision *buildapi.SourceRevision, dir string, timeout time.Duration) (bool, error) {
+func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *buildapiv1.GitBuildSource, revision *buildapiv1.SourceRevision, dir string, timeout time.Duration) (bool, error) {
 	if gitSource == nil {
 		return false, nil
 	}
@@ -276,7 +276,7 @@ func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *build
 		return true, err
 	}
 
-	timing.RecordNewStep(ctx, buildapi.StageFetchInputs, buildapi.StepFetchGitSource, startTime, metav1.Now())
+	timing.RecordNewStep(ctx, buildapiv1.StageFetchInputs, buildapiv1.StepFetchGitSource, startTime, metav1.Now())
 
 	// if we specify a commit, ref, or branch to checkout, do so, and update submodules
 	if usingRef {
@@ -360,7 +360,7 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)
 }
 
-func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []buildapi.ImageSourcePath, forcePull bool) error {
+func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []buildapiv1.ImageSourcePath, forcePull bool) error {
 	glog.V(4).Infof("Extracting image source from %s", image)
 	dockerAuth := docker.AuthConfiguration{}
 	if imageSecretIndex != -1 {
@@ -398,7 +398,7 @@ func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, imag
 			return fmt.Errorf("error pulling image %v: %v", image, err)
 		}
 
-		timing.RecordNewStep(ctx, buildapi.StagePullImages, buildapi.StepPullInputImage, startTime, metav1.Now())
+		timing.RecordNewStep(ctx, buildapiv1.StagePullImages, buildapiv1.StepPullInputImage, startTime, metav1.Now())
 
 	}
 
