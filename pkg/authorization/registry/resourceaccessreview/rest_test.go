@@ -31,17 +31,17 @@ type testAuthorizer struct {
 	actualAttributes kauthorizer.Attributes
 }
 
-func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed kauthorizer.Decision, reason string, err error) {
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
 		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(attributes.GetNamespace()) {
-			return false, "denied initial check", nil
+			return kauthorizer.DecisionDeny, "denied initial check", nil
 		}
 
-		return true, "", nil
+		return kauthorizer.DecisionAllow, "", nil
 	}
 
-	return false, "", errors.New("unsupported")
+	return kauthorizer.DecisionDeny, "", errors.New("unsupported")
 }
 func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attributes) (sets.String, sets.String, error) {
 	a.actualAttributes = passedAttributes

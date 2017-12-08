@@ -18,7 +18,7 @@ func TestAuthorize(t *testing.T) {
 		attributes          kauthorizer.AttributesRecord
 		delegateAuthAllowed bool
 		expectedCalled      bool
-		expectedAllowed     bool
+		expectedAllowed     kauthorizer.Decision
 		expectedErr         string
 		expectedMsg         string
 	}{
@@ -157,9 +157,12 @@ type fakeAuthorizer struct {
 	called  bool
 }
 
-func (a *fakeAuthorizer) Authorize(passedAttributes kauthorizer.Attributes) (bool, string, error) {
+func (a *fakeAuthorizer) Authorize(passedAttributes kauthorizer.Attributes) (kauthorizer.Decision, string, error) {
 	a.called = true
-	return a.allowed, "", nil
+	if a.allowed {
+		return kauthorizer.DecisionAllow, "", nil
+	}
+	return kauthorizer.DecisionDeny, "", nil
 }
 
 func (a *fakeAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {
