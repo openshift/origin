@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -419,6 +420,11 @@ type ClusterRole struct {
 
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
+
+	// AggregationRule is an optional field that describes how to build the Rules for this ClusterRole.
+	// If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
+	// stomped by the controller.
+	AggregationRule *rbacv1.AggregationRule `json:"aggregationRule,omitempty" protobuf:"bytes,3,opt,name=aggregationRule"`
 }
 
 // +genclient
