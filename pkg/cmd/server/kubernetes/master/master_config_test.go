@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
+	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -71,7 +71,7 @@ func TestAPIServerDefaults(t *testing.T) {
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &kubeapiserveroptions.ServerRunOptions{
-		ServiceNodePortRange: kubeapiserveroptions.DefaultServiceNodePortRange,
+		ServiceNodePortRange: kubeoptions.DefaultServiceNodePortRange,
 		MasterCount:          1,
 		GenericServerRunOptions: &apiserveroptions.ServerRunOptions{
 			MaxRequestsInFlight:         400,
@@ -293,42 +293,49 @@ func TestCMServerDefaults(t *testing.T) {
 }
 
 func TestSchedulerServerDefaults(t *testing.T) {
-	defaults := scheduleroptions.NewSchedulerServer()
+	defaults, err := schedulerapp.NewOptions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := defaults.ReallyApplyDefaults(); err != nil {
+		t.Fatal(err)
+	}
+	if err := defaults.Complete(); err != nil {
+		t.Fatal(err)
+	}
 
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
-	expectedDefaults := &scheduleroptions.SchedulerServer{
-		KubeSchedulerConfiguration: componentconfig.KubeSchedulerConfiguration{
-			Port:                           10251, // disabled
-			Address:                        "0.0.0.0",
-			AlgorithmProvider:              "DefaultProvider",
-			ContentType:                    "application/vnd.kubernetes.protobuf",
-			KubeAPIQPS:                     50,
-			KubeAPIBurst:                   100,
-			SchedulerName:                  "default-scheduler",
-			HardPodAffinitySymmetricWeight: 1,
-			FailureDomains:                 "kubernetes.io/hostname,failure-domain.beta.kubernetes.io/zone,failure-domain.beta.kubernetes.io/region",
-			LeaderElection: componentconfig.LeaderElectionConfiguration{
-				ResourceLock: "endpoints",
-				LeaderElect:  true,
-				LeaseDuration: metav1.Duration{
-					Duration: 15 * time.Second,
-				},
-				RenewDeadline: metav1.Duration{
-					Duration: 10 * time.Second,
-				},
-				RetryPeriod: metav1.Duration{
-					Duration: 2 * time.Second,
-				},
+	expectedDefaults := &componentconfig.KubeSchedulerConfiguration{
+		Port:                           10251, // disabled
+		Address:                        "0.0.0.0",
+		AlgorithmProvider:              "DefaultProvider",
+		ContentType:                    "application/vnd.kubernetes.protobuf",
+		KubeAPIQPS:                     50,
+		KubeAPIBurst:                   100,
+		SchedulerName:                  "default-scheduler",
+		HardPodAffinitySymmetricWeight: 1,
+		FailureDomains:                 "kubernetes.io/hostname,failure-domain.beta.kubernetes.io/zone,failure-domain.beta.kubernetes.io/region",
+		LeaderElection: componentconfig.LeaderElectionConfiguration{
+			ResourceLock: "endpoints",
+			LeaderElect:  true,
+			LeaseDuration: metav1.Duration{
+				Duration: 15 * time.Second,
 			},
-			LockObjectNamespace:      "kube-system",
-			LockObjectName:           "kube-scheduler",
-			PolicyConfigMapNamespace: "kube-system",
+			RenewDeadline: metav1.Duration{
+				Duration: 10 * time.Second,
+			},
+			RetryPeriod: metav1.Duration{
+				Duration: 2 * time.Second,
+			},
 		},
+		LockObjectNamespace:      "kube-system",
+		LockObjectName:           "kube-scheduler",
+		PolicyConfigMapNamespace: "kube-system",
 	}
 
-	if !reflect.DeepEqual(defaults, expectedDefaults) {
+	if !reflect.DeepEqual(defaults.GetConfig(), expectedDefaults) {
 		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectReflectDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesMasterConfig and update expectedDefaults")
 	}
