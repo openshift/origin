@@ -90,8 +90,13 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*
 		return nil
 	}
 
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+
 	printAsList := len(infos) != 1
-	object, err := AsVersionedObject(infos, printAsList, schema.GroupVersion{}, legacyscheme.Codecs.LegacyCodec())
+	object, err := AsVersionedObject(infos, printAsList, *clientConfig.GroupVersion, legacyscheme.Codecs.LegacyCodec())
 	if err != nil {
 		return err
 	}
