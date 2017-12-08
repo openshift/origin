@@ -2,11 +2,12 @@ package log
 
 import (
 	"fmt"
-	ct "github.com/daviddengcn/go-colortext"
-	"github.com/docker/docker/pkg/term"
 	"io"
 	"os"
 	"strings"
+
+	ct "github.com/daviddengcn/go-colortext"
+	"github.com/docker/docker/pkg/term"
 )
 
 type textLogger struct {

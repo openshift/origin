@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	fakekubeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
@@ -214,7 +214,7 @@ func TestBuildAdmission(t *testing.T) {
 				c.(kubeadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(fakeKubeClient)
 				c.(oadmission.WantsOpenshiftInternalBuildClient).SetOpenshiftInternalBuildClient(fakeBuildClient)
 				attrs := admission.NewAttributesRecord(test.object, test.oldObject, test.kind.WithVersion("version"), "foo", "test-build", test.resource.WithVersion("version"), test.subResource, op, fakeUser())
-				err := c.Admit(attrs)
+				err := c.(admission.MutationInterface).Admit(attrs)
 				if err != nil && test.expectAccept {
 					t.Errorf("unexpected error: %v", err)
 				}
@@ -258,7 +258,7 @@ func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 
 func asV1Build(in *buildapi.Build) *buildapiv1.Build {
 	out := &buildapiv1.Build{}
-	err := kapi.Scheme.Convert(in, out, nil)
+	err := legacyscheme.Scheme.Convert(in, out, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -281,7 +281,7 @@ func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 
 func asV1BuildConfig(in *buildapi.BuildConfig) *buildapiv1.BuildConfig {
 	out := &buildapiv1.BuildConfig{}
-	err := kapi.Scheme.Convert(in, out, nil)
+	err := legacyscheme.Scheme.Convert(in, out, nil)
 	if err != nil {
 		panic(err)
 	}

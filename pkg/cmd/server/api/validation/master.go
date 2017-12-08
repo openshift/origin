@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/util/cert"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"

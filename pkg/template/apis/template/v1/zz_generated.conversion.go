@@ -7,11 +7,11 @@ package v1
 import (
 	v1 "github.com/openshift/api/template/v1"
 	template "github.com/openshift/origin/pkg/template/apis/template"
-	core_v1 "k8s.io/api/core/v1"
+	api_core_v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	unsafe "unsafe"
 )
 
@@ -121,10 +121,10 @@ func Convert_template_BrokerTemplateInstanceList_To_v1_BrokerTemplateInstanceLis
 }
 
 func autoConvert_v1_BrokerTemplateInstanceSpec_To_template_BrokerTemplateInstanceSpec(in *v1.BrokerTemplateInstanceSpec, out *template.BrokerTemplateInstanceSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.TemplateInstance, &out.TemplateInstance, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.TemplateInstance, &out.TemplateInstance, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.Secret, &out.Secret, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
 	out.BindingIDs = *(*[]string)(unsafe.Pointer(&in.BindingIDs))
@@ -137,10 +137,10 @@ func Convert_v1_BrokerTemplateInstanceSpec_To_template_BrokerTemplateInstanceSpe
 }
 
 func autoConvert_template_BrokerTemplateInstanceSpec_To_v1_BrokerTemplateInstanceSpec(in *template.BrokerTemplateInstanceSpec, out *v1.BrokerTemplateInstanceSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.TemplateInstance, &out.TemplateInstance, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.TemplateInstance, &out.TemplateInstance, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.Secret, &out.Secret, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
 	out.BindingIDs = *(*[]string)(unsafe.Pointer(&in.BindingIDs))
@@ -266,7 +266,7 @@ func Convert_template_TemplateInstance_To_v1_TemplateInstance(in *template.Templ
 
 func autoConvert_v1_TemplateInstanceCondition_To_template_TemplateInstanceCondition(in *v1.TemplateInstanceCondition, out *template.TemplateInstanceCondition, s conversion.Scope) error {
 	out.Type = template.TemplateInstanceConditionType(in.Type)
-	out.Status = api.ConditionStatus(in.Status)
+	out.Status = core.ConditionStatus(in.Status)
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
@@ -280,7 +280,7 @@ func Convert_v1_TemplateInstanceCondition_To_template_TemplateInstanceCondition(
 
 func autoConvert_template_TemplateInstanceCondition_To_v1_TemplateInstanceCondition(in *template.TemplateInstanceCondition, out *v1.TemplateInstanceCondition, s conversion.Scope) error {
 	out.Type = v1.TemplateInstanceConditionType(in.Type)
-	out.Status = core_v1.ConditionStatus(in.Status)
+	out.Status = api_core_v1.ConditionStatus(in.Status)
 	out.LastTransitionTime = in.LastTransitionTime
 	out.Reason = in.Reason
 	out.Message = in.Message
@@ -335,7 +335,7 @@ func Convert_template_TemplateInstanceList_To_v1_TemplateInstanceList(in *templa
 }
 
 func autoConvert_v1_TemplateInstanceObject_To_template_TemplateInstanceObject(in *v1.TemplateInstanceObject, out *template.TemplateInstanceObject, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.Ref, &out.Ref, s); err != nil {
+	if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(&in.Ref, &out.Ref, s); err != nil {
 		return err
 	}
 	return nil
@@ -347,7 +347,7 @@ func Convert_v1_TemplateInstanceObject_To_template_TemplateInstanceObject(in *v1
 }
 
 func autoConvert_template_TemplateInstanceObject_To_v1_TemplateInstanceObject(in *template.TemplateInstanceObject, out *v1.TemplateInstanceObject, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.Ref, &out.Ref, s); err != nil {
+	if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(&in.Ref, &out.Ref, s); err != nil {
 		return err
 	}
 	return nil
@@ -390,8 +390,8 @@ func autoConvert_v1_TemplateInstanceSpec_To_template_TemplateInstanceSpec(in *v1
 	}
 	if in.Secret != nil {
 		in, out := &in.Secret, &out.Secret
-		*out = new(api.LocalObjectReference)
-		if err := api_v1.Convert_v1_LocalObjectReference_To_api_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(core.LocalObjectReference)
+		if err := core_v1.Convert_v1_LocalObjectReference_To_core_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -412,8 +412,8 @@ func autoConvert_template_TemplateInstanceSpec_To_v1_TemplateInstanceSpec(in *te
 	}
 	if in.Secret != nil {
 		in, out := &in.Secret, &out.Secret
-		*out = new(core_v1.LocalObjectReference)
-		if err := api_v1.Convert_api_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+		*out = new(api_core_v1.LocalObjectReference)
+		if err := core_v1.Convert_core_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {

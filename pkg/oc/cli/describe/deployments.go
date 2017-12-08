@@ -12,8 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
@@ -145,7 +146,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 
 		if settings.ShowEvents {
 			// Events
-			if events, err := d.kubeClient.Core().Events(deploymentConfig.Namespace).Search(kapi.Scheme, deploymentConfig); err == nil && events != nil {
+			if events, err := d.kubeClient.Core().Events(deploymentConfig.Namespace).Search(legacyscheme.Scheme, deploymentConfig); err == nil && events != nil {
 				latestDeploymentEvents := &kapi.EventList{Items: []kapi.Event{}}
 				for i := len(events.Items); i != 0 && i > len(events.Items)-maxDisplayDeploymentsEvents; i-- {
 					latestDeploymentEvents.Items = append(latestDeploymentEvents.Items, events.Items[i-1])

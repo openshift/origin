@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -15,9 +15,9 @@ import (
 func init() {
 	legacy.InstallLegacy(quotaapi.GroupName, quotaapi.AddToSchemeInCoreGroup, quotaapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("ClusterResourceQuota"),
-		kapi.Registry, kapi.Scheme,
+		legacyscheme.Registry, legacyscheme.Scheme,
 	)
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

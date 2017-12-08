@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	templateclientset "github.com/openshift/client-go/template/clientset/versioned"
 	v1template "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
@@ -52,7 +52,7 @@ func NewBroker(saKubeClientConfig *restclient.Config, informer templateinformer.
 	}
 
 	configCopy := *saKubeClientConfig
-	configCopy.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: kapi.Codecs}
+	configCopy.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: legacyscheme.Codecs}
 
 	delay := 5 * time.Second
 	value := os.Getenv("TEMPLATE_SERVICE_BROKER_GC_DELAY")

@@ -16,8 +16,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -168,7 +168,7 @@ func VersionForBuild(build *buildapi.Build) int {
 func CopyApiResourcesToV1Resources(in *kapi.ResourceRequirements) corev1.ResourceRequirements {
 	in = in.DeepCopy()
 	out := corev1.ResourceRequirements{}
-	if err := kapiv1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
+	if err := kapiv1.Convert_core_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
 		panic(err)
 	}
 	return out
@@ -178,7 +178,7 @@ func CopyApiEnvVarToV1EnvVar(in []kapi.EnvVar) []corev1.EnvVar {
 	out := make([]corev1.EnvVar, len(in))
 	for i := range in {
 		item := in[i].DeepCopy()
-		if err := kapiv1.Convert_api_EnvVar_To_v1_EnvVar(item, &out[i], nil); err != nil {
+		if err := kapiv1.Convert_core_EnvVar_To_v1_EnvVar(item, &out[i], nil); err != nil {
 			panic(err)
 		}
 	}
@@ -421,7 +421,7 @@ func FindDockerSecretAsReference(secrets []kapi.Secret, image string) *kapi.Loca
 	emptyKeyring := credentialprovider.BasicDockerKeyring{}
 	for _, secret := range secrets {
 		secretsv1 := make([]corev1.Secret, 1)
-		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
+		err := kapiv1.Convert_core_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
 		if err != nil {
 			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue

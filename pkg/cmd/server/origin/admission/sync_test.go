@@ -43,7 +43,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {
-	kubeapiserver.RegisterAllAdmissionPlugins(&admission.Plugins{})
+	kubeapiserver.RegisterAllAdmissionPlugins(admission.NewPlugins())
 	registeredKubePlugins := sets.NewString(OriginAdmissionPlugins.Registered()...)
 
 	usedAdmissionPlugins := sets.NewString(kubeAdmissionPlugins...)

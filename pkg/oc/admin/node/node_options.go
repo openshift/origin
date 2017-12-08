@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
@@ -16,8 +17,10 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
@@ -33,9 +36,9 @@ type NodeOptions struct {
 
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
-	CategoryExpander  resource.CategoryExpander
+	CategoryExpander  categories.CategoryExpander
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	Printer           func(mapping *meta.RESTMapping, printOptions kprinters.PrintOptions) (kprinters.ResourcePrinter, error)
+	Printer           func(mapping *meta.RESTMapping, withNamespace bool) (kprinters.ResourcePrinter, error)
 
 	CmdPrinter       kprinters.ResourcePrinter
 	CmdPrinterOutput bool
@@ -69,13 +72,13 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 		return err
 	}
 
-	cmdPrinter, err := f.PrinterForCommand(c, false, nil, kprinters.PrintOptions{})
+	cmdPrinter, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(c, false))
 	if err != nil {
 		return err
 	}
 	mapper, typer := f.Object()
 
-	n.Builder = f.NewBuilder(true)
+	n.Builder = f.NewBuilder()
 	n.DefaultNamespace = defaultNamespace
 	n.ExternalKubeClient = externalkc
 	n.KubeClient = kc
@@ -89,8 +92,8 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	n.CmdPrinter = cmdPrinter
 	n.CmdPrinterOutput = false
 
-	n.Printer = func(mapping *meta.RESTMapping, printOptions kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
-		return f.PrinterForMapping(c, false, nil, mapping, printOptions.WithNamespace)
+	n.Printer = func(mapping *meta.RESTMapping, withNamespace bool) (kprinters.ResourcePrinter, error) {
+		return f.PrinterForMapping(kcmdutil.ExtractCmdPrintOptions(c, withNamespace), mapping)
 	}
 
 	if cmdPrinter.IsGeneric() {
@@ -132,9 +135,10 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 	}
 
 	r := n.Builder.
+		Internal().
 		ContinueOnError().
 		NamespaceParam(n.DefaultNamespace).
-		SelectorParam(n.Selector).
+		LabelSelectorParam(n.Selector).
 		ResourceTypeOrNameArgs(true, nameArgs...).
 		Flatten().
 		Do()
@@ -179,28 +183,28 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 }
 
 func (n *NodeOptions) GetPrintersByObject(obj runtime.Object) (kprinters.ResourcePrinter, error) {
-	gvk, _, err := kapi.Scheme.ObjectKinds(obj)
+	gvk, _, err := legacyscheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return nil, err
 	}
-	return n.GetPrinters(gvk[0], kprinters.PrintOptions{})
+	return n.GetPrinters(gvk[0], false)
 }
 
-func (n *NodeOptions) GetPrintersByResource(resource schema.GroupVersionResource, options kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
+func (n *NodeOptions) GetPrintersByResource(resource schema.GroupVersionResource, withNamespace bool) (kprinters.ResourcePrinter, error) {
 	gvks, err := n.Mapper.KindsFor(resource)
 	if err != nil {
 		return nil, err
 	}
-	return n.GetPrinters(gvks[0], options)
+	return n.GetPrinters(gvks[0], withNamespace)
 }
 
-func (n *NodeOptions) GetPrinters(gvk schema.GroupVersionKind, options kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
+func (n *NodeOptions) GetPrinters(gvk schema.GroupVersionKind, withNamespace bool) (kprinters.ResourcePrinter, error) {
 	mapping, err := n.Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.Printer(mapping, options)
+	return n.Printer(mapping, withNamespace)
 }
 
 func GetPodHostFieldLabel(apiVersion string) string {

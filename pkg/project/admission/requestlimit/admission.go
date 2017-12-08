@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
@@ -175,7 +175,7 @@ func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) 
 	o.cache = cache
 }
 
-func (o *projectRequestLimit) Validate() error {
+func (o *projectRequestLimit) ValidateInitialization() error {
 	if o.userClient == nil {
 		return fmt.Errorf("ProjectRequestLimit plugin requires an Openshift client")
 	}

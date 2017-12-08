@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -22,8 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -102,9 +104,9 @@ type VolumeOptions struct {
 	Err                    io.Writer
 	Mapper                 meta.RESTMapper
 	Typer                  runtime.ObjectTyper
-	CategoryExpander       resource.CategoryExpander
+	CategoryExpander       categories.CategoryExpander
 	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
+	UpdatePodSpecForObject func(obj runtime.Object, fn func(*v1.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
 	Cmd                    *cobra.Command
@@ -427,7 +429,9 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 }
 
 func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
-	b := f.NewBuilder(!v.Local).
+	b := f.NewBuilder().
+		Internal().
+		LocalParam(v.Local).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
 		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
@@ -435,7 +439,7 @@ func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
 
 	if !v.Local {
 		b = b.
-			SelectorParam(v.Selector).
+			LabelSelectorParam(v.Selector).
 			ResourceTypeOrNameArgs(v.All, args...)
 	}
 
@@ -536,7 +540,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleIte
 	skipped := 0
 	patches := CalculatePatches(infos, v.Encoder, func(info *resource.Info) (bool, error) {
 		transformed := false
-		ok, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+		ok, err := v.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			var e error
 			switch {
 			case v.Add:
@@ -547,7 +551,7 @@ func (v *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleIte
 				transformed = true
 			}
 			return e
-		})
+		}))
 		if !ok {
 			skipped++
 		}
@@ -603,9 +607,9 @@ func setVolumeSourceByType(kv *kapi.Volume, opts *AddVolumeOptions) error {
 func (v *VolumeOptions) printVolumes(infos []*resource.Info) []error {
 	listingErrors := []error{}
 	for _, info := range infos {
-		_, err := v.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+		_, err := v.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			return v.listVolumeForSpec(spec, info)
-		})
+		}))
 		if err != nil {
 			listingErrors = append(listingErrors, err)
 			fmt.Fprintf(v.Err, "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)

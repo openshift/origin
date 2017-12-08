@@ -8,7 +8,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
@@ -24,7 +25,7 @@ func TestRolling_deployInitial(t *testing.T) {
 	initialStrategyInvoked := false
 
 	strategy := &RollingDeploymentStrategy{
-		decoder:     kapi.Codecs.UniversalDecoder(),
+		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    fake.NewSimpleClientset().Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -44,7 +45,7 @@ func TestRolling_deployInitial(t *testing.T) {
 
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = deploytest.OkRollingStrategy()
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -58,10 +59,10 @@ func TestRolling_deployInitial(t *testing.T) {
 func TestRolling_deployRolling(t *testing.T) {
 	latestConfig := deploytest.OkDeploymentConfig(1)
 	latestConfig.Spec.Strategy = deploytest.OkRollingStrategy()
-	latest, _ := deployutil.MakeDeployment(latestConfig, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	latest, _ := deployutil.MakeDeployment(latestConfig, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	config := deploytest.OkDeploymentConfig(2)
 	config.Spec.Strategy = deploytest.OkRollingStrategy()
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 
 	deployments := map[string]*kapi.ReplicationController{
 		latest.Name:     latest,
@@ -82,7 +83,7 @@ func TestRolling_deployRolling(t *testing.T) {
 
 	var rollingConfig *kubectl.RollingUpdaterConfig
 	strategy := &RollingDeploymentStrategy{
-		decoder:     kapi.Codecs.UniversalDecoder(),
+		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    client.Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -155,7 +156,7 @@ func (h *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, rc *kapi.Repli
 func TestRolling_deployRollingHooks(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = deploytest.OkRollingStrategy()
-	latest, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	latest, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 
 	var hookError error
 
@@ -172,7 +173,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	})
 
 	strategy := &RollingDeploymentStrategy{
-		decoder:     kapi.Codecs.UniversalDecoder(),
+		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    client.Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -208,7 +209,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	for _, tc := range cases {
 		config := deploytest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+		deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 		deployments[deployment.Name] = deployment
 		hookError = nil
 		if tc.hookShouldFail {
@@ -234,7 +235,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	var hookError error
 
 	strategy := &RollingDeploymentStrategy{
-		decoder:     kapi.Codecs.UniversalDecoder(),
+		decoder:     legacyscheme.Codecs.UniversalDecoder(),
 		rcClient:    fake.NewSimpleClientset().Core(),
 		eventClient: fake.NewSimpleClientset().Core(),
 		initialStrategy: &testStrategy{
@@ -269,7 +270,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	for i, tc := range cases {
 		config := deploytest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+		deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 		hookError = nil
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")

@@ -6,8 +6,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
@@ -19,7 +20,7 @@ import (
 
 func TestDeploymentConfigDescriber(t *testing.T) {
 	config := deployapitest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.LegacySchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployapi.LegacySchemeGroupVersion))
 	podList := &kapi.PodList{}
 
 	fake := &appsfake.Clientset{}

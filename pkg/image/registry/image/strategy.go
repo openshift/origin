@@ -9,7 +9,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
@@ -24,7 +24,7 @@ type imageStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating
 // Image objects via the REST API.
-var Strategy = imageStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = imageStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 func (imageStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

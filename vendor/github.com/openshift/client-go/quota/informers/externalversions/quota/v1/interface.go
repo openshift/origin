@@ -13,15 +13,17 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // ClusterResourceQuotas returns a ClusterResourceQuotaInformer.
 func (v *version) ClusterResourceQuotas() ClusterResourceQuotaInformer {
-	return &clusterResourceQuotaInformer{factory: v.SharedInformerFactory}
+	return &clusterResourceQuotaInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

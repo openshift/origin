@@ -1,16 +1,15 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_library",
+    "go_test",
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["fake.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/pkg/util/ipvs/testing",
     deps = ["//pkg/util/ipvs:go_default_library"],
 )
 
@@ -25,4 +24,12 @@ filegroup(
     name = "all-srcs",
     srcs = [":package-srcs"],
     tags = ["automanaged"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["fake_test.go"],
+    importpath = "k8s.io/kubernetes/pkg/util/ipvs/testing",
+    library = ":go_default_library",
+    deps = ["//pkg/util/ipvs:go_default_library"],
 )

@@ -111,7 +111,7 @@ func ContainerForObjectFieldPath(obj runtime.Object, fieldPath string) (ometa.Co
 
 // UpdateObjectFromImages attempts to set the appropriate object information. If changes are necessary, it lazily copies
 // obj and returns it, or if no changes are necessary returns nil.
-func UpdateObjectFromImages(obj runtime.Object, copier runtime.ObjectCopier, tagRetriever trigger.TagRetriever) (runtime.Object, error) {
+func UpdateObjectFromImages(obj runtime.Object, tagRetriever trigger.TagRetriever) (runtime.Object, error) {
 	var updated runtime.Object
 	m, err := meta.Accessor(obj)
 	if err != nil {
@@ -161,10 +161,7 @@ func UpdateObjectFromImages(obj runtime.Object, copier runtime.ObjectCopier, tag
 
 		if container.GetImage() != ref {
 			if updated == nil {
-				updated, err = copier.Copy(obj)
-				if err != nil {
-					return nil, err
-				}
+				updated = obj.DeepCopyObject()
 				spec, _ = ometa.GetPodSpecReferenceMutator(updated)
 				container, _ = findContainerBySelector(spec, init, selector)
 			}
@@ -258,11 +255,10 @@ type AnnotationUpdater interface {
 
 type AnnotationReactor struct {
 	Updater AnnotationUpdater
-	Copier  runtime.ObjectCopier
 }
 
 func (r *AnnotationReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
-	changed, err := UpdateObjectFromImages(obj, r.Copier, tagRetriever)
+	changed, err := UpdateObjectFromImages(obj, tagRetriever)
 	if err != nil {
 		return err
 	}

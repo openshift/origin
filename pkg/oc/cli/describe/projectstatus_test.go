@@ -15,7 +15,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kubefakeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
 
@@ -429,7 +429,7 @@ func TestProjectStatus(t *testing.T) {
 		if len(test.File) > 0 {
 			// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
 			var err error
-			objs, err = readObjectsFromPath("../../../../pkg/api/graph/test/"+test.File, "example", kapi.Codecs.UniversalDecoder(), kapi.Scheme)
+			objs, err = readObjectsFromPath("../../../../pkg/api/graph/test/"+test.File, "example", legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", k, err)
 			}
@@ -633,7 +633,7 @@ func setNamespace(typer runtime.ObjectTyper, obj runtime.Object, namespace strin
 	if err != nil {
 		return err
 	}
-	group, err := kapi.Registry.Group(gvks[0].Group)
+	group, err := legacyscheme.Registry.Group(gvks[0].Group)
 	if err != nil {
 		return err
 	}

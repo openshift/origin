@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/apis/network/validation"
@@ -18,7 +18,7 @@ type enpStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating EgressNetworkPolicy
 // objects via the REST API.
-var Strategy = enpStrategy{kapi.Scheme}
+var Strategy = enpStrategy{legacyscheme.Scheme}
 
 func (enpStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported

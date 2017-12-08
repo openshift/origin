@@ -12,8 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 )
 
 func TestCompatibility_v1_Pod(t *testing.T) {
@@ -57,7 +58,7 @@ func testCompatibility(
 ) {
 
 	// Decode
-	obj, err := runtime.Decode(api.Codecs.UniversalDecoder(), input)
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), input)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -69,7 +70,7 @@ func testCompatibility(
 	}
 
 	// Encode
-	output := runtime.EncodeOrDie(api.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: version}), obj)
+	output := runtime.EncodeOrDie(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: version}), obj)
 
 	// Validate old and new fields are encoded
 	generic := map[string]interface{}{}

@@ -156,7 +156,9 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 	o.Cmd = cmd
 
 	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
+		Internal().
+		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -164,7 +166,7 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 	if !o.Local {
 		o.Builder = o.Builder.
 			ResourceNames("deploymentconfigs", resources...).
-			SelectorParam(o.Selector).
+			LabelSelectorParam(o.Selector).
 			Latest()
 		if o.All {
 			o.Builder.ResourceTypes("deploymentconfigs").SelectAllParam(o.All)

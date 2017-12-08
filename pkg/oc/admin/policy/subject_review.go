@@ -12,7 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -108,14 +109,14 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	}
 	o.sccSubjectReviewClient = securityClient.Security()
 	o.sccSelfSubjectReviewClient = securityClient.Security()
-	o.builder = f.NewBuilder(true)
+	o.builder = f.NewBuilder()
 	o.RESTClientFactory = f.ClientForMapping
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	wide := len(output) > 0 && output == "wide"
 
 	if len(output) > 0 && !wide {
-		printer, err := f.PrinterForCommand(cmd, false, nil, kprinters.PrintOptions{})
+		printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 		if err != nil {
 			return err
 		}
@@ -133,6 +134,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 		userOrSA = o.serviceAccount
 	}
 	r := o.builder.
+		Internal().
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).
@@ -165,7 +167,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
 			}
 			versionedObj := &securityapiv1.PodSecurityPolicySubjectReview{}
-			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
 				return err
 			}
 			response = versionedObj
@@ -175,7 +177,7 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
 			}
 			versionedObj := &securityapiv1.PodSecurityPolicySelfSubjectReview{}
-			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+			if err := legacyscheme.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
 				return err
 			}
 			response = versionedObj
@@ -245,11 +247,11 @@ func (s *sccSubjectReviewHumanReadablePrinter) print(info *resource.Info, obj ru
 		fmt.Fprintf(w, "%s\t\n", strings.Join(columns, "\t"))
 		s.noHeaders = true // printed only the first time if requested
 	}
-	gvk, _, err := kapi.Scheme.ObjectKind(info.Object)
+	gvks, _, err := legacyscheme.Scheme.ObjectKinds(info.Object)
 	if err != nil {
 		return err
 	}
-	kind := gvk.Kind
+	kind := gvks[0].Kind
 	allowedBy, err := getAllowedBy(obj)
 	if err != nil {
 		return err

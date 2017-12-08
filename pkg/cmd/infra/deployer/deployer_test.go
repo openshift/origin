@@ -6,7 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -17,7 +18,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func TestDeployer_getDeploymentFail(t *testing.T) {
@@ -217,7 +218,7 @@ func TestDeployer_deployScenarios(t *testing.T) {
 }
 
 func mkdeployment(version int64, status deployapi.DeploymentStatus) *kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
 	return deployment
 }

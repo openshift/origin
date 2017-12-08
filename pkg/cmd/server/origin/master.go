@@ -159,7 +159,7 @@ func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil
 	}
 
-	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig)
+	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig, genericConfig.SecureServingInfo.Listener)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil, nil
 	}
 
-	config, err := NewOAuthServerConfigFromMasterConfig(c)
+	config, err := NewOAuthServerConfigFromMasterConfig(c, genericConfig.SecureServingInfo.Listener)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -264,7 +264,7 @@ func (c *MasterConfig) Run(controllerPlug plug.Plug, stopCh <-chan struct{}) err
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	return cmdutil.WaitForSuccessfulDial(true, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindNetwork, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
 func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {

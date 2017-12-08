@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/apis/quota/validation"
@@ -15,7 +15,7 @@ type strategy struct {
 	runtime.ObjectTyper
 }
 
-var Strategy = strategy{kapi.Scheme}
+var Strategy = strategy{legacyscheme.Scheme}
 
 func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported
@@ -66,7 +66,7 @@ type statusStrategy struct {
 	runtime.ObjectTyper
 }
 
-var StatusStrategy = statusStrategy{kapi.Scheme}
+var StatusStrategy = statusStrategy{legacyscheme.Scheme}
 
 func (statusStrategy) NamespaceScoped() bool {
 	return false

@@ -3,9 +3,7 @@ package apps
 import (
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -24,28 +22,6 @@ func DeploymentToPodLogOptions(opts *DeploymentLogOptions) *kapi.PodLogOptions {
 		Timestamps:   opts.Timestamps,
 		TailLines:    opts.TailLines,
 		LimitBytes:   opts.LimitBytes,
-	}
-}
-
-// ScaleFromConfig builds a scale resource out of a deployment config.
-func ScaleFromConfig(dc *DeploymentConfig) *extensions.Scale {
-	return &extensions.Scale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              dc.Name,
-			Namespace:         dc.Namespace,
-			UID:               dc.UID,
-			ResourceVersion:   dc.ResourceVersion,
-			CreationTimestamp: dc.CreationTimestamp,
-		},
-		Spec: extensions.ScaleSpec{
-			Replicas: dc.Spec.Replicas,
-		},
-		Status: extensions.ScaleStatus{
-			Replicas: dc.Status.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: dc.Spec.Selector,
-			},
-		},
 	}
 }
 

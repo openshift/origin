@@ -12,7 +12,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -125,7 +126,7 @@ type buildConfigReactor struct {
 func NewBuildConfigReactor(instantiator BuildConfigInstantiator, restclient rest.Interface) trigger.ImageReactor {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(restclient).Events("")})
-	eventRecorder := eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "buildconfig-controller"})
+	eventRecorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, clientv1.EventSource{Component: "buildconfig-controller"})
 
 	return &buildConfigReactor{instantiator: instantiator, eventRecorder: eventRecorder}
 }

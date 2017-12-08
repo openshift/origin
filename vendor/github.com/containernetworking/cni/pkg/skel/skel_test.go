@@ -22,7 +22,6 @@ import (
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/version"
 
-	"github.com/containernetworking/cni/pkg/testutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -289,7 +288,7 @@ var _ = Describe("dispatching to the correct callback", func() {
 
 	Context("when stdin cannot be read", func() {
 		BeforeEach(func() {
-			dispatch.Stdin = &testutils.BadReader{}
+			dispatch.Stdin = &BadReader{}
 		})
 
 		It("does not call any cmd callback", func() {
@@ -344,3 +343,19 @@ var _ = Describe("dispatching to the correct callback", func() {
 		})
 	})
 })
+
+// BadReader is an io.Reader which always errors
+type BadReader struct {
+	Error error
+}
+
+func (r *BadReader) Read(buffer []byte) (int, error) {
+	if r.Error != nil {
+		return 0, r.Error
+	}
+	return 0, errors.New("banana")
+}
+
+func (r *BadReader) Close() error {
+	return nil
+}

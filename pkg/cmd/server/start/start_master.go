@@ -25,7 +25,7 @@ import (
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -379,7 +379,7 @@ func (m *Master) Start() error {
 	// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
 	// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
 	// TODO: make scheme threadsafe and do this as part of aggregator config building
-	aggregatorinstall.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 
 	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured
 	// as a separate API server which can be chained as a delegate
@@ -392,6 +392,7 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
+
 		_, config, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
@@ -489,12 +490,15 @@ func (m *Master) Start() error {
 			if err != nil {
 				glog.Fatal(err)
 			}
-			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop)
+
+			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop, make(chan struct{}))
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
 			informers.Start(utilwait.NeverStop)
+			close(controllerContext.InformersStarted)
+
 		}()
 	}
 
@@ -564,7 +568,7 @@ func StartAPI(oc *origin.MasterConfig, controllerPlug plug.Plug) error {
 
 	// if the webconsole is configured to be standalone, go ahead and create and run it
 	if oc.WebConsoleEnabled() && oc.WebConsoleStandalone() {
-		config, err := assetapiserver.NewAssetServerConfig(*oc.Options.AssetConfig)
+		config, err := assetapiserver.NewAssetServerConfig(*oc.Options.AssetConfig, nil)
 		if err != nil {
 			return err
 		}

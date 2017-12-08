@@ -6,7 +6,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/identity"
@@ -23,7 +22,6 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against identites
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &userapi.Identity{} },
 		NewListFunc:              func() runtime.Object { return &userapi.IdentityList{} },
 		DefaultQualifiedResource: userapi.Resource("identities"),

@@ -13,13 +13,14 @@ go_test(
         "main_test.go",
         "patch_test.go",
     ],
+    importpath = "k8s.io/kubernetes/test/integration/apiserver",
     tags = [
         "etcd",
         "integration",
     ],
     deps = [
-        "//pkg/api:go_default_library",
         "//pkg/api/testapi:go_default_library",
+        "//pkg/apis/core:go_default_library",
         "//test/integration/framework:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/pborman/uuid:go_default_library",

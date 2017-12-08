@@ -8,7 +8,7 @@ load(
 go_library(
     name = "go_default_library",
     srcs = ["util.go"],
-    deps = ["//pkg/kubelet/dockershim/errors:go_default_library"],
+    importpath = "k8s.io/kubernetes/pkg/kubelet/dockershim/testing",
 )
 
 filegroup(

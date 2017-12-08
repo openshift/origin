@@ -141,6 +141,7 @@ oc-create-imagestreamtag.1
 oc-create-namespace.1
 oc-create-poddisruptionbudget.1
 oc-create-policybinding.1
+oc-create-priorityclass.1
 oc-create-quota.1
 oc-create-role.1
 oc-create-rolebinding.1

@@ -1,10 +1,6 @@
-hash: 746bd3380908dac017b4dd01521923beae08dff3391da8c65c38b8fe60592d3a
-updated: 2017-11-28T08:06:26.858865308-05:00
+hash: 258b95b667907a6342a978b2814e89022dddbed0cbd2cd5fcf9391696aae448a
+updated: 2017-12-01T13:30:58.068687374-05:00
 imports:
-- name: github.com/davecgh/go-spew
-  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
-  subpackages:
-  - spew
 - name: github.com/emicklei/go-restful
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
@@ -14,11 +10,11 @@ imports:
 - name: github.com/go-openapi/jsonreference
   version: 13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272
 - name: github.com/go-openapi/spec
-  version: 6aced65f8501fe1217321abf0749d354824ba2ff
+  version: 7abd5745472fff5eb3685386d5fb8bf38683154d
 - name: github.com/go-openapi/swag
-  version: 1d0bd113de87027671077d3c71eb3ac5d7dbba72
+  version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/gogo/protobuf
-  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
+  version: fd9a4790f3963525fb889cc00e0a8f828e0b3a29
   subpackages:
   - proto
   - sortkeys
@@ -27,7 +23,7 @@ imports:
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/mailru/easyjson
-  version: d5b7844b561a7bc640052f1b935f7b800330d7e0
+  version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
   subpackages:
   - buffer
   - jlexer
@@ -61,29 +57,30 @@ imports:
   - width
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
+- name: gopkg.in/yaml.v2
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 4df58c811fe2e65feb879227b2b245e4dc26e7ad
+  version: abe47f56cf980731ebaeddba938f4fcc21527e2b
+  repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - apps/v1beta1
   - core/v1
   - extensions/v1beta1
 - name: k8s.io/apimachinery
-  version: 019ae5ada31de202164b118aee88ee2d14075c31
+  version: 0ede59012bac185794d667987ff32eecd524390d
+  repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
-  - pkg/api/equality
   - pkg/api/resource
   - pkg/apis/meta/v1
   - pkg/apis/meta/v1/unstructured
   - pkg/conversion
   - pkg/conversion/queryparams
-  - pkg/conversion/unstructured
   - pkg/fields
   - pkg/labels
   - pkg/runtime
   - pkg/runtime/schema
   - pkg/selection
   - pkg/types
-  - pkg/util/diff
   - pkg/util/errors
   - pkg/util/intstr
   - pkg/util/json
@@ -96,11 +93,13 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/code-generator
-  version: 6db2ee6aa9ab51230d6e0d970b398274a88e81b0
+  version: ab6a26516389c2569fbbcf2ddfb68ae3dee31cc8
+  repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
-  version: 9e661e9308f078838e266cca1c673922088c0ea4
+  version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e
+  repo: git@github.com:openshift/kubernetes-gengo
 - name: k8s.io/kube-openapi
-  version: 868f2f29720b192240e18284659231b440f9cda5
+  version: 39a7bf85c140f972372c2a0d1ee40adbf0c8bfe1
   subpackages:
   - pkg/common
 testImports: []

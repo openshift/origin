@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
@@ -69,7 +70,8 @@ var (
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -112,7 +114,8 @@ var (
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -202,7 +205,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 				return nil, err
 			}
 			admissionInitializer.Initialize(lc)
-			if err := lc.(admission.Validator).Validate(); err != nil {
+			if err := lc.ValidateInitialization(); err != nil {
 				return nil, err
 			}
 			plugin = lc
@@ -245,11 +248,12 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 			admissionInitializer.Initialize(plugin)
 
 		default:
-			pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename)
+			// TODO this needs to be refactored to use the admission scheme we created upstream.  I think this holds us for the rebase.
+			pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename, configapi.Scheme)
 			if err != nil {
 				return nil, err
 			}
-			plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer)
+			plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer, admissionmetrics.WithControllerMetrics)
 			if err != nil {
 				// should have been caught with validation
 				return nil, err

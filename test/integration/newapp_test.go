@@ -21,6 +21,7 @@ import (
 	"github.com/AaronO/go-git-http/auth"
 	"github.com/elazarl/goproxy"
 	docker "github.com/fsouza/go-dockerclient"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +32,7 @@ import (
 	kwatch "k8s.io/apimachinery/pkg/watch"
 	krest "k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -364,7 +365,7 @@ func TestNewAppRunAll(t *testing.T) {
 				GenerationInputs: cmd.GenerationInputs{
 					Strategy: generate.StrategySource,
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -410,7 +411,7 @@ func TestNewAppRunAll(t *testing.T) {
 					Strategy: generate.StrategySource,
 					Labels:   map[string]string{"label1": "value1", "label2": "value2"},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -454,7 +455,7 @@ func TestNewAppRunAll(t *testing.T) {
 				GenerationInputs: cmd.GenerationInputs{
 					Strategy: generate.StrategyDocker,
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -495,7 +496,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -536,7 +537,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -592,7 +593,7 @@ func TestNewAppRunAll(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -634,7 +635,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -685,7 +686,7 @@ func TestNewAppRunAll(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -731,7 +732,7 @@ func TestNewAppRunAll(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -779,7 +780,7 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces: []string{"openshift", "default"},
 					},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -816,7 +817,7 @@ func TestNewAppRunAll(t *testing.T) {
 						Namespaces: []string{"openshift", "default"},
 					},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -1753,7 +1754,7 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -1828,7 +1829,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 						JenkinsfileTester: jenkinsfile.NewTester(),
 					},
 				},
-				Typer:           kapi.Scheme,
+				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.Image(),
 				TemplateClient:  okTemplateClient.Template(),
 				RouteClient:     okRouteClient.Route(),
@@ -2314,7 +2315,7 @@ func PrepareAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
 		Client:     okTemplateClient.Template(),
 		Namespaces: []string{"openshift", "default"},
 	}
-	config.Typer = kapi.Scheme
+	config.Typer = legacyscheme.Scheme
 	return
 }
 

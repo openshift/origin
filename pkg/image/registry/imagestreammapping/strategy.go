@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
@@ -23,7 +23,7 @@ type Strategy struct {
 // objects via the REST API.
 func NewStrategy(registryHost imageapi.RegistryHostnameRetriever) Strategy {
 	return Strategy{
-		ObjectTyper:           kapi.Scheme,
+		ObjectTyper:           legacyscheme.Scheme,
 		NameGenerator:         names.SimpleNameGenerator,
 		registryHostRetriever: registryHost,
 	}

@@ -13,9 +13,10 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -42,7 +43,7 @@ type Strategy struct {
 // ImageStream objects via the REST API.
 func NewStrategy(registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
 	return Strategy{
-		ObjectTyper:               kapi.Scheme,
+		ObjectTyper:               legacyscheme.Scheme,
 		NameGenerator:             names.SimpleNameGenerator,
 		registryHostnameRetriever: registryHostname,
 		tagVerifier:               &TagVerifier{subjectAccessReviewClient},

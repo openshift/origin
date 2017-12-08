@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kadmission "k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -120,7 +120,7 @@ func TestAdmitImage(t *testing.T) {
 			}
 		}
 
-		err := AdmitImage(v.size.Value(), *limitRangeItem)
+		err := admitImage(v.size.Value(), *limitRangeItem)
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s expected to be admitted but received error %v", k, err)
 		}

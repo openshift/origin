@@ -4,7 +4,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrorutils "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -29,7 +29,6 @@ func instantiateTemplate(client templateclient.TemplateInterface, clientFactory 
 	}
 
 	mapper, typer := clientFactory.Object()
-	dynamicMapper, dynamicTyper, err := clientFactory.UnstructuredObject()
 	if err != nil {
 		return err
 	}
@@ -47,8 +46,8 @@ func instantiateTemplate(client templateclient.TemplateInterface, clientFactory 
 	bulk := &configcmd.Bulk{}
 
 	bulk.DynamicMapper = &resource.Mapper{
-		RESTMapper:   dynamicMapper,
-		ObjectTyper:  dynamicTyper,
+		RESTMapper:   mapper,
+		ObjectTyper:  typer,
 		ClientMapper: resource.ClientMapperFunc(clientFactory.UnstructuredClientForMapping),
 	}
 	bulk.Mapper = &resource.Mapper{

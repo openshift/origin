@@ -14,6 +14,14 @@
 
 package legacy_examples
 
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+
+	noop_debug "github.com/containernetworking/cni/plugins/test/noop/debug"
+)
+
 // An ExampleRuntime is a small program that uses libcni to invoke a network plugin.
 // It should call ADD and DELETE, verifying all intermediate steps
 // and data structures.
@@ -22,30 +30,116 @@ type ExampleRuntime struct {
 	NetConfs []string // The network configuration names to pass
 }
 
-// NetConfs are various versioned network configuration files. Examples should
-// specify which version they expect
-var NetConfs = map[string]string{
-	"unversioned": `{
-	"name": "default",
-	"type": "ptp",
-	"ipam": {
-		"type": "host-local",
-		"subnet": "10.1.2.0/24"
-	}
-}`,
-	"0.1.0": `{
-	"cniVersion": "0.1.0",
-	"name": "default",
-	"type": "ptp",
-	"ipam": {
-		"type": "host-local",
-		"subnet": "10.1.2.0/24"
-	}
-}`,
+type exampleNetConfTemplate struct {
+	conf   string
+	result string
 }
 
-// V010_Runtime creates a simple ptp network configuration, then
-// executes libcni against the currently-built plugins.
+// NetConfs are various versioned network configuration files. Examples should
+// specify which version they expect
+var netConfTemplates = map[string]exampleNetConfTemplate{
+	"unversioned": {
+		conf: `{
+	"name": "default",
+	"type": "noop",
+	"debugFile": "%s"
+}`,
+		result: `{
+	"ip4": {
+		"ip": "1.2.3.30/24",
+		"gateway": "1.2.3.1",
+		"routes": [
+			{
+				"dst": "15.5.6.0/24",
+				"gw": "15.5.6.8"
+			}
+		]
+	},
+	"ip6": {
+		"ip": "abcd:1234:ffff::cdde/64",
+		"gateway": "abcd:1234:ffff::1",
+		"routes": [
+			{
+				"dst": "1111:dddd::/80",
+				"gw": "1111:dddd::aaaa"
+			}
+		]
+	},
+	"dns":{}
+}`,
+	},
+	"0.1.0": {
+		conf: `{
+	"cniVersion": "0.1.0",
+	"name": "default",
+	"type": "noop",
+	"debugFile": "%s"
+}`,
+		result: `{
+	"cniVersion": "0.1.0",
+	"ip4": {
+		"ip": "1.2.3.30/24",
+		"gateway": "1.2.3.1",
+		"routes": [
+			{
+				"dst": "15.5.6.0/24",
+				"gw": "15.5.6.8"
+			}
+		]
+	},
+	"ip6": {
+		"ip": "abcd:1234:ffff::cdde/64",
+		"gateway": "abcd:1234:ffff::1",
+		"routes": [
+			{
+				"dst": "1111:dddd::/80",
+				"gw": "1111:dddd::aaaa"
+			}
+		]
+	},
+	"dns":{}
+}`,
+	},
+}
+
+func (e *ExampleRuntime) GenerateNetConf(name string) (*ExampleNetConf, error) {
+	template, ok := netConfTemplates[name]
+	if !ok {
+		return nil, fmt.Errorf("unknown example net config template %q", name)
+	}
+
+	debugFile, err := ioutil.TempFile("", "cni_debug")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create noop plugin debug file: %v", err)
+	}
+	debugFilePath := debugFile.Name()
+
+	debug := &noop_debug.Debug{
+		ReportResult: template.result,
+	}
+	if err := debug.WriteDebug(debugFilePath); err != nil {
+		os.Remove(debugFilePath)
+		return nil, fmt.Errorf("failed to write noop plugin debug file %q: %v", debugFilePath, err)
+	}
+	conf := &ExampleNetConf{
+		Config:        fmt.Sprintf(template.conf, debugFilePath),
+		debugFilePath: debugFilePath,
+	}
+
+	return conf, nil
+}
+
+type ExampleNetConf struct {
+	Config        string
+	debugFilePath string
+}
+
+func (c *ExampleNetConf) Cleanup() {
+	os.Remove(c.debugFilePath)
+}
+
+// V010_Runtime creates a simple noop network configuration, then
+// executes libcni against the the noop test plugin.
 var V010_Runtime = ExampleRuntime{
 	NetConfs: []string{"unversioned", "0.1.0"},
 	Example: Example{
@@ -111,34 +205,15 @@ func exec() int {
 	}
 	fmt.Printf("AddNetwork result: %+v", result)
 
-	expectedIP := result.IP4.IP
-
-	err = targetNs.Do(func(ns.NetNS) error {
-		netif, err := net.InterfaceByName(ifName)
-		if err != nil {
-			return fmt.Errorf("could not retrieve interface: %v", err)
-		}
-
-		addrs, err := netif.Addrs()
-		if err != nil {
-			return fmt.Errorf("could not retrieve addresses, %+v", err)
-		}
-
-		found := false
-		for _, addr := range addrs {
-			if addr.String() == expectedIP.String() {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return fmt.Errorf("Far-side link did not have expected address %s", expectedIP)
-		}
-		return nil
-	})
-	if err != nil {
-		fmt.Println(err)
+	// Validate expected results
+	const expectedIP4 string = "1.2.3.30/24"
+	if result.IP4.IP.String() != expectedIP4 {
+		fmt.Printf("Expected IPv4 address %q, got %q", expectedIP4, result.IP4.IP.String())
+		return 3
+	}
+	const expectedIP6 string = "abcd:1234:ffff::cdde/64"
+	if result.IP6.IP.String() != expectedIP6 {
+		fmt.Printf("Expected IPv6 address %q, got %q", expectedIP6, result.IP6.IP.String())
 		return 4
 	}
 

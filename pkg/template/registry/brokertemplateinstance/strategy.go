@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apis/template/validation"
@@ -19,7 +19,7 @@ type brokerTemplateInstanceStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating BrokerTemplateInstance
 // objects via the REST API.
-var Strategy = brokerTemplateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = brokerTemplateInstanceStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is false for brokertemplateinstances.
 func (brokerTemplateInstanceStrategy) NamespaceScoped() bool {

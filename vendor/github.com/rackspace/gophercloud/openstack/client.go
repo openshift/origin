@@ -3,7 +3,6 @@ package openstack
 import (
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/rackspace/gophercloud"
@@ -26,40 +25,18 @@ func NewClient(endpoint string) (*gophercloud.ProviderClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	hadPath := u.Path != ""
+	u.Path, u.RawQuery, u.Fragment = "", "", ""
+	base := u.String()
 
-	u.RawQuery, u.Fragment = "", ""
-
-	// Base is url with path
 	endpoint = gophercloud.NormalizeURL(endpoint)
-	base := gophercloud.NormalizeURL(u.String())
+	base = gophercloud.NormalizeURL(base)
 
-	path := u.Path
-	if !strings.HasSuffix(path, "/") {
-		path = path + "/"
-	}
-
-	parts := strings.Split(path[0:len(path)-1], "/")
-	for index, version := range parts {
-		if 2 <= len(version) && len(version) <= 4 && strings.HasPrefix(version, "v") {
-			_, err := strconv.ParseFloat(version[1:], 64)
-			if err == nil {
-				// post version suffixes in path are not supported
-				// version must be on the last index
-				if index < len(parts)-1 {
-					return nil, fmt.Errorf("Path suffixes (after version) are not supported.")
-				}
-				switch version {
-				case "v2.0", "v3":
-					// valid version found, strip from base
-					return &gophercloud.ProviderClient{
-						IdentityBase:     base[0 : len(base)-len(version)-1],
-						IdentityEndpoint: endpoint,
-					}, nil
-				default:
-					return nil, fmt.Errorf("Invalid identity endpoint version %v. Supported versions: v2.0, v3", version)
-				}
-			}
-		}
+	if hadPath {
+		return &gophercloud.ProviderClient{
+			IdentityBase:     base,
+			IdentityEndpoint: endpoint,
+		}, nil
 	}
 
 	return &gophercloud.ProviderClient{
@@ -179,7 +156,7 @@ func v3auth(client *gophercloud.ProviderClient, endpoint string, options gopherc
 		}
 	}
 
-	result := tokens3.Create(v3Client, tokens3.AuthOptions{AuthOptions: v3Options}, scope)
+	result := tokens3.Create(v3Client, v3Options, scope)
 
 	token, err := result.ExtractToken()
 	if err != nil {
@@ -306,12 +283,25 @@ func NewBlockStorageV1(client *gophercloud.ProviderClient, eo gophercloud.Endpoi
 
 // NewBlockStorageV2 creates a ServiceClient that may be used to access the v2 block storage service.
 func NewBlockStorageV2(client *gophercloud.ProviderClient, eo gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error) {
-	eo.ApplyDefaults("volumev2")
+	eo.ApplyDefaults("volume")
 	url, err := client.EndpointLocator(eo)
 	if err != nil {
 		return nil, err
 	}
-	return &gophercloud.ServiceClient{ProviderClient: client, Endpoint: url}, nil
+
+	// Force using v2 API
+	if strings.Contains(url, "/v1") {
+		url = strings.Replace(url, "/v1", "/v2", -1)
+	}
+	if !strings.Contains(url, "/v2") {
+		return nil, fmt.Errorf("Block Storage v2 endpoint not found")
+	}
+
+	return &gophercloud.ServiceClient{
+		ProviderClient: client,
+		Endpoint:       url,
+		ResourceBase:   url,
+	}, nil
 }
 
 // NewCDNV1 creates a ServiceClient that may be used to access the OpenStack v1
@@ -338,28 +328,6 @@ func NewOrchestrationV1(client *gophercloud.ProviderClient, eo gophercloud.Endpo
 // NewDBV1 creates a ServiceClient that may be used to access the v1 DB service.
 func NewDBV1(client *gophercloud.ProviderClient, eo gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error) {
 	eo.ApplyDefaults("database")
-	url, err := client.EndpointLocator(eo)
-	if err != nil {
-		return nil, err
-	}
-	return &gophercloud.ServiceClient{ProviderClient: client, Endpoint: url}, nil
-}
-
-// NewImageServiceV2 creates a ServiceClient that may be used to access the v2 image service.
-func NewImageServiceV2(client *gophercloud.ProviderClient, eo gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error) {
-	eo.ApplyDefaults("image")
-	url, err := client.EndpointLocator(eo)
-	if err != nil {
-		return nil, err
-	}
-	return &gophercloud.ServiceClient{ProviderClient: client,
-		Endpoint:     url,
-		ResourceBase: url + "v2/"}, nil
-}
-
-// NewTelemetryV2 creates a ServiceClient that may be used to access the v2 telemetry service.
-func NewTelemetryV2(client *gophercloud.ProviderClient, eo gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error) {
-	eo.ApplyDefaults("metering")
 	url, err := client.EndpointLocator(eo)
 	if err != nil {
 		return nil, err

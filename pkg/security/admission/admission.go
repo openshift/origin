@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -18,7 +18,7 @@ import (
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	admission "k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -148,7 +148,7 @@ func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {
 }
 
 // Validate defines actions to vallidate security admission
-func (c *constraint) Validate() error {
+func (c *constraint) ValidateInitialization() error {
 	if c.sccLister == nil {
 		return fmt.Errorf("sccLister not initialized")
 	}

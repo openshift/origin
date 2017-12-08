@@ -7,7 +7,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
@@ -19,12 +19,12 @@ var (
 	// This differs from the LegacyStrategy in that on create it will set a default build
 	// pruning limit value for both successful and failed builds.  This is new behavior that
 	// can only be introduced to users consuming the new group based api.
-	GroupStrategy = groupStrategy{strategy{kapi.Scheme, names.SimpleNameGenerator}}
+	GroupStrategy = groupStrategy{strategy{legacyscheme.Scheme, names.SimpleNameGenerator}}
 
 	// LegacyStrategy is the default logic that applies when creating BuildConfig objects.
 	// Specifically it will not set the default build pruning limit values because that was not
 	// part of the legacy api.
-	LegacyStrategy = legacyStrategy{strategy{kapi.Scheme, names.SimpleNameGenerator}}
+	LegacyStrategy = legacyStrategy{strategy{legacyscheme.Scheme, names.SimpleNameGenerator}}
 )
 
 // strategy implements most of the behavior for BuildConfig objects

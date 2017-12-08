@@ -4,7 +4,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/group"
@@ -19,7 +18,6 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against groups
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &userapi.Group{} },
 		NewListFunc:              func() runtime.Object { return &userapi.GroupList{} },
 		DefaultQualifiedResource: userapi.Resource("groups"),

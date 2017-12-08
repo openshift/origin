@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	kapi "k8s.io/kubernetes/pkg/api"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 
 	userapiv1 "github.com/openshift/api/user/v1"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -14,7 +15,7 @@ import (
 
 func TestRESTRootScope(t *testing.T) {
 	for _, v := range [][]string{{"v1"}} {
-		mapping, err := kapi.Registry.RESTMapper().RESTMapping(kapi.Kind("Node"), v...)
+		mapping, err := legacyscheme.Registry.RESTMapper().RESTMapping(kapi.Kind("Node"), v...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -27,7 +28,7 @@ func TestRESTRootScope(t *testing.T) {
 func TestLegacyResourceToKind(t *testing.T) {
 	// Ensure we resolve to latest.Version
 	expectedGVK := Version.WithKind("User")
-	gvk, err := kapi.Registry.RESTMapper().KindFor(userapi.LegacySchemeGroupVersion.WithResource("User"))
+	gvk, err := legacyscheme.Registry.RESTMapper().KindFor(userapi.LegacySchemeGroupVersion.WithResource("User"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -39,7 +40,7 @@ func TestLegacyResourceToKind(t *testing.T) {
 func TestResourceToKind(t *testing.T) {
 	// Ensure we resolve to latest.Version
 	expectedGVK := userapiv1.SchemeGroupVersion.WithKind("User")
-	gvk, err := kapi.Registry.RESTMapper().KindFor(userapi.SchemeGroupVersion.WithResource("User"))
+	gvk, err := legacyscheme.Registry.RESTMapper().KindFor(userapi.SchemeGroupVersion.WithResource("User"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -50,9 +51,9 @@ func TestResourceToKind(t *testing.T) {
 
 func TestUpstreamResourceToKind(t *testing.T) {
 	// Ensure we resolve to klatest.ExternalVersions[0]
-	meta, _ := kapi.Registry.Group("")
+	meta, _ := legacyscheme.Registry.Group("")
 	expectedGVK := meta.GroupVersion.WithKind("Pod")
-	gvk, err := kapi.Registry.RESTMapper().KindFor(kapi.SchemeGroupVersion.WithResource("Pod"))
+	gvk, err := legacyscheme.Registry.RESTMapper().KindFor(kapi.SchemeGroupVersion.WithResource("Pod"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -22,19 +22,34 @@ type EgressNetworkPolicyInformer interface {
 }
 
 type egressNetworkPolicyInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewEgressNetworkPolicyInformer constructs a new informer for EgressNetworkPolicy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewEgressNetworkPolicyInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredEgressNetworkPolicyInformer(client, namespace, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredEgressNetworkPolicyInformer constructs a new informer for EgressNetworkPolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredEgressNetworkPolicyInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Network().EgressNetworkPolicies(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Network().EgressNetworkPolicies(namespace).Watch(options)
 			},
 		},
@@ -44,12 +59,12 @@ func NewEgressNetworkPolicyInformer(client internalclientset.Interface, namespac
 	)
 }
 
-func defaultEgressNetworkPolicyInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewEgressNetworkPolicyInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *egressNetworkPolicyInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredEgressNetworkPolicyInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *egressNetworkPolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&network.EgressNetworkPolicy{}, defaultEgressNetworkPolicyInformer)
+	return f.factory.InformerFor(&network.EgressNetworkPolicy{}, f.defaultInformer)
 }
 
 func (f *egressNetworkPolicyInformer) Lister() internalversion.EgressNetworkPolicyLister {

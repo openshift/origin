@@ -8,8 +8,10 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	deployv1 "github.com/openshift/api/apps/v1"
@@ -20,7 +22,7 @@ import (
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 )
 
-var codec = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
+var codec = legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
 type terribleGenerator struct{}
 
@@ -32,7 +34,7 @@ var _ RollbackGenerator = &terribleGenerator{}
 
 func TestCreateError(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{}, false)
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -45,7 +47,7 @@ func TestCreateError(t *testing.T) {
 
 func TestCreateInvalid(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{}, false)
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -72,7 +74,7 @@ func TestCreateOk(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, false)
+	}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -98,7 +100,7 @@ func TestCreateRollbackToLatest(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 2,
 		},
-	}, false)
+	}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("expected an error when rolling back to the existing deployed revision")
@@ -123,7 +125,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		generator: &terribleGenerator{},
 		dn:        oc.Apps(),
 		rn:        kc.Core(),
-		codec:     kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
+		codec:     legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
 	_, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
@@ -131,7 +133,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, false)
+	}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil || !strings.Contains(err.Error(), "something terrible happened") {
 		t.Errorf("Unexpected error: %v", err)
@@ -154,7 +156,7 @@ func TestCreateMissingDeployment(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, false)
+	}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -183,7 +185,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, false)
+	}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -211,7 +213,7 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	}, false)
+	}, apiserverrest.ValidateAllObjectFunc, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")

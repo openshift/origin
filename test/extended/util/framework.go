@@ -15,6 +15,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	batchv1 "k8s.io/api/batch/v1"
 	kapiv1 "k8s.io/api/core/v1"
@@ -29,8 +30,8 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	kbatchclient "k8s.io/client-go/kubernetes/typed/batch/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kinternalcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -1317,7 +1318,7 @@ func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) st
 func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
 	var expectedEvent *kapiv1.Event
 	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
-		events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
+		events, err := client.Events(build.Namespace).Search(legacyscheme.Scheme, build)
 		if err != nil {
 			return false, err
 		}

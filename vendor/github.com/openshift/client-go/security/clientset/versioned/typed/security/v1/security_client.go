@@ -12,7 +12,7 @@ type SecurityV1Interface interface {
 	PodSecurityPolicyReviewsGetter
 	PodSecurityPolicySelfSubjectReviewsGetter
 	PodSecurityPolicySubjectReviewsGetter
-	SecurityContextConstraintsesGetter
+	SecurityContextConstraintsGetter
 }
 
 // SecurityV1Client is used to interact with features provided by the security.openshift.io group.
@@ -32,8 +32,8 @@ func (c *SecurityV1Client) PodSecurityPolicySubjectReviews(namespace string) Pod
 	return newPodSecurityPolicySubjectReviews(c, namespace)
 }
 
-func (c *SecurityV1Client) SecurityContextConstraintses() SecurityContextConstraintsInterface {
-	return newSecurityContextConstraintses(c)
+func (c *SecurityV1Client) SecurityContextConstraints() SecurityContextConstraintsInterface {
+	return newSecurityContextConstraints(c)
 }
 
 // NewForConfig creates a new SecurityV1Client for the given config.

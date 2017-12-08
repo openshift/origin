@@ -11,7 +11,7 @@ import (
 	"time"
 
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
@@ -20,11 +20,11 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
 	apiregistration "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func init() {
-	apiregistration.Install(api.GroupFactoryRegistry, api.Registry, api.Scheme)
+	apiregistration.Install(scheme.GroupFactoryRegistry, scheme.Registry, scheme.Scheme)
 }
 
 func main() {
@@ -122,8 +122,8 @@ func getKey(client *clientv3.Client, key string) error {
 		return err
 	}
 
-	decoder := api.Codecs.UniversalDeserializer()
-	encoder := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, api.Scheme, api.Scheme, true)
+	decoder := scheme.Codecs.UniversalDeserializer()
+	encoder := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, true)
 
 	for _, kv := range resp.Kvs {
 		obj, gvk, err := decoder.Decode(kv.Value, nil, nil)
@@ -149,8 +149,8 @@ func dump(client *clientv3.Client) error {
 	}
 
 	kvData := []etcd3kv{}
-	decoder := api.Codecs.UniversalDeserializer()
-	encoder := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, api.Scheme, api.Scheme, false)
+	decoder := scheme.Codecs.UniversalDeserializer()
+	encoder := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
 	objJSON := &bytes.Buffer{}
 
 	for _, kv := range response.Kvs {

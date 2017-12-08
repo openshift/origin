@@ -3,7 +3,6 @@ package apps
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 )
 
 const (
@@ -15,7 +14,7 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, RegisterDeepCopies)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
@@ -63,7 +62,6 @@ func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 		&DeploymentRequest{},
 		&DeploymentLog{},
 		&DeploymentLogOptions{},
-		&extensions.Scale{},
 	}
 	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
 	return nil
@@ -78,7 +76,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&DeploymentRequest{},
 		&DeploymentLog{},
 		&DeploymentLogOptions{},
-		&extensions.Scale{},
 	)
 	return nil
 }

@@ -7,12 +7,13 @@ interactions:
     form: {}
     headers:
       Authorization:
-      - SharedKey golangrocksonazure:gwUioVuGmO6fOLSuniOpLJWt5TZWHnOwrolVZpMkplw=
+      - SharedKey golangrocksonazure:Lc5Iu8aQIcEM6scVM3h3Ofj4zDCUP+nHwPmsqFUJsz8=
       User-Agent:
-      - Go/go1.8 (amd64-windows) azure-storage-go/0.1.0 api-version/2016-05-31 table
-      X-Ms-Date:
-      - Wed, 05 Apr 2017 22:33:37 GMT
-      X-Ms-Version:
+      - Go/go1.9beta1 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31
+        table
+      x-ms-date:
+      - Thu, 20 Jul 2017 23:34:11 GMT
+      x-ms-version:
       - 2016-05-31
     url: https://golangrocksonazure.table.core.windows.net/?comp=properties&restype=service
     method: GET
@@ -22,11 +23,11 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Wed, 05 Apr 2017 22:33:37 GMT
+      - Thu, 20 Jul 2017 23:34:10 GMT
       Server:
       - Windows-Azure-Table/1.0 Microsoft-HTTPAPI/2.0
       X-Ms-Request-Id:
-      - ab33c61b-0002-0064-5f5c-aeb219000000
+      - 875b8378-0002-0036-77b0-0102e5000000
       X-Ms-Version:
       - 2016-05-31
     status: 200 OK

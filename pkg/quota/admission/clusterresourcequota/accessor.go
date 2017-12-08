@@ -9,7 +9,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	etcd "k8s.io/apiserver/pkg/storage/etcd"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 

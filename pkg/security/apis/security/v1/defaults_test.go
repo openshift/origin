@@ -6,7 +6,7 @@ import (
 
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 
 	versioned "github.com/openshift/api/security/v1"
 	_ "github.com/openshift/origin/pkg/api/install"

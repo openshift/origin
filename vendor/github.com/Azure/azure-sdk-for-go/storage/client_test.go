@@ -1,5 +1,19 @@
 package storage
 
+// Copyright 2017 Microsoft Corporation
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 import (
 	"bytes"
 	"encoding/base64"
@@ -29,6 +43,30 @@ type StorageClientSuite struct{}
 
 var _ = chk.Suite(&StorageClientSuite{})
 
+func setHeaders(haystack http.Header, predicate func(string) bool, value string) {
+	for key := range haystack {
+		if predicate(key) {
+			haystack[key] = []string{value}
+		}
+	}
+}
+
+func deleteHeaders(haystack http.Header, predicate func(string) bool) {
+	for key := range haystack {
+		if predicate(key) {
+			delete(haystack, key)
+		}
+	}
+}
+func getHeaders(haystack http.Header, predicate func(string) bool) string {
+	for key, value := range haystack {
+		if predicate(key) && len(value) > 0 {
+			return value[0]
+		}
+	}
+	return ""
+}
+
 // getBasicClient returns a test client from storage credentials in the env
 func getBasicClient(c *chk.C) *Client {
 	name := os.Getenv("ACCOUNT_NAME")
@@ -48,6 +86,16 @@ func getBasicClient(c *chk.C) *Client {
 func (client *Client) appendRecorder(c *chk.C) *recorder.Recorder {
 	tests := strings.Split(c.TestName(), ".")
 	path := filepath.Join(recordingsFolder, tests[0], tests[1])
+
+	if overwriteRec {
+		fullPath := filepath.Join(pwd, path+".yaml")
+		_, err := os.Stat(fullPath)
+		if err == nil {
+			err := os.Remove(fullPath)
+			c.Assert(err, chk.IsNil)
+		}
+	}
+
 	rec, err := recorder.New(path)
 	c.Assert(err, chk.IsNil)
 	client.HTTPClient = &http.Client{
@@ -79,14 +127,24 @@ func compareMethods(r *http.Request, i cassette.Request) bool {
 }
 
 func compareURLs(r *http.Request, i cassette.Request) bool {
-	newURL := modifyURL(r.URL)
-	return newURL.String() == i.URL
+	requestURL := modifyURL(r.URL)
+
+	cassetteURL, err := url.Parse(i.URL)
+	if err != nil {
+		return false
+	}
+
+	err = removeSAS(cassetteURL)
+	if err != nil {
+		return false
+	}
+	return requestURL.String() == cassetteURL.String()
 }
 
-func modifyURL(url *url.URL) *url.URL {
+func modifyURL(uri *url.URL) *url.URL {
 	// The URL host looks like this...
 	// accountname.service.storageEndpointSuffix
-	parts := strings.Split(url.Host, ".")
+	parts := strings.Split(uri.Host, ".")
 	// parts[0] corresponds to the storage account name, so it can be (almost) any string
 	// parts[1] corresponds to the service name (table, blob, etc.).
 	if !(parts[1] == blobServiceName ||
@@ -105,45 +163,78 @@ func modifyURL(url *url.URL) *url.URL {
 	}
 
 	host := dummyStorageAccount + "." + parts[1] + "." + azure.PublicCloud.StorageEndpointSuffix
-	newURL := url
+	newURL := uri
 	newURL.Host = host
+
+	err := removeSAS(newURL)
+	if err != nil {
+		return nil
+	}
 	return newURL
+}
+
+func removeSAS(uri *url.URL) error {
+	// Remove signature from a SAS URI
+	v := uri.Query()
+	v.Del("sig")
+
+	q, err := url.QueryUnescape(v.Encode())
+	if err != nil {
+		return err
+	}
+	uri.RawQuery = q
+	return nil
 }
 
 func compareHeaders(r *http.Request, i cassette.Request) bool {
 	requestHeaders := r.Header
 	cassetteHeaders := i.Headers
 	// Some headers shall not be compared...
-	requestHeaders.Del("User-Agent")
-	requestHeaders.Del("Authorization")
-	requestHeaders.Del("X-Ms-Date")
 
-	cassetteHeaders.Del("User-Agent")
-	cassetteHeaders.Del("Authorization")
-	cassetteHeaders.Del("X-Ms-Date")
+	getHeaderMatchPredicate := func(needle string) func(string) bool {
+		return func(straw string) bool {
+			return strings.EqualFold(needle, straw)
+		}
+	}
 
-	srcURLstr := requestHeaders.Get("X-Ms-Copy-Source")
+	isUserAgent := getHeaderMatchPredicate("User-Agent")
+	isAuthorization := getHeaderMatchPredicate("Authorization")
+	isDate := getHeaderMatchPredicate("x-ms-date")
+	deleteHeaders(requestHeaders, isUserAgent)
+	deleteHeaders(requestHeaders, isAuthorization)
+	deleteHeaders(requestHeaders, isDate)
+
+	deleteHeaders(cassetteHeaders, isUserAgent)
+	deleteHeaders(cassetteHeaders, isAuthorization)
+	deleteHeaders(cassetteHeaders, isDate)
+
+	isCopySource := getHeaderMatchPredicate("X-Ms-Copy-Source")
+	srcURLstr := getHeaders(requestHeaders, isCopySource)
 	if srcURLstr != "" {
 		srcURL, err := url.Parse(srcURLstr)
 		if err != nil {
 			return false
 		}
 		modifiedURL := modifyURL(srcURL)
-		requestHeaders.Set("X-Ms-Copy-Source", modifiedURL.String())
+		setHeaders(requestHeaders, isCopySource, modifiedURL.String())
 	}
 
 	// Do not compare the complete Content-Type header in table batch requests
 	if isBatchOp(r.URL.String()) {
 		// They all start like this, but then they have a UUID...
 		ctPrefixBatch := "multipart/mixed; boundary=batch_"
-		contentTypeRequest := requestHeaders.Get("Content-Type")
-		contentTypeCassette := cassetteHeaders.Get("Content-Type")
+
+		isContentType := getHeaderMatchPredicate("Content-Type")
+
+		contentTypeRequest := getHeaders(requestHeaders, isContentType)
+		contentTypeCassette := getHeaders(cassetteHeaders, isContentType)
 		if !(strings.HasPrefix(contentTypeRequest, ctPrefixBatch) &&
 			strings.HasPrefix(contentTypeCassette, ctPrefixBatch)) {
 			return false
 		}
-		requestHeaders.Del("Content-Type")
-		cassetteHeaders.Del("Content-Type")
+
+		deleteHeaders(requestHeaders, isContentType)
+		deleteHeaders(cassetteHeaders, isContentType)
 	}
 
 	return reflect.DeepEqual(requestHeaders, cassetteHeaders)
@@ -478,12 +569,65 @@ func (s *StorageClientSuite) Test_doRetry(c *chk.C) {
 	c.Assert(resp.StatusCode, chk.Equals, http.StatusNotFound)
 
 	// Was it the correct amount of retries... ?
-	c.Assert(cli.Sender.(*DefaultSender).attempts, chk.Equals, cli.Sender.(*DefaultSender).RetryAttempts)
+	c.Assert(cli.Sender.(*DefaultSender).attempts, chk.Equals, ds.RetryAttempts)
 	// What about time... ?
 	// Note, seconds are rounded
 	sum := 0
 	for i := 0; i < ds.RetryAttempts; i++ {
 		sum += int(ds.RetryDuration.Seconds() * math.Pow(2, float64(i))) // same formula used in autorest.DelayForBackoff
 	}
+	c.Assert(int(afterRetries.Seconds()), chk.Equals, sum)
+
+	// Service SAS test
+	blobCli := getBlobClient(c)
+	cnt := blobCli.GetContainerReference(containerName(c))
+	sasuriOptions := ContainerSASOptions{}
+	sasuriOptions.Expiry = fixedTime
+	sasuriOptions.Read = true
+	sasuriOptions.Add = true
+	sasuriOptions.Create = true
+	sasuriOptions.Write = true
+	sasuriOptions.Delete = true
+	sasuriOptions.List = true
+
+	sasuriString, err := cnt.GetSASURI(sasuriOptions)
+	c.Assert(err, chk.IsNil)
+
+	sasuri, err := url.Parse(sasuriString)
+	c.Assert(err, chk.IsNil)
+
+	cntServiceSAS, err := GetContainerReferenceFromSASURI(*sasuri)
+	c.Assert(err, chk.IsNil)
+	cntServiceSAS.Client().HTTPClient = cli.HTTPClient
+
+	// This request will fail with 403
+	ds.ValidStatusCodes = []int{http.StatusForbidden}
+	cntServiceSAS.Client().Sender = ds
+
+	now = time.Now()
+	_, err = cntServiceSAS.Exists()
+	afterRetries = time.Since(now)
+	c.Assert(err, chk.NotNil)
+
+	c.Assert(cntServiceSAS.Client().Sender.(*DefaultSender).attempts, chk.Equals, ds.RetryAttempts)
+	c.Assert(int(afterRetries.Seconds()), chk.Equals, sum)
+
+	// Account SAS test
+	token, err := cli.GetAccountSASToken(accountSASOptions)
+	c.Assert(err, chk.IsNil)
+
+	SAScli := NewAccountSASClient(cli.accountName, token, azure.PublicCloud).GetBlobService()
+	cntAccountSAS := SAScli.GetContainerReference(cnt.Name)
+	cntAccountSAS.Client().HTTPClient = cli.HTTPClient
+
+	ds.ValidStatusCodes = []int{http.StatusNotFound}
+	cntAccountSAS.Client().Sender = ds
+
+	now = time.Now()
+	_, err = cntAccountSAS.Exists()
+	afterRetries = time.Since(now)
+	c.Assert(err, chk.IsNil)
+
+	c.Assert(cntAccountSAS.Client().Sender.(*DefaultSender).attempts, chk.Equals, ds.RetryAttempts)
 	c.Assert(int(afterRetries.Seconds()), chk.Equals, sum)
 }

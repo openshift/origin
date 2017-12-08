@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 
@@ -16,7 +16,7 @@ func TestKnownAPIGroups(t *testing.T) {
 	unexposedGroups := sets.NewString("componentconfig", "metrics", "policy", "federation", "scheduling.k8s.io")
 
 	enabledGroups := sets.NewString()
-	for _, enabledVersion := range kapi.Registry.EnabledVersions() {
+	for _, enabledVersion := range legacyscheme.Registry.EnabledVersions() {
 		enabledGroups.Insert(enabledVersion.Group)
 	}
 
@@ -45,7 +45,7 @@ func TestAllowedAPIVersions(t *testing.T) {
 		}
 
 		enabled := sets.NewString()
-		for _, enabledVersion := range kapi.Registry.EnabledVersionsForGroup(group) {
+		for _, enabledVersion := range legacyscheme.Registry.EnabledVersionsForGroup(group) {
 			enabled.Insert(enabledVersion.Version)
 		}
 		expected := sets.NewString(versions...)

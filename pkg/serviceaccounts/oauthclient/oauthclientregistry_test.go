@@ -12,8 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
@@ -24,8 +25,8 @@ import (
 )
 
 var (
-	encoder                 = kapi.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
-	decoder                 = kapi.Codecs.UniversalDecoder()
+	encoder                 = legacyscheme.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
+	decoder                 = legacyscheme.Codecs.UniversalDecoder()
 	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "serviceaccounts"}
 	secretsResource         = schema.GroupVersionResource{Group: "", Version: "", Resource: "secrets"}
 	secretKind              = schema.GroupVersionKind{Group: "", Version: "", Kind: "Secret"}
@@ -578,7 +579,7 @@ func TestGetClient(t *testing.T) {
 			routeClient:   tc.routeClient.Route(),
 			delegate:      delegate,
 			grantMethod:   oauthapi.GrantHandlerPrompt,
-			decoder:       kapi.Codecs.UniversalDecoder(),
+			decoder:       legacyscheme.Codecs.UniversalDecoder(),
 		}
 		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
 		switch {

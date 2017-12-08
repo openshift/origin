@@ -15,7 +15,7 @@ import (
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
 )

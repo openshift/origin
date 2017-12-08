@@ -15,6 +15,7 @@ import (
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdauth "k8s.io/kubernetes/pkg/kubectl/cmd/auth"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/resource"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -67,7 +68,7 @@ var (
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdGet(f, out, errOut)
+	cmd := resource.NewCmdGet(f, out, errOut)
 	cmd.Long = fmt.Sprintf(getLong, fullName)
 	cmd.Example = fmt.Sprintf(getExample, fullName)
 	cmd.SuggestFor = []string{"list"}

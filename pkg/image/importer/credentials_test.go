@@ -8,8 +8,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -20,14 +21,14 @@ func TestCredentialsForSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	secrets := obj.(*kapi.SecretList)
 	secretsv1 := make([]corev1.Secret, len(secrets.Items))
 	for i, secret := range secrets.Items {
-		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
+		err := kapiv1.Convert_core_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
 		if err != nil {
 			t.Logf("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue

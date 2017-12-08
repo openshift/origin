@@ -3,14 +3,14 @@ package internalversion
 import (
 	v1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 type DeploymentConfigExpansion interface {
 	UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (result *v1beta1.Scale, err error)
 }
 
-var scaleCodec = kapi.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion)
+var scaleCodec = legacyscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion)
 
 // UpdateScale takes the top resource name and the representation of a scale and updates it. Returns the server's representation of the scale, and an error, if there is any.
 func (c *deploymentConfigs) UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (result *v1beta1.Scale, err error) {

@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
@@ -39,7 +39,7 @@ type routeStrategy struct {
 // Route objects via the REST API.
 func NewStrategy(allocator route.RouteAllocator, sarClient SubjectAccessReviewInterface) routeStrategy {
 	return routeStrategy{
-		ObjectTyper:    kapi.Scheme,
+		ObjectTyper:    legacyscheme.Scheme,
 		NameGenerator:  names.SimpleNameGenerator,
 		RouteAllocator: allocator,
 		sarClient:      sarClient,
