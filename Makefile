@@ -142,7 +142,7 @@ update-api:
 #
 # Example:
 #   make test
-test: test-tools test-integration test-end-to-end
+test: test-tools test-integration test-end-to-end test-end-to-end-unit
 .PHONY: test
 
 # Run unit tests.
@@ -184,9 +184,18 @@ test-cmd: build
 # Example:
 #   make test-end-to-end
 test-end-to-end:
+    # remove as soon as the CI is updated to call test-end-to-end-unit
 	COVERAGE_SPEC=' ' DETECT_RACES='false' TIMEOUT='10m' hack/test-go.sh ./test/end-to-end
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
+
+# Run end to end tests. Uses whatever binaries are currently built.
+#
+# Example:
+#   test-end-to-end-unit
+test-end-to-end-unit:
+	COVERAGE_SPEC=' ' DETECT_RACES='false' TIMEOUT='10m' hack/test-go.sh ./test/end-to-end
+.PHONY: test-end-to-end-unit
 
 # Run tools tests.
 #
