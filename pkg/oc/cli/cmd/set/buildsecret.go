@@ -176,6 +176,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 	}
 	o.Builder = f.NewBuilder().
+		Internal().
 		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
