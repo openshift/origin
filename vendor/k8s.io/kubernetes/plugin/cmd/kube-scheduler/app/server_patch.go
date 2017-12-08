@@ -1,5 +1,8 @@
 package app
 
+import (
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
+)
 
 func (o *Options) GetConfig() *componentconfig.KubeSchedulerConfiguration {
 	return o.config
