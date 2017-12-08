@@ -44,18 +44,18 @@ var (
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
 	APIGroupKube                  = ""
-	APIGroupExtensions            = "extensions"
 	APIGroupApps                  = "apps"
 	APIGroupAdmissionRegistration = "admissionregistration.k8s.io"
 	APIGroupAPIExtensions         = "apiextensions.k8s.io"
 	APIGroupAPIRegistration       = "apiregistration.k8s.io"
 	APIGroupAuthentication        = "authentication.k8s.io"
 	APIGroupAuthorization         = "authorization.k8s.io"
+	APIGroupExtensions            = "extensions"
+	APIGroupEvents                = "events.k8s.io"
 	APIGroupImagePolicy           = "imagepolicy.k8s.io"
 	APIGroupAutoscaling           = "autoscaling"
 	APIGroupBatch                 = "batch"
 	APIGroupCertificates          = "certificates.k8s.io"
-	APIGroupFederation            = "federation"
 	APIGroupNetworking            = "networking.k8s.io"
 	APIGroupPolicy                = "policy"
 	APIGroupStorage               = "storage.k8s.io"
@@ -83,8 +83,9 @@ var (
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
 		APIGroupKube:                  {"v1"},
 		APIGroupExtensions:            {"v1beta1"},
-		APIGroupApps:                  {"v1beta1", "v1beta2"},
-		APIGroupAdmissionRegistration: {}, // alpha disabled by default
+		APIGroupEvents:                {"v1beta1"},
+		APIGroupApps:                  {"v1", "v1beta1", "v1beta2"},
+		APIGroupAdmissionRegistration: {"v1beta1"},
 		APIGroupAPIExtensions:         {"v1beta1"},
 		APIGroupAPIRegistration:       {"v1beta1"},
 		APIGroupAuthentication:        {"v1", "v1beta1"},
@@ -129,6 +130,7 @@ var (
 		APIGroupAuthorizationRbac:     {"v1alpha1"},
 		APIGroupSettings:              {"v1alpha1"},
 		APIGroupScheduling:            {"v1alpha1"},
+		APIGroupStorage:               {"v1alpha1"},
 	}
 	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)

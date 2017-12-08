@@ -31,8 +31,8 @@ import (
 
 var expectedGroupPreferredVersions []string = []string{
 	// keep this sorted:
-	"admission.k8s.io/v1alpha1",
-	"admissionregistration.k8s.io/v1alpha1",
+	"admission.k8s.io/v1beta1", // not persisted
+	"admissionregistration.k8s.io/v1beta1",
 	"apps/v1beta1",
 	"authentication.k8s.io/v1",
 	"authorization.k8s.io/v1",
@@ -41,12 +41,12 @@ var expectedGroupPreferredVersions []string = []string{
 	"batch/v1",
 	"certificates.k8s.io/v1beta1",
 	"componentconfig/v1alpha1",
+	"events.k8s.io/v1beta1",
 	"extensions/v1beta1",
-	"federation/v1beta1",
 	"imagepolicy.k8s.io/v1alpha1",
 	"networking.k8s.io/v1",
 	"policy/v1beta1",
-	"rbac.authorization.k8s.io/v1beta1",
+	"rbac.authorization.k8s.io/v1",
 	"scheduling.k8s.io/v1alpha1",
 	"settings.k8s.io/v1alpha1",
 	"storage.k8s.io/v1",
@@ -80,13 +80,17 @@ func TestAPIServerDefaults(t *testing.T) {
 			RequestTimeout:              time.Duration(60) * time.Second,
 		},
 		Admission: &apiserveroptions.AdmissionOptions{
-			PluginNames: []string{"AlwaysAdmit"},
+			PluginNames:            []string{"AlwaysAdmit"},
+			RecommendedPluginOrder: []string{"NamespaceLifecycle", "Initializers", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook"}, //ignored
+			DefaultOffPlugins:      []string{"Initializers", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook"},                       //ignored
 		},
 		Etcd: &apiserveroptions.EtcdOptions{
 			StorageConfig: storagebackend.Config{
 				ServerList: nil,
 				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
+				Quorum:             true,
+				CompactionInterval: 300000000000, // five minutes
 			},
 			DefaultStorageMediaType: "application/vnd.kubernetes.protobuf",
 			DeleteCollectionWorkers: 1,
@@ -106,7 +110,8 @@ func TestAPIServerDefaults(t *testing.T) {
 			BindAddress: net.ParseIP("127.0.0.1"),
 			BindPort:    8080,
 		},
-		EventTTL: 1 * time.Hour,
+		EndpointReconcilerType: "master-count", //ignored
+		EventTTL:               1 * time.Hour,
 		KubeletConfig: kubeletclient.KubeletClientConfig{
 			Port:         10250,
 			ReadOnlyPort: 10255,
@@ -235,8 +240,10 @@ func TestCMServerDefaults(t *testing.T) {
 			NodeMonitorPeriod:                               metav1.Duration{Duration: 5 * time.Second},
 			HorizontalPodAutoscalerUpscaleForbiddenWindow:   metav1.Duration{Duration: 3 * time.Minute},
 			HorizontalPodAutoscalerDownscaleForbiddenWindow: metav1.Duration{Duration: 5 * time.Minute},
-			ClusterName:              "kubernetes",
-			TerminatedPodGCThreshold: 12500,
+			HorizontalPodAutoscalerTolerance:                0.1,
+			HorizontalPodAutoscalerUseRESTClients:           true, // we ignore this for now
+			ClusterName:                                     "kubernetes",
+			TerminatedPodGCThreshold:                        12500,
 			VolumeConfiguration: componentconfig.VolumeConfiguration{
 				EnableDynamicProvisioning:  true,
 				EnableHostPathProvisioning: false,
