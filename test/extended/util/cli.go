@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -585,5 +586,7 @@ func (c *CLI) Execute() error {
 
 // FatalErr exits the test in case a fatal error has occurred.
 func FatalErr(msg interface{}) {
+	// the path that leads to this being called isn't always clear...
+	fmt.Fprintln(g.GinkgoWriter, string(debug.Stack()))
 	e2e.Failf("%v", msg)
 }
