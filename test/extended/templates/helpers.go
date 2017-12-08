@@ -1,27 +1,19 @@
 package templates
 
 import (
-	"bufio"
 	"crypto/tls"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strings"
-	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapiv1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -127,96 +119,20 @@ func setUser(cli *exutil.CLI, user *userapi.User) {
 	}
 }
 
-func setEmptyNodeSelector(tsbOC *exutil.CLI) {
-	namespace, err := tsbOC.AdminKubeClient().CoreV1().Namespaces().Get(tsbOC.Namespace(), metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	namespace.Annotations["openshift.io/node-selector"] = ""
-
-	_, err = tsbOC.AdminKubeClient().CoreV1().Namespaces().Update(namespace)
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-// EnsureTSB makes sure a TSB is present where expected and returns a client to
-// speak to it and a close method which provides the proxy.  The caller must
-// call the close method, usually done in AfterEach
-func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, func() error) {
-	{
-		configPath := exutil.FixturePath("..", "..", "install", "templateservicebroker", "rbac-template.yaml")
-		stdout, _, err := tsbOC.WithoutNamespace().Run("process").Args("-f", configPath, "-p", "NAMESPACE="+tsbOC.Namespace()).Outputs()
-		if err != nil {
-			e2e.Logf("Error processing TSB template at %s: %v \n", configPath, err)
-		}
-		err = tsbOC.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
-		if err != nil {
-			// If template tests run in parallel this could be created twice, we don't really care.
-			e2e.Logf("Error creating TSB resources: %v \n", err)
-		}
+// TSBClient returns a client to the running template service broker
+func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
+	svc, err := oc.AdminKubeClient().Core().Services("openshift-template-service-broker").Get("apiserver", metav1.GetOptions{})
+	if err != nil {
+		return nil, err
 	}
 
-	// Set an empty node selector on our namespace.  For now this ensures we
-	// don't trigger a spinning state (see bz1494709) with the DaemonSet if
-	// projectConfig.defaultNodeSelector is set in the master config and some
-	// nodes don't match the nodeSelector.  The spinning state wastes CPU and
-	// fills the node logs, but otherwise isn't particularly harmful.
-	setEmptyNodeSelector(tsbOC)
-
-	configPath := exutil.FixturePath("..", "..", "install", "templateservicebroker", "apiserver-template.yaml")
-
-	err := tsbOC.AsAdmin().Run("new-app").Args(configPath, "-p", "LOGLEVEL=4", "-p", "NAMESPACE="+tsbOC.Namespace()).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	var pod *kapiv1.Pod
-	err = wait.Poll(e2e.Poll, 10*time.Minute, func() (bool, error) {
-		pods, err := tsbOC.KubeClient().CoreV1().Pods(tsbOC.Namespace()).List(metav1.ListOptions{})
-		if err != nil {
-			return false, err
-		}
-		pod = nil
-		for _, p := range pods.Items {
-			if strings.HasPrefix(p.Name, "apiserver-") {
-				pod = &p
-				break
-			}
-		}
-		if pod == nil {
-			return false, nil
-		}
-		for _, c := range pod.Status.Conditions {
-			if c.Type == kapiv1.PodReady && c.Status == kapiv1.ConditionTrue {
-				return true, nil
-			}
-		}
-		return false, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// we're trying to test the TSB, not the service.  We're outside all the normal networks.  Run a portforward to a particular
-	// pod and test that
-	portForwardCmd, stdout, err := tsbOC.Run("port-forward").Args(pod.Name, ":8443").BackgroundRC()
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// read in the local address the port-forwarder is listening on
-	br := bufio.NewReader(stdout)
-	portline, err := br.ReadString('\n')
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	s := regexp.MustCompile(`Forwarding from (.*) ->`).FindStringSubmatch(portline)
-	o.Expect(s).To(o.HaveLen(2))
-
-	go io.Copy(ioutil.Discard, br)
-
-	tsbclient := osbclient.NewClient(&http.Client{
+	return osbclient.NewClient(&http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
 		},
-	}, "https://"+s[1]+templateapi.ServiceBrokerRoot)
-
-	return tsbclient, func() error {
-		return portForwardCmd.Process.Kill()
-	}
+	}, "https://"+svc.Spec.ClusterIP+templateapi.ServiceBrokerRoot), nil
 }
 
 func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templateapi.TemplateInstance) error {

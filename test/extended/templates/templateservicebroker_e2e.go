@@ -37,9 +37,6 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	defer g.GinkgoRecover()
 
 	var (
-		tsbOC               = exutil.NewCLI("openshift-template-service-broker", exutil.KubeConfigPath())
-		portForwardCmdClose func() error
-
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
@@ -59,7 +56,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		err := exutil.WaitForBuilderAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
+		brokercli, err = TSBClient(cli)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 
@@ -108,9 +106,6 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		// BrokerTemplateInstance object.  The object is not namespaced so the
 		// namespace cleanup doesn't catch this.
 		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
-
-		err = portForwardCmdClose()
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	catalog := func() {
@@ -360,8 +355,11 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
-				exutil.DumpPodStates(tsbOC)
-				exutil.DumpPodLogsStartingWith("", tsbOC)
+				ns := cli.Namespace()
+				cli.SetNamespace("openshift-template-service-broker")
+				exutil.DumpPodStates(cli.AsAdmin())
+				exutil.DumpPodLogsStartingWith("", cli.AsAdmin())
+				cli.SetNamespace(ns)
 
 				exutil.DumpPodStates(cli)
 				exutil.DumpPodLogsStartingWith("", cli)

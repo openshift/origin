@@ -29,9 +29,6 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 	defer g.GinkgoRecover()
 
 	var (
-		tsbOC               = exutil.NewCLI("openshift-template-service-broker", exutil.KubeConfigPath())
-		portForwardCmdClose func() error
-
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
@@ -51,7 +48,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		err := exutil.WaitForBuilderAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
+		brokercli, err = TSBClient(cli)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("mysql-ephemeral", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -86,9 +84,6 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
-
-		err = portForwardCmdClose()
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	catalog := func() {
@@ -155,8 +150,11 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
-				exutil.DumpPodStates(tsbOC)
-				exutil.DumpPodLogsStartingWith("", tsbOC)
+				ns := cli.Namespace()
+				cli.SetNamespace("openshift-template-service-broker")
+				exutil.DumpPodStates(cli.AsAdmin())
+				exutil.DumpPodLogsStartingWith("", cli.AsAdmin())
+				cli.SetNamespace(ns)
 
 				exutil.DumpPodStates(cli)
 				exutil.DumpPodLogsStartingWith("", cli)
