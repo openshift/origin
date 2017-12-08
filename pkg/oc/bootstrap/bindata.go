@@ -14424,6 +14424,9 @@ objects:
 
         kubernetes_sd_configs:
         - role: endpoints
+          namespaces:
+            names:
+            - default
 
         scheme: https
         tls_config:
@@ -14434,9 +14437,9 @@ objects:
         # will add targets for each API server which Kubernetes adds an endpoint to
         # the default/kubernetes service.
         relabel_configs:
-        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
           action: keep
-          regex: default;kubernetes;https
+          regex: kubernetes;https
 
       # Scrape config for controllers.
       #
@@ -14454,14 +14457,17 @@ objects:
 
         kubernetes_sd_configs:
         - role: endpoints
+          namespaces:
+            names:
+            - default
 
         # Keep only the default/kubernetes service endpoints for the https port, and then
         # set the port to 8444. This is the default configuration for the controllers on OpenShift
         # masters.
         relabel_configs:
-        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
           action: keep
-          regex: default;kubernetes;https
+          regex: kubernetes;https
         - source_labels: [__address__]
           action: replace
           target_label: __address__
@@ -14635,10 +14641,12 @@ objects:
           namespaces:
             names:
             - openshift-template-service-broker
+
         relabel_configs:
-        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
           action: keep
-          regex: openshift-template-service-broker;apiserver;https
+          regex: api-server;https
+
       # Scrape config for the router
       - job_name: 'openshift-router'
         scheme: https
@@ -14652,9 +14660,9 @@ objects:
             names:
             - default
         relabel_configs:
-        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
           action: keep
-          regex: default;router;1936-tcp
+          regex: router;1936-tcp
 
       alerting:
         alertmanagers:
