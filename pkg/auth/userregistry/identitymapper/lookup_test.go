@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -198,8 +197,8 @@ type mappingStorage interface {
 	rest.Getter
 	rest.Deleter
 
-	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
-	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
+	Create(ctx apirequest.Context, obj runtime.Object, createValidate rest.ValidateObjectFunc, _ bool) (runtime.Object, error)
+	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidate rest.ValidateObjectFunc, updateValidate rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -222,7 +221,7 @@ func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string, op
 }
 
 func (s *storage) CreateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	obj, err := s.Create(ctx, mapping, false)
+	obj, err := s.Create(ctx, mapping, rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +229,7 @@ func (s *storage) CreateUserIdentityMapping(ctx apirequest.Context, mapping *use
 }
 
 func (s *storage) UpdateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	obj, _, err := s.Update(ctx, mapping.Name, rest.DefaultUpdatedObjectInfo(mapping, legacyscheme.Scheme))
+	obj, _, err := s.Update(ctx, mapping.Name, rest.DefaultUpdatedObjectInfo(mapping), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}

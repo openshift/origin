@@ -217,6 +217,7 @@ function os::util::list_test_packages_under() {
               -o -path '*cmd/cluster-capacity' \
               -o -path '*cmd/service-catalog' \
               -o -path '*pkg/proxy' \
+              -o -path '*pkg/oc' \
         \) -prune                             \
     \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 
