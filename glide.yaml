@@ -78,4 +78,4 @@ import:
 
 # ours because of genapidocs.  This is the current kube level
 - package: github.com/go-openapi/loads
-  version: 18441dfa706d924a39a030ee2c3b1d8d81917b38
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
