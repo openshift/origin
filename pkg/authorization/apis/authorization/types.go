@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 // Authorization is calculated against
@@ -412,6 +413,11 @@ type ClusterRole struct {
 
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule
+
+	// AggregationRule is an optional field that describes how to build the Rules for this ClusterRole.
+	// If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
+	// stomped by the controller.
+	AggregationRule *rbacapi.AggregationRule
 }
 
 // +genclient
