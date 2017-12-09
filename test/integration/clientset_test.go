@@ -10,9 +10,9 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 
-	v1buildapi "github.com/openshift/origin/pkg/build/apis/build/v1"
+	v1buildapi "github.com/openshift/api/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client/clientset_generated/release_v1_5"
-	v1projectapi "github.com/openshift/origin/pkg/project/apis/project/v1"
+	v1projectapi "github.com/openshift/api/project/v1"
 	projectclient "github.com/openshift/origin/pkg/project/client/clientset_generated/release_v1_5"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

@@ -10,11 +10,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	newproject "github.com/openshift/origin/pkg/oc/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
-	"github.com/openshift/origin/pkg/oc/cli/config"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"

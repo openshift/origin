@@ -18,8 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 var (

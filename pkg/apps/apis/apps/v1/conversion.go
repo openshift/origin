@@ -7,11 +7,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/openshift/api/apps/v1"
 	newer "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
-func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams(in *DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
+func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams(in *v1.DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImag
 	return nil
 }
 
-func Convert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in *newer.DeploymentTriggerImageChangeParams, out *DeploymentTriggerImageChangeParams, s conversion.Scope) error {
+func Convert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams(in *newer.DeploymentTriggerImageChangeParams, out *v1.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -45,7 +46,7 @@ func Convert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImag
 	return nil
 }
 
-func Convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentStrategyParams(in *RollingDeploymentStrategyParams, out *newer.RollingDeploymentStrategyParams, s conversion.Scope) error {
+func Convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentStrategyParams(in *v1.RollingDeploymentStrategyParams, out *newer.RollingDeploymentStrategyParams, s conversion.Scope) error {
 	SetDefaults_RollingDeploymentStrategyParams(in)
 
 	out.UpdatePeriodSeconds = in.UpdatePeriodSeconds
@@ -75,7 +76,7 @@ func Convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentStrateg
 	return nil
 }
 
-func Convert_apps_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams(in *newer.RollingDeploymentStrategyParams, out *RollingDeploymentStrategyParams, s conversion.Scope) error {
+func Convert_apps_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams(in *newer.RollingDeploymentStrategyParams, out *v1.RollingDeploymentStrategyParams, s conversion.Scope) error {
 	out.UpdatePeriodSeconds = in.UpdatePeriodSeconds
 	out.IntervalSeconds = in.IntervalSeconds
 	out.TimeoutSeconds = in.TimeoutSeconds

@@ -17,7 +17,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	krand "k8s.io/apimachinery/pkg/util/rand"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (

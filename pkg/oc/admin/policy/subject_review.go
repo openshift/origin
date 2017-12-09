@@ -18,9 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	securityapiv1 "github.com/openshift/api/security/v1"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 

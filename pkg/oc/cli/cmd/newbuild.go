@@ -13,10 +13,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
-	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	newcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 )
 
 // NewBuildRecommendedCommandName is the recommended command name.

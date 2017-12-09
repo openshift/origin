@@ -12,7 +12,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quotaapiv1 "github.com/openshift/api/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"

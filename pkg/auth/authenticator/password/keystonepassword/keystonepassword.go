@@ -9,10 +9,11 @@ import (
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/auth/authenticator"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+
+	authapi "github.com/openshift/origin/pkg/auth/api"
 )
 
 // keystonePasswordAuthenticator uses OpenStack keystone to authenticate a user by password

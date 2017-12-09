@@ -18,14 +18,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/diagnostics/log"
-	netutil "github.com/openshift/origin/pkg/diagnostics/networkpod/util"
-	"github.com/openshift/origin/pkg/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
+	netutil "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
-	"github.com/openshift/origin/pkg/oc/cli/config"
+	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // DiagnosticsOptions holds values received from command line flags as well as

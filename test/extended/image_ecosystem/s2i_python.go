@@ -45,7 +45,12 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 				err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By(fmt.Sprintf("calling oc new-app %s", djangoRepository))
-				err = oc.Run("new-app").Args(djangoRepository, "--strategy=source").Execute()
+				// gunicorn workers read the application source lazily.  For
+				// this test to succeed reliably, we must have one worker only
+				// (WEB_CONCURRENCY=1).  Having primed the worker via
+				// assertPageCountIs, we can then expect it not to read in the
+				// modified application source when hot deploy is disabled.
+				err = oc.Run("new-app").Args(djangoRepository, "--strategy=source", "-e", "WEB_CONCURRENCY=1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for build to finish")

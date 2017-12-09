@@ -3,7 +3,7 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/diagnostics/log"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 )
 
 // LoggerOptionFlags enable the user to specify how they want output.

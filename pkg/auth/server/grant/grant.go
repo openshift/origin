@@ -7,13 +7,14 @@ import (
 	"path"
 	"strings"
 
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/headers"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -335,7 +336,7 @@ var DefaultFormRenderer = grantTemplateRenderer{}
 type grantTemplateRenderer struct{}
 
 func (r grantTemplateRenderer) Render(form Form, w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/html; charset=UTF-8")
+	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
 	if err := defaultGrantTemplate.Execute(w, form); err != nil {

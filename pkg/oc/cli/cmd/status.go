@@ -12,9 +12,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	loginutil "github.com/openshift/origin/pkg/oc/cli/cmd/login/util"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	dotutil "github.com/openshift/origin/pkg/util/dot"
 )
 

@@ -1,0 +1,10 @@
+package: github.com/openshift/api
+import:
+- package: k8s.io/gengo
+  version: 9e661e9308f078838e266cca1c673922088c0ea4
+- package: k8s.io/code-generator
+  version: release-1.8
+- package: k8s.io/apimachinery
+  version: release-1.8
+- package: k8s.io/api
+  version: release-1.8

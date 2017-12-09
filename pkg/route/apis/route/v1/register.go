@@ -1,7 +1,7 @@
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -16,10 +16,10 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, addLegacyFieldSelectorKeyConversions, RegisterDeepCopies, RegisterDefaults, RegisterConversions)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.LegacySchemeBuilder.AddToScheme, addLegacyFieldSelectorKeyConversions, v1.RegisterDeepCopies, RegisterDefaults, RegisterConversions)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addFieldSelectorKeyConversions, RegisterDefaults)
+	SchemeBuilder = runtime.NewSchemeBuilder(v1.SchemeBuilder.AddToScheme, addFieldSelectorKeyConversions, RegisterDefaults)
 	AddToScheme   = SchemeBuilder.AddToScheme
 
 	localSchemeBuilder = &SchemeBuilder
@@ -27,23 +27,4 @@ var (
 
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}
-
-// Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&Route{},
-		&RouteList{},
-	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-	return nil
-}
-
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&Route{},
-		&RouteList{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
-	return nil
 }

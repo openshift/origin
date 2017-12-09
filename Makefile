@@ -83,19 +83,17 @@ verify: build
 	hack/verify-govet.sh ||r=1;\
 	hack/verify-imports.sh ||r=1;\
 	hack/verify-generated-bindata.sh ||r=1;\
-	hack/verify-generated-deep-copies.sh ||r=1;\
 	hack/verify-generated-conversions.sh ||r=1;\
 	hack/verify-generated-clientsets.sh ||r=1;\
+	hack/verify-generated-deep-copies.sh ||r=1;\
 	hack/verify-generated-defaulters.sh ||r=1;\
 	hack/verify-generated-listers.sh ||r=1;\
 	hack/verify-generated-informers.sh ||r=1;\
 	hack/verify-generated-openapi.sh ||r=1;\
-	hack/verify-generated-protobuf.sh ||r=1;\
 	hack/verify-generated-completions.sh ||r=1;\
 	hack/verify-generated-docs.sh ||r=1;\
 	hack/verify-cli-conventions.sh ||r=1;\
 	hack/verify-generated-json-codecs.sh ||r=1; \
-	hack/verify-generated-swagger-descriptions.sh ||r=1;\
 	hack/verify-generated-swagger-spec.sh ||r=1;\
 	exit $$r ;\
 	}
@@ -116,18 +114,16 @@ verify-commits:
 #   make update
 update:
 	hack/update-generated-bindata.sh
-	hack/update-generated-deep-copies.sh
 	hack/update-generated-conversions.sh
 	hack/update-generated-clientsets.sh
+	hack/update-generated-deep-copies.sh
 	hack/update-generated-defaulters.sh
 	hack/update-generated-listers.sh
 	hack/update-generated-informers.sh
 	hack/update-generated-openapi.sh
-	hack/update-generated-protobuf.sh
 	$(MAKE) build
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
-	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
 .PHONY: update
 
@@ -136,11 +132,9 @@ update:
 # Example:
 #   make update-api
 update-api:
-	hack/update-generated-deep-copies.sh
 	hack/update-generated-conversions.sh
 	hack/update-generated-defaulters.sh
 	hack/update-generated-swagger-descriptions.sh
-	hack/update-generated-protobuf.sh
 	hack/update-generated-openapi.sh
 	$(MAKE) build
 	hack/update-generated-swagger-spec.sh

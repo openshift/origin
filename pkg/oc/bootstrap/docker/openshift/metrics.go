@@ -8,8 +8,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (

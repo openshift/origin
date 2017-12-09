@@ -14,6 +14,7 @@ os::test::junit::declare_suite_start "cmd/volumes"
 # This test validates the 'volume' command
 
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
+os::cmd::expect_success 'oc create -f test/testdata/rollingupdate-daemonset.yaml'
 
 os::cmd::expect_success_and_text 'oc volume dc/test-deployment-config --list' 'vol1'
 os::cmd::expect_success 'oc volume dc/test-deployment-config --add --name=vol0 -m /opt5'
@@ -35,6 +36,11 @@ os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --name
 os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol2'
 os::cmd::expect_success 'oc set volume dc/test-deployment-config --remove --confirm'
 os::cmd::expect_success_and_not_text 'oc set volume dc/test-deployment-config --list' 'vol1'
+
+# ensure that resources not present in all versions of a target group
+# are still able to be encoded and patched accordingly
+os::cmd::expect_success 'oc set volume ds/bind --add --name=vol2 --type=emptydir -m /opt'
+os::cmd::expect_success 'oc set volume ds/bind --remove --name=vol2'
 
 os::cmd::expect_success "oc volume dc/test-deployment-config --add -t 'secret' --secret-name='asdf' --default-mode '765'"
 os::cmd::expect_success_and_text 'oc get dc/test-deployment-config -o jsonpath={.spec.template.spec.volumes[0]}' '501'

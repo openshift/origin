@@ -5,6 +5,7 @@
 package v1
 
 import (
+	v1 "github.com/openshift/api/build/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
@@ -13,15 +14,15 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&Build{}, func(obj interface{}) { SetObjectDefaults_Build(obj.(*Build)) })
-	scheme.AddTypeDefaultingFunc(&BuildConfig{}, func(obj interface{}) { SetObjectDefaults_BuildConfig(obj.(*BuildConfig)) })
-	scheme.AddTypeDefaultingFunc(&BuildConfigList{}, func(obj interface{}) { SetObjectDefaults_BuildConfigList(obj.(*BuildConfigList)) })
-	scheme.AddTypeDefaultingFunc(&BuildList{}, func(obj interface{}) { SetObjectDefaults_BuildList(obj.(*BuildList)) })
-	scheme.AddTypeDefaultingFunc(&BuildRequest{}, func(obj interface{}) { SetObjectDefaults_BuildRequest(obj.(*BuildRequest)) })
+	scheme.AddTypeDefaultingFunc(&v1.Build{}, func(obj interface{}) { SetObjectDefaults_Build(obj.(*v1.Build)) })
+	scheme.AddTypeDefaultingFunc(&v1.BuildConfig{}, func(obj interface{}) { SetObjectDefaults_BuildConfig(obj.(*v1.BuildConfig)) })
+	scheme.AddTypeDefaultingFunc(&v1.BuildConfigList{}, func(obj interface{}) { SetObjectDefaults_BuildConfigList(obj.(*v1.BuildConfigList)) })
+	scheme.AddTypeDefaultingFunc(&v1.BuildList{}, func(obj interface{}) { SetObjectDefaults_BuildList(obj.(*v1.BuildList)) })
+	scheme.AddTypeDefaultingFunc(&v1.BuildRequest{}, func(obj interface{}) { SetObjectDefaults_BuildRequest(obj.(*v1.BuildRequest)) })
 	return nil
 }
 
-func SetObjectDefaults_Build(in *Build) {
+func SetObjectDefaults_Build(in *v1.Build) {
 	SetDefaults_BuildSource(&in.Spec.CommonSpec.Source)
 	SetDefaults_BuildStrategy(&in.Spec.CommonSpec.Strategy)
 	if in.Spec.CommonSpec.Strategy.DockerStrategy != nil {
@@ -79,7 +80,7 @@ func SetObjectDefaults_Build(in *Build) {
 	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Requests)
 }
 
-func SetObjectDefaults_BuildConfig(in *BuildConfig) {
+func SetObjectDefaults_BuildConfig(in *v1.BuildConfig) {
 	SetDefaults_BuildConfigSpec(&in.Spec)
 	for i := range in.Spec.Triggers {
 		a := &in.Spec.Triggers[i]
@@ -142,21 +143,21 @@ func SetObjectDefaults_BuildConfig(in *BuildConfig) {
 	api_v1.SetDefaults_ResourceList(&in.Spec.CommonSpec.Resources.Requests)
 }
 
-func SetObjectDefaults_BuildConfigList(in *BuildConfigList) {
+func SetObjectDefaults_BuildConfigList(in *v1.BuildConfigList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_BuildConfig(a)
 	}
 }
 
-func SetObjectDefaults_BuildList(in *BuildList) {
+func SetObjectDefaults_BuildList(in *v1.BuildList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_Build(a)
 	}
 }
 
-func SetObjectDefaults_BuildRequest(in *BuildRequest) {
+func SetObjectDefaults_BuildRequest(in *v1.BuildRequest) {
 	for i := range in.Env {
 		a := &in.Env[i]
 		if a.ValueFrom != nil {

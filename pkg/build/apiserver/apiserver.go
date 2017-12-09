@@ -14,7 +14,7 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"

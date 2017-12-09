@@ -933,7 +933,7 @@ func (t prioritizedTags) Less(i, j int) bool {
 	if cmp > 0 { // the newer tag has a higher priority
 		return true
 	}
-	return t[i].prefix < t[j].prefix
+	return cmp == 0 && t[i].prefix < t[j].prefix
 }
 
 // PrioritizeTags orders a set of image tags with a few conventions:

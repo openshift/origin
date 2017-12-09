@@ -30,8 +30,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
+	routeapiv1 "github.com/openshift/api/route/v1"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	tr "github.com/openshift/origin/test/integration/router"
 	testutil "github.com/openshift/origin/test/util"
 )

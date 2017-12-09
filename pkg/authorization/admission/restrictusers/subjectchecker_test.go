@@ -10,9 +10,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
-	fakeuserclient "github.com/openshift/origin/pkg/user/generated/clientset/fake"
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	userapi "github.com/openshift/api/user/v1"
+	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
 
 func mustNewSubjectChecker(t *testing.T, spec *authorizationapi.RoleBindingRestrictionSpec) SubjectChecker {

@@ -5,6 +5,7 @@
 package v1
 
 import (
+	v1 "github.com/openshift/api/route/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -12,12 +13,12 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&Route{}, func(obj interface{}) { SetObjectDefaults_Route(obj.(*Route)) })
-	scheme.AddTypeDefaultingFunc(&RouteList{}, func(obj interface{}) { SetObjectDefaults_RouteList(obj.(*RouteList)) })
+	scheme.AddTypeDefaultingFunc(&v1.Route{}, func(obj interface{}) { SetObjectDefaults_Route(obj.(*v1.Route)) })
+	scheme.AddTypeDefaultingFunc(&v1.RouteList{}, func(obj interface{}) { SetObjectDefaults_RouteList(obj.(*v1.RouteList)) })
 	return nil
 }
 
-func SetObjectDefaults_Route(in *Route) {
+func SetObjectDefaults_Route(in *v1.Route) {
 	SetDefaults_RouteSpec(&in.Spec)
 	SetDefaults_RouteTargetReference(&in.Spec.To)
 	for i := range in.Spec.AlternateBackends {
@@ -33,7 +34,7 @@ func SetObjectDefaults_Route(in *Route) {
 	}
 }
 
-func SetObjectDefaults_RouteList(in *RouteList) {
+func SetObjectDefaults_RouteList(in *v1.RouteList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_Route(a)

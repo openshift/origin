@@ -10,10 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/api/image/dockerpre012"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/docker10"
-	"github.com/openshift/origin/pkg/image/apis/image/dockerpre012"
 )
 
 func TestRoundTripVersionedObject(t *testing.T) {

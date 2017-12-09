@@ -3,22 +3,12 @@ package v1
 import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
-// Applies defaults only for API group "apps.openshift.io" and not for the legacy API.
-// This function is called from storage layer where differentiation
-// between legacy and group API can be made and is not related to other functions here
-// which are called fom auto-generated code.
-func AppsV1DeploymentConfigLayeredDefaults(dc *deployapi.DeploymentConfig) {
-	if dc.Spec.RevisionHistoryLimit == nil {
-		v := deployapi.DefaultRevisionHistoryLimit
-		dc.Spec.RevisionHistoryLimit = &v
-	}
-}
-
 // Keep this in sync with pkg/api/serialization_test.go#defaultHookContainerName
-func defaultHookContainerName(hook *LifecycleHook, containerName string) {
+func defaultHookContainerName(hook *v1.LifecycleHook, containerName string) {
 	if hook == nil {
 		return
 	}
@@ -34,10 +24,10 @@ func defaultHookContainerName(hook *LifecycleHook, containerName string) {
 	}
 }
 
-func SetDefaults_DeploymentConfigSpec(obj *DeploymentConfigSpec) {
+func SetDefaults_DeploymentConfigSpec(obj *v1.DeploymentConfigSpec) {
 	if obj.Triggers == nil {
-		obj.Triggers = []DeploymentTriggerPolicy{
-			{Type: DeploymentTriggerOnConfigChange},
+		obj.Triggers = []v1.DeploymentTriggerPolicy{
+			{Type: v1.DeploymentTriggerOnConfigChange},
 		}
 	}
 	if len(obj.Selector) == 0 && obj.Template != nil {
@@ -59,20 +49,20 @@ func SetDefaults_DeploymentConfigSpec(obj *DeploymentConfigSpec) {
 	}
 }
 
-func SetDefaults_DeploymentStrategy(obj *DeploymentStrategy) {
+func SetDefaults_DeploymentStrategy(obj *v1.DeploymentStrategy) {
 	if len(obj.Type) == 0 {
-		obj.Type = DeploymentStrategyTypeRolling
+		obj.Type = v1.DeploymentStrategyTypeRolling
 	}
 
-	if obj.Type == DeploymentStrategyTypeRolling && obj.RollingParams == nil {
-		obj.RollingParams = &RollingDeploymentStrategyParams{
+	if obj.Type == v1.DeploymentStrategyTypeRolling && obj.RollingParams == nil {
+		obj.RollingParams = &v1.RollingDeploymentStrategyParams{
 			IntervalSeconds:     mkintp(deployapi.DefaultRollingIntervalSeconds),
 			UpdatePeriodSeconds: mkintp(deployapi.DefaultRollingUpdatePeriodSeconds),
 			TimeoutSeconds:      mkintp(deployapi.DefaultRollingTimeoutSeconds),
 		}
 	}
-	if obj.Type == DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
-		obj.RecreateParams = &RecreateDeploymentStrategyParams{}
+	if obj.Type == v1.DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
+		obj.RecreateParams = &v1.RecreateDeploymentStrategyParams{}
 	}
 
 	if obj.ActiveDeadlineSeconds == nil {
@@ -80,13 +70,13 @@ func SetDefaults_DeploymentStrategy(obj *DeploymentStrategy) {
 	}
 }
 
-func SetDefaults_RecreateDeploymentStrategyParams(obj *RecreateDeploymentStrategyParams) {
+func SetDefaults_RecreateDeploymentStrategyParams(obj *v1.RecreateDeploymentStrategyParams) {
 	if obj.TimeoutSeconds == nil {
 		obj.TimeoutSeconds = mkintp(deployapi.DefaultRecreateTimeoutSeconds)
 	}
 }
 
-func SetDefaults_RollingDeploymentStrategyParams(obj *RollingDeploymentStrategyParams) {
+func SetDefaults_RollingDeploymentStrategyParams(obj *v1.RollingDeploymentStrategyParams) {
 	if obj.IntervalSeconds == nil {
 		obj.IntervalSeconds = mkintp(deployapi.DefaultRollingIntervalSeconds)
 	}
@@ -120,7 +110,7 @@ func SetDefaults_RollingDeploymentStrategyParams(obj *RollingDeploymentStrategyP
 	}
 }
 
-func SetDefaults_DeploymentConfig(obj *DeploymentConfig) {
+func SetDefaults_DeploymentConfig(obj *v1.DeploymentConfig) {
 	for _, t := range obj.Spec.Triggers {
 		if t.ImageChangeParams != nil {
 			if len(t.ImageChangeParams.From.Kind) == 0 {

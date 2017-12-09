@@ -10,9 +10,9 @@ import (
 	"github.com/coreos/etcd/clientv3"
 
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	clustdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
-	"github.com/openshift/origin/pkg/diagnostics/host"
-	"github.com/openshift/origin/pkg/diagnostics/types"
+	clustdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/host"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
 var (

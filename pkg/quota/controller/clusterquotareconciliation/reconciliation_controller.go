@@ -248,11 +248,7 @@ func (c *ClusterQuotaReconcilationController) worker() {
 
 // syncResourceQuotaFromKey syncs a quota key
 func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuota *quotaapi.ClusterResourceQuota, workItems []workItem) (error, []workItem /* to retry */) {
-	obj, err := kapi.Scheme.Copy(originalQuota)
-	if err != nil {
-		return err, workItems
-	}
-	quota := obj.(*quotaapi.ClusterResourceQuota)
+	quota := originalQuota.DeepCopy()
 
 	// get the list of namespaces that match this cluster quota
 	matchingNamespaceNamesList, quotaSelector := c.clusterQuotaMapper.GetNamespacesFor(quota.Name)

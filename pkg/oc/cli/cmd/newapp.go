@@ -32,14 +32,14 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate"
 	newapp "github.com/openshift/origin/pkg/generate/app"
-	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	newcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/util"
 )
@@ -651,12 +651,7 @@ func setLabels(labels map[string]string, result *newcmd.AppResult) error {
 
 func hasLabel(labels map[string]string, result *newcmd.AppResult) (bool, error) {
 	for _, obj := range result.List.Items {
-		objCopy, err := kapi.Scheme.DeepCopy(obj)
-		if err != nil {
-			return false, err
-		}
-		err = util.AddObjectLabelsWithFlags(objCopy.(runtime.Object), labels, util.ErrorOnExistingDstKey)
-		if err != nil {
+		if err := util.AddObjectLabelsWithFlags(obj.DeepCopyObject(), labels, util.ErrorOnExistingDstKey); err != nil {
 			return true, nil
 		}
 	}

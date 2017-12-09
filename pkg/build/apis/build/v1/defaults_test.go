@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	v1 "github.com/openshift/api/build/v1"
+
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -14,17 +16,17 @@ func TestDefaults(t *testing.T) {
 		Ok       func(runtime.Object) bool
 	}{
 		{
-			External: &Build{
-				Spec: BuildSpec{
-					CommonSpec: CommonSpec{
-						Strategy: BuildStrategy{
-							Type: DockerBuildStrategyType,
+			External: &v1.Build{
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							Type: v1.DockerBuildStrategyType,
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*Build)
+				obj, ok := out.(*v1.Build)
 				if !ok {
 					return false
 				}
@@ -32,17 +34,17 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &Build{
-				Spec: BuildSpec{
-					CommonSpec: CommonSpec{
-						Strategy: BuildStrategy{
-							SourceStrategy: &SourceBuildStrategy{},
+			External: &v1.Build{
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							SourceStrategy: &v1.SourceBuildStrategy{},
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*Build)
+				obj, ok := out.(*v1.Build)
 				if !ok {
 					return false
 				}
@@ -50,11 +52,11 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &Build{
-				Spec: BuildSpec{
-					CommonSpec: CommonSpec{
-						Strategy: BuildStrategy{
-							DockerStrategy: &DockerBuildStrategy{
+			External: &v1.Build{
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							DockerStrategy: &v1.DockerBuildStrategy{
 								From: &kapiv1.ObjectReference{},
 							},
 						},
@@ -62,7 +64,7 @@ func TestDefaults(t *testing.T) {
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*Build)
+				obj, ok := out.(*v1.Build)
 				if !ok {
 					return false
 				}
@@ -70,17 +72,17 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &Build{
-				Spec: BuildSpec{
-					CommonSpec: CommonSpec{
-						Strategy: BuildStrategy{
-							CustomStrategy: &CustomBuildStrategy{},
+			External: &v1.Build{
+				Spec: v1.BuildSpec{
+					CommonSpec: v1.CommonSpec{
+						Strategy: v1.BuildStrategy{
+							CustomStrategy: &v1.CustomBuildStrategy{},
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*Build)
+				obj, ok := out.(*v1.Build)
 				if !ok {
 					return false
 				}
@@ -88,44 +90,44 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &BuildConfig{
-				Spec: BuildConfigSpec{Triggers: []BuildTriggerPolicy{{Type: ImageChangeBuildTriggerType}}},
+			External: &v1.BuildConfig{
+				Spec: v1.BuildConfigSpec{Triggers: []v1.BuildTriggerPolicy{{Type: v1.ImageChangeBuildTriggerType}}},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*BuildConfig)
+				obj, ok := out.(*v1.BuildConfig)
 				if !ok {
 					return false
 				}
 				// conversion drops this trigger because it has no type
-				return (len(obj.Spec.Triggers) == 0) && (obj.Spec.RunPolicy == BuildRunPolicySerial)
+				return (len(obj.Spec.Triggers) == 0) && (obj.Spec.RunPolicy == v1.BuildRunPolicySerial)
 			},
 		},
 		{
-			External: &BuildConfig{
-				Spec: BuildConfigSpec{
-					CommonSpec: CommonSpec{
-						Source: BuildSource{
-							Type: BuildSourceBinary,
+			External: &v1.BuildConfig{
+				Spec: v1.BuildConfigSpec{
+					CommonSpec: v1.CommonSpec{
+						Source: v1.BuildSource{
+							Type: v1.BuildSourceBinary,
 						},
-						Strategy: BuildStrategy{
-							Type: DockerBuildStrategyType,
+						Strategy: v1.BuildStrategy{
+							Type: v1.DockerBuildStrategyType,
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*BuildConfig)
+				obj, ok := out.(*v1.BuildConfig)
 				if !ok {
 					return false
 				}
 				binary := obj.Spec.Source.Binary
-				if binary == (*BinaryBuildSource)(nil) || *binary != (BinaryBuildSource{}) {
+				if binary == (*v1.BinaryBuildSource)(nil) || *binary != (v1.BinaryBuildSource{}) {
 					return false
 				}
 
 				dockerStrategy := obj.Spec.Strategy.DockerStrategy
 				// DeepEqual needed because DockerBuildStrategy contains slices
-				if dockerStrategy == (*DockerBuildStrategy)(nil) || !reflect.DeepEqual(*dockerStrategy, DockerBuildStrategy{}) {
+				if dockerStrategy == (*v1.DockerBuildStrategy)(nil) || !reflect.DeepEqual(*dockerStrategy, v1.DockerBuildStrategy{}) {
 					return false
 				}
 				return true

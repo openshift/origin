@@ -3,8 +3,10 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/diff"
 	restclient "k8s.io/client-go/rest"
 
 	testutil "github.com/openshift/origin/test/util"
@@ -55,31 +57,48 @@ func TestOAuthServerHeaders(t *testing.T) {
 
 }
 
-func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, check_url string) {
-	req, err := http.NewRequest("GET", check_url, nil)
+func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, checkUrl string) {
+	req, err := http.NewRequest("GET", checkUrl, nil)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
 
-	req.Header.Set("Accept", "text/html; charset=UTF-8")
+	req.Header.Set("Accept", "text/html; charset=utf-8")
 
 	resp, err := rt.RoundTrip(req)
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
 
-	checkImportantHeaders := map[string]string{
+	allHeaders := http.Header{}
+	for key, val := range map[string]string{
+		// security related headers that we really care about, should not change
+		"Cache-Control":          "no-cache, no-store",
+		"Pragma":                 "no-cache",
+		"Expires":                "0",
 		"Referrer-Policy":        "strict-origin-when-cross-origin",
 		"X-Frame-Options":        "DENY",
 		"X-Content-Type-Options": "nosniff",
 		"X-DNS-Prefetch-Control": "off",
 		"X-XSS-Protection":       "1; mode=block",
+
+		// non-security headers, should not change
+		// adding items here should be validated to make sure they do not conflict with any security headers
+		"Content-Type": "text/html; charset=utf-8",
+	} {
+		// use set so we get the canonical form of these headers
+		allHeaders.Set(key, val)
 	}
 
-	for key, val := range checkImportantHeaders {
-		header := resp.Header.Get(key)
-		if header != val {
-			t.Errorf("While probing %s expected header %s: %s, got {%v}", check_url, key, val, header)
-		}
+	// these headers can change per request and are not important to us
+	// only add items to this list if they cannot be statically checked above
+	ignoredHeaders := []string{"Date", "Content-Length", "Location"}
+	for _, h := range ignoredHeaders {
+		resp.Header.Del(h)
+	}
+
+	if !reflect.DeepEqual(allHeaders, resp.Header) {
+		t.Errorf("Header for %s does not match: expected: %#v got: %#v diff: %s",
+			checkUrl, allHeaders, resp.Header, diff.ObjectDiff(allHeaders, resp.Header))
 	}
 }

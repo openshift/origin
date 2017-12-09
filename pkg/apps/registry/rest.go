@@ -6,7 +6,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -26,8 +25,7 @@ var (
 // the deployment became running, complete, or failed within timeout, false if it did not, and an error if any
 // other error state occurred. The last observed deployment state is returned.
 func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, observed *kapi.ReplicationController, timeout time.Duration) (*kapi.ReplicationController, bool, error) {
-	fieldSelector := fields.Set{"metadata.name": observed.Name}.AsSelector()
-	options := metav1.ListOptions{FieldSelector: fieldSelector.String(), ResourceVersion: observed.ResourceVersion}
+	options := metav1.SingleObject(observed.ObjectMeta)
 	w, err := rn.ReplicationControllers(observed.Namespace).Watch(options)
 	if err != nil {
 		return observed, false, err

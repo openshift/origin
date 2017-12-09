@@ -16,9 +16,9 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
-	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routefake "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 )

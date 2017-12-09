@@ -5,9 +5,10 @@ import (
 
 	"github.com/golang/glog"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+
+	authapi "github.com/openshift/origin/pkg/auth/api"
 )
 
 // alwaysAcceptPasswordAuthenticator approves any login attempt with non-blank username and password

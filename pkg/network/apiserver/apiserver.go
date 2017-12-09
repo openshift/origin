@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
-	networkapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
+	networkapiv1 "github.com/openshift/api/network/v1"
 	clusternetworketcd "github.com/openshift/origin/pkg/network/registry/clusternetwork/etcd"
 	egressnetworkpolicyetcd "github.com/openshift/origin/pkg/network/registry/egressnetworkpolicy/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/network/registry/hostsubnet/etcd"

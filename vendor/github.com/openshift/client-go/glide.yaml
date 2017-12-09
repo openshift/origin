@@ -1,0 +1,16 @@
+package: github.com/openshift/client-go
+import:
+- package: k8s.io/gengo
+  version: 9e661e9308f078838e266cca1c673922088c0ea4
+- package: k8s.io/code-generator
+  version: release-1.8
+- package: k8s.io/apimachinery
+  version: release-1.8
+- package: k8s.io/api
+  version: release-1.8
+- package: k8s.io/client-go
+  version: release-5.0
+- package: github.com/openshift/api
+  version: master
+- package: github.com/golang/glog
+- package: github.com/spf13/pflag

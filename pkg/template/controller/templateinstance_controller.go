@@ -29,11 +29,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 
+	templateapiv1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/config/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -108,26 +108,6 @@ func (c *TemplateInstanceController) getTemplateInstance(key string) (*templatea
 	return c.lister.TemplateInstances(namespace).Get(name)
 }
 
-// copyTemplateInstance returns a deep copy of a TemplateInstance object.
-func (c *TemplateInstanceController) copyTemplateInstance(templateInstance *templateapi.TemplateInstance) (*templateapi.TemplateInstance, error) {
-	templateInstanceCopy, err := kapi.Scheme.DeepCopy(templateInstance)
-	if err != nil {
-		return nil, err
-	}
-
-	return templateInstanceCopy.(*templateapi.TemplateInstance), nil
-}
-
-// copyTemplate returns a deep copy of a Template object.
-func (c *TemplateInstanceController) copyTemplate(template *templateapi.Template) (*templateapi.Template, error) {
-	templateCopy, err := kapi.Scheme.DeepCopy(template)
-	if err != nil {
-		return nil, err
-	}
-
-	return templateCopy.(*templateapi.Template), nil
-}
-
 // sync is the actual controller worker function.
 func (c *TemplateInstanceController) sync(key string) error {
 	templateInstance, err := c.getTemplateInstance(key)
@@ -145,10 +125,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 
 	glog.V(4).Infof("TemplateInstance controller: syncing %s", key)
 
-	templateInstance, err = c.copyTemplateInstance(templateInstance)
-	if err != nil {
-		return err
-	}
+	// TODO: Rename this to templateInstanceCopy
+	templateInstance = templateInstance.DeepCopy()
 
 	if len(templateInstance.Status.Objects) != len(templateInstance.Spec.Template.Objects) {
 		err = c.instantiate(templateInstance)
@@ -391,10 +369,8 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		}
 	}
 
-	template, err := c.copyTemplate(&templateInstance.Spec.Template)
-	if err != nil {
-		return err
-	}
+	templatePtr := &templateInstance.Spec.Template
+	template := templatePtr.DeepCopy()
 
 	if secret != nil {
 		for i, param := range template.Parameters {
@@ -418,7 +394,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	glog.V(4).Infof("TemplateInstance controller: creating TemplateConfig for %s/%s", templateInstance.Namespace, templateInstance.Name)
 
 	tc := templateinternalclient.NewTemplateProcessorClient(c.templateClient.Template().RESTClient(), templateInstance.Namespace)
-	template, err = tc.Process(template)
+	template, err := tc.Process(template)
 	if err != nil {
 		return err
 	}

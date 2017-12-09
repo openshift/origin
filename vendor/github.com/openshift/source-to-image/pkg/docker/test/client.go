@@ -10,9 +10,9 @@ import (
 	"net"
 	"time"
 
-	dockertypes "github.com/docker/engine-api/types"
-	dockercontainer "github.com/docker/engine-api/types/container"
-	dockernetwork "github.com/docker/engine-api/types/network"
+	dockertypes "github.com/docker/docker/api/types"
+	dockercontainer "github.com/docker/docker/api/types/container"
+	dockernetwork "github.com/docker/docker/api/types/network"
 	"golang.org/x/net/context"
 )
 
@@ -79,7 +79,7 @@ type FakeDockerClient struct {
 
 	ContainerCommitID       string
 	ContainerCommitOptions  dockertypes.ContainerCommitOptions
-	ContainerCommitResponse dockertypes.ContainerCommitResponse
+	ContainerCommitResponse dockertypes.IDResponse
 	ContainerCommitErr      error
 
 	BuildImageOpts dockertypes.ImageBuildOptions
@@ -103,7 +103,7 @@ func NewFakeDockerClient() *FakeDockerClient {
 }
 
 // ImageInspectWithRaw returns the image information and its raw representation.
-func (d *FakeDockerClient) ImageInspectWithRaw(ctx context.Context, imageID string, getSize bool) (dockertypes.ImageInspect, []byte, error) {
+func (d *FakeDockerClient) ImageInspectWithRaw(ctx context.Context, imageID string) (dockertypes.ImageInspect, []byte, error) {
 	d.Calls = append(d.Calls, "inspect_image")
 
 	if _, exists := d.Images[imageID]; exists {
@@ -129,13 +129,25 @@ func (d *FakeDockerClient) CopyFromContainer(ctx context.Context, container, src
 }
 
 // ContainerWait pauses execution until a container exits.
-func (d *FakeDockerClient) ContainerWait(ctx context.Context, containerID string) (int, error) {
+func (d *FakeDockerClient) ContainerWait(ctx context.Context, containerID string, condition dockercontainer.WaitCondition) (<-chan dockercontainer.ContainerWaitOKBody, <-chan error) {
 	d.WaitContainerID = containerID
-	return d.WaitContainerResult, d.WaitContainerErr
+	resultC := make(chan dockercontainer.ContainerWaitOKBody)
+	errC := make(chan error, 1)
+
+	go func() {
+		if d.WaitContainerErr != nil {
+			errC <- d.WaitContainerErr
+			return
+		}
+
+		resultC <- dockercontainer.ContainerWaitOKBody{StatusCode: int64(d.WaitContainerResult)}
+	}()
+
+	return resultC, errC
 }
 
 // ContainerCommit applies changes into a container and creates a new tagged image.
-func (d *FakeDockerClient) ContainerCommit(ctx context.Context, container string, options dockertypes.ContainerCommitOptions) (dockertypes.ContainerCommitResponse, error) {
+func (d *FakeDockerClient) ContainerCommit(ctx context.Context, container string, options dockertypes.ContainerCommitOptions) (dockertypes.IDResponse, error) {
 	d.ContainerCommitID = container
 	d.ContainerCommitOptions = options
 	return d.ContainerCommitResponse, d.ContainerCommitErr
@@ -156,11 +168,11 @@ func (d *FakeDockerClient) ImageBuild(ctx context.Context, buildContext io.Reade
 }
 
 // ContainerCreate creates a new container based in the given configuration.
-func (d *FakeDockerClient) ContainerCreate(ctx context.Context, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig, networkingConfig *dockernetwork.NetworkingConfig, containerName string) (dockertypes.ContainerCreateResponse, error) {
+func (d *FakeDockerClient) ContainerCreate(ctx context.Context, config *dockercontainer.Config, hostConfig *dockercontainer.HostConfig, networkingConfig *dockernetwork.NetworkingConfig, containerName string) (dockercontainer.ContainerCreateCreatedBody, error) {
 	d.Calls = append(d.Calls, "create")
 
 	d.Containers[containerName] = *config
-	return dockertypes.ContainerCreateResponse{}, nil
+	return dockercontainer.ContainerCreateCreatedBody{}, nil
 }
 
 // ContainerInspect returns the container information.
@@ -186,7 +198,7 @@ func (d *FakeDockerClient) ContainerKill(ctx context.Context, containerID, signa
 }
 
 // ContainerStart sends a request to the docker daemon to start a container.
-func (d *FakeDockerClient) ContainerStart(ctx context.Context, containerID string) error {
+func (d *FakeDockerClient) ContainerStart(ctx context.Context, containerID string, options dockertypes.ContainerStartOptions) error {
 	d.Calls = append(d.Calls, "start")
 	return nil
 }
@@ -203,14 +215,14 @@ func (d *FakeDockerClient) ImagePull(ctx context.Context, ref string, options do
 }
 
 // ImageRemove removes an image from the docker host.
-func (d *FakeDockerClient) ImageRemove(ctx context.Context, imageID string, options dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDelete, error) {
+func (d *FakeDockerClient) ImageRemove(ctx context.Context, imageID string, options dockertypes.ImageRemoveOptions) ([]dockertypes.ImageDeleteResponseItem, error) {
 	d.Calls = append(d.Calls, "remove_image")
 
 	if _, exists := d.Images[imageID]; exists {
 		delete(d.Images, imageID)
-		return []dockertypes.ImageDelete{}, nil
+		return []dockertypes.ImageDeleteResponseItem{}, nil
 	}
-	return []dockertypes.ImageDelete{}, errors.New("image does not exist")
+	return []dockertypes.ImageDeleteResponseItem{}, errors.New("image does not exist")
 }
 
 // ServerVersion returns information of the docker client and server host.

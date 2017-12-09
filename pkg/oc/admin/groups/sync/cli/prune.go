@@ -17,8 +17,8 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 

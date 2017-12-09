@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
+
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/prometheus"
 )
 

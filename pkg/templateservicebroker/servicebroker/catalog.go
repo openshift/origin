@@ -9,9 +9,9 @@ import (
 	"github.com/golang/glog"
 	jsschema "github.com/lestrrat/go-jsschema"
 
+	templateapiv1 "github.com/openshift/api/template/v1"
 	oapi "github.com/openshift/origin/pkg/api"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 

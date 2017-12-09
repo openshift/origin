@@ -66,6 +66,10 @@ import:
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
   version: release-1.8.1
+- package: github.com/openshift/api
+  version: master
+- package: github.com/openshift/client-go
+  version: master
 # only used by pkg/build/builder
 - package: github.com/kubernetes-incubator/cri-o
   version: a8ee86b1cce0c13bd541a99140682a92635ba9f7
@@ -74,3 +78,7 @@ import:
   version: openshift-3.8
 - package: github.com/vjeantet/ldapserver
   version: v1.0
+
+# ours because of genapidocs.  This is the current kube level
+- package: github.com/go-openapi/loads
+  version: 18441dfa706d924a39a030ee2c3b1d8d81917b38

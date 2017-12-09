@@ -6,9 +6,11 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+
+	"github.com/openshift/origin/pkg/auth/api"
+	openshiftauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
 )
 
 // AuthorizeAuthenticator implements osinserver.AuthorizeHandler to ensure requests are authenticated
@@ -61,12 +63,12 @@ func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp
 // AccessAuthenticator implements osinserver.AccessHandler to ensure non-token requests are authenticated
 type AccessAuthenticator struct {
 	password  authenticator.Password
-	assertion authenticator.Assertion
-	client    authenticator.Client
+	assertion openshiftauthenticator.Assertion
+	client    openshiftauthenticator.Client
 }
 
 // NewAccessAuthenticator returns a new AccessAuthenticator
-func NewAccessAuthenticator(password authenticator.Password, assertion authenticator.Assertion, client authenticator.Client) *AccessAuthenticator {
+func NewAccessAuthenticator(password authenticator.Password, assertion openshiftauthenticator.Assertion, client openshiftauthenticator.Client) *AccessAuthenticator {
 	return &AccessAuthenticator{password, assertion, client}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -373,5 +374,5 @@ func (c *TriggerController) syncResource(key string) error {
 		return nil
 	}
 
-	return source.Reactor.ImageChanged(obj, c.tagRetriever)
+	return source.Reactor.ImageChanged(obj.(runtime.Object), c.tagRetriever)
 }

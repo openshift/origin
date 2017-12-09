@@ -5,11 +5,12 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/openshift/api/image/dockerpre012"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // Convert docker client object to internal object, but only when this package is included
-func Convert_dockerpre012_ImagePre_012_to_api_DockerImage(in *ImagePre012, out *newer.DockerImage, s conversion.Scope) error {
+func Convert_dockerpre012_ImagePre_012_to_api_DockerImage(in *dockerpre012.ImagePre012, out *newer.DockerImage, s conversion.Scope) error {
 	if err := s.Convert(in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}
@@ -27,7 +28,7 @@ func Convert_dockerpre012_ImagePre_012_to_api_DockerImage(in *ImagePre012, out *
 	out.Size = in.Size
 	return nil
 }
-func Convert_api_DockerImage_to_dockerpre012_ImagePre_012(in *newer.DockerImage, out *ImagePre012, s conversion.Scope) error {
+func Convert_api_DockerImage_to_dockerpre012_ImagePre_012(in *newer.DockerImage, out *dockerpre012.ImagePre012, s conversion.Scope) error {
 	if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}

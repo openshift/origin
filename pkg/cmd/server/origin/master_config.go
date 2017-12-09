@@ -24,6 +24,7 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
+	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -33,11 +34,11 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	userinformer "github.com/openshift/origin/pkg/user/generated/informers/externalversions"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
@@ -99,6 +100,7 @@ type InformerAccess interface {
 	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
 	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
 	GetImageInformers() imageinformer.SharedInformerFactory
+	GetOauthInformers() oauthinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
 	GetUserInformers() userinformer.SharedInformerFactory
@@ -134,7 +136,7 @@ func BuildMasterConfig(
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	authenticator, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
+	authenticator, authenticatorPostStartHooks, err := NewAuthenticator(options, privilegedLoopbackConfig, informers)
 	if err != nil {
 		return nil, err
 	}
@@ -202,6 +204,10 @@ func BuildMasterConfig(
 		AuthorizationInformers: informers.GetAuthorizationInformers(),
 		QuotaInformers:         informers.GetQuotaInformers(),
 		SecurityInformers:      informers.GetSecurityInformers(),
+	}
+
+	for name, hook := range authenticatorPostStartHooks {
+		config.additionalPostStartHooks[name] = hook
 	}
 
 	// ensure that the limit range informer will be started

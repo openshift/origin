@@ -20,6 +20,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
+	clientconfig "github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
@@ -31,7 +32,6 @@ import (
 	dockerexec "github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
-	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -74,7 +74,7 @@ var (
 	DefaultPorts          = append(BasePorts, DefaultDNSPort)
 	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
 	AllPorts              = append(append(RouterPorts, DefaultPorts...), AlternateDNSPort)
-	SocatPidFile          = filepath.Join(homedir.HomeDir(), cliconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
+	SocatPidFile          = filepath.Join(homedir.HomeDir(), clientconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
 	defaultCertHosts      = []string{
 		"127.0.0.1",
 		"172.30.0.1",
@@ -888,7 +888,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	}
 	nodeCfg.DNSBindAddress = ""
 
-	if h.supportsCgroupDriver() {
+	if h.supportsCgroupDriver(version) {
 		// Set the cgroup driver from the current docker
 		cgroupDriver, err := h.dockerHelper.CgroupDriver()
 		if err != nil {
@@ -956,7 +956,10 @@ func getUsedPorts(data string) map[int]struct{} {
 	return ports
 }
 
-func (h *Helper) supportsCgroupDriver() bool {
+func (h *Helper) supportsCgroupDriver(version semver.Version) bool {
+	if version.GTE(version37) {
+		return true
+	}
 	script := `#!/bin/bash
 
 # Exit with an error

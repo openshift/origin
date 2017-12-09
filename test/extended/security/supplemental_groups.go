@@ -9,7 +9,10 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -33,7 +36,16 @@ var _ = g.Describe("[security] supplemental groups", func() {
 			fsGroup := int64(1111)
 			supGroup := int64(2222)
 
-			_, err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "anyuid", oc.Username()).Output()
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				_, err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "anyuid", oc.Username()).Output()
+				if exitErr, ok := err.(*exutil.ExitError); ok {
+					if strings.HasPrefix(exitErr.StdErr, "Error from server (Conflict):") {
+						// the retry.RetryOnConflict expects "conflict" error, let's provide it with one
+						return errors.NewConflict(schema.GroupResource{}, "", err)
+					}
+				}
+				return err
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// create a pod that is requesting supplemental groups.  We request specific sup groups

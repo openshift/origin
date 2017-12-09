@@ -17,11 +17,11 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	"github.com/openshift/origin/pkg/ipfailover"
-	"github.com/openshift/origin/pkg/ipfailover/keepalived"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
+	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/keepalived"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 

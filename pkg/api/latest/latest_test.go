@@ -7,9 +7,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	_ "k8s.io/kubernetes/pkg/api/install"
 
+	userapiv1 "github.com/openshift/api/user/v1"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	_ "github.com/openshift/origin/pkg/user/apis/user/install"
-	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
 )
 
 func TestRESTRootScope(t *testing.T) {

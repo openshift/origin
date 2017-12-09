@@ -16,8 +16,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	clientcfg "github.com/openshift/origin/pkg/client/config"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -186,7 +187,7 @@ func (o ProjectOptions) RunProject() error {
 				return err
 			}
 
-			defaultContextName := cliconfig.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
+			defaultContextName := clientcfg.GetContextNickname(currentContext.Namespace, currentContext.Cluster, currentContext.AuthInfo)
 
 			// if they specified a project name and got a generated context, then only show the information they care about.  They won't recognize
 			// a context name they didn't choose
@@ -286,7 +287,7 @@ func (o ProjectOptions) RunProject() error {
 
 	// calculate what name we'd generate for the context.  If the context has the same name, don't drop it into the output, because the user won't
 	// recognize the name since they didn't choose it.
-	defaultContextName := cliconfig.GetContextNickname(namespaceInUse, config.Contexts[contextInUse].Cluster, config.Contexts[contextInUse].AuthInfo)
+	defaultContextName := clientcfg.GetContextNickname(namespaceInUse, config.Contexts[contextInUse].Cluster, config.Contexts[contextInUse].AuthInfo)
 
 	switch {
 	// if there is no namespace, then the only information we can provide is the context and server

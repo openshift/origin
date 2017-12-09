@@ -19,7 +19,6 @@ import (
 	listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -224,11 +223,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 	}
 
 	// make a copy to avoid mutating cache state
-	t, err := kapi.Scheme.DeepCopy(sharedService)
-	if err != nil {
-		return err
-	}
-	serviceCopy := t.(*v1.Service)
+	serviceCopy := sharedService.DeepCopy()
 	if serviceCopy.Annotations == nil {
 		serviceCopy.Annotations = map[string]string{}
 	}

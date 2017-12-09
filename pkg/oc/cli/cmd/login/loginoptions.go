@@ -19,13 +19,14 @@ import (
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
+	"github.com/openshift/origin/pkg/client/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/errors"
 	loginutil "github.com/openshift/origin/pkg/oc/cli/cmd/login/util"
-	"github.com/openshift/origin/pkg/oc/cli/config"
+	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	cmderr "github.com/openshift/origin/pkg/oc/errors"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -347,7 +348,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		globalExistedBefore = false
 	}
 
-	newConfig, err := config.CreateConfig(o.Project, o.Config)
+	newConfig, err := cliconfig.CreateConfig(o.Project, o.Config)
 	if err != nil {
 		return false, err
 	}
@@ -360,11 +361,11 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if err := config.RelativizeClientConfigPaths(newConfig, baseDir); err != nil {
+	if err := cliconfig.RelativizeClientConfigPaths(newConfig, baseDir); err != nil {
 		return false, err
 	}
 
-	configToWrite, err := config.MergeConfig(*o.StartingKubeConfig, *newConfig)
+	configToWrite, err := cliconfig.MergeConfig(*o.StartingKubeConfig, *newConfig)
 	if err != nil {
 		return false, err
 	}

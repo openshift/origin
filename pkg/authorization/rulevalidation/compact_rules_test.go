@@ -7,7 +7,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
@@ -106,10 +105,9 @@ func TestCompactRules(t *testing.T) {
 
 	for k, tc := range testcases {
 		rules := tc.Rules
-		originalRules, err := kapi.Scheme.DeepCopy(tc.Rules)
-		if err != nil {
-			t.Errorf("%s: couldn't copy rules: %v", k, err)
-			continue
+		originalRules := make([]authorizationapi.PolicyRule, len(tc.Rules))
+		for i, r := range tc.Rules {
+			r.DeepCopyInto(&originalRules[i])
 		}
 		compacted, err := CompactRules(tc.Rules)
 		if err != nil {

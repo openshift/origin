@@ -55,8 +55,8 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 
 			expectedBuildStages := make(map[string][]string)
 			expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
-			expectedBuildStages["CommitContainer"] = []string{"1s", "1000s"}
-			expectedBuildStages["Assemble"] = []string{"1s", "1000s"}
+			expectedBuildStages["CommitContainer"] = []string{"10ms", "1000s"}
+			expectedBuildStages["Assemble"] = []string{"10ms", "1000s"}
 			expectedBuildStages["PostCommit"] = []string{"", "1000s"}
 			expectedBuildStages["PushImage"] = []string{"1s", "1000s"}
 
@@ -81,7 +81,7 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 			expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
 			expectedBuildStages["CommitContainer"] = []string{"", "1000s"}
 			expectedBuildStages["PullImages"] = []string{"", "1000s"}
-			expectedBuildStages["Build"] = []string{"1s", "1000s"}
+			expectedBuildStages["Build"] = []string{"10ms", "1000s"}
 			expectedBuildStages["PostCommit"] = []string{"", "1000s"}
 			expectedBuildStages["PushImage"] = []string{"1s", "1000s"}
 

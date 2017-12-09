@@ -47,6 +47,7 @@ func TestImagePruning(t *testing.T) {
 		name                       string
 		pruneOverSizeLimit         *bool
 		allImages                  *bool
+		pruneRegistry              *bool
 		keepTagRevisions           *int
 		namespace                  string
 		images                     imageapi.ImageList
@@ -114,6 +115,15 @@ func TestImagePruning(t *testing.T) {
 				registryURL + "|" + testutil.Layer4,
 				registryURL + "|" + testutil.Layer5,
 			},
+		},
+
+		{
+			name:          "pod phase succeeded - prune leave registry alone",
+			pruneRegistry: newBool(false),
+			images:        testutil.ImageList(testutil.Image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			pods:          testutil.PodList(testutil.Pod("foo", "pod1", kapi.PodSucceeded, registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000000"},
+			expectedBlobDeletions:  []string{},
 		},
 
 		{
@@ -895,6 +905,9 @@ func TestImagePruning(t *testing.T) {
 				options.KeepYoungerThan = &youngerThan
 				options.KeepTagRevisions = &tagRevisions
 			}
+			if test.pruneRegistry != nil {
+				options.PruneRegistry = test.pruneRegistry
+			}
 			p, err := NewPruner(options)
 			if err != nil {
 				if len(test.expectedErrorString) > 0 {
@@ -1022,10 +1035,12 @@ func TestRegistryPruning(t *testing.T) {
 		expectedLayerLinkDeletions sets.String
 		expectedBlobDeletions      sets.String
 		expectedManifestDeletions  sets.String
+		pruneRegistry              bool
 		pingErr                    error
 	}{
 		{
-			name: "layers unique to id1 pruned",
+			name:          "layers unique to id1 pruned",
+			pruneRegistry: true,
 			images: testutil.ImageList(
 				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
 				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", "layer6"),
@@ -1059,7 +1074,8 @@ func TestRegistryPruning(t *testing.T) {
 		},
 
 		{
-			name: "no pruning when no images are pruned",
+			name:          "no pruning when no images are pruned",
+			pruneRegistry: true,
 			images: testutil.ImageList(
 				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
 			),
@@ -1076,7 +1092,8 @@ func TestRegistryPruning(t *testing.T) {
 		},
 
 		{
-			name: "blobs pruned when streams have already been deleted",
+			name:          "blobs pruned when streams have already been deleted",
+			pruneRegistry: true,
 			images: testutil.ImageList(
 				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", "layer4"),
 				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", "layer6"),
@@ -1096,7 +1113,8 @@ func TestRegistryPruning(t *testing.T) {
 		},
 
 		{
-			name: "config used as a layer",
+			name:          "config used as a layer",
+			pruneRegistry: true,
 			images: testutil.ImageList(
 				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", testutil.Config1),
 				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", testutil.Config1),
@@ -1129,6 +1147,33 @@ func TestRegistryPruning(t *testing.T) {
 				"https://registry1.io|foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000001",
 			),
 		},
+
+		{
+			name:          "config used as a layer, but leave registry alone",
+			pruneRegistry: false,
+			images: testutil.ImageList(
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", &testutil.Config1, "layer1", "layer2", "layer3", testutil.Config1),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", &testutil.Config2, "layer3", "layer4", "layer5", testutil.Config1),
+				testutil.ImageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003", nil, "layer3", "layer4", "layer6", testutil.Config1),
+			),
+			streams: testutil.StreamList(
+				testutil.Stream("registry1.io", "foo", "bar", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+					),
+				)),
+				testutil.Stream("registry1.io", "foo", "other", testutil.Tags(
+					testutil.Tag("latest",
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/other@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+						testutil.TagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+					),
+				)),
+			),
+			expectedLayerLinkDeletions: sets.NewString(),
+			expectedBlobDeletions:      sets.NewString(),
+			expectedManifestDeletions:  sets.NewString(),
+		},
 	}
 
 	for _, test := range tests {
@@ -1138,6 +1183,7 @@ func TestRegistryPruning(t *testing.T) {
 			options := PrunerOptions{
 				KeepYoungerThan:  &keepYoungerThan,
 				KeepTagRevisions: &keepTagRevisions,
+				PruneRegistry:    &test.pruneRegistry,
 				Images:           &test.images,
 				Streams:          &test.streams,
 				Pods:             &kapi.PodList{},

@@ -15,10 +15,10 @@ import (
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
+	buildclient "github.com/openshift/client-go/build/clientset/versioned"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildclient "github.com/openshift/origin/pkg/build/generated/clientset"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 )

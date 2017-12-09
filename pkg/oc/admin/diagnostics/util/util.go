@@ -6,8 +6,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/diagnostics/log"
-	"github.com/openshift/origin/pkg/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
 // DetermineRequestedDiagnostics determines which diagnostic the user wants to run

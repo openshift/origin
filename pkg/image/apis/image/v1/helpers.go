@@ -10,13 +10,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	api "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // ResolveImageID returns latest TagEvent for specified imageID and an error if
 // there's more than one image matching the ID or when one does not exist.
-func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
-	var event *TagEvent
+func ResolveImageID(stream *v1.ImageStream, imageID string) (*v1.TagEvent, error) {
+	var event *v1.TagEvent
 	set := sets.NewString()
 	for _, history := range stream.Status.Tags {
 		for i := range history.Items {
@@ -29,7 +30,7 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 	}
 	switch len(set) {
 	case 1:
-		return &TagEvent{
+		return &v1.TagEvent{
 			Created:              metav1.Now(),
 			DockerImageReference: event.DockerImageReference,
 			Image:                event.Image,
@@ -43,9 +44,9 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 
 // LatestImageTagEvent returns the most recent TagEvent and the tag for the specified
 // image.
-func LatestImageTagEvent(stream *ImageStream, imageID string) (string, *TagEvent) {
+func LatestImageTagEvent(stream *v1.ImageStream, imageID string) (string, *v1.TagEvent) {
 	var (
-		latestTagEvent *TagEvent
+		latestTagEvent *v1.TagEvent
 		latestTag      string
 	)
 	for _, events := range stream.Status.Tags {
@@ -67,7 +68,7 @@ func LatestImageTagEvent(stream *ImageStream, imageID string) (string, *TagEvent
 // LatestTaggedImage returns the most recent TagEvent for the specified image
 // repository and tag. Will resolve lookups for the empty tag. Returns nil
 // if tag isn't present in stream.status.tags.
-func LatestTaggedImage(stream *ImageStream, tag string) *TagEvent {
+func LatestTaggedImage(stream *v1.ImageStream, tag string) *v1.TagEvent {
 	if len(tag) == 0 {
 		tag = imageapi.DefaultImageTag
 	}
@@ -88,7 +89,7 @@ func LatestTaggedImage(stream *ImageStream, tag string) *TagEvent {
 
 // ImageWithMetadata mutates the given image. It parses raw DockerImageManifest data stored in the image and
 // fills its DockerImageMetadata and other fields.
-func ImageWithMetadata(image *Image) error {
+func ImageWithMetadata(image *v1.Image) error {
 	// Check if the metadata are already filled in for this image.
 	meta, hasMetadata := image.DockerImageMetadata.Object.(*imageapi.DockerImage)
 	if hasMetadata && meta.Size > 0 {

@@ -14,7 +14,7 @@ var (
 		"openshift start kubernetes", // TODO enable when we upstream all these conventions
 		"openshift cli create quota", // TODO has examples starting with '//', enable when we upstream all these conventions
 		"openshift cli adm",          // already checked in 'openshift admin'
-		"openshift ex",               // we will only care about experimental when they get promoted
+		"openshift cli ex",           // we will only care about experimental when they get promoted
 		"openshift cli types",
 	}
 )

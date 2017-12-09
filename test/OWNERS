@@ -9,11 +9,9 @@ reviewers:
   - soltysh
   - enj
   - adelton
-  - legionus
   - mrogers950
-  - php-coder
   - simo5
-  - tiran
+  - tnozicka
 approvers:
   - smarterclayton
   - deads2k
@@ -21,3 +19,4 @@ approvers:
   - bparees
   - stevekuznetsov
   - enj
+  - tnozicka

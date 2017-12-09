@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	knewer "k8s.io/kubernetes/pkg/api"
 
+	v1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
 	newer "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -65,7 +66,7 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded := &BinaryBuildRequestOptions{}
+	decoded := &v1.BinaryBuildRequestOptions{}
 	if err := scheme.Convert(&params, decoded, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -75,123 +76,123 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 }
 
 func TestV1APIBuildConfigConversion(t *testing.T) {
-	buildConfigs := []*BuildConfig{
+	buildConfigs := []*v1.BuildConfig{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-			Spec: BuildConfigSpec{
-				CommonSpec: CommonSpec{
-					Source: BuildSource{
-						Type: BuildSourceGit,
-						Git: &GitBuildSource{
+			Spec: v1.BuildConfigSpec{
+				CommonSpec: v1.CommonSpec{
+					Source: v1.BuildSource{
+						Type: v1.BuildSourceGit,
+						Git: &v1.GitBuildSource{
 							URI: "http://github.com/my/repository",
 						},
 						ContextDir: "context",
 					},
-					Strategy: BuildStrategy{
-						Type: DockerBuildStrategyType,
-						DockerStrategy: &DockerBuildStrategy{
+					Strategy: v1.BuildStrategy{
+						Type: v1.DockerBuildStrategyType,
+						DockerStrategy: &v1.DockerBuildStrategy{
 							From: &kolder.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
 						},
 					},
-					Output: BuildOutput{
+					Output: v1.BuildOutput{
 						To: &kolder.ObjectReference{
 							Kind: "ImageStream",
 							Name: "outputstream",
 						},
 					},
 				},
-				Triggers: []BuildTriggerPolicy{
+				Triggers: []v1.BuildTriggerPolicy{
 					{
-						Type: ImageChangeBuildTriggerTypeDeprecated,
+						Type: v1.ImageChangeBuildTriggerTypeDeprecated,
 					},
 					{
-						Type: GitHubWebHookBuildTriggerTypeDeprecated,
+						Type: v1.GitHubWebHookBuildTriggerTypeDeprecated,
 					},
 					{
-						Type: GenericWebHookBuildTriggerTypeDeprecated,
+						Type: v1.GenericWebHookBuildTriggerTypeDeprecated,
 					},
 				},
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-			Spec: BuildConfigSpec{
-				CommonSpec: CommonSpec{
-					Source: BuildSource{
-						Type: BuildSourceGit,
-						Git: &GitBuildSource{
+			Spec: v1.BuildConfigSpec{
+				CommonSpec: v1.CommonSpec{
+					Source: v1.BuildSource{
+						Type: v1.BuildSourceGit,
+						Git: &v1.GitBuildSource{
 							URI: "http://github.com/my/repository",
 						},
 						ContextDir: "context",
 					},
-					Strategy: BuildStrategy{
-						Type: SourceBuildStrategyType,
-						SourceStrategy: &SourceBuildStrategy{
+					Strategy: v1.BuildStrategy{
+						Type: v1.SourceBuildStrategyType,
+						SourceStrategy: &v1.SourceBuildStrategy{
 							From: kolder.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
 						},
 					},
-					Output: BuildOutput{
+					Output: v1.BuildOutput{
 						To: &kolder.ObjectReference{
 							Kind: "ImageStream",
 							Name: "outputstream",
 						},
 					},
 				},
-				Triggers: []BuildTriggerPolicy{
+				Triggers: []v1.BuildTriggerPolicy{
 					{
-						Type: ImageChangeBuildTriggerTypeDeprecated,
+						Type: v1.ImageChangeBuildTriggerTypeDeprecated,
 					},
 					{
-						Type: GitHubWebHookBuildTriggerTypeDeprecated,
+						Type: v1.GitHubWebHookBuildTriggerTypeDeprecated,
 					},
 					{
-						Type: GenericWebHookBuildTriggerTypeDeprecated,
+						Type: v1.GenericWebHookBuildTriggerTypeDeprecated,
 					},
 				},
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-			Spec: BuildConfigSpec{
-				CommonSpec: CommonSpec{
-					Source: BuildSource{
-						Type: BuildSourceGit,
-						Git: &GitBuildSource{
+			Spec: v1.BuildConfigSpec{
+				CommonSpec: v1.CommonSpec{
+					Source: v1.BuildSource{
+						Type: v1.BuildSourceGit,
+						Git: &v1.GitBuildSource{
 							URI: "http://github.com/my/repository",
 						},
 						ContextDir: "context",
 					},
-					Strategy: BuildStrategy{
-						Type: CustomBuildStrategyType,
-						CustomStrategy: &CustomBuildStrategy{
+					Strategy: v1.BuildStrategy{
+						Type: v1.CustomBuildStrategyType,
+						CustomStrategy: &v1.CustomBuildStrategy{
 							From: kolder.ObjectReference{
 								Kind: "ImageStream",
 								Name: "fromstream",
 							},
 						},
 					},
-					Output: BuildOutput{
+					Output: v1.BuildOutput{
 						To: &kolder.ObjectReference{
 							Kind: "ImageStream",
 							Name: "outputstream",
 						},
 					},
 				},
-				Triggers: []BuildTriggerPolicy{
+				Triggers: []v1.BuildTriggerPolicy{
 					{
-						Type: ImageChangeBuildTriggerTypeDeprecated,
+						Type: v1.ImageChangeBuildTriggerTypeDeprecated,
 					},
 					{
-						Type: GitHubWebHookBuildTriggerTypeDeprecated,
+						Type: v1.GitHubWebHookBuildTriggerTypeDeprecated,
 					},
 					{
-						Type: GenericWebHookBuildTriggerTypeDeprecated,
+						Type: v1.GenericWebHookBuildTriggerTypeDeprecated,
 					},
 				},
 			},
@@ -204,15 +205,15 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 
 		Convert(bc, &internalbuild, nil)
 		switch bc.Spec.Strategy.Type {
-		case SourceBuildStrategyType:
+		case v1.SourceBuildStrategyType:
 			if internalbuild.Spec.Strategy.SourceStrategy.From.Kind != "ImageStreamTag" {
 				t.Errorf("[%d] Expected From Kind %s, got %s", c, "ImageStreamTag", internalbuild.Spec.Strategy.SourceStrategy.From.Kind)
 			}
-		case DockerBuildStrategyType:
+		case v1.DockerBuildStrategyType:
 			if internalbuild.Spec.Strategy.DockerStrategy.From.Kind != "ImageStreamTag" {
 				t.Errorf("[%d]Expected From Kind %s, got %s", c, "ImageStreamTag", internalbuild.Spec.Strategy.DockerStrategy.From.Kind)
 			}
-		case CustomBuildStrategyType:
+		case v1.CustomBuildStrategyType:
 			if internalbuild.Spec.Strategy.CustomStrategy.From.Kind != "ImageStreamTag" {
 				t.Errorf("[%d]Expected From Kind %s, got %s", c, "ImageStreamTag", internalbuild.Spec.Strategy.CustomStrategy.From.Kind)
 			}
@@ -299,23 +300,23 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 
 	for c, bc := range buildConfigs {
 
-		var internalbuild BuildConfig
+		var internalbuild v1.BuildConfig
 
 		Convert(bc, &internalbuild, nil)
-		if internalbuild.Spec.Source.Type != BuildSourceNone {
+		if internalbuild.Spec.Source.Type != v1.BuildSourceNone {
 			t.Errorf("Unexpected source type at index %d: %s", c, internalbuild.Spec.Source.Type)
 		}
 	}
 }
 
 func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
-	buildConfig := BuildConfig{
+	buildConfig := v1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-		Spec: BuildConfigSpec{
-			CommonSpec: CommonSpec{
-				Strategy: BuildStrategy{
-					Type: DockerBuildStrategyType,
-					DockerStrategy: &DockerBuildStrategy{
+		Spec: v1.BuildConfigSpec{
+			CommonSpec: v1.CommonSpec{
+				Strategy: v1.BuildStrategy{
+					Type: v1.DockerBuildStrategyType,
+					DockerStrategy: &v1.DockerBuildStrategy{
 						From: &kolder.ObjectReference{
 							Kind: "DockerImage",
 							Name: "fromimage",
@@ -323,14 +324,14 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 					},
 				},
 			},
-			Triggers: []BuildTriggerPolicy{
+			Triggers: []v1.BuildTriggerPolicy{
 				{
-					Type:        ImageChangeBuildTriggerType,
-					ImageChange: &ImageChangeTrigger{},
+					Type:        v1.ImageChangeBuildTriggerType,
+					ImageChange: &v1.ImageChangeTrigger{},
 				},
 				{
-					Type: ImageChangeBuildTriggerType,
-					ImageChange: &ImageChangeTrigger{
+					Type: v1.ImageChangeBuildTriggerType,
+					ImageChange: &v1.ImageChangeTrigger{
 						From: &kolder.ObjectReference{
 							Kind: "ImageStreamTag",
 							Name: "imagestream",
@@ -354,18 +355,18 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 }
 
 func TestImageChangeTriggerNilImageChangePointer(t *testing.T) {
-	buildConfig := BuildConfig{
+	buildConfig := v1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
-		Spec: BuildConfigSpec{
-			CommonSpec: CommonSpec{
-				Strategy: BuildStrategy{
-					Type:           SourceBuildStrategyType,
-					SourceStrategy: &SourceBuildStrategy{},
+		Spec: v1.BuildConfigSpec{
+			CommonSpec: v1.CommonSpec{
+				Strategy: v1.BuildStrategy{
+					Type:           v1.SourceBuildStrategyType,
+					SourceStrategy: &v1.SourceBuildStrategy{},
 				},
 			},
-			Triggers: []BuildTriggerPolicy{
+			Triggers: []v1.BuildTriggerPolicy{
 				{
-					Type:        ImageChangeBuildTriggerType,
+					Type:        v1.ImageChangeBuildTriggerType,
 					ImageChange: nil,
 				},
 			},

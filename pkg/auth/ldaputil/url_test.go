@@ -62,7 +62,7 @@ func TestParseURL(t *testing.T) {
 		},
 		"invalid filter": {
 			URL:           "ldap://myhost:123/o=myorg?cn?one?(mygroup*)?ext=1",
-			ExpectedError: `invalid filter: LDAP Result Code 201 "": ldap: error parsing filter`,
+			ExpectedError: `invalid filter: LDAP Result Code 201 "Filter Compile Error": ldap: error parsing filter`,
 		},
 		"invalid segments": {
 			URL:           "ldap://myhost:123/o=myorg?cn?one?(o=mygroup*)?ext=1?extrasegment",

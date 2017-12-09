@@ -110,8 +110,9 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		}
 
 		// Delete all deployer and hook pods
-		options = metav1.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name).String()}
-		podList, err := reaper.kc.Core().Pods(rc.Namespace).List(options)
+		podList, err := reaper.kc.Core().Pods(rc.Namespace).List(metav1.ListOptions{
+			LabelSelector: util.DeployerPodSelector(rc.Name).String(),
+		})
 		if err != nil {
 			return err
 		}

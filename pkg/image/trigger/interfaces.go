@@ -1,6 +1,7 @@
 package trigger
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
@@ -27,5 +28,5 @@ type TagRetriever interface {
 }
 
 type ImageReactor interface {
-	ImageChanged(obj interface{}, tagRetriever TagRetriever) error
+	ImageChanged(obj runtime.Object, tagRetriever TagRetriever) error
 }

@@ -15,11 +15,13 @@ import (
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/cert"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	openshiftauthenticator "github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
@@ -36,18 +38,18 @@ func NewAuthenticator(
 	options configapi.MasterConfig,
 	privilegedLoopbackConfig *rest.Config,
 	informers InformerAccess,
-) (authenticator.Request, error) {
+) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	kubeExternalClient, err := kclientsetexternal.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	oauthClient, err := oauthclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	userClient, err := userclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
@@ -55,7 +57,7 @@ func NewAuthenticator(
 	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(kubeExternalClient)
 	apiClientCAs, err := configapi.GetAPIClientCertCAPool(options)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return newAuthenticator(
@@ -68,7 +70,8 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
 
@@ -78,7 +81,7 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 		for _, keyFile := range config.ServiceAccountConfig.PublicKeyFiles {
 			readPublicKeys, err := cert.PublicKeysFromFile(keyFile)
 			if err != nil {
-				return nil, fmt.Errorf("Error reading service account key file %s: %v", keyFile, err)
+				return nil, nil, fmt.Errorf("Error reading service account key file %s: %v", keyFile, err)
 			}
 			publicKeys = append(publicKeys, readPublicKeys...)
 		}
@@ -88,7 +91,8 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper)
+		validators := []openshiftauthenticator.OAuthTokenValidator{authnregistry.NewExpirationValidator(), authnregistry.NewUIDValidator()}
+		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
@@ -132,7 +136,7 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 			config.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("Error building front proxy auth config: %v", err)
+			return nil, nil, fmt.Errorf("Error building front proxy auth config: %v", err)
 		}
 		topLevelAuthenticators = append(topLevelAuthenticators, union.New(requestHeaderAuthenticator, resultingAuthenticator))
 
@@ -142,5 +146,5 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 	}
 	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
 
-	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
+	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), postStartHooks, nil
 }

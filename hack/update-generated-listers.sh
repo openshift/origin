@@ -27,7 +27,7 @@ function generate_listers_for() {
   grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${package}/../..)
   lister-gen --logtostderr \
              --go-header-file=hack/boilerplate.txt \
-             --input-dirs="${package},${package}/v1" \
+             --input-dirs="${package}" \
              --output-package="${grouppkg}/generated/listers" \
              "$@"
 }

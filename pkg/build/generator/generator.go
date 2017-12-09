@@ -18,15 +18,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
 const conflictRetries = 3
@@ -260,8 +259,8 @@ func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.B
 	// Add labels and annotations from the buildrequest.  Existing
 	// label/annotations will take precedence because we don't want system
 	// annotations/labels (eg buildname) to get stomped on.
-	newBuild.Annotations = policy.MergeMaps(request.Annotations, newBuild.Annotations)
-	newBuild.Labels = policy.MergeMaps(request.Labels, newBuild.Labels)
+	newBuild.Annotations = mergeMaps(request.Annotations, newBuild.Annotations)
+	newBuild.Labels = mergeMaps(request.Labels, newBuild.Labels)
 
 	// Copy build trigger information and build arguments to the build object.
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
@@ -458,8 +457,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 	// Need to copy the buildConfig here so that it doesn't share pointers with
 	// the build object which could be (will be) modified later.
 	buildName := getNextBuildName(bc)
-	obj, _ := kapi.Scheme.Copy(bc)
-	bcCopy := obj.(*buildapi.BuildConfig)
+	bcCopy := bc.DeepCopy()
 	serviceAccount := getServiceAccount(bcCopy, g.DefaultServiceAccountName)
 	t := true
 	build := &buildapi.Build{
@@ -791,8 +789,7 @@ func UpdateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage strin
 
 // generateBuildFromBuild creates a new build based on a given Build.
 func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildConfig) *buildapi.Build {
-	obj, _ := kapi.Scheme.Copy(build)
-	buildCopy := obj.(*buildapi.Build)
+	buildCopy := build.DeepCopy()
 
 	newBuild := &buildapi.Build{
 		Spec: buildCopy.Spec,
@@ -920,4 +917,25 @@ func setBuildAnnotationAndLabel(bcCopy *buildapi.BuildConfig, build *buildapi.Bu
 	build.Labels[buildapi.BuildConfigLabelDeprecated] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildConfigLabel] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
+}
+
+// mergeMaps will merge to map[string]string instances, with
+// keys from the second argument overwriting keys from the
+// first argument, in case of duplicates.
+func mergeMaps(a, b map[string]string) map[string]string {
+	if a == nil && b == nil {
+		return nil
+	}
+
+	res := make(map[string]string)
+
+	for k, v := range a {
+		res[k] = v
+	}
+
+	for k, v := range b {
+		res[k] = v
+	}
+
+	return res
 }

@@ -25,8 +25,8 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"

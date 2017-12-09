@@ -25,8 +25,8 @@ import (
 	appsinternalclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // DeployOptions holds all the options for the `deploy` command

@@ -13,6 +13,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
 	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
+	_ "k8s.io/kubernetes/pkg/apis/batch/install"
+	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
 func main() {

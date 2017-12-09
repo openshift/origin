@@ -9,9 +9,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	userapi "github.com/openshift/origin/pkg/user/apis/user/v1"
-	userclient "github.com/openshift/origin/pkg/user/generated/clientset/typed/user/v1"
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 // SubjectChecker determines whether rolebindings on a subject (user, group, or

@@ -5,10 +5,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
+	projectapiv1 "github.com/openshift/api/project/v1"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 

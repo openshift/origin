@@ -15,11 +15,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 // CmdStatusRecommendedName is the recommended command name

@@ -10,9 +10,10 @@ import (
 
 	"github.com/golang/glog"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+
+	authapi "github.com/openshift/origin/pkg/auth/api"
 )
 
 // Authenticator uses basic auth to make a request to a JSON-returning URL.

@@ -5,7 +5,6 @@ import (
 )
 
 func SetStandardHeaders(w http.ResponseWriter) {
-
 	// We cannot set HSTS by default, it has too many drawbacks in environments
 	// that use self-signed certs
 	standardHeaders := map[string]string{

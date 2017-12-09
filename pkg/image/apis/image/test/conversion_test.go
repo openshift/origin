@@ -30,7 +30,7 @@ func TestImageStreamStatusConversionPreservesTags(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	if a, e := &outVersioned, expOutVersioned; !reflect.DeepEqual(a, e) {
-		t.Fatalf("got unexpected output: %s", diff.ObjectDiff(&a, e))
+		t.Fatalf("got unexpected output: %s", diff.ObjectDiff(a, e))
 	}
 
 	// convert back from v1 to internal scheme
@@ -40,6 +40,6 @@ func TestImageStreamStatusConversionPreservesTags(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	if a, e := &out, in; !reflect.DeepEqual(a, e) {
-		t.Fatalf("got unexpected output: %s", diff.ObjectDiff(&a, e))
+		t.Fatalf("got unexpected output: %s", diff.ObjectDiff(a, e))
 	}
 }
