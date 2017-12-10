@@ -57,6 +57,7 @@ if [[ -n "${dirty}" && "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
 	rpmbuild -bb "${OS_RPM_SPECFILE}" \
 		--define "_sourcedir ${rpm_tmp_dir}/SOURCES" \
 		--define "_builddir ${rpm_tmp_dir}/BUILD" \
+		--define "_rpmdir ${rpm_tmp_dir}/RPMS" \
 		--define "skip_prep 1" \
 		--define "skip_dist 1" \
 		--define "make_redistributable ${make_redistributable}" \
