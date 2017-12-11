@@ -303,6 +303,10 @@ func (node *OsdnNode) Start() error {
 		glog.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err)
 	}
 
+	if err := node.AnnotateMasterTrafficNodeIP(); err != nil {
+		return err
+	}
+
 	node.localSubnetCIDR, err = node.getLocalSubnet()
 	if err != nil {
 		return err
