@@ -27,9 +27,6 @@ func ValidateInClusterNodeConfig(config *api.NodeConfig, fldPath *field.Path) Va
 	if len(config.NodeName) == 0 {
 		validationResults.AddErrors(field.Required(fldPath.Child("nodeName"), ""))
 	}
-	if len(config.NodeIP) > 0 {
-		validationResults.AddErrors(ValidateSpecifiedIP(config.NodeIP, fldPath.Child("nodeIP"))...)
-	}
 
 	servingInfoPath := fldPath.Child("servingInfo")
 	hasCertDir := len(config.KubeletArguments["cert-dir"]) > 0

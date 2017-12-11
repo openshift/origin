@@ -38,10 +38,17 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kubeClientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: options.NodeName})
 
+	nodeIP := ""
+	if options.KubeletArguments != nil {
+		if ips, ok := options.KubeletArguments["node-ip"]; ok {
+			nodeIP = ips[0]
+		}
+	}
+
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
 		Hostname:           options.NodeName,
-		SelfIP:             options.NodeIP,
+		SelfIP:             nodeIP,
 		RuntimeEndpoint:    runtimeEndpoint,
 		MTU:                options.NetworkConfig.MTU,
 		NetworkClient:      networkClient,

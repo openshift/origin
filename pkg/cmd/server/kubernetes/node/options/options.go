@@ -55,7 +55,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 	server.KubeConfig.Default(options.MasterKubeConfig)
 	server.PodManifestPath = path
 	server.RootDirectory = options.VolumeDirectory
-	server.NodeIP = options.NodeIP
 	server.HostnameOverride = options.NodeName
 	server.AllowPrivileged = true
 	server.RegisterNode = true
