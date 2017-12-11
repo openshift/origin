@@ -117,7 +117,7 @@ See the [security documentation](https://docs.openshift.org/latest/admin_guide/m
 
 
 Support for Kubernetes Alpha Features
------------------------------------------
+-------------------------------------
 
 Some features from upstream Kubernetes are not yet enabled in OpenShift, for reasons including supportability, security, or limitations in the upstream feature.
 
