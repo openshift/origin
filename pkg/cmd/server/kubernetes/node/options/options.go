@@ -53,7 +53,6 @@ func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.Nod
 	setIfUnset(args, "kubeconfig", options.MasterKubeConfig)
 	setIfUnset(args, "pod-manifest-path", path)
 	setIfUnset(args, "root-dir", options.VolumeDirectory)
-	setIfUnset(args, "node-ip", options.NodeIP)
 	setIfUnset(args, "hostname-override", options.NodeName)
 	setIfUnset(args, "allow-privileged", "true")
 	setIfUnset(args, "register-node", "true")

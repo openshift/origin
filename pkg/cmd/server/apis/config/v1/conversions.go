@@ -178,6 +178,15 @@ func SetDefaults_NodeConfig(obj *NodeConfig) {
 	}
 	SetDefaults_ClientConnectionOverrides(obj.MasterClientConnectionOverrides)
 
+	if len(obj.DeprecatedNodeIP) != 0 {
+		if obj.KubeletArguments == nil {
+			obj.KubeletArguments = ExtendedArguments{}
+		}
+		if ips, ok := obj.KubeletArguments["node-ip"]; !ok || (len(ips) == 0) {
+			obj.KubeletArguments["node-ip"] = []string{obj.DeprecatedNodeIP}
+		}
+	}
+
 	// Defaults/migrations for NetworkConfig
 	if len(obj.NetworkConfig.NetworkPluginName) == 0 {
 		obj.NetworkConfig.NetworkPluginName = obj.DeprecatedNetworkPluginName

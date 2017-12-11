@@ -256,6 +256,16 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 		},
 		func(obj *configapi.NodeConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
+
+			if len(obj.DeprecatedNodeIP) != 0 {
+				if obj.KubeletArguments == nil {
+					obj.KubeletArguments = configapi.ExtendedArguments{}
+				}
+				if ips, ok := obj.KubeletArguments["node-ip"]; !ok || (len(ips) == 0) {
+					obj.KubeletArguments["node-ip"] = []string{obj.DeprecatedNodeIP}
+				}
+			}
+
 			// Defaults/migrations for NetworkConfig
 			if len(obj.NetworkConfig.NetworkPluginName) == 0 {
 				obj.NetworkConfig.NetworkPluginName = "plugin-name"
