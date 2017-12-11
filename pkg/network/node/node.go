@@ -70,6 +70,7 @@ type OsdnNodeConfig struct {
 	PluginName      string
 	Hostname        string
 	SelfIP          string
+	MasterTrafficIP string
 	RuntimeEndpoint string
 	MTU             uint32
 	EnableHostports bool
@@ -94,6 +95,7 @@ type OsdnNode struct {
 	podManager         *podManager
 	localSubnetCIDR    string
 	localIP            string
+	masterTrafficIP    string
 	hostName           string
 	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
@@ -167,6 +169,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		oc:                 oc,
 		podManager:         newPodManager(c.KClient, policy, c.MTU, oc, c.EnableHostports),
 		localIP:            c.SelfIP,
+		masterTrafficIP:    c.MasterTrafficIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
 		iptablesSyncPeriod: c.IPTablesSyncPeriod,

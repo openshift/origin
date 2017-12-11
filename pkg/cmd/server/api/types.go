@@ -292,6 +292,12 @@ type NodeNetworkConfig struct {
 	// PodTrafficNodeIP is the node IP to use for pod traffic routing
 	// If PodTrafficNodeIP is not set and PodTrafficNodeInterface is set, then first non-loopback IPv4 addr from PodTrafficNodeInterface is used.
 	PodTrafficNodeIP string
+
+	// MasterTrafficNodeInterface is the network interface to be used for master traffic
+	MasterTrafficNodeInterface string
+
+	// If MasterTrafficNodeIP is not set and MasterTrafficNodeInterface is set, then first non-loopback IPv4 addr from MasterTrafficNodeInterface is used.
+	MasterTrafficNodeIP string
 }
 
 // NodeAuthConfig holds authn/authz configuration options

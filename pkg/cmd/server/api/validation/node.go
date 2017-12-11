@@ -113,6 +113,10 @@ func ValidateNetworkConfig(config api.NodeNetworkConfig, fldPath *field.Path) fi
 		allErrs = append(allErrs, ValidatePodTrafficParams(config.PodTrafficNodeInterface, config.PodTrafficNodeIP, fldPath)...)
 	}
 
+	if len(config.MasterTrafficNodeInterface) > 0 || len(config.MasterTrafficNodeIP) > 0 {
+		allErrs = append(allErrs, ValidateMasterTrafficParams(config.MasterTrafficNodeInterface, config.MasterTrafficNodeIP, fldPath)...)
+	}
+
 	return allErrs
 }
 
@@ -147,6 +151,10 @@ func ValidateVolumeConfig(config api.NodeVolumeConfig, fldPath *field.Path) fiel
 
 func ValidatePodTrafficParams(nodeIface, nodeIP string, fldPath *field.Path) field.ErrorList {
 	return validateNetworkInterfaceAndIP(nodeIface, nodeIP, fldPath.Child("podTrafficNodeInterface"), fldPath.Child("podTrafficNodeIP"))
+}
+
+func ValidateMasterTrafficParams(nodeIface, nodeIP string, fldPath *field.Path) field.ErrorList {
+	return validateNetworkInterfaceAndIP(nodeIface, nodeIP, fldPath.Child("masterTrafficNodeInterface"), fldPath.Child("masterTrafficNodeIP"))
 }
 
 func validateNetworkInterfaceAndIP(iface, ip string, ifaceFieldPath, ipFieldPath *field.Path) field.ErrorList {

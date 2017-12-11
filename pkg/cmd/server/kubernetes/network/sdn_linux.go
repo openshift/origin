@@ -39,7 +39,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kubeClientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: options.NodeName})
 
-	nodeIP, err := GetPodTrafficNodeIP(options)
+	podTrafficNodeIP, masterTrafficNodeIP, err := GetNodeIPs(options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -47,7 +47,8 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
 		Hostname:           options.NodeName,
-		SelfIP:             nodeIP,
+		SelfIP:             podTrafficNodeIP,
+		MasterTrafficIP:    masterTrafficNodeIP,
 		RuntimeEndpoint:    runtimeEndpoint,
 		MTU:                options.NetworkConfig.MTU,
 		NetworkClient:      networkClient,
@@ -70,10 +71,29 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	return node, proxy, nil
 }
 
-func GetPodTrafficNodeIP(options configapi.NodeConfig) (string, error) {
-	nodeIP := options.NetworkConfig.PodTrafficNodeIP
-	nodeIface := options.NetworkConfig.PodTrafficNodeInterface
+func GetNodeIPs(options configapi.NodeConfig) (string, string, error) {
+	podTrafficNodeIP, err := getIPFromIface(options.NetworkConfig.PodTrafficNodeIP, options.NetworkConfig.PodTrafficNodeInterface)
+	if err != nil {
+		return "", "", err
+	}
 
+	if len(podTrafficNodeIP) == 0 {
+		if options.KubeletArguments != nil {
+			if ips, ok := options.KubeletArguments["node-ip"]; ok {
+				podTrafficNodeIP = ips[0]
+			}
+		}
+	}
+
+	masterTrafficNodeIP, err := getIPFromIface(options.NetworkConfig.MasterTrafficNodeIP, options.NetworkConfig.MasterTrafficNodeInterface)
+	if err != nil {
+		return "", "", err
+	}
+
+	return podTrafficNodeIP, masterTrafficNodeIP, nil
+}
+
+func getIPFromIface(nodeIP, nodeIface string) (string, error) {
 	if len(nodeIP) == 0 {
 		if len(nodeIface) > 0 {
 			ips, err := netutils.GetIPAddrsFromNetworkInterface(nodeIface)
@@ -81,10 +101,6 @@ func GetPodTrafficNodeIP(options configapi.NodeConfig) (string, error) {
 				return "", err
 			}
 			nodeIP = ips[0].String()
-		} else if options.KubeletArguments != nil {
-			if ips, ok := options.KubeletArguments["node-ip"]; ok {
-				nodeIP = ips[0]
-			}
 		}
 	}
 
