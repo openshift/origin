@@ -40,7 +40,6 @@ import (
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
@@ -493,7 +492,7 @@ func (bc *BuildController) createPodSpec(build *buildapi.Build) (*v1.Pod, error)
 func (bc *BuildController) resolveImageSecretAsReference(build *buildapi.Build, imagename string) (*kapi.LocalObjectReference, error) {
 	serviceAccount := build.Spec.ServiceAccount
 	if len(serviceAccount) == 0 {
-		serviceAccount = bootstrappolicy.BuilderServiceAccountName
+		serviceAccount = buildutil.BuilderServiceAccountName
 	}
 	builderSecrets, err := buildgenerator.FetchServiceAccountSecrets(bc.kubeClient.Core(), bc.kubeClient.Core(), build.Namespace, serviceAccount)
 	if err != nil {
