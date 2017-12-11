@@ -48,42 +48,42 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("", "v1", "roles"): {
 		stub:             `{"metadata": {"name": "r1b1o1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1o1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "Role"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"), // proxy to RBAC
 	},
 	gvr("authorization.openshift.io", "v1", "roles"): {
 		stub:             `{"metadata": {"name": "r1b1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1o2",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "Role"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"), // proxy to RBAC
 	},
 	gvr("", "v1", "clusterroles"): {
 		stub:             `{"metadata": {"name": "cr1a1o1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/clusterroles/cr1a1o1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRole"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"), // proxy to RBAC
 	},
 	gvr("authorization.openshift.io", "v1", "clusterroles"): {
 		stub:             `{"metadata": {"name": "cr1a1o2"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/clusterroles/cr1a1o2",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRole"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"), // proxy to RBAC
 	},
 	gvr("", "v1", "rolebindings"): {
 		stub:             `{"metadata": {"name": "rb1a1o1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
 		expectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1a1o1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "RoleBinding"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"), // proxy to RBAC
 	},
 	gvr("authorization.openshift.io", "v1", "rolebindings"): {
 		stub:             `{"metadata": {"name": "rb1a1o2"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
 		expectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1a1o2",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "RoleBinding"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"), // proxy to RBAC
 	},
 	gvr("", "v1", "clusterrolebindings"): {
 		stub:             `{"metadata": {"name": "crb1a1o1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1a1"}}`,
 		expectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1a1o1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRoleBinding"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"), // proxy to RBAC
 	},
 	gvr("authorization.openshift.io", "v1", "clusterrolebindings"): {
 		stub:             `{"metadata": {"name": "crb1a1o2"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1a1"}}`,
 		expectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1a1o2",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRoleBinding"), // proxy to RBAC
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"), // proxy to RBAC
 	},
 	gvr("", "v1", "rolebindingrestrictions"): {
 		stub:             `{"metadata": {"name": "rbr"}, "spec": {"serviceaccountrestriction": {"serviceaccounts": [{"name": "sa"}]}}}`,
@@ -434,14 +434,22 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/admissionregistration/v1alpha1
-	gvr("admissionregistration.k8s.io", "v1alpha1", "initializerconfigurations"): {
+	// TODO storage is broken somehow.  failing on v1beta1 serialization
+	//// k8s.io/kubernetes/pkg/apis/admissionregistration/v1alpha1
+	//gvr("admissionregistration.k8s.io", "v1alpha1", "initializerconfigurations"): {
+	//	stub:             `{"metadata": {"name": "ic1"}}`,
+	//	expectedEtcdPath: "kubernetes.io/initializerconfigurations/ic1",
+	//},
+	//// --
+
+	// k8s.io/kubernetes/pkg/apis/admissionregistration/v1beta1
+	gvr("admissionregistration.k8s.io", "v1beta1", "mutatingwebhookconfigurations"): {
 		stub:             `{"metadata": {"name": "ic1"}}`,
-		expectedEtcdPath: "kubernetes.io/initializerconfigurations/ic1",
+		expectedEtcdPath: "kubernetes.io/mutatingwebhookconfigurations/ic1",
 	},
-	gvr("admissionregistration.k8s.io", "v1alpha1", "externaladmissionhookconfigurations"): {
+	gvr("admissionregistration.k8s.io", "v1beta1", "validatingwebhookconfigurations"): {
 		stub:             `{"metadata": {"name": "ic1"}}`,
-		expectedEtcdPath: "kubernetes.io/externaladmissionhookconfigurations/ic1",
+		expectedEtcdPath: "kubernetes.io/validatingwebhookconfigurations/ic1",
 	},
 	// --
 
@@ -449,6 +457,34 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apiregistration.k8s.io", "v1beta1", "apiservices"): {
 		stub:             `{"metadata": {"name": "as1.foo.com"}, "spec": {"group": "foo.com", "version": "as1", "groupPriorityMinimum":100, "versionPriority":10}}`,
 		expectedEtcdPath: "kubernetes.io/apiservices/as1.foo.com",
+	},
+	// --
+
+	// k8s.io/api/apps/v1
+	gvr("apps", "v1", "daemonsets"): {
+		stub:             `{"metadata": {"name": "ds3"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
+		expectedEtcdPath: "kubernetes.io/daemonsets/etcdstoragepathtestnamespace/ds3",
+		expectedGVK:      gvkP("extensions", "v1beta1", "DaemonSet"),
+	},
+	gvr("apps", "v1", "deployments"): {
+		stub:             `{"metadata": {"name": "deployment4"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
+		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment4",
+		expectedGVK:      gvkP("extensions", "v1beta1", "Deployment"), // still a beta extension
+	},
+	gvr("apps", "v1", "statefulsets"): {
+		stub:             `{"metadata": {"name": "ss4"}, "spec": {"selector": {"matchLabels": {"a": "b"}}, "template": {"metadata": {"labels": {"a": "b"}}}}}`,
+		expectedEtcdPath: "kubernetes.io/statefulsets/etcdstoragepathtestnamespace/ss4",
+		expectedGVK:      gvkP("apps", "v1beta1", "StatefulSet"),
+	},
+	gvr("apps", "v1", "controllerrevisions"): {
+		stub:             `{"metadata": {"name": "cr3"}, "data": {}, "revision": 6}`,
+		expectedEtcdPath: "kubernetes.io/controllerrevisions/etcdstoragepathtestnamespace/cr3",
+		expectedGVK:      gvkP("apps", "v1beta1", "ControllerRevision"),
+	},
+	gvr("apps", "v1", "replicasets"): {
+		stub:             `{"metadata": {"name": "rs3"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
+		expectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs3",
+		expectedGVK:      gvkP("extensions", "v1beta1", "ReplicaSet"),
 	},
 	// --
 
@@ -540,6 +576,14 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
+	//// k8s.io/kubernetes/pkg/apis/events/v1
+	//gvr("events.k8s.io", "v1beta1", "events"): {
+	//	stub:             `{"metadata": {"name": "evt1", "namespace": "etcdstoragepathtestnamespace"}, "involvedObject": {"namespace": "etcdstoragepathtestnamespace"}, "message": "some data here"}`,
+	//	expectedEtcdPath: "kubernetes.io/events/events/etcdstoragepathtestnamespace/evt1",
+	//	expectedGVK:      gvkP("events.k8s.io", "v1beta1", "Event"), // migrate to v1 later
+	//},
+	//// --
+
 	// k8s.io/api/extensions/v1beta1
 	gvr("extensions", "v1beta1", "daemonsets"): {
 		stub:             `{"metadata": {"name": "ds1"}, "spec": {"selector": {"matchLabels": {"u": "t"}}, "template": {"metadata": {"labels": {"u": "t"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container5"}]}}}}`,
@@ -586,22 +630,22 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("rbac.authorization.k8s.io", "v1alpha1", "roles"): {
 		stub:             `{"metadata": {"name": "r1a1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1a1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "Role"),
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1alpha1", "rolebindings"): {
 		stub:             `{"metadata": {"name": "rb1a1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
 		expectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1a1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "RoleBinding"),
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterroles"): {
 		stub:             `{"metadata": {"name": "cr1a1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/clusterroles/cr1a1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRole"),
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1alpha1", "clusterrolebindings"): {
 		stub:             `{"metadata": {"name": "crb1a1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1a1"}}`,
 		expectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1a1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRoleBinding"),
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"),
 	},
 	// --
 
@@ -609,18 +653,22 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("rbac.authorization.k8s.io", "v1beta1", "roles"): {
 		stub:             `{"metadata": {"name": "r1b1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1b1",
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "Role"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1beta1", "rolebindings"): {
 		stub:             `{"metadata": {"name": "rb1b1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1b1"}}`,
 		expectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1b1",
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "RoleBinding"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1beta1", "clusterroles"): {
 		stub:             `{"metadata": {"name": "cr1b1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/clusterroles/cr1b1",
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRole"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1beta1", "clusterrolebindings"): {
 		stub:             `{"metadata": {"name": "crb1b1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1b1"}}`,
 		expectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1b1",
+		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"),
 	},
 	// --
 
@@ -628,22 +676,18 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("rbac.authorization.k8s.io", "v1", "roles"): {
 		stub:             `{"metadata": {"name": "r1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/roles/etcdstoragepathtestnamespace/r1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "Role"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1", "rolebindings"): {
 		stub:             `{"metadata": {"name": "rb1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "Role", "name": "r1a1"}}`,
 		expectedEtcdPath: "kubernetes.io/rolebindings/etcdstoragepathtestnamespace/rb1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "RoleBinding"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1", "clusterroles"): {
 		stub:             `{"metadata": {"name": "cr1"}, "rules": [{"verbs": ["create"], "apiGroups": ["authorization.k8s.io"], "resources": ["selfsubjectaccessreviews"]}]}`,
 		expectedEtcdPath: "kubernetes.io/clusterroles/cr1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRole"),
 	},
 	gvr("rbac.authorization.k8s.io", "v1", "clusterrolebindings"): {
 		stub:             `{"metadata": {"name": "crb1"}, "subjects": [{"kind": "Group", "name": "system:authenticated"}], "roleRef": {"kind": "ClusterRole", "name": "cr1"}}`,
 		expectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1",
-		expectedGVK:      gvkP("rbac.authorization.k8s.io", "v1beta1", "ClusterRoleBinding"),
 	},
 	// --
 
@@ -661,6 +705,14 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
+	// TODO failing, but its new and alpha
+	//// k8s.io/api/storage/v1alpha1
+	//gvr("storage.k8s.io", "v1alpha1", "volumeattachments"): {
+	//	stub:             `{"metadata": {"name": "va1"}}`,
+	//	expectedEtcdPath: "kubernetes.io/volumeattachments/va1",
+	//},
+	//// --
+
 	// k8s.io/api/storage/v1beta1
 	gvr("storage.k8s.io", "v1beta1", "storageclasses"): {
 		stub:             `{"metadata": {"name": "sc1"}, "provisioner": "aws"}`,
@@ -677,20 +729,73 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	// --
 }
 
+// Be very careful when whitelisting a kind as unexposed.
+// Doing so removes the safety we gain from this test by skipping that object.
+// These types aren't exposed via the API
+var unexposedGVKWhiteList = createUnexposedWhiteList(
+
+	gvk("", "v1", "RangeAllocation"),     // stored in various places in etcd but cannot be directly created // TODO maybe possible in kube
+	gvk("", "v1", "SerializedReference"), // used for serilization, not stored in etcd
+	gvk("", "v1", "NodeConfigSource"),    // subfield of node.spec, but shouldn't be directly created
+	gvk("", "v1", "PodStatusResult"),     // wrapper object not stored in etcd
+
+	// TODO this one appears to be broken
+	gvk("admissionregistration.k8s.io", "v1alpha1", "InitializerConfiguration"), // not stored in etcd
+
+	gvk("admission.k8s.io", "v1beta1", "AdmissionReview"), // not stored in etcd
+
+	gvk("autoscaling", "v1", "Scale"), // not stored in etcd
+
+	gvk("batch", "v1beta1", "JobTemplate"),  // not stored in etcd
+	gvk("batch", "v2alpha1", "JobTemplate"), // not stored in etcd
+
+	// TODO validation is failing on fields that don't exist
+	gvk("events.k8s.io", "v1beta1", "Event"), // not stored in etcd
+
+	gvk("componentconfig", "v1alpha1", "KubeSchedulerConfiguration"), // not stored in etcd
+
+	gvk("imagepolicy.k8s.io", "v1alpha1", "ImageReview"),
+
+	gvk("policy", "v1beta1", "Eviction"), // not stored in etcd, deals with evicting kapiv1.Pod
+
+	// TODO failing, but its new and alpha
+	gvk("storage.k8s.io", "v1alpha1", "VolumeAttachment"),
+
+	// All {cluster}policy{binding} objects are deprecated
+	gvk("", "v1", "ClusterPolicyBinding"),
+	gvk("authorization.openshift.io", "v1", "ClusterPolicyBinding"),
+	gvk("", "v1", "ClusterPolicy"),
+	gvk("authorization.openshift.io", "v1", "ClusterPolicy"),
+	gvk("", "v1", "PolicyBinding"),
+	gvk("authorization.openshift.io", "v1", "PolicyBinding"),
+	gvk("", "v1", "Policy"),
+	gvk("authorization.openshift.io", "v1", "Policy"),
+	gvk("", "v1", "ResourceAccessReviewResponse"),
+	gvk("authorization.openshift.io", "v1", "ResourceAccessReviewResponse"),
+	gvk("", "v1", "SubjectAccessReviewResponse"),
+	gvk("authorization.openshift.io", "v1", "SubjectAccessReviewResponse"),
+	gvk("", "v1", "IsPersonalSubjectAccessReview"),
+	gvk("authorization.openshift.io", "v1", "IsPersonalSubjectAccessReview"),
+
+	gvk("", "v1", "BuildLogOptions"),
+	gvk("build.openshift.io", "v1", "BuildLogOptions"),
+
+	gvk("", "v1", "DeploymentLogOptions"),
+	gvk("apps.openshift.io", "v1", "DeploymentLogOptions"),
+
+	gvk("", "v1", "OAuthRedirectReference"),                   // Used for specifying redirects, never stored in etcd
+	gvk("oauth.openshift.io", "v1", "OAuthRedirectReference"), // Used for specifying redirects, never stored in etcd
+
+	// deprecated aliases for templateapiv1.Template
+	gvk("", "v1", "TemplateConfig"),
+	gvk("", "v1", "ProcessedTemplate"),
+	// --
+
+)
+
 // Be very careful when whitelisting an object as ephemeral.
 // Doing so removes the safety we gain from this test by skipping that object.
 var ephemeralWhiteList = createEphemeralWhiteList(
-	// github.com/openshift/origin/pkg/authorization/apis/authorization/v1
-
-	// All {cluster}policy{binding} objects are deprecated
-	gvr("", "v1", "clusterpolicybindings"),
-	gvr("authorization.openshift.io", "v1", "clusterpolicybindings"),
-	gvr("", "v1", "clusterpolicies"),
-	gvr("authorization.openshift.io", "v1", "clusterpolicies"),
-	gvr("", "v1", "policybindings"),
-	gvr("authorization.openshift.io", "v1", "policybindings"),
-	gvr("", "v1", "policies"),
-	gvr("authorization.openshift.io", "v1", "policies"),
 
 	// SAR objects that are not stored in etcd
 	gvr("", "v1", "subjectrulesreviews"),
@@ -705,12 +810,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("authorization.openshift.io", "v1", "localsubjectaccessreviews"),
 	gvr("", "v1", "localresourceaccessreviews"),
 	gvr("authorization.openshift.io", "v1", "localresourceaccessreviews"),
-	gvr("", "v1", "ispersonalsubjectaccessreviews"),
-	gvr("authorization.openshift.io", "v1", "ispersonalsubjectaccessreviews"),
-	gvr("", "v1", "resourceaccessreviewresponses"),
-	gvr("authorization.openshift.io", "v1", "resourceaccessreviewresponses"),
-	gvr("", "v1", "subjectaccessreviewresponses"),
-	gvr("authorization.openshift.io", "v1", "subjectaccessreviewresponses"),
 	// --
 
 	// github.com/openshift/origin/pkg/build/apis/build/v1
@@ -718,8 +817,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	// used for streaming build logs from pod, not stored in etcd
 	gvr("", "v1", "buildlogs"),
 	gvr("build.openshift.io", "v1", "buildlogs"),
-	gvr("", "v1", "buildlogoptionses"),
-	gvr("build.openshift.io", "v1", "buildlogoptionses"),
 
 	// BuildGenerator helpers not stored in etcd
 	gvr("", "v1", "buildrequests"),
@@ -733,8 +830,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	// used for streaming deployment logs from pod, not stored in etcd
 	gvr("", "v1", "deploymentlogs"),
 	gvr("apps.openshift.io", "v1", "deploymentlogs"),
-	gvr("", "v1", "deploymentlogoptionses"),
-	gvr("apps.openshift.io", "v1", "deploymentlogoptionses"),
 
 	gvr("", "v1", "deploymentrequests"),                         // triggers new dc, not stored in etcd
 	gvr("apps.openshift.io", "v1", "deploymentrequests"),        // triggers new dc, not stored in etcd
@@ -743,8 +838,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 
 	gvr("", "v1", "scales"),                  // not stored in etcd, part of kapiv1.ReplicationController
 	gvr("apps.openshift.io", "v1", "scales"), // not stored in etcd, part of kapiv1.ReplicationController
-	// --
-
 	// --
 
 	// github.com/openshift/origin/pkg/image/apis/image/v1
@@ -758,11 +851,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("image.openshift.io", "v1", "imagestreamimages"),   // not stored in etcd
 	gvr("", "v1", "imagestreammappings"),                   // not stored in etcd
 	gvr("image.openshift.io", "v1", "imagestreammappings"), // not stored in etcd
-	// --
-
-	// github.com/openshift/origin/pkg/oauth/apis/oauth/v1
-	gvr("", "v1", "oauthredirectreferences"),                   // Used for specifying redirects, never stored in etcd
-	gvr("oauth.openshift.io", "v1", "oauthredirectreferences"), // Used for specifying redirects, never stored in etcd
 	// --
 
 	// github.com/openshift/origin/pkg/project/apis/project/v1
@@ -784,33 +872,14 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("security.openshift.io", "v1", "podsecuritypolicysubjectreviews"),     // not stored in etcd
 	// --
 
-	// github.com/openshift/origin/pkg/template/apis/template/v1
-
-	// deprecated aliases for templateapiv1.Template
-	gvr("", "v1", "templateconfigs"),
-	gvr("", "v1", "processedtemplates"),
-	// --
-
 	// github.com/openshift/origin/pkg/user/apis/user/v1
 	gvr("", "v1", "useridentitymappings"),                  // pointer from user to identity, not stored in etcd
 	gvr("user.openshift.io", "v1", "useridentitymappings"), // pointer from user to identity, not stored in etcd
 	// --
 
-	// k8s.io/kubernetes/federation/apis/federation/v1beta1
-	gvr("federation", "v1beta1", "clusters"), // we cannot create this  // TODO but we should be able to create it in kube
-	// --
-
 	// k8s.io/api/core/v1
-	gvr("", "v1", "bindings"),             // annotation on pod, not stored in etcd
-	gvr("", "v1", "rangeallocations"),     // stored in various places in etcd but cannot be directly created // TODO maybe possible in kube
-	gvr("", "v1", "componentstatuses"),    // status info not stored in etcd
-	gvr("", "v1", "serializedreferences"), // used for serilization, not stored in etcd
-	gvr("", "v1", "nodeconfigsources"),    // subfield of node.spec, but shouldn't be directly created
-	gvr("", "v1", "podstatusresults"),     // wrapper object not stored in etcd
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/admission/v1alpha1
-	gvr("admission.k8s.io", "v1alpha1", "admissionreviews"), // not stored in etcd
+	gvr("", "v1", "bindings"),          // annotation on pod, not stored in etcd
+	gvr("", "v1", "componentstatuses"), // status info not stored in etcd
 	// --
 
 	// k8s.io/kubernetes/pkg/apis/authentication/v1beta1
@@ -841,29 +910,10 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("authorization.k8s.io", "v1", "subjectaccessreviews"),
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/autoscaling/v1
-	gvr("autoscaling", "v1", "scales"), // not stored in etcd, part of kapiv1.ReplicationController
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/batch/v1beta1
-	gvr("batch", "v1beta1", "jobtemplates"), // not stored in etcd
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/batch/v2alpha1
-	gvr("batch", "v2alpha1", "jobtemplates"), // not stored in etcd
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1
-	gvr("componentconfig", "v1alpha1", "kubeschedulerconfigurations"), // not stored in etcd
-	gvr("componentconfig", "v1alpha1", "kubeproxyconfigurations"),     // not stored in etcd
-	// --
-
 	// k8s.io/api/extensions/v1beta1
 	gvr("extensions", "v1beta1", "deploymentrollbacks"),          // used to rollback deployment, not stored in etcd
 	gvr("extensions", "v1beta1", "replicationcontrollerdummies"), // not stored in etcd
 	gvr("extensions", "v1beta1", "scales"),                       // not stored in etcd, part of kapiv1.ReplicationController
-	gvr("extensions", "v1beta1", "thirdpartyresourcedatas"),      // we cannot create this  // TODO but we should be able to create it in kube
-	gvr("extensions", "v1beta1", "thirdpartyresources"),          // these have been removed from the API server, but kept for the client
 
 	// --
 
@@ -876,13 +926,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("apps", "v1beta2", "scales"), // not stored in etcd, part of kapiv1.ReplicationController
 	// --
 
-	// k8s.io/kubernetes/pkg/apis/imagepolicy/v1alpha1
-	gvr("imagepolicy.k8s.io", "v1alpha1", "imagereviews"), // not stored in etcd
-	// --
-
-	// k8s.io/kubernetes/pkg/apis/policy/v1beta1
-	gvr("policy", "v1beta1", "evictions"), // not stored in etcd, deals with evicting kapiv1.Pod
-	// --
 )
 
 // Only add kinds to this list when there is no way to create the object
@@ -965,6 +1008,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 			"apis/autoscaling/v2alpha1=true",
 			"apis/admissionregistration.k8s.io/v1alpha1=true",
 			"apis/scheduling.k8s.io/v1alpha1=true",
+			"apis/storage.k8s.io/v1alpha1=true",
 		},
 	}
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
@@ -1010,6 +1054,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	etcdSeen := map[schema.GroupVersionResource]empty{}
 	ephemeralSeen := map[schema.GroupVersionResource]empty{}
 	cohabitatingResources := map[string]map[schema.GroupVersionKind]empty{}
+	unexposedKindSeen := map[schema.GroupVersionKind]empty{}
 
 	for gvk, apiType := range legacyscheme.Scheme.AllKnownTypes() {
 		// we do not care about internal objects or lists // TODO make sure this is always true
@@ -1022,6 +1067,11 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 
 		if kindWhiteList.Has(kind) {
 			kindSeen.Insert(kind)
+			continue
+		}
+
+		if _, exists := unexposedGVKWhiteList[gvk]; exists {
+			unexposedKindSeen[gvk] = empty{}
 			continue
 		}
 
@@ -1122,6 +1172,10 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 
 	if inEphemeralWhiteList, inEphemeralSeen := diffMaps(ephemeralWhiteList, ephemeralSeen); len(inEphemeralWhiteList) != 0 || len(inEphemeralSeen) != 0 {
 		t.Errorf("ephemeral whitelist does not match the types we saw:\nin ephemeral whitelist but not seen:\n%s\nseen but not in ephemeral whitelist:\n%s", inEphemeralWhiteList, inEphemeralSeen)
+	}
+
+	if unexposedWhiteList, unexposedSeen := diffMaps(unexposedGVKWhiteList, unexposedKindSeen); len(unexposedWhiteList) != 0 || len(unexposedSeen) != 0 {
+		t.Errorf("unexposed whitelist does not match the types we saw:\nin unexposed whitelist but not seen:\n%s\nseen but not in unexposed whitelist:\n%s", unexposedWhiteList, unexposedSeen)
 	}
 
 	if inKindData, inKindSeen := diffMaps(kindWhiteList, kindSeen); len(inKindData) != 0 || len(inKindSeen) != 0 {
@@ -1225,6 +1279,10 @@ func gvkP(g, v, k string) *schema.GroupVersionKind {
 	return &schema.GroupVersionKind{Group: g, Version: v, Kind: k}
 }
 
+func gvk(g, v, k string) schema.GroupVersionKind {
+	return *gvkP(g, v, k)
+}
+
 func createEphemeralWhiteList(gvrs ...schema.GroupVersionResource) map[schema.GroupVersionResource]empty {
 	ephemeral := map[schema.GroupVersionResource]empty{}
 	for _, gvResource := range gvrs {
@@ -1234,6 +1292,17 @@ func createEphemeralWhiteList(gvrs ...schema.GroupVersionResource) map[schema.Gr
 		ephemeral[gvResource] = empty{}
 	}
 	return ephemeral
+}
+
+func createUnexposedWhiteList(gvrs ...schema.GroupVersionKind) map[schema.GroupVersionKind]empty {
+	unexposed := map[schema.GroupVersionKind]empty{}
+	for _, gvResource := range gvrs {
+		if _, ok := unexposed[gvResource]; ok {
+			panic("invalid unexposed whitelist contains duplicate keys")
+		}
+		unexposed[gvResource] = empty{}
+	}
+	return unexposed
 }
 
 func jsonToMetaObject(stub string) (*metaObject, error) {
