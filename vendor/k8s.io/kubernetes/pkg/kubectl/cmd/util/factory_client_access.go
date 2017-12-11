@@ -57,6 +57,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/printers"
 	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
@@ -236,13 +238,22 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 	switch t := obj.(type) {
 	case *v1.Pod:
 		return true, fn(&t.Spec)
+	case *core.Pod:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec)
 	// ReplicationController
 	case *v1.ReplicationController:
 		if t.Spec.Template == nil {
 			t.Spec.Template = &v1.PodTemplateSpec{}
 		}
 		return true, fn(&t.Spec.Template.Spec)
+	case *core.ReplicationController:
+		if t.Spec.Template == nil {
+			t.Spec.Template = &core.PodTemplateSpec{}
+		}
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	// Deployment
+	case *extensions.Deployment:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *extensionsv1beta1.Deployment:
 		return true, fn(&t.Spec.Template.Spec)
 	case *appsv1beta1.Deployment:
@@ -252,6 +263,8 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 	case *appsv1.Deployment:
 		return true, fn(&t.Spec.Template.Spec)
 	// DaemonSet
+	case *extensions.DaemonSet:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *extensionsv1beta1.DaemonSet:
 		return true, fn(&t.Spec.Template.Spec)
 	case *appsv1beta2.DaemonSet:
@@ -259,6 +272,8 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 	case *appsv1.DaemonSet:
 		return true, fn(&t.Spec.Template.Spec)
 	// ReplicaSet
+	case *extensions.ReplicaSet:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *extensionsv1beta1.ReplicaSet:
 		return true, fn(&t.Spec.Template.Spec)
 	case *appsv1beta2.ReplicaSet:
@@ -266,6 +281,8 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 	case *appsv1.ReplicaSet:
 		return true, fn(&t.Spec.Template.Spec)
 	// StatefulSet
+	case *apps.StatefulSet:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *appsv1beta1.StatefulSet:
 		return true, fn(&t.Spec.Template.Spec)
 	case *appsv1beta2.StatefulSet:
@@ -273,10 +290,31 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 	case *appsv1.StatefulSet:
 		return true, fn(&t.Spec.Template.Spec)
 	// Job
+	case *batch.Job:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *batchv1.Job:
 		return true, fn(&t.Spec.Template.Spec)
 	default:
 		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
+	}
+}
+
+
+func ConvertExteralPodSpecToInternal(inFn func(*v1.PodSpec) error) func(*core.PodSpec) error {
+	return func(specToMutate *core.PodSpec) error {
+		externalPodSpec := &v1.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(specToMutate, externalPodSpec, nil); err != nil {
+			return err
+		}
+		if err := inFn(externalPodSpec); err != nil {
+			return err
+		}
+		internalPodSpec := &core.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(externalPodSpec, internalPodSpec, nil); err != nil {
+			return err
+		}
+		*specToMutate = *internalPodSpec
+		return nil
 	}
 }
 
