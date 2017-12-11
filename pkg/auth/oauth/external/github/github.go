@@ -23,6 +23,7 @@ const (
 	githubUserApiURL   = "https://api.github.com/user"
 	githubUserOrgURL   = "https://api.github.com/user/orgs"
 	githubUserTeamURL  = "https://api.github.com/user/teams"
+	githubUserEmailURL = "https://api.github.com/user/emails"
 	githubOAuthScope   = "user:email"
 	githubOrgScope     = "read:org"
 
@@ -45,6 +46,12 @@ type githubUser struct {
 	Login string
 	Email string
 	Name  string
+}
+
+// https://developer.github.com/v3/users/emails/#response
+type githubUserEmail struct {
+	Email   string
+	Primary bool
 }
 
 // https://developer.github.com/v3/orgs/#response
@@ -145,6 +152,16 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 		glog.V(4).Infof("User %s is a member of teams %v)", userdata.Login, userTeams.List())
 	}
 
+	// The returned email is empty if the user has not specified a public email address in their profile
+	if len(userdata.Email) == 0 {
+		email, err := getUserEmail(data.AccessToken)
+		if err == nil {
+			userdata.Email = email
+		} else {
+			glog.V(4).Infof("Failed to get user email information %#v", err)
+		}
+	}
+
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, fmt.Sprintf("%d", userdata.ID))
 	if len(userdata.Name) > 0 {
 		identity.Extra[authapi.IdentityDisplayNameKey] = userdata.Name
@@ -196,6 +213,33 @@ func getUserTeams(token string) (sets.String, error) {
 		},
 	)
 	return userTeams, err
+}
+
+var errStopEmail = errors.New("done iterating over email because we found primary")
+
+// getUserEmail retrieves the primary email for the user with the given access token.
+func getUserEmail(token string) (string, error) {
+	var email string
+	err := page(githubUserEmailURL, token,
+		func() interface{} {
+			return &[]githubUserEmail{}
+		},
+		func(obj interface{}) error {
+			for _, userEmail := range *(obj.(*[]githubUserEmail)) {
+				// store the email regardless of if it the primary in case we somehow never get a primary one
+				email = userEmail.Email
+				if userEmail.Primary {
+					return errStopEmail
+				}
+			}
+			return nil
+		},
+	)
+	// this error just stops iteration early on the first primary email (there should only ever be one primary)
+	if err == errStopEmail {
+		return email, nil
+	}
+	return email, err
 }
 
 // page fetches the intialURL, and follows "next" links
