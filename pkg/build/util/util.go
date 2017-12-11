@@ -30,6 +30,9 @@ const (
 
 	// WorkDir is the working directory within the build pod, mounted as a volume.
 	BuildWorkDirMount = "/tmp/build"
+
+	// BuilderServiceAccountName is the name of the account used to run build pods by default.
+	BuilderServiceAccountName = "builder"
 )
 
 var (

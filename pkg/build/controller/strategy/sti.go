@@ -64,6 +64,11 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		containerEnv = append(containerEnv, v1.EnvVar{Name: buildapi.DropCapabilities, Value: strings.Join(DefaultDropCaps, ",")})
 	}
 
+	serviceAccount := build.Spec.ServiceAccount
+	if len(serviceAccount) == 0 {
+		serviceAccount = buildutil.BuilderServiceAccountName
+	}
+
 	privileged := true
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -72,7 +77,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Labels:    getPodLabels(build),
 		},
 		Spec: v1.PodSpec{
-			ServiceAccountName: build.Spec.ServiceAccount,
+			ServiceAccountName: serviceAccount,
 			Containers: []v1.Container{
 				{
 					Name:    "sti-build",

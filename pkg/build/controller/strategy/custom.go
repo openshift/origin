@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // CustomBuildStrategy creates a build using a custom builder image.
@@ -63,12 +63,17 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 
 	if len(strategy.Env) > 0 {
-		containerEnv = append(containerEnv, util.CopyApiEnvVarToV1EnvVar(strategy.Env)...)
+		containerEnv = append(containerEnv, buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env)...)
 	}
 
 	if strategy.ExposeDockerSocket {
 		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.Name)
 		containerEnv = append(containerEnv, v1.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
+	}
+
+	serviceAccount := build.Spec.ServiceAccount
+	if len(serviceAccount) == 0 {
+		serviceAccount = buildutil.BuilderServiceAccountName
 	}
 
 	privileged := true
@@ -79,7 +84,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Labels:    getPodLabels(build),
 		},
 		Spec: v1.PodSpec{
-			ServiceAccountName: build.Spec.ServiceAccount,
+			ServiceAccountName: serviceAccount,
 			Containers: []v1.Container{
 				{
 					Name:  "custom-build",
@@ -106,7 +111,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		glog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
 		pod.Spec.Containers[0].ImagePullPolicy = v1.PullAlways
 	}
-	pod.Spec.Containers[0].Resources = util.CopyApiResourcesToV1Resources(&build.Spec.Resources)
+	pod.Spec.Containers[0].Resources = buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources)
 	if build.Spec.Source.Binary != nil {
 		pod.Spec.Containers[0].Stdin = true
 		pod.Spec.Containers[0].StdinOnce = true

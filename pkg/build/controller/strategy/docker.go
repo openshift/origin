@@ -42,6 +42,11 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		buildutil.MergeTrustedEnvWithoutDuplicates(buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
 	}
 
+	serviceAccount := build.Spec.ServiceAccount
+	if len(serviceAccount) == 0 {
+		serviceAccount = buildutil.BuilderServiceAccountName
+	}
+
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildapi.GetBuildPodName(build),
@@ -49,7 +54,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Labels:    getPodLabels(build),
 		},
 		Spec: v1.PodSpec{
-			ServiceAccountName: build.Spec.ServiceAccount,
+			ServiceAccountName: serviceAccount,
 			Containers: []v1.Container{
 				{
 					Name:    "docker-build",
