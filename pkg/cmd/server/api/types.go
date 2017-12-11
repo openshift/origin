@@ -282,8 +282,16 @@ type LocalQuota struct {
 type NodeNetworkConfig struct {
 	// NetworkPluginName is a string specifying the networking plugin
 	NetworkPluginName string
+
 	// Maximum transmission unit for the network packets
 	MTU uint32
+
+	// PodTrafficNodeInterface is the network interface to be used for pod traffic
+	PodTrafficNodeInterface string
+
+	// PodTrafficNodeIP is the node IP to use for pod traffic routing
+	// If PodTrafficNodeIP is not set and PodTrafficNodeInterface is set, then first non-loopback IPv4 addr from PodTrafficNodeInterface is used.
+	PodTrafficNodeIP string
 }
 
 // NodeAuthConfig holds authn/authz configuration options

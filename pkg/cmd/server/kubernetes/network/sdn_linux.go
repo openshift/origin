@@ -17,6 +17,7 @@ import (
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.Interface, kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
@@ -38,11 +39,9 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kubeClientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: options.NodeName})
 
-	nodeIP := ""
-	if options.KubeletArguments != nil {
-		if ips, ok := options.KubeletArguments["node-ip"]; ok {
-			nodeIP = ips[0]
-		}
+	nodeIP, err := GetPodTrafficNodeIP(options)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
@@ -69,4 +68,25 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 	}
 
 	return node, proxy, nil
+}
+
+func GetPodTrafficNodeIP(options configapi.NodeConfig) (string, error) {
+	nodeIP := options.NetworkConfig.PodTrafficNodeIP
+	nodeIface := options.NetworkConfig.PodTrafficNodeInterface
+
+	if len(nodeIP) == 0 {
+		if len(nodeIface) > 0 {
+			ips, err := netutils.GetIPAddrsFromNetworkInterface(nodeIface)
+			if err != nil {
+				return "", err
+			}
+			nodeIP = ips[0].String()
+		} else if options.KubeletArguments != nil {
+			if ips, ok := options.KubeletArguments["node-ip"]; ok {
+				nodeIP = ips[0]
+			}
+		}
+	}
+
+	return nodeIP, nil
 }

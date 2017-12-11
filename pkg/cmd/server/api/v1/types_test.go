@@ -51,6 +51,7 @@ masterKubeConfig: ""
 networkConfig:
   mtu: 0
   networkPluginName: ""
+  podTrafficNodeIP: ""
 nodeName: ""
 podManifestConfig:
   fileCheckIntervalSeconds: 0
