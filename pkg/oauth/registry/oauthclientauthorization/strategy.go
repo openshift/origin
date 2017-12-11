@@ -28,7 +28,9 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: legacyscheme.Scheme, clientGetter: clientGetter}
 }
 
-func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = strategy{}
+
+func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

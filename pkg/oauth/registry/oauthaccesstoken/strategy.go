@@ -23,12 +23,13 @@ type strategy struct {
 
 var _ rest.RESTCreateStrategy = strategy{}
 var _ rest.RESTUpdateStrategy = strategy{}
+var _ rest.GarbageCollectionDeleteStrategy = strategy{}
 
 func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: legacyscheme.Scheme, clientGetter: clientGetter}
 }
 
-func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

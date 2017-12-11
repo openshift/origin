@@ -26,7 +26,9 @@ type imageStrategy struct {
 // Image objects via the REST API.
 var Strategy = imageStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
-func (imageStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = imageStrategy{}
+
+func (imageStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

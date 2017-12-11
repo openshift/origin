@@ -20,7 +20,9 @@ type groupStrategy struct {
 // objects via the REST API.
 var Strategy = groupStrategy{legacyscheme.Scheme}
 
-func (groupStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = groupStrategy{}
+
+func (groupStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

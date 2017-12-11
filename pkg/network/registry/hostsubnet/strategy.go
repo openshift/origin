@@ -20,7 +20,9 @@ type sdnStrategy struct {
 // objects via the REST API.
 var Strategy = sdnStrategy{legacyscheme.Scheme}
 
-func (sdnStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = sdnStrategy{}
+
+func (sdnStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

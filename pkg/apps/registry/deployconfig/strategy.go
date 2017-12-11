@@ -120,8 +120,10 @@ func (s legacyStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obj
 	s.strategy.PrepareForCreate(ctx, obj)
 }
 
+var _ rest.GarbageCollectionDeleteStrategy = legacyStrategy{}
+
 // DefaultGarbageCollectionPolicy for legacy DeploymentConfigs will orphan dependents.
-func (s legacyStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+func (s legacyStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.OrphanDependents
 }
 

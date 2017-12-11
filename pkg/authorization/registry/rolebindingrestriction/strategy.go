@@ -19,7 +19,9 @@ type strategy struct {
 
 var Strategy = strategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
-func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = strategy{}
+
+func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
