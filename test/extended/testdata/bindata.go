@@ -4548,7 +4548,6 @@ spec:
         echo Halfway
         openshift-deploy
         echo Finished
-        sleep 1
   template:
     metadata:
       labels:
@@ -4561,7 +4560,7 @@ spec:
         name: myapp
         command:
         - /bin/sleep
-        - "10"
+        - "9999999999"
   triggers:
   - type: ConfigChange
 `)
