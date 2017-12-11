@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -140,6 +141,12 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 		if list, isList := obj.(*kapi.List); isList && !isSingleItemImplied {
 			if len(list.Items) == 1 {
 				obj = list.Items[0]
+				isSingleItemImplied = true
+			}
+		}
+		if list, isList := obj.(*v1.List); isList && !isSingleItemImplied {
+			if len(list.Items) == 1 {
+				obj = list.Items[0].Object
 				isSingleItemImplied = true
 			}
 		}
