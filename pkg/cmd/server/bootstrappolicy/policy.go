@@ -47,21 +47,23 @@ var (
 	readWrite = []string{"get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"}
 	read      = []string{"get", "list", "watch"}
 
-	kapiGroup            = kapi.GroupName
-	appsGroup            = apps.GroupName
-	autoscalingGroup     = autoscaling.GroupName
-	apiExtensionsGroup   = "apiextensions.k8s.io"
-	apiRegistrationGroup = "apiregistration.k8s.io"
-	batchGroup           = batch.GroupName
-	certificatesGroup    = certificates.GroupName
-	extensionsGroup      = extensions.GroupName
-	networkingGroup      = "networking.k8s.io"
-	policyGroup          = policy.GroupName
-	rbacGroup            = rbac.GroupName
-	securityGroup        = securityapi.GroupName
-	legacySecurityGroup  = securityapi.LegacyGroupName
-	storageGroup         = storage.GroupName
-	settingsGroup        = settings.GroupName
+	kapiGroup                  = kapi.GroupName
+	admissionRegistrationGroup = "admissionregistration.k8s.io"
+	appsGroup                  = apps.GroupName
+	autoscalingGroup           = autoscaling.GroupName
+	apiExtensionsGroup         = "apiextensions.k8s.io"
+	eventsGroup                = "events.k8s.io"
+	apiRegistrationGroup       = "apiregistration.k8s.io"
+	batchGroup                 = batch.GroupName
+	certificatesGroup          = certificates.GroupName
+	extensionsGroup            = extensions.GroupName
+	networkingGroup            = "networking.k8s.io"
+	policyGroup                = policy.GroupName
+	rbacGroup                  = rbac.GroupName
+	securityGroup              = securityapi.GroupName
+	legacySecurityGroup        = securityapi.LegacyGroupName
+	storageGroup               = storage.GroupName
+	settingsGroup              = settings.GroupName
 
 	authzGroup          = authorizationapi.GroupName
 	kAuthzGroup         = kauthorizationapi.GroupName
@@ -133,6 +135,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 					"replicationcontrollers/status", "resourcequotas", "resourcequotas/status", "securitycontextconstraints", "serviceaccounts", "services",
 					"services/status").RuleOrDie(),
 
+				rbac.NewRule(read...).Groups(admissionRegistrationGroup).Resources("mutatingwebhookconfigurations", "validatingwebhookconfigurations").RuleOrDie(),
+
 				rbac.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "statefulsets/scale", "statefulsets/status", "deployments", "deployments/scale", "deployments/status", "controllerrevisions", "daemonsets", "daemonsets/status", "replicasets", "replicasets/status", "replicasets/scale").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(apiExtensionsGroup).Resources("customresourcedefinitions", "customresourcedefinitions/status").RuleOrDie(),
@@ -147,6 +151,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 					"deployments/status", "horizontalpodautoscalers", "horizontalpodautoscalers/status", "ingresses", "ingresses/status", "jobs", "jobs/status",
 					"networkpolicies", "podsecuritypolicies", "replicasets", "replicasets/scale", "replicasets/status", "replicationcontrollers",
 					"replicationcontrollers/scale", "storageclasses", "thirdpartyresources").RuleOrDie(),
+
+				rbac.NewRule(read...).Groups(eventsGroup).Resources("events").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
