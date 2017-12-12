@@ -77,7 +77,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 					},
 				},
 			}
-			runQueries(activeTests)
+			runQueries(activeTests, oc)
 
 			g.By("verifying build completed successfully")
 			err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
@@ -101,7 +101,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 					},
 				},
 			}
-			runQueries(terminalTests)
+			runQueries(terminalTests, oc)
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
 			// at least a few builds in new/pending state with the default prometheus query interval;  but that has not
@@ -132,7 +132,7 @@ type metricTest struct {
 	success          bool
 }
 
-func runQueries(metricTests map[string][]metricTest) {
+func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI) {
 	// expect all correct metrics within 60 seconds
 	errsMap := map[string]error{}
 	for i := 0; i < 60; i++ {
@@ -161,7 +161,9 @@ func runQueries(metricTests map[string][]metricTest) {
 			delete(errsMap, query) // clear out any prior faliures
 			for _, tc := range tcs {
 				if !tc.success {
-					errsMap[query] = fmt.Errorf("query %s for tests %#v had results %s", query, tcs, contents)
+					dbg := fmt.Sprintf("query %s for tests %#v had results %s", query, tcs, contents)
+					fmt.Fprintf(g.GinkgoWriter, dbg)
+					errsMap[query] = fmt.Errorf(dbg)
 					break
 				}
 			}
@@ -174,6 +176,11 @@ func runQueries(metricTests map[string][]metricTest) {
 		time.Sleep(time.Second)
 	}
 
+	if len(errsMap) != 0 {
+		// the prometheus pod and container names are well known / consistent
+		containers := []string{"prometheus", "prom-proxy"}
+		exutil.DumpPodContainerLogs("prometheus-0", containers, oc)
+	}
 	o.Expect(errsMap).To(o.BeEmpty())
 }
 
