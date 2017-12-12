@@ -618,6 +618,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("list", "watch").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
 				rbac.NewRule("list", "watch").Groups(kapiGroup).Resources("services").RuleOrDie(),
 
+				rbac.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),
+
 				rbac.NewRule("list", "watch").Groups(routeGroup, legacyRouteGroup).Resources("routes").RuleOrDie(),
 				rbac.NewRule("update").Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),
 			},

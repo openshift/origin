@@ -2079,6 +2079,12 @@ items:
     - list
     - watch
   - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
     - ""
     - route.openshift.io
     resources:
