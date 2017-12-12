@@ -35,7 +35,7 @@
 // which encapsulate all the state needed by a client to authenticate with a
 // server and make various assertions, e.g., about the client's identity, role,
 // or whether it is authorized to make a particular call.
-package credentials // import "google.golang.org/grpc/credentials"
+package credentials
 
 import (
 	"crypto/tls"
@@ -165,7 +165,9 @@ func (c *tlsCreds) ClientHandshake(ctx context.Context, addr string, rawConn net
 	case <-ctx.Done():
 		return nil, nil, ctx.Err()
 	}
-	return conn, TLSInfo{conn.ConnectionState()}, nil
+	// TODO(zhaoq): Omit the auth info for client now. It is more for
+	// information than anything else.
+	return conn, nil, nil
 }
 
 func (c *tlsCreds) ServerHandshake(rawConn net.Conn) (net.Conn, AuthInfo, error) {

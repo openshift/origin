@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2016, Google Inc.
+ * Copyright 2017, Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,24 +31,22 @@
  *
  */
 
-// Package tap defines the function handles which are executed on the transport
-// layer of gRPC-Go and related information. Everything here is EXPERIMENTAL.
-package tap
+// Package keepalive defines configurable parameters for point-to-point healthcheck.
+package keepalive
 
 import (
-	"golang.org/x/net/context"
+	"time"
 )
 
-// Info defines the relevant information needed by the handles.
-type Info struct {
-	// FullMethodName is the string of grpc method (in the format of
-	// /package.service/method).
-	FullMethodName string
-	// TODO: More to be added.
+// ClientParameters is used to set keepalive parameters on the client-side.
+// These configure how the client will actively probe to notice when a connection broken
+// and to cause activity so intermediaries are aware the connection is still in use.
+type ClientParameters struct {
+	// After a duration of this time if the client doesn't see any activity it pings the server to see if the transport is still alive.
+	Time time.Duration // The current default value is infinity.
+	// After having pinged for keepalive check, the client waits for a duration of Timeout and if no activity is seen even after that
+	// the connection is closed.
+	Timeout time.Duration // The current default value is 20 seconds.
+	// If true, client runs keepalive checks even with no active RPCs.
+	PermitWithoutStream bool
 }
-
-// ServerInHandle defines the function which runs when a new stream is created
-// on the server side. Note that it is executed in the per-connection I/O goroutine(s) instead
-// of per-RPC goroutine. Therefore, users should NOT have any blocking/time-consuming
-// work in this handle. Otherwise all the RPCs would slow down.
-type ServerInHandle func(ctx context.Context, info *Info) (context.Context, error)

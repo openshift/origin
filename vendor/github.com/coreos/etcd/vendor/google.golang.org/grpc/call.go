@@ -36,13 +36,12 @@ package grpc
 import (
 	"bytes"
 	"io"
+	"math"
 	"time"
 
 	"golang.org/x/net/context"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/transport"
 )
 
@@ -50,8 +49,7 @@ import (
 // On error, it returns the error and indicates whether the call should be retried.
 //
 // TODO(zhaoq): Check whether the received message sequence is valid.
-// TODO ctx is used for stats collection and processing. It is the context passed from the application.
-func recvResponse(ctx context.Context, dopts dialOptions, t transport.ClientTransport, c *callInfo, stream *transport.Stream, reply interface{}) (err error) {
+func recvResponse(dopts dialOptions, t transport.ClientTransport, c *callInfo, stream *transport.Stream, reply interface{}) (err error) {
 	// Try to acquire header metadata from the server if there is any.
 	defer func() {
 		if err != nil {
@@ -65,34 +63,20 @@ func recvResponse(ctx context.Context, dopts dialOptions, t transport.ClientTran
 		return
 	}
 	p := &parser{r: stream}
-	var inPayload *stats.InPayload
-	if dopts.copts.StatsHandler != nil {
-		inPayload = &stats.InPayload{
-			Client: true,
-		}
-	}
 	for {
-		if err = recv(p, dopts.codec, stream, dopts.dc, reply, dopts.maxMsgSize, inPayload); err != nil {
+		if err = recv(p, dopts.codec, stream, dopts.dc, reply, math.MaxInt32); err != nil {
 			if err == io.EOF {
 				break
 			}
 			return
 		}
 	}
-	if inPayload != nil && err == io.EOF && stream.StatusCode() == codes.OK {
-		// TODO in the current implementation, inTrailer may be handled before inPayload in some cases.
-		// Fix the order if necessary.
-		dopts.copts.StatsHandler.HandleRPC(ctx, inPayload)
-	}
 	c.trailerMD = stream.Trailer()
-	if peer, ok := peer.FromContext(stream.Context()); ok {
-		c.peer = peer
-	}
 	return nil
 }
 
 // sendRequest writes out various information of an RPC such as Context and Message.
-func sendRequest(ctx context.Context, dopts dialOptions, compressor Compressor, callHdr *transport.CallHdr, t transport.ClientTransport, args interface{}, opts *transport.Options) (_ *transport.Stream, err error) {
+func sendRequest(ctx context.Context, codec Codec, compressor Compressor, callHdr *transport.CallHdr, t transport.ClientTransport, args interface{}, opts *transport.Options) (_ *transport.Stream, err error) {
 	stream, err := t.NewStream(ctx, callHdr)
 	if err != nil {
 		return nil, err
@@ -105,27 +89,15 @@ func sendRequest(ctx context.Context, dopts dialOptions, compressor Compressor, 
 			}
 		}
 	}()
-	var (
-		cbuf       *bytes.Buffer
-		outPayload *stats.OutPayload
-	)
+	var cbuf *bytes.Buffer
 	if compressor != nil {
 		cbuf = new(bytes.Buffer)
 	}
-	if dopts.copts.StatsHandler != nil {
-		outPayload = &stats.OutPayload{
-			Client: true,
-		}
-	}
-	outBuf, err := encode(dopts.codec, args, compressor, cbuf, outPayload)
+	outBuf, err := encode(codec, args, compressor, cbuf)
 	if err != nil {
 		return nil, Errorf(codes.Internal, "grpc: %v", err)
 	}
 	err = t.Write(stream, outBuf, opts)
-	if err == nil && outPayload != nil {
-		outPayload.SentTime = time.Now()
-		dopts.copts.StatsHandler.HandleRPC(ctx, outPayload)
-	}
 	// t.NewStream(...) could lead to an early rejection of the RPC (e.g., the service/method
 	// does not exist.) so that t.Write could get io.EOF from wait(...). Leave the following
 	// recvResponse to get the final status.
@@ -146,16 +118,8 @@ func Invoke(ctx context.Context, method string, args, reply interface{}, cc *Cli
 	return invoke(ctx, method, args, reply, cc, opts...)
 }
 
-func invoke(ctx context.Context, method string, args, reply interface{}, cc *ClientConn, opts ...CallOption) (e error) {
+func invoke(ctx context.Context, method string, args, reply interface{}, cc *ClientConn, opts ...CallOption) (err error) {
 	c := defaultCallInfo
-	if mc, ok := cc.getMethodConfig(method); ok {
-		c.failFast = !mc.WaitForReady
-		if mc.Timeout > 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, mc.Timeout)
-			defer cancel()
-		}
-	}
 	for _, o := range opts {
 		if err := o.before(&c); err != nil {
 			return toRPCErr(err)
@@ -176,32 +140,12 @@ func invoke(ctx context.Context, method string, args, reply interface{}, cc *Cli
 		c.traceInfo.tr.LazyLog(&c.traceInfo.firstLine, false)
 		// TODO(dsymonds): Arrange for c.traceInfo.firstLine.remoteAddr to be set.
 		defer func() {
-			if e != nil {
-				c.traceInfo.tr.LazyLog(&fmtStringer{"%v", []interface{}{e}}, true)
+			if err != nil {
+				c.traceInfo.tr.LazyLog(&fmtStringer{"%v", []interface{}{err}}, true)
 				c.traceInfo.tr.SetError()
 			}
 		}()
 	}
-	sh := cc.dopts.copts.StatsHandler
-	if sh != nil {
-		ctx = sh.TagRPC(ctx, &stats.RPCTagInfo{FullMethodName: method})
-		begin := &stats.Begin{
-			Client:    true,
-			BeginTime: time.Now(),
-			FailFast:  c.failFast,
-		}
-		sh.HandleRPC(ctx, begin)
-	}
-	defer func() {
-		if sh != nil {
-			end := &stats.End{
-				Client:  true,
-				EndTime: time.Now(),
-				Error:   e,
-			}
-			sh.HandleRPC(ctx, end)
-		}
-	}()
 	topts := &transport.Options{
 		Last:  true,
 		Delay: false,
@@ -223,7 +167,6 @@ func invoke(ctx context.Context, method string, args, reply interface{}, cc *Cli
 		if cc.dopts.cp != nil {
 			callHdr.SendCompress = cc.dopts.cp.Type()
 		}
-
 		gopts := BalancerGetOptions{
 			BlockingWait: !c.failFast,
 		}
@@ -245,7 +188,7 @@ func invoke(ctx context.Context, method string, args, reply interface{}, cc *Cli
 		if c.traceInfo.tr != nil {
 			c.traceInfo.tr.LazyLog(&payload{sent: true, msg: args}, true)
 		}
-		stream, err = sendRequest(ctx, cc.dopts, cc.dopts.cp, callHdr, t, args, topts)
+		stream, err = sendRequest(ctx, cc.dopts.codec, cc.dopts.cp, callHdr, t, args, topts)
 		if err != nil {
 			if put != nil {
 				put()
@@ -262,7 +205,7 @@ func invoke(ctx context.Context, method string, args, reply interface{}, cc *Cli
 			}
 			return toRPCErr(err)
 		}
-		err = recvResponse(ctx, cc.dopts, t, &c, stream, reply)
+		err = recvResponse(cc.dopts, t, &c, stream, reply)
 		if err != nil {
 			if put != nil {
 				put()

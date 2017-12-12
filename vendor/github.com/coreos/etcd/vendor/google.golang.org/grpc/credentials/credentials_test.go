@@ -1,5 +1,3 @@
-// +build !go1.7
-
 /*
  *
  * Copyright 2016, Google Inc.
@@ -36,39 +34,28 @@
 package credentials
 
 import (
-	"crypto/tls"
+	"testing"
 )
 
-// cloneTLSConfig returns a shallow clone of the exported
-// fields of cfg, ignoring the unexported sync.Once, which
-// contains a mutex and must not be copied.
-//
-// If cfg is nil, a new zero tls.Config is returned.
-//
-// TODO replace this function with official clone function.
-func cloneTLSConfig(cfg *tls.Config) *tls.Config {
-	if cfg == nil {
-		return &tls.Config{}
+func TestTLSOverrideServerName(t *testing.T) {
+	expectedServerName := "server.name"
+	c := NewTLS(nil)
+	c.OverrideServerName(expectedServerName)
+	if c.Info().ServerName != expectedServerName {
+		t.Fatalf("c.Info().ServerName = %v, want %v", c.Info().ServerName, expectedServerName)
 	}
-	return &tls.Config{
-		Rand:                     cfg.Rand,
-		Time:                     cfg.Time,
-		Certificates:             cfg.Certificates,
-		NameToCertificate:        cfg.NameToCertificate,
-		GetCertificate:           cfg.GetCertificate,
-		RootCAs:                  cfg.RootCAs,
-		NextProtos:               cfg.NextProtos,
-		ServerName:               cfg.ServerName,
-		ClientAuth:               cfg.ClientAuth,
-		ClientCAs:                cfg.ClientCAs,
-		InsecureSkipVerify:       cfg.InsecureSkipVerify,
-		CipherSuites:             cfg.CipherSuites,
-		PreferServerCipherSuites: cfg.PreferServerCipherSuites,
-		SessionTicketsDisabled:   cfg.SessionTicketsDisabled,
-		SessionTicketKey:         cfg.SessionTicketKey,
-		ClientSessionCache:       cfg.ClientSessionCache,
-		MinVersion:               cfg.MinVersion,
-		MaxVersion:               cfg.MaxVersion,
-		CurvePreferences:         cfg.CurvePreferences,
+}
+
+func TestTLSClone(t *testing.T) {
+	expectedServerName := "server.name"
+	c := NewTLS(nil)
+	c.OverrideServerName(expectedServerName)
+	cc := c.Clone()
+	if cc.Info().ServerName != expectedServerName {
+		t.Fatalf("cc.Info().ServerName = %v, want %v", cc.Info().ServerName, expectedServerName)
+	}
+	cc.OverrideServerName("")
+	if c.Info().ServerName != expectedServerName {
+		t.Fatalf("Change in clone should not affect the original, c.Info().ServerName = %v, want %v", c.Info().ServerName, expectedServerName)
 	}
 }
