@@ -3,7 +3,6 @@ package buildconfiginstantiate
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -49,6 +48,7 @@ type InstantiateREST struct {
 }
 
 var _ rest.Creater = &InstantiateREST{}
+var _ rest.StorageMetadata = &InstantiateREST{}
 
 // New creates a new build generation request
 func (s *InstantiateREST) New() runtime.Object {
@@ -85,8 +85,6 @@ func (s *InstantiateREST) ProducesMIMETypes(verb string) []string {
 	return nil // no additional mime types
 }
 
-var _ rest.StorageMetadata = &InstantiateREST{}
-
 func NewBinaryStorage(generator *generator.BuildGenerator, buildClient buildtypedclient.BuildsGetter, podClient kcoreclient.PodsGetter, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
 	return &BinaryInstantiateREST{
 		Generator:      generator,
@@ -106,6 +104,7 @@ type BinaryInstantiateREST struct {
 }
 
 var _ rest.Connecter = &BinaryInstantiateREST{}
+var _ rest.StorageMetadata = &InstantiateREST{}
 
 // New creates a new build generation request
 func (r *BinaryInstantiateREST) New() runtime.Object {
@@ -141,8 +140,6 @@ func (r *BinaryInstantiateREST) ProducesObject(verb string) interface{} {
 func (r *BinaryInstantiateREST) ProducesMIMETypes(verb string) []string {
 	return nil // no additional mime types
 }
-
-var _ rest.StorageMetadata = &BinaryInstantiateREST{}
 
 // binaryInstantiateHandler responds to upload requests
 type binaryInstantiateHandler struct {
@@ -275,9 +272,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))
 	}
 	streamOptions := remotecommand.StreamOptions{
-		Stdin:  r,
-		Stdout: ioutil.Discard,
-		Stderr: ioutil.Discard,
+		Stdin: r,
 	}
 	if err := exec.Stream(streamOptions); err != nil {
 		return nil, errors.NewInternalError(err)
