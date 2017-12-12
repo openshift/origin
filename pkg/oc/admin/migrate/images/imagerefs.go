@@ -101,10 +101,6 @@ func NewCmdMigrateImageReferences(name, fullName string, f *clientcmd.Factory, i
 		},
 	}
 
-	// kcmdutil.PrinterForCommand needs these flags, however they are useless
-	// here because oc process returns list of heterogeneous objects that is
-	// not suitable for formatting as a table.
-	kcmdutil.AddNonDeprecatedPrinterFlags(cmd)
 	options.ResourceOptions.Bind(cmd)
 
 	return cmd

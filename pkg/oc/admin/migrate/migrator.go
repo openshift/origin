@@ -90,12 +90,18 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 	c.Flags().StringVar(&o.FromKey, "from-key", o.FromKey, "If specified, only migrate items with a key (namespace/name or name) greater than or equal to this value")
 	c.Flags().StringVar(&o.ToKey, "to-key", o.ToKey, "If specified, only migrate items with a key (namespace/name or name) less than this value")
 
+	// kcmdutil.PrinterForCommand needs these flags, however they are useless
+	// here because oc process returns list of heterogeneous objects that is
+	// not suitable for formatting as a table.
+	kcmdutil.AddNonDeprecatedPrinterFlags(c)
+
 	usage := "Filename, directory, or URL to docker-compose.yml file to use"
 	kubectl.AddJsonFilenameFlag(c, &o.Filenames, usage)
 	c.MarkFlagRequired("filename")
 }
 
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
+	o.Output = kcmdutil.GetFlagString(c, "output")
 	switch {
 	case len(o.Output) > 0:
 		printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(c, false))
