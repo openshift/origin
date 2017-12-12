@@ -50,7 +50,7 @@ For instance, to build the `oc` binary:
     $ hack/env make build WHAT=cmd/oc
 
 The release container works by streaming a copy of the repository into a volume,
-sharing that volume with the container as it's working directory, executing the
+sharing that volume with the container as its working directory, executing the
 desired command and streaming the results back to your filesystem.
 
 One can configure what files are uploaded to the container by setting the
