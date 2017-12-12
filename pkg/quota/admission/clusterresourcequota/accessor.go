@@ -148,6 +148,11 @@ func (e *clusterQuotaAccessor) waitForReadyClusterQuotaNames(namespaceName strin
 		var namespaceSelectionFields clusterquotamapping.SelectionFields
 		clusterQuotaNames, namespaceSelectionFields = e.clusterQuotaMapper.GetClusterQuotasFor(namespaceName)
 		namespace, err := e.namespaceLister.Get(namespaceName)
+		// if we can't find the namespace yet, just wait for the cache to update.  Requests to non-existent namespaces
+		// may hang, but those people are doing something wrong and namespacelifecycle should reject them.
+		if kapierrors.IsNotFound(err) {
+			return false, nil
+		}
 		if err != nil {
 			return false, err
 		}
