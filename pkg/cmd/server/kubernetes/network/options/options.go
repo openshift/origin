@@ -20,6 +20,11 @@ func Build(options configapi.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguratio
 	proxyOptions := kubeproxyoptions.NewOptions()
 	// get default config
 	proxyconfig := proxyOptions.GetConfig()
+	defaultedProxyConfig, err := proxyOptions.ApplyDefaults(proxyconfig)
+	if err != nil {
+		return nil, err
+	}
+	*proxyconfig = *defaultedProxyConfig
 
 	proxyconfig.HostnameOverride = options.NodeName
 
@@ -63,12 +68,6 @@ func Build(options configapi.NodeConfig) (*kubeproxyconfig.KubeProxyConfiguratio
 	}
 	masqueradeBit := int32(0)
 	proxyconfig.IPTables.MasqueradeBit = &masqueradeBit
-
-	defaultedProxyConfig, err := proxyOptions.ApplyDefaults(proxyconfig)
-	if err != nil {
-		return nil, err
-	}
-	*proxyconfig = *defaultedProxyConfig
 
 	// PortRange, use default
 	// HostnameOverride, use default
