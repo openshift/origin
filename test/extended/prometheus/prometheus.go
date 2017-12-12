@@ -310,7 +310,11 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 		stdout, _, err := oc.WithoutNamespace().Run("process").Args("-f", configPath).Outputs()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		// rather than parse the oc err output from valid situations like the object already exist, just logging
+		// the error and continue ... if something else is up, it will be caught later down the line
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "test continuing, but create on the prometheus template resulted in: %#v", err)
+		}
 		e2e.WaitForDeploymentComplete(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
 	}
 
