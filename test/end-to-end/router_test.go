@@ -96,6 +96,7 @@ func TestRouter(t *testing.T) {
 	//run through test cases now that environment is set up
 	testCases := []struct {
 		name              string
+		annotations       map[string]string
 		serviceName       string
 		endpoints         []kapi.EndpointSubset
 		routeAlias        string
@@ -104,6 +105,7 @@ func TestRouter(t *testing.T) {
 		routeEventType    watch.EventType
 		protocol          string
 		expectedResponse  string
+		expectedErr       string
 		routeTLS          *routeapi.TLSConfig
 		routerUrl         string
 		preferredPort     *routeapi.RoutePort
@@ -234,6 +236,37 @@ func TestRouter(t *testing.T) {
 			routerUrl: "0.0.0.0",
 		},
 		{
+			name:              "reencrypt-destcacert-no-verify-fail",
+			serviceName:       "example-reencrypt-destcacert-no-verify-fail",
+			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
+			routeAlias:        "destcert.reencrypt-no-verify-fail.example.com",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "https",
+			expectedResponse:  tr.HelloPodSecure,
+			expectedErr:       ErrUnavailable.Error(),
+			routeTLS: &routeapi.TLSConfig{
+				Termination:              routeapi.TLSTerminationReencrypt,
+				DestinationCACertificate: "-----BEGIN COMMENT-----\nThis is an empty PEM file created to provide backwards compatibility\nfor reencrypt routes that have no destinationCACertificate. This \ncontent will only appear for routes accessed via /oapi/v1/routes.\n-----END COMMENT-----\n",
+			},
+			routerUrl: "0.0.0.0",
+		},
+		{
+			name:              "reencrypt-destcacert-no-verify-annotation",
+			annotations:       map[string]string{"haproxy.router.openshift.io/verifyCACertificate": "true"},
+			serviceName:       "example-reencrypt-destcacert-no-verify",
+			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
+			routeAlias:        "destcert.reencrypt-no-verify.example.com",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "https",
+			expectedResponse:  tr.HelloPodSecure,
+			routeTLS: &routeapi.TLSConfig{
+				Termination: routeapi.TLSTerminationReencrypt,
+			},
+			routerUrl: "0.0.0.0",
+		},
+		{
 			name:              "reencrypt path",
 			serviceName:       "example-reencrypt-path",
 			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
@@ -329,8 +362,9 @@ func TestRouter(t *testing.T) {
 			Type: tc.routeEventType,
 			Object: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      tc.serviceName,
-					Namespace: ns,
+					Name:        tc.serviceName,
+					Namespace:   ns,
+					Annotations: tc.annotations,
 				},
 				Spec: routeapi.RouteSpec{
 					Host: tc.routeAlias,
@@ -352,13 +386,15 @@ func TestRouter(t *testing.T) {
 		// Now verify the route with an HTTP client.
 		t.Logf("TC %s: url %s alias %s protocol %s", tc.name, tc.routerUrl, tc.routeAlias, tc.protocol)
 		if err := waitForRoute(tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse); err != nil {
+			if strings.Contains(err.Error(), tc.expectedErr) {
+				break
+			}
 			t.Errorf("TC %s failed: %v", tc.name, err)
 
 			if strings.Contains(err.Error(), "unavailable the entire time") {
 				break
 			}
 		}
-
 		//clean up
 		routeEvent.Type = watch.Deleted
 		endpointEvent.Type = watch.Deleted
