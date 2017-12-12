@@ -10,8 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -99,7 +99,7 @@ func (plugin *OsdnNode) isNodeIPLocal(nodeIP string) (bool, error) {
 
 func getMasterTrafficNodeIPAnnotation(node *kapi.Node) (string, error) {
 	if len(node.Annotations) > 0 {
-		if nodeIP, ok := node.Annotations[networkapi.MasterTrafficNodeIPAnnotation]; ok {
+		if nodeIP, ok := node.Annotations[kubeletclient.MasterTrafficNodeIPAnnotation]; ok {
 			return nodeIP, nil
 		}
 	}
@@ -111,15 +111,15 @@ func (plugin *OsdnNode) setMasterTrafficNodeIPAnnotation(node *kapi.Node) error 
 	if node.Annotations == nil {
 		node.Annotations = make(map[string]string)
 	}
-	node.Annotations[networkapi.MasterTrafficNodeIPAnnotation] = plugin.masterTrafficIP
+	node.Annotations[kubeletclient.MasterTrafficNodeIPAnnotation] = plugin.masterTrafficIP
 
 	return plugin.updateNode(node)
 }
 
 func (plugin *OsdnNode) unsetMasterTrafficNodeIPAnnotation(node *kapi.Node) error {
 	if node.Annotations != nil {
-		if _, ok := node.Annotations[networkapi.MasterTrafficNodeIPAnnotation]; ok {
-			delete(node.Annotations, networkapi.MasterTrafficNodeIPAnnotation)
+		if _, ok := node.Annotations[kubeletclient.MasterTrafficNodeIPAnnotation]; ok {
+			delete(node.Annotations, kubeletclient.MasterTrafficNodeIPAnnotation)
 			return plugin.updateNode(node)
 		}
 	}

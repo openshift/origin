@@ -12,7 +12,4 @@ const (
 
 	// NetNamespace annotations
 	MulticastEnabledAnnotation = "netnamespace.network.openshift.io/multicast-enabled"
-
-	// Node annotations
-	MasterTrafficNodeIPAnnotation = "network.openshift.io/master-traffic-node-ip"
 )
