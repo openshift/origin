@@ -387,8 +387,11 @@ func (m *Master) Start() error {
 
 	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
 	if controllersEnabled {
-		// informers are shared amongst all the various controllers we build
-		informers, err := NewInformers(*m.config)
+		openshiftControllerInformers, err := NewInformers(*m.config)
+		if err != nil {
+			return err
+		}
+		kubeControllerInformers, err := NewInformers(*m.config)
 		if err != nil {
 			return err
 		}
@@ -452,7 +455,7 @@ func (m *Master) Start() error {
 		allocationController := origin.SecurityAllocationController{
 			SecurityAllocator:          m.config.ProjectConfig.SecurityAllocator,
 			OpenshiftRESTOptionsGetter: restOptsGetter,
-			ExternalKubeInformers:      informers.GetExternalKubeInformers(),
+			ExternalKubeInformers:      openshiftControllerInformers.GetExternalKubeInformers(),
 			KubeExternalClient:         kubeExternal,
 		}
 
@@ -484,19 +487,19 @@ func (m *Master) Start() error {
 				m.config.VolumeConfig.DynamicProvisioningEnabled,
 				m.config.KubernetesMasterConfig.ControllerArguments,
 				recyclerImage,
-				informers)
+				kubeControllerInformers)
 
 			openshiftControllerOptions, err := getOpenshiftControllerOptions(m.config.KubernetesMasterConfig.ControllerArguments)
 			if err != nil {
 				glog.Fatal(err)
 			}
 
-			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop, make(chan struct{}))
+			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, utilwait.NeverStop, make(chan struct{}))
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
-			informers.Start(utilwait.NeverStop)
+			openshiftControllerInformers.Start(utilwait.NeverStop)
 			close(controllerContext.InformersStarted)
 
 		}()
