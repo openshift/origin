@@ -17,100 +17,21 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	f5testing "github.com/openshift/origin/pkg/router/f5/testing"
 )
 
 type (
-	// mockF5State stores the state necessary to mock the functionality of an F5
-	// BIG-IP host that the F5 router uses.
-	mockF5State struct {
-		// policies is the set of policies that exist in the mock F5 host.
-		policies map[string]map[string]policyRule
-
-		// vserverPolicies represents the associations between vservers and policies
-		// in the mock F5 host.
-		vserverPolicies map[string]map[string]bool
-
-		// certs represents the set of certificates that have been installed into
-		// the mock F5 host.
-		certs map[string]bool
-
-		// keys represents the set of certificates that have been installed into
-		// the mock F5 host.
-		keys map[string]bool
-
-		// serverSslProfiles represents the set of server-ssl profiles that exist in
-		// the mock F5 host.
-		serverSslProfiles map[string]bool
-
-		// clientSslProfiles represents the set of client-ssl profiles that exist in
-		// the mock F5 host.
-		clientSslProfiles map[string]bool
-
-		// vserverProfiles represents the associations between vservers and
-		// client-ssl and server-ssl profiles in the mock F5 host.
-		//
-		// Note that although the F5 management console displays client and server
-		// profiles separately, the F5 iControl REST interface puts these
-		// associations under a single REST endpoint.
-		vserverProfiles map[string]map[string]bool
-
-		// datagroups represents the iRules data-groups in the F5 host.  For our
-		// purposes, we assume that every data-group maps strings to strings.
-		datagroups map[string]datagroup
-
-		// iRules represents the iRules that exist in the F5 host.
-		iRules map[string]iRule
-
-		// vserverIRules represents the associations between vservers and iRules in
-		// the mock F5 host.
-		vserverIRules map[string][]string
-
-		// partitionPaths represents the partitions that exist in
-		// the mock F5 host.
-		partitionPaths map[string]string
-
-		// pools represents the pools that exist on the mock F5 host.
-		pools map[string]pool
-	}
-
 	mockF5 struct {
 		// state is the internal state of the mock F5 BIG-IP host.
-		state mockF5State
+		state f5testing.MockF5State
 
 		// server is the mock F5 BIG-IP host, which accepts HTTPS connections and
 		// behaves as an actual F5 BIG-IP host for testing purposes.
 		server *httptest.Server
 	}
-
-	// A policyCondition describes a single condition for a policy rule to match.
-	policyCondition struct {
-		HttpHost    bool     `json:"httpHost,omitempty"`
-		HttpUri     bool     `json:"httpUri,omitempty"`
-		PathSegment bool     `json:"pathSegment,omitempty"`
-		Index       int      `json:"index"`
-		Host        bool     `json:"host,omitempty"`
-		Values      []string `json:"values"`
-	}
-
-	// A policyRule has a name and comprises a list of conditions and a list of
-	// actions.
-	policyRule struct {
-		conditions []policyCondition
-	}
-
-	// A datagroup is an associative array.  For our purposes, a datagroup maps
-	// strings to strings.
-	datagroup map[string]string
-
-	// An iRule comprises a string of TCL code.
-	iRule string
-
-	// A pool comprises a set of strings of the form addr:port.
-	pool map[string]bool
 
 	// An internal mock of an F5 iControl REST API resource.
 	mockF5iControlResource struct {
@@ -148,7 +69,7 @@ type Route struct {
 	Name        string
 	Method      string
 	Pattern     string
-	HandlerFunc func(mockF5State) http.HandlerFunc
+	HandlerFunc func(f5testing.MockF5State) http.HandlerFunc
 }
 
 var f5Routes = []Route{
@@ -187,7 +108,7 @@ var f5Routes = []Route{
 	{"deleteSslCert", "DELETE", "/mgmt/tm/sys/file/ssl-cert/{certName}", deleteSslCertHandler},
 }
 
-func newF5Routes(mockF5State mockF5State) *mux.Router {
+func newF5Routes(mockF5State f5testing.MockF5State) *mux.Router {
 	mockF5 := mux.NewRouter().StrictSlash(true)
 	for _, route := range f5Routes {
 		mockF5.
@@ -203,7 +124,7 @@ func newF5Routes(mockF5State mockF5State) *mux.Router {
 // initialized from the given mock F5 state and returns pointers to the plugin
 // and mock server.  Note that these pointers will be nil if an error is
 // returned.
-func newTestRouterWithState(state mockF5State, partitionPath string) (*F5Plugin, *mockF5, error) {
+func newTestRouterWithState(state f5testing.MockF5State, partitionPath string) (*F5Plugin, *mockF5, error) {
 	routerLogLevel := util.Env("TEST_ROUTER_LOGLEVEL", "")
 	if routerLogLevel != "" {
 		flag.Set("v", routerLogLevel)
@@ -247,26 +168,26 @@ func newTestRouter(partitionPath string) (*F5Plugin, *mockF5, error) {
 	pathKey := strings.Replace(partitionPath, "/", "~", -1)
 	httpVserverPath := path.Join(partitionPath, httpVserverName)
 	httpsVserverPath := path.Join(partitionPath, httpsVserverName)
-	state := mockF5State{
-		policies: map[string]map[string]policyRule{},
-		vserverPolicies: map[string]map[string]bool{
+	state := f5testing.MockF5State{
+		Policies: map[string]map[string]f5testing.PolicyRule{},
+		VserverPolicies: map[string]map[string]bool{
 			httpVserverPath:  {},
 			httpsVserverPath: {},
 		},
-		certs:             map[string]bool{},
-		keys:              map[string]bool{},
-		serverSslProfiles: map[string]bool{},
-		clientSslProfiles: map[string]bool{},
-		vserverProfiles: map[string]map[string]bool{
+		Certs:             map[string]bool{},
+		Keys:              map[string]bool{},
+		ServerSslProfiles: map[string]bool{},
+		ClientSslProfiles: map[string]bool{},
+		VserverProfiles: map[string]map[string]bool{
 			httpsVserverPath: {},
 		},
-		datagroups:    map[string]datagroup{},
-		iRules:        map[string]iRule{},
-		vserverIRules: map[string][]string{},
+		Datagroups:    map[string]f5testing.Datagroup{},
+		IRules:        map[string]f5testing.IRule{},
+		VserverIRules: map[string][]string{},
 
 		// Add the default /Common partition path.
-		partitionPaths: map[string]string{pathKey: partitionPath},
-		pools:          map[string]pool{},
+		PartitionPaths: map[string]string{pathKey: partitionPath},
+		Pools:          map[string]f5testing.Pool{},
 	}
 
 	return newTestRouterWithState(state, partitionPath)
@@ -310,8 +231,8 @@ func newMockF5iControlResource(resourceType, resourceName string) *mockF5iContro
 }
 
 func validatePolicy(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, policy *mockF5iControlResource) bool {
-	_, ok := f5state.policies[policy.id()]
+	f5state f5testing.MockF5State, policy *mockF5iControlResource) bool {
+	_, ok := f5state.Policies[policy.id()]
 	if !ok {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
@@ -323,7 +244,7 @@ func validatePolicy(response http.ResponseWriter, request *http.Request,
 	return true
 }
 
-func getPolicyHandler(f5state mockF5State) http.HandlerFunc {
+func getPolicyHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		policy := newMockF5iControlResource("policy", vars["policyName"])
@@ -343,7 +264,7 @@ func OK(response http.ResponseWriter) {
 	fmt.Fprint(response, `{"code":200,"message":"OK"}`)
 }
 
-func postPolicyHandler(f5state mockF5State) http.HandlerFunc {
+func postPolicyHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			Name      string `json:"name"`
@@ -354,13 +275,13 @@ func postPolicyHandler(f5state mockF5State) http.HandlerFunc {
 
 		policy := newMockF5iControlResource("policy", payload.Name)
 
-		f5state.policies[policy.id()] = map[string]policyRule{}
+		f5state.Policies[policy.id()] = map[string]f5testing.PolicyRule{}
 
 		OK(response)
 	}
 }
 
-func postRuleHandler(f5state mockF5State) http.HandlerFunc {
+func postRuleHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		policy := newMockF5iControlResource("policy", vars["policyName"])
@@ -377,15 +298,15 @@ func postRuleHandler(f5state mockF5State) http.HandlerFunc {
 
 		ruleName := payload.Name
 
-		newRule := policyRule{[]policyCondition{}}
-		f5state.policies[policy.id()][ruleName] = newRule
+		newRule := f5testing.PolicyRule{[]f5testing.PolicyCondition{}}
+		f5state.Policies[policy.id()][ruleName] = newRule
 
 		OK(response)
 	}
 }
 
 func validateVserver(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, vserver *mockF5iControlResource) bool {
+	f5state f5testing.MockF5State, vserver *mockF5iControlResource) bool {
 	if !recogniseVserver(vserver) {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
@@ -397,7 +318,7 @@ func validateVserver(response http.ResponseWriter, request *http.Request,
 	return true
 }
 
-func getPoliciesHandler(f5state mockF5State) http.HandlerFunc {
+func getPoliciesHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		vserver := newMockF5iControlResource("vserver", vars["vserverName"])
@@ -407,7 +328,7 @@ func getPoliciesHandler(f5state mockF5State) http.HandlerFunc {
 		}
 
 		fmt.Fprint(response, `{"items":[{"controls":["classification"],"fullPath":"/Common/_sys_CEC_SSL_client_policy","generation":1,"hints":["no-write","no-delete","no-exclusion"],"kind":"tm:ltm:policy:policystate","name":"_sys_CEC_SSL_client_policy","partition":"Common","requires":["ssl-persistence"],"rulesReference":{"isSubcollection":true,"link":"https://localhost/mgmt/tm/ltm/policy/~Common~_sys_CEC_SSL_client_policy/rules?ver=11.6.0"},"selfLink":"https://localhost/mgmt/tm/ltm/policy/~Common~_sys_CEC_SSL_client_policy?ver=11.6.0","strategy":"/Common/first-match"},{"controls":["classification"],"fullPath":"/Common/_sys_CEC_SSL_server_policy","generation":1,"hints":["no-write","no-delete","no-exclusion"],"kind":"tm:ltm:policy:policystate","name":"_sys_CEC_SSL_server_policy","partition":"Common","requires":["ssl-persistence"],"rulesReference":{"isSubcollection":true,"link":"https://localhost/mgmt/tm/ltm/policy/~Common~_sys_CEC_SSL_server_policy/rules?ver=11.6.0"},"selfLink":"https://localhost/mgmt/tm/ltm/policy/~Common~_sys_CEC_SSL_server_policy?ver=11.6.0","strategy":"/Common/first-match"},{"controls":["classification"],"fullPath":"/Common/_sys_CEC_video_policy","generation":1,"hints":["no-write","no-delete","no-exclusion"],"kind":"tm:ltm:policy:policystate","name":"_sys_CEC_video_policy","partition":"Common","requires":["http"],"rulesReference":{"isSubcollection":true,"link":"https://localhost/mgmt/tm/ltm/policy/~Common~_sys_CEC_video_policy/rules?ver=11.6.0"},"selfLink":"https://localhost/mgmt/tm/ltm/policy/~Common~_sys_CEC_video_policy?ver=11.6.0","strategy":"/Common/first-match"}`)
-		for policyName := range f5state.vserverPolicies[vserver.id()] {
+		for policyName := range f5state.VserverPolicies[vserver.id()] {
 			policy := newMockF5iControlResource("policy", policyName)
 			policyUriPath := policy.uriPath()
 			fmt.Fprintf(response,
@@ -426,7 +347,7 @@ func recogniseVserver(vserver *mockF5iControlResource) bool {
 	return isHttpVserver || isHttpsVserver
 }
 
-func associatePolicyWithVserverHandler(f5state mockF5State) http.HandlerFunc {
+func associatePolicyWithVserverHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		vserver := newMockF5iControlResource("vserver", vars["vserverName"])
@@ -441,7 +362,7 @@ func associatePolicyWithVserverHandler(f5state mockF5State) http.HandlerFunc {
 		policy := newMockF5iControlResource("policy", payload.Name)
 
 		validVserver := recogniseVserver(vserver)
-		_, validPolicy := f5state.policies[policy.id()]
+		_, validPolicy := f5state.Policies[policy.id()]
 
 		if !validVserver || !validPolicy {
 			response.WriteHeader(http.StatusNotFound)
@@ -468,22 +389,22 @@ func associatePolicyWithVserverHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		if _, found := f5state.vserverPolicies[vserver.id()]; !found {
+		if _, found := f5state.VserverPolicies[vserver.id()]; !found {
 			fmt.Fprintf(response,
 				`{"code":400,"errorStack":[],"message":"01070712:3: Values (%s) specified for virtual server policy (%s %s): foreign key index (vs_FK) do not point at an item that exists in the database."}`,
 				vserver.FullPath, vserver.FullPath, policy.FullPath)
 			return
 		}
 
-		f5state.vserverPolicies[vserver.id()][policy.id()] = true
+		f5state.VserverPolicies[vserver.id()][policy.id()] = true
 
 		OK(response)
 	}
 }
 
 func validateDatagroup(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, datagroupResource *mockF5iControlResource) bool {
-	_, ok := f5state.datagroups[datagroupResource.id()]
+	f5state f5testing.MockF5State, datagroupResource *mockF5iControlResource) bool {
+	_, ok := f5state.Datagroups[datagroupResource.id()]
 	if !ok {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
@@ -495,7 +416,7 @@ func validateDatagroup(response http.ResponseWriter, request *http.Request,
 	return true
 }
 
-func getDatagroupHandler(f5state mockF5State) http.HandlerFunc {
+func getDatagroupHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		datagroupResource := newMockF5iControlResource("datagroup", vars["datagroupName"])
@@ -504,7 +425,7 @@ func getDatagroupHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		datagroup := f5state.datagroups[datagroupResource.id()]
+		datagroup := f5state.Datagroups[datagroupResource.id()]
 
 		fmt.Fprintf(response,
 			`{"fullPath":"%s","generation":1556,"kind":"tm:ltm:data-group:internal:internalstate","name":"%s","records":[`,
@@ -526,7 +447,7 @@ func getDatagroupHandler(f5state mockF5State) http.HandlerFunc {
 	}
 }
 
-func patchDatagroupHandler(f5state mockF5State) http.HandlerFunc {
+func patchDatagroupHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		datagroupResource := newMockF5iControlResource("datagroup", vars["datagroupName"])
@@ -545,18 +466,18 @@ func patchDatagroupHandler(f5state mockF5State) http.HandlerFunc {
 		decoder := json.NewDecoder(request.Body)
 		decoder.Decode(&payload)
 
-		dg := datagroup{}
+		dg := f5testing.Datagroup{}
 		for _, record := range payload.Records {
 			dg[record.Key] = record.Value
 		}
 
-		f5state.datagroups[datagroupResource.id()] = dg
+		f5state.Datagroups[datagroupResource.id()] = dg
 
 		OK(response)
 	}
 }
 
-func postDatagroupHandler(f5state mockF5State) http.HandlerFunc {
+func postDatagroupHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			Name string `json:"name"`
@@ -566,7 +487,7 @@ func postDatagroupHandler(f5state mockF5State) http.HandlerFunc {
 
 		datagroupResource := newMockF5iControlResource("datagroup", payload.Name)
 
-		_, datagroupAlreadyExists := f5state.datagroups[datagroupResource.id()]
+		_, datagroupAlreadyExists := f5state.Datagroups[datagroupResource.id()]
 		if datagroupAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
@@ -575,18 +496,18 @@ func postDatagroupHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		f5state.datagroups[datagroupResource.id()] = map[string]string{}
+		f5state.Datagroups[datagroupResource.id()] = map[string]string{}
 
 		OK(response)
 	}
 }
 
-func getIRuleHandler(f5state mockF5State) http.HandlerFunc {
+func getIRuleHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		rule := newMockF5iControlResource("irule", vars["iRuleName"])
 
-		iRuleCode, ok := f5state.iRules[rule.id()]
+		iRuleCode, ok := f5state.IRules[rule.id()]
 		if !ok {
 			response.WriteHeader(http.StatusNotFound)
 			fmt.Fprintf(response,
@@ -601,7 +522,7 @@ func getIRuleHandler(f5state mockF5State) http.HandlerFunc {
 	}
 }
 
-func postIRuleHandler(f5state mockF5State) http.HandlerFunc {
+func postIRuleHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			Name string `json:"name"`
@@ -613,7 +534,7 @@ func postIRuleHandler(f5state mockF5State) http.HandlerFunc {
 		rule := newMockF5iControlResource("irule", payload.Name)
 		iRuleCode := payload.Code
 
-		_, iRuleAlreadyExists := f5state.iRules[rule.id()]
+		_, iRuleAlreadyExists := f5state.IRules[rule.id()]
 		if iRuleAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
@@ -635,13 +556,13 @@ func postIRuleHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		f5state.iRules[rule.id()] = iRule(iRuleCode)
+		f5state.IRules[rule.id()] = f5testing.IRule(iRuleCode)
 
 		OK(response)
 	}
 }
 
-func getVserverHandler(f5state mockF5State) http.HandlerFunc {
+func getVserverHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		vserver := newMockF5iControlResource("vserver", vars["vserverName"])
@@ -665,7 +586,7 @@ func getVserverHandler(f5state mockF5State) http.HandlerFunc {
 			vserver.Name, vserverUriPath, vserverUriPath)
 
 		first := true
-		for _, ruleName := range f5state.vserverIRules[vserver.id()] {
+		for _, ruleName := range f5state.VserverIRules[vserver.id()] {
 			if first {
 				first = false
 			} else {
@@ -680,7 +601,7 @@ func getVserverHandler(f5state mockF5State) http.HandlerFunc {
 	}
 }
 
-func patchVserverHandler(f5state mockF5State) http.HandlerFunc {
+func patchVserverHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		vserver := newMockF5iControlResource("policy", vars["vserverName"])
@@ -697,15 +618,15 @@ func patchVserverHandler(f5state mockF5State) http.HandlerFunc {
 
 		iRules := []string(payload.Rules)
 
-		f5state.vserverIRules[vserver.id()] = iRules
+		f5state.VserverIRules[vserver.id()] = iRules
 
 		OK(response)
 	}
 }
 
 func validatePartition(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, partition *mockF5iControlResource) bool {
-	_, ok := f5state.partitionPaths[partition.id()]
+	f5state f5testing.MockF5State, partition *mockF5iControlResource) bool {
+	_, ok := f5state.PartitionPaths[partition.id()]
 	if !ok {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
@@ -717,7 +638,7 @@ func validatePartition(response http.ResponseWriter, request *http.Request,
 	return true
 }
 
-func getPartitionPath(f5state mockF5State) http.HandlerFunc {
+func getPartitionPath(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		partition := newMockF5iControlResource("partition", vars["partitionPath"])
@@ -726,14 +647,14 @@ func getPartitionPath(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		fullPath := f5state.partitionPaths[partition.id()]
+		fullPath := f5state.PartitionPaths[partition.id()]
 		fmt.Fprintf(response,
 			`{"deviceGroup":"%s/ose-sync-failover","fullPath":"%s","generation":580,"hidden":"false","inheritedDevicegroup":"true","inheritedTrafficGroup":"true","kind":"tm:sys:folder:folderstate","name":"%s","noRefCheck":"false","selfLink":"https://localhost/mgmt/tm/sys/folder/%s?ver=11.6.0","subPath":"/"}`,
 			fullPath, fullPath, partition.Name, encodeiControlUriPathComponent(fullPath))
 	}
 }
 
-func postPartitionPathHandler(f5state mockF5State) http.HandlerFunc {
+func postPartitionPathHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			Name string `json:"name"`
@@ -743,13 +664,13 @@ func postPartitionPathHandler(f5state mockF5State) http.HandlerFunc {
 
 		partition := newMockF5iControlResource("partition", payload.Name)
 
-		f5state.partitionPaths[partition.id()] = partition.FullPath
+		f5state.PartitionPaths[partition.id()] = partition.FullPath
 
 		OK(response)
 	}
 }
 
-func postPoolHandler(f5state mockF5State) http.HandlerFunc {
+func postPoolHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			Name string `json:"name"`
@@ -759,28 +680,28 @@ func postPoolHandler(f5state mockF5State) http.HandlerFunc {
 
 		poolResource := newMockF5iControlResource("pool", payload.Name)
 
-		_, poolAlreadyExists := f5state.pools[poolResource.id()]
+		_, poolAlreadyExists := f5state.Pools[poolResource.id()]
 		if poolAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
-				`{"code":409,"errorStack":[],"message":"01020066:3: The requested Pool (%s) already exists in partition %s."}`,
+				`{"code":409,"errorStack":[],"message":"01020066:3: The requested f5testing.Pool (%s) already exists in partition %s."}`,
 				poolResource.FullPath, poolResource.Partition)
 			return
 		}
 
-		f5state.pools[poolResource.id()] = pool{}
+		f5state.Pools[poolResource.id()] = f5testing.Pool{}
 
 		OK(response)
 	}
 }
 
 func validatePool(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, poolResource *mockF5iControlResource) bool {
-	_, ok := f5state.pools[poolResource.id()]
+	f5state f5testing.MockF5State, poolResource *mockF5iControlResource) bool {
+	_, ok := f5state.Pools[poolResource.id()]
 	if !ok {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
-			`{"code":404,"errorStack":[],"message":"01020036:3:The requested Pool (%s) was not found."}`,
+			`{"code":404,"errorStack":[],"message":"01020036:3:The requested f5testing.Pool (%s) was not found."}`,
 			poolResource.FullPath)
 		return false
 	}
@@ -788,7 +709,7 @@ func validatePool(response http.ResponseWriter, request *http.Request,
 	return true
 }
 
-func deletePoolHandler(f5state mockF5State) http.HandlerFunc {
+func deletePoolHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		poolResource := newMockF5iControlResource("pool", vars["poolName"])
@@ -799,13 +720,13 @@ func deletePoolHandler(f5state mockF5State) http.HandlerFunc {
 
 		// TODO: Validate that no rule references the pool.
 
-		delete(f5state.pools, poolResource.id())
+		delete(f5state.Pools, poolResource.id())
 
 		OK(response)
 	}
 }
 
-func getPoolMembersHandler(f5state mockF5State) http.HandlerFunc {
+func getPoolMembersHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		poolResource := newMockF5iControlResource("pool", vars["poolName"])
@@ -817,7 +738,7 @@ func getPoolMembersHandler(f5state mockF5State) http.HandlerFunc {
 		fmt.Fprint(response, `{"items":[`)
 
 		first := true
-		for member := range f5state.pools[poolResource.id()] {
+		for member := range f5state.Pools[poolResource.id()] {
 			if first {
 				first = false
 			} else {
@@ -836,7 +757,7 @@ func getPoolMembersHandler(f5state mockF5State) http.HandlerFunc {
 	}
 }
 
-func postPoolMemberHandler(f5state mockF5State) http.HandlerFunc {
+func postPoolMemberHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		poolResource := newMockF5iControlResource("pool", vars["poolName"])
@@ -853,22 +774,22 @@ func postPoolMemberHandler(f5state mockF5State) http.HandlerFunc {
 
 		memberName := payload.Member
 
-		_, memberAlreadyExists := f5state.pools[poolResource.id()][memberName]
+		_, memberAlreadyExists := f5state.Pools[poolResource.id()][memberName]
 		if memberAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
-				`{"code":409,"message":"01020066:3: The requested Pool Member (%s %s) already exists in partition %s.","errorStack":[]}`,
+				`{"code":409,"message":"01020066:3: The requested f5testing.Pool Member (%s %s) already exists in partition %s.","errorStack":[]}`,
 				poolResource.FullPath, strings.Replace(memberName, ":", " ", 1), poolResource.Partition)
 			return
 		}
 
-		f5state.pools[poolResource.id()][memberName] = true
+		f5state.Pools[poolResource.id()][memberName] = true
 
 		OK(response)
 	}
 }
 
-func deletePoolMemberHandler(f5state mockF5State) http.HandlerFunc {
+func deletePoolMemberHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		poolResource := newMockF5iControlResource("policy", vars["poolName"])
@@ -878,20 +799,20 @@ func deletePoolMemberHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		_, foundMember := f5state.pools[poolResource.id()][memberName]
+		_, foundMember := f5state.Pools[poolResource.id()][memberName]
 		if !foundMember {
 			fmt.Fprintf(response,
-				`{"code":404,"message":"01020036:3: The requested Pool Member (%s %s) was not found.","errorStack":[]}`,
+				`{"code":404,"message":"01020036:3: The requested f5testing.Pool Member (%s %s) was not found.","errorStack":[]}`,
 				poolResource.FullPath, strings.Replace(memberName, ":", " ", 1))
 		}
 
-		delete(f5state.pools[poolResource.id()], memberName)
+		delete(f5state.Pools[poolResource.id()], memberName)
 
 		OK(response)
 	}
 }
 
-func getRulesHandler(f5state mockF5State) http.HandlerFunc {
+func getRulesHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		policy := newMockF5iControlResource("policy", vars["policyName"])
@@ -904,7 +825,7 @@ func getRulesHandler(f5state mockF5State) http.HandlerFunc {
 
 		policyUriPath := policy.uriPath()
 		first := true
-		for ruleName := range f5state.policies[policy.id()] {
+		for ruleName := range f5state.Policies[policy.id()] {
 			if first {
 				first = false
 			} else {
@@ -927,8 +848,8 @@ func getRulesHandler(f5state mockF5State) http.HandlerFunc {
 }
 
 func validateRuleName(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, policy *mockF5iControlResource, ruleName string) bool {
-	for rule := range f5state.policies[policy.id()] {
+	f5state f5testing.MockF5State, policy *mockF5iControlResource, ruleName string) bool {
+	for rule := range f5state.Policies[policy.id()] {
 		if rule == ruleName {
 			return true
 		}
@@ -941,7 +862,7 @@ func validateRuleName(response http.ResponseWriter, request *http.Request,
 	return false
 }
 
-func postConditionHandler(f5state mockF5State) http.HandlerFunc {
+func postConditionHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		policy := newMockF5iControlResource("policy", vars["policyName"])
@@ -957,21 +878,21 @@ func postConditionHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		payload := policyCondition{}
+		payload := f5testing.PolicyCondition{}
 		decoder := json.NewDecoder(request.Body)
 		decoder.Decode(&payload)
 
 		// TODO: Validate more fields in the payload: equals, request, maybe others.
 
-		conditions := f5state.policies[policy.id()][ruleName].conditions
+		conditions := f5state.Policies[policy.id()][ruleName].Conditions
 		conditions = append(conditions, payload)
-		f5state.policies[policy.id()][ruleName] = policyRule{conditions}
+		f5state.Policies[policy.id()][ruleName] = f5testing.PolicyRule{conditions}
 
 		OK(response)
 	}
 }
 
-func postActionHandler(f5state mockF5State) http.HandlerFunc {
+func postActionHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		policy := newMockF5iControlResource("policy", vars["policyName"])
@@ -993,7 +914,7 @@ func postActionHandler(f5state mockF5State) http.HandlerFunc {
 	}
 }
 
-func deleteRuleHandler(f5state mockF5State) http.HandlerFunc {
+func deleteRuleHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		policy := newMockF5iControlResource("policy", vars["policyName"])
@@ -1009,13 +930,13 @@ func deleteRuleHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		delete(f5state.policies[policy.id()], ruleName)
+		delete(f5state.Policies[policy.id()], ruleName)
 
 		OK(response)
 	}
 }
 
-func postSslCertHandler(f5state mockF5State) http.HandlerFunc {
+func postSslCertHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			Name string `json:"name"`
@@ -1031,13 +952,13 @@ func postSslCertHandler(f5state mockF5State) http.HandlerFunc {
 		// F5 adds the extension to the filename specified in the payload, and this
 		// extension must be included in subsequent REST calls that reference the
 		// file.
-		f5state.certs[fmt.Sprintf("%s.crt", certName)] = true
+		f5state.Certs[fmt.Sprintf("%s.crt", certName)] = true
 
 		OK(response)
 	}
 }
 
-func postSslKeyHandler(f5state mockF5State) http.HandlerFunc {
+func postSslKeyHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			Name string `json:"name"`
@@ -1050,15 +971,15 @@ func postSslKeyHandler(f5state mockF5State) http.HandlerFunc {
 		// TODO: Validate filename (which would require more elaborate mocking of
 		// the ssh and scp commands in mockExecCommand).
 
-		f5state.keys[fmt.Sprintf("%s.key", keyName)] = true
+		f5state.Keys[fmt.Sprintf("%s.key", keyName)] = true
 
 		OK(response)
 	}
 }
 
 func validateClientKey(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, keyName string) bool {
-	_, ok := f5state.keys[keyName]
+	f5state f5testing.MockF5State, keyName string) bool {
+	_, ok := f5state.Keys[keyName]
 	if !ok {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
@@ -1070,8 +991,8 @@ func validateClientKey(response http.ResponseWriter, request *http.Request,
 }
 
 func validateCert(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, certName string) bool {
-	_, ok := f5state.certs[certName]
+	f5state f5testing.MockF5State, certName string) bool {
+	_, ok := f5state.Certs[certName]
 	if !ok {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
@@ -1083,7 +1004,7 @@ func validateCert(response http.ResponseWriter, request *http.Request,
 	return true
 }
 
-func postClientSslProfileHandler(f5state mockF5State) http.HandlerFunc {
+func postClientSslProfileHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			CertificateName string `json:"cert"`
@@ -1098,7 +1019,7 @@ func postClientSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 		clientSslProfileName := payload.Name
 
 		// Complain about name collision first because F5 does.
-		_, clientSslProfileAlreadyExists := f5state.clientSslProfiles[clientSslProfileName]
+		_, clientSslProfileAlreadyExists := f5state.ClientSslProfiles[clientSslProfileName]
 		if clientSslProfileAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
@@ -1120,7 +1041,7 @@ func postClientSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 		// The name for a client-ssl profile cannot collide with the name of any
 		// server-ssl profile either, but F5 complains about name collisions with
 		// server-ssl profiles only if the above checks pass.
-		_, serverSslProfileAlreadyExists := f5state.serverSslProfiles[clientSslProfileName]
+		_, serverSslProfileAlreadyExists := f5state.ServerSslProfiles[clientSslProfileName]
 		if serverSslProfileAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
@@ -1129,18 +1050,18 @@ func postClientSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		f5state.clientSslProfiles[clientSslProfileName] = true
+		f5state.ClientSslProfiles[clientSslProfileName] = true
 
 		OK(response)
 	}
 }
 
-func deleteClientSslProfileHandler(f5state mockF5State) http.HandlerFunc {
+func deleteClientSslProfileHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		clientSslProfileName := vars["profileName"]
 
-		_, clientSslProfileFound := f5state.clientSslProfiles[clientSslProfileName]
+		_, clientSslProfileFound := f5state.ClientSslProfiles[clientSslProfileName]
 		if !clientSslProfileFound {
 			response.WriteHeader(http.StatusNotFound)
 			fmt.Fprintf(response,
@@ -1149,15 +1070,15 @@ func deleteClientSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		delete(f5state.clientSslProfiles, clientSslProfileName)
+		delete(f5state.ClientSslProfiles, clientSslProfileName)
 
 		OK(response)
 	}
 }
 
 func validateServerKey(response http.ResponseWriter, request *http.Request,
-	f5state mockF5State, keyName string) bool {
-	_, ok := f5state.keys[keyName]
+	f5state f5testing.MockF5State, keyName string) bool {
+	_, ok := f5state.Keys[keyName]
 	if !ok {
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response,
@@ -1169,7 +1090,7 @@ func validateServerKey(response http.ResponseWriter, request *http.Request,
 	return true
 }
 
-func postServerSslProfileHandler(f5state mockF5State) http.HandlerFunc {
+func postServerSslProfileHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		payload := struct {
 			CertificateName string `json:"chain"`
@@ -1182,7 +1103,7 @@ func postServerSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 		serverSslProfileName := payload.Name
 
 		// Complain about name collision first because F5 does.
-		_, serverSslProfileAlreadyExists := f5state.serverSslProfiles[serverSslProfileName]
+		_, serverSslProfileAlreadyExists := f5state.ServerSslProfiles[serverSslProfileName]
 		if serverSslProfileAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
@@ -1191,7 +1112,7 @@ func postServerSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		_, clientSslProfileAlreadyExists := f5state.clientSslProfiles[serverSslProfileName]
+		_, clientSslProfileAlreadyExists := f5state.ClientSslProfiles[serverSslProfileName]
 		if clientSslProfileAlreadyExists {
 			response.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(response,
@@ -1204,18 +1125,18 @@ func postServerSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		f5state.serverSslProfiles[serverSslProfileName] = true
+		f5state.ServerSslProfiles[serverSslProfileName] = true
 
 		OK(response)
 	}
 }
 
-func deleteServerSslProfileHandler(f5state mockF5State) http.HandlerFunc {
+func deleteServerSslProfileHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		serverSslProfileName := vars["profileName"]
 
-		_, serverSslProfileFound := f5state.serverSslProfiles[serverSslProfileName]
+		_, serverSslProfileFound := f5state.ServerSslProfiles[serverSslProfileName]
 		if !serverSslProfileFound {
 			response.WriteHeader(http.StatusNotFound)
 			fmt.Fprintf(response,
@@ -1224,13 +1145,13 @@ func deleteServerSslProfileHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		delete(f5state.serverSslProfiles, serverSslProfileName)
+		delete(f5state.ServerSslProfiles, serverSslProfileName)
 
 		OK(response)
 	}
 }
 
-func associateProfileWithVserver(f5state mockF5State) http.HandlerFunc {
+func associateProfileWithVserver(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		vserver := newMockF5iControlResource("vserver", vars["vserverName"])
@@ -1247,13 +1168,13 @@ func associateProfileWithVserver(f5state mockF5State) http.HandlerFunc {
 
 		profileName := payload.Name
 
-		f5state.vserverProfiles[vserver.id()][profileName] = true
+		f5state.VserverProfiles[vserver.id()][profileName] = true
 
 		OK(response)
 	}
 }
 
-func deleteSslVserverProfileHandler(f5state mockF5State) http.HandlerFunc {
+func deleteSslVserverProfileHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		vserver := newMockF5iControlResource("vserver", vars["vserverName"])
@@ -1263,18 +1184,18 @@ func deleteSslVserverProfileHandler(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		delete(f5state.vserverProfiles[vserver.id()], profileName)
+		delete(f5state.VserverProfiles[vserver.id()], profileName)
 
 		OK(response)
 	}
 }
 
-func deleteSslKeyHandler(f5state mockF5State) http.HandlerFunc {
+func deleteSslKeyHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		keyName := vars["keyName"]
 
-		_, keyFound := f5state.keys[keyName]
+		_, keyFound := f5state.Keys[keyName]
 		if !keyFound {
 			response.WriteHeader(http.StatusNotFound)
 			fmt.Fprintf(response,
@@ -1287,18 +1208,18 @@ func deleteSslKeyHandler(f5state mockF5State) http.HandlerFunc {
 		// track of more state).
 		//{"code":400,"message":"01071349:3: File object by name (/Common/%s) is in use.","errorStack":[]}
 
-		delete(f5state.keys, keyName)
+		delete(f5state.Keys, keyName)
 
 		OK(response)
 	}
 }
 
-func deleteSslCertHandler(f5state mockF5State) http.HandlerFunc {
+func deleteSslCertHandler(f5state f5testing.MockF5State) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
 		vars := mux.Vars(request)
 		certName := vars["certName"]
 
-		_, certFound := f5state.certs[certName]
+		_, certFound := f5state.Certs[certName]
 		if !certFound {
 			response.WriteHeader(http.StatusNotFound)
 			fmt.Fprintf(response,
@@ -1311,7 +1232,7 @@ func deleteSslCertHandler(f5state mockF5State) http.HandlerFunc {
 		// track of more state).
 		//{"code":400,"message":"01071349:3: File object by name (/Common/openshift_route_default_route-reencrypt-https-cert.crt) is in use.","errorStack":[]}
 
-		delete(f5state.certs, certName)
+		delete(f5state.Certs, certName)
 
 		OK(response)
 	}
@@ -1332,17 +1253,17 @@ func TestInitializeF5Plugin(t *testing.T) {
 	expectedPolicies := []string{insecureRoutesPolicyName, secureRoutesPolicyName}
 	for _, policyName := range expectedPolicies {
 		policy := newMockF5iControlResource("policy", path.Join(F5DefaultPartitionPath, policyName))
-		_, ok := mockF5.state.policies[policy.id()]
+		_, ok := mockF5.state.Policies[policy.id()]
 		if !ok {
 			t.Errorf("%s policy was not created; policies map: %v",
-				policyName, mockF5.state.policies)
+				policyName, mockF5.state.Policies)
 		}
 	}
 
 	// The HTTPS vserver should have the policy for secure routes associated.
 	foundSecureRoutesPolicy := false
 	httpsVserver := newMockF5iControlResource("vserver", path.Join(F5DefaultPartitionPath, httpsVserverName))
-	for policyName := range mockF5.state.vserverPolicies[httpsVserver.id()] {
+	for policyName := range mockF5.state.VserverPolicies[httpsVserver.id()] {
 		if strings.HasSuffix(policyName, secureRoutesPolicyName) {
 			foundSecureRoutesPolicy = true
 		} else {
@@ -1358,7 +1279,7 @@ func TestInitializeF5Plugin(t *testing.T) {
 	// The HTTP vserver should have the policy for insecure routes associated.
 	foundInsecureRoutesPolicy := false
 	httpVserver := newMockF5iControlResource("vserver", path.Join(F5DefaultPartitionPath, httpVserverName))
-	for policyName := range mockF5.state.vserverPolicies[httpVserver.id()] {
+	for policyName := range mockF5.state.VserverPolicies[httpVserver.id()] {
 		if strings.HasSuffix(policyName, insecureRoutesPolicyName) {
 			foundInsecureRoutesPolicy = true
 		} else {
@@ -1375,7 +1296,7 @@ func TestInitializeF5Plugin(t *testing.T) {
 
 	// The datagroup for passthrough routes should exist.
 	foundPassthroughIRuleDatagroup := false
-	for datagroupName := range mockF5.state.datagroups {
+	for datagroupName := range mockF5.state.Datagroups {
 		if datagroupName == resource.FullPath {
 			foundPassthroughIRuleDatagroup = true
 		}
@@ -1387,14 +1308,14 @@ func TestInitializeF5Plugin(t *testing.T) {
 	// The passthrough iRule should exist and should reference the datagroup for
 	// passthrough routes.
 	foundPassthroughIRule := false
-	for iRuleName, iRuleCode := range mockF5.state.iRules {
+	for iRuleName, iRuleCode := range mockF5.state.IRules {
 		if strings.HasSuffix(iRuleName, passthroughIRuleName) {
 			foundPassthroughIRule = true
 
 			if !strings.Contains(string(iRuleCode), passthroughIRuleDatagroupName) {
 				t.Errorf("iRule for passthrough routes exists, but its body does not"+
 					" reference the datagroup for passthrough routes.\n"+
-					"iRule name: %s\nDatagroup name: %s\niRule code: %s",
+					"iRule name: %s\nf5testing.Datagroup name: %s\niRule code: %s",
 					iRuleName, passthroughIRuleDatagroupName, iRuleCode)
 			}
 		} else {
@@ -1407,7 +1328,7 @@ func TestInitializeF5Plugin(t *testing.T) {
 
 	// The HTTPS vserver should have the passthrough iRule associated.
 	foundPassthroughIRuleUnderVserver := false
-	for _, iRuleName := range mockF5.state.vserverIRules[httpsVserver.id()] {
+	for _, iRuleName := range mockF5.state.VserverIRules[httpsVserver.id()] {
 		if strings.HasSuffix(iRuleName, passthroughIRuleName) {
 			foundPassthroughIRuleUnderVserver = true
 		} else {
@@ -1421,17 +1342,14 @@ func TestInitializeF5Plugin(t *testing.T) {
 	}
 
 	// The HTTP vserver should have no iRules associated.
-	if len(mockF5.state.vserverIRules[httpVserver.id()]) != 0 {
+	if len(mockF5.state.VserverIRules[httpVserver.id()]) != 0 {
 		t.Errorf("Vserver %s has iRules associated: %v",
-			httpVserverName, mockF5.state.vserverIRules[httpVserver.id()])
+			httpVserverName, mockF5.state.VserverIRules[httpVserver.id()])
 	}
 
 	// Initialization should be idempotent.
 	// Warning: This is off-label use of DeepCopy!
-	savedMockF5State, err := legacyscheme.Scheme.DeepCopy(mockF5.state)
-	if err != nil {
-		t.Errorf("Failed to deepcopy mock F5 state for idempotency check: %v", err)
-	}
+	savedMockF5State := *mockF5.state.DeepCopy()
 
 	router.F5Client.Initialize()
 
@@ -1477,7 +1395,7 @@ func TestF5RouterPartition(t *testing.T) {
 		}
 
 		defer mockF5.close()
-		_, ok := mockF5.state.partitionPaths[tc.partition]
+		_, ok := mockF5.state.PartitionPaths[tc.partition]
 		if !ok {
 			t.Fatalf("Test case %q missing partition key %s", tc.name, tc.partition)
 		}
@@ -1677,26 +1595,26 @@ func TestHandleRoute(t *testing.T) {
 				rulename := routeName(*tc.route)
 				policy := newMockF5iControlResource("policy", insecureRoutesPolicyName)
 
-				rule, ok := mockF5.state.policies[policy.id()][rulename]
+				rule, ok := mockF5.state.Policies[policy.id()][rulename]
 				if !ok {
 					return fmt.Errorf("Policy %s should have rule %s,"+
 						" but no rule was found: %v",
 						insecureRoutesPolicyName, rulename,
-						mockF5.state.policies[policy.id()])
+						mockF5.state.Policies[policy.id()])
 				}
 
-				if len(rule.conditions) != 1 {
+				if len(rule.Conditions) != 1 {
 					return fmt.Errorf("Insecure route should have rule with 1 condition,"+
 						" but rule has %d conditions: %v",
-						len(rule.conditions), rule.conditions)
+						len(rule.Conditions), rule.Conditions)
 				}
 
-				condition := rule.conditions[0]
+				condition := rule.Conditions[0]
 
 				if !(condition.HttpHost && condition.Host && !condition.HttpUri &&
 					!condition.PathSegment) {
 					return fmt.Errorf("Insecure route should have rule that matches on"+
-						" hostname but found this instead: %v", rule.conditions)
+						" hostname but found this instead: %v", rule.Conditions)
 				}
 
 				if len(condition.Values) != 1 {
@@ -1733,22 +1651,22 @@ func TestHandleRoute(t *testing.T) {
 				rulename := routeName(*tc.route)
 				policy := newMockF5iControlResource("policy", insecureRoutesPolicyName)
 
-				rule, ok := mockF5.state.policies[policy.id()][rulename]
+				rule, ok := mockF5.state.Policies[policy.id()][rulename]
 				if !ok {
 					return fmt.Errorf("Policy %s should have rule %s,"+
 						" but no rule was found: %v",
 						insecureRoutesPolicyName, rulename,
-						mockF5.state.policies[policy.id()])
+						mockF5.state.Policies[policy.id()])
 				}
-				if len(rule.conditions) != 3 {
+				if len(rule.Conditions) != 3 {
 					return fmt.Errorf("Insecure route with pathname should have rule"+
 						" with 3 conditions, but rule has %d conditions: %v",
-						len(rule.conditions), rule.conditions)
+						len(rule.Conditions), rule.Conditions)
 				}
 
 				pathSegments := strings.Split(tc.route.Spec.Path, "/")
 
-				for _, condition := range rule.conditions {
+				for _, condition := range rule.Conditions {
 					if !(condition.PathSegment && condition.HttpUri) {
 						continue
 					}
@@ -1786,12 +1704,12 @@ func TestHandleRoute(t *testing.T) {
 				rulename := routeName(*tc.route)
 				policy := newMockF5iControlResource("policy", secureRoutesPolicyName)
 
-				_, found := mockF5.state.policies[policy.id()][rulename]
+				_, found := mockF5.state.Policies[policy.id()][rulename]
 				if found {
 					return fmt.Errorf("Rule %s should have been deleted from policy %s"+
 						" when the corresponding route was deleted, but it remains yet: %v",
 						rulename, secureRoutesPolicyName,
-						mockF5.state.policies[policy.id()])
+						mockF5.state.Policies[policy.id()])
 				}
 
 				return nil
@@ -1821,45 +1739,45 @@ func TestHandleRoute(t *testing.T) {
 				rulename := routeName(*tc.route)
 				policy := newMockF5iControlResource("policy", secureRoutesPolicyName)
 
-				_, found := mockF5.state.policies[policy.id()][rulename]
+				_, found := mockF5.state.Policies[policy.id()][rulename]
 				if !found {
 					return fmt.Errorf("Policy %s should have rule %s,"+
 						" but no such rule was found: %v",
 						secureRoutesPolicyName, rulename,
-						mockF5.state.policies[policy.id()])
+						mockF5.state.Policies[policy.id()])
 				}
 
 				certfname := fmt.Sprintf("%s-https-cert.crt", rulename)
-				_, found = mockF5.state.certs[certfname]
+				_, found = mockF5.state.Certs[certfname]
 				if !found {
 					return fmt.Errorf("Certificate file %s should have been created but"+
 						" does not exist: %v",
-						certfname, mockF5.state.certs)
+						certfname, mockF5.state.Certs)
 				}
 
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
-				_, found = mockF5.state.keys[keyfname]
+				_, found = mockF5.state.Keys[keyfname]
 				if !found {
 					return fmt.Errorf("Key file %s should have been created but"+
 						" does not exist: %v",
-						keyfname, mockF5.state.keys)
+						keyfname, mockF5.state.Keys)
 				}
 
 				clientSslProfileName := fmt.Sprintf("%s-client-ssl-profile", rulename)
-				_, found = mockF5.state.clientSslProfiles[clientSslProfileName]
+				_, found = mockF5.state.ClientSslProfiles[clientSslProfileName]
 				if !found {
 					return fmt.Errorf("client-ssl profile %s should have been created"+
 						" but does not exist: %v",
-						clientSslProfileName, mockF5.state.clientSslProfiles)
+						clientSslProfileName, mockF5.state.ClientSslProfiles)
 				}
 
 				httpsVserverPath := normalizeResourcePath(httpsVserverName)
-				_, found = mockF5.state.vserverProfiles[httpsVserverPath][clientSslProfileName]
+				_, found = mockF5.state.VserverProfiles[httpsVserverPath][clientSslProfileName]
 				if !found {
 					return fmt.Errorf("client-ssl profile %s should have been"+
 						" associated with the vserver but was not: %v",
 						clientSslProfileName,
-						mockF5.state.vserverProfiles[httpsVserverPath])
+						mockF5.state.VserverProfiles[httpsVserverPath])
 				}
 
 				return nil
@@ -1889,45 +1807,45 @@ func TestHandleRoute(t *testing.T) {
 				rulename := routeName(*tc.route)
 				policy := newMockF5iControlResource("policy", secureRoutesPolicyName)
 
-				_, found := mockF5.state.policies[policy.id()][rulename]
+				_, found := mockF5.state.Policies[policy.id()][rulename]
 				if found {
 					return fmt.Errorf("Rule %s should have been deleted from policy %s"+
 						" when the corresponding route was deleted, but it remains yet: %v",
 						rulename, secureRoutesPolicyName,
-						mockF5.state.policies[policy.id()])
+						mockF5.state.Policies[policy.id()])
 				}
 
 				certfname := fmt.Sprintf("%s-https-cert.crt", rulename)
-				_, found = mockF5.state.certs[certfname]
+				_, found = mockF5.state.Certs[certfname]
 				if found {
 					return fmt.Errorf("Certificate file %s should have been deleted with"+
 						" the route but remains yet: %v",
-						certfname, mockF5.state.certs)
+						certfname, mockF5.state.Certs)
 				}
 
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
-				_, found = mockF5.state.keys[keyfname]
+				_, found = mockF5.state.Keys[keyfname]
 				if found {
 					return fmt.Errorf("Key file %s should have been deleted with the"+
 						" route but remains yet: %v",
-						keyfname, mockF5.state.keys)
+						keyfname, mockF5.state.Keys)
 				}
 
 				clientSslProfileName := fmt.Sprintf("%s-client-ssl-profile", rulename)
 				httpsVserverPath := normalizeResourcePath(httpsVserverName)
-				_, found = mockF5.state.vserverProfiles[httpsVserverPath][clientSslProfileName]
+				_, found = mockF5.state.VserverProfiles[httpsVserverPath][clientSslProfileName]
 				if found {
 					return fmt.Errorf("client-ssl profile %s should have been deleted"+
 						" from the vserver when the route was deleted but remains yet: %v",
 						clientSslProfileName,
-						mockF5.state.vserverProfiles[httpsVserverPath])
+						mockF5.state.VserverProfiles[httpsVserverPath])
 				}
 
-				_, found = mockF5.state.clientSslProfiles[clientSslProfileName]
+				_, found = mockF5.state.ClientSslProfiles[clientSslProfileName]
 				if found {
 					return fmt.Errorf("client-ssl profile %s should have been deleted"+
 						" with the route but remains yet: %v",
-						clientSslProfileName, mockF5.state.clientSslProfiles)
+						clientSslProfileName, mockF5.state.ClientSslProfiles)
 				}
 
 				return nil
@@ -1953,13 +1871,13 @@ func TestHandleRoute(t *testing.T) {
 			},
 			validate: func(tc testCase) error {
 				resource := newMockF5iControlResource("datagroup", passthroughIRuleDatagroupName)
-				_, found := mockF5.state.datagroups[resource.id()][tc.route.Spec.Host]
+				_, found := mockF5.state.Datagroups[resource.id()][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should have been created"+
+					return fmt.Errorf("f5testing.Datagroup entry for %s should have been created"+
 						" in the %s datagroup for the passthrough route but cannot be"+
 						" found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
-						mockF5.state.datagroups[resource.id()])
+						mockF5.state.Datagroups[resource.id()])
 				}
 
 				return nil
@@ -1987,13 +1905,13 @@ func TestHandleRoute(t *testing.T) {
 			},
 			validate: func(tc testCase) error {
 				resource := newMockF5iControlResource("datagroup", passthroughIRuleDatagroupName)
-				_, found := mockF5.state.datagroups[resource.id()][tc.route.Spec.Host]
+				_, found := mockF5.state.Datagroups[resource.id()][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should still exist"+
+					return fmt.Errorf("f5testing.Datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was created, but the datagroup entry cannot be found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
-						mockF5.state.datagroups[resource.id()])
+						mockF5.state.Datagroups[resource.id()])
 				}
 
 				return nil
@@ -2016,13 +1934,13 @@ func TestHandleRoute(t *testing.T) {
 			},
 			validate: func(tc testCase) error {
 				resource := newMockF5iControlResource("datagroup", passthroughIRuleDatagroupName)
-				_, found := mockF5.state.datagroups[resource.id()][tc.route.Spec.Host]
+				_, found := mockF5.state.Datagroups[resource.id()][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should still exist"+
+					return fmt.Errorf("f5testing.Datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was updated, but the datagroup entry cannot be found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
-						mockF5.state.datagroups[resource.id()])
+						mockF5.state.Datagroups[resource.id()])
 				}
 
 				return nil
@@ -2045,13 +1963,13 @@ func TestHandleRoute(t *testing.T) {
 			},
 			validate: func(tc testCase) error {
 				resource := newMockF5iControlResource("datagroup", passthroughIRuleDatagroupName)
-				_, found := mockF5.state.datagroups[resource.id()][tc.route.Spec.Host]
+				_, found := mockF5.state.Datagroups[resource.id()][tc.route.Spec.Host]
 				if !found {
-					return fmt.Errorf("Datagroup entry for %s should still exist"+
+					return fmt.Errorf("f5testing.Datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was deleted, but the datagroup entry cannot be found: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
-						mockF5.state.datagroups[resource.id()])
+						mockF5.state.Datagroups[resource.id()])
 				}
 
 				return nil
@@ -2077,13 +1995,13 @@ func TestHandleRoute(t *testing.T) {
 			},
 			validate: func(tc testCase) error {
 				resource := newMockF5iControlResource("datagroup", passthroughIRuleDatagroupName)
-				_, found := mockF5.state.datagroups[resource.id()][tc.route.Spec.Host]
+				_, found := mockF5.state.Datagroups[resource.id()][tc.route.Spec.Host]
 				if found {
-					return fmt.Errorf("Datagroup entry for %s should have been deleted"+
+					return fmt.Errorf("f5testing.Datagroup entry for %s should have been deleted"+
 						" from the %s datagroup for the passthrough route but remains"+
 						" yet: %v",
 						tc.route.Spec.Host, passthroughIRuleDatagroupName,
-						mockF5.state.datagroups[resource.id()])
+						mockF5.state.Datagroups[resource.id()])
 				}
 
 				return nil
@@ -2115,61 +2033,61 @@ func TestHandleRoute(t *testing.T) {
 				rulename := routeName(*tc.route)
 				policy := newMockF5iControlResource("policy", secureRoutesPolicyName)
 
-				_, found := mockF5.state.policies[policy.id()][rulename]
+				_, found := mockF5.state.Policies[policy.id()][rulename]
 				if !found {
 					return fmt.Errorf("Policy %s should have rule %s for secure route,"+
 						" but no rule was found: %v",
 						secureRoutesPolicyName, rulename,
-						mockF5.state.policies[policy.id()])
+						mockF5.state.Policies[policy.id()])
 				}
 
 				certcafname := fmt.Sprintf("%s-https-chain.crt", rulename)
-				_, found = mockF5.state.certs[certcafname]
+				_, found = mockF5.state.Certs[certcafname]
 				if !found {
 					return fmt.Errorf("Certificate chain file %s should have been"+
 						" created but does not exist: %v",
-						certcafname, mockF5.state.certs)
+						certcafname, mockF5.state.Certs)
 				}
 
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
-				_, found = mockF5.state.keys[keyfname]
+				_, found = mockF5.state.Keys[keyfname]
 				if !found {
 					return fmt.Errorf("Key file %s should have been created but"+
 						" does not exist: %v",
-						keyfname, mockF5.state.keys)
+						keyfname, mockF5.state.Keys)
 				}
 
 				clientSslProfileName := fmt.Sprintf("%s-client-ssl-profile", rulename)
-				_, found = mockF5.state.clientSslProfiles[clientSslProfileName]
+				_, found = mockF5.state.ClientSslProfiles[clientSslProfileName]
 				if !found {
 					return fmt.Errorf("client-ssl profile %s should have been created"+
 						" but does not exist: %v",
-						clientSslProfileName, mockF5.state.clientSslProfiles)
+						clientSslProfileName, mockF5.state.ClientSslProfiles)
 				}
 
 				httpsVserver := newMockF5iControlResource("vserver", httpsVserverName)
-				_, found = mockF5.state.vserverProfiles[httpsVserver.id()][clientSslProfileName]
+				_, found = mockF5.state.VserverProfiles[httpsVserver.id()][clientSslProfileName]
 				if !found {
 					return fmt.Errorf("client-ssl profile %s should have been"+
 						" associated with the vserver but was not: %v",
 						clientSslProfileName,
-						mockF5.state.vserverProfiles[httpsVserver.id()])
+						mockF5.state.VserverProfiles[httpsVserver.id()])
 				}
 
 				serverSslProfileName := fmt.Sprintf("%s-server-ssl-profile", rulename)
-				_, found = mockF5.state.serverSslProfiles[serverSslProfileName]
+				_, found = mockF5.state.ServerSslProfiles[serverSslProfileName]
 				if !found {
 					return fmt.Errorf("server-ssl profile %s should have been created"+
 						" but does not exist: %v",
-						serverSslProfileName, mockF5.state.serverSslProfiles)
+						serverSslProfileName, mockF5.state.ServerSslProfiles)
 				}
 
-				_, found = mockF5.state.vserverProfiles[httpsVserver.id()][serverSslProfileName]
+				_, found = mockF5.state.VserverProfiles[httpsVserver.id()][serverSslProfileName]
 				if !found {
 					return fmt.Errorf("server-ssl profile %s should have been"+
 						" associated with the vserver but was not: %v",
 						serverSslProfileName,
-						mockF5.state.vserverProfiles[httpsVserver.id()])
+						mockF5.state.VserverProfiles[httpsVserver.id()])
 				}
 
 				return nil
@@ -2201,54 +2119,54 @@ func TestHandleRoute(t *testing.T) {
 				rulename := routeName(*tc.route)
 				policy := newMockF5iControlResource("policy", secureRoutesPolicyName)
 
-				_, found := mockF5.state.policies[policy.id()][rulename]
+				_, found := mockF5.state.Policies[policy.id()][rulename]
 				if found {
 					return fmt.Errorf("Rule %s should have been deleted from policy %s"+
 						" when the corresponding route was deleted, but it remains yet: %v",
 						rulename, secureRoutesPolicyName,
-						mockF5.state.policies[policy.id()])
+						mockF5.state.Policies[policy.id()])
 				}
 
 				certcafname := fmt.Sprintf("%s-https-chain.crt", rulename)
-				_, found = mockF5.state.certs[certcafname]
+				_, found = mockF5.state.Certs[certcafname]
 				if found {
 					return fmt.Errorf("Certificate chain file %s should have been"+
 						" deleted with the route but remains yet: %v",
-						certcafname, mockF5.state.certs)
+						certcafname, mockF5.state.Certs)
 				}
 
 				keyfname := fmt.Sprintf("%s-https-key.key", rulename)
-				_, found = mockF5.state.keys[keyfname]
+				_, found = mockF5.state.Keys[keyfname]
 				if found {
 					return fmt.Errorf("Key file %s should have been deleted with the"+
 						" route but remains yet: %v",
-						keyfname, mockF5.state.keys)
+						keyfname, mockF5.state.Keys)
 				}
 
 				httpsVserver := newMockF5iControlResource("vserver", httpsVserverName)
 				clientSslProfileName := fmt.Sprintf("%s-client-ssl-profile", rulename)
-				_, found = mockF5.state.vserverProfiles[httpsVserver.id()][clientSslProfileName]
+				_, found = mockF5.state.VserverProfiles[httpsVserver.id()][clientSslProfileName]
 				if found {
 					return fmt.Errorf("client-ssl profile %s should have been deleted"+
 						" from the vserver when the route was deleted but remains yet: %v",
 						clientSslProfileName,
-						mockF5.state.vserverProfiles[httpsVserver.id()])
+						mockF5.state.VserverProfiles[httpsVserver.id()])
 				}
 
 				serverSslProfileName := fmt.Sprintf("%s-server-ssl-profile", rulename)
-				_, found = mockF5.state.vserverProfiles[httpsVserver.id()][clientSslProfileName]
+				_, found = mockF5.state.VserverProfiles[httpsVserver.id()][clientSslProfileName]
 				if found {
 					return fmt.Errorf("server-ssl profile %s should have been deleted"+
 						" from the vserver when the route was deleted but remains yet: %v",
 						serverSslProfileName,
-						mockF5.state.vserverProfiles[httpsVserver.id()])
+						mockF5.state.VserverProfiles[httpsVserver.id()])
 				}
 
-				_, found = mockF5.state.serverSslProfiles[serverSslProfileName]
+				_, found = mockF5.state.ServerSslProfiles[serverSslProfileName]
 				if found {
 					return fmt.Errorf("server-ssl profile %s should have been deleted"+
 						" with the route but remains yet: %v",
-						serverSslProfileName, mockF5.state.serverSslProfiles)
+						serverSslProfileName, mockF5.state.ServerSslProfiles)
 				}
 
 				return nil
