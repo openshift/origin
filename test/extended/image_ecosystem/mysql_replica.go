@@ -62,16 +62,12 @@ func CreateMySQLReplicationHelpers(c kcoreclient.PodInterface, masterDeployment,
 	return master, slaves, helper
 }
 
-func cleanup(oc *exutil.CLI) {
-	exutil.CleanupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace())
-}
-
 func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 	return func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 		defer cleanup(oc)
 
-		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace(), "1Gi", 2)
+		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace(), "1Gi", 5)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)

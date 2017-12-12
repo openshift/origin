@@ -54,3 +54,9 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 	}
 	return success, nil
 }
+
+func cleanup(oc *exutil.CLI) {
+	if err := exutil.CleanupHostPathVolumes(oc.AdminKubeClient().Core().PersistentVolumes(), oc.Namespace()); err != nil {
+		ginkgolog("WARNING: couldn't cleanup persistent volumes: %v", err)
+	}
+}
