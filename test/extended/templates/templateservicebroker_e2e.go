@@ -8,6 +8,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/api/core/v1"
@@ -307,7 +308,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				kapi.Kind("RoleBinding"),
 				rbacapi.Kind("RoleBinding"),
 				authorizationapi.LegacyKind("RoleBinding"),
-				authorizationapi.Kind("RoleBinding"):
+				authorizationapi.Kind("RoleBinding"),
+				schema.GroupKind{Group: "events.k8s.io", Kind: "Event"}:
 				continue
 			}
 
