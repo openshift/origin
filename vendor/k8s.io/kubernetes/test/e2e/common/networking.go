@@ -17,13 +17,31 @@ limitations under the License.
 package common
 
 import (
-	. "github.com/onsi/ginkgo"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("[sig-network] Networking", func() {
 	f := framework.NewDefaultFramework("pod-network-test")
+
+	BeforeEach(func() {
+		// remove all node selector restrictions on this particular project
+		ns, err := f.ClientSet.CoreV1().Namespaces().Get(f.Namespace.Name, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		delete(ns.Annotations, "scheduler.alpha.kubernetes.io/node-selector")
+		delete(ns.Annotations, "openshift.io/node-selector")
+		_, err = f.ClientSet.CoreV1().Namespaces().Update(ns)
+		Expect(err).NotTo(HaveOccurred())
+
+		// wait for caches to catch up
+		time.Sleep(1 * time.Second)
+	})
 
 	Describe("Granular Checks: Pods", func() {
 
