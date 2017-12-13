@@ -6,13 +6,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	apiextensioninstall "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	apiregistrationinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -68,7 +65,8 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 			Out:    out,
 			ErrOut: errout,
 
-			Include: []string{"*"},
+			Unstructured: true,
+			Include:      []string{"*"},
 			DefaultExcludes: []schema.GroupResource{
 				// openshift resources:
 				{Resource: "appliedclusterresourcequotas"},
@@ -164,9 +162,6 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 		Long:    internalMigrateStorageLong,
 		Example: fmt.Sprintf(internalMigrateStorageExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			apiextensioninstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
-			apiregistrationinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
-
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
 			kcmdutil.CheckErr(options.Run())
