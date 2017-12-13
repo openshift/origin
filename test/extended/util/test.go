@@ -241,14 +241,8 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		addRoleToE2EServiceAccounts(authorizationClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
-	// some test suites assume they can schedule to all nodes
-	switch {
-	case isPackage("/kubernetes/test/e2e/scheduler_predicates.go"),
-		isPackage("/kubernetes/test/e2e/rescheduler.go"),
-		isPackage("/kubernetes/test/e2e/kubelet.go"),
-		isPackage("/kubernetes/test/e2e/common/networking.go"),
-		isPackage("/kubernetes/test/e2e/daemon_set.go"),
-		isPackage("/kubernetes/test/e2e/statefulset.go"):
+	// some tests assume they can schedule to all nodes
+	if testNameContains("Granular Checks: Pods") {
 		allowAllNodeScheduling(c, ns.Name)
 	}
 
@@ -257,10 +251,6 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 var (
 	excludedTests = []string{
-		// these broke in the rebase, but everything else is working
-		`should function for intra-pod communication`,
-		`should function for node-pod communication`,
-
 		`\[Skipped\]`,
 		`\[Slow\]`,
 		`\[Flaky\]`,
