@@ -257,10 +257,6 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 var (
 	excludedTests = []string{
-		// these broke in the rebase, but everything else is working
-		`should function for intra-pod communication`,
-		`should function for node-pod communication`,
-
 		`\[Skipped\]`,
 		`\[Slow\]`,
 		`\[Flaky\]`,
