@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"

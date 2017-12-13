@@ -177,7 +177,7 @@ func TestLegacyStrategy_PrepareForCreate(t *testing.T) {
 
 func TestLegacyStrategy_DefaultGarbageCollectionPolicy(t *testing.T) {
 	expected := rest.OrphanDependents
-	got := LegacyStrategy.DefaultGarbageCollectionPolicy()
+	got := LegacyStrategy.DefaultGarbageCollectionPolicy(nil)
 	if got != expected {
 		t.Fatalf("Default garbage collection policy for DeploymentConfigs should be %q (not %q)", expected, got)
 	}

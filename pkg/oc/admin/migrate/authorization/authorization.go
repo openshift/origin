@@ -73,6 +73,8 @@ func NewCmdMigrateAuthorization(name, fullName string, f *clientcmd.Factory, in 
 		},
 		Deprecated: fmt.Sprintf("will not work against 3.7 servers"),
 	}
+	options.ResourceOptions.Bind(cmd)
+
 	return cmd
 }
 

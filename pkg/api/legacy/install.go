@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 var (
@@ -66,12 +66,12 @@ func interfacesForGroup(group string) func(version schema.GroupVersion) (*meta.V
 		switch version {
 		case coreV1:
 			return &meta.VersionInterfaces{
-				ObjectConvertor:  kapi.Scheme,
+				ObjectConvertor:  legacyscheme.Scheme,
 				MetadataAccessor: accessor,
 			}, nil
 
 		default:
-			g, _ := kapi.Registry.Group(group)
+			g, _ := legacyscheme.Registry.Group(group)
 			return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
 		}
 	}

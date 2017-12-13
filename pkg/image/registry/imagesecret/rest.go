@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"

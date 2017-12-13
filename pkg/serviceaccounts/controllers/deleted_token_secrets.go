@@ -14,7 +14,7 @@ import (
 	informers "k8s.io/client-go/informers/core/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // DockercfgTokenDeletedControllerOptions contains options for the DockercfgTokenDeletedController

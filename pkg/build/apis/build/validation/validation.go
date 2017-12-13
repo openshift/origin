@@ -7,15 +7,16 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kpath "k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
-	"k8s.io/kubernetes/pkg/api/validation"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -706,7 +707,7 @@ func diffBuildSpec(newer, older buildapi.BuildSpec) (string, error) {
 }
 
 func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
-	codec := kapi.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
+	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
 
 	newerJSON, err := runtime.Encode(codec, newer)
 	if err != nil {
@@ -724,8 +725,8 @@ func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
 }
 
 func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, error) {
-	codec := kapi.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
-	versionedBuild, err := kapi.Scheme.ConvertToVersion(build, buildapiv1.SchemeGroupVersion)
+	codec := legacyscheme.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
+	versionedBuild, err := legacyscheme.Scheme.ConvertToVersion(build, buildapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -741,7 +742,7 @@ func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, erro
 	if err != nil {
 		return nil, err
 	}
-	patchedBuild, err := kapi.Scheme.ConvertToVersion(patchedVersionedBuild, buildapi.SchemeGroupVersion)
+	patchedBuild, err := legacyscheme.Scheme.ConvertToVersion(patchedVersionedBuild, buildapi.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}

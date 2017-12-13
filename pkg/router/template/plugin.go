@@ -14,7 +14,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"

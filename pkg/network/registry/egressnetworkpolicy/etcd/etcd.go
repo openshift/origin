@@ -5,7 +5,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/registry/egressnetworkpolicy"
@@ -22,7 +21,6 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against egress network policy
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &networkapi.EgressNetworkPolicy{} },
 		NewListFunc:              func() runtime.Object { return &networkapi.EgressNetworkPolicyList{} },
 		DefaultQualifiedResource: networkapi.Resource("egressnetworkpolicies"),

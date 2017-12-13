@@ -1,13 +1,12 @@
 package clientcmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
 	"time"
 
-	"github.com/emicklei/go-restful-swagger12"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -17,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -62,24 +61,20 @@ func (f *ring1Factory) Object() (meta.RESTMapper, runtime.ObjectTyper) {
 	return f.kubeObjectMappingFactory.Object()
 }
 
-func (f *ring1Factory) UnstructuredObject() (meta.RESTMapper, runtime.ObjectTyper, error) {
-	return f.kubeObjectMappingFactory.UnstructuredObject()
-}
-
-func (f *ring1Factory) CategoryExpander() resource.CategoryExpander {
+func (f *ring1Factory) CategoryExpander() categories.CategoryExpander {
 	upstreamExpander := f.kubeObjectMappingFactory.CategoryExpander()
 
-	var openshiftCategoryExpander resource.CategoryExpander
+	var openshiftCategoryExpander categories.CategoryExpander
 	openshiftCategoryExpander = legacyOpeshiftCategoryExpander
 	discoveryClient, err := f.clientAccessFactory.DiscoveryClient()
 	if err == nil {
 		// wrap with discovery based filtering
-		openshiftCategoryExpander, err = resource.NewDiscoveryFilteredExpander(openshiftCategoryExpander, discoveryClient)
+		openshiftCategoryExpander, err = categories.NewDiscoveryFilteredExpander(openshiftCategoryExpander, discoveryClient)
 		// you only have an error on missing discoveryClient, so this shouldn't fail.  Check anyway.
 		kcmdutil.CheckErr(err)
 	}
 
-	return resource.UnionCategoryExpander{legacyOpeshiftCategoryExpander, upstreamExpander}
+	return categories.UnionCategoryExpander{legacyOpeshiftCategoryExpander, upstreamExpander}
 }
 
 var legacyOpenshiftUserResources = []schema.GroupResource{
@@ -91,7 +86,7 @@ var legacyOpenshiftUserResources = []schema.GroupResource{
 }
 
 // legacyOpeshiftCategoryExpander is the old hardcoded expansion for servers without listed categories
-var legacyOpeshiftCategoryExpander resource.CategoryExpander = resource.SimpleCategoryExpander{
+var legacyOpeshiftCategoryExpander categories.CategoryExpander = categories.SimpleCategoryExpander{
 	Expansions: map[string][]schema.GroupResource{
 		"all": legacyOpenshiftUserResources,
 	},
@@ -430,45 +425,17 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout tim
 		}
 		selector := labels.SelectorFromSet(t.Spec.Selector)
 		f := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), t.Namespace, selector, 1*time.Minute, f)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), t.Namespace, selector.String(), 1*time.Minute, f)
 		return pod, err
 	default:
 		return f.kubeObjectMappingFactory.AttachablePodForObject(object, timeout)
 	}
 }
 
-func (f *ring1Factory) Validator(validate bool, openAPI bool, cacheDir string) (validation.Schema, error) {
-	return f.kubeObjectMappingFactory.Validator(validate, openAPI, cacheDir)
-}
-
-func (f *ring1Factory) SwaggerSchema(gvk schema.GroupVersionKind) (*swagger.ApiDeclaration, error) {
-	if !latest.OriginLegacyKind(gvk) {
-		return f.kubeObjectMappingFactory.SwaggerSchema(gvk)
-	}
-	kubeClient, err := f.clientAccessFactory.ClientSet()
-	if err != nil {
-		return nil, err
-	}
-	return f.OriginSwaggerSchema(kubeClient.Discovery().RESTClient(), gvk.GroupVersion())
+func (f *ring1Factory) Validator(validate bool) (validation.Schema, error) {
+	return f.kubeObjectMappingFactory.Validator(validate)
 }
 
 func (f *ring1Factory) OpenAPISchema() (openapi.Resources, error) {
 	return f.kubeObjectMappingFactory.OpenAPISchema()
-}
-
-// OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (f *ring1Factory) OriginSwaggerSchema(client restclient.Interface, version schema.GroupVersion) (*swagger.ApiDeclaration, error) {
-	if version.Empty() {
-		return nil, fmt.Errorf("groupVersion cannot be empty")
-	}
-	body, err := client.Get().AbsPath("/").Suffix("swaggerapi", "oapi", version.Version).Do().Raw()
-	if err != nil {
-		return nil, err
-	}
-	var schema swagger.ApiDeclaration
-	err = json.Unmarshal(body, &schema)
-	if err != nil {
-		return nil, fmt.Errorf("got '%s': %v", string(body), err)
-	}
-	return &schema, nil
 }

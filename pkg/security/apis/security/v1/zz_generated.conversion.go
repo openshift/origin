@@ -7,11 +7,11 @@ package v1
 import (
 	v1 "github.com/openshift/api/security/v1"
 	security "github.com/openshift/origin/pkg/security/apis/security"
-	core_v1 "k8s.io/api/core/v1"
+	api_core_v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
+	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	unsafe "unsafe"
 )
 
@@ -155,7 +155,7 @@ func Convert_security_PodSecurityPolicyReview_To_v1_PodSecurityPolicyReview(in *
 }
 
 func autoConvert_v1_PodSecurityPolicyReviewSpec_To_security_PodSecurityPolicyReviewSpec(in *v1.PodSecurityPolicyReviewSpec, out *security.PodSecurityPolicyReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.ServiceAccountNames = *(*[]string)(unsafe.Pointer(&in.ServiceAccountNames))
@@ -168,7 +168,7 @@ func Convert_v1_PodSecurityPolicyReviewSpec_To_security_PodSecurityPolicyReviewS
 }
 
 func autoConvert_security_PodSecurityPolicyReviewSpec_To_v1_PodSecurityPolicyReviewSpec(in *security.PodSecurityPolicyReviewSpec, out *v1.PodSecurityPolicyReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_core_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.ServiceAccountNames = *(*[]string)(unsafe.Pointer(&in.ServiceAccountNames))
@@ -251,7 +251,7 @@ func Convert_security_PodSecurityPolicySelfSubjectReview_To_v1_PodSecurityPolicy
 }
 
 func autoConvert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_security_PodSecurityPolicySelfSubjectReviewSpec(in *v1.PodSecurityPolicySelfSubjectReviewSpec, out *security.PodSecurityPolicySelfSubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
@@ -263,7 +263,7 @@ func Convert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_security_PodSecurityPo
 }
 
 func autoConvert_security_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicySelfSubjectReviewSpec(in *security.PodSecurityPolicySelfSubjectReviewSpec, out *v1.PodSecurityPolicySelfSubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_core_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
@@ -305,7 +305,7 @@ func Convert_security_PodSecurityPolicySubjectReview_To_v1_PodSecurityPolicySubj
 }
 
 func autoConvert_v1_PodSecurityPolicySubjectReviewSpec_To_security_PodSecurityPolicySubjectReviewSpec(in *v1.PodSecurityPolicySubjectReviewSpec, out *security.PodSecurityPolicySubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -319,7 +319,7 @@ func Convert_v1_PodSecurityPolicySubjectReviewSpec_To_security_PodSecurityPolicy
 }
 
 func autoConvert_security_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicySubjectReviewSpec(in *security.PodSecurityPolicySubjectReviewSpec, out *v1.PodSecurityPolicySubjectReviewSpec, s conversion.Scope) error {
-	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_core_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.User = in.User
@@ -335,15 +335,15 @@ func Convert_security_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicy
 func autoConvert_v1_PodSecurityPolicySubjectReviewStatus_To_security_PodSecurityPolicySubjectReviewStatus(in *v1.PodSecurityPolicySubjectReviewStatus, out *security.PodSecurityPolicySubjectReviewStatus, s conversion.Scope) error {
 	if in.AllowedBy != nil {
 		in, out := &in.AllowedBy, &out.AllowedBy
-		*out = new(api.ObjectReference)
-		if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(*in, *out, s); err != nil {
+		*out = new(core.ObjectReference)
+		if err := core_v1.Convert_v1_ObjectReference_To_core_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
 		out.AllowedBy = nil
 	}
 	out.Reason = in.Reason
-	if err := api_v1.Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
@@ -357,15 +357,15 @@ func Convert_v1_PodSecurityPolicySubjectReviewStatus_To_security_PodSecurityPoli
 func autoConvert_security_PodSecurityPolicySubjectReviewStatus_To_v1_PodSecurityPolicySubjectReviewStatus(in *security.PodSecurityPolicySubjectReviewStatus, out *v1.PodSecurityPolicySubjectReviewStatus, s conversion.Scope) error {
 	if in.AllowedBy != nil {
 		in, out := &in.AllowedBy, &out.AllowedBy
-		*out = new(core_v1.ObjectReference)
-		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
+		*out = new(api_core_v1.ObjectReference)
+		if err := core_v1.Convert_core_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
 		out.AllowedBy = nil
 	}
 	out.Reason = in.Reason
-	if err := api_v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := core_v1.Convert_core_PodTemplateSpec_To_v1_PodTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	return nil
@@ -406,8 +406,8 @@ func autoConvert_v1_SELinuxContextStrategyOptions_To_security_SELinuxContextStra
 	out.Type = security.SELinuxContextStrategyType(in.Type)
 	if in.SELinuxOptions != nil {
 		in, out := &in.SELinuxOptions, &out.SELinuxOptions
-		*out = new(api.SELinuxOptions)
-		if err := api_v1.Convert_v1_SELinuxOptions_To_api_SELinuxOptions(*in, *out, s); err != nil {
+		*out = new(core.SELinuxOptions)
+		if err := core_v1.Convert_v1_SELinuxOptions_To_core_SELinuxOptions(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -425,8 +425,8 @@ func autoConvert_security_SELinuxContextStrategyOptions_To_v1_SELinuxContextStra
 	out.Type = v1.SELinuxContextStrategyType(in.Type)
 	if in.SELinuxOptions != nil {
 		in, out := &in.SELinuxOptions, &out.SELinuxOptions
-		*out = new(core_v1.SELinuxOptions)
-		if err := api_v1.Convert_api_SELinuxOptions_To_v1_SELinuxOptions(*in, *out, s); err != nil {
+		*out = new(api_core_v1.SELinuxOptions)
+		if err := core_v1.Convert_core_SELinuxOptions_To_v1_SELinuxOptions(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -444,9 +444,9 @@ func autoConvert_v1_SecurityContextConstraints_To_security_SecurityContextConstr
 	out.ObjectMeta = in.ObjectMeta
 	out.Priority = (*int32)(unsafe.Pointer(in.Priority))
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	out.DefaultAddCapabilities = *(*[]api.Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
-	out.RequiredDropCapabilities = *(*[]api.Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
-	out.AllowedCapabilities = *(*[]api.Capability)(unsafe.Pointer(&in.AllowedCapabilities))
+	out.DefaultAddCapabilities = *(*[]core.Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
+	out.RequiredDropCapabilities = *(*[]core.Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
+	out.AllowedCapabilities = *(*[]core.Capability)(unsafe.Pointer(&in.AllowedCapabilities))
 	// INFO: in.AllowHostDirVolumePlugin opted out of conversion generation
 	out.Volumes = *(*[]security.FSType)(unsafe.Pointer(&in.Volumes))
 	out.AllowedFlexVolumes = *(*[]security.AllowedFlexVolume)(unsafe.Pointer(&in.AllowedFlexVolumes))
@@ -477,9 +477,9 @@ func autoConvert_security_SecurityContextConstraints_To_v1_SecurityContextConstr
 	out.ObjectMeta = in.ObjectMeta
 	out.Priority = (*int32)(unsafe.Pointer(in.Priority))
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	out.DefaultAddCapabilities = *(*[]core_v1.Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
-	out.RequiredDropCapabilities = *(*[]core_v1.Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
-	out.AllowedCapabilities = *(*[]core_v1.Capability)(unsafe.Pointer(&in.AllowedCapabilities))
+	out.DefaultAddCapabilities = *(*[]api_core_v1.Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
+	out.RequiredDropCapabilities = *(*[]api_core_v1.Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
+	out.AllowedCapabilities = *(*[]api_core_v1.Capability)(unsafe.Pointer(&in.AllowedCapabilities))
 	out.Volumes = *(*[]v1.FSType)(unsafe.Pointer(&in.Volumes))
 	out.AllowedFlexVolumes = *(*[]v1.AllowedFlexVolume)(unsafe.Pointer(&in.AllowedFlexVolumes))
 	out.AllowHostNetwork = in.AllowHostNetwork

@@ -11,8 +11,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/batch"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -105,7 +105,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		errPrefix := fmt.Sprintf("%d", i)
 		prc := NewPodNodeConstraints(tc.config)
 		prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-		err := prc.(admission.Validator).Validate()
+		err := prc.(admission.InitializationValidator).ValidateInitialization()
 		if err != nil {
 			checkAdmitError(t, err, expectedError, errPrefix)
 			continue
@@ -114,7 +114,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		if tc.expectedErrorMsg != "" {
 			expectedError = admission.NewForbidden(attrs, fmt.Errorf(tc.expectedErrorMsg))
 		}
-		err = prc.Admit(attrs)
+		err = prc.(admission.MutationInterface).Admit(attrs)
 		checkAdmitError(t, err, expectedError, errPrefix)
 	}
 }
@@ -125,13 +125,13 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 	errPrefix := "PodUpdate"
 	prc := NewPodNodeConstraints(testConfig())
 	prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-	err := prc.(admission.Validator).Validate()
+	err := prc.(admission.InitializationValidator).ValidateInitialization()
 	if err != nil {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
 	}
 	attrs := admission.NewAttributesRecord(nodeNamePod(), nodeNamePod(), kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Update, serviceaccount.UserInfo("", "", ""))
-	err = prc.Admit(attrs)
+	err = prc.(admission.MutationInterface).Admit(attrs)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
 
@@ -141,13 +141,13 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 	var expectedError error
 	prc := NewPodNodeConstraints(testConfig())
 	prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-	err := prc.(admission.Validator).Validate()
+	err := prc.(admission.InitializationValidator).ValidateInitialization()
 	if err != nil {
 		checkAdmitError(t, err, expectedError, errPrefix)
 		return
 	}
 	attrs := admission.NewAttributesRecord(resourceQuota(), nil, kapi.Kind("ResourceQuota").WithVersion("version"), ns, "test", kapi.Resource("resourcequotas").WithVersion("version"), "", admission.Create, serviceaccount.UserInfo("", "", ""))
-	err = prc.Admit(attrs)
+	err = prc.(admission.MutationInterface).Admit(attrs)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
 
@@ -259,7 +259,7 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 					errPrefix := fmt.Sprintf("%s; %s; %s", tr.prefix, tp.prefix, top.operation)
 					prc := NewPodNodeConstraints(tc.config)
 					prc.(oadmission.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-					err := prc.(admission.Validator).Validate()
+					err := prc.(admission.InitializationValidator).ValidateInitialization()
 					if err != nil {
 						checkAdmitError(t, err, expectedError, errPrefix)
 						continue
@@ -268,7 +268,7 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 					if tp.expectedErrorMsg != "" {
 						expectedError = admission.NewForbidden(attrs, fmt.Errorf(tp.expectedErrorMsg))
 					}
-					err = prc.Admit(attrs)
+					err = prc.(admission.MutationInterface).Admit(attrs)
 					checkAdmitError(t, err, expectedError, errPrefix)
 				}
 			}
@@ -422,17 +422,17 @@ func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
 	}
 }
 
-func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (bool, string, error) {
+func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	ui := attributes.GetUser()
 	if ui == nil {
-		return false, "", fmt.Errorf("No valid UserInfo for Context")
+		return authorizer.DecisionDeny, "", fmt.Errorf("No valid UserInfo for Context")
 	}
 	// User with pods/bindings. permission:
 	if ui.GetName() == "system:serviceaccount:openshift-infra:daemonset-controller" {
-		return true, "", nil
+		return authorizer.DecisionAllow, "", nil
 	}
 	// User without pods/bindings. permission:
-	return false, "", nil
+	return authorizer.DecisionDeny, "", nil
 }
 
 func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessReviewResponse {

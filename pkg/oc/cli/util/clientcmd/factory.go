@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -18,15 +19,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/printers"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
@@ -70,14 +71,15 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*resource.Info, out io.Writer) error {
 	// mirrors PrintResourceInfoForCommand upstream
-	printer, err := f.PrinterForCommand(cmd, isLocal, nil, printers.PrintOptions{})
+	opts := kcmdutil.ExtractCmdPrintOptions(cmd, false)
+	printer, err := f.PrinterForOptions(opts)
 	if err != nil {
 		return nil
 	}
 	if !printer.IsGeneric() {
 		for _, info := range infos {
 			mapping := info.ResourceMapping()
-			printer, err := f.PrinterForMapping(cmd, isLocal, nil, mapping, false)
+			printer, err := f.PrinterForMapping(opts, mapping)
 			if err != nil {
 				return err
 			}
@@ -88,13 +90,103 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*
 		return nil
 	}
 
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+
 	printAsList := len(infos) != 1
-	object, err := resource.AsVersionedObject(infos, printAsList, schema.GroupVersion{}, api.Codecs.LegacyCodec())
+	object, err := AsVersionedObject(infos, printAsList, *clientConfig.GroupVersion, legacyscheme.Codecs.LegacyCodec())
 	if err != nil {
 		return err
 	}
 
 	return printer.PrintObj(object, out)
+}
+
+// AsVersionedObject converts a list of infos into a single object - either a List containing
+// the objects as children, or if only a single Object is present, as that object. The provided
+// version will be preferred as the conversion target, but the Object's mapping version will be
+// used if that version is not present.
+func AsVersionedObject(infos []*resource.Info, forceList bool, version schema.GroupVersion, encoder runtime.Encoder) (runtime.Object, error) {
+	objects, err := AsVersionedObjects(infos, version, encoder)
+	if err != nil {
+		return nil, err
+	}
+
+	var object runtime.Object
+	if len(objects) == 1 && !forceList {
+		object = objects[0]
+	} else {
+		object = &api.List{Items: objects}
+		converted, err := tryConvert(legacyscheme.Scheme, object, version, legacyscheme.Registry.GroupOrDie(api.GroupName).GroupVersion)
+		if err != nil {
+			return nil, err
+		}
+		object = converted
+	}
+
+	actualVersion := object.GetObjectKind().GroupVersionKind()
+	if actualVersion.Version != version.Version {
+		defaultVersionInfo := ""
+		if len(actualVersion.Version) > 0 {
+			defaultVersionInfo = fmt.Sprintf("Defaulting to %q", actualVersion.Version)
+		}
+		glog.V(1).Infof("info: the output version specified is invalid. %s\n", defaultVersionInfo)
+	}
+	return object, nil
+}
+
+// tryConvert attempts to convert the given object to the provided versions in order. This function assumes
+// the object is in internal version.
+func tryConvert(converter runtime.ObjectConvertor, object runtime.Object, versions ...schema.GroupVersion) (runtime.Object, error) {
+	var last error
+	for _, version := range versions {
+		if version.Empty() {
+			return object, nil
+		}
+		obj, err := converter.ConvertToVersion(object, version)
+		if err != nil {
+			last = err
+			continue
+		}
+		return obj, nil
+	}
+	return nil, last
+}
+
+// AsVersionedObjects converts a list of infos into versioned objects. The provided
+// version will be preferred as the conversion target, but the Object's mapping version will be
+// used if that version is not present.
+func AsVersionedObjects(infos []*resource.Info, version schema.GroupVersion, encoder runtime.Encoder) ([]runtime.Object, error) {
+	objects := []runtime.Object{}
+	for _, info := range infos {
+		if info.Object == nil {
+			continue
+		}
+
+		// objects that are not part of api.Scheme must be converted to JSON
+		// TODO: convert to map[string]interface{}, attach to runtime.Unknown?
+		if !version.Empty() {
+			if _, _, err := legacyscheme.Scheme.ObjectKinds(info.Object); runtime.IsNotRegisteredError(err) {
+				// TODO: ideally this would encode to version, but we don't expose multiple codecs here.
+				data, err := runtime.Encode(encoder, info.Object)
+				if err != nil {
+					return nil, err
+				}
+				// TODO: Set ContentEncoding and ContentType.
+				objects = append(objects, &runtime.Unknown{Raw: data})
+				continue
+			}
+		}
+
+		converted, err := tryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.GroupVersionKind.GroupVersion())
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, converted)
+	}
+	return objects, nil
 }
 
 // FlagBinder represents an interface that allows to bind extra flags into commands.
@@ -240,7 +332,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		selector := labels.SelectorFromSet(rc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -259,7 +351,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		selector := labels.SelectorFromSet(dc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -277,7 +369,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -295,7 +387,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -313,7 +405,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -331,7 +423,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector.String(), timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -356,7 +448,7 @@ func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duratio
 	if err != nil {
 		return "", err
 	}
-	pod, _, err := kcmdutil.GetFirstPod(kc.Core(), job.Namespace, selector, timeout, sortBy)
+	pod, _, err := kcmdutil.GetFirstPod(kc.Core(), job.Namespace, selector.String(), timeout, sortBy)
 	if err != nil {
 		return "", err
 	}

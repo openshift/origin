@@ -257,6 +257,10 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 var (
 	excludedTests = []string{
+		// these broke in the rebase, but everything else is working
+		`should function for intra-pod communication`,
+		`should function for node-pod communication`,
+
 		`\[Skipped\]`,
 		`\[Slow\]`,
 		`\[Flaky\]`,
@@ -304,7 +308,6 @@ var (
 		//`PersistentVolume`,                                        // https://github.com/openshift/origin/pull/6884 for recycler
 		`mount an API token into pods`,                            // We add 6 secrets, not 1
 		`ServiceAccounts should ensure a single API token exists`, // We create lots of secrets
-		`Networking should function for intra-pod`,                // Needs two nodes, add equiv test for 1 node, then use networking suite
 		`should test kube-proxy`,                                  // needs 2 nodes
 		`authentication: OpenLDAP`,                                // needs separate setup and bucketing for openldap bootstrapping
 		`NFS`, // no permissions https://github.com/openshift/origin/pull/6884

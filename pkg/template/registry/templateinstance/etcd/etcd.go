@@ -7,7 +7,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -27,7 +26,6 @@ func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationint
 	strategy := templateinstance.NewStrategy(authorizationClient)
 
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &templateapi.TemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.TemplateInstanceList{} },
 		DefaultQualifiedResource: templateapi.Resource("templateinstances"),
@@ -67,6 +65,6 @@ func (r *StatusREST) Get(ctx request.Context, name string, options *metav1.GetOp
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+func (r *StatusREST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }

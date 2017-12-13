@@ -6,7 +6,10 @@ import (
 	"io"
 	"strings"
 
+	"github.com/openshift/api/authorization/v1"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/printers"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +34,7 @@ type whoCanOptions struct {
 	resourceName string
 
 	output   string
+	out      io.Writer
 	printObj func(runtime.Object) error
 }
 
@@ -60,6 +64,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 func (o *whoCanOptions) complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	mapper, _ := f.Object()
 
+	o.out = out
 	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.printObj = func(obj runtime.Object) error {
 		return f.PrintObject(cmd, false, mapper, obj, out)
@@ -128,11 +133,28 @@ func (o *whoCanOptions) run() error {
 	}
 
 	if len(o.output) > 0 {
-		if o.output != "json" && o.output != "yaml" {
-			return fmt.Errorf("invalid output format %q, only yaml|json supported", o.output)
+		// the printing stack is hosed.  Directly get the printer we need.
+		printableResponse := &v1.ResourceAccessReviewResponse{}
+		if err := legacyscheme.Scheme.Convert(resourceAccessReviewResponse, printableResponse, nil); err != nil {
+			return err
 		}
+		switch o.output {
+		case "json":
+			printer := printers.JSONPrinter{}
+			if err := printer.PrintObj(printableResponse, o.out); err != nil {
+				return err
+			}
+			return nil
+		case "yaml":
+			printer := printers.YAMLPrinter{}
+			if err := printer.PrintObj(printableResponse, o.out); err != nil {
+				return err
+			}
+			return nil
+		default:
+			return fmt.Errorf("invalid output format %q, only yaml|json supported", o.output)
 
-		return o.printObj(resourceAccessReviewResponse)
+		}
 	}
 
 	if resourceAccessReviewResponse.Namespace == metav1.NamespaceAll {

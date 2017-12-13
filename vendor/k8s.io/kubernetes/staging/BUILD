@@ -6,17 +6,6 @@ load(
     "go_library",
 )
 
-go_binary(
-    name = "staging",
-    library = ":go_default_library",
-)
-
-go_library(
-    name = "go_default_library",
-    srcs = ["godeps-json-updater.go"],
-    deps = ["//vendor/github.com/spf13/pflag:go_default_library"],
-)
-
 filegroup(
     name = "package-srcs",
     srcs = glob(["**"]),
@@ -28,8 +17,10 @@ filegroup(
     name = "all-srcs",
     srcs = [
         ":package-srcs",
-        "//staging/src/k8s.io/api/admission/v1alpha1:all-srcs",
+        "//staging/src/k8s.io/api/admission/v1beta1:all-srcs",
         "//staging/src/k8s.io/api/admissionregistration/v1alpha1:all-srcs",
+        "//staging/src/k8s.io/api/admissionregistration/v1beta1:all-srcs",
+        "//staging/src/k8s.io/api/apps/v1:all-srcs",
         "//staging/src/k8s.io/api/apps/v1beta1:all-srcs",
         "//staging/src/k8s.io/api/apps/v1beta2:all-srcs",
         "//staging/src/k8s.io/api/authentication/v1:all-srcs",
@@ -43,6 +34,7 @@ filegroup(
         "//staging/src/k8s.io/api/batch/v2alpha1:all-srcs",
         "//staging/src/k8s.io/api/certificates/v1beta1:all-srcs",
         "//staging/src/k8s.io/api/core/v1:all-srcs",
+        "//staging/src/k8s.io/api/events/v1beta1:all-srcs",
         "//staging/src/k8s.io/api/extensions/v1beta1:all-srcs",
         "//staging/src/k8s.io/api/imagepolicy/v1alpha1:all-srcs",
         "//staging/src/k8s.io/api/networking/v1:all-srcs",
@@ -53,6 +45,7 @@ filegroup(
         "//staging/src/k8s.io/api/scheduling/v1alpha1:all-srcs",
         "//staging/src/k8s.io/api/settings/v1alpha1:all-srcs",
         "//staging/src/k8s.io/api/storage/v1:all-srcs",
+        "//staging/src/k8s.io/api/storage/v1alpha1:all-srcs",
         "//staging/src/k8s.io/api/storage/v1beta1:all-srcs",
         "//staging/src/k8s.io/apiextensions-apiserver:all-srcs",
         "//staging/src/k8s.io/apimachinery/pkg/api/equality:all-srcs",
@@ -95,6 +88,7 @@ filegroup(
         "//staging/src/k8s.io/apimachinery/pkg/util/uuid:all-srcs",
         "//staging/src/k8s.io/apimachinery/pkg/util/validation:all-srcs",
         "//staging/src/k8s.io/apimachinery/pkg/util/wait:all-srcs",
+        "//staging/src/k8s.io/apimachinery/pkg/util/waitgroup:all-srcs",
         "//staging/src/k8s.io/apimachinery/pkg/util/yaml:all-srcs",
         "//staging/src/k8s.io/apimachinery/pkg/version:all-srcs",
         "//staging/src/k8s.io/apimachinery/pkg/watch:all-srcs",
@@ -105,6 +99,7 @@ filegroup(
         "//staging/src/k8s.io/apiserver/pkg/apis/apiserver:all-srcs",
         "//staging/src/k8s.io/apiserver/pkg/apis/audit:all-srcs",
         "//staging/src/k8s.io/apiserver/pkg/apis/example:all-srcs",
+        "//staging/src/k8s.io/apiserver/pkg/apis/example2:all-srcs",
         "//staging/src/k8s.io/apiserver/pkg/audit:all-srcs",
         "//staging/src/k8s.io/apiserver/pkg/authentication/authenticator:all-srcs",
         "//staging/src/k8s.io/apiserver/pkg/authentication/authenticatorfactory:all-srcs",
@@ -148,6 +143,8 @@ filegroup(
         "//staging/src/k8s.io/client-go/informers:all-srcs",
         "//staging/src/k8s.io/client-go/kubernetes:all-srcs",
         "//staging/src/k8s.io/client-go/listers/admissionregistration/v1alpha1:all-srcs",
+        "//staging/src/k8s.io/client-go/listers/admissionregistration/v1beta1:all-srcs",
+        "//staging/src/k8s.io/client-go/listers/apps/v1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/apps/v1beta1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/apps/v1beta2:all-srcs",
         "//staging/src/k8s.io/client-go/listers/authentication/v1:all-srcs",
@@ -161,6 +158,7 @@ filegroup(
         "//staging/src/k8s.io/client-go/listers/batch/v2alpha1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/certificates/v1beta1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/core/v1:all-srcs",
+        "//staging/src/k8s.io/client-go/listers/events/v1beta1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/extensions/v1beta1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/imagepolicy/v1alpha1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/networking/v1:all-srcs",
@@ -171,11 +169,13 @@ filegroup(
         "//staging/src/k8s.io/client-go/listers/scheduling/v1alpha1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/settings/v1alpha1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/storage/v1:all-srcs",
+        "//staging/src/k8s.io/client-go/listers/storage/v1alpha1:all-srcs",
         "//staging/src/k8s.io/client-go/listers/storage/v1beta1:all-srcs",
         "//staging/src/k8s.io/client-go/pkg/version:all-srcs",
         "//staging/src/k8s.io/client-go/plugin/pkg/auth/authenticator/token/oidc/testing:all-srcs",
         "//staging/src/k8s.io/client-go/plugin/pkg/client/auth:all-srcs",
         "//staging/src/k8s.io/client-go/rest:all-srcs",
+        "//staging/src/k8s.io/client-go/scale:all-srcs",
         "//staging/src/k8s.io/client-go/testing:all-srcs",
         "//staging/src/k8s.io/client-go/third_party/forked/golang/template:all-srcs",
         "//staging/src/k8s.io/client-go/tools/auth:all-srcs",
@@ -189,6 +189,7 @@ filegroup(
         "//staging/src/k8s.io/client-go/tools/reference:all-srcs",
         "//staging/src/k8s.io/client-go/tools/remotecommand:all-srcs",
         "//staging/src/k8s.io/client-go/transport:all-srcs",
+        "//staging/src/k8s.io/client-go/util/buffer:all-srcs",
         "//staging/src/k8s.io/client-go/util/cert:all-srcs",
         "//staging/src/k8s.io/client-go/util/certificate:all-srcs",
         "//staging/src/k8s.io/client-go/util/exec:all-srcs",
@@ -216,6 +217,7 @@ filegroup(
         "//staging/src/k8s.io/metrics/pkg/client/clientset_generated/clientset:all-srcs",
         "//staging/src/k8s.io/metrics/pkg/client/custom_metrics:all-srcs",
         "//staging/src/k8s.io/sample-apiserver:all-srcs",
+        "//staging/src/k8s.io/sample-controller:all-srcs",
     ],
     tags = ["automanaged"],
 )

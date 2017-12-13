@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	dapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/generate/app"

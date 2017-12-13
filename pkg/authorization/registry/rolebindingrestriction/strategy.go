@@ -6,7 +6,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
@@ -17,9 +17,11 @@ type strategy struct {
 	names.NameGenerator
 }
 
-var Strategy = strategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = strategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
-func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = strategy{}
+
+func (strategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

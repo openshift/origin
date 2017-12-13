@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
@@ -166,17 +166,14 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 	}
 
 	mapper, typer := f.Object()
-	dynamicMapper, dynamicTyper, err := f.UnstructuredObject()
-	if err != nil {
-		return err
-	}
+
 	// ignore errors.   We use this to make a best guess at preferred seralizations, but the command might run without a server
 	discoveryClient, _ := f.DiscoveryClient()
 
 	o.Action.Out, o.Action.ErrOut = out, o.ErrOut
 	o.Action.Bulk.DynamicMapper = &resource.Mapper{
-		RESTMapper:   dynamicMapper,
-		ObjectTyper:  dynamicTyper,
+		RESTMapper:   mapper,
+		ObjectTyper:  typer,
 		ClientMapper: resource.ClientMapperFunc(f.UnstructuredClientForMapping),
 	}
 	o.Action.Bulk.Mapper = &resource.Mapper{
@@ -556,6 +553,9 @@ func getDockerClient() (*docker.Client, error) {
 
 func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.Command, args []string) error {
 	mapper, typer := f.Object()
+	if config.Builder == nil {
+		config.Builder = f.NewBuilder()
+	}
 	if config.Mapper == nil {
 		config.Mapper = mapper
 	}

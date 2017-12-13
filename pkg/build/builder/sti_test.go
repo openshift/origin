@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"

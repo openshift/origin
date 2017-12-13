@@ -7,12 +7,12 @@ interactions:
     form: {}
     headers:
       Authorization:
-      - SharedKey golangrocksonazure:VbziVYphAJqdy58Mc5VB/ZwP22GjGaMkYlM9EAzbJDU=
+      - SharedKey golangrocksonazure:m+LPOmxFZb2TFNxWZDNl7qZ50q/2Fb3OATx1+2hQnAM=
       User-Agent:
-      - Go/go1.8 (amd64-windows) azure-storage-go/0.1.0 api-version/2016-05-31 blob
-      X-Ms-Date:
-      - Wed, 05 Apr 2017 22:33:09 GMT
-      X-Ms-Version:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:41 GMT
+      x-ms-version:
       - 2016-05-31
     url: https://golangrocksonazure.blob.core.windows.net/cnt-134containersuitetestcontain?restype=container
     method: HEAD
@@ -20,11 +20,11 @@ interactions:
     body: ""
     headers:
       Date:
-      - Wed, 05 Apr 2017 22:33:09 GMT
+      - Wed, 27 Sep 2017 23:21:41 GMT
       Server:
       - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
       X-Ms-Request-Id:
-      - 5eac3379-0001-00d8-795c-aea568000000
+      - 9a1a4af5-001e-0038-47e7-3743e0000000
       X-Ms-Version:
       - 2016-05-31
     status: 404 The specified container does not exist.
@@ -34,12 +34,12 @@ interactions:
     form: {}
     headers:
       Authorization:
-      - SharedKey golangrocksonazure:b481+dpQtmF7zoLWaIyVqsS30qf0W7NxQ1D4YEmP6Hg=
+      - SharedKey golangrocksonazure:wp+d4VKOzAVXFbVouSKEjIt/ZR5tioQsa/f/N3W3Eto=
       User-Agent:
-      - Go/go1.8 (amd64-windows) azure-storage-go/0.1.0 api-version/2016-05-31 blob
-      X-Ms-Date:
-      - Wed, 05 Apr 2017 22:33:09 GMT
-      X-Ms-Version:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:41 GMT
+      x-ms-version:
       - 2016-05-31
     url: https://golangrocksonazure.blob.core.windows.net/cnt-234containersuitetestcontain?restype=container
     method: PUT
@@ -47,15 +47,15 @@ interactions:
     body: ""
     headers:
       Date:
-      - Wed, 05 Apr 2017 22:33:09 GMT
+      - Wed, 27 Sep 2017 23:21:41 GMT
       Etag:
-      - '"0x8D47C73BCEB8B7E"'
+      - '"0x8D505FE82D4E748"'
       Last-Modified:
-      - Wed, 05 Apr 2017 22:33:09 GMT
+      - Wed, 27 Sep 2017 23:21:41 GMT
       Server:
       - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
       X-Ms-Request-Id:
-      - 5eac3385-0001-00d8-015c-aea568000000
+      - 9a1a4b03-001e-0038-50e7-3743e0000000
       X-Ms-Version:
       - 2016-05-31
     status: 201 Created
@@ -65,12 +65,12 @@ interactions:
     form: {}
     headers:
       Authorization:
-      - SharedKey golangrocksonazure:gkUCXmBlCQyJTY01AOOYOogKVRqijKyuTK54DDvwclg=
+      - SharedKey golangrocksonazure:O+zM57wTRWigRabHBtDG+vNxOaP3cIItksFQwGQb5vE=
       User-Agent:
-      - Go/go1.8 (amd64-windows) azure-storage-go/0.1.0 api-version/2016-05-31 blob
-      X-Ms-Date:
-      - Wed, 05 Apr 2017 22:33:10 GMT
-      X-Ms-Version:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:42 GMT
+      x-ms-version:
       - 2016-05-31
     url: https://golangrocksonazure.blob.core.windows.net/cnt-234containersuitetestcontain?restype=container
     method: HEAD
@@ -78,11 +78,11 @@ interactions:
     body: ""
     headers:
       Date:
-      - Wed, 05 Apr 2017 22:33:09 GMT
+      - Wed, 27 Sep 2017 23:21:41 GMT
       Etag:
-      - '"0x8D47C73BCEB8B7E"'
+      - '"0x8D505FE82D4E748"'
       Last-Modified:
-      - Wed, 05 Apr 2017 22:33:09 GMT
+      - Wed, 27 Sep 2017 23:21:41 GMT
       Server:
       - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
       X-Ms-Lease-State:
@@ -90,7 +90,115 @@ interactions:
       X-Ms-Lease-Status:
       - unlocked
       X-Ms-Request-Id:
-      - 5eac3393-0001-00d8-0c5c-aea568000000
+      - 9a1a4b13-001e-0038-5de7-3743e0000000
+      X-Ms-Version:
+      - 2016-05-31
+    status: 200 OK
+    code: 200
+- request:
+    body: ""
+    form: {}
+    headers:
+      User-Agent:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:42 GMT
+      x-ms-version:
+      - 2016-05-31
+    url: https://golangrocksonazure.blob.core.windows.net/cnt-134containersuitetestcontain?restype=container&se=2050-12-20T21%3A55%3A06Z&sig=LQbki0BVo2HysxQfHLjjpjQ527nGivIf6TkqVv3ucQY%3D&sp=racwdl&sr=c&sv=2016-05-31
+    method: HEAD
+  response:
+    body: ""
+    headers:
+      Date:
+      - Wed, 27 Sep 2017 23:21:41 GMT
+      Server:
+      - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+      X-Ms-Request-Id:
+      - 9a1a4b17-001e-0038-61e7-3743e0000000
+      X-Ms-Version:
+      - 2016-05-31
+    status: 403 This request is not authorized to perform this operation.
+    code: 403
+- request:
+    body: ""
+    form: {}
+    headers:
+      User-Agent:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:42 GMT
+      x-ms-version:
+      - 2016-05-31
+    url: https://golangrocksonazure.blob.core.windows.net/cnt-234containersuitetestcontain?restype=container&se=2050-12-20T21%3A55%3A06Z&sig=GG6hgkV%2BwUiAa2%2F6I2a%2BG758UqKESeutpNWRn%2BfaJf0%3D&sp=racwdl&sr=c&sv=2016-05-31
+    method: HEAD
+  response:
+    body: ""
+    headers:
+      Date:
+      - Wed, 27 Sep 2017 23:21:41 GMT
+      Server:
+      - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+      X-Ms-Request-Id:
+      - 9a1a4b1c-001e-0038-66e7-3743e0000000
+      X-Ms-Version:
+      - 2016-05-31
+    status: 403 This request is not authorized to perform this operation.
+    code: 403
+- request:
+    body: ""
+    form: {}
+    headers:
+      User-Agent:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:42 GMT
+      x-ms-version:
+      - 2016-05-31
+    url: https://golangrocksonazure.blob.core.windows.net/cnt-134containersuitetestcontain?restype=container&se=2050-12-20&sig=H47yV%2BBZqUb6EMXkxCwBoRUjUuBNbwqnUdArMgO3agQ%3D&sp=rwdlacup&spr=https&srt=sco&ss=b&sv=2016-05-31
+    method: HEAD
+  response:
+    body: ""
+    headers:
+      Date:
+      - Wed, 27 Sep 2017 23:21:41 GMT
+      Server:
+      - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+      X-Ms-Request-Id:
+      - 9a1a4b27-001e-0038-6fe7-3743e0000000
+      X-Ms-Version:
+      - 2016-05-31
+    status: 404 The specified container does not exist.
+    code: 404
+- request:
+    body: ""
+    form: {}
+    headers:
+      User-Agent:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:42 GMT
+      x-ms-version:
+      - 2016-05-31
+    url: https://golangrocksonazure.blob.core.windows.net/cnt-234containersuitetestcontain?restype=container&se=2050-12-20&sig=H47yV%2BBZqUb6EMXkxCwBoRUjUuBNbwqnUdArMgO3agQ%3D&sp=rwdlacup&spr=https&srt=sco&ss=b&sv=2016-05-31
+    method: HEAD
+  response:
+    body: ""
+    headers:
+      Date:
+      - Wed, 27 Sep 2017 23:21:41 GMT
+      Etag:
+      - '"0x8D505FE82D4E748"'
+      Last-Modified:
+      - Wed, 27 Sep 2017 23:21:41 GMT
+      Server:
+      - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+      X-Ms-Lease-State:
+      - available
+      X-Ms-Lease-Status:
+      - unlocked
+      X-Ms-Request-Id:
+      - 9a1a4b2a-001e-0038-71e7-3743e0000000
       X-Ms-Version:
       - 2016-05-31
     status: 200 OK
@@ -100,12 +208,12 @@ interactions:
     form: {}
     headers:
       Authorization:
-      - SharedKey golangrocksonazure:DLx/9U7PIOMKL+VWL8QTTXsdwzD78NKk/qETwMQs4oE=
+      - SharedKey golangrocksonazure:tqrykn5C5pPEOaa+7lndgUCo4YnNYISfh/G38wBqeAw=
       User-Agent:
-      - Go/go1.8 (amd64-windows) azure-storage-go/0.1.0 api-version/2016-05-31 blob
-      X-Ms-Date:
-      - Wed, 05 Apr 2017 22:33:10 GMT
-      X-Ms-Version:
+      - Go/go1.9 (amd64-windows) azure-storage-go/10.0.2 api-version/2016-05-31 blob
+      x-ms-date:
+      - Wed, 27 Sep 2017 23:21:42 GMT
+      x-ms-version:
       - 2016-05-31
     url: https://golangrocksonazure.blob.core.windows.net/cnt-234containersuitetestcontain?restype=container
     method: DELETE
@@ -113,11 +221,11 @@ interactions:
     body: ""
     headers:
       Date:
-      - Wed, 05 Apr 2017 22:33:09 GMT
+      - Wed, 27 Sep 2017 23:21:41 GMT
       Server:
       - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
       X-Ms-Request-Id:
-      - 5eac339f-0001-00d8-145c-aea568000000
+      - 9a1a4b2d-001e-0038-74e7-3743e0000000
       X-Ms-Version:
       - 2016-05-31
     status: 202 Accepted

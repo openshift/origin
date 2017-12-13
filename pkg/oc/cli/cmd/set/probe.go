@@ -10,11 +10,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -85,7 +86,7 @@ type ProbeOptions struct {
 	Mapper      meta.RESTMapper
 
 	PrintObject            func([]*resource.Info) error
-	UpdatePodSpecForObject func(runtime.Object, func(spec *kapi.PodSpec) error) (bool, error)
+	UpdatePodSpecForObject func(runtime.Object, func(spec *v1.PodSpec) error) (bool, error)
 
 	Readiness bool
 	Liveness  bool
@@ -181,7 +182,9 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	o.Cmd = cmd
 
 	mapper, _ := f.Object()
-	o.Builder = f.NewBuilder(!o.Local).
+	o.Builder = f.NewBuilder().
+		Internal().
+		LocalParam(o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -189,7 +192,7 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 
 	if !o.Local {
 		o.Builder = o.Builder.
-			SelectorParam(o.Selector).
+			LabelSelectorParam(o.Selector).
 			ResourceTypeOrNameArgs(o.All, resources...)
 	}
 
@@ -298,7 +301,7 @@ func (o *ProbeOptions) Run() error {
 
 	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
 		transformed := false
-		_, err := o.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+		_, err := o.UpdatePodSpecForObject(info.Object, clientcmd.ConvertInteralPodSpecToExternal(func(spec *kapi.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, o.ContainerSelector)
 			if len(containers) == 0 {
 				fmt.Fprintf(o.Err, "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, o.ContainerSelector)
@@ -310,7 +313,7 @@ func (o *ProbeOptions) Run() error {
 				o.updateContainer(container)
 			}
 			return nil
-		})
+		}))
 		return transformed, err
 	})
 	if singleItemImplied && len(patches) == 0 {

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	ct "github.com/daviddengcn/go-colortext"
 	"io"
 	"io/ioutil"
 	"runtime"
 	"strings"
 	txttemplate "text/template"
+
+	ct "github.com/daviddengcn/go-colortext"
 
 	"github.com/openshift/origin/pkg/version"
 )

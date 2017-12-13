@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/utils/exec"

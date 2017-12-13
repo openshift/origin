@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
@@ -370,7 +370,7 @@ func TestAdmission(t *testing.T) {
 		plugin.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(fakeUserClient)
 		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
 
-		err = admission.Validate(plugin)
+		err = admission.ValidateInitialization(plugin)
 		if err != nil {
 			t.Errorf("unexpected error validating admission plugin: %v", err)
 		}
@@ -387,7 +387,7 @@ func TestAdmission(t *testing.T) {
 			&user.DefaultInfo{},
 		)
 
-		err = plugin.Admit(attributes)
+		err = plugin.(admission.MutationInterface).Admit(attributes)
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil:

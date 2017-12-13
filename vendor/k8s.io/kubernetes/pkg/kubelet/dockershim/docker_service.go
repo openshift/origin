@@ -44,8 +44,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/network/kubenet"
 	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 	"k8s.io/kubernetes/pkg/kubelet/util/cache"
+	utilstore "k8s.io/kubernetes/pkg/kubelet/util/store"
 
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim/metrics"
 )
 
 const (
@@ -146,23 +148,45 @@ type dockerNetworkHost struct {
 
 var internalLabelKeys []string = []string{containerTypeLabelKey, containerLogPathLabelKey, sandboxIDLabelKey}
 
+// ClientConfig is parameters used to initialize docker client
+type ClientConfig struct {
+	DockerEndpoint            string
+	RuntimeRequestTimeout     time.Duration
+	ImagePullProgressDeadline time.Duration
+
+	// Configuration for fake docker client
+	EnableSleep       bool
+	WithTraceDisabled bool
+}
+
+// NewDockerClientFromConfig create a docker client from given configure
+// return nil if nil configure is given.
+func NewDockerClientFromConfig(config *ClientConfig) libdocker.Interface {
+	if config != nil {
+		// Create docker client.
+		client := libdocker.ConnectToDockerOrDie(
+			config.DockerEndpoint,
+			config.RuntimeRequestTimeout,
+			config.ImagePullProgressDeadline,
+			config.WithTraceDisabled,
+			config.EnableSleep,
+		)
+		return client
+	}
+
+	return nil
+}
+
 // NOTE: Anything passed to DockerService should be eventually handled in another way when we switch to running the shim as a different process.
-func NewDockerService(client libdocker.Interface, podSandboxImage string, streamingConfig *streaming.Config,
-	pluginSettings *NetworkPluginSettings, cgroupsName string, kubeCgroupDriver string, execHandlerName, dockershimRootDir string, disableSharedPID bool) (DockerService, error) {
+func NewDockerService(config *ClientConfig, podSandboxImage string, streamingConfig *streaming.Config,
+	pluginSettings *NetworkPluginSettings, cgroupsName string, kubeCgroupDriver string, dockershimRootDir string, disableSharedPID bool) (DockerService, error) {
+
+	client := NewDockerClientFromConfig(config)
+
 	c := libdocker.NewInstrumentedInterface(client)
 	checkpointHandler, err := NewPersistentCheckpointHandler(dockershimRootDir)
 	if err != nil {
 		return nil, err
-	}
-	var execHandler ExecHandler
-	switch execHandlerName {
-	case "native":
-		execHandler = &NativeExecHandler{}
-	case "nsenter":
-		execHandler = &NsenterExecHandler{}
-	default:
-		glog.Warningf("Unknown Docker exec handler %q; defaulting to native", execHandlerName)
-		execHandler = &NativeExecHandler{}
 	}
 
 	ds := &dockerService{
@@ -171,7 +195,7 @@ func NewDockerService(client libdocker.Interface, podSandboxImage string, stream
 		podSandboxImage: podSandboxImage,
 		streamingRuntime: &streamingRuntime{
 			client:      client,
-			execHandler: execHandler,
+			execHandler: &NativeExecHandler{},
 		},
 		containerManager:  cm.NewContainerManager(cgroupsName, client),
 		checkpointHandler: checkpointHandler,
@@ -210,6 +234,7 @@ func NewDockerService(client libdocker.Interface, podSandboxImage string, stream
 	// NOTE: cgroup driver is only detectable in docker 1.11+
 	cgroupDriver := defaultCgroupDriver
 	dockerInfo, err := ds.client.Info()
+	glog.Infof("Docker Info: %+v", dockerInfo)
 	if err != nil {
 		glog.Errorf("Failed to execute Info() call to the Docker client: %v", err)
 		glog.Warningf("Falling back to use the default driver: %q", cgroupDriver)
@@ -230,6 +255,10 @@ func NewDockerService(client libdocker.Interface, podSandboxImage string, stream
 		},
 		versionCacheTTL,
 	)
+
+	// Register prometheus metrics.
+	metrics.Register()
+
 	return ds, nil
 }
 
@@ -241,6 +270,15 @@ type DockerService interface {
 	Start() error
 	// For serving streaming calls.
 	http.Handler
+
+	// IsCRISupportedLogDriver checks whether the logging driver used by docker is
+	// suppoted by native CRI integration.
+	// TODO(resouer): remove this when deprecating unsupported log driver
+	IsCRISupportedLogDriver() (bool, error)
+
+	// NewDockerLegacyService created docker legacy service when log driver is not supported.
+	// TODO(resouer): remove this when deprecating unsupported log driver
+	NewDockerLegacyService() DockerLegacyService
 }
 
 type dockerService struct {
@@ -259,8 +297,6 @@ type dockerService struct {
 	// cgroup driver used by Docker runtime.
 	cgroupDriver      string
 	checkpointHandler CheckpointHandler
-	// legacyCleanup indicates whether legacy cleanup has finished or not.
-	legacyCleanup legacyCleanupFlag
 	// caches the version of the runtime.
 	// To be compatible with multiple docker versions, we need to perform
 	// version checking for some operations. Use this cache to avoid querying
@@ -330,6 +366,9 @@ func (ds *dockerService) GetPodPortMappings(podSandboxID string) ([]*hostport.Po
 	checkpoint, err := ds.checkpointHandler.GetCheckpoint(podSandboxID)
 	// Return empty portMappings if checkpoint is not found
 	if err != nil {
+		if err == utilstore.ErrKeyNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -348,7 +387,6 @@ func (ds *dockerService) GetPodPortMappings(podSandboxID string) ([]*hostport.Po
 // Start initializes and starts components in dockerService.
 func (ds *dockerService) Start() error {
 	// Initialize the legacy cleanup flag.
-	ds.LegacyCleanupInit()
 	return ds.containerManager.Start()
 }
 
@@ -482,8 +520,10 @@ type dockerLegacyService struct {
 	client libdocker.Interface
 }
 
-func NewDockerLegacyService(client libdocker.Interface) DockerLegacyService {
-	return &dockerLegacyService{client: client}
+// NewDockerLegacyService created docker legacy service when log driver is not supported.
+// TODO(resouer): remove this when deprecating unsupported log driver
+func (d *dockerService) NewDockerLegacyService() DockerLegacyService {
+	return &dockerLegacyService{client: d.client}
 }
 
 // GetContainerLogs get container logs directly from docker daemon.
@@ -555,8 +595,8 @@ var criSupportedLogDrivers = []string{"json-file"}
 
 // IsCRISupportedLogDriver checks whether the logging driver used by docker is
 // suppoted by native CRI integration.
-func IsCRISupportedLogDriver(client libdocker.Interface) (bool, error) {
-	info, err := client.Info()
+func (d *dockerService) IsCRISupportedLogDriver() (bool, error) {
+	info, err := d.client.Info()
 	if err != nil {
 		return false, fmt.Errorf("failed to get docker info: %v", err)
 	}

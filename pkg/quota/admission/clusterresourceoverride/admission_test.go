@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -221,7 +221,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
 		attrs := admission.NewAttributesRecord(test.pod, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
-		if err = c.Admit(attrs); err != nil {
+		if err = c.(admission.MutationInterface).Admit(attrs); err != nil {
 			t.Errorf("%s: admission controller returned error: %v", test.name, err)
 			continue
 		}

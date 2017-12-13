@@ -8,7 +8,6 @@ import (
 	apiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	restclient "k8s.io/client-go/rest"
-	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	fakeinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -29,7 +28,6 @@ import (
 // KnownUpdateValidationExceptions is the list of types that are known to not have an update validation function registered
 // If you add something to this list, explain why it doesn't need update validation.
 var KnownUpdateValidationExceptions = []reflect.Type{
-	reflect.TypeOf(&extapi.Scale{}),                         // scale operation uses the ValidateScale() function for both create and update
 	reflect.TypeOf(&quotaapi.AppliedClusterResourceQuota{}), // this only retrieved, never created.  its a virtual projection of ClusterResourceQuota
 	reflect.TypeOf(&deployapi.DeploymentRequest{}),          // request for deployments already use ValidateDeploymentRequest()
 }

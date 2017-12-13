@@ -26,7 +26,7 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 	sccAdmission := sccadmission.NewConstraint()
 	sccAdmission.SetSecurityInformers(ctx.SecurityInformers)
 	sccAdmission.SetInternalKubeClientSet(ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName))
-	if err := sccAdmission.Validate(); err != nil {
+	if err := sccAdmission.ValidateInitialization(); err != nil {
 		return true, err
 	}
 

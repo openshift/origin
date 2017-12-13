@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
@@ -46,7 +46,7 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 }
 
 // CreateUser associates a user and identity if they both exist, and the identity is not already mapped to a user
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	mapping, ok := obj.(*userapi.UserIdentityMapping)
 	if !ok {
 		return nil, kerrs.NewBadRequest("invalid type")
@@ -59,7 +59,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 // UpdateUser associates an identity with a user.
 // Both the identity and user must already exist.
 // If the identity is associated with another user already, it is disassociated.
-func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, _ rest.ValidateObjectFunc, _ rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	obj, err := objInfo.UpdatedObject(ctx, nil)
 	if err != nil {
 		return nil, false, err

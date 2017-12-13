@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -15,9 +15,9 @@ import (
 func init() {
 	legacy.InstallLegacy(projectapi.GroupName, projectapi.AddToSchemeInCoreGroup, projectapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("Project", "ProjectRequest"),
-		kapi.Registry, kapi.Scheme,
+		legacyscheme.Registry, legacyscheme.Scheme,
 	)
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

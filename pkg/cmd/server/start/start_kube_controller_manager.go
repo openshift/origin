@@ -16,7 +16,7 @@ import (
 	kinformers "k8s.io/client-go/informers"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/volume"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
@@ -199,7 +199,7 @@ func createRecylerTemplate(recyclerImage string) (string, error) {
 	template.Spec.Containers[0].SecurityContext = &kapiv1.SecurityContext{RunAsUser: &uid}
 	template.Spec.Containers[0].ImagePullPolicy = kapiv1.PullIfNotPresent
 
-	templateBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapiv1.SchemeGroupVersion), template)
+	templateBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(kapiv1.SchemeGroupVersion), template)
 	if err != nil {
 		return "", err
 	}

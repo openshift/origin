@@ -12,7 +12,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"

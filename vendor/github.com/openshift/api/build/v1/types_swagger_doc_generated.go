@@ -498,6 +498,15 @@ func (SecretBuildSource) SwaggerDoc() map[string]string {
 	return map_SecretBuildSource
 }
 
+var map_SecretLocalReference = map[string]string{
+	"":     "SecretLocalReference contains information that points to the local secret being used",
+	"name": "Name is the name of the resource in the same namespace being referenced",
+}
+
+func (SecretLocalReference) SwaggerDoc() map[string]string {
+	return map_SecretLocalReference
+}
+
 var map_SecretSpec = map[string]string{
 	"":             "SecretSpec specifies a secret to be included in a build pod and its corresponding mount point",
 	"secretSource": "secretSource is a reference to the secret",
@@ -575,9 +584,10 @@ func (StepInfo) SwaggerDoc() map[string]string {
 }
 
 var map_WebHookTrigger = map[string]string{
-	"":         "WebHookTrigger is a trigger that gets invoked using a webhook type of post",
-	"secret":   "secret used to validate requests.",
-	"allowEnv": "allowEnv determines whether the webhook can set environment variables; can only be set to true for GenericWebHook.",
+	"":                "WebHookTrigger is a trigger that gets invoked using a webhook type of post",
+	"secret":          "secret used to validate requests. Deprecated: use SecretReference instead.",
+	"allowEnv":        "allowEnv determines whether the webhook can set environment variables; can only be set to true for GenericWebHook.",
+	"secretReference": "secretReference is a reference to a secret in the same namespace, containing the value to be validated when the webhook is invoked. The secret being referenced must contain a key named \"WebHookSecretKey\", the value of which will be checked against the value supplied in the webhook invocation.",
 }
 
 func (WebHookTrigger) SwaggerDoc() map[string]string {

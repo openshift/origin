@@ -4,13 +4,14 @@ import (
 	"strings"
 
 	"github.com/gonum/graph"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -229,7 +230,7 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			groupVersionResource = schema.GroupVersionResource{Resource: resource}
 		}
 
-		groupVersionResource, err := kapi.Registry.RESTMapper().ResourceFor(groupVersionResource)
+		groupVersionResource, err := legacyscheme.Registry.RESTMapper().ResourceFor(groupVersionResource)
 		if err != nil {
 			continue
 		}

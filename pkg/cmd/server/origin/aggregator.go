@@ -50,9 +50,9 @@ func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Con
 	genericConfig.SwaggerConfig = nil
 	genericConfig.OpenAPIConfig = nil
 
-	// This depends on aggregator types being registered into the kapi.Scheme, which is currently done in Start() to avoid concurrent scheme modification
+	// This depends on aggregator types being registered into the legacyscheme.Scheme, which is currently done in Start() to avoid concurrent scheme modification
 	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
-	// install.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	// install.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 
 	serviceResolver := aggregatorapiserver.NewClusterIPServiceResolver(
 		c.ClientGoKubeInformers.Core().V1().Services().Lister(),
@@ -183,6 +183,8 @@ var apiVersionPriorities = map[schema.GroupVersion]priority{
 	// to my knowledge, nothing below here collides
 	{Group: "apps", Version: "v1beta1"}:                          {group: 17800, version: 1},
 	{Group: "apps", Version: "v1beta2"}:                          {group: 17800, version: 1},
+	{Group: "apps", Version: "v1"}:                               {group: 17800, version: 15},
+	{Group: "events.k8s.io", Version: "v1beta1"}:                 {group: 17750, version: 5},
 	{Group: "authentication.k8s.io", Version: "v1"}:              {group: 17700, version: 15},
 	{Group: "authentication.k8s.io", Version: "v1beta1"}:         {group: 17700, version: 9},
 	{Group: "authorization.k8s.io", Version: "v1"}:               {group: 17600, version: 15},
@@ -202,7 +204,9 @@ var apiVersionPriorities = map[schema.GroupVersion]priority{
 	{Group: "storage.k8s.io", Version: "v1"}:                     {group: 16800, version: 15},
 	{Group: "storage.k8s.io", Version: "v1beta1"}:                {group: 16800, version: 9},
 	{Group: "apiextensions.k8s.io", Version: "v1beta1"}:          {group: 16700, version: 9},
+	{Group: "admissionregistration.k8s.io", Version: "v1beta1"}:  {group: 16700, version: 12},
 	{Group: "admissionregistration.k8s.io", Version: "v1alpha1"}: {group: 16700, version: 9},
+	{Group: "scheduling.k8s.io", Version: "v1alpha1"}:            {group: 16600, version: 9},
 
 	// arbitrarily starting openshift around 10000.
 	// bump authorization above RBAC

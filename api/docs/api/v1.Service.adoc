@@ -28,7 +28,7 @@ Expand or mouse-over a field for more information about it.
 
 Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">creationTimestamp</span>:
 </div><div style="margin-left:13px;">  <span title="(integer) Number of seconds allowed for this object to gracefully terminate before it will be removed from the system. Only set when deletionTimestamp is also set. May only be shortened. Read-only.">deletionGracePeriodSeconds</span>:
-</div><div style="margin-left:13px;">  <span title="(v1.Time) DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource is expected to be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field. Once set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. After that 30 seconds, the Kubelet will send a hard termination signal (SIGKILL) to the container and after cleanup, remove the pod from the API. In the presence of network partitions, this object may still exist after this timestamp, until an administrator or automated process can determine the resource is fully terminated. If not set, graceful deletion of the object has not been requested.
+</div><div style="margin-left:13px;">  <span title="(v1.Time) DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource is expected to be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field, once the finalizers list is empty. As long as the finalizers list contains items, deletion is blocked. Once the deletionTimestamp is set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. After that 30 seconds, the Kubelet will send a hard termination signal (SIGKILL) to the container and after cleanup, remove the pod from the API. In the presence of network partitions, this object may still exist after this timestamp, until an administrator or automated process can determine the resource is fully terminated. If not set, graceful deletion of the object has not been requested.
 
 Populated by the system when a graceful deletion is requested. Read-only. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">deletionTimestamp</span>:
 </div><details><summary>  <span title="(array) Must be empty before the object is deleted from the registry. Each entry is an identifier for the responsible component that will remove the entry from the list. If the deletionTimestamp of the object is non-nil, entries in this list can only be removed.">finalizers</span>:
@@ -93,7 +93,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">  <span title="(string) clusterIP is the IP address of the service and is usually assigned randomly by the master. If an address is specified manually and is not in use by others, it will be allocated to the service; otherwise, creation of the service will fail. This field can not be changed through updates. Valid values are &#34;None&#34;, empty string (&#34;&#34;), or a valid IP address. &#34;None&#34; can be specified for headless services when proxying is not required. Only applies to types ClusterIP, NodePort, and LoadBalancer. Ignored if type is ExternalName. More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies">clusterIP</span>:
 </div><details><summary>  <span title="(array) externalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service.  These IPs are not managed by Kubernetes.  The user is responsible for ensuring that traffic arrives at a node with this IP.  A common example is external load-balancers that are not part of the Kubernetes system.">externalIPs</span>:
 </summary><div style="margin-left:13px;">  - <span title="(string)">[string]</span>:
-</div></details><div style="margin-left:13px;">  <span title="(string) externalName is the external reference that kubedns or equivalent will return as a CNAME record for this service. No proxying will be involved. Must be a valid DNS name and requires Type to be ExternalName.">externalName</span>:
+</div></details><div style="margin-left:13px;">  <span title="(string) externalName is the external reference that kubedns or equivalent will return as a CNAME record for this service. No proxying will be involved. Must be a valid RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) and requires Type to be ExternalName.">externalName</span>:
 </div><div style="margin-left:13px;">  <span title="(string) externalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints. &#34;Local&#34; preserves the client source IP and avoids a second hop for LoadBalancer and Nodeport type services, but risks potentially imbalanced traffic spreading. &#34;Cluster&#34; obscures the client source IP and may cause a second hop to another node, but should have good overall load-spreading.">externalTrafficPolicy</span>:
 </div><div style="margin-left:13px;">  <span title="(integer) healthCheckNodePort specifies the healthcheck nodePort for the service. If not specified, HealthCheckNodePort is created by the service api backend with the allocated nodePort. Will use user-specified nodePort value if specified by the client. Only effects when Type is set to LoadBalancer and ExternalTrafficPolicy is set to Local.">healthCheckNodePort</span>:
 </div><div style="margin-left:13px;">  <span title="(string) Only applies to Service Type: LoadBalancer LoadBalancer will get created with the IP specified in this field. This feature depends on whether the underlying cloud-provider supports specifying the loadBalancerIP when a load balancer is created. This field will be ignored if the cloud-provider does not support the feature.">loadBalancerIP</span>:
@@ -180,6 +180,8 @@ EOF
 |===
 |HTTP Code|Schema
 |200 OK|v1.Service
+|201 Created|v1.Service
+|202 Accepted|v1.Service
 |401 Unauthorized|
 |===
 
@@ -257,6 +259,8 @@ EOF
 |===
 |HTTP Code|Schema
 |200 OK|v1.Service
+|201 Created|v1.Service
+|202 Accepted|v1.Service
 |401 Unauthorized|
 |===
 
@@ -703,6 +707,7 @@ EOF
 |===
 |HTTP Code|Schema
 |200 OK|v1.Service
+|201 Created|v1.Service
 |401 Unauthorized|
 |===
 
@@ -966,6 +971,7 @@ EOF
 |===
 |HTTP Code|Schema
 |200 OK|v1.Service
+|201 Created|v1.Service
 |401 Unauthorized|
 |===
 

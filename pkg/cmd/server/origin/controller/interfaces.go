@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kexternalinformers "k8s.io/client-go/informers"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -40,9 +41,13 @@ type ControllerContext struct {
 	QuotaInformers         quotainformer.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
+	GenericInformerFunc    func(schema.GroupVersionResource) (kexternalinformers.GenericInformer, error)
 
 	// Stop is the stop channel
 	Stop <-chan struct{}
+	// InformersStarted is closed after all of the controllers have been initialized and are running.  After this point it is safe,
+	// for an individual controller to start the shared informers. Before it is closed, they should not.
+	InformersStarted chan struct{}
 }
 
 // OpenshiftControllerOptions contain the options used to run the controllers.  Eventually we need to construct a way to properly

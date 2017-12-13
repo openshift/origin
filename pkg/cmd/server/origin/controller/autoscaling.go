@@ -1,13 +1,15 @@
 package controller
 
 import (
-	clientgoclientset "k8s.io/client-go/kubernetes"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/discovery"
+	discocache "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
 	kubeclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/scale"
 	hpacontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	hpametrics "k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 
-	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
@@ -28,14 +30,6 @@ func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx Contro
 	if err != nil {
 		return false, err
 	}
-	appsClient, err := appstypedclient.NewForConfig(hpaClientConfig)
-	if err != nil {
-		return false, err
-	}
-	hpaEventsClient, err := clientgoclientset.NewForConfig(hpaClientConfig)
-	if err != nil {
-		return false, err
-	}
 
 	metricsClient := hpametrics.NewHeapsterMetricsClient(
 		hpaClient,
@@ -44,14 +38,30 @@ func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx Contro
 		"heapster",
 		"",
 	)
-	replicaCalc := hpacontroller.NewReplicaCalculator(metricsClient, hpaClient.Core())
+	replicaCalc := hpacontroller.NewReplicaCalculator(
+		metricsClient,
+		hpaClient.CoreV1(),
+		0.1, // this is the default
+	)
 
-	delegatingScalesGetter := appsv1client.NewDelegatingScaleNamespacer(appsClient, hpaClient.ExtensionsV1beta1())
+	// TODO: we need something like deferred discovery REST mapper that calls invalidate
+	// on cache misses.
+	cachedDiscovery := discocache.NewMemCacheClient(hpaClient.Discovery())
+	restMapper := discovery.NewDeferredDiscoveryRESTMapper(cachedDiscovery, apimeta.InterfacesForUnstructured)
+	restMapper.Reset()
+	// we don't use cached discovery because DiscoveryScaleKindResolver does its own caching,
+	// so we want to re-fetch every time when we actually ask for it
+	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(hpaClient.Discovery())
+	scaleClient, err := scale.NewForConfig(hpaClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
+	if err != nil {
+		return false, err
+	}
 
 	go hpacontroller.NewHorizontalController(
-		hpaEventsClient.Core(),
-		delegatingScalesGetter,
-		hpaClient.Autoscaling(),
+		hpaClient.CoreV1(),
+		scaleClient,
+		hpaClient.AutoscalingV1(),
+		restMapper,
 		replicaCalc,
 		originCtx.ExternalKubeInformers.Autoscaling().V1().HorizontalPodAutoscalers(),
 		originCtx.OpenshiftControllerOptions.HPAControllerOptions.SyncPeriod.Duration,

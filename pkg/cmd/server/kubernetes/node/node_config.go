@@ -4,15 +4,15 @@ import (
 	"crypto/tls"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim"
 
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/cert"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
-	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
+	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1alpha1"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -35,8 +35,8 @@ type NodeConfig struct {
 	// the cluster. It should not be passed into the Kubelet.
 	DNSClient kclientsetexternal.Interface
 
-	// DockerClient is a client to connect to Docker
-	DockerClient dockertools.Interface
+	// DockerClientConfig is a client config to connect to Docker
+	DockerClientConfig *dockershim.ClientConfig
 	// KubeletServer contains the KubeletServer configuration
 	KubeletServer *kubeletoptions.KubeletServer
 	// KubeletDeps are the injected code dependencies for the kubelet, fully initialized

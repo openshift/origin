@@ -15,8 +15,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -50,7 +50,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create instantiates a deployment config
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	req, ok := obj.(*deployapi.DeploymentRequest)
 	if !ok {
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
@@ -104,11 +104,19 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 		userInfo, _ := apirequest.UserFrom(ctx)
 		attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
-		if err := r.admit.Admit(attrs); err != nil {
+		if err := r.admit.(admission.MutationInterface).Admit(attrs); err != nil {
+			return err
+		}
+		if err := r.admit.(admission.ValidationInterface).Validate(attrs); err != nil {
 			return err
 		}
 
-		ret, _, err = r.store.Update(ctx, config.Name, rest.DefaultUpdatedObjectInfo(config, kapi.Scheme))
+		ret, _, err = r.store.Update(
+			ctx,
+			config.Name,
+			rest.DefaultUpdatedObjectInfo(config),
+			rest.AdmissionToValidateObjectFunc(r.admit, attrs),
+			rest.AdmissionToValidateObjectUpdateFunc(r.admit, attrs))
 		return err
 	})
 

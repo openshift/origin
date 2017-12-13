@@ -11,14 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func fuzzImageSignature(t *testing.T, signature *imageapi.ImageSignature, seed int64) *imageapi.ImageSignature {
-	f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), kapi.Codecs)
+	f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), legacyscheme.Codecs)
 	f.Funcs(
 		func(j *imageapi.ImageSignature, c fuzz.Continue) {
 			c.FuzzNoCustom(j)

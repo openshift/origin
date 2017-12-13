@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"

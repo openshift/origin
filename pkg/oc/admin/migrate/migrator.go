@@ -16,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -84,8 +83,6 @@ type ResourceOptions struct {
 }
 
 func (o *ResourceOptions) Bind(c *cobra.Command) {
-	c.Flags().StringVarP(&o.Output, "output", "o", o.Output, "Output the modified objects instead of saving them, valid values are 'yaml' or 'json'")
-	kcmdutil.AddNoHeadersFlags(c)
 	c.Flags().StringSliceVar(&o.Include, "include", o.Include, "Resource types to migrate. Passing --filename will override this flag.")
 	c.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", true, "Migrate objects in all namespaces. Defaults to true.")
 	c.Flags().BoolVar(&o.Confirm, "confirm", false, "If true, all requested objects will be migrated. Defaults to false.")
@@ -93,15 +90,21 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 	c.Flags().StringVar(&o.FromKey, "from-key", o.FromKey, "If specified, only migrate items with a key (namespace/name or name) greater than or equal to this value")
 	c.Flags().StringVar(&o.ToKey, "to-key", o.ToKey, "If specified, only migrate items with a key (namespace/name or name) less than this value")
 
+	// kcmdutil.PrinterForCommand needs these flags, however they are useless
+	// here because oc process returns list of heterogeneous objects that is
+	// not suitable for formatting as a table.
+	kcmdutil.AddNonDeprecatedPrinterFlags(c)
+
 	usage := "Filename, directory, or URL to docker-compose.yml file to use"
 	kubectl.AddJsonFilenameFlag(c, &o.Filenames, usage)
 	c.MarkFlagRequired("filename")
 }
 
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
+	o.Output = kcmdutil.GetFlagString(c, "output")
 	switch {
 	case len(o.Output) > 0:
-		printer, err := f.PrinterForCommand(c, false, nil, kprinters.PrintOptions{})
+		printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(c, false))
 		if err != nil {
 			return err
 		}
@@ -218,7 +221,8 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		break
 	}
 
-	o.Builder = f.NewBuilder(true).
+	o.Builder = f.NewBuilder().
+		Internal().
 		AllNamespaces(allNamespaces).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ContinueOnError().

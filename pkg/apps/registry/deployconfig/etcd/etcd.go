@@ -6,14 +6,19 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/client-go/scale/scheme/autoscalingv1"
+	"k8s.io/client-go/scale/scheme/extensionsv1beta1"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	autoscalingvalidation "k8s.io/kubernetes/pkg/apis/autoscaling/validation"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/labels"
 
+	deployapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -43,7 +48,6 @@ func (r *REST) ShortNames() []string {
 // and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &deployapi.DeploymentConfig{} },
 		NewListFunc:              func() runtime.Object { return &deployapi.DeploymentConfigList{} },
 		DefaultQualifiedResource: deployapi.Resource("deploymentconfigs"),
@@ -74,12 +78,22 @@ type ScaleREST struct {
 	store *registry.Store
 }
 
-// ScaleREST implements Patcher
 var _ = rest.Patcher(&ScaleREST{})
+var _ = rest.GroupVersionKindProvider(&ScaleREST{})
 
 // New creates a new Scale object
 func (r *ScaleREST) New() runtime.Object {
-	return &extensions.Scale{}
+	return &autoscaling.Scale{}
+}
+
+func (r *ScaleREST) GroupVersionKind(containingGV schema.GroupVersion) schema.GroupVersionKind {
+	switch containingGV {
+	case deployapiv1.SchemeGroupVersion,
+		deployapiv1.LegacySchemeGroupVersion:
+		return extensionsv1beta1.SchemeGroupVersion.WithKind("Scale")
+	default:
+		return autoscalingv1.SchemeGroupVersion.WithKind("Scale")
+	}
 }
 
 // Get retrieves (computes) the Scale subresource for the given DeploymentConfig name.
@@ -89,38 +103,58 @@ func (r *ScaleREST) Get(ctx apirequest.Context, name string, options *metav1.Get
 		return nil, err
 	}
 
-	return deployapi.ScaleFromConfig(deploymentConfig.(*deployapi.DeploymentConfig)), nil
+	return scaleFromConfig(deploymentConfig.(*deployapi.DeploymentConfig)), nil
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
-func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	uncastObj, err := r.store.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
 	}
 	deploymentConfig := uncastObj.(*deployapi.DeploymentConfig)
 
-	old := deployapi.ScaleFromConfig(deploymentConfig)
+	old := scaleFromConfig(deploymentConfig)
 	obj, err := objInfo.UpdatedObject(ctx, old)
 	if err != nil {
 		return nil, false, err
 	}
 
-	scale, ok := obj.(*extensions.Scale)
+	scale, ok := obj.(*autoscaling.Scale)
 	if !ok {
 		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
 	}
 
-	if errs := extvalidation.ValidateScale(scale); len(errs) > 0 {
+	if errs := autoscalingvalidation.ValidateScale(scale); len(errs) > 0 {
 		return nil, false, errors.NewInvalid(extensions.Kind("Scale"), scale.Name, errs)
 	}
 
 	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
-	if _, _, err := r.store.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig, kapi.Scheme)); err != nil {
+	if _, _, err := r.store.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig), createValidation, updateValidation); err != nil {
 		return nil, false, err
 	}
 
 	return scale, false, nil
+}
+
+// scaleFromConfig builds a scale resource out of a deployment config.
+func scaleFromConfig(dc *deployapi.DeploymentConfig) *autoscaling.Scale {
+	return &autoscaling.Scale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              dc.Name,
+			Namespace:         dc.Namespace,
+			UID:               dc.UID,
+			ResourceVersion:   dc.ResourceVersion,
+			CreationTimestamp: dc.CreationTimestamp,
+		},
+		Spec: autoscaling.ScaleSpec{
+			Replicas: dc.Spec.Replicas,
+		},
+		Status: autoscaling.ScaleStatus{
+			Replicas: dc.Status.Replicas,
+			Selector: labels.Set(dc.Spec.Selector).String(),
+		},
+	}
 }
 
 // StatusREST implements the REST endpoint for changing the status of a DeploymentConfig.
@@ -141,6 +175,6 @@ func (r *StatusREST) Get(ctx apirequest.Context, name string, options *metav1.Ge
 }
 
 // Update alters the status subset of an deploymentConfig.
-func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }

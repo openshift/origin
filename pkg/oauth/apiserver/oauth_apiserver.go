@@ -17,7 +17,7 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
@@ -31,7 +31,7 @@ import (
 )
 
 func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
-	genericConfig := genericapiserver.NewRecommendedConfig(kapi.Codecs)
+	genericConfig := genericapiserver.NewRecommendedConfig(legacyscheme.Codecs)
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper

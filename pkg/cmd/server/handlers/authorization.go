@@ -8,13 +8,14 @@ import (
 	"net/http"
 
 	restful "github.com/emicklei/go-restful"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
-	kapi "k8s.io/kubernetes/pkg/api"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 type bypassAuthorizer struct {
@@ -28,9 +29,9 @@ func NewBypassAuthorizer(auth kauthorizer.Authorizer, paths ...string) kauthoriz
 	return bypassAuthorizer{paths: sets.NewString(paths...), authorizer: auth}
 }
 
-func (a bypassAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed bool, reason string, err error) {
+func (a bypassAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed kauthorizer.Decision, reason string, err error) {
 	if !attributes.IsResourceRequest() && a.paths.Has(attributes.GetPath()) {
-		return true, "always allowed", nil
+		return kauthorizer.DecisionAllow, "always allowed", nil
 	}
 	return a.authorizer.Authorize(attributes)
 }
@@ -58,7 +59,7 @@ func Forbidden(reason string, attributes kauthorizer.Attributes, w http.Response
 	forbiddenError.ErrStatus.Message = reason
 
 	formatted := &bytes.Buffer{}
-	output, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.SchemeGroupVersion), &forbiddenError.ErrStatus)
+	output, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(coreapi.SchemeGroupVersion), &forbiddenError.ErrStatus)
 	if err != nil {
 		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
 	} else {

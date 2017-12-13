@@ -4,6 +4,7 @@ import (
 	api "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 )
 
 type Registry interface {
@@ -11,7 +12,7 @@ type Registry interface {
 }
 
 type Storage interface {
-	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
+	Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error)
 }
 
 type storage struct {
@@ -23,7 +24,7 @@ func NewRegistry(s Storage) Registry {
 }
 
 func (s *storage) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *api.SubjectAccessReview) (*api.SubjectAccessReviewResponse, error) {
-	obj, err := s.Create(ctx, subjectAccessReview, false)
+	obj, err := s.Create(ctx, subjectAccessReview, nil, false)
 	if err != nil {
 		return nil, err
 	}

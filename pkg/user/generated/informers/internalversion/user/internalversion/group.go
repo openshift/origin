@@ -22,19 +22,33 @@ type GroupInformer interface {
 }
 
 type groupInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewGroupInformer constructs a new informer for Group type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewGroupInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredGroupInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredGroupInformer constructs a new informer for Group type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredGroupInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.User().Groups().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.User().Groups().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewGroupInformer(client internalclientset.Interface, resyncPeriod time.Dura
 	)
 }
 
-func defaultGroupInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewGroupInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *groupInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredGroupInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *groupInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&user.Group{}, defaultGroupInformer)
+	return f.factory.InformerFor(&user.Group{}, f.defaultInformer)
 }
 
 func (f *groupInformer) Lister() internalversion.GroupLister {

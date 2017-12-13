@@ -72,9 +72,10 @@ func (ClusterPolicyList) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterRole = map[string]string{
-	"":         "ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.",
-	"metadata": "Standard object's metadata.",
-	"rules":    "Rules holds all the PolicyRules for this ClusterRole",
+	"":                "ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.",
+	"metadata":        "Standard object's metadata.",
+	"rules":           "Rules holds all the PolicyRules for this ClusterRole",
+	"aggregationRule": "AggregationRule is an optional field that describes how to build the Rules for this ClusterRole. If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be stomped by the controller.",
 }
 
 func (ClusterRole) SwaggerDoc() map[string]string {

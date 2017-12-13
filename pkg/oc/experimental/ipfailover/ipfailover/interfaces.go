@@ -1,7 +1,7 @@
 package ipfailover
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 type IPFailoverConfiguratorPlugin interface {

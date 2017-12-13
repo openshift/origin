@@ -13,9 +13,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/storage/names"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kapiv1pod "k8s.io/kubernetes/pkg/api/v1/pod"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -356,7 +356,7 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 	makeNamespaceScheduleToAllNodes(serverFramework)
 	makeNamespaceScheduleToAllNodes(clientFramework)
 	serverNode, clientNode := findAppropriateNodes(serverFramework, nodeType)
-	podName := kapiv1.SimpleNameGenerator.GenerateName("service-")
+	podName := names.SimpleNameGenerator.GenerateName("service-")
 	defer serverFramework.ClientSet.CoreV1().Pods(serverFramework.Namespace.Name).Delete(podName, nil)
 	defer serverFramework.ClientSet.CoreV1().Services(serverFramework.Namespace.Name).Delete(podName, nil)
 	ip := launchWebserverService(serverFramework, podName, serverNode.Name)

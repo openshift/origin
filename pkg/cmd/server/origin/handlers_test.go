@@ -10,7 +10,7 @@ import (
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserver "k8s.io/apiserver/pkg/server"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
@@ -264,7 +264,7 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 }
 
 func testHandlerChain(handler http.Handler, contextMapper apirequest.RequestContextMapper) http.Handler {
-	kgenericconfig := apiserver.NewConfig(kapi.Codecs)
+	kgenericconfig := apiserver.NewConfig(legacyscheme.Codecs)
 	kgenericconfig.LegacyAPIGroupPrefixes = kubernetes.LegacyAPIGroupPrefixes
 
 	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kgenericconfig), contextMapper)

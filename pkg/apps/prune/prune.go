@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"

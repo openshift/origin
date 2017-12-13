@@ -9,7 +9,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapirest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -34,7 +33,6 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 	strategy := routeregistry.NewStrategy(allocator, sarClient)
 
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &routeapi.Route{} },
 		NewListFunc:              func() runtime.Object { return &routeapi.RouteList{} },
 		DefaultQualifiedResource: routeapi.Resource("routes"),
@@ -77,6 +75,6 @@ func (r *StatusREST) Get(ctx apirequest.Context, name string, options *metav1.Ge
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo kapirest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo kapirest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }

@@ -2,7 +2,7 @@ package image
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -228,7 +228,7 @@ type ImageStreamList struct {
 }
 
 // +genclient
-// +genclient:method=Secrets,verb=list,subresource=secrets,result=k8s.io/kubernetes/pkg/api.Secret
+// +genclient:method=Secrets,verb=list,subresource=secrets,result=k8s.io/kubernetes/pkg/apis/core.Secret
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied

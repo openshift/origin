@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -36,7 +36,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 		if err != nil {
 			return nil, &FatalError{fmt.Sprintf("failed to parse buildAPIVersion specified in custom build strategy (%q): %v", strategy.BuildAPIVersion, err)}
 		}
-		codec = kapi.Codecs.LegacyCodec(gv)
+		codec = legacyscheme.Codecs.LegacyCodec(gv)
 	}
 
 	data, err := runtime.Encode(codec, build)

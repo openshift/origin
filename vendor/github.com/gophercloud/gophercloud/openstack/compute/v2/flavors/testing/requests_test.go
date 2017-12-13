@@ -212,3 +212,41 @@ func TestDeleteFlavor(t *testing.T) {
 	res := flavors.Delete(fake.ServiceClient(), "12345678")
 	th.AssertNoErr(t, res.Err)
 }
+
+func TestFlavorAccessesList(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	th.Mux.HandleFunc("/flavors/12345678/os-flavor-access", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "GET")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+		w.Header().Add("Content-Type", "application/json")
+		fmt.Fprintf(w, `
+			{
+			  "flavor_access": [
+			    {
+			      "flavor_id": "12345678",
+			      "tenant_id": "2f954bcf047c4ee9b09a37d49ae6db54"
+			    }
+			  ]
+			}
+		`)
+	})
+
+	expected := []flavors.FlavorAccess{
+		flavors.FlavorAccess{
+			FlavorID: "12345678",
+			TenantID: "2f954bcf047c4ee9b09a37d49ae6db54",
+		},
+	}
+
+	allPages, err := flavors.ListAccesses(fake.ServiceClient(), "12345678").AllPages()
+	th.AssertNoErr(t, err)
+
+	actual, err := flavors.ExtractAccesses(allPages)
+	th.AssertNoErr(t, err)
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected %#v, but was %#v", expected, actual)
+	}
+}

@@ -9,7 +9,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
@@ -22,7 +22,7 @@ type strategy struct {
 }
 
 // CommonStrategy is the default logic that applies when creating and updating DeploymentConfig objects.
-var CommonStrategy = strategy{kapi.Scheme, names.SimpleNameGenerator}
+var CommonStrategy = strategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 // LegacyStrategy is the logic that applies when creating and updating DeploymentConfig objects in the legacy API.
 // An example would be setting different defaults depending on API group
@@ -120,8 +120,10 @@ func (s legacyStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obj
 	s.strategy.PrepareForCreate(ctx, obj)
 }
 
+var _ rest.GarbageCollectionDeleteStrategy = legacyStrategy{}
+
 // DefaultGarbageCollectionPolicy for legacy DeploymentConfigs will orphan dependents.
-func (s legacyStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+func (s legacyStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.OrphanDependents
 }
 

@@ -2,7 +2,7 @@ package controller
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 )
 
 // EnsureOwnerRef adds the ownerref if needed. Removes ownerrefs with conflicting UIDs.

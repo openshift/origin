@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -120,12 +120,12 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		"no fsgroup options": {
 			scc:         noFSGroupOptions,
 			errorType:   field.ErrorTypeNotSupported,
-			errorDetail: "supported values: MustRunAs, RunAsAny",
+			errorDetail: "supported values: \"MustRunAs\", \"RunAsAny\"",
 		},
 		"no sup group options": {
 			scc:         noSupplementalGroupsOptions,
 			errorType:   field.ErrorTypeNotSupported,
-			errorDetail: "supported values: MustRunAs, RunAsAny",
+			errorDetail: "supported values: \"MustRunAs\", \"RunAsAny\"",
 		},
 		"invalid user strategy type": {
 			scc:         invalidUserStratType,
@@ -140,12 +140,12 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		"invalid sup group strategy type": {
 			scc:         invalidSupGroupStratType,
 			errorType:   field.ErrorTypeNotSupported,
-			errorDetail: "supported values: MustRunAs, RunAsAny",
+			errorDetail: "supported values: \"MustRunAs\", \"RunAsAny\"",
 		},
 		"invalid fs group strategy type": {
 			scc:         invalidFSGroupStratType,
 			errorType:   field.ErrorTypeNotSupported,
-			errorDetail: "supported values: MustRunAs, RunAsAny",
+			errorDetail: "supported values: \"MustRunAs\", \"RunAsAny\"",
 		},
 		"invalid uid": {
 			scc:         invalidUIDSCC,
@@ -205,9 +205,13 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	}
 
 	for k, v := range errorCases {
-		if errs := ValidateSecurityContextConstraints(v.scc); len(errs) == 0 || errs[0].Type != v.errorType || errs[0].Detail != v.errorDetail {
-			t.Errorf("Expected error type %q with detail %q for %q, got %v", v.errorType, v.errorDetail, k, errs)
-		}
+		t.Run(k, func(t *testing.T) {
+			if errs := ValidateSecurityContextConstraints(v.scc); len(errs) == 0 || errs[0].Type != v.errorType || errs[0].Detail != v.errorDetail {
+				t.Errorf("Expected %q got %q", v.errorType, errs[0].Type)
+				t.Errorf("Expected %q got %q", v.errorDetail, errs[0].Detail)
+				t.Errorf("got all these %v", errs)
+			}
+		})
 	}
 
 	var validUID int64 = 1

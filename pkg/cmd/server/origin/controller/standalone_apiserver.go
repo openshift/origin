@@ -18,7 +18,7 @@ import (
 	genericroutes "k8s.io/apiserver/pkg/server/routes"
 	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	clientgoclientset "k8s.io/client-go/kubernetes"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
@@ -60,8 +60,8 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal cli
 
 	// we use direct bypass to allow readiness and health to work regardless of the master health
 	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
-	handler := apifilters.WithAuthorization(mux, requestContextMapper, authz, kapi.Codecs)
-	handler = apifilters.WithAuthentication(handler, requestContextMapper, authn, apifilters.Unauthorized(requestContextMapper, kapi.Codecs, false))
+	handler := apifilters.WithAuthorization(mux, requestContextMapper, authz, legacyscheme.Codecs)
+	handler = apifilters.WithAuthentication(handler, requestContextMapper, authn, apifilters.Unauthorized(requestContextMapper, legacyscheme.Codecs, false))
 	handler = apiserverfilters.WithPanicRecovery(handler)
 	handler = apifilters.WithRequestInfo(handler, requestInfoResolver, requestContextMapper)
 	handler = apirequest.WithRequestContext(handler, requestContextMapper)

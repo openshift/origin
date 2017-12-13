@@ -58,7 +58,7 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 		return err
 	}
 
-	p.Builder = f.NewBuilder(true)
+	p.Builder = f.NewBuilder()
 	p.DefaultNamespace = defaultNamespace
 	p.Oclient = networkClient
 	p.Kclient = kc
@@ -108,9 +108,10 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	}
 
 	r := p.Builder.
+		Internal().
 		ContinueOnError().
 		NamespaceParam(p.DefaultNamespace).
-		SelectorParam(p.Selector).
+		LabelSelectorParam(p.Selector).
 		ResourceTypeOrNameArgs(true, nameArgs...).
 		Flatten().
 		Do()

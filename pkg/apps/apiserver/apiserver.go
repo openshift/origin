@@ -12,14 +12,12 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
-	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	oappsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	deployconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/apps/registry/deploylog"
 	deployconfiginstantiate "github.com/openshift/origin/pkg/apps/registry/instantiate"
@@ -91,11 +89,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	apiGroupInfo.GroupMeta.GroupVersion = appsapiv1.SchemeGroupVersion
 	apiGroupInfo.VersionedResourcesStorageMap[appsapiv1.SchemeGroupVersion.Version] = v1Storage
 
-	if apiGroupInfo.SubresourceGroupVersionKind == nil {
-		apiGroupInfo.SubresourceGroupVersionKind = map[string]schema.GroupVersionKind{}
-	}
-	apiGroupInfo.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
-
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
 		return nil, err
 	}
@@ -114,7 +107,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	// TODO sort out who is using this and why.  it was hardcoded before the migration and I suspect that it is being used
 	// to serialize out objects into annotations.
-	externalVersionCodec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
+	externalVersionCodec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
 	openshiftInternalAppsClient, err := appsclientinternal.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -158,23 +151,4 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient.Apps(), kubeInternalClient.Core(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
 	v1Storage["deploymentConfigs/instantiate"] = dcInstantiateStorage
 	return v1Storage, nil
-}
-
-// LegacyLegacyDCRollbackMutator allows us to inject a one-off endpoint into oapi
-type LegacyLegacyDCRollbackMutator struct {
-	CoreAPIServerClientConfig *restclient.Config
-	Version                   schema.GroupVersion
-}
-
-func (l LegacyLegacyDCRollbackMutator) Mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
-	externalVersionCodec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
-	originAppsClient := oappsclient.NewForConfigOrDie(l.CoreAPIServerClientConfig)
-	kubeInternalClient := kclientsetinternal.NewForConfigOrDie(l.CoreAPIServerClientConfig)
-	deployRollbackClient := deployrollback.Client{
-		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
-		DeploymentConfigGetter:      originAppsClient.Apps(),
-		ReplicationControllerGetter: kubeInternalClient.Core(),
-	}
-	// TODO: Deprecate this
-	legacyStorage[l.Version]["deploymentConfigRollbacks"] = deployrollback.NewDeprecatedREST(deployRollbackClient, externalVersionCodec)
 }

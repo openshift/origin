@@ -8,6 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
+	"k8s.io/apiserver/pkg/registry/rest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -77,7 +79,7 @@ func TestCreate(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 	test.TestCreate(
 		// valid
 		validRoute(),
@@ -94,7 +96,7 @@ func TestCreateWithAllocation(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 
-	obj, err := storage.Create(apirequest.NewDefaultContext(), validRoute(), false)
+	obj, err := storage.Create(apirequest.NewDefaultContext(), validRoute(), rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		t.Fatalf("unable to create object: %v", err)
 	}
@@ -114,7 +116,7 @@ func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 
 	test.TestUpdate(
 		validRoute(),
@@ -140,7 +142,7 @@ func TestList(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 	test.TestList(
 		validRoute(),
 	)
@@ -150,7 +152,7 @@ func TestGet(t *testing.T) {
 	storage, server := newStorage(t, &testAllocator{})
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 	test.TestGet(
 		validRoute(),
 	)
@@ -160,7 +162,7 @@ func TestDelete(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 	test.TestDelete(
 		validRoute(),
 	)
@@ -170,7 +172,7 @@ func TestWatch(t *testing.T) {
 	storage, server := newStorage(t, nil)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 
 	valid := validRoute()
 	valid.Name = "foo"

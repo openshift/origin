@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"

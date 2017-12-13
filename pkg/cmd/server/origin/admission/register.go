@@ -39,7 +39,7 @@ import (
 )
 
 // TODO register this per apiserver or at least per process
-var OriginAdmissionPlugins = &admission.Plugins{}
+var OriginAdmissionPlugins = admission.NewPlugins()
 
 func init() {
 	RegisterAllAdmissionPlugins(OriginAdmissionPlugins)
@@ -112,8 +112,11 @@ var (
 
 		// these are new, reassess post-rebase
 		"Initializers",
-		"GenericAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
+		"MutatingAdmissionWebhook",
 		"PodTolerationRestriction",
+		"ExtendedResourceToleration",
+		"PVCProtection",
 	)
 )
 

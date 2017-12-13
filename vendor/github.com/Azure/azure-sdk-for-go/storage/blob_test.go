@@ -1,5 +1,19 @@
 package storage
 
+// Copyright 2017 Microsoft Corporation
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 import (
 	"bytes"
 	"encoding/xml"
@@ -312,6 +326,26 @@ func (s *StorageBlobSuite) TestSetBlobProperties(c *chk.C) {
 	c.Check(b.Properties.ContentLanguage, chk.Equals, input.ContentLanguage)
 }
 
+func (s *StorageBlobSuite) TestSetPageBlobProperties(c *chk.C) {
+	cli := getBlobClient(c)
+	rec := cli.client.appendRecorder(c)
+	defer rec.Stop()
+
+	cnt := cli.GetContainerReference(containerName(c))
+	b := cnt.GetBlobReference(blobName(c))
+	c.Assert(cnt.Create(nil), chk.IsNil)
+	defer cnt.Delete(nil)
+
+	size := int64(1024)
+	b.Properties.ContentLength = size
+	c.Assert(b.PutPageBlob(nil), chk.IsNil)
+
+	b.Properties.ContentLength = int64(512)
+	options := SetBlobPropertiesOptions{Timeout: 30}
+	err := b.SetProperties(&options)
+	c.Assert(err, chk.IsNil)
+}
+
 func (s *StorageBlobSuite) TestSnapshotBlob(c *chk.C) {
 	cli := getBlobClient(c)
 	rec := cli.client.appendRecorder(c)
@@ -428,6 +462,15 @@ func (s *StorageBlobSuite) TestGetBlobRange(c *chk.C) {
 		{
 			options: GetBlobRangeOptions{
 				Range: &BlobRange{
+					Start: 0,
+					End:   0,
+				},
+			},
+			expected: body,
+		},
+		{
+			options: GetBlobRangeOptions{
+				Range: &BlobRange{
 					Start: 1,
 					End:   3,
 				},
@@ -443,7 +486,19 @@ func (s *StorageBlobSuite) TestGetBlobRange(c *chk.C) {
 			},
 			expected: body[3:],
 		},
+		{
+			options: GetBlobRangeOptions{
+				Range: &BlobRange{
+					Start: 3,
+					End:   0,
+				},
+			},
+			expected: body[3:],
+		},
 	}
+
+	err := b.GetProperties(nil)
+	c.Assert(err, chk.IsNil)
 
 	// Read 1-3
 	for _, r := range cases {
@@ -455,8 +510,8 @@ func (s *StorageBlobSuite) TestGetBlobRange(c *chk.C) {
 		str := string(blobBody)
 		c.Assert(str, chk.Equals, r.expected)
 
-		// Was content lenght properly updated...?
-		c.Assert(b.Properties.ContentLength, chk.Equals, int64(len(r.expected)))
+		// Was content length left untouched?
+		c.Assert(b.Properties.ContentLength, chk.Equals, int64(len(body)))
 	}
 }
 
@@ -467,6 +522,7 @@ func (b *Blob) putSingleBlockBlob(chunk []byte) error {
 
 	uri := b.Container.bsc.client.getEndpoint(blobServiceName, b.buildPath(), nil)
 	headers := b.Container.bsc.client.getStandardHeaders()
+	b.Properties.BlobType = BlobTypeBlock
 	headers["x-ms-blob-type"] = string(BlobTypeBlock)
 	headers["Content-Length"] = strconv.Itoa(len(chunk))
 

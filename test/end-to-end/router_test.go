@@ -17,6 +17,7 @@ import (
 
 	dockerClient "github.com/fsouza/go-dockerclient"
 	"golang.org/x/net/websocket"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kv1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -26,7 +27,7 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
@@ -1228,7 +1229,7 @@ func sendTimeout(t *testing.T, ch chan string, s string, timeout time.Duration) 
 
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(routeapiv1.LegacySchemeGroupVersion), e)
+	obj, _ := watchjson.Object(legacyscheme.Codecs.LegacyCodec(routeapiv1.LegacySchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }
@@ -1769,7 +1770,7 @@ func getNamespaceConfig(t *testing.T, namespaceNames *[]string) (namespaceLabels
 		})
 	}
 
-	obj, err := runtime.Encode(kapi.Codecs.LegacyCodec(kv1.SchemeGroupVersion), namespaceList)
+	obj, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(kv1.SchemeGroupVersion), namespaceList)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -1782,7 +1783,7 @@ func getNamespaceConfig(t *testing.T, namespaceNames *[]string) (namespaceLabels
 // method is required because ingress uses a different schema version
 // (v1beta1) than routes (v1).
 func ingressEventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion), e)
+	obj, _ := watchjson.Object(legacyscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }

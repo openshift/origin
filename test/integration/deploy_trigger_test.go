@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"

@@ -16,7 +16,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	clientgotesting "k8s.io/client-go/testing"
 	kcache "k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -129,7 +129,7 @@ func TestDefaultPolicy(t *testing.T) {
 	plugin.SetDefaultRegistryFunc(func() (string, bool) {
 		return "integrated.registry", true
 	})
-	if err := plugin.Validate(); err != nil {
+	if err := plugin.ValidateInitialization(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1236,7 +1236,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			p.SetDefaultRegistryFunc(func() (string, bool) {
 				return "integrated.registry", true
 			})
-			if err := p.Validate(); err != nil {
+			if err := p.ValidateInitialization(); err != nil {
 				t.Fatal(err)
 			}
 

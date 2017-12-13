@@ -1,23 +1,23 @@
-hash: fc11c273a4bfae9a077f2238a4693fa3af3d815dfc1b1e9ec75d9eb8e6428993
-updated: 2017-05-04T15:24:51.52099-07:00
+hash: ee3a7971ba1cf6d287128746a2dd954ea023d952aec65453c94323f26955e0ae
+updated: 2017-09-28T11:44:06.2382306-07:00
 imports:
 - name: github.com/Azure/go-autorest
-  version: 58f6f26e200fa5dfb40c9cd1c83f3e2c860d779d
+  version: f6be1abbb5abd0517522f850dd785990d373da7e
   subpackages:
   - autorest
+  - autorest/adal
   - autorest/azure
   - autorest/date
   - autorest/to
   - autorest/validation
-  - autorest/adal
 - name: github.com/dgrijalva/jwt-go
-  version: 2268707a8f0843315e2004ee4f1d021dc08baedf
+  version: a539ee1a749a2b895533f979515ac7e6e0f5b650
 - name: github.com/howeyc/gopass
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/mattn/go-colorable
-  version: ded68f7a9561c023e790de24279db7ebf473ea80
+  version: ad5389df28cdac544c99bd7b9161a0b5b6ca9d1b
 - name: github.com/mattn/go-isatty
-  version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+  version: a5cdd64afdee435007ee3e9f6ed4684af949d568
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
 - name: github.com/mgutz/minimist
@@ -30,20 +30,23 @@ imports:
   version: 4748e29d5718c2df4028a6543edf86fd8cc0f881
 - name: github.com/nozzle/throttler
   version: d9b45f19996c645d38c9266d1f5cf1990e930119
+- name: github.com/satori/go.uuid
+  version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
 - name: github.com/satori/uuid
   version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
 - name: github.com/shopspring/decimal
-  version: 3526cd0bdb7f64e1178943b7dee81a0cc3d86a69
+  version: aed1bfe463fa3c9cc268d60dcc1491db613bff7e
 - name: golang.org/x/crypto
-  version: 5a033cc77e57eca05bdb50522851d29e03569cbe
+  version: 76eec36fa14229c4b25bb894c2d0e591527af429
   subpackages:
   - pkcs12
   - pkcs12/internal/rc2
   - ssh/terminal
 - name: golang.org/x/sys
-  version: 9ccfe848b9db8435a24c424abbc07a921adf1df5
+  version: 314a259e304ff91bd6985da2a7149bbf91237993
   subpackages:
   - unix
+  - windows
 - name: gopkg.in/check.v1
   version: 20d25e2804050c1cd24a7eea1e7a6447dd0e74ec
 - name: gopkg.in/godo.v2
@@ -60,4 +63,4 @@ testImports:
   - cassette
   - recorder
 - name: gopkg.in/yaml.v2
-  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
+  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f

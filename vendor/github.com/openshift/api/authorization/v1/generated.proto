@@ -6,6 +6,7 @@ syntax = 'proto2';
 package github.com.openshift.api.authorization.v1;
 
 import "k8s.io/api/core/v1/generated.proto";
+import "k8s.io/api/rbac/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
@@ -100,6 +101,11 @@ message ClusterRole {
 
   // Rules holds all the PolicyRules for this ClusterRole
   repeated PolicyRule rules = 2;
+
+  // AggregationRule is an optional field that describes how to build the Rules for this ClusterRole.
+  // If AggregationRule is set, then the Rules are controller managed and direct changes to Rules will be
+  // stomped by the controller.
+  optional k8s.io.api.rbac.v1.AggregationRule aggregationRule = 3;
 }
 
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.

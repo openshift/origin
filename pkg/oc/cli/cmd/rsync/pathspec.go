@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -92,7 +92,8 @@ func resolveResourceKindPath(f kcmdutil.Factory, path, namespace string) (string
 		podName = podSegs[1]
 	}
 
-	r := f.NewBuilder(true).
+	r := f.NewBuilder().
+		Internal().
 		NamespaceParam(namespace).
 		SingleResourceType().
 		ResourceNames("pods", podName).

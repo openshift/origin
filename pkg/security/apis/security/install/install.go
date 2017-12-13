@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
@@ -13,10 +13,10 @@ import (
 )
 
 func init() {
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 	legacy.InstallLegacy(securityapi.GroupName, securityapi.AddToSchemeInCoreGroup, securityapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("SecurityContextConstraints"),
-		kapi.Registry, kapi.Scheme,
+		legacyscheme.Registry, legacyscheme.Scheme,
 	)
 }
 

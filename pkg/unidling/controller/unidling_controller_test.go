@@ -16,8 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kexternalfake "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kinternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	// install the APIs we need for the codecs to run correctly in order to build patches
@@ -25,11 +25,11 @@ import (
 )
 
 type fakeResults struct {
-	resMap       map[unidlingapi.CrossGroupObjectReference]kextapi.Scale
+	resMap       map[unidlingapi.CrossGroupObjectReference]autoscaling.Scale
 	resEndpoints *kapi.Endpoints
 }
 
-func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*kinternalfake.Clientset, *deployfake.Clientset, *fakeResults) {
+func prepFakeClient(t *testing.T, nowTime time.Time, scales ...autoscaling.Scale) (*kinternalfake.Clientset, *deployfake.Clientset, *fakeResults) {
 	fakeClient := &kinternalfake.Clientset{}
 	fakeDeployClient := &deployfake.Clientset{}
 
@@ -104,7 +104,7 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 	})
 
 	res := &fakeResults{
-		resMap: make(map[unidlingapi.CrossGroupObjectReference]kextapi.Scale),
+		resMap: make(map[unidlingapi.CrossGroupObjectReference]autoscaling.Scale),
 	}
 
 	fakeDeployClient.PrependReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
@@ -215,7 +215,7 @@ func TestControllerHandlesStaleEvents(t *testing.T) {
 func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	// truncate to avoid conversion comparison issues
 	nowTime := time.Now().Truncate(time.Second)
-	baseScales := []kextapi.Scale{
+	baseScales := []autoscaling.Scale{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
@@ -223,7 +223,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			TypeMeta: metav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
-			Spec: kextapi.ScaleSpec{
+			Spec: autoscaling.ScaleSpec{
 				Replicas: 0,
 			},
 		},
@@ -234,7 +234,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			TypeMeta: metav1.TypeMeta{
 				Kind: "DeploymentConfig",
 			},
-			Spec: kextapi.ScaleSpec{
+			Spec: autoscaling.ScaleSpec{
 				Replicas: 5,
 			},
 		},
@@ -328,7 +328,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 
 func TestControllerUnidlesProperly(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
-	baseScales := []kextapi.Scale{
+	baseScales := []autoscaling.Scale{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
@@ -336,7 +336,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 			TypeMeta: metav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
-			Spec: kextapi.ScaleSpec{
+			Spec: autoscaling.ScaleSpec{
 				Replicas: 0,
 			},
 		},
@@ -348,7 +348,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 				Kind:       "DeploymentConfig",
 				APIVersion: "apps.openshift.io/v1",
 			},
-			Spec: kextapi.ScaleSpec{
+			Spec: autoscaling.ScaleSpec{
 				Replicas: 0,
 			},
 		},
@@ -412,7 +412,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 type failureTestInfo struct {
 	name                   string
 	endpointsGet           *kapi.Endpoints
-	scaleGets              []kextapi.Scale
+	scaleGets              []autoscaling.Scale
 	scaleUpdatesNotFound   []bool
 	preventEndpointsUpdate bool
 
@@ -600,7 +600,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					},
 				},
 			},
-			scaleGets: []kextapi.Scale{
+			scaleGets: []autoscaling.Scale{
 				{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "DeploymentConfig",
@@ -609,7 +609,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
-					Spec: kextapi.ScaleSpec{Replicas: 0},
+					Spec: autoscaling.ScaleSpec{Replicas: 0},
 				},
 			},
 			errorExpected: false,
@@ -629,7 +629,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					},
 				},
 			},
-			scaleGets: []kextapi.Scale{
+			scaleGets: []autoscaling.Scale{
 				{
 					TypeMeta: metav1.TypeMeta{
 						Kind: "ReplicationController",
@@ -637,7 +637,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "somerc",
 					},
-					Spec: kextapi.ScaleSpec{Replicas: 0},
+					Spec: autoscaling.ScaleSpec{Replicas: 0},
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
@@ -647,7 +647,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
-					Spec: kextapi.ScaleSpec{Replicas: 0},
+					Spec: autoscaling.ScaleSpec{Replicas: 0},
 				},
 			},
 			scaleUpdatesNotFound: []bool{false, true},
@@ -668,7 +668,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					},
 				},
 			},
-			scaleGets: []kextapi.Scale{
+			scaleGets: []autoscaling.Scale{
 				{
 					TypeMeta: metav1.TypeMeta{
 						Kind: "ReplicationController",
@@ -676,7 +676,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "somerc",
 					},
-					Spec: kextapi.ScaleSpec{Replicas: 0},
+					Spec: autoscaling.ScaleSpec{Replicas: 0},
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
@@ -686,7 +686,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "somedc",
 					},
-					Spec: kextapi.ScaleSpec{Replicas: 0},
+					Spec: autoscaling.ScaleSpec{Replicas: 0},
 				},
 			},
 			preventEndpointsUpdate: true,

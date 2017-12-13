@@ -49,13 +49,15 @@ import (
 	kubeclientgoinformers "k8s.io/client-go/informers"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batchv1beta1 "k8s.io/kubernetes/pkg/apis/batch/v1beta1"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
+	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
@@ -87,13 +89,15 @@ const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|im
 
 var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix)
 
+// TODO I'm honestly not sure this is worth it. We're not likely to ever be able to launch from flags, so this just
+// adds a layer of complexity that is driving me crazy.
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
 func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserveroptions.ServerRunOptions, error) {
 	if masterConfig.KubernetesMasterConfig == nil {
 		return nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
 	}
-	_, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
+	host, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +122,9 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Features.EnableProfiling = true
 	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
+	server.SecureServing.BindAddress = net.ParseIP(host)
 	server.SecureServing.BindPort = port
+	server.SecureServing.BindNetwork = masterConfig.ServingInfo.BindNetwork
 	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
 	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
 	server.InsecureServing.BindPort = 0
@@ -190,7 +196,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 // BuildStorageFactory builds a storage factory based on server.Etcd.StorageConfig with overrides from masterConfig.
 // This storage factory is used for kubernetes and origin registries. Compare pkg/util/restoptions/configgetter.go.
 func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedStorageVersions map[schema.GroupResource]schema.GroupVersion) (*apiserverstorage.DefaultStorageFactory, error) {
-	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(kapi.Registry)
+	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(legacyscheme.Registry)
 
 	storageGroupsToEncodingVersion, err := server.StorageSerialization.StorageGroupsToEncodingVersion()
 	if err != nil {
@@ -208,9 +214,10 @@ func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedSto
 	storageFactory := apiserverstorage.NewDefaultStorageFactory(
 		server.Etcd.StorageConfig,
 		server.Etcd.DefaultStorageMediaType,
-		kapi.Codecs,
+		legacyscheme.Codecs,
 		resourceEncodingConfig,
 		master.DefaultAPIResourceConfigSource(),
+		kubeapiserver.SpecialDefaultResourcePrefixes,
 	)
 	if err != nil {
 		return nil, err
@@ -267,15 +274,12 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	}
 
 	// create config from options
-	genericConfig := apiserver.NewConfig(kapi.Codecs)
+	genericConfig := apiserver.NewConfig(legacyscheme.Codecs)
 
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
 	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
-		return nil, err
-	}
-	if _, err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
 	if err := s.Audit.ApplyTo(genericConfig); err != nil {
@@ -411,8 +415,13 @@ func buildKubeApiserverConfig(
 	}
 	genericConfig.LoopbackClientConfig = loopbackClientConfig
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
-	genericConfig.SecureServingInfo.BindAddress = masterConfig.ServingInfo.BindAddress
-	genericConfig.SecureServingInfo.BindNetwork = masterConfig.ServingInfo.BindNetwork
+	// I *think* that ApplyTo is doing this for us.
+	if false {
+		genericConfig.SecureServingInfo.Listener, err = net.Listen(masterConfig.ServingInfo.BindNetwork, masterConfig.ServingInfo.BindAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to listen on %v: %v", masterConfig.ServingInfo.BindAddress, err)
+		}
+	}
 	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
 	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)
 	oAuthClientCertCAs, err := configapi.GetOAuthClientCertCAs(masterConfig)
@@ -616,7 +625,7 @@ func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			},
 		}
 	}
-	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(kapi.Scheme)
+	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(legacyscheme.Scheme)
 	return &openapicommon.Config{
 		ProtocolList:      []string{"https"},
 		GetDefinitions:    openapigenerated.GetOpenAPIDefinitions,

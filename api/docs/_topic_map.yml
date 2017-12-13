@@ -48,6 +48,19 @@
     File: v1.APIGroup
   - Name: v1.APIGroupList
     File: v1.APIGroupList
+- Name: /apis/apps/v1
+  Dir: apis-apps
+  Topics:
+  - Name: v1.ControllerRevision
+    File: v1.ControllerRevision
+  - Name: v1.DaemonSet
+    File: v1.DaemonSet
+  - Name: v1.Deployment
+    File: v1.Deployment
+  - Name: v1.ReplicaSet
+    File: v1.ReplicaSet
+  - Name: v1.StatefulSet
+    File: v1.StatefulSet
 - Name: /apis/apps/v1beta1
   Dir: apis-apps
   Topics:
@@ -115,6 +128,13 @@
   Topics:
   - Name: v1beta1.PodDisruptionBudget
     File: v1beta1.PodDisruptionBudget
+- Name: /apis/admissionregistration.k8s.io/v1beta1
+  Dir: apis-admissionregistration.k8s.io
+  Topics:
+  - Name: v1beta1.MutatingWebhookConfiguration
+    File: v1beta1.MutatingWebhookConfiguration
+  - Name: v1beta1.ValidatingWebhookConfiguration
+    File: v1beta1.ValidatingWebhookConfiguration
 - Name: /apis/authentication.k8s.io/v1
   Dir: apis-authentication.k8s.io
   Topics:
@@ -174,6 +194,11 @@
   Topics:
   - Name: v1beta1.CertificateSigningRequest
     File: v1beta1.CertificateSigningRequest
+- Name: /apis/events.k8s.io/v1beta1
+  Dir: apis-events.k8s.io
+  Topics:
+  - Name: v1beta1.Event
+    File: v1beta1.Event
 - Name: /apis/networking.k8s.io/v1
   Dir: apis-networking.k8s.io
   Topics:

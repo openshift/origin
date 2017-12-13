@@ -36,7 +36,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	resourceAccessReview, ok := obj.(*authorizationapi.ResourceAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a resourceAccessReview: %#v", obj))
@@ -86,12 +86,12 @@ func (r *REST) isAllowed(user user.Info, rar *authorizationapi.ResourceAccessRev
 		Resource:        "localresourceaccessreviews",
 		ResourceRequest: true,
 	}
-	allowed, reason, err := r.authorizer.Authorize(localRARAttributes)
+	authorized, reason, err := r.authorizer.Authorize(localRARAttributes)
 
 	if err != nil {
 		return kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), err)
 	}
-	if !allowed {
+	if authorized != kauthorizer.DecisionAllow {
 		forbiddenError := kapierrors.NewForbidden(authorizationapi.Resource(localRARAttributes.GetResource()), localRARAttributes.GetName(), errors.New("") /*discarded*/)
 		forbiddenError.ErrStatus.Message = reason
 		return forbiddenError

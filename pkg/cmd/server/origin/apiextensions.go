@@ -18,7 +18,6 @@ func createAPIExtensionsConfig(kubeAPIServerConfig genericapiserver.Config, kube
 	// copy the etcd options so we don't mutate originals.
 	etcdOptions := *kubeEtcdOptions
 	etcdOptions.StorageConfig.Codec = apiextensionsapiserver.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion)
-	etcdOptions.StorageConfig.Copier = apiextensionsapiserver.Scheme
 	recommendedConfig.RESTOptionsGetter = &genericoptions.SimpleRestOptionsFactory{Options: etcdOptions}
 
 	apiextensionsConfig := &apiextensionsapiserver.Config{

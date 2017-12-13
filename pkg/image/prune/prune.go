@@ -21,8 +21,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapiref "k8s.io/kubernetes/pkg/api/ref"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/api/graph"
@@ -1301,7 +1302,7 @@ func getKindName(obj *kapi.ObjectReference) string {
 }
 
 func getRef(obj runtime.Object) *kapi.ObjectReference {
-	ref, err := kapiref.GetReference(kapi.Scheme, obj)
+	ref, err := kapiref.GetReference(legacyscheme.Scheme, obj)
 	if err != nil {
 		glog.Errorf("failed to get reference to object %T: %v", obj, err)
 		return nil

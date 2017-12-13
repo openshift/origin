@@ -491,11 +491,6 @@ func GetStore(options StoreOptions) (Store, error) {
 	if err := os.MkdirAll(options.RunRoot, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
-	for _, subdir := range []string{} {
-		if err := os.MkdirAll(filepath.Join(options.RunRoot, subdir), 0700); err != nil && !os.IsExist(err) {
-			return nil, err
-		}
-	}
 	if err := os.MkdirAll(options.GraphRoot, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
 	}

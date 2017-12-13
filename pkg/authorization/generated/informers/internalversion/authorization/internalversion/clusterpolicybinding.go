@@ -22,19 +22,33 @@ type ClusterPolicyBindingInformer interface {
 }
 
 type clusterPolicyBindingInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewClusterPolicyBindingInformer constructs a new informer for ClusterPolicyBinding type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewClusterPolicyBindingInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredClusterPolicyBindingInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredClusterPolicyBindingInformer constructs a new informer for ClusterPolicyBinding type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredClusterPolicyBindingInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Authorization().ClusterPolicyBindings().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Authorization().ClusterPolicyBindings().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewClusterPolicyBindingInformer(client internalclientset.Interface, resyncP
 	)
 }
 
-func defaultClusterPolicyBindingInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterPolicyBindingInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *clusterPolicyBindingInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredClusterPolicyBindingInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *clusterPolicyBindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization.ClusterPolicyBinding{}, defaultClusterPolicyBindingInformer)
+	return f.factory.InformerFor(&authorization.ClusterPolicyBinding{}, f.defaultInformer)
 }
 
 func (f *clusterPolicyBindingInformer) Lister() internalversion.ClusterPolicyBindingLister {

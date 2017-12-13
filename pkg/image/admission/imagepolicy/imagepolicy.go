@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/meta"
@@ -120,7 +120,7 @@ func (a *imagePolicyPlugin) SetProjectCache(c *cache.ProjectCache) {
 }
 
 // Validate ensures that all required interfaces have been provided, or returns an error.
-func (a *imagePolicyPlugin) Validate() error {
+func (a *imagePolicyPlugin) ValidateInitialization() error {
 	if a.client == nil {
 		return fmt.Errorf("%s needs an Openshift client", api.PluginName)
 	}

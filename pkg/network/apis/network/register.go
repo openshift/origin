@@ -15,7 +15,7 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, RegisterDeepCopies)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)

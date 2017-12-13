@@ -18,7 +18,7 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.LegacySchemeBuilder.AddToScheme, addConversionFuncs, addLegacyFieldSelectorKeyConversions, v1.RegisterDeepCopies, RegisterDefaults, RegisterConversions, docker10.AddToSchemeInCoreGroup, dockerpre012.AddToSchemeInCoreGroup)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(v1.LegacySchemeBuilder.AddToScheme, addConversionFuncs, addLegacyFieldSelectorKeyConversions, RegisterDefaults, RegisterConversions, docker10.AddToSchemeInCoreGroup, dockerpre012.AddToSchemeInCoreGroup)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(v1.SchemeBuilder.AddToScheme, addConversionFuncs, addFieldSelectorKeyConversions, RegisterDefaults, docker10.AddToScheme, dockerpre012.AddToScheme)

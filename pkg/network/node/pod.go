@@ -20,8 +20,8 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
@@ -32,12 +32,12 @@ import (
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/containernetworking/cni/pkg/invoke"
-	"github.com/containernetworking/cni/pkg/ip"
-	"github.com/containernetworking/cni/pkg/ipam"
-	"github.com/containernetworking/cni/pkg/ns"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containernetworking/plugins/pkg/ip"
+	"github.com/containernetworking/plugins/pkg/ipam"
+	"github.com/containernetworking/plugins/pkg/ns"
 
 	"github.com/vishvananda/netlink"
 )
@@ -569,7 +569,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 
 	// Open any hostports the pod wants
 	var v1Pod v1.Pod
-	if err := kapiv1.Convert_api_Pod_To_v1_Pod(pod, &v1Pod, nil); err != nil {
+	if err := kapiv1.Convert_core_Pod_To_v1_Pod(pod, &v1Pod, nil); err != nil {
 		return nil, nil, err
 	}
 	podPortMapping := kubehostport.ConstructPodPortMapping(&v1Pod, podIP)
@@ -612,7 +612,8 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 				Sandbox: req.Netns,
 			},
 		}
-		result030.IPs[0].Interface = 0
+		intPtr := 0
+		result030.IPs[0].Interface = &intPtr
 
 		if err = ipam.ConfigureIface(podInterfaceName, result030); err != nil {
 			return fmt.Errorf("failed to configure container IPAM: %v", err)

@@ -112,12 +112,15 @@ func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions
 	return newISTag(tag, imageStream, image, false)
 }
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	istag, ok := obj.(*imageapi.ImageStreamTag)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))
 	}
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+		return nil, err
+	}
+	if err := createValidation(obj.DeepCopyObject()); err != nil {
 		return nil, err
 	}
 	namespace, ok := apirequest.NamespaceFrom(ctx)
@@ -172,7 +175,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	return istag, nil
 }
 
-func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	name, tag, err := nameAndTag(tagName)
 	if err != nil {
 		return nil, false, err
@@ -237,8 +240,14 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 		if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 			return nil, false, err
 		}
+		if err := createValidation(obj.DeepCopyObject()); err != nil {
+			return nil, false, err
+		}
 	} else {
 		if err := rest.BeforeUpdate(Strategy, ctx, obj, old); err != nil {
+			return nil, false, err
+		}
+		if err := updateValidation(obj.DeepCopyObject(), old.DeepCopyObject()); err != nil {
 			return nil, false, err
 		}
 	}

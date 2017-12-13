@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
@@ -83,7 +83,7 @@ func isPersonalAccessReviewFromRequest(req *http.Request, requestInfo *request.R
 		defaultGVK.Kind = "LocalSubjectAccessReview"
 	}
 
-	obj, _, err := kapi.Codecs.UniversalDecoder().Decode(body, &defaultGVK, nil)
+	obj, _, err := legacyscheme.Codecs.UniversalDecoder().Decode(body, &defaultGVK, nil)
 	if err != nil {
 		return false, err
 	}

@@ -10,7 +10,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
+	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
@@ -30,17 +31,17 @@ type testAuthorizer struct {
 	actualAttributes kauthorizer.Attributes
 }
 
-func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed bool, reason string, err error) {
+func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed kauthorizer.Decision, reason string, err error) {
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
 		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(attributes.GetNamespace()) {
-			return false, "denied initial check", nil
+			return kauthorizer.DecisionDeny, "denied initial check", nil
 		}
 
-		return true, "", nil
+		return kauthorizer.DecisionAllow, "", nil
 	}
 
-	return false, "", errors.New("unsupported")
+	return kauthorizer.DecisionDeny, "", errors.New("unsupported")
 }
 func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attributes) (sets.String, sets.String, error) {
 	a.actualAttributes = passedAttributes
@@ -116,7 +117,7 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 	expectedAttributes := util.ToDefaultAuthorizationAttributes(nil, kapi.NamespaceAll, r.reviewRequest.Action)
 
 	ctx := apirequest.WithNamespace(apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{}), kapi.NamespaceAll)
-	obj, err := storage.Create(ctx, r.reviewRequest, false)
+	obj, err := storage.Create(ctx, r.reviewRequest, apiserverrest.ValidateAllObjectFunc, false)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)
 	}

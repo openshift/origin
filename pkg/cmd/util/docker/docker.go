@@ -47,7 +47,7 @@ func (_ *Helper) GetKubeClient(requestTimeout, imagePullProgressDeadline time.Du
 	} else {
 		endpoint = "unix:///var/run/docker.sock"
 	}
-	client := dockertools.ConnectToDockerOrDie(endpoint, requestTimeout, imagePullProgressDeadline)
+	client := dockertools.ConnectToDockerOrDie(endpoint, requestTimeout, imagePullProgressDeadline, false, false)
 	originClient := &KubeDocker{client}
 	return originClient, endpoint, nil
 }

@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/network"

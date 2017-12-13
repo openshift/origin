@@ -9,6 +9,7 @@ load(
 go_test(
     name = "go_default_test",
     srcs = ["certs_test.go"],
+    importpath = "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs",
     library = ":go_default_library",
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
@@ -25,12 +26,13 @@ go_library(
         "certs.go",
         "doc.go",
     ],
+    importpath = "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs",
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/constants:go_default_library",
         "//cmd/kubeadm/app/phases/certs/pkiutil:go_default_library",
         "//pkg/registry/core/service/ipallocator:go_default_library",
-        "//staging/src/k8s.io/apimachinery/pkg/util/validation:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/validation:go_default_library",
         "//vendor/k8s.io/client-go/util/cert:go_default_library",
     ],
 )

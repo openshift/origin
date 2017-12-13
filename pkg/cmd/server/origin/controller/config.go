@@ -8,7 +8,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/util/cert"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -177,7 +178,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 
 	storageVersion := options.EtcdStorageConfig.OpenShiftStorageVersion
 	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
-	annotationCodec := kapi.Codecs.LegacyCodec(groupVersion)
+	annotationCodec := legacyscheme.Codecs.LegacyCodec(groupVersion)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format

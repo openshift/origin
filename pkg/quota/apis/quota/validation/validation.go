@@ -3,7 +3,7 @@ package validation
 import (
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 )

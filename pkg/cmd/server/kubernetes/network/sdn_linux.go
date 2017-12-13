@@ -8,9 +8,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/network"
@@ -19,7 +19,7 @@ import (
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 )
 
-func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.Interface, kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *componentconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
+func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.Interface, kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
 	runtimeEndpoint := options.DockerConfig.DockerShimSocket
 	runtime, ok := options.KubeletArguments["container-runtime"]
 	if ok && len(runtime) == 1 && runtime[0] == "remote" {

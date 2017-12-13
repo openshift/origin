@@ -13,7 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	utilerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/generate"
@@ -289,7 +290,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 		return nil, utilerrs.NewAggregate(errs)
 	}
 
-	acceptors := app.Acceptors{app.NewAcceptUnique(kapi.Scheme), app.AcceptNew}
+	acceptors := app.Acceptors{app.NewAcceptUnique(legacyscheme.Scheme), app.AcceptNew}
 	objects := app.Objects{}
 	accept := app.NewAcceptFirst()
 	for _, p := range pipelines {

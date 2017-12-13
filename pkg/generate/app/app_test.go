@@ -8,7 +8,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -221,7 +222,7 @@ func TestGenerateSimpleDockerApp(t *testing.T) {
 		Items: items,
 	}
 
-	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), out)
+	data, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), out)
 	if err != nil {
 		log.Fatalf("Unable to generate output: %v", err)
 	}

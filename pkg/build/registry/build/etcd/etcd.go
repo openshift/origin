@@ -7,7 +7,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/registry/build"
@@ -29,7 +28,6 @@ func (r *REST) Categories() []string {
 // NewREST returns a RESTStorage object that will work against Build objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	store := &registry.Store{
-		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &buildapi.Build{} },
 		NewListFunc:              func() runtime.Object { return &buildapi.BuildList{} },
 		DefaultQualifiedResource: buildapi.Resource("builds"),
@@ -65,6 +63,6 @@ func (r *DetailsREST) New() runtime.Object {
 }
 
 // Update finds a resource in the storage and updates it.
-func (r *DetailsREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+func (r *DetailsREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }
