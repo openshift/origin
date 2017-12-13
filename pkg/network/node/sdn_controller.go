@@ -30,10 +30,10 @@ func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 	// unexpectedly long though, so give it plenty of time before returning an error
 	// (since that will cause the node process to exit).
 	backoff := utilwait.Backoff{
-		// A bit over 1 minute total
+		// ~2 mins total
 		Duration: time.Second,
 		Factor:   1.5,
-		Steps:    8,
+		Steps:    11,
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
@@ -106,10 +106,11 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 }
 
 func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
+	// ~1 sec total
 	backoff := utilwait.Backoff{
 		Duration: 100 * time.Millisecond,
 		Factor:   1.25,
-		Steps:    6,
+		Steps:    7,
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		l, err := netlink.LinkByName(device)
