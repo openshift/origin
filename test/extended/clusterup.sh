@@ -224,7 +224,7 @@ function os::test::extended::clusterup::svcaccess () {
     # Test that a service can be accessed from a peer pod
     sleep 10
     os::cmd::expect_success "timeout 20s oc run peer --image=openshift/origin-gitserver:latest --attach --restart=Never --command -- curl http://git:8080/_/healthz"
-    
+
     # Test that a service can be accessed from the same pod
     # This doesn't work in any cluster i've tried, not sure why but it's not a cluster up issue.
     #os::cmd::expect_success "timeout 2m oc rsh dc/git curl http://git:8080/_/healthz"
@@ -270,18 +270,18 @@ readonly default_tests=(
 # intended to run the tests against different cluster versions.
 readonly extra_args=(
     # Test the previous OCP release
-    # TODO - enable this once v3.9 ships, v3.7 didn't have a TSB image so it's 
+    # TODO - enable this once v3.9 ships, v3.7 didn't have a TSB image so it's
     # annoying to test.
-    #"--loglevel=2 --image=registry.access.redhat.com/openshift3/ose --version=v3.7"
+    #"--loglevel=5 --image=registry.access.redhat.com/openshift3/ose --version=v3.7"
 
     # Test the previous origin release
-    "--loglevel=2 --image=docker.io/openshift/origin --version=v3.7.0"
+    "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
 
     # Test the current published release
-    "--loglevel=2"  # can't be empty, so pass something benign
+    "--loglevel=5"  # can't be empty, so pass something benign
 
     # Test the code being delivered
-    "--loglevel=2 --version=${ORIGIN_COMMIT}"
+    "--loglevel=5 --version=${ORIGIN_COMMIT}"
 
 )
 tests=("${1:-"${default_tests[@]}"}")
