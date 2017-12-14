@@ -47,6 +47,10 @@ func (d AnalyzeLogs) Description() string {
 	return "Check for recent problems in systemd service logs"
 }
 
+func (d AnalyzeLogs) Requirements() (client bool, host bool) {
+	return false, true
+}
+
 func (d AnalyzeLogs) CanRun() (bool, error) {
 	if HasJournalctl() {
 		return true, nil

@@ -5,24 +5,34 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	flag "github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
-	NetworkDiagnosticName = "NetworkCheck"
+	NetworkDiagnosticName          = "NetworkCheck"
+	FlagNetworkDiagLogDir          = "logdir"
+	FlagNetworkDiagPodImage        = "pod-image"
+	FlagNetworkDiagTestPodImage    = "test-pod-image"
+	FlagNetworkDiagTestPodProtocol = "test-pod-protocol"
+	FlagNetworkDiagTestPodPort     = "test-pod-port"
 )
 
 // NetworkDiagnostic is a diagnostic that runs a network diagnostic pod and relays the results.
@@ -57,6 +67,40 @@ func (d *NetworkDiagnostic) Name() string {
 // Description is part of the Diagnostic interface and provides a user-focused description of what the diagnostic does.
 func (d *NetworkDiagnostic) Description() string {
 	return "Create a pod on all schedulable nodes and run network diagnostics from the application standpoint"
+}
+
+func (d *NetworkDiagnostic) Requirements() (client bool, host bool) {
+	return true, false
+}
+
+func (d *NetworkDiagnostic) AvailableParameters() []types.Parameter {
+	return []types.Parameter{
+		{FlagNetworkDiagLogDir, "Path to store diagnostic results in case of errors", &d.LogDir, util.NetworkDiagDefaultLogDir},
+		{FlagNetworkDiagPodImage, "Image to use for diagnostic pod", &d.PodImage, util.GetNetworkDiagDefaultPodImage()},
+		{FlagNetworkDiagTestPodImage, "Image to use for diagnostic test pod", &d.TestPodImage, util.GetNetworkDiagDefaultTestPodImage()},
+		{FlagNetworkDiagTestPodProtocol, "Protocol used to connect to diagnostic test pod", &d.TestPodProtocol, util.NetworkDiagDefaultTestPodProtocol},
+		{FlagNetworkDiagTestPodPort, "Serving port on the diagnostic test pod", &d.TestPodPort, util.NetworkDiagDefaultTestPodPort},
+	}
+}
+
+func (d *NetworkDiagnostic) Complete(logger *log.Logger) error {
+	logdir, err := filepath.Abs(d.LogDir)
+	if err != nil {
+		return err
+	}
+	if path, err := os.Stat(d.LogDir); err == nil && !path.Mode().IsDir() {
+		return fmt.Errorf("Network log path %q exists but is not a directory", d.LogDir)
+	}
+	d.LogDir = logdir
+
+	supportedProtocols := sets.NewString(string(kapi.ProtocolTCP), string(kapi.ProtocolUDP))
+	if !supportedProtocols.Has(d.TestPodProtocol) {
+		return fmt.Errorf("invalid protocol for network diagnostic test pod. Supported protocols: %s", strings.Join(supportedProtocols.List(), ","))
+	}
+	if kvalidation.IsValidPortNum(d.TestPodPort) != nil {
+		return fmt.Errorf("invalid port for network diagnostic test pod. Must be in the range 1 to 65535.")
+	}
+	return nil
 }
 
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
@@ -137,7 +181,7 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 	// In Collection phase, results from each node are moved to the user machine where the CLI cmd is executed.
 
 	// TEST Phase: Run network diagnostic pod on all valid nodes in parallel
-	command := fmt.Sprintf("openshift infra network-diagnostic-pod -l %d", loglevel)
+	command := fmt.Sprintf("openshift-diagnostics network-diagnostic-pod -l %d", loglevel)
 	if err := d.runNetworkPod(command); err != nil {
 		d.res.Error("DNet2006", err, err.Error())
 		return

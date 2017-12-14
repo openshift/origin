@@ -6,21 +6,26 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	clientdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client"
 	networkdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
-var (
-	// availableClientDiagnostics contains the names of client diagnostics that can be executed
-	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClientDiagnostics = sets.NewString(clientdiags.ConfigContextsName, clientdiags.DiagnosticPodName, networkdiags.NetworkDiagnosticName)
-)
+// availableClientDiagnostics returns definitions of client diagnostics that can be executed
+// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
+func availableClientDiagnostics() types.DiagnosticList {
+	return types.DiagnosticList{clientdiags.ConfigContext{}, &clientdiags.DiagnosticPod{}, &networkdiags.NetworkDiagnostic{}}
+}
+
+func clientParameterizedDiagnostics() types.ParameterizedDiagnosticMap {
+	return types.NewParameterizedDiagnosticMap(&networkdiags.NetworkDiagnostic{})
+}
 
 // buildClientDiagnostics builds client Diagnostic objects based on the rawConfig passed in.
 // Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
-func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
-	available := availableClientDiagnostics
+func (o DiagnosticsConfig) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
+	available := availableClientDiagnostics().Names()
 
 	networkClient, err := o.Factory.OpenshiftInternalNetworkClient()
 	kubeClient, clientErr := o.Factory.ClientSet()
@@ -30,7 +35,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 	}
 
 	diagnostics := []types.Diagnostic{}
-	requestedDiagnostics := available.Intersection(sets.NewString(o.RequestedDiagnostics...)).List()
+	requestedDiagnostics := available.Intersection(sets.NewString(o.RequestedDiagnostics.List()...)).List()
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case clientdiags.ConfigContextsName:
@@ -52,23 +57,18 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 				Level:               o.LogOptions.Level,
 				Factory:             o.Factory,
 				PreventModification: o.PreventModification,
-				ImageTemplate:       o.ImageTemplate,
+				ImageTemplate:       variable.NewDefaultImageTemplate(),
 			})
 		case networkdiags.NetworkDiagnosticName:
-			diagnostics = append(diagnostics, &networkdiags.NetworkDiagnostic{
-				KubeClient:           kubeClient,
-				NetNamespacesClient:  networkClient.Network(),
-				ClusterNetworkClient: networkClient.Network(),
-				ClientFlags:          o.ClientFlags,
-				Level:                o.LogOptions.Level,
-				Factory:              o.Factory,
-				PreventModification:  o.PreventModification,
-				LogDir:               o.NetworkOptions.LogDir,
-				PodImage:             o.NetworkOptions.PodImage,
-				TestPodImage:         o.NetworkOptions.TestPodImage,
-				TestPodProtocol:      o.NetworkOptions.TestPodProtocol,
-				TestPodPort:          o.NetworkOptions.TestPodPort,
-			})
+			nd := o.ParameterizedDiagnostics[diagnosticName].(*networkdiags.NetworkDiagnostic)
+			nd.KubeClient = kubeClient
+			nd.NetNamespacesClient = networkClient.Network()
+			nd.ClusterNetworkClient = networkClient.Network()
+			nd.ClientFlags = o.ClientFlags
+			nd.Level = o.LogOptions.Level
+			nd.Factory = o.Factory
+			nd.PreventModification = o.PreventModification
+			diagnostics = append(diagnostics, nd)
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}

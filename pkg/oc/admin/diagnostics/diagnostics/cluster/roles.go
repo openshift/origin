@@ -62,6 +62,10 @@ func (d *ClusterRoles) Description() string {
 	return "Check that the default ClusterRoles are present and contain the expected permissions"
 }
 
+func (d *ClusterRoles) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 func (d *ClusterRoles) CanRun() (bool, error) {
 	if d.ClusterRolesClient == nil {
 		return false, fmt.Errorf("must have client.ClusterRolesInterface")

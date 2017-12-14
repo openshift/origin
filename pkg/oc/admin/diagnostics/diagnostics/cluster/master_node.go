@@ -41,6 +41,10 @@ func (d *MasterNode) Description() string {
 	return "Check if master is also running node (for Open vSwitch)"
 }
 
+func (d *MasterNode) Requirements() (client bool, host bool) {
+	return true, true
+}
+
 func (d *MasterNode) CanRun() (bool, error) {
 	if d.KubeClient == nil {
 		return false, errors.New("must have kube client")

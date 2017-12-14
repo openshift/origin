@@ -25,27 +25,27 @@ import (
 	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
-var (
-	// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
-	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClusterDiagnostics = sets.NewString(
-		agldiags.AggregatedLoggingName,
-		clustdiags.ClusterRegistryName,
-		clustdiags.ClusterRouterName,
-		clustdiags.ClusterRolesName,
-		clustdiags.ClusterRoleBindingsName,
-		clustdiags.MasterNodeName,
-		clustdiags.MetricsApiProxyName,
-		clustdiags.NodeDefinitionsName,
-		clustdiags.RouteCertificateValidationName,
-		clustdiags.ServiceExternalIPsName,
-	)
-)
+// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
+// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
+func availableClusterDiagnostics() types.DiagnosticList {
+	return types.DiagnosticList{
+		&agldiags.AggregatedLogging{},
+		&clustdiags.ClusterRegistry{},
+		&clustdiags.ClusterRouter{},
+		&clustdiags.ClusterRoles{},
+		&clustdiags.ClusterRoleBindings{},
+		&clustdiags.MasterNode{},
+		&clustdiags.MetricsApiProxy{},
+		&clustdiags.NodeDefinitions{},
+		&clustdiags.RouteCertificateValidation{},
+		&clustdiags.ServiceExternalIPs{},
+	}
+}
 
 // buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
 // Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
-func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
-	requestedDiagnostics := availableClusterDiagnostics.Intersection(sets.NewString(o.RequestedDiagnostics...)).List()
+func (o DiagnosticsConfig) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
+	requestedDiagnostics := availableClusterDiagnostics().Names().Intersection(sets.NewString(o.RequestedDiagnostics.List()...)).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}
@@ -124,9 +124,9 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 }
 
 // attempts to find which context in the config might be a cluster-admin for the server in the current context.
-func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*rest.Config, kclientset.Interface, bool, string, error) {
+func (o DiagnosticsConfig) findClusterClients(rawConfig *clientcmdapi.Config) (*rest.Config, kclientset.Interface, bool, string, error) {
 	if o.ClientClusterContext != "" { // user has specified cluster context to use
-		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; exists {
+		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; !exists {
 			configErr := fmt.Errorf("Specified '%s' as cluster-admin context, but it was not found in your client configuration.", o.ClientClusterContext)
 			o.Logger.Error("CED1003", configErr.Error())
 			return nil, nil, false, "", configErr
@@ -160,7 +160,7 @@ func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (
 }
 
 // makes the client from the specified context and determines whether it is a cluster-admin.
-func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*rest.Config, kclientset.Interface, bool, string, error) {
+func (o DiagnosticsConfig) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*rest.Config, kclientset.Interface, bool, string, error) {
 	overrides := &clientcmd.ConfigOverrides{Context: *context}
 	clientConfig := clientcmd.NewDefaultClientConfig(*rawConfig, overrides)
 	serverUrl := rawConfig.Clusters[context.Cluster].Server

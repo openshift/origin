@@ -7,12 +7,14 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 )
 
 // Diagnostic provides the interface for building diagnostics that can execute as part of the diagnostic framework.
 // The Name and Description methods are used to identify which diagnostic is running in the output.
+// Requirements() identifies the globally-provided configuration items this diagnostic may require.
 // The CanRun() method provides a pre-execution check for whether the diagnostic is relevant and runnable as constructed.
 // If not, a user-facing reason for skipping the diagnostic can be given.
 // Finally, the Check() method runs the diagnostic with the resulting messages and errors returned in a result object.
@@ -20,8 +22,50 @@ import (
 type Diagnostic interface {
 	Name() string
 	Description() string
+	Requirements() (client bool, host bool)
 	CanRun() (canRun bool, reason error)
 	Check() DiagnosticResult
+}
+
+type DiagnosticList []Diagnostic
+
+func (d DiagnosticList) Names() sets.String {
+	names := sets.NewString()
+	for _, diag := range d {
+		names.Insert(diag.Name())
+	}
+	return names
+}
+
+// Diagnostic provides an interface for finishing initialization of a diagnostic.
+type IncompleteDiagnostic interface {
+	// Complete runs just before CanRun; it can log issues to the logger. Returns error on misconfiguration.
+	Complete(*log.Logger) error
+}
+
+type Parameter struct {
+	Name        string
+	Description string
+	Target      interface{}
+	Default     interface{}
+}
+
+// ParameterizedDiagnostic is a Diagnostic that can accept arbitrary parameters specifically for it.
+// AvailableParameters is used to describe or validate the parameters given on the command line.
+type ParameterizedDiagnostic interface {
+	Diagnostic
+	AvailableParameters() []Parameter
+}
+type ParameterizedDiagnosticMap map[string]ParameterizedDiagnostic
+
+func NewParameterizedDiagnosticMap(diags ...Diagnostic) ParameterizedDiagnosticMap {
+	m := ParameterizedDiagnosticMap{}
+	for _, diag := range diags {
+		if pd, ok := diag.(ParameterizedDiagnostic); ok {
+			m[diag.Name()] = pd
+		}
+	}
+	return m
 }
 
 // DiagnosticResult provides a result object for diagnostics, accumulating the messages and errors
