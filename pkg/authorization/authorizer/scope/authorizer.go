@@ -26,7 +26,7 @@ func NewAuthorizer(delegate authorizer.Authorizer, clusterRoleGetter rbaclisters
 func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	user := attributes.GetUser()
 	if user == nil {
-		return authorizer.DecisionDeny, "", fmt.Errorf("user missing from context")
+		return authorizer.DecisionNoOpinion, "", fmt.Errorf("user missing from context")
 	}
 
 	scopes := user.GetExtra()[authorizationapi.ScopesKey]
@@ -52,5 +52,6 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorize
 		denyReason = err.Error()
 	}
 
+	// the scope prevent this.  We need to authoritatively deny
 	return authorizer.DecisionDeny, fmt.Sprintf("scopes %v prevent this action; %v", scopes, denyReason), kerrors.NewAggregate(nonFatalErrors)
 }
