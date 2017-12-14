@@ -288,7 +288,10 @@ func (m *Manager) Apply(pid int) error {
 		}
 	}
 
-	if _, err := theConn.StartTransientUnit(unitName, "replace", properties, nil); err != nil && !isUnitExists(err) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if _, err := theConn.StartTransientUnit(unitName, "replace", properties, nil); err != nil {
 		return err
 	}
 
