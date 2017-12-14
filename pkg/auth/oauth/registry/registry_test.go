@@ -130,6 +130,7 @@ func TestRegistryAndServer(t *testing.T) {
 			AuthSuccess: true,
 			AuthUser: &user.DefaultInfo{
 				Name: "user",
+				UID:  "1",
 			},
 			Check: func(h *testHandlers, _ *http.Request) {
 				if h.AuthNeed || !h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil || h.HandleAuthorizeReq.Authorized {
@@ -168,10 +169,12 @@ func TestRegistryAndServer(t *testing.T) {
 			AuthSuccess: true,
 			AuthUser: &user.DefaultInfo{
 				Name: "user",
+				UID:  "1",
 			},
 			ClientAuth: &oapi.OAuthClientAuthorization{
 				ObjectMeta: metav1.ObjectMeta{Name: "user:test"},
 				UserName:   "user",
+				UserUID:    "1",
 				ClientName: "test",
 				Scopes:     []string{"user:info"},
 			},
@@ -187,10 +190,12 @@ func TestRegistryAndServer(t *testing.T) {
 			AuthSuccess: true,
 			AuthUser: &user.DefaultInfo{
 				Name: "user",
+				UID:  "1",
 			},
 			ClientAuth: &oapi.OAuthClientAuthorization{
 				ObjectMeta: metav1.ObjectMeta{Name: "user:test"},
 				UserName:   "user",
+				UserUID:    "1",
 				ClientName: "test",
 				Scopes:     []string{"user:info", "user:check-access"},
 			},
@@ -206,10 +211,12 @@ func TestRegistryAndServer(t *testing.T) {
 			AuthSuccess: true,
 			AuthUser: &user.DefaultInfo{
 				Name: "user",
+				UID:  "1",
 			},
 			ClientAuth: &oapi.OAuthClientAuthorization{
 				ObjectMeta: metav1.ObjectMeta{Name: "user:test"},
 				UserName:   "user",
+				UserUID:    "1",
 				ClientName: "test",
 				Scopes:     []string{"user:full"},
 			},
@@ -224,6 +231,45 @@ func TestRegistryAndServer(t *testing.T) {
 				}
 				if code := req.URL.Query().Get("code"); code == "" {
 					t.Errorf("expected query param 'code', got: %#v", req)
+				}
+			},
+		},
+		"has auth with no UID, mimics impersonation": {
+			Client:      validClient,
+			AuthSuccess: true,
+			AuthUser: &user.DefaultInfo{
+				Name: "user",
+			},
+			ClientAuth: &oapi.OAuthClientAuthorization{
+				ObjectMeta: metav1.ObjectMeta{Name: "user:test"},
+				UserName:   "user",
+				UserUID:    "2",
+				ClientName: "test",
+				Scopes:     []string{"user:full"},
+			},
+			Check: func(h *testHandlers, r *http.Request) {
+				if h.AuthNeed || h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil || h.HandleAuthorizeReq.Authorized || h.HandleAuthorizeResp.ErrorId != "server_error" {
+					t.Errorf("expected server_error error: %#v, %#v, %#v", h, h.HandleAuthorizeReq, h.HandleAuthorizeResp)
+				}
+			},
+		},
+		"has auth and grant with different UIDs": {
+			Client:      validClient,
+			AuthSuccess: true,
+			AuthUser: &user.DefaultInfo{
+				Name: "user",
+				UID:  "1",
+			},
+			ClientAuth: &oapi.OAuthClientAuthorization{
+				ObjectMeta: metav1.ObjectMeta{Name: "user:test"},
+				UserName:   "user",
+				UserUID:    "2",
+				ClientName: "test",
+				Scopes:     []string{"user:full"},
+			},
+			Check: func(h *testHandlers, _ *http.Request) {
+				if h.AuthNeed || !h.GrantNeed || h.AuthErr != nil || h.GrantErr != nil || h.HandleAuthorizeReq.Authorized {
+					t.Errorf("expected request to need to grant access due to UID mismatch: %#v", h)
 				}
 			},
 		},
