@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 )
@@ -72,7 +72,7 @@ func getFakeMapping() *meta.RESTMapping {
 			Group:   "test.group",
 			Version: "v1",
 		},
-		ObjectConvertor: api.Scheme,
+		ObjectConvertor: legacyscheme.Scheme,
 	}
 	return fakeMapping
 }
@@ -90,7 +90,7 @@ func getFakeInfo(podInfo *api.Pod) ([]*resource.Info, *VolumeOptions) {
 	infos := []*resource.Info{info}
 	vOptions := &VolumeOptions{}
 	vOptions.Name = "fake-mount"
-	vOptions.Encoder = api.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...)
+	vOptions.Encoder = legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.EnabledVersions()...)
 	vOptions.Containers = "*"
 	vOptions.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	return infos, vOptions

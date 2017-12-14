@@ -8,9 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericregistrytest "k8s.io/apiserver/pkg/registry/generic/testing"
 	"k8s.io/apiserver/pkg/registry/rest"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -50,7 +50,7 @@ func TestCreate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	test := genericregistrytest.New(t, storage.Store).ClusterScope()
 	valid := validImage()
 	valid.Name = ""
 	valid.GenerateName = "test-"
@@ -65,7 +65,7 @@ func TestUpdate(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	test := genericregistrytest.New(t, storage.Store).ClusterScope()
 	test.TestUpdate(
 		validImage(),
 		// updateFunc
@@ -87,7 +87,7 @@ func TestList(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	test := genericregistrytest.New(t, storage.Store).ClusterScope()
 	test.TestList(
 		validImage(),
 	)
@@ -97,7 +97,7 @@ func TestGet(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	test := genericregistrytest.New(t, storage.Store).ClusterScope()
 	test.TestGet(
 		validImage(),
 	)
@@ -107,7 +107,7 @@ func TestDelete(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store).ClusterScope()
+	test := genericregistrytest.New(t, storage.Store).ClusterScope()
 	image := validImage()
 	image.ObjectMeta = metav1.ObjectMeta{GenerateName: "foo"}
 	test.TestDelete(
@@ -119,7 +119,7 @@ func TestWatch(t *testing.T) {
 	storage, server := newStorage(t)
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
-	test := registrytest.New(t, storage.Store)
+	test := genericregistrytest.New(t, storage.Store)
 
 	valid := validImage()
 	valid.Name = "foo"
@@ -262,7 +262,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 		defer server.Terminate(t)
 		defer storage.Store.DestroyFunc()
 
-		obj, err := storage.Create(apirequest.NewDefaultContext(), test.image, false)
+		obj, err := storage.Create(apirequest.NewDefaultContext(), test.image, rest.ValidateAllObjectFunc, false)
 		if obj == nil {
 			t.Errorf("%d: Expected nil obj, got %v", i, obj)
 			continue
@@ -412,7 +412,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Clear the resource version before creating
 		test.existing.ResourceVersion = ""
-		created, err := storage.Create(apirequest.NewDefaultContext(), test.existing, false)
+		created, err := storage.Create(apirequest.NewDefaultContext(), test.existing, rest.ValidateAllObjectFunc, false)
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue
@@ -420,7 +420,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Copy the resource version into our update object
 		test.image.ResourceVersion = created.(*imageapi.Image).ResourceVersion
-		obj, _, err := storage.Update(apirequest.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
+		obj, _, err := storage.Update(apirequest.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue

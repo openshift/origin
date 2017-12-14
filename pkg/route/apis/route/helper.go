@@ -3,7 +3,7 @@ package route
 import (
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // IngressConditionStatus returns the first status and condition matching the provided ingress condition type. Conditions

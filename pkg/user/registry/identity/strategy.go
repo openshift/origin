@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
@@ -18,9 +18,11 @@ type identityStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating Identity
 // objects via the REST API.
-var Strategy = identityStrategy{kapi.Scheme}
+var Strategy = identityStrategy{legacyscheme.Scheme}
 
-func (identityStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = identityStrategy{}
+
+func (identityStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

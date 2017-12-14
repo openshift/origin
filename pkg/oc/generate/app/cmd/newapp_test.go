@@ -12,8 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/kubectl/categories"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/generate"
@@ -188,6 +191,12 @@ func TestBuildTemplates(t *testing.T) {
 		templateFake := templatefakeclient.NewSimpleClientset()
 		imageFake := imagefakeclient.NewSimpleClientset()
 
+		appCfg.Builder = resource.NewBuilder(&resource.Mapper{
+			RESTMapper:   legacyscheme.Registry.RESTMapper(),
+			ObjectTyper:  legacyscheme.Scheme,
+			ClientMapper: resource.DisabledClientForMapping{},
+			Decoder:      legacyscheme.Codecs.UniversalDecoder(),
+		}, nil, &categories.SimpleCategoryExpander{})
 		appCfg.SetOpenShiftClient(
 			imageFake.Image(), templateFake.Template(), routefakeclient.NewSimpleClientset().Route(),
 			c.namespace, nil)

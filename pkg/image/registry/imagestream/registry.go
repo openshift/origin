@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -39,8 +38,8 @@ type Storage interface {
 	rest.Getter
 	rest.Watcher
 
-	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
-	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
+	Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error)
+	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -73,7 +72,7 @@ func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string, o
 }
 
 func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := s.Create(ctx, imageStream, false)
+	obj, err := s.Create(ctx, imageStream, rest.ValidateAllObjectFunc, false)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +80,7 @@ func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
+	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +88,7 @@ func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageap
 }
 
 func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
+	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +96,7 @@ func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *ima
 }
 
 func (s *storage) UpdateImageStreamStatus(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
+	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream), rest.ValidateAllObjectFunc, rest.ValidateAllObjectUpdateFunc)
 	if err != nil {
 		return nil, err
 	}

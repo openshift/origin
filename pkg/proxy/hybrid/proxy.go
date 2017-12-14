@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/proxy"
 	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"

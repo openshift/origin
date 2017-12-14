@@ -21,8 +21,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/authorization"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -399,7 +400,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return err
 	}
 
-	errs := runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder())
+	errs := runtime.DecodeList(template.Objects, legacyscheme.Codecs.UniversalDecoder())
 	if len(errs) > 0 {
 		return kerrs.NewAggregate(errs)
 	}
@@ -425,7 +426,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	bulk := cmd.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:   c.restmapper,
-			ObjectTyper:  kapi.Scheme,
+			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: cmd.ClientMapperFromConfig(c.config),
 		},
 		Op: func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {

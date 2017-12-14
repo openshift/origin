@@ -13,11 +13,11 @@ import (
 
 	"github.com/golang/glog"
 	"golang.org/x/net/websocket"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -338,7 +338,7 @@ func (s *TestHttpService) startMaster() error {
 	masterServer.HandleFunc("/apis/extensions/v1beta1/watch/ingresses", s.handleIngressWatch)
 
 	contextMapper := apirequest.NewRequestContextMapper()
-	h := discovery.NewRootAPIsHandler(discovery.DefaultAddresses{DefaultAddress: s.MasterHttpAddr}, kapi.Codecs, contextMapper)
+	h := discovery.NewRootAPIsHandler(discovery.DefaultAddresses{DefaultAddress: s.MasterHttpAddr}, legacyscheme.Codecs, contextMapper)
 	h.AddGroup(metav1.APIGroup{
 		Name:     "route.openshift.io",
 		Versions: []metav1.GroupVersionForDiscovery{{GroupVersion: "route.openshift.io/v1", Version: "v1"}},

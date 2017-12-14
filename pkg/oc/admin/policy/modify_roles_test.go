@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	fakeauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"

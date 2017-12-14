@@ -24,15 +24,15 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/record"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 	kexec "k8s.io/utils/exec"
 
 	"github.com/openshift/origin/pkg/network"
@@ -81,7 +81,7 @@ type OsdnNodeConfig struct {
 	KubeInformers kinternalinformers.SharedInformerFactory
 
 	IPTablesSyncPeriod time.Duration
-	ProxyMode          componentconfig.ProxyMode
+	ProxyMode          kubeproxyconfig.ProxyMode
 }
 
 type OsdnNode struct {
@@ -141,7 +141,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 	}
 	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
 
-	if useConnTrack && c.ProxyMode != componentconfig.ProxyModeIPTables {
+	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
 	}
 

@@ -11,7 +11,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api "k8s.io/kubernetes/pkg/api"
+	core "k8s.io/kubernetes/pkg/apis/core"
 	unsafe "unsafe"
 )
 
@@ -108,7 +108,7 @@ func Convert_route_RouteIngress_To_v1_RouteIngress(in *route.RouteIngress, out *
 
 func autoConvert_v1_RouteIngressCondition_To_route_RouteIngressCondition(in *v1.RouteIngressCondition, out *route.RouteIngressCondition, s conversion.Scope) error {
 	out.Type = route.RouteIngressConditionType(in.Type)
-	out.Status = api.ConditionStatus(in.Status)
+	out.Status = core.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
 	out.LastTransitionTime = (*meta_v1.Time)(unsafe.Pointer(in.LastTransitionTime))

@@ -51,7 +51,7 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 		safeAuthorizer := NewBrowserSafeAuthorizer(delegateAuthorizer, "system:authenticated")
 
 		authorized, reason, err := safeAuthorizer.Authorize(tc.attributes)
-		if authorized || len(reason) != 0 || err != nil {
+		if authorized == authorizer.DecisionAllow || len(reason) != 0 || err != nil {
 			t.Errorf("%s: unexpected output: %v %s %v", name, authorized, reason, err)
 			continue
 		}
@@ -69,7 +69,7 @@ type recordingAuthorizer struct {
 	attributes authorizer.Attributes
 }
 
-func (t *recordingAuthorizer) Authorize(a authorizer.Attributes) (authorized bool, reason string, err error) {
+func (t *recordingAuthorizer) Authorize(a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
 	t.attributes = a
-	return false, "", nil
+	return authorizer.DecisionDeny, "", nil
 }

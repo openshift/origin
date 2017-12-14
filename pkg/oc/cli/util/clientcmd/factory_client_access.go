@@ -15,8 +15,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	osclientcmd "github.com/openshift/origin/pkg/client/cmd"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,14 +29,14 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
-	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
+	appsapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -151,14 +153,6 @@ func (f *ring0Factory) RESTClient() (*restclient.RESTClient, error) {
 	return f.kubeClientAccessFactory.RESTClient()
 }
 
-func (f *ring0Factory) FederationClientSetForVersion(version *schema.GroupVersion) (fedclientset.Interface, error) {
-	return f.kubeClientAccessFactory.FederationClientSetForVersion(version)
-}
-
-func (f *ring0Factory) FederationClientForVersion(version *schema.GroupVersion) (*restclient.RESTClient, error) {
-	return f.kubeClientAccessFactory.FederationClientForVersion(version)
-}
-
 func (f *ring0Factory) Decoder(toInternal bool) runtime.Decoder {
 	return f.kubeClientAccessFactory.Decoder(toInternal)
 }
@@ -167,7 +161,7 @@ func (f *ring0Factory) JSONEncoder() runtime.Encoder {
 	return f.kubeClientAccessFactory.JSONEncoder()
 }
 
-func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error) {
+func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*corev1.PodSpec) error) (bool, error) {
 	switch t := obj.(type) {
 	case *deployapi.DeploymentConfig:
 		template := t.Spec.Template
@@ -175,9 +169,57 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*kapi.
 			t.Spec.Template = template
 			template = &kapi.PodTemplateSpec{}
 		}
+		if err := ConvertExteralPodSpecToInternal(fn)(&template.Spec); err != nil {
+			return true, err
+		}
+		return true, nil
+
+	case *appsapiv1.DeploymentConfig:
+		template := t.Spec.Template
+		if template == nil {
+			template = &corev1.PodTemplateSpec{}
+			t.Spec.Template = template
+		}
 		return true, fn(&template.Spec)
+
 	default:
 		return f.kubeClientAccessFactory.UpdatePodSpecForObject(obj, fn)
+	}
+}
+
+func ConvertInteralPodSpecToExternal(inFn func(*kapi.PodSpec) error) func(*corev1.PodSpec) error {
+	return func(specToMutate *corev1.PodSpec) error {
+		internalPodSpec := &kapi.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(specToMutate, internalPodSpec, nil); err != nil {
+			return err
+		}
+		if err := inFn(internalPodSpec); err != nil {
+			return err
+		}
+		externalPodSpec := &corev1.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(internalPodSpec, externalPodSpec, nil); err != nil {
+			return err
+		}
+		*specToMutate = *externalPodSpec
+		return nil
+	}
+}
+
+func ConvertExteralPodSpecToInternal(inFn func(*corev1.PodSpec) error) func(*kapi.PodSpec) error {
+	return func(specToMutate *kapi.PodSpec) error {
+		externalPodSpec := &corev1.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(specToMutate, externalPodSpec, nil); err != nil {
+			return err
+		}
+		if err := inFn(externalPodSpec); err != nil {
+			return err
+		}
+		internalPodSpec := &kapi.PodSpec{}
+		if err := legacyscheme.Scheme.Convert(externalPodSpec, internalPodSpec, nil); err != nil {
+			return err
+		}
+		*specToMutate = *internalPodSpec
+		return nil
 	}
 }
 
@@ -226,10 +268,6 @@ func (f *ring0Factory) BindFlags(flags *pflag.FlagSet) {
 
 func (f *ring0Factory) BindExternalFlags(flags *pflag.FlagSet) {
 	f.kubeClientAccessFactory.BindExternalFlags(flags)
-}
-
-func (f *ring0Factory) DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *kprinters.PrintOptions {
-	return f.kubeClientAccessFactory.DefaultResourceFilterOptions(cmd, withNamespace)
 }
 
 func (f *ring0Factory) DefaultResourceFilterFunc() kubectl.Filters {

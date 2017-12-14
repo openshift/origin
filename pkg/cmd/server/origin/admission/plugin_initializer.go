@@ -17,31 +17,36 @@ import (
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	oquota "github.com/openshift/origin/pkg/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
+	"github.com/openshift/origin/pkg/quota/image"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
+	webhookconfig "k8s.io/apiserver/pkg/admission/plugin/webhook/config"
+	webhookinitializer "k8s.io/apiserver/pkg/admission/plugin/webhook/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/discovery"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kexternalinformers "k8s.io/client-go/informers"
 	kubeclientgoinformers "k8s.io/client-go/informers"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	"k8s.io/kubernetes/pkg/quota/generic"
+	"k8s.io/kubernetes/pkg/quota/install"
 )
 
 type InformerAccess interface {
@@ -63,10 +68,6 @@ func NewPluginInitializer(
 	clusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController,
 ) (admission.PluginInitializer, genericapiserver.PostStartHookFunc, error) {
 	kubeInternalClient, err := kclientsetinternal.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-	kubeExternalClient, err := kclientsetexternal.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -99,12 +100,15 @@ func NewPluginInitializer(
 		return nil, nil, err
 	}
 
-	quotaRegistry := oquota.NewAllResourceQuotaRegistryForAdmission(
-		informers.GetExternalKubeInformers(),
+	// TODO make a union registry
+	quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
+	imageEvaluators := image.NewReplenishmentEvaluatorsForAdmission(
 		informers.GetImageInformers().Image().InternalVersion().ImageStreams(),
 		imageClient.Image(),
-		kubeExternalClient,
 	)
+	for i := range imageEvaluators {
+		quotaRegistry.Add(imageEvaluators[i])
+	}
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(kubeInternalClient.Core().Services(metav1.NamespaceDefault).Get)
@@ -133,25 +137,30 @@ func NewPluginInitializer(
 		}
 	}
 	// note: we are passing a combined quota registry here...
-	genericInitializer, err := initializer.New(kubeClientGoClientSet, informers.GetClientGoKubeInformers(), authorizer)
-	if err != nil {
-		return nil, nil, err
-	}
+	genericInitializer := initializer.New(
+		kubeClientGoClientSet,
+		informers.GetClientGoKubeInformers(),
+		authorizer,
+		legacyscheme.Scheme,
+	)
 	kubePluginInitializer := kadmission.NewPluginInitializer(
 		kubeInternalClient,
-		kubeExternalClient,
 		informers.GetInternalKubeInformers(),
-		authorizer,
 		cloudConfig,
 		restMapper,
-		quotaRegistry)
-	// upstream broke this, so we can't use their mechanism.  We need to get an actual client cert and practically speaking privileged loopback will always have one
-	kubePluginInitializer.SetClientCert(privilegedLoopbackConfig.TLSClientConfig.CertData, privilegedLoopbackConfig.TLSClientConfig.KeyData)
-	// this is a really problematic thing, because it breaks DNS resolution and IP routing, but its for an alpha feature that
-	// I need to work cluster-up
-	kubePluginInitializer.SetServiceResolver(aggregatorapiserver.NewClusterIPServiceResolver(
-		informers.GetClientGoKubeInformers().Core().V1().Services().Lister(),
-	))
+		generic.NewConfiguration(quotaRegistry.List(), map[schema.GroupResource]struct{}{}))
+
+	webhookInitializer := webhookinitializer.NewPluginInitializer(
+		func(delegate webhookconfig.AuthenticationInfoResolver) webhookconfig.AuthenticationInfoResolver {
+			return webhookconfig.AuthenticationInfoResolverFunc(func(server string) (*rest.Config, error) {
+				if server == "kubernetes.default.svc" {
+					return rest.CopyConfig(privilegedLoopbackConfig), nil
+				}
+				return delegate.ClientConfigFor(server)
+			})
+		},
+		aggregatorapiserver.NewClusterIPServiceResolver(informers.GetClientGoKubeInformers().Core().V1().Services().Lister()),
+	)
 
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
 		OpenshiftInternalAuthorizationClient: authorizationClient,
@@ -173,7 +182,7 @@ func NewPluginInitializer(
 		UserInformers:                        informers.GetUserInformers(),
 	}
 
-	return admission.PluginInitializers{genericInitializer, kubePluginInitializer, openshiftPluginInitializer},
+	return admission.PluginInitializers{genericInitializer, webhookInitializer, kubePluginInitializer, openshiftPluginInitializer},
 		func(context genericapiserver.PostStartHookContext) error {
 			restMapper.Reset()
 			go func() {

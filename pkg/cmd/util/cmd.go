@@ -14,7 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -77,7 +78,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 
 	for i := range objs {
 		obj := objs[i]
-		kinds, _, err := kapi.Scheme.ObjectKinds(obj)
+		kinds, _, err := legacyscheme.Scheme.ObjectKinds(obj)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +86,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 		// Gather all groups where the object kind is known.
 		groups := []*apimachinery.GroupMeta{}
 		for _, kind := range kinds {
-			groupMeta, err := kapi.Registry.Group(kind.Group)
+			groupMeta, err := legacyscheme.Registry.Group(kind.Group)
 			if err != nil {
 				return nil, err
 			}
@@ -100,7 +101,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 			}
 
 			defaultGroupVersioners := runtime.GroupVersioners(defaultGroupVersions)
-			convertedObject, err := kapi.Scheme.ConvertToVersion(obj, defaultGroupVersioners)
+			convertedObject, err := legacyscheme.Scheme.ConvertToVersion(obj, defaultGroupVersioners)
 			if err != nil {
 				return nil, err
 			}
@@ -142,7 +143,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 				preferredVersions = append(preferredVersions, gv)
 			}
 			preferredVersioner := runtime.GroupVersioners(preferredVersioners)
-			convertedObject, err := kapi.Scheme.ConvertToVersion(obj, preferredVersioner)
+			convertedObject, err := legacyscheme.Scheme.ConvertToVersion(obj, preferredVersioner)
 			if err != nil {
 				return nil, err
 			}
@@ -151,7 +152,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 			continue
 		}
 
-		convertedObject, err := kapi.Scheme.ConvertToVersion(obj, actualOutputVersion)
+		convertedObject, err := legacyscheme.Scheme.ConvertToVersion(obj, actualOutputVersion)
 		if err != nil {
 			return nil, err
 		}

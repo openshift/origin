@@ -36,6 +36,47 @@ Expand or mouse-over a field for more information about it.
 
 == Operations
 
+[[Get-apis-admissionregistration.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/admissionregistration.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/admissionregistration.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
 [[Get-apis-apps]]
 === Get all APIGroups
 Get information of a group
@@ -259,6 +300,47 @@ $ curl -k \
     -H "Authorization: Bearer $TOKEN" \
     -H 'Accept: application/json' \
     https://$ENDPOINT/apis/certificates.k8s.io/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIGroup
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Get-apis-events.k8s.io]]
+=== Get all APIGroups
+Get information of a group
+
+==== HTTP request
+----
+GET /apis/events.k8s.io/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/apis/events.k8s.io/
 ----
 
 ==== Responses

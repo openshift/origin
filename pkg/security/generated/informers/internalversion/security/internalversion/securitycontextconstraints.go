@@ -22,19 +22,33 @@ type SecurityContextConstraintsInformer interface {
 }
 
 type securityContextConstraintsInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewSecurityContextConstraintsInformer constructs a new informer for SecurityContextConstraints type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewSecurityContextConstraintsInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredSecurityContextConstraintsInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredSecurityContextConstraintsInformer constructs a new informer for SecurityContextConstraints type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredSecurityContextConstraintsInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Security().SecurityContextConstraints().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Security().SecurityContextConstraints().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewSecurityContextConstraintsInformer(client internalclientset.Interface, r
 	)
 }
 
-func defaultSecurityContextConstraintsInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewSecurityContextConstraintsInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *securityContextConstraintsInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredSecurityContextConstraintsInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *securityContextConstraintsInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&security.SecurityContextConstraints{}, defaultSecurityContextConstraintsInformer)
+	return f.factory.InformerFor(&security.SecurityContextConstraints{}, f.defaultInformer)
 }
 
 func (f *securityContextConstraintsInformer) Lister() internalversion.SecurityContextConstraintsLister {

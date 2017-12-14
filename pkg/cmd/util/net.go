@@ -44,20 +44,6 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-// ListenAndServe starts a server that listens on the provided TCP mode (as supported
-// by net.Listen)
-func ListenAndServe(srv *http.Server, network string) error {
-	addr := srv.Addr
-	if addr == "" {
-		addr = ":http"
-	}
-	ln, err := net.Listen(network, addr)
-	if err != nil {
-		return err
-	}
-	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
-}
-
 // ListenAndServeTLS starts a server that listens on the provided TCP mode (as supported
 // by net.Listen).
 func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile string) error {

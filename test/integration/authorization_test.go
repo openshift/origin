@@ -15,9 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
@@ -371,6 +372,7 @@ var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system
 var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:kube-system:generic-garbage-collector",
 	"system:serviceaccount:kube-system:namespace-controller",
+	"system:serviceaccount:kube-system:clusterrole-aggregation-controller",
 	"system:serviceaccount:openshift-infra:image-trigger-controller",
 	"system:serviceaccount:openshift-infra:deploymentconfig-controller",
 	"system:serviceaccount:openshift-infra:template-instance-controller",
@@ -1355,7 +1357,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
-		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		sarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1386,7 +1388,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource:  "imagestreams/layers",
 			},
 		}
-		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		sarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1436,7 +1438,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
-		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		sarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1496,7 +1498,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
-		rarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
+		rarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1508,7 +1510,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1527,7 +1529,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 				Resource:  "imagestreams/layers",
 			},
 		}
-		rarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
+		rarBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1539,7 +1541,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1571,7 +1573,7 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 	// this client has no API token so it is unsafe (like a browser)
 	anonymousConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	anonymousConfig.ContentConfig.GroupVersion = &schema.GroupVersion{}
-	anonymousConfig.ContentConfig.NegotiatedSerializer = kapi.Codecs
+	anonymousConfig.ContentConfig.NegotiatedSerializer = legacyscheme.Codecs
 	anonymousClient, err := rest.RESTClientFor(anonymousConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

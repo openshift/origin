@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -90,7 +90,8 @@ func (o *RetryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io
 		return err
 	}
 
-	r := f.NewBuilder(true).
+	r := f.NewBuilder().
+		Internal().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

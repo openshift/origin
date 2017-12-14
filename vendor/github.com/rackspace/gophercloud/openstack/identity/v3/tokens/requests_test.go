@@ -36,7 +36,7 @@ func authTokenPost(t *testing.T, options gophercloud.AuthOptions, scope *Scope, 
 		}`)
 	})
 
-	_, err := Create(&client, AuthOptions{options}, scope).Extract()
+	_, err := Create(&client, options, scope).Extract()
 	if err != nil {
 		t.Errorf("Create returned an error: %v", err)
 	}
@@ -54,7 +54,7 @@ func authTokenPostErr(t *testing.T, options gophercloud.AuthOptions, scope *Scop
 		client.TokenID = "abcdef123456"
 	}
 
-	_, err := Create(&client, AuthOptions{options}, scope).Extract()
+	_, err := Create(&client, options, scope).Extract()
 	if err == nil {
 		t.Errorf("Create did NOT return an error")
 	}
@@ -128,21 +128,6 @@ func TestCreateTokenID(t *testing.T) {
 					"methods": ["token"],
 					"token": {
 						"id": "12345abcdef"
-					}
-				}
-			}
-		}
-	`)
-}
-
-func TestCreateNewTokenID(t *testing.T) {
-	authTokenPost(t, gophercloud.AuthOptions{TokenID: "asdf"}, nil, `
-		{
-			"auth": {
-				"identity": {
-					"methods": ["token"],
-					"token": {
-						"id": "asdf"
 					}
 				}
 			}
@@ -277,7 +262,7 @@ func TestCreateExtractsTokenFromResponse(t *testing.T) {
 	})
 
 	options := gophercloud.AuthOptions{UserID: "me", Password: "shhh"}
-	token, err := Create(&client, AuthOptions{options}, nil).Extract()
+	token, err := Create(&client, options, nil).Extract()
 	if err != nil {
 		t.Fatalf("Create returned an error: %v", err)
 	}
@@ -311,54 +296,12 @@ func TestCreateFailureTokenIDUserID(t *testing.T) {
 	authTokenPostErr(t, gophercloud.AuthOptions{UserID: "something"}, nil, true, ErrUserIDWithToken)
 }
 
-func TestCreateTokenIDDomainID(t *testing.T) {
-	scope := &Scope{ProjectName: "world-domination", DomainID: "1000"}
-	authTokenPost(t, gophercloud.AuthOptions{DomainID: "something"}, scope, `
-		{
-			"auth": {
-				"identity": {
-					"methods": [
-						"token"
-					],
-					"token": {
-						"id": "12345abcdef"
-					}
-				},
-				"scope": {
-					"project": {
-						"domain": {
-							"id": "1000"
-						},
-						"name": "world-domination"
-					}
-				}
-			}
-		}`)
+func TestCreateFailureTokenIDDomainID(t *testing.T) {
+	authTokenPostErr(t, gophercloud.AuthOptions{DomainID: "something"}, nil, true, ErrDomainIDWithToken)
 }
 
-func TestCreateTokenIDDomainName(t *testing.T) {
-	scope := &Scope{ProjectName: "world-domination", DomainName: "evil-plans"}
-	authTokenPost(t, gophercloud.AuthOptions{DomainName: "something"}, scope, `
-		{
-			"auth": {
-				"identity": {
-					"methods": [
-						"token"
-					],
-					"token": {
-						"id": "12345abcdef"
-					}
-				},
-				"scope": {
-					"project": {
-						"domain": {
-							"name": "evil-plans"
-						},
-						"name": "world-domination"
-					}
-				}
-			}
-		}`)
+func TestCreateFailureTokenIDDomainName(t *testing.T) {
+	authTokenPostErr(t, gophercloud.AuthOptions{DomainName: "something"}, nil, true, ErrDomainNameWithToken)
 }
 
 func TestCreateFailureMissingUser(t *testing.T) {

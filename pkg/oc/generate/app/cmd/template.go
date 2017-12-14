@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -39,7 +39,7 @@ func TransformTemplate(tpl *templateapi.Template, templateProcessor templateinte
 	}
 
 	// ensure the template objects are decoded
-	if errs := runtime.DecodeList(result.Objects, kapi.Codecs.LegacyCodec(latest.Version)); len(errs) > 0 {
+	if errs := runtime.DecodeList(result.Objects, legacyscheme.Codecs.LegacyCodec(latest.Version)); len(errs) > 0 {
 		err = errors.NewAggregate(errs)
 		return nil, fmt.Errorf("error processing template %q: %v", name, err)
 	}
@@ -59,7 +59,7 @@ func TransformTemplate(tpl *templateapi.Template, templateProcessor templateinte
 		}
 	}
 	if len(needToDecode) > 0 {
-		if errs := runtime.DecodeList(needToDecode, kapi.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme); len(errs) > 0 {
+		if errs := runtime.DecodeList(needToDecode, legacyscheme.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme); len(errs) > 0 {
 			err = errors.NewAggregate(errs)
 			return nil, fmt.Errorf("error processing template %q: %v", name, err)
 		}

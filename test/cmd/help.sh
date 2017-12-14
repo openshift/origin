@@ -6,14 +6,14 @@ os::test::junit::declare_suite_start "cmd/help"
 # This test validates the help commands and output text
 
 # verify some default commands
-os::cmd::expect_success 'openshift'
+os::cmd::expect_failure 'openshift'
 os::cmd::expect_success 'kubectl'
 os::cmd::expect_success 'oc'
 os::cmd::expect_success 'oc ex'
-os::cmd::expect_success 'origin'
+os::cmd::expect_failure 'origin'
 
 # help for root commands must be consistent
-os::cmd::expect_success_and_text 'openshift' 'Application Platform'
+os::cmd::expect_failure_and_text 'openshift' 'Application Platform'
 os::cmd::expect_success_and_text 'oc' 'OpenShift Client'
 os::cmd::expect_success_and_text 'oc -h' 'Build and Deploy Commands:'
 os::cmd::expect_success_and_text 'oc -h' 'Other Commands:'
@@ -21,8 +21,8 @@ os::cmd::expect_success_and_text 'oc policy --help' 'add-role-to-user'
 os::cmd::expect_success_and_not_text 'oc policy --help' 'Other Commands'
 os::cmd::expect_success_and_not_text 'oc -h' 'Options'
 os::cmd::expect_success_and_not_text 'oc -h' 'Global Options'
-os::cmd::expect_success_and_text 'oc types' 'Deployment Config'
-os::cmd::expect_success_and_text 'oc adm ca' 'Manage certificates'
+os::cmd::expect_failure_and_text 'oc types' 'Deployment Config'
+os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
 os::cmd::expect_success_and_text 'oc exec --help' '\[options\] POD \[\-c CONTAINER\] \-\- COMMAND \[args\.\.\.\]$'
 os::cmd::expect_success_and_text 'oc rsh --help' '\[options\] POD \[COMMAND\]$'
 

@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 // HACK TO ELIMINATE CYCLES UNTIL WE KILL THIS PACKAGE
@@ -72,7 +72,7 @@ func getOrCreateOriginKinds() map[schema.GroupVersionKind]bool {
 
 			// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
 			for _, version := range Versions {
-				for kind, t := range api.Scheme.KnownTypes(version) {
+				for kind, t := range legacyscheme.Scheme.KnownTypes(version) {
 					// these don't require special handling at the RESTMapping level since they are either "normal" when groupified
 					// or under /api (not /oapi)
 					if kind == "SecurityContextConstraints" {

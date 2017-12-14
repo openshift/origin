@@ -12,6 +12,7 @@ go_library(
         "gobindata_util.go",
         "main.go",
     ],
+    importpath = "k8s.io/kubernetes/test/e2e/generated",
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
     ],
@@ -20,10 +21,10 @@ go_library(
 genrule(
     name = "bindata",
     srcs = [
-        "//examples:sources",
-        "//test/images:sources",
-        "//test/fixtures:sources",
-        "//test/e2e/testing-manifests:sources",
+        "//examples:all-srcs",
+        "//test/images:all-srcs",
+        "//test/fixtures:all-srcs",
+        "//test/e2e/testing-manifests:all-srcs",
     ],
     outs = ["bindata.go"],
     cmd = """

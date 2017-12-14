@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
@@ -17,7 +17,7 @@ type userIdentityMappingStrategy struct {
 
 // Strategy is the default logic that applies when creating UserIdentityMapping
 // objects via the REST API.
-var Strategy = userIdentityMappingStrategy{kapi.Scheme}
+var Strategy = userIdentityMappingStrategy{legacyscheme.Scheme}
 
 // NamespaceScoped is true for image repository mappings.
 func (s userIdentityMappingStrategy) NamespaceScoped() bool {

@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/util/integer"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -105,7 +105,7 @@ func (a *runOnceDuration) SetProjectCache(cache *projectcache.ProjectCache) {
 	a.cache = cache
 }
 
-func (a *runOnceDuration) Validate() error {
+func (a *runOnceDuration) ValidateInitialization() error {
 	if a.cache == nil {
 		return errors.New("RunOnceDuration plugin requires a project cache")
 	}

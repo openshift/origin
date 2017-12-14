@@ -22,19 +22,34 @@ type ImageStreamInformer interface {
 }
 
 type imageStreamInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewImageStreamInformer constructs a new informer for ImageStream type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewImageStreamInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredImageStreamInformer(client, namespace, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredImageStreamInformer constructs a new informer for ImageStream type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredImageStreamInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Image().ImageStreams(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.Image().ImageStreams(namespace).Watch(options)
 			},
 		},
@@ -44,12 +59,12 @@ func NewImageStreamInformer(client internalclientset.Interface, namespace string
 	)
 }
 
-func defaultImageStreamInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewImageStreamInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *imageStreamInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredImageStreamInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *imageStreamInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&image.ImageStream{}, defaultImageStreamInformer)
+	return f.factory.InformerFor(&image.ImageStream{}, f.defaultInformer)
 }
 
 func (f *imageStreamInformer) Lister() internalversion.ImageStreamLister {

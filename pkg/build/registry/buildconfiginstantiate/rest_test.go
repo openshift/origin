@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -49,7 +50,7 @@ func TestCreateInstantiate(t *testing.T) {
 			},
 		}}}
 
-	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Name: "name"}}, false)
+	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Name: "name"}}, apiserverrest.ValidateAllObjectFunc, false)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -57,7 +58,7 @@ func TestCreateInstantiate(t *testing.T) {
 
 func TestCreateInstantiateValidationError(t *testing.T) {
 	rest := InstantiateREST{&generator.BuildGenerator{}}
-	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{}, false)
+	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{}, apiserverrest.ValidateAllObjectFunc, false)
 	if err == nil {
 		t.Error("Expected object got none!")
 	}

@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -307,6 +308,58 @@ var _ = g.Describe("[Feature:Builds][Slow] using build configuration runPolicy",
 				o.Expect(timestamps1).To(o.BeTrue(), "failed builds should have start and completion timestamps set")
 				o.Expect(timestamps2).To(o.BeTrue(), "failed builds should have start and completion timestamps set")
 				o.Expect(timestamps3).To(o.BeTrue(), "failed builds should have start and completion timestamps set")
+			})
+		})
+
+		g.Describe("build configuration with Serial build run policy handling deletion", func() {
+			g.It("starts the next build immediately after running one is deleted", func() {
+				g.By("starting multiple builds")
+
+				bcName := "sample-serial-build"
+				for i := 0; i < 3; i++ {
+					_, _, err := exutil.StartBuild(oc, bcName)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
+				buildWatch, err := oc.BuildClient().Build().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+					LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
+				})
+				defer buildWatch.Stop()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				var deleteTime, deleteTime2 time.Time
+				done := false
+				var timedOut error
+				for !done {
+					select {
+					case event := <-buildWatch.ResultChan():
+						build := event.Object.(*buildapi.Build)
+						if build.Status.Phase == buildapi.BuildPhasePending {
+							if build.Name == "sample-serial-build-1" {
+								err := oc.Run("delete").Args("build", "sample-serial-build-1", "--ignore-not-found").Execute()
+								o.Expect(err).ToNot(o.HaveOccurred())
+								deleteTime = time.Now()
+							}
+							if build.Name == "sample-serial-build-2" {
+								duration := time.Now().Sub(deleteTime)
+								o.Expect(duration).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after deleted build")
+								err := oc.Run("delete").Args("build", "sample-serial-build-2", "--ignore-not-found").Execute()
+								o.Expect(err).ToNot(o.HaveOccurred())
+								deleteTime2 = time.Now()
+							}
+							if build.Name == "sample-serial-build-3" {
+								duration := time.Now().Sub(deleteTime2)
+								o.Expect(duration).To(o.BeNumerically("<", 20*time.Second), "next build should have started less than 20s after deleted build")
+								done = true
+							}
+						}
+					case <-time.After(2 * time.Minute):
+						// Give up waiting and finish after 2 minutes
+						timedOut = fmt.Errorf("timed out waiting for pending build")
+						done = true
+					}
+				}
+				o.Expect(timedOut).NotTo(o.HaveOccurred())
 			})
 		})
 

@@ -11,16 +11,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kinformers "k8s.io/client-go/informers"
+	kclientsetexternal "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -114,21 +114,18 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 		t.Fatal(err)
 	}
 
-	openshiftConfig, err := origin.BuildMasterConfig(*master, informers)
-	if err != nil {
-		t.Fatal(err)
-	}
+	externalKubeClient := kclientsetexternal.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// this test wants to duplicate the controllers, so it needs to duplicate the wiring.
 	// TODO have this simply start the particular controller it wants multiple times
 	controllerManagerOptions := cmapp.NewCMServer()
 	rootClientBuilder := controller.SimpleControllerClientBuilder{
-		ClientConfig: &openshiftConfig.PrivilegedLoopbackClientConfig,
+		ClientConfig: clusterAdminClientConfig,
 	}
 	saClientBuilder := controller.SAControllerClientBuilder{
-		ClientConfig:         restclient.AnonymousClientConfig(&openshiftConfig.PrivilegedLoopbackClientConfig),
-		CoreClient:           openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
-		AuthenticationClient: openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+		ClientConfig:         restclient.AnonymousClientConfig(clusterAdminClientConfig),
+		CoreClient:           externalKubeClient.Core(),
+		AuthenticationClient: externalKubeClient.Authentication(),
 		Namespace:            "kube-system",
 	}
 	availableResources, err := kctrlmgr.GetAvailableResources(rootClientBuilder)
@@ -167,9 +164,9 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 	openshiftControllerContext := origincontrollers.ControllerContext{
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
 			ControllerClientBuilder: controller.SAControllerClientBuilder{
-				ClientConfig:         restclient.AnonymousClientConfig(&openshiftConfig.PrivilegedLoopbackClientConfig),
-				CoreClient:           openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
-				AuthenticationClient: openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+				ClientConfig:         restclient.AnonymousClientConfig(clusterAdminClientConfig),
+				CoreClient:           externalKubeClient.Core(),
+				AuthenticationClient: externalKubeClient.Authentication(),
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},

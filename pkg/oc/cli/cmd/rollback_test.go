@@ -3,7 +3,8 @@ package cmd
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -77,7 +78,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 		existingControllers := &kapi.ReplicationControllerList{}
 		for _, existing := range test.existing {
 			config := deploytest.OkDeploymentConfig(existing.version)
-			deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 			deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(existing.status)
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}

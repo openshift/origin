@@ -4,6 +4,7 @@ package image
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
@@ -12,20 +13,23 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
-// NewImageQuotaRegistry returns a registry for quota evaluation of OpenShift resources related to images in
-// internal registry. It evaluates only image streams and related virtual resources that can cause a creation
-// of new image stream objects.
-func NewImageQuotaRegistry(isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) quota.Registry {
-	imageStream := NewImageStreamEvaluator(isInformer.Lister())
-	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister(), imageClient)
-	imageStreamImport := NewImageStreamImportEvaluator(isInformer.Lister())
-	return &generic.GenericRegistry{
-		InternalEvaluators: map[schema.GroupKind]quota.Evaluator{
-			imageStream.GroupKind():       imageStream,
-			imageStreamTag.GroupKind():    imageStreamTag,
-			imageStreamImport.GroupKind(): imageStreamImport,
-		},
+var legacyObjectCountAliases = map[schema.GroupVersionResource]kapi.ResourceName{
+	imageapi.SchemeGroupVersion.WithResource("imagestreams"): imageapi.ResourceImageStreams,
+}
+
+// NewEvaluators returns the list of static evaluators that manage more than counts
+func NewReplenishmentEvaluators(f quota.ListerForResourceFunc, isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) []quota.Evaluator {
+	// these evaluators have special logic
+	result := []quota.Evaluator{
+		NewImageStreamTagEvaluator(isInformer.Lister(), imageClient),
+		NewImageStreamImportEvaluator(isInformer.Lister()),
 	}
+	// these evaluators require an alias for backwards compatibility
+	for gvr, alias := range legacyObjectCountAliases {
+		result = append(result,
+			generic.NewObjectCountEvaluator(false, gvr.GroupResource(), generic.ListResourceUsingListerFunc(f, gvr), alias))
+	}
+	return result
 }
 
 // NewImageQuotaRegistryForAdmission returns a registry for quota evaluation of OpenShift resources related to images in
@@ -33,19 +37,40 @@ func NewImageQuotaRegistry(isInformer imageinternalversion.ImageStreamInformer, 
 // of new image stream objects.
 // This is different that is used for reconciliation because admission has to check all forms of a resource (legacy and groupified), but
 // reconciliation only has to check one.
-func NewImageQuotaRegistryForAdmission(isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) quota.Registry {
-	imageStream := NewImageStreamEvaluator(isInformer.Lister())
-	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister(), imageClient)
-	imageStreamImport := NewImageStreamImportEvaluator(isInformer.Lister())
-	return &generic.GenericRegistry{
-		// TODO remove the LegacyKind entries below when the legacy api group is no longer supported
-		InternalEvaluators: map[schema.GroupKind]quota.Evaluator{
-			imageapi.LegacyKind("ImageStream"):       imageStream,
-			imageStream.GroupKind():                  imageStream,
-			imageapi.LegacyKind("ImageStreamTag"):    imageStreamTag,
-			imageStreamTag.GroupKind():               imageStreamTag,
-			imageapi.LegacyKind("ImageStreamImport"): imageStreamImport,
-			imageStreamImport.GroupKind():            imageStreamImport,
+func NewReplenishmentEvaluatorsForAdmission(isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) []quota.Evaluator {
+	result := []quota.Evaluator{
+		NewImageStreamTagEvaluator(isInformer.Lister(), imageClient),
+		NewImageStreamImportEvaluator(isInformer.Lister()),
+		&evaluatorForLegacyResource{
+			Evaluator:           NewImageStreamTagEvaluator(isInformer.Lister(), imageClient),
+			LegacyGroupResource: imageapi.LegacyResource("imagestreamtags"),
+		},
+		&evaluatorForLegacyResource{
+			Evaluator:           NewImageStreamImportEvaluator(isInformer.Lister()),
+			LegacyGroupResource: imageapi.LegacyResource("imagestreamimports"),
 		},
 	}
+	// these evaluators require an alias for backwards compatibility
+	for gvr, alias := range legacyObjectCountAliases {
+		result = append(result,
+			generic.NewObjectCountEvaluator(false, gvr.GroupResource(), generic.ListResourceUsingListerFunc(nil, gvr), alias))
+	}
+	// add the handling for the old resources
+	result = append(result,
+		generic.NewObjectCountEvaluator(
+			false,
+			imageapi.LegacyResource("imagestreams"),
+			generic.ListResourceUsingListerFunc(nil, imageapi.SchemeGroupVersion.WithResource("imagestreams")),
+			imageapi.ResourceImageStreams))
+
+	return result
+}
+
+type evaluatorForLegacyResource struct {
+	quota.Evaluator
+	LegacyGroupResource schema.GroupResource
+}
+
+func (e *evaluatorForLegacyResource) GroupResource() schema.GroupResource {
+	return e.LegacyGroupResource
 }

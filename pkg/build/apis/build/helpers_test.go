@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestFilterBuilds_withEmptyArray(t *testing.T) {

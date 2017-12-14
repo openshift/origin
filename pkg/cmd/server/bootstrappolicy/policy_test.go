@@ -12,7 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
@@ -41,7 +42,7 @@ func TestCreateBootstrapPolicyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	template := &templateapi.Template{}
-	if _, _, err := api.Codecs.UniversalDecoder().Decode(data, nil, template); err != nil {
+	if _, _, err := legacyscheme.Codecs.UniversalDecoder().Decode(data, nil, template); err != nil {
 		t.Fatal(err)
 	}
 	list := &api.List{Items: template.Objects}
@@ -108,11 +109,11 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 
-	if err := runtime.EncodeList(api.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list.Items); err != nil {
+	if err := runtime.EncodeList(legacyscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list.Items); err != nil {
 		t.Fatal(err)
 	}
 
-	jsonData, err := runtime.Encode(api.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list)
+	jsonData, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -17,7 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	build "github.com/openshift/origin/pkg/build/apis/build"
@@ -33,6 +34,8 @@ var expectedIndex = []string{
 	"/api/v1",
 	"/apis",
 	"/apis/",
+	"/apis/admissionregistration.k8s.io",
+	"/apis/admissionregistration.k8s.io/v1beta1",
 	"/apis/apiextensions.k8s.io",
 	"/apis/apiextensions.k8s.io/v1beta1",
 	"/apis/apiregistration.k8s.io",
@@ -40,6 +43,7 @@ var expectedIndex = []string{
 	"/apis/apps",
 	"/apis/apps.openshift.io",
 	"/apis/apps.openshift.io/v1",
+	"/apis/apps/v1",
 	"/apis/apps/v1beta1",
 	"/apis/apps/v1beta2",
 	"/apis/authentication.k8s.io",
@@ -61,6 +65,8 @@ var expectedIndex = []string{
 	"/apis/build.openshift.io/v1",
 	"/apis/certificates.k8s.io",
 	"/apis/certificates.k8s.io/v1beta1",
+	"/apis/events.k8s.io",
+	"/apis/events.k8s.io/v1beta1",
 	"/apis/extensions",
 	"/apis/extensions/v1beta1",
 	"/apis/image.openshift.io",
@@ -255,8 +261,9 @@ func TestWellKnownOAuthOff(t *testing.T) {
 }
 
 var preferredVersions = map[string]string{
-	"":                          "v1",
-	"apps":                      "v1beta1",
+	"": "v1",
+	"admissionregistration.k8s.io": "v1beta1",
+	"apps":                      "v1",
 	"apiextensions.k8s.io":      "v1beta1",
 	"apiregistration.k8s.io":    "v1beta1",
 	"authentication.k8s.io":     "v1",
@@ -264,6 +271,7 @@ var preferredVersions = map[string]string{
 	"autoscaling":               "v1",
 	"batch":                     "v1",
 	"certificates.k8s.io":       "v1beta1",
+	"events.k8s.io":             "v1beta1",
 	"extensions":                "v1beta1",
 	"networking.k8s.io":         "v1",
 	"policy":                    "v1beta1",
@@ -427,7 +435,7 @@ func TestApiGroups(t *testing.T) {
 		t.Fatalf("Expected %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
-	codec := kapi.Codecs.LegacyCodec(buildv1.SchemeGroupVersion)
+	codec := legacyscheme.Codecs.LegacyCodec(buildv1.SchemeGroupVersion)
 	respBuild := &buildv1.Build{}
 	gvk := buildv1.SchemeGroupVersion.WithKind("Build")
 	respObj, _, err := codec.Decode(body, &gvk, respBuild)

@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/controller"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -156,7 +156,7 @@ func NewTriggerEventBroadcaster(client kv1core.CoreV1Interface) record.EventBroa
 func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer imageinformer.ImageStreamInformer, sources ...TriggerSource) *TriggerController {
 	lister := isInformer.Lister()
 	c := &TriggerController{
-		eventRecorder:    eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "image-trigger-controller"}),
+		eventRecorder:    eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "image-trigger-controller"}),
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "image-trigger"),
 		imageChangeQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "image-trigger-reactions"),
 		lister:           lister,

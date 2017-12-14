@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kadmission "k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -68,7 +68,7 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 			v.operation,
 			nil)
 
-		err = plugin.Admit(attrs)
+		err = plugin.(kadmission.MutationInterface).Admit(attrs)
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s expected to be admitted but received error %v", k, err)
 		}
@@ -120,7 +120,7 @@ func TestAdmitImage(t *testing.T) {
 			}
 		}
 
-		err := AdmitImage(v.size.Value(), *limitRangeItem)
+		err := admitImage(v.size.Value(), *limitRangeItem)
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s expected to be admitted but received error %v", k, err)
 		}
@@ -279,8 +279,8 @@ func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.
 		return nil, nil, err
 	}
 	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
-	pluginInitializer := kubeadmission.NewPluginInitializer(c, nil, f, nil, nil, nil, nil)
+	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil, nil)
 	pluginInitializer.Initialize(plugin)
-	err = kadmission.Validate(plugin)
+	err = kadmission.ValidateInitialization(plugin)
 	return plugin, f, err
 }

@@ -10,7 +10,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api"
@@ -69,7 +70,7 @@ func TestPrinterCoverage(t *testing.T) {
 	printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
 
 main:
-	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
+	for _, apiType := range legacyscheme.Scheme.KnownTypes(api.SchemeGroupVersion) {
 		if !strings.Contains(apiType.PkgPath(), "github.com/openshift/origin") || strings.Contains(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}

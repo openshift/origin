@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 )
@@ -36,7 +36,7 @@ func (l *ListPodsOptions) Run() error {
 	if l.Options.CmdPrinterOutput {
 		printer = l.Options.CmdPrinter
 	} else {
-		printer, err = l.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"}, kprinters.PrintOptions{WithNamespace: true})
+		printer, err = l.Options.GetPrintersByResource(schema.GroupVersionResource{Resource: "pod"}, true)
 		if err != nil {
 			return err
 		}

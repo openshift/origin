@@ -4,7 +4,7 @@ import (
 	"io"
 
 	rest "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -30,7 +30,7 @@ func (c *buildInstatiateBinary) InstantiateBinary(name string, options *buildapi
 		Name(name).
 		SubResource("instantiatebinary").
 		Body(r).
-		VersionedParams(options, kapi.ParameterCodec).
+		VersionedParams(options, legacyscheme.ParameterCodec).
 		Do().
 		Into(result)
 	return result, err

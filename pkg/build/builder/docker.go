@@ -13,7 +13,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"

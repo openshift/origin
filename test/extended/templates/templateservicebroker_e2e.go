@@ -8,6 +8,8 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -294,7 +296,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// check the namespace is empty
-		for gvk := range kapi.Scheme.AllKnownTypes() {
+		for gvk := range legacyscheme.Scheme.AllKnownTypes() {
 			if gvk.Version == runtime.APIVersionInternal {
 				continue
 			}
@@ -306,7 +308,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				kapi.Kind("RoleBinding"),
 				rbacapi.Kind("RoleBinding"),
 				authorizationapi.LegacyKind("RoleBinding"),
-				authorizationapi.Kind("RoleBinding"):
+				authorizationapi.Kind("RoleBinding"),
+				schema.GroupKind{Group: "events.k8s.io", Kind: "Event"}:
 				continue
 			}
 

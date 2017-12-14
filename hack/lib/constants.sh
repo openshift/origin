@@ -4,9 +4,9 @@
 
 readonly OS_GO_PACKAGE=github.com/openshift/origin
 
-readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.8}"
+readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.9}"
 readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
-readonly OS_REQUIRED_GO_VERSION=go1.8
+readonly OS_REQUIRED_GO_VERSION="go${OS_BUILD_ENV_GOLANG}"
 
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
 readonly OS_GOFLAGS_TAGS_LINUX_AMD64="gssapi"
@@ -27,8 +27,8 @@ readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
 
 readonly OS_SDN_COMPILE_TARGETS_LINUX=(
   pkg/network/sdn-cni-plugin
-  vendor/github.com/containernetworking/cni/plugins/ipam/host-local
-  vendor/github.com/containernetworking/cni/plugins/main/loopback
+  vendor/github.com/containernetworking/plugins/plugins/ipam/host-local
+  vendor/github.com/containernetworking/plugins/plugins/main/loopback
 )
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"

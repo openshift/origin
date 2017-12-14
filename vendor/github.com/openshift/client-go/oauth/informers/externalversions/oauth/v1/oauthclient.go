@@ -22,19 +22,33 @@ type OAuthClientInformer interface {
 }
 
 type oAuthClientInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewOAuthClientInformer constructs a new informer for OAuthClient type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewOAuthClientInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredOAuthClientInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredOAuthClientInformer constructs a new informer for OAuthClient type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredOAuthClientInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.OauthV1().OAuthClients().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.OauthV1().OAuthClients().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewOAuthClientInformer(client versioned.Interface, resyncPeriod time.Durati
 	)
 }
 
-func defaultOAuthClientInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewOAuthClientInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *oAuthClientInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredOAuthClientInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *oAuthClientInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&oauth_v1.OAuthClient{}, defaultOAuthClientInformer)
+	return f.factory.InformerFor(&oauth_v1.OAuthClient{}, f.defaultInformer)
 }
 
 func (f *oAuthClientInformer) Lister() v1.OAuthClientLister {

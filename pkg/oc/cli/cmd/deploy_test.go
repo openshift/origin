@@ -11,7 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -21,11 +22,11 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/api/install"
+	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
 func deploymentFor(config *deployapi.DeploymentConfig, status deployapi.DeploymentStatus) *kapi.ReplicationController {
-	d, err := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	d, err := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 	if err != nil {
 		panic(err)
 	}
@@ -242,7 +243,7 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 		config := deploytest.OkDeploymentConfig(scenario.version)
 		existingDeployments := &kapi.ReplicationControllerList{}
 		for _, e := range scenario.existing {
-			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), kapi.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+			d, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(e.version), legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
 			d.Annotations[deployapi.DeploymentStatusAnnotation] = string(e.status)
 			existingDeployments.Items = append(existingDeployments.Items, *d)
 		}

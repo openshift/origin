@@ -5,7 +5,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
@@ -470,8 +469,7 @@ func TestValidateAccessTokensUpdate(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		copied, _ := api.Scheme.Copy(&v.Token)
-		newToken := copied.(*oapi.OAuthAccessToken)
+		newToken := v.Token.DeepCopy()
 		v.Change(newToken)
 		errs := ValidateAccessTokenUpdate(newToken, &v.Token)
 		if len(errs) == 0 {
@@ -526,8 +524,7 @@ func TestValidateAuthorizeTokensUpdate(t *testing.T) {
 		},
 	}
 	for k, v := range errorCases {
-		copied, _ := api.Scheme.Copy(&v.Token)
-		newToken := copied.(*oapi.OAuthAuthorizeToken)
+		newToken := v.Token.DeepCopy()
 		v.Change(newToken)
 		errs := ValidateAuthorizeTokenUpdate(newToken, &v.Token)
 		if len(errs) == 0 {

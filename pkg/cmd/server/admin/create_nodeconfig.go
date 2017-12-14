@@ -14,7 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/cert"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
 
@@ -483,9 +484,9 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	groupMeta := kapi.Registry.GroupOrDie(kapi.GroupName)
+	groupMeta := legacyscheme.Registry.GroupOrDie(kapi.GroupName)
 
-	json, err := runtime.Encode(kapi.Codecs.LegacyCodec(groupMeta.GroupVersions[0]), node)
+	json, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(groupMeta.GroupVersions[0]), node)
 	if err != nil {
 		return err
 	}

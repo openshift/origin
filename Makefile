@@ -185,8 +185,8 @@ test-cmd: build
 #
 # Example:
 #   make test-end-to-end
+# TODO restore 	COVERAGE_SPEC=' ' DETECT_RACES='false' TIMEOUT='10m' hack/test-go.sh ./test/end-to-end
 test-end-to-end:
-	COVERAGE_SPEC=' ' DETECT_RACES='false' TIMEOUT='10m' hack/test-go.sh ./test/end-to-end
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 

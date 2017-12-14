@@ -18,8 +18,9 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
@@ -83,9 +84,11 @@ var (
 	ForbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 )
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error) {
-
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
+		return nil, err
+	}
+	if err := createValidation(obj); err != nil {
 		return nil, err
 	}
 
@@ -138,7 +141,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	if err != nil {
 		return nil, err
 	}
-	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, kapi.Codecs.UniversalDecoder())); err != nil {
+	if err := utilerrors.NewAggregate(runtime.DecodeList(list.Objects, legacyscheme.Codecs.UniversalDecoder())); err != nil {
 		return nil, kapierror.NewInternalError(err)
 	}
 
@@ -188,7 +191,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	bulk := configcmd.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:   restutil.DefaultMultiRESTMapper(),
-			ObjectTyper:  kapi.Scheme,
+			ObjectTyper:  legacyscheme.Scheme,
 			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
 		},
 		After: stopOnErr,

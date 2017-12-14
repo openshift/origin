@@ -15,7 +15,7 @@ import (
 // ImportObjects imports objects into OpenShift from a particular location
 // into a given namespace
 func ImportObjects(f *clientcmd.Factory, ns, location string) error {
-	schema, err := f.Validator(false, false, "")
+	schema, err := f.Validator(false)
 	if err != nil {
 		return err
 	}
@@ -24,7 +24,8 @@ func ImportObjects(f *clientcmd.Factory, ns, location string) error {
 		return err
 	}
 	glog.V(8).Infof("Importing data:\n%s\n", string(data))
-	r := f.NewBuilder(true).
+	r := f.NewBuilder().
+		Internal().
 		Schema(schema).
 		ContinueOnError().
 		NamespaceParam(ns).

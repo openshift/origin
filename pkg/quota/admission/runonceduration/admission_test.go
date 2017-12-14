@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -138,7 +138,7 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 		runOnceDuration.(oadmission.WantsProjectCache).SetProjectCache(testCache(tc.projectAnnotations))
 		pod := tc.pod
 		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "default", "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, nil)
-		err := runOnceDuration.Admit(attrs)
+		err := runOnceDuration.(admission.MutationInterface).Admit(attrs)
 		if err != nil {
 			t.Errorf("%s: unexpected admission error: %v", tc.name, err)
 			continue

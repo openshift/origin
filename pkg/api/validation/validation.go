@@ -7,8 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/kubectl/validation"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 type RuntimeObjectValidator interface {
@@ -85,7 +84,7 @@ func (v *RuntimeObjectsValidator) ValidateUpdate(obj, old runtime.Object) field.
 		return field.ErrorList{}
 	}
 	if newType, oldType := reflect.TypeOf(obj), reflect.TypeOf(old); newType != oldType {
-		return field.ErrorList{field.Invalid(field.NewPath("kind"), newType.Kind(), validation.NewInvalidTypeError(oldType.Kind(), newType.Kind(), "runtime.Object").Error())}
+		return field.ErrorList{field.Invalid(field.NewPath("kind"), newType.Kind(), fmt.Sprintf("expected type %s, for field %s, got %s", oldType.Kind().String(), "kind", newType.Kind().String()))}
 	}
 
 	allErrs := field.ErrorList{}
@@ -122,13 +121,13 @@ func (v *RuntimeObjectsValidator) getSpecificValidationInfo(obj runtime.Object) 
 }
 
 func GetRequiresNamespace(obj runtime.Object) (bool, error) {
-	groupVersionKinds, _, err := kapi.Scheme.ObjectKinds(obj)
+	groupVersionKinds, _, err := legacyscheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return false, err
 	}
 
 	for _, gvk := range groupVersionKinds {
-		restMapping, err := kapi.Registry.RESTMapper().RESTMapping(gvk.GroupKind())
+		restMapping, err := legacyscheme.Registry.RESTMapper().RESTMapping(gvk.GroupKind())
 		if err != nil {
 			return false, err
 		}

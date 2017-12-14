@@ -22,19 +22,33 @@ type ClusterPolicyInformer interface {
 }
 
 type clusterPolicyInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // NewClusterPolicyInformer constructs a new informer for ClusterPolicy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
 func NewClusterPolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredClusterPolicyInformer(client, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredClusterPolicyInformer constructs a new informer for ClusterPolicy type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredClusterPolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.AuthorizationV1().ClusterPolicies().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
 				return client.AuthorizationV1().ClusterPolicies().Watch(options)
 			},
 		},
@@ -44,12 +58,12 @@ func NewClusterPolicyInformer(client versioned.Interface, resyncPeriod time.Dura
 	)
 }
 
-func defaultClusterPolicyInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewClusterPolicyInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func (f *clusterPolicyInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredClusterPolicyInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *clusterPolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization_v1.ClusterPolicy{}, defaultClusterPolicyInformer)
+	return f.factory.InformerFor(&authorization_v1.ClusterPolicy{}, f.defaultInformer)
 }
 
 func (f *clusterPolicyInformer) Lister() v1.ClusterPolicyLister {

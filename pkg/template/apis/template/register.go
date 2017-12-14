@@ -3,7 +3,7 @@ package template
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -16,7 +16,7 @@ var (
 	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 
-	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes, RegisterDeepCopies)
+	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)

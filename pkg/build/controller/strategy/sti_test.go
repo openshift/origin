@@ -5,16 +5,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/cadvisor/container/crio"
-
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	clienttesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
@@ -55,7 +54,7 @@ var nodeSelector = map[string]string{"node": "mynode"}
 func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	strategy := &SourceBuildStrategy{
 		Image:          "sti-test-image",
-		Codec:          kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
+		Codec:          legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 		SecurityClient: newFakeSecurityClient(rootAllowed),
 	}
 
@@ -108,7 +107,9 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if len(container.VolumeMounts) != 5 {
 		t.Fatalf("Expected 5 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, crio.CrioSocket, DockerPushSecretMountPath, DockerPullSecretMountPath} {
+	//for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, crio.CrioSocket, DockerPushSecretMountPath, DockerPullSecretMountPath} {
+	// TODO cadvisor and crio disagree.  One says '/var/run/crio/crio.sock', the other says "/var/run/crio.sock"
+	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, "/var/run/crio.sock", DockerPushSecretMountPath, DockerPullSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
@@ -158,7 +159,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if !foundDropCaps && !rootAllowed {
 		t.Fatalf("Expected %s when root is not allowed", buildapi.DropCapabilities)
 	}
-	buildJSON, _ := runtime.Encode(kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion), build)
+	buildJSON, _ := runtime.Encode(legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
@@ -174,7 +175,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 func TestS2IBuildLongName(t *testing.T) {
 	strategy := &SourceBuildStrategy{
 		Image:          "sti-test-image",
-		Codec:          kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
+		Codec:          legacyscheme.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 		SecurityClient: newFakeSecurityClient(true),
 	}
 	build := mockSTIBuild()

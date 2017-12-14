@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
@@ -22,9 +23,9 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	deployapiv1 "github.com/openshift/api/apps/v1"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
@@ -35,7 +36,7 @@ import (
 
 var (
 	env   = []kapi.EnvVar{{Name: "ENV1", Value: "VAL1"}}
-	codec = kapi.Codecs.LegacyCodec(deployapiv1.SchemeGroupVersion)
+	codec = legacyscheme.Codecs.LegacyCodec(deployapiv1.SchemeGroupVersion)
 )
 
 func alwaysReady() bool { return true }
@@ -1095,7 +1096,7 @@ func TestMakeDeployerPod(t *testing.T) {
 
 	for i := 1; i <= 25; i++ {
 		seed := rand.Int63()
-		f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), kapi.Codecs)
+		f := fuzzer.FuzzerFor(kapitesting.FuzzerFuncs, rand.NewSource(seed), legacyscheme.Codecs)
 		f.Funcs(
 			func(p *kapiv1.PodTemplateSpec, c fuzz.Continue) {
 				c.FuzzNoCustom(p)
@@ -1136,6 +1137,7 @@ func TestMakeDeployerPod(t *testing.T) {
 				p.Spec.Priority = nil
 				p.Spec.PriorityClassName = ""
 				p.Spec.SecurityContext = nil
+				p.Spec.DNSConfig = nil
 			},
 		)
 		inputPodTemplate := &kapiv1.PodTemplateSpec{}

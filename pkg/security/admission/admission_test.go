@@ -12,7 +12,7 @@ import (
 	kadmission "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -35,7 +35,7 @@ func TestFailClosedOnInvalidPod(t *testing.T) {
 	plugin := NewTestAdmission(nil, nil)
 	pod := &v1kapi.Pod{}
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-	err := plugin.Admit(attrs)
+	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 
 	if err == nil {
 		t.Fatalf("expected versioned pod object to fail admission")
@@ -162,7 +162,7 @@ func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstr
 	plugin := NewTestAdmission(lister, tc)
 
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-	err := plugin.Admit(attrs)
+	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 
 	if shouldPass && err != nil {
 		t.Errorf("%s expected no errors but received %v", testCaseName, err)
@@ -387,7 +387,7 @@ func TestAdmitFailure(t *testing.T) {
 		for k, v := range testCases {
 			v.pod.Spec.Containers, v.pod.Spec.InitContainers = v.pod.Spec.InitContainers, v.pod.Spec.Containers
 			attrs := kadmission.NewAttributesRecord(v.pod, nil, kapi.Kind("Pod").WithVersion("version"), v.pod.Namespace, v.pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-			err := p.Admit(attrs)
+			err := p.(kadmission.MutationInterface).Admit(attrs)
 
 			if err == nil {
 				t.Errorf("%s expected errors but received none", k)
@@ -938,7 +938,7 @@ func TestAdmitSeccomp(t *testing.T) {
 // SCC. Returns true when errors have been encountered.
 func testSCCAdmission(pod *kapi.Pod, plugin kadmission.Interface, expectedSCC, testName string, t *testing.T) bool {
 	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
-	err := plugin.Admit(attrs)
+	err := plugin.(kadmission.MutationInterface).Admit(attrs)
 	if err != nil {
 		t.Errorf("%s error admitting pod: %v", testName, err)
 		return true

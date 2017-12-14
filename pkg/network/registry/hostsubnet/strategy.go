@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/apis/network/validation"
@@ -18,9 +18,11 @@ type sdnStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating HostSubnet
 // objects via the REST API.
-var Strategy = sdnStrategy{kapi.Scheme}
+var Strategy = sdnStrategy{legacyscheme.Scheme}
 
-func (sdnStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+var _ rest.GarbageCollectionDeleteStrategy = sdnStrategy{}
+
+func (sdnStrategy) DefaultGarbageCollectionPolicy(ctx apirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 

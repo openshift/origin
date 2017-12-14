@@ -10,7 +10,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -135,7 +135,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	// Set up client based support.
 	o.getBuilder = func() *resource.Builder {
-		return f.NewBuilder(true)
+		return f.NewBuilder()
 	}
 
 	kClient, err := f.ClientSet()
@@ -152,7 +152,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	o.out = out
 
 	if len(o.Format) > 0 {
-		o.printer, err = f.PrinterForCommand(cmd, false, nil, kprinters.PrintOptions{})
+		o.printer, err = f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
 		if err != nil {
 			return err
 		}
@@ -310,6 +310,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 	var obj runtime.Object
 	for _, name := range candidates {
 		r := o.getBuilder().
+			Internal().
 			NamespaceParam(o.Namespace).
 			ResourceTypeOrNameArgs(false, name).
 			SingleResourceType().

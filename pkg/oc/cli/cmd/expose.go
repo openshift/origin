@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -93,7 +93,8 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return err
 	}
 
-	r := f.NewBuilder(true).
+	r := f.NewBuilder().
+		Internal().
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &resource.FilenameOptions{Recursive: false, Filenames: kcmdutil.GetFlagStringSlice(cmd, "filename")}).

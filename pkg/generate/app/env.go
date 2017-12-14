@@ -10,7 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // Environment holds environment variables for new-app

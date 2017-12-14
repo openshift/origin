@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
@@ -201,7 +201,7 @@ func TestChainDescriber(t *testing.T) {
 		objs := []runtime.Object{}
 		if len(test.path) > 0 {
 			var err error
-			objs, err = readObjectsFromPath(test.path, test.defaultNamespace, kapi.Codecs.UniversalDecoder(), kapi.Scheme)
+			objs, err = readObjectsFromPath(test.path, test.defaultNamespace, legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
 			if err != nil {
 				t.Fatal(err)
 			}

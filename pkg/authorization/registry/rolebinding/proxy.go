@@ -4,7 +4,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -96,7 +95,7 @@ func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.Delet
 	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, err
@@ -129,7 +128,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	return binding, nil
 }
 
-func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, _ rest.ValidateObjectFunc, _ rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, false, err
@@ -178,5 +177,3 @@ func (s *REST) getImpersonatingClient(ctx apirequest.Context) (rbacinternalversi
 	}
 	return rbacClient.RoleBindings(namespace), nil
 }
-
-var cloner = conversion.NewCloner()

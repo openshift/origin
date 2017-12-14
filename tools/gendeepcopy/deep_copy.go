@@ -40,6 +40,7 @@ func main() {
 		"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/v1",
 		"github.com/openshift/origin/pkg/quota/admission/runonceduration/api",
 		"github.com/openshift/origin/pkg/quota/admission/runonceduration/api/v1",
+		"github.com/openshift/origin/pkg/router/f5/testing",
 		"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api",
 		"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api/v1",
 		"github.com/openshift/origin/pkg/template/servicebroker/apis/config",

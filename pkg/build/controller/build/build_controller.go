@@ -23,7 +23,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/api/meta"
@@ -201,7 +202,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		imageStreamQueue: newResourceTriggerQueue(),
 		buildConfigQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
-		recorder:    eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "build-controller"}),
+		recorder:    eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "build-controller"}),
 		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
 	}
 
@@ -212,6 +213,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	c.buildInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.buildAdded,
 		UpdateFunc: c.buildUpdated,
+		DeleteFunc: c.buildDeleted,
 	})
 	params.ImageStreamInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.imageStreamAdded,
@@ -1066,9 +1068,13 @@ func (bc *BuildController) handleBuildConfig(bcNamespace string, bcName string) 
 		return err
 	}
 	glog.V(5).Infof("Build config %s/%s: has %d next builds, is running builds: %v", bcNamespace, bcName, len(nextBuilds), hasRunningBuilds)
-	if len(nextBuilds) == 0 && hasRunningBuilds {
+	if hasRunningBuilds {
 		glog.V(4).Infof("Build config %s/%s has running builds, will retry", bcNamespace, bcName)
 		return fmt.Errorf("build config %s/%s has running builds and cannot run more builds", bcNamespace, bcName)
+	}
+	if len(nextBuilds) == 0 {
+		glog.V(4).Infof("Build config %s/%s has no builds to run next, will retry", bcNamespace, bcName)
+		return fmt.Errorf("build config %s/%s has no builds to run next", bcNamespace, bcName)
 	}
 
 	// Enqueue any builds to build next
@@ -1171,6 +1177,29 @@ func (bc *BuildController) buildAdded(obj interface{}) {
 func (bc *BuildController) buildUpdated(old, cur interface{}) {
 	build := cur.(*buildapi.Build)
 	bc.enqueueBuild(build)
+}
+
+// buildDeleted is called by the build informer event handler whenever a build
+// is deleted
+func (bc *BuildController) buildDeleted(obj interface{}) {
+	build, ok := obj.(*buildapi.Build)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone: %+v", obj))
+			return
+		}
+		build, ok = tombstone.Obj.(*buildapi.Build)
+		if !ok {
+			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a pod: %+v", obj))
+			return
+		}
+	}
+	// If the build was not in a complete state, poke the buildconfig to run the next build
+	if !buildutil.IsBuildComplete(build) {
+		bcName := buildutil.ConfigNameForBuild(build)
+		bc.enqueueBuildConfig(build.Namespace, bcName)
+	}
 }
 
 // enqueueBuild adds the given build to the buildQueue.

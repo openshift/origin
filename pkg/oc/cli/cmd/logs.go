@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -126,7 +126,8 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	podLogOptions := o.KubeLogOptions.Options.(*kapi.PodLogOptions)
 
-	infos, err := f.NewBuilder(true).
+	infos, err := f.NewBuilder().
+		Internal().
 		NamespaceParam(o.Namespace).DefaultNamespace().
 		ResourceNames("pods", args...).
 		SingleResourceType().RequireObject(false).

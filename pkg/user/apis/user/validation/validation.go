@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )

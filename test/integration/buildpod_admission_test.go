@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	kclientset "k8s.io/client-go/kubernetes"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"

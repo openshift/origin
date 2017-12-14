@@ -77,7 +77,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 	server.MaxPods = 250
 	server.PodsPerCore = 10
 	server.CgroupDriver = "systemd"
-	server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
 	server.RemoteRuntimeEndpoint = options.DockerConfig.DockerShimSocket
 	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
 	server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
@@ -128,7 +127,7 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 
 	// terminate early if feature gate is incorrect on the node
 	if len(server.FeatureGates) > 0 {
-		if err := utilfeature.DefaultFeatureGate.Set(server.FeatureGates); err != nil {
+		if err := utilfeature.DefaultFeatureGate.SetFromMap(server.FeatureGates); err != nil {
 			return nil, err
 		}
 	}
@@ -143,7 +142,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		// SDN plugin pod setup/teardown is implemented as a CNI plugin
 		server.NetworkPluginName = kubeletcni.CNIPluginName
-		server.NetworkPluginDir = kubeletcni.DefaultNetDir
 		server.CNIConfDir = kubeletcni.DefaultNetDir
 		server.CNIBinDir = kubeletcni.DefaultCNIDir
 		server.HairpinMode = kubeletconfig.HairpinNone

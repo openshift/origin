@@ -1,7 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_library",
@@ -11,8 +9,8 @@ load(
 go_test(
     name = "go_default_test",
     srcs = ["local_test.go"],
+    importpath = "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd",
     library = ":go_default_library",
-    tags = ["automanaged"],
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/constants:go_default_library",
@@ -23,7 +21,7 @@ go_test(
 go_library(
     name = "go_default_library",
     srcs = ["local.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd",
     deps = [
         "//cmd/kubeadm/app/apis/kubeadm:go_default_library",
         "//cmd/kubeadm/app/constants:go_default_library",
@@ -43,6 +41,9 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [":package-srcs"],
+    srcs = [
+        ":package-srcs",
+        "//cmd/kubeadm/app/phases/etcd/spec:all-srcs",
+    ],
     tags = ["automanaged"],
 )

@@ -81,6 +81,7 @@ os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
 # ensure correct serialization of podList output
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector= -o jsonpath='{ .kind }'" 'List'
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector=" 'NAMESPACE'
+
 echo "manage-node: ok"
 os::test::junit::declare_suite_end
 
@@ -333,7 +334,7 @@ os::cmd::expect_success "oc adm registry --daemonset --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm registry --daemonset' 'service exists'
 os::cmd::try_until_text 'oc get ds/docker-registry --template="{{.status.desiredNumberScheduled}}"' '1'
 # clean up so we can test non-daemonset
-os::cmd::expect_success "oc adm registry --daemonset -o yaml | oc delete -f -"
+os::cmd::expect_success "oc adm registry --daemonset -o yaml | oc delete -f - -ncmd-admin --cascade=false"
 echo "registry daemonset: ok"
 
 # Test running a registry
@@ -413,6 +414,9 @@ os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=
 os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
 echo "reconcile-scc: ok"
 os::test::junit::declare_suite_end
+
+# cleanup the fake node that has been created so that it doesn't confuse other test-cmd scripts
+os::cmd::expect_success "oc delete node/fake-node"
 
 os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
 # Admin can bind local roles without cluster-admin permissions

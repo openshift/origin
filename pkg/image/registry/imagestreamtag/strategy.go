@@ -10,7 +10,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	kstorage "k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
@@ -22,7 +22,7 @@ type strategy struct {
 }
 
 var Strategy = &strategy{
-	ObjectTyper: kapi.Scheme,
+	ObjectTyper: legacyscheme.Scheme,
 }
 
 func (s *strategy) NamespaceScoped() bool {

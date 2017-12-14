@@ -6,213 +6,11 @@ package v1
 
 import (
 	core_v1 "k8s.io/api/core/v1"
+	rbac_v1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	reflect "reflect"
 	unsafe "unsafe"
 )
-
-func init() {
-	SchemeBuilder.Register(RegisterDeepCopies)
-}
-
-// RegisterDeepCopies adds deep-copy functions to the given scheme. Public
-// to allow building arbitrary schemes.
-//
-// Deprecated: deepcopy registration will go away when static deepcopy is fully implemented.
-func RegisterDeepCopies(scheme *runtime.Scheme) error {
-	return scheme.AddGeneratedDeepCopyFuncs(
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*Action).DeepCopyInto(out.(*Action))
-			return nil
-		}, InType: reflect.TypeOf(new(Action))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterPolicy).DeepCopyInto(out.(*ClusterPolicy))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterPolicy))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterPolicyBinding).DeepCopyInto(out.(*ClusterPolicyBinding))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterPolicyBinding))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterPolicyBindingList).DeepCopyInto(out.(*ClusterPolicyBindingList))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterPolicyBindingList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterPolicyList).DeepCopyInto(out.(*ClusterPolicyList))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterPolicyList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterRole).DeepCopyInto(out.(*ClusterRole))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterRole))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterRoleBinding).DeepCopyInto(out.(*ClusterRoleBinding))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterRoleBinding))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterRoleBindingList).DeepCopyInto(out.(*ClusterRoleBindingList))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterRoleBindingList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ClusterRoleList).DeepCopyInto(out.(*ClusterRoleList))
-			return nil
-		}, InType: reflect.TypeOf(new(ClusterRoleList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*GroupRestriction).DeepCopyInto(out.(*GroupRestriction))
-			return nil
-		}, InType: reflect.TypeOf(new(GroupRestriction))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*IsPersonalSubjectAccessReview).DeepCopyInto(out.(*IsPersonalSubjectAccessReview))
-			return nil
-		}, InType: reflect.TypeOf(new(IsPersonalSubjectAccessReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*LocalResourceAccessReview).DeepCopyInto(out.(*LocalResourceAccessReview))
-			return nil
-		}, InType: reflect.TypeOf(new(LocalResourceAccessReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*LocalSubjectAccessReview).DeepCopyInto(out.(*LocalSubjectAccessReview))
-			return nil
-		}, InType: reflect.TypeOf(new(LocalSubjectAccessReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedClusterRole).DeepCopyInto(out.(*NamedClusterRole))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedClusterRole))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedClusterRoleBinding).DeepCopyInto(out.(*NamedClusterRoleBinding))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedClusterRoleBinding))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedClusterRoleBindings).DeepCopyInto(out.(*NamedClusterRoleBindings))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedClusterRoleBindings))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedClusterRoles).DeepCopyInto(out.(*NamedClusterRoles))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedClusterRoles))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedRole).DeepCopyInto(out.(*NamedRole))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedRole))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedRoleBinding).DeepCopyInto(out.(*NamedRoleBinding))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedRoleBinding))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedRoleBindings).DeepCopyInto(out.(*NamedRoleBindings))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedRoleBindings))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*NamedRoles).DeepCopyInto(out.(*NamedRoles))
-			return nil
-		}, InType: reflect.TypeOf(new(NamedRoles))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*OptionalNames).DeepCopyInto(out.(*OptionalNames))
-			return nil
-		}, InType: reflect.TypeOf(new(OptionalNames))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*OptionalScopes).DeepCopyInto(out.(*OptionalScopes))
-			return nil
-		}, InType: reflect.TypeOf(new(OptionalScopes))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*Policy).DeepCopyInto(out.(*Policy))
-			return nil
-		}, InType: reflect.TypeOf(new(Policy))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PolicyBinding).DeepCopyInto(out.(*PolicyBinding))
-			return nil
-		}, InType: reflect.TypeOf(new(PolicyBinding))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PolicyBindingList).DeepCopyInto(out.(*PolicyBindingList))
-			return nil
-		}, InType: reflect.TypeOf(new(PolicyBindingList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PolicyList).DeepCopyInto(out.(*PolicyList))
-			return nil
-		}, InType: reflect.TypeOf(new(PolicyList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*PolicyRule).DeepCopyInto(out.(*PolicyRule))
-			return nil
-		}, InType: reflect.TypeOf(new(PolicyRule))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ResourceAccessReview).DeepCopyInto(out.(*ResourceAccessReview))
-			return nil
-		}, InType: reflect.TypeOf(new(ResourceAccessReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ResourceAccessReviewResponse).DeepCopyInto(out.(*ResourceAccessReviewResponse))
-			return nil
-		}, InType: reflect.TypeOf(new(ResourceAccessReviewResponse))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*Role).DeepCopyInto(out.(*Role))
-			return nil
-		}, InType: reflect.TypeOf(new(Role))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RoleBinding).DeepCopyInto(out.(*RoleBinding))
-			return nil
-		}, InType: reflect.TypeOf(new(RoleBinding))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RoleBindingList).DeepCopyInto(out.(*RoleBindingList))
-			return nil
-		}, InType: reflect.TypeOf(new(RoleBindingList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RoleBindingRestriction).DeepCopyInto(out.(*RoleBindingRestriction))
-			return nil
-		}, InType: reflect.TypeOf(new(RoleBindingRestriction))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RoleBindingRestrictionList).DeepCopyInto(out.(*RoleBindingRestrictionList))
-			return nil
-		}, InType: reflect.TypeOf(new(RoleBindingRestrictionList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RoleBindingRestrictionSpec).DeepCopyInto(out.(*RoleBindingRestrictionSpec))
-			return nil
-		}, InType: reflect.TypeOf(new(RoleBindingRestrictionSpec))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*RoleList).DeepCopyInto(out.(*RoleList))
-			return nil
-		}, InType: reflect.TypeOf(new(RoleList))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SelfSubjectRulesReview).DeepCopyInto(out.(*SelfSubjectRulesReview))
-			return nil
-		}, InType: reflect.TypeOf(new(SelfSubjectRulesReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SelfSubjectRulesReviewSpec).DeepCopyInto(out.(*SelfSubjectRulesReviewSpec))
-			return nil
-		}, InType: reflect.TypeOf(new(SelfSubjectRulesReviewSpec))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ServiceAccountReference).DeepCopyInto(out.(*ServiceAccountReference))
-			return nil
-		}, InType: reflect.TypeOf(new(ServiceAccountReference))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*ServiceAccountRestriction).DeepCopyInto(out.(*ServiceAccountRestriction))
-			return nil
-		}, InType: reflect.TypeOf(new(ServiceAccountRestriction))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SubjectAccessReview).DeepCopyInto(out.(*SubjectAccessReview))
-			return nil
-		}, InType: reflect.TypeOf(new(SubjectAccessReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SubjectAccessReviewResponse).DeepCopyInto(out.(*SubjectAccessReviewResponse))
-			return nil
-		}, InType: reflect.TypeOf(new(SubjectAccessReviewResponse))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SubjectRulesReview).DeepCopyInto(out.(*SubjectRulesReview))
-			return nil
-		}, InType: reflect.TypeOf(new(SubjectRulesReview))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SubjectRulesReviewSpec).DeepCopyInto(out.(*SubjectRulesReviewSpec))
-			return nil
-		}, InType: reflect.TypeOf(new(SubjectRulesReviewSpec))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*SubjectRulesReviewStatus).DeepCopyInto(out.(*SubjectRulesReviewStatus))
-			return nil
-		}, InType: reflect.TypeOf(new(SubjectRulesReviewStatus))},
-		conversion.GeneratedDeepCopyFunc{Fn: func(in interface{}, out interface{}, c *conversion.Cloner) error {
-			in.(*UserRestriction).DeepCopyInto(out.(*UserRestriction))
-			return nil
-		}, InType: reflect.TypeOf(new(UserRestriction))},
-	)
-}
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *Action) DeepCopyInto(out *Action) {
@@ -380,6 +178,15 @@ func (in *ClusterRole) DeepCopyInto(out *ClusterRole) {
 		*out = make([]PolicyRule, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.AggregationRule != nil {
+		in, out := &in.AggregationRule, &out.AggregationRule
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(rbac_v1.AggregationRule)
+			(*in).DeepCopyInto(*out)
 		}
 	}
 	return

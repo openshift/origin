@@ -6,7 +6,7 @@ import (
 
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	versioned "github.com/openshift/api/security/v1"
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -14,7 +14,7 @@ import (
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	codec := api.Codecs.LegacyCodec(versioned.SchemeGroupVersion)
+	codec := legacyscheme.Codecs.LegacyCodec(versioned.SchemeGroupVersion)
 	data, err := runtime.Encode(codec, obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
@@ -26,7 +26,7 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 		return nil
 	}
 	obj3 := reflect.New(reflect.TypeOf(obj).Elem()).Interface().(runtime.Object)
-	err = api.Scheme.Convert(obj2, obj3, nil)
+	err = legacyscheme.Scheme.Convert(obj2, obj3, nil)
 	if err != nil {
 		t.Errorf("%v\nSource: %#v", err, obj2)
 		return nil

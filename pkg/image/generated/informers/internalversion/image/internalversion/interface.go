@@ -15,20 +15,22 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // Images returns a ImageInformer.
 func (v *version) Images() ImageInformer {
-	return &imageInformer{factory: v.SharedInformerFactory}
+	return &imageInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // ImageStreams returns a ImageStreamInformer.
 func (v *version) ImageStreams() ImageStreamInformer {
-	return &imageStreamInformer{factory: v.SharedInformerFactory}
+	return &imageStreamInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

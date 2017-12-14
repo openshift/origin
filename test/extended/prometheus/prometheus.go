@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	clientset "k8s.io/client-go/kubernetes"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/conditions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -311,7 +311,7 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.WaitForDeploymentStatus(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
+		e2e.WaitForDeploymentComplete(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)

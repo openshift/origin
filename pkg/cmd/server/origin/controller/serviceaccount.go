@@ -36,11 +36,15 @@ func (c *ServiceAccountControllerOptions) RunController(ctx ControllerContext) (
 		options.ServiceAccounts = append(options.ServiceAccounts, sa)
 	}
 
-	go sacontroller.NewServiceAccountsController(
+	controller, err := sacontroller.NewServiceAccountsController(
 		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
 		ctx.ExternalKubeInformers.Core().V1().Namespaces(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountControllerServiceAccountName),
-		options).Run(3, ctx.Stop)
+		options)
+	if err != nil {
+		return true, nil
+	}
+	go controller.Run(3, ctx.Stop)
 
 	return true, nil
 }
@@ -59,7 +63,7 @@ func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerConte
 		return false, nil
 	}
 
-	go sacontroller.NewTokensController(
+	controller, err := sacontroller.NewTokensController(
 		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
 		ctx.ExternalKubeInformers.Core().V1().Secrets(),
 		c.RootClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountTokensControllerServiceAccountName),
@@ -68,7 +72,11 @@ func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerConte
 			RootCA:           c.RootCA,
 			ServiceServingCA: c.ServiceServingCA,
 		},
-	).Run(int(ctx.OpenshiftControllerOptions.ServiceAccountTokenOptions.ConcurrentSyncs), ctx.Stop)
+	)
+	if err != nil {
+		return true, nil
+	}
+	go controller.Run(int(ctx.OpenshiftControllerOptions.ServiceAccountTokenOptions.ConcurrentSyncs), ctx.Stop)
 	return true, nil
 }
 

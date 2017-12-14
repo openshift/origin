@@ -2,7 +2,7 @@ package internalversion
 
 import (
 	rest "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -27,5 +27,5 @@ func (c *buildLogs) Logs(name string, options buildapi.BuildLogOptions) *rest.Re
 		Resource("builds").
 		Name(name).
 		SubResource("log").
-		VersionedParams(&options, kapi.ParameterCodec)
+		VersionedParams(&options, legacyscheme.ParameterCodec)
 }

@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -42,6 +42,7 @@ func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *authorizationapi.
 	out.ObjectMeta = in.ObjectMeta
 	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
 	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
+	out.AggregationRule = in.AggregationRule.DeepCopy()
 	return nil
 }
 
@@ -170,6 +171,7 @@ func Convert_rbac_ClusterRole_To_authorization_ClusterRole(in *rbac.ClusterRole,
 	out.ObjectMeta = in.ObjectMeta
 	out.Annotations = convert_rbac_Annotations_To_authorization_Annotations(in.Annotations)
 	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
+	out.AggregationRule = in.AggregationRule.DeepCopy()
 	return nil
 }
 

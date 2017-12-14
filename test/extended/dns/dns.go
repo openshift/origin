@@ -16,8 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/kubernetes/pkg/api"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -25,7 +25,7 @@ func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
 	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: kapi.Registry.GroupOrDie(api.GroupName).GroupVersion.String(),
+			APIVersion: legacyscheme.Registry.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dns-test-" + string(uuid.NewUUID()),

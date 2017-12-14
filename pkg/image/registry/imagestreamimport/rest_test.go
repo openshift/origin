@@ -6,8 +6,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	"k8s.io/apiserver/pkg/registry/rest"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -18,7 +19,7 @@ func (_ fakeImageCreater) New() runtime.Object {
 	return nil
 }
 
-func (_ fakeImageCreater) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (_ fakeImageCreater) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	return obj, nil
 }
 

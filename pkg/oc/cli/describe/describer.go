@@ -20,7 +20,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
@@ -114,7 +115,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		imageapi.Kind("ImageStreamImage"):               &ImageStreamImageDescriber{imageClient},
 		routeapi.Kind("Route"):                          &RouteDescriber{routeClient, kclient},
 		projectapi.Kind("Project"):                      &ProjectDescriber{projectClient, kclient},
-		templateapi.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), kapi.Scheme, nil},
+		templateapi.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), legacyscheme.Scheme, nil},
 		templateapi.Kind("TemplateInstance"):            &TemplateInstanceDescriber{kclient, templateClient, nil},
 		authorizationapi.Kind("Policy"):                 &PolicyDescriber{oauthorizationClient},
 		authorizationapi.Kind("PolicyBinding"):          &PolicyBindingDescriber{oauthorizationClient},
@@ -141,7 +142,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 
 	// Register the legacy ("core") API group for all kinds as well.
 	if withCoreGroup {
-		for _, t := range kapi.Scheme.KnownTypes(oapi.SchemeGroupVersion) {
+		for _, t := range legacyscheme.Scheme.KnownTypes(oapi.SchemeGroupVersion) {
 			coreKind := oapi.SchemeGroupVersion.WithKind(t.Name())
 			for g, d := range m {
 				if g.Kind == coreKind.Kind {
@@ -187,13 +188,13 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 	if err != nil {
 		return "", err
 	}
-	events, _ := d.kubeClient.Core().Events(namespace).Search(kapi.Scheme, build)
+	events, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, build)
 	if events == nil {
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
 	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build), metav1.GetOptions{}); err == nil {
-		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(kapi.Scheme, pod); podEvents != nil {
+		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
 	}
@@ -564,7 +565,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 		}
 
 		if settings.ShowEvents {
-			events, _ := d.kubeClient.Core().Events(namespace).Search(kapi.Scheme, buildConfig)
+			events, _ := d.kubeClient.Core().Events(namespace).Search(legacyscheme.Scheme, buildConfig)
 			if events != nil {
 				fmt.Fprint(out, "\n")
 				kinternalprinters.DescribeEvents(events, kinternalprinters.NewPrefixWriter(out))

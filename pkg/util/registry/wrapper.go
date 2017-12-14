@@ -39,13 +39,13 @@ func (s *noWatchStorageErrWrapper) List(ctx request.Context, options *internalve
 	return obj, errors.SyncStatusError(ctx, err)
 }
 
-func (s *noWatchStorageErrWrapper) Create(ctx request.Context, in runtime.Object, includeUninitialized bool) (runtime.Object, error) {
-	obj, err := s.delegate.Create(ctx, in, includeUninitialized)
+func (s *noWatchStorageErrWrapper) Create(ctx request.Context, in runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
+	obj, err := s.delegate.Create(ctx, in, createValidation, includeUninitialized)
 	return obj, errors.SyncStatusError(ctx, err)
 }
 
-func (s *noWatchStorageErrWrapper) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	obj, created, err := s.delegate.Update(ctx, name, objInfo)
+func (s *noWatchStorageErrWrapper) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	obj, created, err := s.delegate.Update(ctx, name, objInfo, createValidation, updateValidation)
 	return obj, created, errors.SyncStatusError(ctx, err)
 }
 

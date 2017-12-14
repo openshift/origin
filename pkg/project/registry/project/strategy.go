@@ -5,7 +5,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	"github.com/openshift/origin/pkg/project/apis/project/validation"
@@ -19,7 +20,7 @@ type projectStrategy struct {
 
 // Strategy is the default logic that applies when creating and updating Project
 // objects via the REST API.
-var Strategy = projectStrategy{kapi.Scheme, names.SimpleNameGenerator}
+var Strategy = projectStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is false for projects.
 func (projectStrategy) NamespaceScoped() bool {

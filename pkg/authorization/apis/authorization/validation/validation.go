@@ -9,8 +9,8 @@ import (
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/validation"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"

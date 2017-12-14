@@ -95,7 +95,7 @@ func (s *REST) Delete(ctx apirequest.Context, name string, options *metav1.Delet
 	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	return role, nil
 }
 
-func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, _ rest.ValidateObjectFunc, _ rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	client, err := s.getImpersonatingClient(ctx)
 	if err != nil {
 		return nil, false, err

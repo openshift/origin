@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"

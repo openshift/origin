@@ -6,8 +6,10 @@ go_library(
         "factory.go",
         "generic.go",
     ],
+    importpath = "k8s.io/sample-apiserver/pkg/client/informers/internalversion",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/k8s.io/client-go/tools/cache:go_default_library",

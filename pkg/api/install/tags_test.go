@@ -10,17 +10,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 )
 
 func TestDescriptions(t *testing.T) {
-	for _, version := range kapi.Registry.RegisteredGroupVersions() {
+	for _, version := range legacyscheme.Registry.RegisteredGroupVersions() {
 		seen := map[reflect.Type]bool{}
 
-		for _, apiType := range kapi.Scheme.KnownTypes(version) {
+		for _, apiType := range legacyscheme.Scheme.KnownTypes(version) {
 			checkDescriptions(apiType, &seen, t)
 		}
 	}
@@ -63,14 +63,14 @@ func TestInternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 	seenGroups := sets.String{}
 
-	for _, version := range kapi.Registry.RegisteredGroupVersions() {
+	for _, version := range legacyscheme.Registry.RegisteredGroupVersions() {
 		if seenGroups.Has(version.Group) {
 			continue
 		}
 		seenGroups.Insert(version.Group)
 
 		internalVersion := schema.GroupVersion{Group: version.Group, Version: runtime.APIVersionInternal}
-		for _, apiType := range kapi.Scheme.KnownTypes(internalVersion) {
+		for _, apiType := range legacyscheme.Scheme.KnownTypes(internalVersion) {
 			checkInternalJsonTags(apiType, &seen, t)
 		}
 	}
@@ -122,8 +122,8 @@ func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t 
 func TestExternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 
-	for _, version := range kapi.Registry.RegisteredGroupVersions() {
-		for _, apiType := range kapi.Scheme.KnownTypes(version) {
+	for _, version := range legacyscheme.Registry.RegisteredGroupVersions() {
+		for _, apiType := range legacyscheme.Scheme.KnownTypes(version) {
 			checkExternalJsonTags(apiType, &seen, t)
 		}
 	}

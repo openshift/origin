@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
@@ -107,7 +107,10 @@ func (d *limitRangerActions) SupportsAttributes(a admission.Attributes) bool {
 func (d *limitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
 	return true
 }
-func (d *limitRangerActions) Limit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
+func (d *limitRangerActions) MutateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
+	return nil
+}
+func (d *limitRangerActions) ValidateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
 	return nil
 }
 
@@ -136,15 +139,15 @@ func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error
 	return config, nil
 }
 
-func (a *clusterResourceOverridePlugin) Validate() error {
+func (a *clusterResourceOverridePlugin) ValidateInitialization() error {
 	if a.ProjectCache == nil {
 		return fmt.Errorf("%s did not get a project cache", api.PluginName)
 	}
-	v, ok := a.LimitRanger.(admission.Validator)
+	v, ok := a.LimitRanger.(admission.InitializationValidator)
 	if !ok {
 		return fmt.Errorf("LimitRanger does not implement kadmission.Validator")
 	}
-	return v.Validate()
+	return v.ValidateInitialization()
 }
 
 func isExemptedNamespace(name string) bool {
@@ -194,7 +197,7 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
 	glog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
-	if err := a.LimitRanger.Admit(attr); err != nil {
+	if err := a.LimitRanger.(admission.MutationInterface).Admit(attr); err != nil {
 		glog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
 	}
 	glog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)

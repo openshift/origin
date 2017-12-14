@@ -29,7 +29,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -45,8 +44,6 @@ import (
 	listers "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/internalversion"
 	"k8s.io/kube-aggregator/pkg/controllers"
 )
-
-var cloner = conversion.NewCloner()
 
 type ServiceResolver interface {
 	ResolveEndpoint(namespace, name string) (*url.URL, error)
@@ -65,8 +62,8 @@ type AvailableConditionController struct {
 	endpointsLister v1listers.EndpointsLister
 	endpointsSynced cache.InformerSynced
 
-	enableAggregatorRouting bool
-	serviceResolver         ServiceResolver
+	discoveryClient *http.Client
+	serviceResolver ServiceResolver
 
 	// To allow injection for testing.
 	syncFn func(key string) error
@@ -79,27 +76,46 @@ func NewAvailableConditionController(
 	serviceInformer v1informers.ServiceInformer,
 	endpointsInformer v1informers.EndpointsInformer,
 	apiServiceClient apiregistrationclient.APIServicesGetter,
-	enableAggregatorRouting bool,
+	proxyTransport *http.Transport,
 	serviceResolver ServiceResolver,
 ) *AvailableConditionController {
 	c := &AvailableConditionController{
-		apiServiceClient:        apiServiceClient,
-		apiServiceLister:        apiServiceInformer.Lister(),
-		apiServiceSynced:        apiServiceInformer.Informer().HasSynced,
-		serviceLister:           serviceInformer.Lister(),
-		servicesSynced:          serviceInformer.Informer().HasSynced,
-		endpointsLister:         endpointsInformer.Lister(),
-		endpointsSynced:         endpointsInformer.Informer().HasSynced,
-		enableAggregatorRouting: enableAggregatorRouting,
-		serviceResolver:         serviceResolver,
-		queue:                   workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "AvailableConditionController"),
+		apiServiceClient: apiServiceClient,
+		apiServiceLister: apiServiceInformer.Lister(),
+		apiServiceSynced: apiServiceInformer.Informer().HasSynced,
+		serviceLister:    serviceInformer.Lister(),
+		servicesSynced:   serviceInformer.Informer().HasSynced,
+		endpointsLister:  endpointsInformer.Lister(),
+		endpointsSynced:  endpointsInformer.Informer().HasSynced,
+		serviceResolver:  serviceResolver,
+		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "AvailableConditionController"),
 	}
 
-	apiServiceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    c.addAPIService,
-		UpdateFunc: c.updateAPIService,
-		DeleteFunc: c.deleteAPIService,
-	})
+	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
+	// that's not so bad) and sets a very short timeout.
+	discoveryClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+		// the request should happen quickly.
+		Timeout: 5 * time.Second,
+	}
+	if proxyTransport != nil {
+		//discoveryClient.Transport = proxyTransport
+	}
+	c.discoveryClient = discoveryClient
+
+	// resync on this one because it is low cardinality and rechecking the actual discovery
+	// allows us to detect health in a more timely fashion when network connectivity to
+	// nodes is snipped, but the network still attempts to route there.  See
+	// https://github.com/openshift/origin/issues/17159#issuecomment-341798063
+	apiServiceInformer.Informer().AddEventHandlerWithResyncPeriod(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc:    c.addAPIService,
+			UpdateFunc: c.updateAPIService,
+			DeleteFunc: c.deleteAPIService,
+		},
+		30*time.Second)
 
 	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addService,
@@ -193,25 +209,15 @@ func (c *AvailableConditionController) sync(key string) error {
 		}
 	}
 	// actually try to hit the discovery endpoint when it isn't local and when we're routing as a service.
-	// TODO figure out if the kube-proxy code handling has similar problems
-	if apiService.Spec.Service != nil && !c.enableAggregatorRouting && c.serviceResolver != nil {
+	if apiService.Spec.Service != nil && c.serviceResolver != nil {
 		discoveryURL, err := c.serviceResolver.ResolveEndpoint(apiService.Spec.Service.Namespace, apiService.Spec.Service.Name)
 		if err != nil {
 			return err
 		}
-		// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
-		// that's not so bad) and sets a very short timeout.
-		httpClient := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-			// the request should happen quickly.
-			Timeout: 5 * time.Second,
-		}
 
 		errCh := make(chan error)
 		go func() {
-			resp, err := httpClient.Get(discoveryURL.String())
+			resp, err := c.discoveryClient.Get(discoveryURL.String())
 			if resp != nil {
 				resp.Body.Close()
 			}
@@ -220,6 +226,9 @@ func (c *AvailableConditionController) sync(key string) error {
 
 		select {
 		case err = <-errCh:
+
+		// we had trouble with slow dial and DNS responses causing us to wait too long.
+		// we added this as insurance
 		case <-time.After(6 * time.Second):
 			err = fmt.Errorf("timed out waiting for %v", discoveryURL)
 		}
@@ -246,7 +255,7 @@ func (c *AvailableConditionController) sync(key string) error {
 	return err
 }
 
-func (c *AvailableConditionController) Run(stopCh <-chan struct{}) {
+func (c *AvailableConditionController) Run(threadiness int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
@@ -257,9 +266,9 @@ func (c *AvailableConditionController) Run(stopCh <-chan struct{}) {
 		return
 	}
 
-	// only start one worker thread since its a slow moving API and the aggregation server adding bits
-	// aren't threadsafe
-	go wait.Until(c.runWorker, time.Second, stopCh)
+	for i := 0; i < threadiness; i++ {
+		go wait.Until(c.runWorker, time.Second, stopCh)
+	}
 
 	<-stopCh
 }

@@ -12,7 +12,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kstorage "k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 
@@ -128,7 +128,7 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, creationValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
 	project, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
@@ -138,6 +138,10 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
 		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
+	if err := creationValidation(project.DeepCopyObject()); err != nil {
+		return nil, err
+	}
+
 	namespace, err := s.client.Create(projectutil.ConvertProject(project))
 	if err != nil {
 		return nil, err
@@ -147,7 +151,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 var _ = rest.Updater(&REST{})
 
-func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, creationValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	oldObj, err := s.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
@@ -166,6 +170,9 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 	s.updateStrategy.PrepareForUpdate(ctx, obj, oldObj)
 	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
 		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
+	}
+	if err := updateValidation(obj.DeepCopyObject(), oldObj.DeepCopyObject()); err != nil {
+		return nil, false, err
 	}
 
 	namespace, err := s.client.Update(projectutil.ConvertProject(project))

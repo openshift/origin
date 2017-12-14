@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"

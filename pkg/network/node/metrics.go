@@ -23,11 +23,13 @@ const (
 	OVSFlowsKey                 = "ovs_flows"
 	ARPCacheAvailableEntriesKey = "arp_cache_entries"
 	PodIPsKey                   = "pod_ips"
-	PodSetupErrorsKey           = "pod_setup_errors"
-	PodSetupLatencyKey          = "pod_setup_latency"
-	PodTeardownErrorsKey        = "pod_teardown_errors"
-	PodTeardownLatencyKey       = "pod_teardown_latency"
+	PodOperationsErrorsKey      = "pod_operations_errors"
+	PodOperationsLatencyKey     = "pod_operations_latency"
 	VnidNotFoundErrorsKey       = "vnid_not_found_errors"
+
+	// Pod Operation types
+	PodOperationSetup    = "setup"
+	PodOperationTeardown = "teardown"
 )
 
 var (
@@ -58,42 +60,24 @@ var (
 		},
 	)
 
-	PodSetupErrors = prometheus.NewCounter(
+	PodOperationsErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: SDNNamespace,
 			Subsystem: SDNSubsystem,
-			Name:      PodSetupErrorsKey,
-			Help:      "Number pod setup errors",
+			Name:      PodOperationsErrorsKey,
+			Help:      "Cumulative number of SDN operation errors by operation type",
 		},
+		[]string{"operation_type"},
 	)
 
-	PodSetupLatency = prometheus.NewSummaryVec(
+	PodOperationsLatency = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: SDNNamespace,
 			Subsystem: SDNSubsystem,
-			Name:      PodSetupLatencyKey,
-			Help:      "Latency of pod network setup in microseconds",
+			Name:      PodOperationsLatencyKey,
+			Help:      "Latency in microseconds of SDN operations by operation type",
 		},
-		[]string{"pod_namespace", "pod_name", "sandbox_id"},
-	)
-
-	PodTeardownErrors = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: SDNNamespace,
-			Subsystem: SDNSubsystem,
-			Name:      PodTeardownErrorsKey,
-			Help:      "Number pod teardown errors",
-		},
-	)
-
-	PodTeardownLatency = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: SDNNamespace,
-			Subsystem: SDNSubsystem,
-			Name:      PodTeardownLatencyKey,
-			Help:      "Latency of pod network teardown in microseconds",
-		},
-		[]string{"pod_namespace", "pod_name", "sandbox_id"},
+		[]string{"operation_type"},
 	)
 
 	VnidNotFoundErrors = prometheus.NewCounter(
@@ -121,10 +105,8 @@ func RegisterMetrics() {
 		prometheus.MustRegister(OVSFlows)
 		prometheus.MustRegister(ARPCacheAvailableEntries)
 		prometheus.MustRegister(PodIPs)
-		prometheus.MustRegister(PodSetupErrors)
-		prometheus.MustRegister(PodSetupLatency)
-		prometheus.MustRegister(PodTeardownErrors)
-		prometheus.MustRegister(PodTeardownLatency)
+		prometheus.MustRegister(PodOperationsErrors)
+		prometheus.MustRegister(PodOperationsLatency)
 		prometheus.MustRegister(VnidNotFoundErrors)
 	})
 }

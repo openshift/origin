@@ -86,14 +86,14 @@ in ``USER`` directive of Dockerfile, you can achive this by the following ways:
 #### Example `assemble` script:
 
 **NOTE**: All the examples are written in [Bash](http://www.gnu.org/software/bash/)
-and it is assumed that the tar contents unpack into the `/tmp/s2i` directory.
+and it is assumed that the tar contents unpack into the `/tmp` directory.
 
 ```
 #!/bin/bash
 
 # restore build artifacts
-if [ "$(ls /tmp/s2i/artifacts/ 2>/dev/null)" ]; then
-    mv /tmp/s2i/artifacts/* $HOME/.
+if [ "$(ls /tmp/artifacts/ 2>/dev/null)" ]; then
+    mv /tmp/artifacts/* $HOME/.
 fi
 
 # move the application source

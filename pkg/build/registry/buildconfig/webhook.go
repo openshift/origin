@@ -12,7 +12,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/client"
@@ -142,7 +143,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	}
 
 	// Send back the build name so that the client can alert the user.
-	if newBuildEncoded, err := runtime.Encode(kapi.Codecs.LegacyCodec(w.groupVersion), newBuild); err != nil {
+	if newBuildEncoded, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(w.groupVersion), newBuild); err != nil {
 		utilruntime.HandleError(err)
 	} else {
 		writer.Write(newBuildEncoded)

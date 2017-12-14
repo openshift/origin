@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
