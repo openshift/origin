@@ -33,9 +33,6 @@ const minimumDockerAPIVersionWithPullByID = "1.22"
 // EnsureKubeletAccess performs a number of test operations that the Kubelet requires to properly function.
 // All errors here are fatal.
 func (c *NodeConfig) EnsureKubeletAccess() {
-	if _, err := os.Stat("/var/lib/docker"); os.IsPermission(err) {
-		glog.Fatal("Unable to view the /var/lib/docker directory - are you running as root?")
-	}
 	if c.Containerized {
 		if _, err := os.Stat("/rootfs"); os.IsPermission(err) || os.IsNotExist(err) {
 			glog.Fatal("error: Running in containerized mode, but cannot find the /rootfs directory - be sure to mount the host filesystem at /rootfs (read-only) in the container.")
@@ -81,6 +78,9 @@ func sameFileStat(requireMode bool, src, dst string) bool {
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 	if c.KubeletServer.ContainerRuntime != "docker" {
 		return
+	}
+	if _, err := os.Stat("/var/lib/docker"); os.IsPermission(err) {
+		glog.Fatal("Unable to view the /var/lib/docker directory - are you running as root?")
 	}
 
 	var endpoint string
