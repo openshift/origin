@@ -247,6 +247,17 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 
 }
 
+func DumpPodContainerLogs(podName string, containerNames []string, oc *CLI) {
+	for _, c := range containerNames {
+		output, err := oc.Run("logs").Args(podName, "-c", c).Output()
+		if err == nil {
+			e2e.Logf("Log for pod %q container %q\n---->\n%s\n<----end of log for %[1]q%[2]q\n", podName, c, output)
+		} else {
+			e2e.Logf("Error retrieving logs for pod %q container %q: %v\n\n", podName, c, err)
+		}
+	}
+}
+
 // GetMasterThreadDump will get a golang thread stack dump
 func GetMasterThreadDump(oc *CLI) {
 	out, err := oc.AsAdmin().Run("get").Args("--raw", "/debug/pprof/goroutine?debug=2").Output()
