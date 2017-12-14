@@ -8,6 +8,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/google/cadvisor/container/crio"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -23,7 +25,6 @@ import (
 const (
 	// dockerSocketPath is the default path for the Docker socket inside the builder container
 	dockerSocketPath      = "/var/run/docker.sock"
-	crioSocketPath        = "/var/run/crio.sock"
 	sourceSecretMountPath = "/var/run/secrets/openshift.io/source"
 
 	DockerPushSecretMountPath      = "/var/run/secrets/openshift.io/push"
@@ -98,14 +99,14 @@ func setupCrioSocket(pod *v1.Pod) {
 		Name: "crio-socket",
 		VolumeSource: v1.VolumeSource{
 			HostPath: &v1.HostPathVolumeSource{
-				Path: crioSocketPath,
+				Path: crio.CrioSocket,
 			},
 		},
 	}
 
 	crioSocketVolumeMount := v1.VolumeMount{
 		Name:      "crio-socket",
-		MountPath: crioSocketPath,
+		MountPath: crio.CrioSocket,
 	}
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
