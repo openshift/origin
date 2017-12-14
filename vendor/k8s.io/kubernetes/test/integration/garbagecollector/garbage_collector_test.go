@@ -128,8 +128,13 @@ func setup(t *testing.T, stop chan struct{}) (*httptest.Server, framework.CloseF
 	masterConfig := framework.NewIntegrationTestMasterConfig()
 	masterConfig.EnableCoreControllers = false
 	_, s, closeFn := framework.RunAMaster(masterConfig)
+	config := &restclient.Config{Host: s.URL}
+	gc, clientSet := setupWithServer(t, config, stop)
+	return s, closeFn, gc, clientSet
+}
 
-	clientSet, err := clientset.NewForConfig(&restclient.Config{Host: s.URL})
+func setupWithServer(t *testing.T, config *restclient.Config, stop chan struct{}) (*garbagecollector.GarbageCollector, clientset.Interface) {
+	clientSet, err := clientset.NewForConfig(config)
 	if err != nil {
 		t.Fatalf("Error in create clientset: %v", err)
 	}
@@ -142,7 +147,6 @@ func setup(t *testing.T, stop chan struct{}) (*httptest.Server, framework.CloseF
 	if err != nil {
 		t.Fatalf("Failed to parse supported resources from server: %v", err)
 	}
-	config := &restclient.Config{Host: s.URL}
 	config.ContentConfig.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: metaonly.NewMetadataCodecFactory()}
 	metaOnlyClientPool := dynamic.NewClientPool(config, api.Registry.RESTMapper(), dynamic.LegacyAPIPathResolverFunc)
 	config.ContentConfig.NegotiatedSerializer = nil
@@ -165,7 +169,7 @@ func setup(t *testing.T, stop chan struct{}) (*httptest.Server, framework.CloseF
 
 	go sharedInformers.Start(stop)
 
-	return s, closeFn, gc, clientSet
+	return gc, clientSet
 }
 
 // This test simulates the cascading deletion.

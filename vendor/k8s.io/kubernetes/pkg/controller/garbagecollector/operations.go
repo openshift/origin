@@ -32,7 +32,7 @@ import (
 
 // apiResource consults the REST mapper to translate an <apiVersion, kind,
 // namespace> tuple to a unversioned.APIResource struct.
-func (gc *GarbageCollector) apiResource(apiVersion, kind string, namespaced bool) (*metav1.APIResource, error) {
+func (gc *GarbageCollector) apiResource(apiVersion, kind string) (*metav1.APIResource, error) {
 	fqKind := schema.FromAPIVersionAndKind(apiVersion, kind)
 	mapping, err := gc.restMapper.RESTMapping(fqKind.GroupKind(), apiVersion)
 	if err != nil {
@@ -41,7 +41,7 @@ func (gc *GarbageCollector) apiResource(apiVersion, kind string, namespaced bool
 	glog.V(5).Infof("map kind %s, version %s to resource %s", kind, apiVersion, mapping.Resource)
 	resource := metav1.APIResource{
 		Name:       mapping.Resource,
-		Namespaced: namespaced,
+		Namespaced: mapping.Scope == meta.RESTScopeNamespace,
 		Kind:       kind,
 	}
 	return &resource, nil
@@ -51,7 +51,7 @@ func (gc *GarbageCollector) deleteObject(item objectReference, policy *metav1.De
 	fqKind := schema.FromAPIVersionAndKind(item.APIVersion, item.Kind)
 	client, err := gc.clientPool.ClientForGroupVersionKind(fqKind)
 	gc.registeredRateLimiter.registerIfNotPresent(fqKind.GroupVersion(), client, "garbage_collector_operation")
-	resource, err := gc.apiResource(item.APIVersion, item.Kind, len(item.Namespace) != 0)
+	resource, err := gc.apiResource(item.APIVersion, item.Kind)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (gc *GarbageCollector) getObject(item objectReference) (*unstructured.Unstr
 	fqKind := schema.FromAPIVersionAndKind(item.APIVersion, item.Kind)
 	client, err := gc.clientPool.ClientForGroupVersionKind(fqKind)
 	gc.registeredRateLimiter.registerIfNotPresent(fqKind.GroupVersion(), client, "garbage_collector_operation")
-	resource, err := gc.apiResource(item.APIVersion, item.Kind, len(item.Namespace) != 0)
+	resource, err := gc.apiResource(item.APIVersion, item.Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (gc *GarbageCollector) updateObject(item objectReference, obj *unstructured
 	fqKind := schema.FromAPIVersionAndKind(item.APIVersion, item.Kind)
 	client, err := gc.clientPool.ClientForGroupVersionKind(fqKind)
 	gc.registeredRateLimiter.registerIfNotPresent(fqKind.GroupVersion(), client, "garbage_collector_operation")
-	resource, err := gc.apiResource(item.APIVersion, item.Kind, len(item.Namespace) != 0)
+	resource, err := gc.apiResource(item.APIVersion, item.Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (gc *GarbageCollector) patchObject(item objectReference, patch []byte) (*un
 	fqKind := schema.FromAPIVersionAndKind(item.APIVersion, item.Kind)
 	client, err := gc.clientPool.ClientForGroupVersionKind(fqKind)
 	gc.registeredRateLimiter.registerIfNotPresent(fqKind.GroupVersion(), client, "garbage_collector_operation")
-	resource, err := gc.apiResource(item.APIVersion, item.Kind, len(item.Namespace) != 0)
+	resource, err := gc.apiResource(item.APIVersion, item.Kind)
 	if err != nil {
 		return nil, err
 	}
