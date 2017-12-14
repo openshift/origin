@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"k8s.io/api/core/v1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -93,7 +94,11 @@ func (c *NetworkConfig) RunProxy() {
 	case kubeproxyconfig.ProxyModeIPTables:
 		glog.V(0).Info("Using iptables Proxier.")
 		if bindAddr.Equal(net.IPv4zero) {
-			bindAddr = getNodeIP(c.ExternalKubeClientset.CoreV1(), hostname)
+			var err error
+			bindAddr, err = getNodeIP(c.ExternalKubeClientset.CoreV1(), hostname)
+			if err != nil {
+				glog.Fatalf("Unable to get a bind address: %v", err)
+			}
 		}
 		if c.ProxyConfig.IPTables.MasqueradeBit == nil {
 			// IPTablesMasqueradeBit must be specified or defaulted.
@@ -233,17 +238,37 @@ func (c *NetworkConfig) RunProxy() {
 }
 
 // getNodeIP is copied from the upstream proxy config to retrieve the IP of a node.
-func getNodeIP(client kv1core.CoreV1Interface, hostname string) net.IP {
-	var nodeIP net.IP
-	node, err := client.Nodes().Get(hostname, metav1.GetOptions{})
-	if err != nil {
-		glog.Warningf("Failed to retrieve node info: %v", err)
-		return nil
+func getNodeIP(client kv1core.CoreV1Interface, hostname string) (net.IP, error) {
+	var node *v1.Node
+	var nodeErr error
+
+	// We may beat the thread that causes the node object to be created,
+	// so if we can't get it, then we need to wait.
+	// This will wait 0, 2, 4, 8, ... 64 seconds, for a total of ~2 mins
+	nodeWaitBackoff := utilwait.Backoff{
+		Duration: 2 * time.Second,
+		Factor:   2,
+		Steps:    7,
 	}
-	nodeIP, err = utilnode.GetNodeHostIP(node)
-	if err != nil {
-		glog.Warningf("Failed to retrieve node IP: %v", err)
-		return nil
+	utilwait.ExponentialBackoff(nodeWaitBackoff, func() (bool, error) {
+		node, nodeErr = client.Nodes().Get(hostname, metav1.GetOptions{})
+		if nodeErr == nil {
+			return true, nil
+		} else if kapierrors.IsNotFound(nodeErr) {
+			glog.Warningf("waiting for node %q to be registered with master...", hostname)
+			return false, nil
+		} else {
+			return false, nodeErr
+		}
+	})
+	if nodeErr != nil {
+		return nil, fmt.Errorf("failed to retrieve node info (after waiting): %v", nodeErr)
 	}
-	return nodeIP
+
+	nodeIP, err := utilnode.GetNodeHostIP(node)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve node IP: %v", err)
+	}
+
+	return nodeIP, nil
 }
