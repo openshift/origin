@@ -15,7 +15,7 @@ spec:
       intervalSeconds: 1
       maxSurge: 25%
       maxUnavailable: 25%
-      timeoutSeconds: 40
+      timeoutSeconds: 5
       updatePeriodSeconds: 1
       pre:
         failurePolicy: Abort
