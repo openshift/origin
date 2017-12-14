@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"sync"
 	"testing"
 
@@ -18,8 +17,6 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -43,10 +40,6 @@ func testInit(dir string, t testing.TB) graphdriver.Driver {
 	return d
 }
 
-func driverGet(d *Driver, id string, mntLabel string) (string, error) {
-	return d.Get(id, mntLabel)
-}
-
 func newDriver(t testing.TB) *Driver {
 	if err := os.MkdirAll(tmp, 0755); err != nil {
 		t.Fatal(err)
@@ -64,7 +57,7 @@ func TestNewDriver(t *testing.T) {
 	d := testInit(tmp, t)
 	defer os.RemoveAll(tmp)
 	if d == nil {
-		t.Fatal("Driver should not be nil")
+		t.Fatalf("Driver should not be nil")
 	}
 }
 
@@ -109,7 +102,7 @@ func TestCreateNewDir(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -118,7 +111,7 @@ func TestCreateNewDirStructure(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -139,7 +132,7 @@ func TestRemoveImage(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -155,10 +148,7 @@ func TestRemoveImage(t *testing.T) {
 
 	for _, p := range paths {
 		if _, err := os.Stat(path.Join(tmp, p, "1")); err == nil {
-			t.Fatalf("Error should not be nil because dirs with id 1 should be deleted: %s", p)
-		}
-		if _, err := os.Stat(path.Join(tmp, p, "1-removing")); err == nil {
-			t.Fatalf("Error should not be nil because dirs with id 1-removing should be deleted: %s", p)
+			t.Fatalf("Error should not be nil because dirs with id 1 should be delted: %s", p)
 		}
 	}
 }
@@ -167,7 +157,7 @@ func TestGetWithoutParent(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -185,15 +175,16 @@ func TestCleanupWithNoDirs(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	err := d.Cleanup()
-	assert.NoError(t, err)
+	if err := d.Cleanup(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestCleanupWithDir(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -206,40 +197,55 @@ func TestMountedFalseResponse(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	err := d.Create("1", "", nil)
-	require.NoError(t, err)
+	if err := d.Create("1", "", "", nil); err != nil {
+		t.Fatal(err)
+	}
 
 	response, err := d.mounted(d.getDiffPath("1"))
-	require.NoError(t, err)
-	assert.False(t, response)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if response != false {
+		t.Fatalf("Response if dir id 1 is mounted should be false")
+	}
 }
 
-func TestMountedTrueResponse(t *testing.T) {
+func TestMountedTrueReponse(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 	defer d.Cleanup()
 
-	err := d.Create("1", "", nil)
-	require.NoError(t, err)
-	err = d.Create("2", "1", nil)
-	require.NoError(t, err)
+	if err := d.Create("1", "", "", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Create("2", "1", "", nil); err != nil {
+		t.Fatal(err)
+	}
 
-	_, err = d.Get("2", "")
-	require.NoError(t, err)
+	_, err := d.Get("2", "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	response, err := d.mounted(d.pathCache["2"])
-	require.NoError(t, err)
-	assert.True(t, response)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if response != true {
+		t.Fatalf("Response if dir id 2 is mounted should be true")
+	}
 }
 
 func TestMountWithParent(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := d.Create("2", "1", nil); err != nil {
+	if err := d.Create("2", "1", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -254,7 +260,7 @@ func TestMountWithParent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if mntPath == "" {
-		t.Fatal("mntPath should not be nil")
+		t.Fatal("mntPath should not be empty string")
 	}
 
 	expected := path.Join(tmp, "mnt", "2")
@@ -267,10 +273,10 @@ func TestRemoveMountedDir(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := d.Create("2", "1", nil); err != nil {
+	if err := d.Create("2", "1", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -285,7 +291,7 @@ func TestRemoveMountedDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	if mntPath == "" {
-		t.Fatal("mntPath should not be empty")
+		t.Fatal("mntPath should not be empty string")
 	}
 
 	mounted, err := d.mounted(d.pathCache["2"])
@@ -294,7 +300,7 @@ func TestRemoveMountedDir(t *testing.T) {
 	}
 
 	if !mounted {
-		t.Fatal("Dir id 2 should be mounted")
+		t.Fatalf("Dir id 2 should be mounted")
 	}
 
 	if err := d.Remove("2"); err != nil {
@@ -306,8 +312,8 @@ func TestCreateWithInvalidParent(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "storage", nil); err == nil {
-		t.Fatal("Error should not be nil with parent does not exist")
+	if err := d.Create("1", "storage", "", nil); err == nil {
+		t.Fatalf("Error should not be nil with parent does not exist")
 	}
 }
 
@@ -315,11 +321,11 @@ func TestGetDiff(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.CreateReadWrite("1", "", nil); err != nil {
+	if err := d.CreateReadWrite("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
-	diffPath, err := driverGet(d, "1", "")
+	diffPath, err := d.Get("1", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,7 +347,7 @@ func TestGetDiff(t *testing.T) {
 		t.Fatal(err)
 	}
 	if a == nil {
-		t.Fatal("Archive should not be nil")
+		t.Fatalf("Archive should not be nil")
 	}
 }
 
@@ -349,11 +355,10 @@ func TestChanges(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
-
-	if err := d.CreateReadWrite("2", "1", nil); err != nil {
+	if err := d.CreateReadWrite("2", "1", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -363,7 +368,7 @@ func TestChanges(t *testing.T) {
 		}
 	}()
 
-	mntPoint, err := driverGet(d, "2", "")
+	mntPoint, err := d.Get("2", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -399,10 +404,10 @@ func TestChanges(t *testing.T) {
 		t.Fatalf("Change kind should be ChangeAdd got %s", change.Kind)
 	}
 
-	if err := d.CreateReadWrite("3", "2", nil); err != nil {
+	if err := d.CreateReadWrite("3", "2", "", nil); err != nil {
 		t.Fatal(err)
 	}
-	mntPoint, err = driverGet(d, "3", "")
+	mntPoint, err = d.Get("3", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,7 +425,7 @@ func TestChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	changes, err = d.Changes("3", "2")
+	changes, err = d.Changes("3", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -444,11 +449,11 @@ func TestDiffSize(t *testing.T) {
 	d := newDriver(t)
 	defer os.RemoveAll(tmp)
 
-	if err := d.CreateReadWrite("1", "", nil); err != nil {
+	if err := d.CreateReadWrite("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
-	diffPath, err := driverGet(d, "1", "")
+	diffPath, err := d.Get("1", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -486,11 +491,11 @@ func TestChildDiffSize(t *testing.T) {
 	defer os.RemoveAll(tmp)
 	defer d.Cleanup()
 
-	if err := d.CreateReadWrite("1", "", nil); err != nil {
+	if err := d.CreateReadWrite("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
-	diffPath, err := driverGet(d, "1", "")
+	diffPath, err := d.Get("1", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -522,11 +527,11 @@ func TestChildDiffSize(t *testing.T) {
 		t.Fatalf("Expected size to be %d got %d", size, diffSize)
 	}
 
-	if err := d.Create("2", "1", nil); err != nil {
+	if err := d.Create("2", "1", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
-	diffSize, err = d.DiffSize("2", "1")
+	diffSize, err = d.DiffSize("2", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -541,12 +546,12 @@ func TestExists(t *testing.T) {
 	defer os.RemoveAll(tmp)
 	defer d.Cleanup()
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
 	if d.Exists("none") {
-		t.Fatal("id none should not exist in the driver")
+		t.Fatal("id name should not exist in the driver")
 	}
 
 	if !d.Exists("1") {
@@ -559,13 +564,14 @@ func TestStatus(t *testing.T) {
 	defer os.RemoveAll(tmp)
 	defer d.Cleanup()
 
-	if err := d.Create("1", "", nil); err != nil {
+	if err := d.Create("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
 	status := d.Status()
-	assert.Len(t, status, 4)
-
+	if status == nil || len(status) == 0 {
+		t.Fatal("Status should not be nil or empty")
+	}
 	rootDir := status[0]
 	dirs := status[2]
 	if rootDir[0] != "Root Dir" {
@@ -587,11 +593,11 @@ func TestApplyDiff(t *testing.T) {
 	defer os.RemoveAll(tmp)
 	defer d.Cleanup()
 
-	if err := d.CreateReadWrite("1", "", nil); err != nil {
+	if err := d.CreateReadWrite("1", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
-	diffPath, err := driverGet(d, "1", "")
+	diffPath, err := d.Get("1", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -613,10 +619,10 @@ func TestApplyDiff(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := d.Create("2", "", nil); err != nil {
+	if err := d.Create("2", "", "", nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := d.Create("3", "2", nil); err != nil {
+	if err := d.Create("3", "2", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -626,7 +632,7 @@ func TestApplyDiff(t *testing.T) {
 
 	// Ensure that the file is in the mount point for id 3
 
-	mountPoint, err := driverGet(d, "3", "")
+	mountPoint, err := d.Get("3", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -666,34 +672,48 @@ func testMountMoreThan42Layers(t *testing.T, mountPath string) {
 		}
 		current = hash(current)
 
-		err := d.CreateReadWrite(current, parent, nil)
-		require.NoError(t, err, "current layer %d", i)
-
-		point, err := driverGet(d, current, "")
-		require.NoError(t, err, "current layer %d", i)
-
+		if err := d.CreateReadWrite(current, parent, "", nil); err != nil {
+			t.Logf("Current layer %d", i)
+			t.Error(err)
+		}
+		point, err := d.Get(current, "")
+		if err != nil {
+			t.Logf("Current layer %d", i)
+			t.Error(err)
+		}
 		f, err := os.Create(path.Join(point, current))
-		require.NoError(t, err, "current layer %d", i)
+		if err != nil {
+			t.Logf("Current layer %d", i)
+			t.Error(err)
+		}
 		f.Close()
 
 		if i%10 == 0 {
-			err := os.Remove(path.Join(point, parent))
-			require.NoError(t, err, "current layer %d", i)
+			if err := os.Remove(path.Join(point, parent)); err != nil {
+				t.Logf("Current layer %d", i)
+				t.Error(err)
+			}
 			expected--
 		}
 		last = current
 	}
 
 	// Perform the actual mount for the top most image
-	point, err := driverGet(d, last, "")
-	require.NoError(t, err)
+	point, err := d.Get(last, "")
+	if err != nil {
+		t.Error(err)
+	}
 	files, err := ioutil.ReadDir(point)
-	require.NoError(t, err)
-	assert.Len(t, files, expected)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(files) != expected {
+		t.Errorf("Expected %d got %d", expected, len(files))
+	}
 }
 
 func TestMountMoreThan42Layers(t *testing.T) {
-	defer os.RemoveAll(tmpOuter)
+	os.RemoveAll(tmpOuter)
 	testMountMoreThan42Layers(t, tmp)
 }
 
@@ -724,25 +744,25 @@ func BenchmarkConcurrentAccess(b *testing.B) {
 	defer os.RemoveAll(tmp)
 	defer d.Cleanup()
 
-	numConcurrent := 256
+	numConcurent := 256
 	// create a bunch of ids
 	var ids []string
-	for i := 0; i < numConcurrent; i++ {
+	for i := 0; i < numConcurent; i++ {
 		ids = append(ids, stringid.GenerateNonCryptoID())
 	}
 
-	if err := d.Create(ids[0], "", nil); err != nil {
+	if err := d.Create(ids[0], "", "", nil); err != nil {
 		b.Fatal(err)
 	}
 
-	if err := d.Create(ids[1], ids[0], nil); err != nil {
+	if err := d.Create(ids[1], ids[0], "", nil); err != nil {
 		b.Fatal(err)
 	}
 
 	parent := ids[1]
 	ids = append(ids[2:])
 
-	chErr := make(chan error, numConcurrent)
+	chErr := make(chan error, numConcurent)
 	var outerGroup sync.WaitGroup
 	outerGroup.Add(len(ids))
 	b.StartTimer()
@@ -751,7 +771,7 @@ func BenchmarkConcurrentAccess(b *testing.B) {
 	for _, id := range ids {
 		go func(id string) {
 			defer outerGroup.Done()
-			if err := d.Create(id, parent, nil); err != nil {
+			if err := d.Create(id, parent, "", nil); err != nil {
 				b.Logf("Create %s failed", id)
 				chErr <- err
 				return
@@ -777,26 +797,6 @@ func BenchmarkConcurrentAccess(b *testing.B) {
 		if err != nil {
 			b.Log(err)
 			b.Fail()
-		}
-	}
-}
-
-func TestInitStaleCleanup(t *testing.T) {
-	if err := os.MkdirAll(tmp, 0755); err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmp)
-
-	for _, d := range []string{"diff", "mnt"} {
-		if err := os.MkdirAll(filepath.Join(tmp, d, "123-removing"), 0755); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	testInit(tmp, t)
-	for _, d := range []string{"diff", "mnt"} {
-		if _, err := os.Stat(filepath.Join(tmp, d, "123-removing")); err == nil {
-			t.Fatal("cleanup failed")
 		}
 	}
 }

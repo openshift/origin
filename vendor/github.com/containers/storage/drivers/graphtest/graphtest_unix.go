@@ -1,4 +1,4 @@
-// +build linux freebsd solaris
+// +build linux freebsd
 
 package graphtest
 
@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"syscall"
 	"testing"
 	"unsafe"
 
@@ -16,9 +17,6 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 )
 
 var (
@@ -36,10 +34,15 @@ type Driver struct {
 
 func newDriver(t testing.TB, name string, options []string) *Driver {
 	root, err := ioutil.TempDir("", "storage-graphtest-")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	require.NoError(t, os.MkdirAll(root, 0755))
-	d, err := graphdriver.GetDriver(name, graphdriver.Options{DriverOptions: options, Root: root})
+	if err := os.MkdirAll(root, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	d, err := graphdriver.GetDriver(name, root, options, nil, nil)
 	if err != nil {
 		t.Logf("graphdriver: %v\n", err)
 		cause := errors.Cause(err)
@@ -85,11 +88,14 @@ func DriverTestCreateEmpty(t testing.TB, drivername string, driverOptions ...str
 	driver := GetDriver(t, drivername, driverOptions...)
 	defer PutDriver(t)
 
-	err := driver.Create("empty", "", nil)
-	require.NoError(t, err)
+	if err := driver.Create("empty", "", "", nil); err != nil {
+		t.Fatal(err)
+	}
 
 	defer func() {
-		require.NoError(t, driver.Remove("empty"))
+		if err := driver.Remove("empty"); err != nil {
+			t.Fatal(err)
+		}
 	}()
 
 	if !driver.Exists("empty") {
@@ -97,14 +103,21 @@ func DriverTestCreateEmpty(t testing.TB, drivername string, driverOptions ...str
 	}
 
 	dir, err := driver.Get("empty", "")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	verifyFile(t, dir, 0755|os.ModeDir, 0, 0)
 
 	// Verify that the directory is empty
 	fis, err := readDir(dir)
-	require.NoError(t, err)
-	assert.Len(t, fis, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fis) != 0 {
+		t.Fatal("New directory not empty")
+	}
 
 	driver.Put("empty")
 }
@@ -116,7 +129,9 @@ func DriverTestCreateBase(t testing.TB, drivername string, driverOptions ...stri
 
 	createBase(t, driver, "Base")
 	defer func() {
-		require.NoError(t, driver.Remove("Base"))
+		if err := driver.Remove("Base"); err != nil {
+			t.Fatal(err)
+		}
 	}()
 	verifyBase(t, driver, "Base")
 }
@@ -127,14 +142,21 @@ func DriverTestCreateSnap(t testing.TB, drivername string, driverOptions ...stri
 	defer PutDriver(t)
 
 	createBase(t, driver, "Base")
+
 	defer func() {
-		require.NoError(t, driver.Remove("Base"))
+		if err := driver.Remove("Base"); err != nil {
+			t.Fatal(err)
+		}
 	}()
 
-	err := driver.Create("Snap", "Base", nil)
-	require.NoError(t, err)
+	if err := driver.Create("Snap", "Base", "", nil); err != nil {
+		t.Fatal(err)
+	}
+
 	defer func() {
-		require.NoError(t, driver.Remove("Snap"))
+		if err := driver.Remove("Snap"); err != nil {
+			t.Fatal(err)
+		}
 	}()
 
 	verifyBase(t, driver, "Snap")
@@ -146,7 +168,8 @@ func DriverTestDeepLayerRead(t testing.TB, layerCount int, drivername string, dr
 	defer PutDriver(t)
 
 	base := stringid.GenerateRandomID()
-	if err := driver.Create(base, "", nil); err != nil {
+
+	if err := driver.Create(base, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -178,9 +201,8 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 	upper := stringid.GenerateRandomID()
 	deleteFile := "file-remove.txt"
 	deleteFileContent := []byte("This file should get removed in upper!")
-	deleteDir := "var/lib"
 
-	if err := driver.Create(base, "", nil); err != nil {
+	if err := driver.Create(base, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -192,11 +214,7 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 		t.Fatal(err)
 	}
 
-	if err := addDirectory(driver, base, deleteDir); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := driver.Create(upper, base, nil); err != nil {
+	if err := driver.Create(upper, base, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -204,7 +222,7 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 		t.Fatal(err)
 	}
 
-	if err := removeAll(driver, upper, deleteFile, deleteDir); err != nil {
+	if err := removeFile(driver, upper, deleteFile); err != nil {
 		t.Fatal(err)
 	}
 
@@ -214,7 +232,7 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 	}
 
 	diff := stringid.GenerateRandomID()
-	if err := driver.Create(diff, base, nil); err != nil {
+	if err := driver.Create(diff, base, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -255,10 +273,6 @@ func DriverTestDiffApply(t testing.TB, fileCount int, drivername string, driverO
 	if err := checkFileRemoved(driver, diff, deleteFile); err != nil {
 		t.Fatal(err)
 	}
-
-	if err := checkFileRemoved(driver, diff, deleteDir); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // DriverTestChanges tests computed changes on a layer matches changes made
@@ -267,7 +281,8 @@ func DriverTestChanges(t testing.TB, drivername string, driverOptions ...string)
 	defer PutDriver(t)
 	base := stringid.GenerateRandomID()
 	upper := stringid.GenerateRandomID()
-	if err := driver.Create(base, "", nil); err != nil {
+
+	if err := driver.Create(base, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -275,7 +290,7 @@ func DriverTestChanges(t testing.TB, drivername string, driverOptions ...string)
 		t.Fatal(err)
 	}
 
-	if err := driver.Create(upper, base, nil); err != nil {
+	if err := driver.Create(upper, base, "", nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -317,10 +332,9 @@ func DriverTestSetQuota(t *testing.T, drivername string) {
 	defer PutDriver(t)
 
 	createBase(t, driver, "Base")
-	createOpts := &graphdriver.CreateOpts{}
-	createOpts.StorageOpt = make(map[string]string, 1)
-	createOpts.StorageOpt["size"] = "50M"
-	if err := driver.Create("zfsTest", "Base", createOpts); err != nil {
+	storageOpt := make(map[string]string, 1)
+	storageOpt["size"] = "50M"
+	if err := driver.Create("zfsTest", "Base", "", storageOpt); err != nil {
 		t.Fatal(err)
 	}
 
@@ -331,8 +345,8 @@ func DriverTestSetQuota(t *testing.T, drivername string) {
 
 	quota := uint64(50 * units.MiB)
 	err = writeRandomFile(path.Join(mountPath, "file"), quota*2)
-	if pathError, ok := err.(*os.PathError); ok && pathError.Err != unix.EDQUOT {
-		t.Fatalf("expect write() to fail with %v, got %v", unix.EDQUOT, err)
+	if pathError, ok := err.(*os.PathError); ok && pathError.Err != syscall.EDQUOT {
+		t.Fatalf("expect write() to fail with %v, got %v", syscall.EDQUOT, err)
 	}
 
 }

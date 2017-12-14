@@ -1,10 +1,6 @@
 package graphdriver
 
-import (
-	"syscall"
-
-	"golang.org/x/sys/unix"
-)
+import "syscall"
 
 var (
 	// Slice of drivers that should be used in an order
@@ -15,7 +11,7 @@ var (
 
 // Mounted checks if the given path is mounted as the fs type
 func Mounted(fsType FsMagic, mountPath string) (bool, error) {
-	var buf unix.Statfs_t
+	var buf syscall.Statfs_t
 	if err := syscall.Statfs(mountPath, &buf); err != nil {
 		return false, err
 	}

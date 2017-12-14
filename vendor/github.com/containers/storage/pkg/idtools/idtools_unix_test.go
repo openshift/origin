@@ -7,10 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
-
-	"github.com/stretchr/testify/require"
-	"golang.org/x/sys/unix"
 )
 
 type node struct {
@@ -78,9 +76,12 @@ func TestMkdirAllAs(t *testing.T) {
 	}
 }
 
-func TestMkdirAllAndChownNew(t *testing.T) {
+func TestMkdirAllNewAs(t *testing.T) {
+
 	dirName, err := ioutil.TempDir("", "mkdirnew")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("Couldn't create temp dir: %v", err)
+	}
 	defer os.RemoveAll(dirName)
 
 	testTree := map[string]node{
@@ -90,32 +91,49 @@ func TestMkdirAllAndChownNew(t *testing.T) {
 		"lib/x86_64":       {45, 45},
 		"lib/x86_64/share": {1, 1},
 	}
-	require.NoError(t, buildTree(dirName, testTree))
+
+	if err := buildTree(dirName, testTree); err != nil {
+		t.Fatal(err)
+	}
 
 	// test adding a directory to a pre-existing dir; only the new dir is owned by the uid/gid
-	err = MkdirAllAndChownNew(filepath.Join(dirName, "usr", "share"), 0755, IDPair{99, 99})
-	require.NoError(t, err)
-
+	if err := MkdirAllNewAs(filepath.Join(dirName, "usr", "share"), 0755, 99, 99); err != nil {
+		t.Fatal(err)
+	}
 	testTree["usr/share"] = node{99, 99}
 	verifyTree, err := readTree(dirName, "")
-	require.NoError(t, err)
-	require.NoError(t, compareTrees(testTree, verifyTree))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compareTrees(testTree, verifyTree); err != nil {
+		t.Fatal(err)
+	}
 
 	// test 2-deep new directories--both should be owned by the uid/gid pair
-	err = MkdirAllAndChownNew(filepath.Join(dirName, "lib", "some", "other"), 0755, IDPair{101, 101})
-	require.NoError(t, err)
+	if err := MkdirAllNewAs(filepath.Join(dirName, "lib", "some", "other"), 0755, 101, 101); err != nil {
+		t.Fatal(err)
+	}
 	testTree["lib/some"] = node{101, 101}
 	testTree["lib/some/other"] = node{101, 101}
 	verifyTree, err = readTree(dirName, "")
-	require.NoError(t, err)
-	require.NoError(t, compareTrees(testTree, verifyTree))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compareTrees(testTree, verifyTree); err != nil {
+		t.Fatal(err)
+	}
 
 	// test a directory that already exists; should NOT be chowned
-	err = MkdirAllAndChownNew(filepath.Join(dirName, "usr"), 0755, IDPair{102, 102})
-	require.NoError(t, err)
+	if err := MkdirAllNewAs(filepath.Join(dirName, "usr"), 0755, 102, 102); err != nil {
+		t.Fatal(err)
+	}
 	verifyTree, err = readTree(dirName, "")
-	require.NoError(t, err)
-	require.NoError(t, compareTrees(testTree, verifyTree))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compareTrees(testTree, verifyTree); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestMkdirAs(t *testing.T) {
@@ -187,8 +205,8 @@ func readTree(base, root string) (map[string]node, error) {
 	}
 
 	for _, info := range dirInfos {
-		s := &unix.Stat_t{}
-		if err := unix.Stat(filepath.Join(base, info.Name()), s); err != nil {
+		s := &syscall.Stat_t{}
+		if err := syscall.Stat(filepath.Join(base, info.Name()), s); err != nil {
 			return nil, fmt.Errorf("Can't stat file %q: %v", filepath.Join(base, info.Name()), err)
 		}
 		tree[filepath.Join(root, info.Name())] = node{int(s.Uid), int(s.Gid)}

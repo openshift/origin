@@ -1,14 +1,14 @@
 package graphdriver
 
 import (
-	"io"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -31,30 +31,30 @@ type NaiveDiffDriver struct {
 // NewNaiveDiffDriver returns a fully functional driver that wraps the
 // given ProtoDriver and adds the capability of the following methods which
 // it may or may not support on its own:
-//     Diff(id, parent string) (io.ReadCloser, error)
+//     Diff(id, parent string) (archive.Archive, error)
 //     Changes(id, parent string) ([]archive.Change, error)
-//     ApplyDiff(id, parent string, diff io.Reader) (size int64, err error)
+//     ApplyDiff(id, parent string, diff archive.Reader) (size int64, err error)
 //     DiffSize(id, parent string) (size int64, err error)
 func NewNaiveDiffDriver(driver ProtoDriver, uidMaps, gidMaps []idtools.IDMap) Driver {
-	return &NaiveDiffDriver{ProtoDriver: driver,
-		uidMaps: uidMaps,
-		gidMaps: gidMaps}
+	gdw := &NaiveDiffDriver{
+		ProtoDriver: driver,
+		uidMaps:     uidMaps,
+		gidMaps:     gidMaps,
+	}
+	return gdw
 }
 
 // Diff produces an archive of the changes between the specified
 // layer and its parent layer which may be "".
-func (gdw *NaiveDiffDriver) Diff(id, parent string) (arch io.ReadCloser, err error) {
-	startTime := time.Now()
-	driver := gdw.ProtoDriver
-
-	layerFs, err := driver.Get(id, "")
+func (gdw *NaiveDiffDriver) Diff(id, parent string) (arch archive.Archive, err error) {
+	layerFs, err := gdw.Get(id, "")
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
 		if err != nil {
-			driver.Put(id)
+			gdw.Put(id)
 		}
 	}()
 
@@ -65,16 +65,16 @@ func (gdw *NaiveDiffDriver) Diff(id, parent string) (arch io.ReadCloser, err err
 		}
 		return ioutils.NewReadCloserWrapper(archive, func() error {
 			err := archive.Close()
-			driver.Put(id)
+			gdw.Put(id)
 			return err
 		}), nil
 	}
 
-	parentFs, err := driver.Get(parent, "")
+	parentFs, err := gdw.Get(parent, "")
 	if err != nil {
 		return nil, err
 	}
-	defer driver.Put(parent)
+	defer gdw.Put(parent)
 
 	changes, err := archive.ChangesDirs(layerFs, parentFs)
 	if err != nil {
@@ -88,13 +88,7 @@ func (gdw *NaiveDiffDriver) Diff(id, parent string) (arch io.ReadCloser, err err
 
 	return ioutils.NewReadCloserWrapper(archive, func() error {
 		err := archive.Close()
-		driver.Put(id)
-
-		// NaiveDiffDriver compares file metadata with parent layers. Parent layers
-		// are extracted from tar's with full second precision on modified time.
-		// We need this hack here to make sure calls within same second receive
-		// correct result.
-		time.Sleep(startTime.Truncate(time.Second).Add(time.Second).Sub(time.Now()))
+		gdw.Put(id)
 		return err
 	}), nil
 }
@@ -102,22 +96,20 @@ func (gdw *NaiveDiffDriver) Diff(id, parent string) (arch io.ReadCloser, err err
 // Changes produces a list of changes between the specified layer
 // and its parent layer. If parent is "", then all changes will be ADD changes.
 func (gdw *NaiveDiffDriver) Changes(id, parent string) ([]archive.Change, error) {
-	driver := gdw.ProtoDriver
-
-	layerFs, err := driver.Get(id, "")
+	layerFs, err := gdw.Get(id, "")
 	if err != nil {
 		return nil, err
 	}
-	defer driver.Put(id)
+	defer gdw.Put(id)
 
 	parentFs := ""
 
 	if parent != "" {
-		parentFs, err = driver.Get(parent, "")
+		parentFs, err = gdw.Get(parent, "")
 		if err != nil {
 			return nil, err
 		}
-		defer driver.Put(parent)
+		defer gdw.Put(parent)
 	}
 
 	return archive.ChangesDirs(layerFs, parentFs)
@@ -126,15 +118,13 @@ func (gdw *NaiveDiffDriver) Changes(id, parent string) ([]archive.Change, error)
 // ApplyDiff extracts the changeset from the given diff into the
 // layer with the specified id and parent, returning the size of the
 // new layer in bytes.
-func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, diff io.Reader) (size int64, err error) {
-	driver := gdw.ProtoDriver
-
+func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, diff archive.Reader) (size int64, err error) {
 	// Mount the root filesystem so we can apply the diff/layer.
-	layerFs, err := driver.Get(id, "")
+	layerFs, err := gdw.Get(id, "")
 	if err != nil {
 		return
 	}
-	defer driver.Put(id)
+	defer gdw.Put(id)
 
 	options := &archive.TarOptions{UIDMaps: gdw.uidMaps,
 		GIDMaps: gdw.gidMaps}
@@ -152,18 +142,16 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, diff io.Reader) (size i
 // and its parent and returns the size in bytes of the changes
 // relative to its base filesystem directory.
 func (gdw *NaiveDiffDriver) DiffSize(id, parent string) (size int64, err error) {
-	driver := gdw.ProtoDriver
-
 	changes, err := gdw.Changes(id, parent)
 	if err != nil {
 		return
 	}
 
-	layerFs, err := driver.Get(id, "")
+	layerFs, err := gdw.Get(id, "")
 	if err != nil {
 		return
 	}
-	defer driver.Put(id)
+	defer gdw.Put(id)
 
 	return archive.ChangesSize(layerFs, changes), nil
 }

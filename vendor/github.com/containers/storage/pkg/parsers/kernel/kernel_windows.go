@@ -4,9 +4,8 @@ package kernel
 
 import (
 	"fmt"
+	"syscall"
 	"unsafe"
-
-	"golang.org/x/sys/windows"
 )
 
 // VersionInfo holds information about the kernel.
@@ -25,28 +24,28 @@ func (k *VersionInfo) String() string {
 func GetKernelVersion() (*VersionInfo, error) {
 
 	var (
-		h         windows.Handle
+		h         syscall.Handle
 		dwVersion uint32
 		err       error
 	)
 
 	KVI := &VersionInfo{"Unknown", 0, 0, 0}
 
-	if err = windows.RegOpenKeyEx(windows.HKEY_LOCAL_MACHINE,
-		windows.StringToUTF16Ptr(`SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\`),
+	if err = syscall.RegOpenKeyEx(syscall.HKEY_LOCAL_MACHINE,
+		syscall.StringToUTF16Ptr(`SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\`),
 		0,
-		windows.KEY_READ,
+		syscall.KEY_READ,
 		&h); err != nil {
 		return KVI, err
 	}
-	defer windows.RegCloseKey(h)
+	defer syscall.RegCloseKey(h)
 
 	var buf [1 << 10]uint16
 	var typ uint32
 	n := uint32(len(buf) * 2) // api expects array of bytes, not uint16
 
-	if err = windows.RegQueryValueEx(h,
-		windows.StringToUTF16Ptr("BuildLabEx"),
+	if err = syscall.RegQueryValueEx(h,
+		syscall.StringToUTF16Ptr("BuildLabEx"),
 		nil,
 		&typ,
 		(*byte)(unsafe.Pointer(&buf[0])),
@@ -54,11 +53,11 @@ func GetKernelVersion() (*VersionInfo, error) {
 		return KVI, err
 	}
 
-	KVI.kvi = windows.UTF16ToString(buf[:])
+	KVI.kvi = syscall.UTF16ToString(buf[:])
 
 	// Important - docker.exe MUST be manifested for this API to return
 	// the correct information.
-	if dwVersion, err = windows.GetVersion(); err != nil {
+	if dwVersion, err = syscall.GetVersion(); err != nil {
 		return KVI, err
 	}
 
