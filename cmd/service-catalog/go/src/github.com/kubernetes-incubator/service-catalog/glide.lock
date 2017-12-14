@@ -1,5 +1,5 @@
-hash: 550e1b129ba4ba9aa803720e21906cb16964a1e0e35afe33f9402958d12c8cbe
-updated: 2017-11-02T09:48:23.459124865-04:00
+hash: a3352d4c7c4718372b507d8006eaa48e04970329be23664ae1b60d37242ce3c5
+updated: 2017-11-14T12:58:09.047656566-08:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -22,27 +22,37 @@ imports:
   subpackages:
   - quantile
 - name: github.com/coreos/etcd
-  version: 0520cb9304cb2385f7e72b8bc02d6e4d3257158a
+  version: f1d7dd87da3e8feab4aaf675b8e29c6a5ed5f58b
   subpackages:
   - alarm
   - auth
   - auth/authpb
   - client
   - clientv3
+  - clientv3/concurrency
   - compactor
   - discovery
+  - embed
   - error
   - etcdserver
   - etcdserver/api
+  - etcdserver/api/etcdhttp
   - etcdserver/api/v2http
   - etcdserver/api/v2http/httptypes
+  - etcdserver/api/v3client
+  - etcdserver/api/v3election
+  - etcdserver/api/v3election/v3electionpb
+  - etcdserver/api/v3election/v3electionpb/gw
+  - etcdserver/api/v3lock
+  - etcdserver/api/v3lock/v3lockpb
+  - etcdserver/api/v3lock/v3lockpb/gw
   - etcdserver/api/v3rpc
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/auth
   - etcdserver/etcdserverpb
+  - etcdserver/etcdserverpb/gw
   - etcdserver/membership
   - etcdserver/stats
-  - integration
   - lease
   - lease/leasehttp
   - lease/leasepb
@@ -51,8 +61,10 @@ imports:
   - mvcc/mvccpb
   - pkg/adt
   - pkg/contention
+  - pkg/cors
   - pkg/cpuutil
   - pkg/crc
+  - pkg/debugutil
   - pkg/fileutil
   - pkg/httputil
   - pkg/idutil
@@ -64,13 +76,12 @@ imports:
   - pkg/pbutil
   - pkg/runtime
   - pkg/schedule
-  - pkg/testutil
+  - pkg/srv
   - pkg/tlsutil
   - pkg/transport
   - pkg/types
   - pkg/wait
-  - proxy/grpcproxy
-  - proxy/grpcproxy/cache
+  - proxy/grpcproxy/adapter
   - raft
   - raft/raftpb
   - rafthttp
@@ -80,18 +91,15 @@ imports:
   - version
   - wal
   - wal/walpb
+- name: github.com/coreos/go-semver
+  version: 568e959cd89871e61434c1143528d9162da89ef2
+  subpackages:
+  - semver
 - name: github.com/coreos/go-systemd
   version: 48702e0da86bd25e76cfef347e2adeb434a0d0a6
   subpackages:
   - daemon
   - journal
-- name: github.com/coreos/pkg
-  version: fa29b1d70f0beaddd4c7021607cc3c3be8ce94b8
-  subpackages:
-  - capnslog
-  - health
-  - httputil
-  - timeutil
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
@@ -166,14 +174,6 @@ imports:
   version: 787624de3eb7bd915c329cba748687a3b22666a6
   subpackages:
   - diskcache
-- name: github.com/grpc-ecosystem/go-grpc-prometheus
-  version: 2500245aa6110c562d17020fb31a2c133d737799
-- name: github.com/grpc-ecosystem/grpc-gateway
-  version: 84398b94e188ee336f307779b57b3aa91af7063c
-  subpackages:
-  - runtime
-  - runtime/internal
-  - utilities
 - name: github.com/hashicorp/golang-lru
   version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
   subpackages:
@@ -253,7 +253,7 @@ imports:
 - name: github.com/pkg/errors
   version: a22138067af1c4942683050411a841ade67fe1eb
 - name: github.com/pmorie/go-open-service-broker-client
-  version: 9e257974620c1db53c4d3549fd9eddaa2d2d653e
+  version: 31d8027f493f8f23f850415d171c7c52a972a6f2
   subpackages:
   - v2
   - v2/fake
@@ -693,4 +693,27 @@ imports:
   - pkg/common
   - pkg/handler
   - pkg/util
-testImports: []
+testImports:
+- name: github.com/boltdb/bolt
+  version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
+- name: github.com/cockroachdb/cmux
+  version: 112f0506e7743d64a6eb8fedbcff13d9979bbf92
+- name: github.com/coreos/pkg
+  version: fa29b1d70f0beaddd4c7021607cc3c3be8ce94b8
+  subpackages:
+  - capnslog
+  - health
+  - httputil
+  - timeutil
+- name: github.com/grpc-ecosystem/go-grpc-prometheus
+  version: 2500245aa6110c562d17020fb31a2c133d737799
+- name: github.com/grpc-ecosystem/grpc-gateway
+  version: 84398b94e188ee336f307779b57b3aa91af7063c
+  subpackages:
+  - runtime
+  - runtime/internal
+  - utilities
+- name: github.com/jonboulle/clockwork
+  version: 72f9bd7c4e0c2a40055ab3d0f09654f730cce982
+- name: github.com/xiang90/probing
+  version: 07dd2e8dfe18522e9c447ba95f2fe95262f63bb2

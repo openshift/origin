@@ -259,6 +259,13 @@ type ClusterServiceClassSpec struct {
 	// this field.
 	Bindable bool `json:"bindable"`
 
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// BindingRetrievable indicates whether fetching a binding via a GET on
+	// its endpoint is supported for all plans.
+	BindingRetrievable bool `json:"binding_retrievable"`
+
 	// PlanUpdatable indicates whether instances provisioned from this
 	// ClusterServiceClass may change ClusterServicePlans after being
 	// provisioned.
@@ -747,6 +754,21 @@ type ServiceBindingSpec struct {
 type ServiceBindingStatus struct {
 	Conditions []ServiceBindingCondition `json:"conditions"`
 
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// AsyncOpInProgress is set to true if there is an ongoing async operation
+	// against this ServiceBinding in progress.
+	AsyncOpInProgress bool `json:"asyncOpInProgress"`
+
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// LastOperation is the string that the broker may have returned when
+	// an async operation started, it should be sent back to the broker
+	// on poll requests as a query param.
+	LastOperation *string `json:"lastOperation,omitempty"`
+
 	// CurrentOperation is the operation the Controller is currently performing
 	// on the ServiceBinding.
 	CurrentOperation ServiceBindingOperation `json:"currentOperation,omitempty"`
@@ -772,6 +794,9 @@ type ServiceBindingStatus struct {
 	// OrphanMitigationInProgress is a flag that represents whether orphan
 	// mitigation is in progress.
 	OrphanMitigationInProgress bool `json:"orphanMitigationInProgress"`
+
+	// UnbindStatus describes what has been done to unbind the ServiceBinding.
+	UnbindStatus ServiceBindingUnbindStatus `json:"unbindStatus"`
 }
 
 // ServiceBindingCondition condition information for a ServiceBinding.
@@ -818,6 +843,27 @@ const (
 	// ServiceBindingOperationUnbind indicates that the
 	// ServiceBinding is being unbound.
 	ServiceBindingOperationUnbind ServiceBindingOperation = "Unbind"
+)
+
+// ServiceBindingUnbindStatus is the status of unbinding a Binding
+type ServiceBindingUnbindStatus string
+
+const (
+	// ServiceBindingUnbindStatusNotRequired indicates that a binding request
+	// has not been sent for the ServiceBinding, so no unbinding request
+	// needs to be made.
+	ServiceBindingUnbindStatusNotRequired ServiceBindingUnbindStatus = "NotRequired"
+	// ServiceBindingUnbindStatusRequired indicates that a binding request has
+	// been sent for the ServiceBinding. An unbind request must be made before
+	// deleting the ServiceBinding.
+	ServiceBindingUnbindStatusRequired ServiceBindingUnbindStatus = "Required"
+	// ServiceBindingUnbindStatusSucceeded indicates that a unbind request has
+	// been sent for the ServiceBinding, and the request was successful.
+	ServiceBindingUnbindStatusSucceeded ServiceBindingUnbindStatus = "Succeeded"
+	// ServiceBindingUnbindStatusFailed indicates that unbind requests have
+	// been sent for the ServiceBinding but they failed. The controller has
+	// given up on sending more unbind requests.
+	ServiceBindingUnbindStatusFailed ServiceBindingUnbindStatus = "Failed"
 )
 
 // These are external finalizer values to service catalog, must be qualified name.

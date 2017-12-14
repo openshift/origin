@@ -73,7 +73,7 @@ func (b *enforceNoNewCredentialsForDeletedInstance) Admit(a admission.Attributes
 
 	credentials, ok := a.GetObject().(*servicecatalog.ServiceBinding)
 	if !ok {
-		return apierrors.NewBadRequest("Resource was marked with kind ServiceBindings but was unable to be converted")
+		return apierrors.NewBadRequest("Resource was marked with kind ServiceBinding but was unable to be converted")
 	}
 
 	instanceRef := credentials.Spec.ServiceInstanceRef
@@ -81,7 +81,7 @@ func (b *enforceNoNewCredentialsForDeletedInstance) Admit(a admission.Attributes
 
 	// block the credentials operation if the ServiceInstance is being deleted
 	if err == nil && instance.DeletionTimestamp != nil {
-		warning := fmt.Sprintf("ServiceBindings %s/%s references an instance that is being deleted: %s/%s",
+		warning := fmt.Sprintf("ServiceBinding %s/%s references a ServiceInstance that is being deleted: %s/%s",
 			credentials.Namespace,
 			credentials.Name,
 			credentials.Namespace,
@@ -101,7 +101,7 @@ func (b *enforceNoNewCredentialsForDeletedInstance) SetInternalServiceCatalogInf
 
 func (b *enforceNoNewCredentialsForDeletedInstance) Validate() error {
 	if b.instanceLister == nil {
-		return fmt.Errorf("missing instanceLister")
+		return fmt.Errorf("missing serviceInstanceLister")
 	}
 	return nil
 }

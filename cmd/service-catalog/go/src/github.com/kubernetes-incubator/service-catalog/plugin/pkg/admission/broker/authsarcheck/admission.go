@@ -74,23 +74,23 @@ func (s *sarcheck) Admit(a admission.Attributes) error {
 	if a.GetResource().Group != servicecatalog.GroupName || a.GetResource().GroupResource() != servicecatalog.Resource("clusterservicebrokers") {
 		return nil
 	}
-	clusterClusterServiceBroker, ok := a.GetObject().(*servicecatalog.ClusterServiceBroker)
+	clusterServiceBroker, ok := a.GetObject().(*servicecatalog.ClusterServiceBroker)
 	if !ok {
 		return errors.NewBadRequest("Resource was marked with kind ClusterServiceBroker, but was unable to be converted")
 	}
-	glog.V(5).Infof("Retrieved clusterClusterServiceBroker %v", clusterClusterServiceBroker)
 
-	if clusterClusterServiceBroker.Spec.AuthInfo == nil {
+	if clusterServiceBroker.Spec.AuthInfo == nil {
 		// no auth secret to check
 		return nil
 	}
 
 	var secretRef *servicecatalog.ObjectReference
-	if clusterClusterServiceBroker.Spec.AuthInfo.Basic != nil {
-		secretRef = clusterClusterServiceBroker.Spec.AuthInfo.Basic.SecretRef
-	} else if clusterClusterServiceBroker.Spec.AuthInfo.Bearer != nil {
-		secretRef = clusterClusterServiceBroker.Spec.AuthInfo.Bearer.SecretRef
+	if clusterServiceBroker.Spec.AuthInfo.Basic != nil {
+		secretRef = clusterServiceBroker.Spec.AuthInfo.Basic.SecretRef
+	} else if clusterServiceBroker.Spec.AuthInfo.Bearer != nil {
+		secretRef = clusterServiceBroker.Spec.AuthInfo.Bearer.SecretRef
 	}
+	glog.V(5).Infof("ClusterServiceBroker %q: evaluating auth secret ref", clusterServiceBroker)
 	userInfo := a.GetUserInfo()
 
 	sar := &authorizationapi.SubjectAccessReview{

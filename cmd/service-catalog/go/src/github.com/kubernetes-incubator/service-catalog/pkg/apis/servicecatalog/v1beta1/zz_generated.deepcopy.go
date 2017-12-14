@@ -899,6 +899,15 @@ func (in *ServiceBindingStatus) DeepCopyInto(out *ServiceBindingStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.LastOperation != nil {
+		in, out := &in.LastOperation, &out.LastOperation
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(string)
+			**out = **in
+		}
+	}
 	if in.OperationStartTime != nil {
 		in, out := &in.OperationStartTime, &out.OperationStartTime
 		if *in == nil {
