@@ -285,7 +285,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(readWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(appsGroup, extensionsGroup).Resources("replicationcontrollers/scale",
-					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback", "networkpolicies").RuleOrDie(),
+					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
 				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
@@ -327,6 +327,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("update").Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
+
+				rbac.NewRule(readWrite...).Groups(extensionsGroup, networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
 				// backwards compatibility
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
@@ -386,6 +388,8 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
+
+				rbac.NewRule(readWrite...).Groups(extensionsGroup, networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
 				// backwards compatibility
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
@@ -728,6 +732,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(networkGroup, legacyNetworkGroup).Resources("egressnetworkpolicies", "hostsubnets", "netnamespaces").RuleOrDie(),
 				rbac.NewRule(read...).Groups(kapiGroup).Resources("nodes", "namespaces").RuleOrDie(),
 				rbac.NewRule(read...).Groups(extensionsGroup).Resources("networkpolicies").RuleOrDie(),
+				rbac.NewRule(read...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 				rbac.NewRule("get").Groups(networkGroup, legacyNetworkGroup).Resources("clusternetworks").RuleOrDie(),
 			},
 		},
