@@ -4881,6 +4881,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                     "value": "true"
                   },
                   {
+                    "name": "INSTALL_PLUGINS",
+                    "value": "${INSTALL_PLUGINS}"
+                  },
+                  {
                     "name": "JENKINS_SERVICE_NAME",
                     "value": "${JENKINS_SERVICE_NAME}"
                   },
@@ -5019,6 +5023,12 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "displayName": "Enable OAuth in Jenkins",
       "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
       "value": "true"
+    },
+    {
+      "name": "INSTALL_PLUGINS",
+      "displayName": "Additional Jenkins plugins to install",
+      "description": "Comma-separated list of additional plugins to install on startup. The format of each plugin spec is 'plugin-id:version'",
+      "value": ""
     },
     {
       "name": "MEMORY_LIMIT",
@@ -5202,6 +5212,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                     "value": "true"
                   },
                   {
+                    "name": "INSTALL_PLUGINS",
+                    "value": "${INSTALL_PLUGINS}"
+                  },
+                  {
                     "name": "JENKINS_SERVICE_NAME",
                     "value": "${JENKINS_SERVICE_NAME}"
                   },
@@ -5340,6 +5354,12 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "displayName": "Enable OAuth in Jenkins",
       "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
       "value": "true"
+    },
+    {
+      "name": "INSTALL_PLUGINS",
+      "displayName": "Additional Jenkins plugins to install",
+      "description": "Comma-separated list of additional plugins to install on startup. The format of each plugin spec is 'plugin-id:version'",
+      "value": ""
     },
     {
       "name": "MEMORY_LIMIT",
