@@ -9,11 +9,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
-func mockDeploymentConfig(namespace, name string) *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
+func mockDeploymentConfig(namespace, name string) *appsapi.DeploymentConfig {
+	return &appsapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
 func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationController {
@@ -27,17 +27,17 @@ func withCreated(item *kapi.ReplicationController, creationTimestamp metav1.Time
 	return item
 }
 
-func withStatus(item *kapi.ReplicationController, status deployapi.DeploymentStatus) *kapi.ReplicationController {
-	item.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
+func withStatus(item *kapi.ReplicationController, status appsapi.DeploymentStatus) *kapi.ReplicationController {
+	item.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	return item
 }
 
-func mockDeployment(namespace, name string, deploymentConfig *deployapi.DeploymentConfig) *kapi.ReplicationController {
+func mockDeployment(namespace, name string, deploymentConfig *appsapi.DeploymentConfig) *kapi.ReplicationController {
 	item := &kapi.ReplicationController{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name, Annotations: map[string]string{}}}
 	if deploymentConfig != nil {
-		item.Annotations[deployapi.DeploymentConfigAnnotation] = deploymentConfig.Name
+		item.Annotations[appsapi.DeploymentConfigAnnotation] = deploymentConfig.Name
 	}
-	item.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
+	item.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 	return item
 }
 
@@ -84,7 +84,7 @@ func TestFilterBeforePredicate(t *testing.T) {
 
 func TestEmptyDataSet(t *testing.T) {
 	deployments := []*kapi.ReplicationController{}
-	deploymentConfigs := []*deployapi.DeploymentConfig{}
+	deploymentConfigs := []*appsapi.DeploymentConfig{}
 	dataSet := NewDataSet(deploymentConfigs, deployments)
 	_, exists, err := dataSet.GetDeploymentConfig(&kapi.ReplicationController{})
 	if exists || err != nil {
@@ -104,7 +104,7 @@ func TestEmptyDataSet(t *testing.T) {
 	if len(deploymentResults) != 0 {
 		t.Errorf("Unexpected result %v", deploymentResults)
 	}
-	deploymentResults, err = dataSet.ListDeploymentsByDeploymentConfig(&deployapi.DeploymentConfig{})
+	deploymentResults, err = dataSet.ListDeploymentsByDeploymentConfig(&appsapi.DeploymentConfig{})
 	if err != nil {
 		t.Errorf("Unexpected result %v", err)
 	}
@@ -114,7 +114,7 @@ func TestEmptyDataSet(t *testing.T) {
 }
 
 func TestPopulatedDataSet(t *testing.T) {
-	deploymentConfigs := []*deployapi.DeploymentConfig{
+	deploymentConfigs := []*appsapi.DeploymentConfig{
 		mockDeploymentConfig("a", "deployment-config-1"),
 		mockDeploymentConfig("b", "deployment-config-2"),
 	}
@@ -127,7 +127,7 @@ func TestPopulatedDataSet(t *testing.T) {
 	dataSet := NewDataSet(deploymentConfigs, deployments)
 	for _, deployment := range deployments {
 		deploymentConfig, exists, err := dataSet.GetDeploymentConfig(deployment)
-		config, hasConfig := deployment.Annotations[deployapi.DeploymentConfigAnnotation]
+		config, hasConfig := deployment.Annotations[appsapi.DeploymentConfigAnnotation]
 		if hasConfig {
 			if err != nil {
 				t.Errorf("Item %v, unexpected error: %v", deployment, err)

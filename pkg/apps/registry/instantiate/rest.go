@@ -20,9 +20,9 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -46,12 +46,12 @@ type REST struct {
 }
 
 func (s *REST) New() runtime.Object {
-	return &deployapi.DeploymentRequest{}
+	return &appsapi.DeploymentRequest{}
 }
 
 // Create instantiates a deployment config
 func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
-	req, ok := obj.(*deployapi.DeploymentRequest)
+	req, ok := obj.(*appsapi.DeploymentRequest)
 	if !ok {
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
 	}
@@ -61,11 +61,11 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 		if err != nil {
 			return err
 		}
-		config := configObj.(*deployapi.DeploymentConfig)
+		config := configObj.(*appsapi.DeploymentConfig)
 		old := config
 
 		if errs := validation.ValidateRequestForDeploymentConfig(req, config); len(errs) > 0 {
-			return errors.NewInvalid(deployapi.Kind("DeploymentRequest"), req.Name, errs)
+			return errors.NewInvalid(appsapi.Kind("DeploymentRequest"), req.Name, errs)
 		}
 
 		// We need to process the deployment config before we can determine if it is possible to trigger
@@ -90,20 +90,20 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 		}
 		glog.V(4).Infof("New deployment for %q caused by %#v", config.Name, causes)
 
-		config.Status.Details = new(deployapi.DeploymentDetails)
+		config.Status.Details = new(appsapi.DeploymentDetails)
 		config.Status.Details.Causes = causes
 		switch causes[0].Type {
-		case deployapi.DeploymentTriggerOnConfigChange:
+		case appsapi.DeploymentTriggerOnConfigChange:
 			config.Status.Details.Message = "config change"
-		case deployapi.DeploymentTriggerOnImageChange:
+		case appsapi.DeploymentTriggerOnImageChange:
 			config.Status.Details.Message = "image change"
-		case deployapi.DeploymentTriggerManual:
+		case appsapi.DeploymentTriggerManual:
 			config.Status.Details.Message = "manual change"
 		}
 		config.Status.LatestVersion++
 
 		userInfo, _ := apirequest.UserFrom(ctx)
-		attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
+		attrs := admission.NewAttributesRecord(config, old, appsapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, appsapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
 		if err := r.admit.(admission.MutationInterface).Admit(attrs); err != nil {
 			return err
 		}
@@ -126,12 +126,12 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 // processTriggers will go over all deployment triggers that require processing and update
 // the deployment config accordingly. This contains the work that the image change controller
 // had been doing up to the point we got the /instantiate endpoint.
-func processTriggers(config *deployapi.DeploymentConfig, is images.ImageStreamsGetter, force bool, exclude []deployapi.DeploymentTriggerType) error {
+func processTriggers(config *appsapi.DeploymentConfig, is images.ImageStreamsGetter, force bool, exclude []appsapi.DeploymentTriggerType) error {
 	errs := []error{}
 
 	// Process any image change triggers.
 	for _, trigger := range config.Spec.Triggers {
-		if trigger.Type != deployapi.DeploymentTriggerOnImageChange {
+		if trigger.Type != appsapi.DeploymentTriggerOnImageChange {
 			continue
 		}
 
@@ -203,7 +203,7 @@ func processTriggers(config *deployapi.DeploymentConfig, is images.ImageStreamsG
 	return nil
 }
 
-func containsTriggerType(types []deployapi.DeploymentTriggerType, triggerType deployapi.DeploymentTriggerType) bool {
+func containsTriggerType(types []appsapi.DeploymentTriggerType, triggerType appsapi.DeploymentTriggerType) bool {
 	for _, t := range types {
 		if t == triggerType {
 			return true
@@ -214,11 +214,11 @@ func containsTriggerType(types []deployapi.DeploymentTriggerType, triggerType de
 
 // canTrigger determines if we can trigger a new deployment for config based on the various deployment triggers.
 func canTrigger(
-	config *deployapi.DeploymentConfig,
+	config *appsapi.DeploymentConfig,
 	rn kcoreclient.ReplicationControllersGetter,
 	decoder runtime.Decoder,
 	force bool,
-) (bool, []deployapi.DeploymentCause, error) {
+) (bool, []appsapi.DeploymentCause, error) {
 
 	decoded, err := decodeFromLatestDeployment(config, rn, decoder)
 	if err != nil {
@@ -226,10 +226,10 @@ func canTrigger(
 	}
 
 	ictCount, resolved, canTriggerByImageChange := 0, 0, false
-	var causes []deployapi.DeploymentCause
+	var causes []appsapi.DeploymentCause
 
 	for _, t := range config.Spec.Triggers {
-		if t.Type != deployapi.DeploymentTriggerOnImageChange {
+		if t.Type != appsapi.DeploymentTriggerOnImageChange {
 			continue
 		}
 		ictCount++
@@ -259,9 +259,9 @@ func canTrigger(
 			continue
 		}
 
-		causes = append(causes, deployapi.DeploymentCause{
-			Type: deployapi.DeploymentTriggerOnImageChange,
-			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
+		causes = append(causes, appsapi.DeploymentCause{
+			Type: appsapi.DeploymentTriggerOnImageChange,
+			ImageTrigger: &appsapi.DeploymentCauseImageTrigger{
 				From: kapi.ObjectReference{
 					Name:      t.ImageChangeParams.From.Name,
 					Namespace: t.ImageChangeParams.From.Namespace,
@@ -277,17 +277,17 @@ func canTrigger(
 	}
 
 	if force {
-		return true, []deployapi.DeploymentCause{{Type: deployapi.DeploymentTriggerManual}}, nil
+		return true, []appsapi.DeploymentCause{{Type: appsapi.DeploymentTriggerManual}}, nil
 	}
 
 	canTriggerByConfigChange := false
-	if deployutil.HasChangeTrigger(config) && // Our deployment config has a config change trigger
+	if appsutil.HasChangeTrigger(config) && // Our deployment config has a config change trigger
 		len(causes) == 0 && // and no other trigger has triggered.
 		(config.Status.LatestVersion == 0 || // Either it's the initial deployment
 			!kapihelper.Semantic.DeepEqual(config.Spec.Template, decoded.Spec.Template)) /* or a config change happened so we need to trigger */ {
 
 		canTriggerByConfigChange = true
-		causes = []deployapi.DeploymentCause{{Type: deployapi.DeploymentTriggerOnConfigChange}}
+		causes = []appsapi.DeploymentCause{{Type: appsapi.DeploymentTriggerOnConfigChange}}
 	}
 
 	return canTriggerByConfigChange || canTriggerByImageChange, causes, nil
@@ -296,12 +296,12 @@ func canTrigger(
 // decodeFromLatestDeployment will try to return the decoded version of the current deploymentconfig
 // found in the annotations of its latest deployment. If there is no previous deploymentconfig (ie.
 // latestVersion == 0), the returned deploymentconfig will be the same.
-func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kcoreclient.ReplicationControllersGetter, decoder runtime.Decoder) (*deployapi.DeploymentConfig, error) {
+func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient.ReplicationControllersGetter, decoder runtime.Decoder) (*appsapi.DeploymentConfig, error) {
 	if config.Status.LatestVersion == 0 {
 		return config, nil
 	}
 
-	latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
+	latestDeploymentName := appsutil.LatestDeploymentNameForConfig(config)
 	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		// If there's no deployment for the latest config, we have no basis of
@@ -309,7 +309,7 @@ func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kcoreclie
 		// to make the deployment for the config, so return early.
 		return nil, err
 	}
-	decoded, err := deployutil.DecodeDeploymentConfig(deployment, decoder)
+	decoded, err := appsutil.DecodeDeploymentConfig(deployment, decoder)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
@@ -318,14 +318,14 @@ func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kcoreclie
 
 // hasUpdatedTriggers checks if there is an diffence between previous deployment config
 // trigger configuration and current one.
-func hasUpdatedTriggers(current, previous deployapi.DeploymentConfig) bool {
+func hasUpdatedTriggers(current, previous appsapi.DeploymentConfig) bool {
 	for _, ct := range current.Spec.Triggers {
 		found := false
-		if ct.Type != deployapi.DeploymentTriggerOnImageChange {
+		if ct.Type != appsapi.DeploymentTriggerOnImageChange {
 			continue
 		}
 		for _, pt := range previous.Spec.Triggers {
-			if pt.Type != deployapi.DeploymentTriggerOnImageChange {
+			if pt.Type != appsapi.DeploymentTriggerOnImageChange {
 				continue
 			}
 			if found = ct.ImageChangeParams.From.Namespace == pt.ImageChangeParams.From.Namespace &&
@@ -344,9 +344,9 @@ func hasUpdatedTriggers(current, previous deployapi.DeploymentConfig) bool {
 // triggeredByDifferentImage compares the provided image change parameters with those found in the
 // previous deployment config (the one we decoded from the annotations of its latest deployment)
 // and returns whether the two deployment configs have been triggered by a different image change.
-func triggeredByDifferentImage(ictParams deployapi.DeploymentTriggerImageChangeParams, previous deployapi.DeploymentConfig) bool {
+func triggeredByDifferentImage(ictParams appsapi.DeploymentTriggerImageChangeParams, previous appsapi.DeploymentConfig) bool {
 	for _, t := range previous.Spec.Triggers {
-		if t.Type != deployapi.DeploymentTriggerOnImageChange {
+		if t.Type != appsapi.DeploymentTriggerOnImageChange {
 			continue
 		}
 

@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // MergeInto flags
@@ -40,7 +40,7 @@ func AddObjectLabelsWithFlags(obj runtime.Object, labels labels.Set, flags int) 
 		}
 
 		switch objType := obj.(type) {
-		case *deployapi.DeploymentConfig:
+		case *appsapi.DeploymentConfig:
 			if err := addDeploymentConfigNestedLabels(objType, labels, flags); err != nil {
 				return fmt.Errorf("unable to add nested labels to %s/%s: %v", obj.GetObjectKind().GroupVersionKind(), accessor.GetName(), err)
 			}
@@ -123,7 +123,7 @@ func AddObjectAnnotations(obj runtime.Object, annotations map[string]string) err
 		}
 
 		switch objType := obj.(type) {
-		case *deployapi.DeploymentConfig:
+		case *appsapi.DeploymentConfig:
 			if err := addDeploymentConfigNestedAnnotations(objType, annotations); err != nil {
 				return fmt.Errorf("unable to add nested annotations to %s/%s: %v", obj.GetObjectKind().GroupVersionKind(), accessor.GetName(), err)
 			}
@@ -177,7 +177,7 @@ func AddObjectAnnotations(obj runtime.Object, annotations map[string]string) err
 }
 
 // addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
-func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set, flags int) error {
+func addDeploymentConfigNestedLabels(obj *appsapi.DeploymentConfig, labels labels.Set, flags int) error {
 	if obj.Spec.Template.Labels == nil {
 		obj.Spec.Template.Labels = make(map[string]string)
 	}
@@ -187,7 +187,7 @@ func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels lab
 	return nil
 }
 
-func addDeploymentConfigNestedAnnotations(obj *deployapi.DeploymentConfig, annotations map[string]string) error {
+func addDeploymentConfigNestedAnnotations(obj *appsapi.DeploymentConfig, annotations map[string]string) error {
 	if obj.Spec.Template == nil {
 		return nil
 	}

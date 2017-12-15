@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // Keep this in sync with pkg/api/serialization_test.go#defaultHookContainerName
@@ -56,9 +56,9 @@ func SetDefaults_DeploymentStrategy(obj *v1.DeploymentStrategy) {
 
 	if obj.Type == v1.DeploymentStrategyTypeRolling && obj.RollingParams == nil {
 		obj.RollingParams = &v1.RollingDeploymentStrategyParams{
-			IntervalSeconds:     mkintp(deployapi.DefaultRollingIntervalSeconds),
-			UpdatePeriodSeconds: mkintp(deployapi.DefaultRollingUpdatePeriodSeconds),
-			TimeoutSeconds:      mkintp(deployapi.DefaultRollingTimeoutSeconds),
+			IntervalSeconds:     mkintp(appsapi.DefaultRollingIntervalSeconds),
+			UpdatePeriodSeconds: mkintp(appsapi.DefaultRollingUpdatePeriodSeconds),
+			TimeoutSeconds:      mkintp(appsapi.DefaultRollingTimeoutSeconds),
 		}
 	}
 	if obj.Type == v1.DeploymentStrategyTypeRecreate && obj.RecreateParams == nil {
@@ -66,27 +66,27 @@ func SetDefaults_DeploymentStrategy(obj *v1.DeploymentStrategy) {
 	}
 
 	if obj.ActiveDeadlineSeconds == nil {
-		obj.ActiveDeadlineSeconds = mkintp(deployapi.MaxDeploymentDurationSeconds)
+		obj.ActiveDeadlineSeconds = mkintp(appsapi.MaxDeploymentDurationSeconds)
 	}
 }
 
 func SetDefaults_RecreateDeploymentStrategyParams(obj *v1.RecreateDeploymentStrategyParams) {
 	if obj.TimeoutSeconds == nil {
-		obj.TimeoutSeconds = mkintp(deployapi.DefaultRecreateTimeoutSeconds)
+		obj.TimeoutSeconds = mkintp(appsapi.DefaultRecreateTimeoutSeconds)
 	}
 }
 
 func SetDefaults_RollingDeploymentStrategyParams(obj *v1.RollingDeploymentStrategyParams) {
 	if obj.IntervalSeconds == nil {
-		obj.IntervalSeconds = mkintp(deployapi.DefaultRollingIntervalSeconds)
+		obj.IntervalSeconds = mkintp(appsapi.DefaultRollingIntervalSeconds)
 	}
 
 	if obj.UpdatePeriodSeconds == nil {
-		obj.UpdatePeriodSeconds = mkintp(deployapi.DefaultRollingUpdatePeriodSeconds)
+		obj.UpdatePeriodSeconds = mkintp(appsapi.DefaultRollingUpdatePeriodSeconds)
 	}
 
 	if obj.TimeoutSeconds == nil {
-		obj.TimeoutSeconds = mkintp(deployapi.DefaultRollingTimeoutSeconds)
+		obj.TimeoutSeconds = mkintp(appsapi.DefaultRollingTimeoutSeconds)
 	}
 
 	if obj.MaxUnavailable == nil && obj.MaxSurge == nil {

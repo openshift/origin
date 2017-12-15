@@ -7,17 +7,17 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 )
 
 func TestGeneration(t *testing.T) {
-	from := deploytest.OkDeploymentConfig(2)
-	from.Spec.Strategy = deployapi.DeploymentStrategy{
-		Type: deployapi.DeploymentStrategyTypeCustom,
+	from := appstest.OkDeploymentConfig(2)
+	from.Spec.Strategy = appsapi.DeploymentStrategy{
+		Type: appsapi.DeploymentStrategyTypeCustom,
 	}
-	from.Spec.Triggers = append(from.Spec.Triggers, deployapi.DeploymentTriggerPolicy{Type: deployapi.DeploymentTriggerOnConfigChange})
-	from.Spec.Triggers = append(from.Spec.Triggers, deploytest.OkImageChangeTrigger())
+	from.Spec.Triggers = append(from.Spec.Triggers, appsapi.DeploymentTriggerPolicy{Type: appsapi.DeploymentTriggerOnConfigChange})
+	from.Spec.Triggers = append(from.Spec.Triggers, appstest.OkImageChangeTrigger())
 	from.Spec.Template.Spec.Containers[0].Name = "changed"
 	from.Spec.Replicas = 5
 	from.Spec.Selector = map[string]string{
@@ -25,12 +25,12 @@ func TestGeneration(t *testing.T) {
 		"new2": "new2",
 	}
 
-	to := deploytest.OkDeploymentConfig(1)
+	to := appstest.OkDeploymentConfig(1)
 
 	// Generate a rollback for every combination of flag (using 1 bit per flag).
-	rollbackSpecs := []*deployapi.DeploymentConfigRollbackSpec{}
+	rollbackSpecs := []*appsapi.DeploymentConfigRollbackSpec{}
 	for i := 0; i < 15; i++ {
-		spec := &deployapi.DeploymentConfigRollbackSpec{
+		spec := &appsapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
 				Namespace: metav1.NamespaceDefault,
@@ -69,7 +69,7 @@ func TestGeneration(t *testing.T) {
 			}
 
 			for i, trigger := range rollback.Spec.Triggers {
-				if trigger.Type == deployapi.DeploymentTriggerOnImageChange && trigger.ImageChangeParams.Automatic {
+				if trigger.Type == appsapi.DeploymentTriggerOnImageChange && trigger.ImageChangeParams.Automatic {
 					t.Errorf("image change trigger %d should be disabled", i)
 				}
 			}
@@ -77,11 +77,11 @@ func TestGeneration(t *testing.T) {
 	}
 }
 
-func hasStrategyDiff(a, b *deployapi.DeploymentConfig) bool {
+func hasStrategyDiff(a, b *appsapi.DeploymentConfig) bool {
 	return a.Spec.Strategy.Type != b.Spec.Strategy.Type
 }
 
-func hasTriggerDiff(a, b *deployapi.DeploymentConfig) bool {
+func hasTriggerDiff(a, b *appsapi.DeploymentConfig) bool {
 	if len(a.Spec.Triggers) != len(b.Spec.Triggers) {
 		return true
 	}
@@ -103,7 +103,7 @@ func hasTriggerDiff(a, b *deployapi.DeploymentConfig) bool {
 	return false
 }
 
-func hasReplicationMetaDiff(a, b *deployapi.DeploymentConfig) bool {
+func hasReplicationMetaDiff(a, b *appsapi.DeploymentConfig) bool {
 	if a.Spec.Replicas != b.Spec.Replicas {
 		return true
 	}
@@ -117,7 +117,7 @@ func hasReplicationMetaDiff(a, b *deployapi.DeploymentConfig) bool {
 	return false
 }
 
-func hasPodTemplateDiff(a, b *deployapi.DeploymentConfig) bool {
+func hasPodTemplateDiff(a, b *appsapi.DeploymentConfig) bool {
 	specA, specB := a.Spec.Template.Spec, b.Spec.Template.Spec
 	return !kapihelper.Semantic.DeepEqual(specA, specB)
 }

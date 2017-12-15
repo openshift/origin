@@ -11,12 +11,12 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	cmdtest "github.com/openshift/origin/pkg/apps/cmd/test"
 	"github.com/openshift/origin/pkg/apps/strategy"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -42,10 +42,10 @@ func (c *fakePodClient) Pods(ns string) kcoreclient.PodInterface {
 }
 
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
+	executeFunc func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
 }
 
-func (h *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+func (h *hookExecutorImpl) Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
 	return h.executeFunc(hook, rc, suffix, label)
 }
 
@@ -62,12 +62,12 @@ func TestRecreate_initialDeployment(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
+	config := appstest.OkDeploymentConfig(1)
 	config.Spec.Strategy = recreateParams(30, "", "", "")
-	deployment, _ = deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 3)
 	if err != nil {
@@ -83,9 +83,9 @@ func TestRecreate_initialDeployment(t *testing.T) {
 }
 
 func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, deployapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	hookExecuted := false
@@ -98,14 +98,14 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
 				return nil
 			},
 		},
 		scaler: scaler,
 	}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -117,9 +117,9 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 }
 
 func TestRecreate_deploymentPreHookFail(t *testing.T) {
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, deployapi.LifecycleHookFailurePolicyAbort, "", "")
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = recreateParams(30, appsapi.LifecycleHookFailurePolicyAbort, "", "")
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
@@ -131,13 +131,13 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		rcClient:          &fakeControllerClient{deployment: deployment},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},
 		scaler: scaler,
 	}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err == nil {
@@ -149,9 +149,9 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 }
 
 func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, "", deployapi.LifecycleHookFailurePolicyAbort, "")
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = recreateParams(30, "", appsapi.LifecycleHookFailurePolicyAbort, "")
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 	scaler := &cmdtest.FakeScaler{}
 
 	strategy := &RecreateDeploymentStrategy{
@@ -163,13 +163,13 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return fmt.Errorf("hook execution failure")
 			},
 		},
 		scaler: scaler,
 	}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err == nil {
@@ -180,9 +180,9 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 	}
 }
 func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	hookExecuted := false
@@ -195,14 +195,14 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
 				return nil
 			},
 		},
 		scaler: scaler,
 	}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -214,9 +214,9 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 }
 
 func TestRecreate_deploymentPostHookFail(t *testing.T) {
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = recreateParams(30, "", "", deployapi.LifecycleHookFailurePolicyAbort)
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = recreateParams(30, "", "", appsapi.LifecycleHookFailurePolicyAbort)
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	scaler := &cmdtest.FakeScaler{}
 
 	hookExecuted := false
@@ -229,14 +229,14 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 		eventClient:       fake.NewSimpleClientset().Core(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				hookExecuted = true
 				return fmt.Errorf("post hook failure")
 			},
 		},
 		scaler: scaler,
 	}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.Deploy(nil, deployment, 2)
 	if err == nil {
@@ -268,10 +268,10 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err != nil {
@@ -314,10 +314,10 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err != nil {
@@ -361,10 +361,10 @@ func TestRecreate_acceptorFail(t *testing.T) {
 		},
 	}
 
-	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	oldDeployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = appsutil.MakeDeployment(appstest.OkDeploymentConfig(2), legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.rcClient = &fakeControllerClient{deployment: deployment}
-	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+	strategy.podClient = &fakePodClient{deployerName: appsutil.DeployerPodNameForDeployment(deployment.Name)}
 	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
 	if err == nil {
 		t.Fatalf("expected a deployment failure")
@@ -379,29 +379,29 @@ func TestRecreate_acceptorFail(t *testing.T) {
 	}
 }
 
-func recreateParams(timeout int64, preFailurePolicy, midFailurePolicy, postFailurePolicy deployapi.LifecycleHookFailurePolicy) deployapi.DeploymentStrategy {
-	var pre, mid, post *deployapi.LifecycleHook
+func recreateParams(timeout int64, preFailurePolicy, midFailurePolicy, postFailurePolicy appsapi.LifecycleHookFailurePolicy) appsapi.DeploymentStrategy {
+	var pre, mid, post *appsapi.LifecycleHook
 	if len(preFailurePolicy) > 0 {
-		pre = &deployapi.LifecycleHook{
+		pre = &appsapi.LifecycleHook{
 			FailurePolicy: preFailurePolicy,
-			ExecNewPod:    &deployapi.ExecNewPodHook{},
+			ExecNewPod:    &appsapi.ExecNewPodHook{},
 		}
 	}
 	if len(midFailurePolicy) > 0 {
-		mid = &deployapi.LifecycleHook{
+		mid = &appsapi.LifecycleHook{
 			FailurePolicy: midFailurePolicy,
-			ExecNewPod:    &deployapi.ExecNewPodHook{},
+			ExecNewPod:    &appsapi.ExecNewPodHook{},
 		}
 	}
 	if len(postFailurePolicy) > 0 {
-		post = &deployapi.LifecycleHook{
+		post = &appsapi.LifecycleHook{
 			FailurePolicy: postFailurePolicy,
-			ExecNewPod:    &deployapi.ExecNewPodHook{},
+			ExecNewPod:    &appsapi.ExecNewPodHook{},
 		}
 	}
-	return deployapi.DeploymentStrategy{
-		Type: deployapi.DeploymentStrategyTypeRecreate,
-		RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+	return appsapi.DeploymentStrategy{
+		Type: appsapi.DeploymentStrategyTypeRecreate,
+		RecreateParams: &appsapi.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: &timeout,
 
 			Pre:  pre,

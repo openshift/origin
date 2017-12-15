@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 type mockResolver struct {
@@ -54,21 +54,21 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 	activeDeploymentConfig := mockDeploymentConfig("a", "active-deployment-config")
 	inactiveDeploymentConfig := mockDeploymentConfig("a", "inactive-deployment-config")
 
-	deploymentConfigs := []*deployapi.DeploymentConfig{activeDeploymentConfig}
+	deploymentConfigs := []*appsapi.DeploymentConfig{activeDeploymentConfig}
 	deployments := []*kapi.ReplicationController{}
 
 	expectedNames := sets.String{}
-	deploymentStatusOptions := []deployapi.DeploymentStatus{
-		deployapi.DeploymentStatusComplete,
-		deployapi.DeploymentStatusFailed,
-		deployapi.DeploymentStatusNew,
-		deployapi.DeploymentStatusPending,
-		deployapi.DeploymentStatusRunning,
+	deploymentStatusOptions := []appsapi.DeploymentStatus{
+		appsapi.DeploymentStatusComplete,
+		appsapi.DeploymentStatusFailed,
+		appsapi.DeploymentStatusNew,
+		appsapi.DeploymentStatusPending,
+		appsapi.DeploymentStatusRunning,
 	}
 
-	deploymentStatusFilter := []deployapi.DeploymentStatus{
-		deployapi.DeploymentStatusComplete,
-		deployapi.DeploymentStatusFailed,
+	deploymentStatusFilter := []appsapi.DeploymentStatus{
+		appsapi.DeploymentStatusComplete,
+		appsapi.DeploymentStatusFailed,
 	}
 	deploymentStatusFilterSet := sets.String{}
 	for _, deploymentStatus := range deploymentStatusFilter {
@@ -101,14 +101,14 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 }
 
 func TestPerDeploymentConfigResolver(t *testing.T) {
-	deploymentStatusOptions := []deployapi.DeploymentStatus{
-		deployapi.DeploymentStatusComplete,
-		deployapi.DeploymentStatusFailed,
-		deployapi.DeploymentStatusNew,
-		deployapi.DeploymentStatusPending,
-		deployapi.DeploymentStatusRunning,
+	deploymentStatusOptions := []appsapi.DeploymentStatus{
+		appsapi.DeploymentStatusComplete,
+		appsapi.DeploymentStatusFailed,
+		appsapi.DeploymentStatusNew,
+		appsapi.DeploymentStatusPending,
+		appsapi.DeploymentStatusRunning,
 	}
-	deploymentConfigs := []*deployapi.DeploymentConfig{
+	deploymentConfigs := []*appsapi.DeploymentConfig{
 		mockDeploymentConfig("a", "deployment-config-1"),
 		mockDeploymentConfig("b", "deployment-config-2"),
 	}
@@ -134,8 +134,8 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 		dataSet := NewDataSet(deploymentConfigs, deployments)
 
 		expectedNames := sets.String{}
-		deploymentCompleteStatusFilterSet := sets.NewString(string(deployapi.DeploymentStatusComplete))
-		deploymentFailedStatusFilterSet := sets.NewString(string(deployapi.DeploymentStatusFailed))
+		deploymentCompleteStatusFilterSet := sets.NewString(string(appsapi.DeploymentStatusComplete))
+		deploymentFailedStatusFilterSet := sets.NewString(string(appsapi.DeploymentStatusFailed))
 
 		for _, deploymentConfig := range deploymentConfigs {
 			deploymentItems, err := dataSet.ListDeploymentsByDeploymentConfig(deploymentConfig)
@@ -144,15 +144,15 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 			}
 			completedDeployments, failedDeployments := []*kapi.ReplicationController{}, []*kapi.ReplicationController{}
 			for _, deployment := range deploymentItems {
-				status := deployment.Annotations[deployapi.DeploymentStatusAnnotation]
+				status := deployment.Annotations[appsapi.DeploymentStatusAnnotation]
 				if deploymentCompleteStatusFilterSet.Has(status) {
 					completedDeployments = append(completedDeployments, deployment)
 				} else if deploymentFailedStatusFilterSet.Has(status) {
 					failedDeployments = append(failedDeployments, deployment)
 				}
 			}
-			sort.Sort(deployutil.ByMostRecent(completedDeployments))
-			sort.Sort(deployutil.ByMostRecent(failedDeployments))
+			sort.Sort(appsutil.ByMostRecent(completedDeployments))
+			sort.Sort(appsutil.ByMostRecent(failedDeployments))
 			purgeCompleted := []*kapi.ReplicationController{}
 			purgeFailed := []*kapi.ReplicationController{}
 			if keep >= 0 && keep < len(completedDeployments) {

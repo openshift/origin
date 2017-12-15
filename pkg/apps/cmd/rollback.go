@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 )
@@ -28,7 +28,7 @@ var _ kubectl.Rollbacker = &DeploymentConfigRollbacker{}
 // Rollback the provided deployment config to a specific revision. If revision is zero, we will
 // rollback to the previous deployment.
 func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotations map[string]string, toRevision int64, dryRun bool) (string, error) {
-	config, ok := obj.(*deployapi.DeploymentConfig)
+	config, ok := obj.(*appsapi.DeploymentConfig)
 	if !ok {
 		return "", fmt.Errorf("passed object is not a deployment config: %#v", obj)
 	}
@@ -36,10 +36,10 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 		return "", fmt.Errorf("cannot rollback a paused config; resume it first with 'rollout resume dc/%s' and try again", config.Name)
 	}
 
-	rollback := &deployapi.DeploymentConfigRollback{
+	rollback := &appsapi.DeploymentConfigRollback{
 		Name:               config.Name,
 		UpdatedAnnotations: updatedAnnotations,
-		Spec: deployapi.DeploymentConfigRollbackSpec{
+		Spec: appsapi.DeploymentConfigRollbackSpec{
 			Revision:        toRevision,
 			IncludeTemplate: true,
 		},

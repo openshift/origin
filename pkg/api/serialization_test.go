@@ -28,14 +28,14 @@ import (
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	deploy "github.com/openshift/origin/pkg/apps/apis/apps"
+	apps "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	build "github.com/openshift/origin/pkg/build/apis/build"
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	route "github.com/openshift/origin/pkg/route/apis/route"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	template "github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 
 	// install all APIs
@@ -176,7 +176,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.Subjects[i].FieldPath = ""
 			}
 		},
-		func(j *template.Template, c fuzz.Continue) {
+		func(j *templateapi.Template, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Objects = nil
 
@@ -340,21 +340,21 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
 			}
 		},
-		func(j *route.RouteTargetReference, c fuzz.Continue) {
+		func(j *routeapi.RouteTargetReference, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Kind = "Service"
 			j.Weight = new(int32)
 			*j.Weight = 100
 		},
-		func(j *route.TLSConfig, c fuzz.Continue) {
+		func(j *routeapi.TLSConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if len(j.Termination) == 0 && len(j.DestinationCACertificate) == 0 {
-				j.Termination = route.TLSTerminationEdge
+				j.Termination = routeapi.TLSTerminationEdge
 			}
 		},
-		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
+		func(j *apps.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.Spec.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
+			j.Spec.Triggers = []apps.DeploymentTriggerPolicy{{Type: apps.DeploymentTriggerOnConfigChange}}
 			if j.Spec.Template != nil && len(j.Spec.Template.Spec.Containers) == 1 {
 				containerName := j.Spec.Template.Spec.Containers[0].Name
 				if p := j.Spec.Strategy.RecreateParams; p != nil {
@@ -368,48 +368,48 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				}
 			}
 		},
-		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
+		func(j *apps.DeploymentStrategy, c fuzz.Continue) {
 			randInt64 := func() *int64 {
 				p := int64(c.RandUint64())
 				return &p
 			}
 			c.FuzzNoCustom(j)
 			j.RecreateParams, j.RollingParams, j.CustomParams = nil, nil, nil
-			strategyTypes := []deploy.DeploymentStrategyType{deploy.DeploymentStrategyTypeRecreate, deploy.DeploymentStrategyTypeRolling, deploy.DeploymentStrategyTypeCustom}
+			strategyTypes := []apps.DeploymentStrategyType{apps.DeploymentStrategyTypeRecreate, apps.DeploymentStrategyTypeRolling, apps.DeploymentStrategyTypeCustom}
 			j.Type = strategyTypes[c.Rand.Intn(len(strategyTypes))]
 			j.ActiveDeadlineSeconds = randInt64()
 			switch j.Type {
-			case deploy.DeploymentStrategyTypeRecreate:
-				params := &deploy.RecreateDeploymentStrategyParams{}
+			case apps.DeploymentStrategyTypeRecreate:
+				params := &apps.RecreateDeploymentStrategyParams{}
 				c.Fuzz(params)
 				if params.TimeoutSeconds == nil {
 					s := int64(120)
 					params.TimeoutSeconds = &s
 				}
 				j.RecreateParams = params
-			case deploy.DeploymentStrategyTypeRolling:
-				params := &deploy.RollingDeploymentStrategyParams{}
+			case apps.DeploymentStrategyTypeRolling:
+				params := &apps.RollingDeploymentStrategyParams{}
 				params.TimeoutSeconds = randInt64()
 				params.IntervalSeconds = randInt64()
 				params.UpdatePeriodSeconds = randInt64()
 
-				policyTypes := []deploy.LifecycleHookFailurePolicy{
-					deploy.LifecycleHookFailurePolicyRetry,
-					deploy.LifecycleHookFailurePolicyAbort,
-					deploy.LifecycleHookFailurePolicyIgnore,
+				policyTypes := []apps.LifecycleHookFailurePolicy{
+					apps.LifecycleHookFailurePolicyRetry,
+					apps.LifecycleHookFailurePolicyAbort,
+					apps.LifecycleHookFailurePolicyIgnore,
 				}
 				if c.RandBool() {
-					params.Pre = &deploy.LifecycleHook{
+					params.Pre = &apps.LifecycleHook{
 						FailurePolicy: policyTypes[c.Rand.Intn(len(policyTypes))],
-						ExecNewPod: &deploy.ExecNewPodHook{
+						ExecNewPod: &apps.ExecNewPodHook{
 							ContainerName: c.RandString(),
 						},
 					}
 				}
 				if c.RandBool() {
-					params.Post = &deploy.LifecycleHook{
+					params.Post = &apps.LifecycleHook{
 						FailurePolicy: policyTypes[c.Rand.Intn(len(policyTypes))],
-						ExecNewPod: &deploy.ExecNewPodHook{
+						ExecNewPod: &apps.ExecNewPodHook{
 							ContainerName: c.RandString(),
 						},
 					}
@@ -424,7 +424,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.RollingParams = params
 			}
 		},
-		func(j *deploy.DeploymentCauseImageTrigger, c fuzz.Continue) {
+		func(j *apps.DeploymentCauseImageTrigger, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b", "a/b"}
 			tags := []string{"stuff", "other"}
@@ -433,7 +433,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.From.Name = image.JoinImageStreamTag(j.From.Name, tags[c.Intn(len(tags))])
 			}
 		},
-		func(j *deploy.DeploymentTriggerImageChangeParams, c fuzz.Continue) {
+		func(j *apps.DeploymentTriggerImageChangeParams, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			specs := []string{"a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.From.Kind = "DockerImage"
@@ -471,16 +471,16 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.Scopes = append(j.Scopes, "user:full")
 			}
 		},
-		func(j *route.RouteSpec, c fuzz.Continue) {
+		func(j *routeapi.RouteSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if len(j.WildcardPolicy) == 0 {
-				j.WildcardPolicy = route.WildcardPolicyNone
+				j.WildcardPolicy = routeapi.WildcardPolicyNone
 			}
 		},
-		func(j *route.RouteIngress, c fuzz.Continue) {
+		func(j *routeapi.RouteIngress, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if len(j.WildcardPolicy) == 0 {
-				j.WildcardPolicy = route.WildcardPolicyNone
+				j.WildcardPolicy = routeapi.WildcardPolicyNone
 			}
 		},
 
@@ -537,7 +537,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 	return f
 }
 
-func defaultHookContainerName(hook *deploy.LifecycleHook, containerName string) {
+func defaultHookContainerName(hook *apps.LifecycleHook, containerName string) {
 	if hook == nil {
 		return
 	}

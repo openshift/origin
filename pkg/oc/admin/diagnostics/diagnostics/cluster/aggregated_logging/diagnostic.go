@@ -11,7 +11,7 @@ import (
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
@@ -116,7 +116,7 @@ func (d *AggregatedLogging) nodes(options metav1.ListOptions) (*kapi.NodeList, e
 func (d *AggregatedLogging) pods(project string, options metav1.ListOptions) (*kapi.PodList, error) {
 	return d.KubeClient.Core().Pods(project).List(options)
 }
-func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.ListOptions) (*appsapi.DeploymentConfigList, error) {
 	return d.DCClient.DeploymentConfigs(project).List(options)
 }
 

@@ -13,7 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -87,7 +87,7 @@ type DeploymentHookOptions struct {
 	Environment []string
 	Volumes     []string
 
-	FailurePolicy deployapi.LifecycleHookFailurePolicy
+	FailurePolicy appsapi.LifecycleHookFailurePolicy
 }
 
 // NewCmdDeploymentHook implements the set deployment-hook command
@@ -187,11 +187,11 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 	if len(failurePolicyString) > 0 {
 		switch failurePolicyString {
 		case "abort":
-			o.FailurePolicy = deployapi.LifecycleHookFailurePolicyAbort
+			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyAbort
 		case "ignore":
-			o.FailurePolicy = deployapi.LifecycleHookFailurePolicyIgnore
+			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyIgnore
 		case "retry":
-			o.FailurePolicy = deployapi.LifecycleHookFailurePolicyRetry
+			o.FailurePolicy = appsapi.LifecycleHookFailurePolicyRetry
 		default:
 			return kcmdutil.UsageErrorf(cmd, "valid values for --failure-policy are: abort, retry, ignore")
 		}
@@ -250,7 +250,7 @@ func (o *DeploymentHookOptions) Run() error {
 	}
 
 	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
-		dc, ok := info.Object.(*deployapi.DeploymentConfig)
+		dc, ok := info.Object.(*appsapi.DeploymentConfig)
 		if !ok {
 			return false, nil
 		}
@@ -295,7 +295,7 @@ func (o *DeploymentHookOptions) Run() error {
 	return nil
 }
 
-func (o *DeploymentHookOptions) updateDeploymentConfig(dc *deployapi.DeploymentConfig) (bool, error) {
+func (o *DeploymentHookOptions) updateDeploymentConfig(dc *appsapi.DeploymentConfig) (bool, error) {
 	var (
 		err             error
 		updatedRecreate bool
@@ -317,7 +317,7 @@ func (o *DeploymentHookOptions) updateDeploymentConfig(dc *deployapi.DeploymentC
 	return updatedRecreate || updatedRolling, nil
 }
 
-func (o *DeploymentHookOptions) updateRecreateParams(dc *deployapi.DeploymentConfig, strategyParams *deployapi.RecreateDeploymentStrategyParams) (bool, error) {
+func (o *DeploymentHookOptions) updateRecreateParams(dc *appsapi.DeploymentConfig, strategyParams *appsapi.RecreateDeploymentStrategyParams) (bool, error) {
 	var updated bool
 	if o.Remove {
 		if o.Pre && strategyParams.Pre != nil {
@@ -349,7 +349,7 @@ func (o *DeploymentHookOptions) updateRecreateParams(dc *deployapi.DeploymentCon
 	return true, nil
 }
 
-func (o *DeploymentHookOptions) updateRollingParams(dc *deployapi.DeploymentConfig, strategyParams *deployapi.RollingDeploymentStrategyParams) (bool, error) {
+func (o *DeploymentHookOptions) updateRollingParams(dc *appsapi.DeploymentConfig, strategyParams *appsapi.RollingDeploymentStrategyParams) (bool, error) {
 	var updated bool
 	if o.Remove {
 		if o.Pre && strategyParams.Pre != nil {
@@ -375,10 +375,10 @@ func (o *DeploymentHookOptions) updateRollingParams(dc *deployapi.DeploymentConf
 	return true, nil
 }
 
-func (o *DeploymentHookOptions) lifecycleHook(dc *deployapi.DeploymentConfig) (*deployapi.LifecycleHook, error) {
-	hook := &deployapi.LifecycleHook{
+func (o *DeploymentHookOptions) lifecycleHook(dc *appsapi.DeploymentConfig) (*appsapi.LifecycleHook, error) {
+	hook := &appsapi.LifecycleHook{
 		FailurePolicy: o.FailurePolicy,
-		ExecNewPod: &deployapi.ExecNewPodHook{
+		ExecNewPod: &appsapi.ExecNewPodHook{
 			Command: o.Command,
 		},
 	}

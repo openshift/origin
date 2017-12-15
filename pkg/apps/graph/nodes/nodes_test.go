@@ -7,14 +7,14 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubetypes "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/test"
 )
 
 func TestDCPodTemplateSpecNode(t *testing.T) {
 	g := osgraph.New()
 
-	dc := &deployapi.DeploymentConfig{}
+	dc := &appsapi.DeploymentConfig{}
 	dc.Namespace = "ns"
 	dc.Name = "foo"
 	dc.Spec.Template = test.OkPodTemplate()

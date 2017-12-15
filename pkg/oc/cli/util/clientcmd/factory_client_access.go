@@ -37,8 +37,8 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appscmd "github.com/openshift/origin/pkg/apps/cmd"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	routegen "github.com/openshift/origin/pkg/route/generator"
@@ -163,7 +163,7 @@ func (f *ring0Factory) JSONEncoder() runtime.Encoder {
 
 func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*corev1.PodSpec) error) (bool, error) {
 	switch t := obj.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		template := t.Spec.Template
 		if template == nil {
 			t.Spec.Template = template
@@ -225,7 +225,7 @@ func ConvertExteralPodSpecToInternal(inFn func(*corev1.PodSpec) error) func(*kap
 
 func (f *ring0Factory) MapBasedSelectorForObject(object runtime.Object) (string, error) {
 	switch t := object.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		return kubectl.MakeLabels(t.Spec.Selector), nil
 	default:
 		return f.kubeClientAccessFactory.MapBasedSelectorForObject(object)
@@ -234,7 +234,7 @@ func (f *ring0Factory) MapBasedSelectorForObject(object runtime.Object) (string,
 
 func (f *ring0Factory) PortsForObject(object runtime.Object) ([]string, error) {
 	switch t := object.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		return getPorts(t.Spec.Template.Spec), nil
 	default:
 		return f.kubeClientAccessFactory.PortsForObject(object)
@@ -243,7 +243,7 @@ func (f *ring0Factory) PortsForObject(object runtime.Object) ([]string, error) {
 
 func (f *ring0Factory) ProtocolsForObject(object runtime.Object) (map[string]string, error) {
 	switch t := object.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		return getProtocols(t.Spec.Template.Spec), nil
 	default:
 		return f.kubeClientAccessFactory.ProtocolsForObject(object)
@@ -284,7 +284,7 @@ func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kprinters.Prin
 
 func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
 	switch t := info.Object.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		if t.Spec.Paused {
 			return nil, errors.New("is already paused")
 		}
@@ -343,7 +343,7 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 
 func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
 	switch t := info.Object.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		if !t.Spec.Paused {
 			return nil, errors.New("is not paused")
 		}
@@ -362,7 +362,7 @@ func (f *ring0Factory) DefaultNamespace() (string, bool, error) {
 func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 	generators := map[string]map[string]kubectl.Generator{}
 	generators["run"] = map[string]kubectl.Generator{
-		"deploymentconfig/v1": deploycmd.BasicDeploymentConfigController{},
+		"deploymentconfig/v1": appscmd.BasicDeploymentConfigController{},
 		"run-controller/v1":   kubectl.BasicReplicationController{}, // legacy alias for run/v1
 	}
 	generators["expose"] = map[string]kubectl.Generator{
@@ -387,14 +387,14 @@ func (f *ring0Factory) Generators(cmdName string) map[string]kubectl.Generator {
 }
 
 func (f *ring0Factory) CanBeExposed(kind schema.GroupKind) error {
-	if deployapi.IsKindOrLegacy("DeploymentConfig", kind) {
+	if appsapi.IsKindOrLegacy("DeploymentConfig", kind) {
 		return nil
 	}
 	return f.kubeClientAccessFactory.CanBeExposed(kind)
 }
 
 func (f *ring0Factory) CanBeAutoscaled(kind schema.GroupKind) error {
-	if deployapi.IsKindOrLegacy("DeploymentConfig", kind) {
+	if appsapi.IsKindOrLegacy("DeploymentConfig", kind) {
 		return nil
 	}
 	return f.kubeClientAccessFactory.CanBeAutoscaled(kind)

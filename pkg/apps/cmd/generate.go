@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/api/apps/v1"
 )
 
 var basic = kubectl.BasicReplicationController{}
@@ -26,9 +26,9 @@ func (BasicDeploymentConfigController) Generate(genericParams map[string]interfa
 	}
 	switch t := obj.(type) {
 	case *kapi.ReplicationController:
-		obj = &deployapi.DeploymentConfig{
+		obj = &appsapi.DeploymentConfig{
 			ObjectMeta: t.ObjectMeta,
-			Spec: deployapi.DeploymentConfigSpec{
+			Spec: appsapi.DeploymentConfigSpec{
 				Selector: t.Spec.Selector,
 				Replicas: *t.Spec.Replicas, // the generator never leaves this nil
 				Template: t.Spec.Template,

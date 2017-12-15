@@ -8,8 +8,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // DeploymentByDeploymentConfigIndexFunc indexes Deployment items by their associated DeploymentConfig, if none, index with key "orphan"
@@ -18,7 +18,7 @@ func DeploymentByDeploymentConfigIndexFunc(obj interface{}) ([]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("not a replication controller: %v", obj)
 	}
-	name := deployutil.DeploymentConfigNameFor(controller)
+	name := appsutil.DeploymentConfigNameFor(controller)
 	if len(name) == 0 {
 		return []string{"orphan"}, nil
 	}
@@ -64,7 +64,7 @@ func NewFilterBeforePredicate(d time.Duration) FilterPredicate {
 
 // FilterDeploymentsPredicate is a function that returns true if the replication controller is associated with a DeploymentConfig
 func FilterDeploymentsPredicate(item *kapi.ReplicationController) bool {
-	return len(deployutil.DeploymentConfigNameFor(item)) > 0
+	return len(appsutil.DeploymentConfigNameFor(item)) > 0
 }
 
 // FilterZeroReplicaSize is a function that returns true if the replication controller size is 0
@@ -74,10 +74,10 @@ func FilterZeroReplicaSize(item *kapi.ReplicationController) bool {
 
 // DataSet provides functions for working with deployment data
 type DataSet interface {
-	GetDeploymentConfig(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, bool, error)
-	ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error)
+	GetDeploymentConfig(deployment *kapi.ReplicationController) (*appsapi.DeploymentConfig, bool, error)
+	ListDeploymentConfigs() ([]*appsapi.DeploymentConfig, error)
 	ListDeployments() ([]*kapi.ReplicationController, error)
-	ListDeploymentsByDeploymentConfig(config *deployapi.DeploymentConfig) ([]*kapi.ReplicationController, error)
+	ListDeploymentsByDeploymentConfig(config *appsapi.DeploymentConfig) ([]*kapi.ReplicationController, error)
 }
 
 type dataSet struct {
@@ -86,7 +86,7 @@ type dataSet struct {
 }
 
 // NewDataSet returns a DataSet over the specified items
-func NewDataSet(deploymentConfigs []*deployapi.DeploymentConfig, deployments []*kapi.ReplicationController) DataSet {
+func NewDataSet(deploymentConfigs []*appsapi.DeploymentConfig, deployments []*kapi.ReplicationController) DataSet {
 	deploymentConfigStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	for _, deploymentConfig := range deploymentConfigs {
 		deploymentConfigStore.Add(deploymentConfig)
@@ -106,26 +106,26 @@ func NewDataSet(deploymentConfigs []*deployapi.DeploymentConfig, deployments []*
 }
 
 // GetDeploymentConfig gets the configuration for the given deployment
-func (d *dataSet) GetDeploymentConfig(controller *kapi.ReplicationController) (*deployapi.DeploymentConfig, bool, error) {
-	name := deployutil.DeploymentConfigNameFor(controller)
+func (d *dataSet) GetDeploymentConfig(controller *kapi.ReplicationController) (*appsapi.DeploymentConfig, bool, error) {
+	name := appsutil.DeploymentConfigNameFor(controller)
 	if len(name) == 0 {
 		return nil, false, nil
 	}
 
-	var deploymentConfig *deployapi.DeploymentConfig
-	key := &deployapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: controller.Namespace}}
+	var deploymentConfig *appsapi.DeploymentConfig
+	key := &appsapi.DeploymentConfig{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: controller.Namespace}}
 	item, exists, err := d.deploymentConfigStore.Get(key)
 	if exists {
-		deploymentConfig = item.(*deployapi.DeploymentConfig)
+		deploymentConfig = item.(*appsapi.DeploymentConfig)
 	}
 	return deploymentConfig, exists, err
 }
 
 // ListDeploymentConfigs returns a list of DeploymentConfigs
-func (d *dataSet) ListDeploymentConfigs() ([]*deployapi.DeploymentConfig, error) {
-	results := []*deployapi.DeploymentConfig{}
+func (d *dataSet) ListDeploymentConfigs() ([]*appsapi.DeploymentConfig, error) {
+	results := []*appsapi.DeploymentConfig{}
 	for _, item := range d.deploymentConfigStore.List() {
-		results = append(results, item.(*deployapi.DeploymentConfig))
+		results = append(results, item.(*appsapi.DeploymentConfig))
 	}
 	return results, nil
 }
@@ -140,12 +140,12 @@ func (d *dataSet) ListDeployments() ([]*kapi.ReplicationController, error) {
 }
 
 // ListDeploymentsByDeploymentConfig returns a list of deployments for the provided configuration
-func (d *dataSet) ListDeploymentsByDeploymentConfig(deploymentConfig *deployapi.DeploymentConfig) ([]*kapi.ReplicationController, error) {
+func (d *dataSet) ListDeploymentsByDeploymentConfig(deploymentConfig *appsapi.DeploymentConfig) ([]*kapi.ReplicationController, error) {
 	results := []*kapi.ReplicationController{}
 	key := &kapi.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   deploymentConfig.Namespace,
-			Annotations: map[string]string{deployapi.DeploymentConfigAnnotation: deploymentConfig.Name},
+			Annotations: map[string]string{appsapi.DeploymentConfigAnnotation: deploymentConfig.Name},
 		},
 	}
 	items, err := d.deploymentIndexer.Index("deploymentConfig", key)

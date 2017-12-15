@@ -39,7 +39,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -49,7 +49,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 
-	deployv1 "github.com/openshift/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -59,7 +59,7 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
 
-	deployconversionv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	appsconversionv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	authorizationconversionv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildconversionv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageconversionv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
@@ -313,15 +313,15 @@ func init() {
 				return true, templateconversionv1.Convert_template_BrokerTemplateInstanceList_To_v1_BrokerTemplateInstanceList(a, b, s)
 			}
 
-		case *deployv1.DeploymentConfig:
+		case *appsv1.DeploymentConfig:
 			switch b := objB.(type) {
-			case *deployapi.DeploymentConfig:
-				return true, deployconversionv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(a, b, s)
+			case *appsapi.DeploymentConfig:
+				return true, appsconversionv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(a, b, s)
 			}
-		case *deployapi.DeploymentConfig:
+		case *appsapi.DeploymentConfig:
 			switch b := objB.(type) {
-			case *deployv1.DeploymentConfig:
-				return true, deployconversionv1.Convert_apps_DeploymentConfig_To_v1_DeploymentConfig(a, b, s)
+			case *appsv1.DeploymentConfig:
+				return true, appsconversionv1.Convert_apps_DeploymentConfig_To_v1_DeploymentConfig(a, b, s)
 			}
 
 		case *imagev1.ImageStream:

@@ -21,9 +21,9 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/util"
@@ -34,7 +34,7 @@ const hookContainerName = "lifecycle"
 
 // HookExecutor knows how to execute a deployment lifecycle hook.
 type HookExecutor interface {
-	Execute(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error
+	Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error
 }
 
 // hookExecutor implements the HookExecutor interface.
@@ -78,7 +78,7 @@ func NewHookExecutor(pods kcoreclient.PodsGetter, tags imageclient.ImageStreamTa
 
 // Execute executes hook in the context of deployment. The suffix is used to
 // distinguish the kind of hook (e.g. pre, post).
-func (e *hookExecutor) Execute(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+func (e *hookExecutor) Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
 	var err error
 	switch {
 	case len(hook.TagImages) > 0:
@@ -106,11 +106,11 @@ func (e *hookExecutor) Execute(hook *deployapi.LifecycleHook, rc *kapi.Replicati
 
 	// Retry failures are treated the same as Abort.
 	switch hook.FailurePolicy {
-	case deployapi.LifecycleHookFailurePolicyAbort, deployapi.LifecycleHookFailurePolicyRetry:
+	case appsapi.LifecycleHookFailurePolicyAbort, appsapi.LifecycleHookFailurePolicyRetry:
 		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name))
 		return fmt.Errorf("the %s hook failed: %v, aborting rollout of %s/%s", label, err, rc.Namespace, rc.Name)
-	case deployapi.LifecycleHookFailurePolicyIgnore:
+	case appsapi.LifecycleHookFailurePolicyIgnore:
 		strategyutil.RecordConfigEvent(e.events, rc, e.decoder, kapi.EventTypeWarning, "Failed",
 			fmt.Sprintf("The %s-hook failed: %v (ignore), rollout of %s/%s will continue", label, err, rc.Namespace, rc.Name))
 		return nil
@@ -134,7 +134,7 @@ func findContainerImage(rc *kapi.ReplicationController, containerName string) (s
 
 // tagImages tags images as part of the lifecycle of a rc. It uses an ImageStreamTag client
 // which will provision an ImageStream if it doesn't already exist.
-func (e *hookExecutor) tagImages(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+func (e *hookExecutor) tagImages(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
 	var errs []error
 	for _, action := range hook.TagImages {
 		value, ok := findContainerImage(rc, action.ContainerName)
@@ -176,13 +176,13 @@ func (e *hookExecutor) tagImages(hook *deployapi.LifecycleHook, rc *kapi.Replica
 //   * Environment (hook keys take precedence)
 //   * Working directory
 //   * Resources
-func (e *hookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
-	config, err := deployutil.DecodeDeploymentConfig(rc, e.decoder)
+func (e *hookExecutor) executeExecNewPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+	config, err := appsutil.DecodeDeploymentConfig(rc, e.decoder)
 	if err != nil {
 		return err
 	}
 
-	deployerPod, err := e.pods.Pods(rc.Namespace).Get(deployutil.DeployerPodNameForDeployment(rc.Name), metav1.GetOptions{})
+	deployerPod, err := e.pods.Pods(rc.Namespace).Get(appsutil.DeployerPodNameForDeployment(rc.Name), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (e *hookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
 }
 
 // makeHookPod makes a pod spec from a hook and replication controller.
-func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, strategy *deployapi.DeploymentStrategy, suffix string, startTime time.Time) (*kapi.Pod, error) {
+func makeHookPod(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, strategy *appsapi.DeploymentStrategy, suffix string, startTime time.Time) (*kapi.Pod, error) {
 	exec := hook.ExecNewPod
 	var baseContainer *kapi.Container
 	for _, container := range rc.Spec.Template.Spec.Containers {
@@ -339,7 +339,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 	}
 
 	// Assigning to a variable since its address is required
-	defaultActiveDeadline := deployapi.MaxDeploymentDurationSeconds
+	defaultActiveDeadline := appsapi.MaxDeploymentDurationSeconds
 	if strategy.ActiveDeadlineSeconds != nil {
 		defaultActiveDeadline = *(strategy.ActiveDeadlineSeconds)
 	}
@@ -347,7 +347,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 
 	// Let the kubelet manage retries if requested
 	restartPolicy := kapi.RestartPolicyNever
-	if hook.FailurePolicy == deployapi.LifecycleHookFailurePolicyRetry {
+	if hook.FailurePolicy == appsapi.LifecycleHookFailurePolicyRetry {
 		restartPolicy = kapi.RestartPolicyOnFailure
 	}
 
@@ -389,11 +389,11 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: apihelpers.GetPodName(rc.Name, suffix),
 			Annotations: map[string]string{
-				deployapi.DeploymentAnnotation: rc.Name,
+				appsapi.DeploymentAnnotation: rc.Name,
 			},
 			Labels: map[string]string{
-				deployapi.DeploymentPodTypeLabel:        suffix,
-				deployapi.DeployerPodForDeploymentLabel: rc.Name,
+				appsapi.DeploymentPodTypeLabel:        suffix,
+				appsapi.DeployerPodForDeploymentLabel: rc.Name,
 			},
 		},
 		Spec: kapi.PodSpec{

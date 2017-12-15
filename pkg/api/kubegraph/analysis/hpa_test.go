@@ -7,7 +7,7 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	"github.com/openshift/origin/pkg/api/kubegraph"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph"
 )
 
 func TestHPAMissingCPUTargetError(t *testing.T) {
@@ -62,7 +62,7 @@ func TestOverlappingHPAsWarning(t *testing.T) {
 	}
 
 	kubegraph.AddHPAScaleRefEdges(g)
-	deploygraph.AddAllDeploymentEdges(g)
+	appsgraph.AddAllDeploymentEdges(g)
 
 	markers := FindOverlappingHPAs(g, osgraph.DefaultNamer)
 	if len(markers) != 8 {
@@ -87,7 +87,7 @@ func TestOverlappingLegacyHPAsWarning(t *testing.T) {
 	}
 
 	kubegraph.AddHPAScaleRefEdges(g)
-	deploygraph.AddAllDeploymentEdges(g)
+	appsgraph.AddAllDeploymentEdges(g)
 
 	markers := FindOverlappingHPAs(g, osgraph.DefaultNamer)
 	if len(markers) != 8 {

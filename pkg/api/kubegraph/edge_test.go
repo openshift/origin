@@ -16,9 +16,9 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 )
 
 type objectifier interface {
@@ -186,13 +186,13 @@ func TestHPADCEdges(t *testing.T) {
 		},
 	}
 
-	dc := &deployapi.DeploymentConfig{}
+	dc := &appsapi.DeploymentConfig{}
 	dc.Name = "test-dc"
 	dc.Namespace = "test-ns"
 
 	g := osgraph.New()
 	hpaNode := kubegraph.EnsureHorizontalPodAutoscalerNode(g, hpa)
-	dcNode := deploygraph.EnsureDeploymentConfigNode(g, dc)
+	dcNode := appsgraph.EnsureDeploymentConfigNode(g, dc)
 
 	AddHPAScaleRefEdges(g)
 

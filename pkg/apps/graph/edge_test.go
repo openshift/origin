@@ -12,7 +12,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	nodes "github.com/openshift/origin/pkg/apps/graph/nodes"
 )
 
@@ -24,7 +24,7 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 	g := osgraph.New()
 
 	fn := func(namespace string, g osgraph.Interface) {
-		dc := &deployapi.DeploymentConfig{}
+		dc := &appsapi.DeploymentConfig{}
 		dc.Namespace = namespace
 		dc.Name = "the-dc"
 		dc.Spec.Selector = map[string]string{"a": "1"}
@@ -33,7 +33,7 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 		rc := &kapi.ReplicationController{}
 		rc.Namespace = namespace
 		rc.Name = "the-rc"
-		rc.Annotations = map[string]string{deployapi.DeploymentConfigAnnotation: "the-dc"}
+		rc.Annotations = map[string]string{appsapi.DeploymentConfigAnnotation: "the-dc"}
 		kubegraph.EnsureReplicationControllerNode(g, rc)
 	}
 

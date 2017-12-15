@@ -36,7 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/categories"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -906,7 +906,7 @@ func TestNewAppRunAll(t *testing.T) {
 				case *imageapi.ImageStream:
 					got["imageStream"] = append(got["imageStream"], tp.Name)
 					imageStreams = append(imageStreams, tp)
-				case *deployapi.DeploymentConfig:
+				case *appsapi.DeploymentConfig:
 					got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
 					if podTemplate := tp.Spec.Template; podTemplate != nil {
 						for _, volume := range podTemplate.Spec.Volumes {

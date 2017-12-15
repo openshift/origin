@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion/apps/internalversion"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	metrics "github.com/openshift/origin/pkg/apps/metrics/prometheus"
@@ -97,15 +97,15 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {
-	dc := obj.(*deployapi.DeploymentConfig)
+	dc := obj.(*appsapi.DeploymentConfig)
 	glog.V(4).Infof("Adding deployment config %q", dc.Name)
 	c.enqueueDeploymentConfig(dc)
 }
 
 func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}) {
 	// A periodic relist will send update events for all known configs.
-	newDc := cur.(*deployapi.DeploymentConfig)
-	oldDc := old.(*deployapi.DeploymentConfig)
+	newDc := cur.(*appsapi.DeploymentConfig)
+	oldDc := old.(*appsapi.DeploymentConfig)
 	if newDc.ResourceVersion == oldDc.ResourceVersion {
 		return
 	}
@@ -115,14 +115,14 @@ func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}
 }
 
 func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
-	dc, ok := obj.(*deployapi.DeploymentConfig)
+	dc, ok := obj.(*appsapi.DeploymentConfig)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %+v", obj))
 			return
 		}
-		dc, ok = tombstone.Obj.(*deployapi.DeploymentConfig)
+		dc, ok = tombstone.Obj.(*appsapi.DeploymentConfig)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a deployment config: %+v", obj))
 			return
@@ -173,7 +173,7 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 	}
 }
 
-func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *deployapi.DeploymentConfig) {
+func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *appsapi.DeploymentConfig) {
 	key, err := kcontroller.KeyFunc(dc)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", dc, err))

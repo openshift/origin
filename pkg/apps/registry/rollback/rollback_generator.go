@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // RollbackGenerator generates a new deployment config by merging a pair of deployment
@@ -19,7 +19,7 @@ type RollbackGenerator interface {
 	//
 	// Any image change triggers on the new config are disabled to prevent
 	// triggered deployments from immediately replacing the rollback.
-	GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
+	GenerateRollback(from, to *appsapi.DeploymentConfig, spec *appsapi.DeploymentConfigRollbackSpec) (*appsapi.DeploymentConfig, error)
 }
 
 // NewRollbackGenerator returns a new rollback generator.
@@ -29,8 +29,8 @@ func NewRollbackGenerator() RollbackGenerator {
 
 type rollbackGenerator struct{}
 
-func (g *rollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
-	rollback := &deployapi.DeploymentConfig{}
+func (g *rollbackGenerator) GenerateRollback(from, to *appsapi.DeploymentConfig, spec *appsapi.DeploymentConfigRollbackSpec) (*appsapi.DeploymentConfig, error) {
+	rollback := &appsapi.DeploymentConfig{}
 
 	if err := legacyscheme.Scheme.Convert(&from, &rollback, nil); err != nil {
 		return nil, fmt.Errorf("couldn't clone 'from' DeploymentConfig: %v", err)
@@ -65,7 +65,7 @@ func (g *rollbackGenerator) GenerateRollback(from, to *deployapi.DeploymentConfi
 
 	// Disable any image change triggers.
 	for _, trigger := range rollback.Spec.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+		if trigger.Type == appsapi.DeploymentTriggerOnImageChange {
 			trigger.ImageChangeParams.Automatic = false
 		}
 	}

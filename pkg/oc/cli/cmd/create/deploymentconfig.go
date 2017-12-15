@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -32,7 +32,7 @@ var (
 )
 
 type CreateDeploymentConfigOptions struct {
-	DC     *deployapi.DeploymentConfig
+	DC     *appsapi.DeploymentConfig
 	Client appsinternalversion.DeploymentConfigsGetter
 
 	DryRun bool
@@ -80,9 +80,9 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 	labels := map[string]string{"deployment-config.name": args[0]}
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
-	o.DC = &deployapi.DeploymentConfig{
+	o.DC = &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: args[0]},
-		Spec: deployapi.DeploymentConfigSpec{
+		Spec: appsapi.DeploymentConfigSpec{
 			Selector: labels,
 			Replicas: 1,
 			Template: &kapi.PodTemplateSpec{

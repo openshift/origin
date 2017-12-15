@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 )
 
@@ -53,9 +53,9 @@ func (s strategy) Export(ctx apirequest.Context, obj runtime.Object, exact bool)
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	dc := obj.(*deployapi.DeploymentConfig)
+	dc := obj.(*appsapi.DeploymentConfig)
 	dc.Generation = 1
-	dc.Status = deployapi.DeploymentConfigStatus{}
+	dc.Status = appsapi.DeploymentConfigStatus{}
 
 	for i := range dc.Spec.Triggers {
 		if params := dc.Spec.Triggers[i].ImageChangeParams; params != nil {
@@ -66,8 +66,8 @@ func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newDc := obj.(*deployapi.DeploymentConfig)
-	oldDc := old.(*deployapi.DeploymentConfig)
+	newDc := obj.(*appsapi.DeploymentConfig)
+	oldDc := old.(*appsapi.DeploymentConfig)
 
 	newVersion := newDc.Status.LatestVersion
 	oldVersion := oldDc.Status.LatestVersion
@@ -97,12 +97,12 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new policy.
 func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateDeploymentConfig(obj.(*deployapi.DeploymentConfig))
+	return validation.ValidateDeploymentConfig(obj.(*appsapi.DeploymentConfig))
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateDeploymentConfigUpdate(obj.(*deployapi.DeploymentConfig), old.(*deployapi.DeploymentConfig))
+	return validation.ValidateDeploymentConfigUpdate(obj.(*appsapi.DeploymentConfig), old.(*appsapi.DeploymentConfig))
 }
 
 // CheckGracefulDelete allows a deployment config to be gracefully deleted.
@@ -136,7 +136,7 @@ type groupStrategy struct {
 func (s groupStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	s.strategy.PrepareForCreate(ctx, obj)
 
-	dc := obj.(*deployapi.DeploymentConfig)
+	dc := obj.(*appsapi.DeploymentConfig)
 	appsV1DeploymentConfigLayeredDefaults(dc)
 }
 
@@ -149,24 +149,24 @@ var StatusStrategy = statusStrategy{CommonStrategy}
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update of status.
 func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newDc := obj.(*deployapi.DeploymentConfig)
-	oldDc := old.(*deployapi.DeploymentConfig)
+	newDc := obj.(*appsapi.DeploymentConfig)
+	oldDc := old.(*appsapi.DeploymentConfig)
 	newDc.Spec = oldDc.Spec
 	newDc.Labels = oldDc.Labels
 }
 
 // ValidateUpdate is the default update validation for an end user updating status.
 func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*deployapi.DeploymentConfig), old.(*deployapi.DeploymentConfig))
+	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*appsapi.DeploymentConfig), old.(*appsapi.DeploymentConfig))
 }
 
 // Applies defaults only for API group "apps.openshift.io" and not for the legacy API.
 // This function is called from storage layer where differentiation
 // between legacy and group API can be made and is not related to other functions here
 // which are called fom auto-generated code.
-func appsV1DeploymentConfigLayeredDefaults(dc *deployapi.DeploymentConfig) {
+func appsV1DeploymentConfigLayeredDefaults(dc *appsapi.DeploymentConfig) {
 	if dc.Spec.RevisionHistoryLimit == nil {
-		v := deployapi.DefaultRevisionHistoryLimit
+		v := appsapi.DefaultRevisionHistoryLimit
 		dc.Spec.RevisionHistoryLimit = &v
 	}
 }

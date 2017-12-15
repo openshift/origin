@@ -17,7 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
@@ -268,10 +268,10 @@ func getController(pod *kapi.Pod) string {
 	if bc, ok := pod.Annotations[buildapi.BuildAnnotation]; ok {
 		return fmt.Sprintf("Build: %s/%s", pod.Namespace, bc)
 	}
-	if dc, ok := pod.Annotations[deployapi.DeploymentAnnotation]; ok {
+	if dc, ok := pod.Annotations[appsapi.DeploymentAnnotation]; ok {
 		return fmt.Sprintf("Deployment: %s/%s", pod.Namespace, dc)
 	}
-	if dc, ok := pod.Annotations[deployapi.DeploymentPodAnnotation]; ok {
+	if dc, ok := pod.Annotations[appsapi.DeploymentPodAnnotation]; ok {
 		return fmt.Sprintf("Deployer: %s/%s", pod.Namespace, dc)
 	}
 

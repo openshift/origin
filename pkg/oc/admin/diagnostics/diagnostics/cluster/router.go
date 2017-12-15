@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"k8s.io/kubernetes/pkg/apis/authorization"
@@ -98,7 +98,7 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 	can, err := userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Namespace: metav1.NamespaceDefault,
 		Verb:      "get",
-		Group:     deployapi.GroupName,
+		Group:     appsapi.GroupName,
 		Resource:  "deploymentconfigs",
 		Name:      routerName,
 	})
@@ -124,7 +124,7 @@ func (d *ClusterRouter) Check() types.DiagnosticResult {
 	return r
 }
 
-func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.DeploymentConfig {
+func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *appsapi.DeploymentConfig {
 	dc, err := d.DCClient.DeploymentConfigs(metav1.NamespaceDefault).Get(routerName, metav1.GetOptions{})
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warn("DClu2001", err, fmt.Sprintf(clGetRtNone, routerName))
@@ -137,7 +137,7 @@ func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.Deploym
 	return dc
 }
 
-func (d *ClusterRouter) getRouterPods(dc *deployapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
+func (d *ClusterRouter) getRouterPods(dc *appsapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
 	pods, err := d.KubeClient.Core().Pods(metav1.NamespaceDefault).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector).String()})
 	if err != nil {
 		r.Error("DClu2004", err, fmt.Sprintf("Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err))

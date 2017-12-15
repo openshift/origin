@@ -5,7 +5,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
-	deployedges "github.com/openshift/origin/pkg/apps/graph"
+	appsedges "github.com/openshift/origin/pkg/apps/graph"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 )
@@ -16,7 +16,7 @@ func TestMissingImageStreamTag(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	buildedges.AddAllInputOutputEdges(g)
-	deployedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 	imageedges.AddAllImageStreamImageRefEdges(g)
 
@@ -36,7 +36,7 @@ func TestMissingImageStream(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	buildedges.AddAllInputOutputEdges(g)
-	deployedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 	imageedges.AddAllImageStreamImageRefEdges(g)
 
@@ -56,7 +56,7 @@ func TestMissingReadinessProbe(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	buildedges.AddAllInputOutputEdges(g)
-	deployedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
 	markers := FindDeploymentConfigReadinessWarnings(g, osgraph.DefaultNamer, "command probe")
@@ -74,7 +74,7 @@ func TestSingleHostVolumeError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	deployedges.AddAllVolumeClaimEdges(g)
+	appsedges.AddAllVolumeClaimEdges(g)
 
 	markers := FindPersistentVolumeClaimWarnings(g, osgraph.DefaultNamer)
 	if e, a := 1, len(markers); e != a {

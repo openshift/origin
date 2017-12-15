@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 	"k8s.io/kubernetes/pkg/registry/core/serviceaccount"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployrest "github.com/openshift/origin/pkg/apps/registry/deployconfig"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildrest "github.com/openshift/origin/pkg/build/registry/build"
@@ -145,7 +145,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		}
 		t.Secrets = newMountableSecrets
 
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		return deployrest.CommonStrategy.Export(ctx, obj, exact)
 
 	case *buildapi.BuildConfig:

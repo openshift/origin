@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -316,7 +316,7 @@ type DeploymentConfigRef struct {
 // DeploymentConfig creates a deploymentConfig resource from the deployment configuration reference
 //
 // TODO: take a pod template spec as argument
-func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, error) {
+func (r *DeploymentConfigRef) DeploymentConfig() (*appsapi.DeploymentConfig, error) {
 	if len(r.Name) == 0 {
 		suggestions := NameSuggestions{}
 		for i := range r.Images {
@@ -338,10 +338,10 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		}
 	}
 
-	triggers := []deployapi.DeploymentTriggerPolicy{
+	triggers := []appsapi.DeploymentTriggerPolicy{
 		// By default, always deploy on change
 		{
-			Type: deployapi.DeploymentTriggerOnConfigChange,
+			Type: appsapi.DeploymentTriggerOnConfigChange,
 		},
 	}
 
@@ -371,11 +371,11 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 		template.Containers[i].Env = append(template.Containers[i].Env, r.Env.List()...)
 	}
 
-	dc := &deployapi.DeploymentConfig{
+	dc := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: r.Name,
 		},
-		Spec: deployapi.DeploymentConfigSpec{
+		Spec: appsapi.DeploymentConfigSpec{
 			Replicas: 1,
 			Test:     r.AsTest,
 			Selector: selector,
@@ -391,9 +391,9 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 	if r.PostHook != nil {
 		//dc.Spec.Strategy.Type = "Rolling"
 		if len(r.PostHook.Shell) > 0 {
-			dc.Spec.Strategy.RecreateParams = &deployapi.RecreateDeploymentStrategyParams{
-				Post: &deployapi.LifecycleHook{
-					ExecNewPod: &deployapi.ExecNewPodHook{
+			dc.Spec.Strategy.RecreateParams = &appsapi.RecreateDeploymentStrategyParams{
+				Post: &appsapi.LifecycleHook{
+					ExecNewPod: &appsapi.ExecNewPodHook{
 						Command: []string{"/bin/sh", "-c", r.PostHook.Shell},
 					},
 				},

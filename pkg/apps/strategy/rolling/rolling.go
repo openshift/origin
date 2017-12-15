@@ -18,11 +18,11 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
@@ -117,9 +117,9 @@ func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface,
 }
 
 func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int) error {
-	config, err := deployutil.DecodeDeploymentConfig(to, s.decoder)
+	config, err := appsutil.DecodeDeploymentConfig(to, s.decoder)
 	if err != nil {
-		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", deployutil.LabelForDeployment(to), err)
+		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", appsutil.LabelForDeployment(to), err)
 	}
 
 	params := config.Spec.Strategy.RollingParams
@@ -133,7 +133,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if from == nil {
 		// Execute any pre-hook.
 		if params.Pre != nil {
-			if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix, "pre"); err != nil {
+			if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
 				return fmt.Errorf("Pre hook failed: %s", err)
 			}
 		}
@@ -146,7 +146,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 		// Execute any post-hook. Errors are logged and ignored.
 		if params.Post != nil {
-			if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix, "post"); err != nil {
+			if err := s.hookExecutor.Execute(params.Post, to, appsapi.PostHookPodSuffix, "post"); err != nil {
 				return fmt.Errorf("post hook failed: %s", err)
 			}
 		}
@@ -162,7 +162,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// Prepare for a rolling update.
 	// Execute any pre-hook.
 	if params.Pre != nil {
-		if err := s.hookExecutor.Execute(params.Pre, to, deployapi.PreHookPodSuffix, "pre"); err != nil {
+		if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
 			return fmt.Errorf("pre hook failed: %s", err)
 		}
 	}
@@ -247,7 +247,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 
 	// Execute any post-hook.
 	if params.Post != nil {
-		if err := s.hookExecutor.Execute(params.Post, to, deployapi.PostHookPodSuffix, "post"); err != nil {
+		if err := s.hookExecutor.Execute(params.Post, to, appsapi.PostHookPodSuffix, "post"); err != nil {
 			return fmt.Errorf("post hook failed: %s", err)
 		}
 	}

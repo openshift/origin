@@ -13,7 +13,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -228,8 +228,8 @@ func TestTransform(t *testing.T) {
 					},
 				},
 				{
-					obj: &deployapi.DeploymentConfig{
-						Spec: deployapi.DeploymentConfigSpec{
+					obj: &appsapi.DeploymentConfig{
+						Spec: appsapi.DeploymentConfigSpec{
 							Template: &kapi.PodTemplateSpec{
 								Spec: kapi.PodSpec{
 									Containers: []kapi.Container{
@@ -241,8 +241,8 @@ func TestTransform(t *testing.T) {
 						},
 					},
 					changed: true,
-					expected: &deployapi.DeploymentConfig{
-						Spec: deployapi.DeploymentConfigSpec{
+					expected: &appsapi.DeploymentConfig{
+						Spec: appsapi.DeploymentConfigSpec{
 							Template: &kapi.PodTemplateSpec{
 								Spec: kapi.PodSpec{
 									Containers: []kapi.Container{
@@ -663,7 +663,7 @@ func roundTrip(in runtime.Object) (runtime.Object, error) {
 		}
 		t.Spec.Template.Spec = *internal
 		return t, nil
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		external := &v1.PodSpec{}
 		if err := legacyscheme.Scheme.Convert(&t.Spec.Template.Spec, external, nil); err != nil {
 			return nil, err

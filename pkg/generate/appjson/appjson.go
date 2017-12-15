@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -305,7 +305,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 	var services []*kapi.Service
 	for _, obj := range objects {
 		switch t := obj.(type) {
-		case *deployapi.DeploymentConfig:
+		case *appsapi.DeploymentConfig:
 			ports := app.UniqueContainerToServicePorts(app.AllContainerPorts(t.Spec.Template.Spec.Containers...))
 			if len(ports) == 0 {
 				continue

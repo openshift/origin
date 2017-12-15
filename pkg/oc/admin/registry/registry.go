@@ -28,7 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
 )
@@ -428,16 +428,16 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 			},
 		})
 	} else {
-		objects = append(objects, &deployapi.DeploymentConfig{
+		objects = append(objects, &appsapi.DeploymentConfig{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
 				Labels: opts.label,
 			},
-			Spec: deployapi.DeploymentConfigSpec{
+			Spec: appsapi.DeploymentConfigSpec{
 				Replicas: opts.Config.Replicas,
 				Selector: opts.label,
-				Triggers: []deployapi.DeploymentTriggerPolicy{
-					{Type: deployapi.DeploymentTriggerOnConfigChange},
+				Triggers: []appsapi.DeploymentTriggerPolicy{
+					{Type: appsapi.DeploymentTriggerOnConfigChange},
 				},
 				Template: podTemplate,
 			},

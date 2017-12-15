@@ -3,7 +3,7 @@ package test
 import (
 	"sync"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,8 +13,8 @@ import (
 
 type DeploymentConfigRegistry struct {
 	Err               error
-	DeploymentConfig  *deployapi.DeploymentConfig
-	DeploymentConfigs *deployapi.DeploymentConfigList
+	DeploymentConfig  *appsapi.DeploymentConfig
+	DeploymentConfigs *appsapi.DeploymentConfigList
 	sync.Mutex
 }
 
@@ -22,21 +22,21 @@ func NewDeploymentConfigRegistry() *DeploymentConfigRegistry {
 	return &DeploymentConfigRegistry{}
 }
 
-func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx apirequest.Context, label labels.Selector, field fields.Selector) (*deployapi.DeploymentConfigList, error) {
+func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx apirequest.Context, label labels.Selector, field fields.Selector) (*appsapi.DeploymentConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfigs, r.Err
 }
 
-func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
+func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx apirequest.Context, id string) (*appsapi.DeploymentConfig, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfig, r.Err
 }
 
-func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx apirequest.Context, image *deployapi.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx apirequest.Context, image *appsapi.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -44,7 +44,7 @@ func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx apirequest.Context
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx apirequest.Context, image *deployapi.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx apirequest.Context, image *appsapi.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 

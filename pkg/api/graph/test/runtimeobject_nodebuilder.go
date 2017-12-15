@@ -16,8 +16,8 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	_ "github.com/openshift/origin/pkg/api/install"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -36,7 +36,7 @@ func init() {
 	if err := RegisterEnsureNode(&imageapi.ImageStream{}, imagegraph.EnsureImageStreamNode); err != nil {
 		panic(err)
 	}
-	if err := RegisterEnsureNode(&deployapi.DeploymentConfig{}, deploygraph.EnsureDeploymentConfigNode); err != nil {
+	if err := RegisterEnsureNode(&appsapi.DeploymentConfig{}, appsgraph.EnsureDeploymentConfigNode); err != nil {
 		panic(err)
 	}
 	if err := RegisterEnsureNode(&buildapi.BuildConfig{}, buildgraph.EnsureBuildConfigNode); err != nil {
