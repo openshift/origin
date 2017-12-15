@@ -8,8 +8,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/google/cadvisor/container/crio"
-
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -99,14 +97,14 @@ func setupCrioSocket(pod *v1.Pod) {
 		Name: "crio-socket",
 		VolumeSource: v1.VolumeSource{
 			HostPath: &v1.HostPathVolumeSource{
-				Path: crio.CrioSocket,
+				Path: "/var/run/crio/crio.sock",
 			},
 		},
 	}
 
 	crioSocketVolumeMount := v1.VolumeMount{
 		Name:      "crio-socket",
-		MountPath: crio.CrioSocket,
+		MountPath: "/var/run/crio/crio.sock",
 	}
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
