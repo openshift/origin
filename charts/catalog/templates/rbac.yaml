@@ -95,7 +95,7 @@ items:
     resources: ["clusterservicebrokers","serviceinstances","servicebindings"]
     verbs:     ["get","list","watch"]
   - apiGroups: ["servicecatalog.k8s.io"]
-    resources: ["clusterservicebrokers/status","serviceinstances/status","serviceinstances/reference","servicebindings/status"]
+    resources: ["clusterservicebrokers/status","clusterserviceclasses/status","clusterserviceplans/status","serviceinstances/status","serviceinstances/reference","servicebindings/status"]
     verbs:     ["update"]
 # give the controller-manager service account access to whats defined in its role.
 - apiVersion: {{template "rbacApiVersion" . }}

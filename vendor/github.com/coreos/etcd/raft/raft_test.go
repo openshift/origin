@@ -1908,66 +1908,70 @@ func TestReadOnlyOptionLeaseWithoutCheckQuorum(t *testing.T) {
 // TestReadOnlyForNewLeader ensures that a leader only accepts MsgReadIndex message
 // when it commits at least one log entry at it term.
 func TestReadOnlyForNewLeader(t *testing.T) {
-	cfg := newTestConfig(1, []uint64{1, 2, 3}, 10, 1,
-		&MemoryStorage{
-			ents:      []pb.Entry{{}, {Index: 1, Term: 1}, {Index: 2, Term: 1}},
-			hardState: pb.HardState{Commit: 1, Term: 1},
-		})
-	cfg.Applied = 1
-	a := newRaft(cfg)
-	cfg = newTestConfig(2, []uint64{1, 2, 3}, 10, 1,
-		&MemoryStorage{
-			ents:      []pb.Entry{{Index: 1, Term: 1}, {Index: 2, Term: 1}},
-			hardState: pb.HardState{Commit: 2, Term: 1},
-		})
-	cfg.Applied = 2
-	b := newRaft(cfg)
-	cfg = newTestConfig(2, []uint64{1, 2, 3}, 10, 1,
-		&MemoryStorage{
-			ents:      []pb.Entry{{Index: 1, Term: 1}, {Index: 2, Term: 1}},
-			hardState: pb.HardState{Commit: 2, Term: 1},
-		})
-	cfg.Applied = 2
-	c := newRaft(cfg)
-	nt := newNetwork(a, b, c)
+	nodeConfigs := []struct {
+		id            uint64
+		committed     uint64
+		applied       uint64
+		compact_index uint64
+	}{
+		{1, 1, 1, 0},
+		{2, 2, 2, 2},
+		{3, 2, 2, 2},
+	}
+	peers := make([]stateMachine, 0)
+	for _, c := range nodeConfigs {
+		storage := NewMemoryStorage()
+		storage.Append([]pb.Entry{{Index: 1, Term: 1}, {Index: 2, Term: 1}})
+		storage.SetHardState(pb.HardState{Term: 1, Commit: c.committed})
+		if c.compact_index != 0 {
+			storage.Compact(c.compact_index)
+		}
+		cfg := newTestConfig(c.id, []uint64{1, 2, 3}, 10, 1, storage)
+		cfg.Applied = c.applied
+		raft := newRaft(cfg)
+		peers = append(peers, raft)
+	}
+	nt := newNetwork(peers...)
 
 	// Drop MsgApp to forbid peer a to commit any log entry at its term after it becomes leader.
 	nt.ignore(pb.MsgApp)
 	// Force peer a to become leader.
 	nt.send(pb.Message{From: 1, To: 1, Type: pb.MsgHup})
-	if a.state != StateLeader {
-		t.Fatalf("state = %s, want %s", a.state, StateLeader)
+
+	sm := nt.peers[1].(*raft)
+	if sm.state != StateLeader {
+		t.Fatalf("state = %s, want %s", sm.state, StateLeader)
 	}
 
 	// Ensure peer a drops read only request.
 	var windex uint64 = 4
 	wctx := []byte("ctx")
 	nt.send(pb.Message{From: 1, To: 1, Type: pb.MsgReadIndex, Entries: []pb.Entry{{Data: wctx}}})
-	if len(a.readStates) != 0 {
-		t.Fatalf("len(readStates) = %d, want zero", len(a.readStates))
+	if len(sm.readStates) != 0 {
+		t.Fatalf("len(readStates) = %d, want zero", len(sm.readStates))
 	}
 
 	nt.recover()
 
 	// Force peer a to commit a log entry at its term
-	for i := 0; i < a.heartbeatTimeout; i++ {
-		a.tick()
+	for i := 0; i < sm.heartbeatTimeout; i++ {
+		sm.tick()
 	}
 	nt.send(pb.Message{From: 1, To: 1, Type: pb.MsgProp, Entries: []pb.Entry{{}}})
-	if a.raftLog.committed != 4 {
-		t.Fatalf("committed = %d, want 4", a.raftLog.committed)
+	if sm.raftLog.committed != 4 {
+		t.Fatalf("committed = %d, want 4", sm.raftLog.committed)
 	}
-	lastLogTerm := a.raftLog.zeroTermOnErrCompacted(a.raftLog.term(a.raftLog.committed))
-	if lastLogTerm != a.Term {
-		t.Fatalf("last log term = %d, want %d", lastLogTerm, a.Term)
+	lastLogTerm := sm.raftLog.zeroTermOnErrCompacted(sm.raftLog.term(sm.raftLog.committed))
+	if lastLogTerm != sm.Term {
+		t.Fatalf("last log term = %d, want %d", lastLogTerm, sm.Term)
 	}
 
 	// Ensure peer a accepts read only request after it commits a entry at its term.
 	nt.send(pb.Message{From: 1, To: 1, Type: pb.MsgReadIndex, Entries: []pb.Entry{{Data: wctx}}})
-	if len(a.readStates) != 1 {
-		t.Fatalf("len(readStates) = %d, want 1", len(a.readStates))
+	if len(sm.readStates) != 1 {
+		t.Fatalf("len(readStates) = %d, want 1", len(sm.readStates))
 	}
-	rs := a.readStates[0]
+	rs := sm.readStates[0]
 	if rs.Index != windex {
 		t.Fatalf("readIndex = %d, want %d", rs.Index, windex)
 	}
@@ -2558,6 +2562,41 @@ func TestAddNode(t *testing.T) {
 	wnodes := []uint64{1, 2}
 	if !reflect.DeepEqual(nodes, wnodes) {
 		t.Errorf("nodes = %v, want %v", nodes, wnodes)
+	}
+}
+
+// TestAddNodeCheckQuorum tests that addNode does not trigger a leader election
+// immediately when checkQuorum is set.
+func TestAddNodeCheckQuorum(t *testing.T) {
+	r := newTestRaft(1, []uint64{1}, 10, 1, NewMemoryStorage())
+	r.pendingConf = true
+	r.checkQuorum = true
+
+	r.becomeCandidate()
+	r.becomeLeader()
+
+	for i := 0; i < r.electionTimeout-1; i++ {
+		r.tick()
+	}
+
+	r.addNode(2)
+
+	// This tick will reach electionTimeout, which triggers a quorum check.
+	r.tick()
+
+	// Node 1 should still be the leader after a single tick.
+	if r.state != StateLeader {
+		t.Errorf("state = %v, want %v", r.state, StateLeader)
+	}
+
+	// After another electionTimeout ticks without hearing from node 2,
+	// node 1 should step down.
+	for i := 0; i < r.electionTimeout; i++ {
+		r.tick()
+	}
+
+	if r.state != StateFollower {
+		t.Errorf("state = %v, want %v", r.state, StateFollower)
 	}
 }
 

@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	corev1 "k8s.io/api/core/v1"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
@@ -40,6 +41,7 @@ import (
 	servicecatalogclientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1beta1"
 	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/externalversions/servicecatalog/v1beta1"
 	listers "github.com/kubernetes-incubator/service-catalog/pkg/client/listers_generated/servicecatalog/v1beta1"
+	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 	pretty "github.com/kubernetes-incubator/service-catalog/pkg/pretty"
 )
 
@@ -87,7 +89,8 @@ func NewController(
 		servicePlanQueue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-plan"),
 		instanceQueue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-instance"),
 		bindingQueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-binding"),
-		pollingQueue:                workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(pollingStartInterval, pollingMaxBackoffDuration), "poller"),
+		instancePollingQueue:        workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(pollingStartInterval, pollingMaxBackoffDuration), "instance-poller"),
+		bindingPollingQueue:         workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(pollingStartInterval, pollingMaxBackoffDuration), "binding-poller"),
 	}
 
 	controller.brokerLister = brokerInformer.Lister()
@@ -156,11 +159,8 @@ type controller struct {
 	servicePlanQueue            workqueue.RateLimitingInterface
 	instanceQueue               workqueue.RateLimitingInterface
 	bindingQueue                workqueue.RateLimitingInterface
-	// pollingQueue is separate from instanceQueue because we want
-	// it to have different backoff / timeout characteristics from
-	//  a reconciling of an instance.
-	// TODO(vaikas): get rid of two queues per instance.
-	pollingQueue workqueue.RateLimitingInterface
+	instancePollingQueue        workqueue.RateLimitingInterface
+	bindingPollingQueue         workqueue.RateLimitingInterface
 }
 
 // Run runs the controller until the given stop channel can be read from.
@@ -177,7 +177,11 @@ func (c *controller) Run(workers int, stopCh <-chan struct{}) {
 		createWorker(c.servicePlanQueue, "ClusterServicePlan", maxRetries, true, c.reconcileClusterServicePlanKey, stopCh, &waitGroup)
 		createWorker(c.instanceQueue, "ServiceInstance", maxRetries, true, c.reconcileServiceInstanceKey, stopCh, &waitGroup)
 		createWorker(c.bindingQueue, "ServiceBinding", maxRetries, true, c.reconcileServiceBindingKey, stopCh, &waitGroup)
-		createWorker(c.pollingQueue, "Poller", maxRetries, false, c.requeueServiceInstanceForPoll, stopCh, &waitGroup)
+		createWorker(c.instancePollingQueue, "InstancePoller", maxRetries, false, c.requeueServiceInstanceForPoll, stopCh, &waitGroup)
+
+		if utilfeature.DefaultFeatureGate.Enabled(scfeatures.AsyncBindingOperations) {
+			createWorker(c.bindingPollingQueue, "BindingPoller", maxRetries, false, c.requeueServiceBindingForPoll, stopCh, &waitGroup)
+		}
 	}
 
 	<-stopCh
@@ -188,7 +192,8 @@ func (c *controller) Run(workers int, stopCh <-chan struct{}) {
 	c.servicePlanQueue.ShutDown()
 	c.instanceQueue.ShutDown()
 	c.bindingQueue.ShutDown()
-	c.pollingQueue.ShutDown()
+	c.instancePollingQueue.ShutDown()
+	c.bindingPollingQueue.ShutDown()
 
 	waitGroup.Wait()
 }
@@ -500,6 +505,10 @@ func convertCatalog(in *osb.CatalogResponse) ([]*v1beta1.ClusterServiceClass, []
 				Description:   svc.Description,
 				Requires:      svc.Requires,
 			},
+		}
+
+		if utilfeature.DefaultFeatureGate.Enabled(scfeatures.AsyncBindingOperations) {
+			serviceClasses[i].Spec.BindingRetrievable = svc.BindingRetrievable
 		}
 
 		if svc.Metadata != nil {

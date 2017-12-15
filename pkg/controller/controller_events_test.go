@@ -23,7 +23,7 @@ import (
 
 func checkEventCounts(actual, expected []string) error {
 	if len(actual) != len(expected) {
-		return fmt.Errorf(expectedGot(len(expected), len(actual)))
+		return fmt.Errorf("Checking event count: %s", expectedGot(len(expected), len(actual)))
 	}
 	return nil
 }

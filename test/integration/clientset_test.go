@@ -1087,6 +1087,9 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 			Parameters: &runtime.RawExtension{Raw: []byte(bindingParameter)},
 			ExternalID: "UUID-string",
 		},
+		Status: v1beta1.ServiceBindingStatus{
+			UnbindStatus: v1beta1.ServiceBindingUnbindStatusNotRequired,
+		},
 	}
 
 	bindings, err := bindingClient.List(metav1.ListOptions{})
@@ -1183,7 +1186,8 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 		Message: "ConditionMessage",
 	}
 	bindingServer.Status = v1beta1.ServiceBindingStatus{
-		Conditions: []v1beta1.ServiceBindingCondition{readyConditionTrue},
+		Conditions:   []v1beta1.ServiceBindingCondition{readyConditionTrue},
+		UnbindStatus: v1beta1.ServiceBindingUnbindStatusNotRequired,
 	}
 	if _, err = bindingClient.UpdateStatus(bindingServer); err != nil {
 		return fmt.Errorf("Error updating binding: %v", err)

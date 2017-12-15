@@ -33,6 +33,13 @@ const (
 	// owner: @pmorie
 	// alpha: v1.7
 	OriginatingIdentity utilfeature.Feature = "OriginatingIdentity"
+
+	// AsyncBindingOperations controls whether the controller should
+	// attempt asynchronous binding operations
+	//
+	// owner: @mkibbe
+	// alpha: v1.7
+	AsyncBindingOperations utilfeature.Feature = "AsyncBindingOperations"
 )
 
 func init() {
@@ -44,5 +51,6 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 // The features will be available throughout service-catalog binaries.
 var defaultServiceCatalogFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
-	OriginatingIdentity: {Default: false, PreRelease: utilfeature.Alpha},
+	OriginatingIdentity:    {Default: false, PreRelease: utilfeature.Alpha},
+	AsyncBindingOperations: {Default: false, PreRelease: utilfeature.Alpha},
 }

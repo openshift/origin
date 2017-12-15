@@ -100,7 +100,7 @@ func TestBlockNewCredentialsForDeletedInstance(t *testing.T) {
 	if err == nil {
 		t.Errorf("Unexpected error: %v", err.Error())
 	} else {
-		if err.Error() != "servicebindings.servicecatalog.k8s.io \"test-cred\" is forbidden: ServiceBindings test-ns/test-cred references an instance that is being deleted: test-ns/test-instance" {
+		if err.Error() != "servicebindings.servicecatalog.k8s.io \"test-cred\" is forbidden: ServiceBinding test-ns/test-cred references a ServiceInstance that is being deleted: test-ns/test-instance" {
 			t.Fatalf("admission controller blocked the request but not with expected error, expected a forbidden error, got %q", err.Error())
 		}
 	}

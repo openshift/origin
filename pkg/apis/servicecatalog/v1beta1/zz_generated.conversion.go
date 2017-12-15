@@ -341,6 +341,7 @@ func autoConvert_v1beta1_ClusterServiceClassSpec_To_servicecatalog_ClusterServic
 	out.ExternalID = in.ExternalID
 	out.Description = in.Description
 	out.Bindable = in.Bindable
+	out.BindingRetrievable = in.BindingRetrievable
 	out.PlanUpdatable = in.PlanUpdatable
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
 	out.Tags = *(*[]string)(unsafe.Pointer(&in.Tags))
@@ -359,6 +360,7 @@ func autoConvert_servicecatalog_ClusterServiceClassSpec_To_v1beta1_ClusterServic
 	out.ExternalID = in.ExternalID
 	out.Description = in.Description
 	out.Bindable = in.Bindable
+	out.BindingRetrievable = in.BindingRetrievable
 	out.PlanUpdatable = in.PlanUpdatable
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
 	out.Tags = *(*[]string)(unsafe.Pointer(&in.Tags))
@@ -761,12 +763,15 @@ func Convert_servicecatalog_ServiceBindingSpec_To_v1beta1_ServiceBindingSpec(in 
 
 func autoConvert_v1beta1_ServiceBindingStatus_To_servicecatalog_ServiceBindingStatus(in *ServiceBindingStatus, out *servicecatalog.ServiceBindingStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]servicecatalog.ServiceBindingCondition)(unsafe.Pointer(&in.Conditions))
+	out.AsyncOpInProgress = in.AsyncOpInProgress
+	out.LastOperation = (*string)(unsafe.Pointer(in.LastOperation))
 	out.CurrentOperation = servicecatalog.ServiceBindingOperation(in.CurrentOperation)
 	out.ReconciledGeneration = in.ReconciledGeneration
 	out.OperationStartTime = (*v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	out.InProgressProperties = (*servicecatalog.ServiceBindingPropertiesState)(unsafe.Pointer(in.InProgressProperties))
 	out.ExternalProperties = (*servicecatalog.ServiceBindingPropertiesState)(unsafe.Pointer(in.ExternalProperties))
 	out.OrphanMitigationInProgress = in.OrphanMitigationInProgress
+	out.UnbindStatus = servicecatalog.ServiceBindingUnbindStatus(in.UnbindStatus)
 	return nil
 }
 
@@ -777,12 +782,15 @@ func Convert_v1beta1_ServiceBindingStatus_To_servicecatalog_ServiceBindingStatus
 
 func autoConvert_servicecatalog_ServiceBindingStatus_To_v1beta1_ServiceBindingStatus(in *servicecatalog.ServiceBindingStatus, out *ServiceBindingStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]ServiceBindingCondition)(unsafe.Pointer(&in.Conditions))
+	out.AsyncOpInProgress = in.AsyncOpInProgress
+	out.LastOperation = (*string)(unsafe.Pointer(in.LastOperation))
 	out.CurrentOperation = ServiceBindingOperation(in.CurrentOperation)
 	out.ReconciledGeneration = in.ReconciledGeneration
 	out.OperationStartTime = (*v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	out.InProgressProperties = (*ServiceBindingPropertiesState)(unsafe.Pointer(in.InProgressProperties))
 	out.ExternalProperties = (*ServiceBindingPropertiesState)(unsafe.Pointer(in.ExternalProperties))
 	out.OrphanMitigationInProgress = in.OrphanMitigationInProgress
+	out.UnbindStatus = ServiceBindingUnbindStatus(in.UnbindStatus)
 	return nil
 }
 
