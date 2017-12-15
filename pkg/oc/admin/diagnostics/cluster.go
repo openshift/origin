@@ -126,7 +126,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 // attempts to find which context in the config might be a cluster-admin for the server in the current context.
 func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*rest.Config, kclientset.Interface, bool, string, error) {
 	if o.ClientClusterContext != "" { // user has specified cluster context to use
-		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; exists {
+		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; !exists {
 			configErr := fmt.Errorf("Specified '%s' as cluster-admin context, but it was not found in your client configuration.", o.ClientClusterContext)
 			o.Logger.Error("CED1003", configErr.Error())
 			return nil, nil, false, "", configErr

@@ -137,7 +137,7 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 	// In Collection phase, results from each node are moved to the user machine where the CLI cmd is executed.
 
 	// TEST Phase: Run network diagnostic pod on all valid nodes in parallel
-	command := fmt.Sprintf("openshift infra network-diagnostic-pod -l %d", loglevel)
+	command := fmt.Sprintf("openshift-diagnostics network-diagnostic-pod -l %d", loglevel)
 	if err := d.runNetworkPod(command); err != nil {
 		d.res.Error("DNet2006", err, err.Error())
 		return
