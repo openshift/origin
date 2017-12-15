@@ -9,8 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -107,6 +110,60 @@ func TestAllowedGrouplessVersion(t *testing.T) {
 			t.Errorf("%s: expected GroupVersion.String() to be %q, got %q", apiVersion, apiVersion, groupVersion.String())
 			continue
 		}
+	}
+}
+
+func TestAllowedTypeCoercion(t *testing.T) {
+	ten := int64(10)
+
+	testcases := []struct {
+		name     string
+		input    []byte
+		into     runtime.Object
+		expected runtime.Object
+	}{
+		{
+			name: "string to number",
+			input: []byte(`{
+				"kind":"Pod",
+				"apiVersion":"v1",
+				"spec":{"activeDeadlineSeconds":"10"}
+			}`),
+			expected: &v1.Pod{
+				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
+				Spec:     v1.PodSpec{ActiveDeadlineSeconds: &ten},
+			},
+		},
+		{
+			name: "empty object to array",
+			input: []byte(`{
+				"kind":"Pod",
+				"apiVersion":"v1",
+				"spec":{"containers":{}}
+			}`),
+			expected: &v1.Pod{
+				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
+				Spec:     v1.PodSpec{Containers: []v1.Container{}},
+			},
+		},
+	}
+
+	for i := range testcases {
+		func(i int) {
+			tc := testcases[i]
+			t.Run(tc.name, func(t *testing.T) {
+				s := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, api.Scheme, api.Scheme, false)
+				obj, _, err := s.Decode(tc.input, nil, tc.into)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				if !reflect.DeepEqual(obj, tc.expected) {
+					t.Errorf("Expected\n%#v\ngot\n%#v", tc.expected, obj)
+					return
+				}
+			})
+		}(i)
 	}
 }
 
