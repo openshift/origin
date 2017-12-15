@@ -111,8 +111,8 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	return labels.Set(servicePlan.ObjectMeta.Labels), toSelectableFields(servicePlan), servicePlan.Initializers != nil, nil
 }
 
-// NewStorage creates a new rest.Storage responsible for accessing Instance
-// resources
+// NewStorage creates a new rest.Storage responsible for accessing
+// ClusterServicePlan resources
 func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
 	prefix := "/" + opts.ResourcePrefix()
 

@@ -68,7 +68,7 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 	}
 	instance, ok := a.GetObject().(*servicecatalog.ServiceInstance)
 	if !ok {
-		return apierrors.NewBadRequest("Resource was marked with kind Instance but was unable to be converted")
+		return apierrors.NewBadRequest("Resource was marked with kind ServiceInstance but was unable to be converted")
 	}
 
 	// If the plan is specified, let it through and have the controller
@@ -83,7 +83,7 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 		if !apierrors.IsNotFound(err) {
 			return admission.NewForbidden(a, err)
 		}
-		msg := fmt.Sprintf("ServiceClass %q does not exist, can not figure out the default Service Plan.", instance.Spec.ClusterServiceClassExternalName)
+		msg := fmt.Sprintf("ClusterServiceClass %q does not exist, can not figure out the default ClusterServicePlan.", instance.Spec.ClusterServiceClassExternalName)
 		glog.V(4).Info(msg)
 		return admission.NewForbidden(a, errors.New(msg))
 	}
@@ -98,30 +98,30 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 
 	plans, err := d.getClusterServicePlansByClusterServiceClassName(sc.Name)
 	if err != nil {
-		msg := fmt.Sprintf("Error listing plans for service class (K8S: %v ExternalName: %v) - retry and specify desired ClusterServicePlan", sc.Name, instance.Spec.ClusterServiceClassExternalName)
-		glog.V(4).Info(msg)
+		msg := fmt.Sprintf("Error listing ClusterServicePlans for ClusterServiceClass (K8S: %v ExternalName: %v) - retry and specify desired ClusterServicePlan", sc.Name, instance.Spec.ClusterServiceClassExternalName)
+		glog.V(4).Infof(`ServiceInstance "%s/%s": %s`, instance.Namespace, instance.Name, msg)
 		return admission.NewForbidden(a, errors.New(msg))
 	}
 
 	// check if there were any service plans
 	// TODO: in combination with not allowing classes with no plans, this should be impossible
 	if len(plans) <= 0 {
-		msg := fmt.Sprintf("no plans found at all for service class %q", instance.Spec.ClusterServiceClassExternalName)
-		glog.V(4).Info(msg)
+		msg := fmt.Sprintf("no ClusterServicePlans found at all for ClusterServiceClass %q", instance.Spec.ClusterServiceClassExternalName)
+		glog.V(4).Infof(`ServiceInstance "%s/%s": %s`, instance.Namespace, instance.Name, msg)
 		return admission.NewForbidden(a, errors.New(msg))
 	}
 
 	// check if more than one service plan was specified and error
 	if len(plans) > 1 {
-		msg := fmt.Sprintf("ServiceClass %q has more than one plan, PlanName must be specified", instance.Spec.ClusterServiceClassExternalName)
-		glog.V(4).Info(msg)
+		msg := fmt.Sprintf("ClusterServiceClass (K8S: %v ExternalName: %v) has more than one plan, PlanName must be specified", instance.Spec.ClusterServiceClassName, instance.Spec.ClusterServiceClassExternalName)
+		glog.V(4).Infof(`ServiceInstance "%s/%s": %s`, instance.Namespace, instance.Name, msg)
 		return admission.NewForbidden(a, errors.New(msg))
 	}
 	// otherwise, by default, pick the only plan that exists for the service class
 
 	p := plans[0]
-	glog.V(4).Infof("Using default plan %q (K8S: %q) for Service Class %q for instance %s",
-		p.Spec.ExternalName, p.Name, sc.Spec.ExternalName, instance.Name)
+	glog.V(4).Infof(`ServiceInstance "%s/%s": Using default plan %q (K8S: %q) for Service Class %q`,
+		instance.Namespace, instance.Name, p.Spec.ExternalName, p.Name, sc.Spec.ExternalName)
 	if instance.Spec.ClusterServiceClassExternalName != "" {
 		instance.Spec.ClusterServicePlanExternalName = p.Spec.ExternalName
 	} else {
@@ -147,10 +147,10 @@ func (d *defaultServicePlan) SetInternalServiceCatalogClientSet(f internalclient
 
 func (d *defaultServicePlan) Validate() error {
 	if d.scClient == nil {
-		return errors.New("missing service class interface")
+		return errors.New("missing clusterserviceclass interface")
 	}
 	if d.spClient == nil {
-		return errors.New("missing serviceplan interface")
+		return errors.New("missing clusterserviceplan interface")
 	}
 	return nil
 }
@@ -163,12 +163,12 @@ func (d *defaultServicePlan) getClusterServiceClassByPlanReference(a admission.A
 }
 
 func (d *defaultServicePlan) getClusterServiceClassByK8SName(a admission.Attributes, scK8SName string) (*servicecatalog.ClusterServiceClass, error) {
-	glog.V(4).Infof("Fetching serviceclass by class k8s name %q", scK8SName)
+	glog.V(4).Infof("Fetching ClusterServiceClass by k8s name %q", scK8SName)
 	return d.scClient.Get(scK8SName, apimachineryv1.GetOptions{})
 }
 
 func (d *defaultServicePlan) getClusterServiceClassByExternalName(a admission.Attributes, scName string) (*servicecatalog.ClusterServiceClass, error) {
-	glog.V(4).Infof("Fetching serviceclass filtered by class external name %q", scName)
+	glog.V(4).Infof("Fetching ClusterServiceClass filtered by external name %q", scName)
 	fieldSet := fields.Set{
 		"spec.externalName": scName,
 	}
@@ -176,14 +176,14 @@ func (d *defaultServicePlan) getClusterServiceClassByExternalName(a admission.At
 	listOpts := apimachineryv1.ListOptions{FieldSelector: fieldSelector}
 	serviceClasses, err := d.scClient.List(listOpts)
 	if err != nil {
-		glog.V(4).Infof("List failed %q", err)
+		glog.V(4).Infof("Listing ClusterServiceClasses failed: %q", err)
 		return nil, err
 	}
 	if len(serviceClasses.Items) == 1 {
-		glog.V(4).Infof("Found Single item as %+v", serviceClasses.Items[0])
+		glog.V(4).Infof("Found single ClusterServiceClass as %+v", serviceClasses.Items[0])
 		return &serviceClasses.Items[0], nil
 	}
-	msg := fmt.Sprintf("Could not find a single ServiceClass with name %q, found %v", scName, len(serviceClasses.Items))
+	msg := fmt.Sprintf("Could not find a single ClusterServiceClass with name %q, found %v", scName, len(serviceClasses.Items))
 	glog.V(4).Info(msg)
 	return nil, admission.NewNotFound(a)
 }
@@ -199,10 +199,10 @@ func (d *defaultServicePlan) getClusterServicePlansByClusterServiceClassName(scN
 	listOpts := apimachineryv1.ListOptions{FieldSelector: fieldSelector}
 	servicePlans, err := d.spClient.List(listOpts)
 	if err != nil {
-		glog.Infof("List failed %q", err)
+		glog.Infof("Listing ClusterServicePlans failed: %q", err)
 		return nil, err
 	}
-	glog.V(4).Infof("plans fetched by filtering classname: %+v", servicePlans.Items)
+	glog.V(4).Infof("ClusterServicePlans fetched by filtering classname: %+v", servicePlans.Items)
 	r := servicePlans.Items
 	return r, err
 }

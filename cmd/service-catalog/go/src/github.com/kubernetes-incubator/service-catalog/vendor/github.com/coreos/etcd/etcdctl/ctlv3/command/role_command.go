@@ -23,7 +23,8 @@ import (
 )
 
 var (
-	grantPermissionPrefix bool
+	rolePermPrefix  bool
+	rolePermFromKey bool
 )
 
 // NewRoleCommand returns the cobra command for "role".
@@ -82,17 +83,23 @@ func newRoleGrantPermissionCommand() *cobra.Command {
 		Run:   roleGrantPermissionCommandFunc,
 	}
 
-	cmd.Flags().BoolVar(&grantPermissionPrefix, "prefix", false, "grant a prefix permission")
+	cmd.Flags().BoolVar(&rolePermPrefix, "prefix", false, "grant a prefix permission")
+	cmd.Flags().BoolVar(&rolePermFromKey, "from-key", false, "grant a permission of keys that are greater than or equal to the given key using byte compare")
 
 	return cmd
 }
 
 func newRoleRevokePermissionCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "revoke-permission <role name> <key> [endkey]",
 		Short: "Revokes a key from a role",
 		Run:   roleRevokePermissionCommandFunc,
 	}
+
+	cmd.Flags().BoolVar(&rolePermPrefix, "prefix", false, "revoke a prefix permission")
+	cmd.Flags().BoolVar(&rolePermFromKey, "from-key", false, "revoke a permission of keys that are greater than or equal to the given key using byte compare")
+
+	return cmd
 }
 
 // roleAddCommandFunc executes the "role add" command.
@@ -163,16 +170,10 @@ func roleGrantPermissionCommandFunc(cmd *cobra.Command, args []string) {
 		ExitWithError(ExitBadArgs, err)
 	}
 
-	rangeEnd := ""
-	if 4 <= len(args) {
-		if grantPermissionPrefix {
-			ExitWithError(ExitBadArgs, fmt.Errorf("don't pass both of --prefix option and range end to grant permission command"))
-		}
-		rangeEnd = args[3]
-	} else if grantPermissionPrefix {
-		rangeEnd = clientv3.GetPrefixRangeEnd(args[2])
+	rangeEnd, rerr := rangeEndFromPermFlags(args[2:])
+	if rerr != nil {
+		ExitWithError(ExitBadArgs, rerr)
 	}
-
 	resp, err := mustClientFromCmd(cmd).Auth.RoleGrantPermission(context.TODO(), args[0], args[2], rangeEnd, perm)
 	if err != nil {
 		ExitWithError(ExitError, err)
@@ -187,14 +188,36 @@ func roleRevokePermissionCommandFunc(cmd *cobra.Command, args []string) {
 		ExitWithError(ExitBadArgs, fmt.Errorf("role revoke-permission command requires role name and key [endkey] as its argument."))
 	}
 
-	rangeEnd := ""
-	if 3 <= len(args) {
-		rangeEnd = args[2]
+	rangeEnd, rerr := rangeEndFromPermFlags(args[1:])
+	if rerr != nil {
+		ExitWithError(ExitBadArgs, rerr)
 	}
-
 	resp, err := mustClientFromCmd(cmd).Auth.RoleRevokePermission(context.TODO(), args[0], args[1], rangeEnd)
 	if err != nil {
 		ExitWithError(ExitError, err)
 	}
 	display.RoleRevokePermission(args[0], args[1], rangeEnd, *resp)
+}
+
+func rangeEndFromPermFlags(args []string) (string, error) {
+	if len(args) == 1 {
+		if rolePermPrefix {
+			if rolePermFromKey {
+				return "", fmt.Errorf("--from-key and --prefix flags are mutually exclusive")
+			}
+			return clientv3.GetPrefixRangeEnd(args[0]), nil
+		}
+		if rolePermFromKey {
+			return "\x00", nil
+		}
+		// single key case
+		return "", nil
+	}
+	if rolePermPrefix {
+		return "", fmt.Errorf("unexpected endkey argument with --prefix flag")
+	}
+	if rolePermFromKey {
+		return "", fmt.Errorf("unexpected endkey argument with --from-key flag")
+	}
+	return args[1], nil
 }

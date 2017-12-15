@@ -250,8 +250,15 @@ func validateServiceInstanceUpdate(instance *sc.ServiceInstance) field.ErrorList
 		if instance.Spec.ClusterServiceClassRef == nil {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec").Child("clusterServiceClassRef"), "serviceClassRef is required when currentOperation is present"))
 		}
-		if instance.Spec.ClusterServicePlanRef == nil {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec").Child("clusterServicePlanRef"), "servicePlanRef is required when currentOperation is present"))
+		if instance.Status.CurrentOperation != sc.ServiceInstanceOperationDeprovision {
+			if instance.Spec.ClusterServicePlanRef == nil {
+				allErrs = append(allErrs, field.Required(field.NewPath("spec").Child("clusterServicePlanRef"), "servicePlanRef is required when currentOperation is present and not Deprovision"))
+			}
+		} else {
+			if instance.Spec.ClusterServicePlanRef == nil &&
+				(instance.Status.ExternalProperties == nil || instance.Status.ExternalProperties.ClusterServicePlanExternalID == "") {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("status").Child("currentOperation"), instance.Status.CurrentOperation, "spec.clusterServicePlanRef or status.externalProperties.clusterServicePlanExternalID is required when currentOperation is Deprovision"))
+			}
 		}
 	}
 	return allErrs
@@ -262,7 +269,7 @@ func validateServiceInstanceUpdate(instance *sc.ServiceInstance) field.ErrorList
 // to the spec to go through.
 func internalValidateServiceInstanceUpdateAllowed(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	errors := field.ErrorList{}
-	if old.Generation != new.Generation && old.Status.ReconciledGeneration != old.Generation {
+	if old.Generation != new.Generation && old.Status.CurrentOperation != "" {
 		errors = append(errors, field.Forbidden(field.NewPath("spec"), "Another update for this service instance is in progress"))
 	}
 	if old.Spec.ClusterServicePlanExternalName != new.Spec.ClusterServicePlanExternalName && new.Spec.ClusterServicePlanRef != nil {
