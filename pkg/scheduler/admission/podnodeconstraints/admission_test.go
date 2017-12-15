@@ -425,14 +425,14 @@ func fakeAuthorizer(t *testing.T) authorizer.Authorizer {
 func (a *fakeTestAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	ui := attributes.GetUser()
 	if ui == nil {
-		return authorizer.DecisionDeny, "", fmt.Errorf("No valid UserInfo for Context")
+		return authorizer.DecisionNoOpinion, "", fmt.Errorf("No valid UserInfo for Context")
 	}
 	// User with pods/bindings. permission:
 	if ui.GetName() == "system:serviceaccount:openshift-infra:daemonset-controller" {
 		return authorizer.DecisionAllow, "", nil
 	}
 	// User without pods/bindings. permission:
-	return authorizer.DecisionDeny, "", nil
+	return authorizer.DecisionNoOpinion, "", nil
 }
 
 func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessReviewResponse {

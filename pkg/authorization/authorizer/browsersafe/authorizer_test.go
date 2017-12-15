@@ -71,5 +71,5 @@ type recordingAuthorizer struct {
 
 func (t *recordingAuthorizer) Authorize(a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
 	t.attributes = a
-	return authorizer.DecisionDeny, "", nil
+	return authorizer.DecisionNoOpinion, "", nil
 }

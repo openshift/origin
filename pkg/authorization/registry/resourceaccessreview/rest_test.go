@@ -35,13 +35,13 @@ func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed k
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
 		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(attributes.GetNamespace()) {
-			return kauthorizer.DecisionDeny, "denied initial check", nil
+			return kauthorizer.DecisionNoOpinion, "no decision on initial check", nil
 		}
 
 		return kauthorizer.DecisionAllow, "", nil
 	}
 
-	return kauthorizer.DecisionDeny, "", errors.New("unsupported")
+	return kauthorizer.DecisionNoOpinion, "", errors.New("unsupported")
 }
 func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attributes) (sets.String, sets.String, error) {
 	a.actualAttributes = passedAttributes
@@ -56,7 +56,7 @@ func TestDeniedNamespace(t *testing.T) {
 		authorizer: &testAuthorizer{
 			users:            sets.String{},
 			groups:           sets.String{},
-			err:              "denied initial check",
+			err:              "no decision on initial check",
 			deniedNamespaces: sets.NewString("foo"),
 		},
 		reviewRequest: &authorizationapi.ResourceAccessReview{

@@ -28,7 +28,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedErr: `user missing from context`,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
+			expectedErr:     `user missing from context`,
 		},
 		{
 			name: "no extra",
@@ -37,7 +38,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedCalled: true,
+			expectedCalled:  true,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
 			name: "empty extra",
@@ -46,7 +48,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedCalled: true,
+			expectedCalled:  true,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
 			name: "empty scopes",
@@ -55,7 +58,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedCalled: true,
+			expectedCalled:  true,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
 			name: "bad scope",
@@ -64,8 +68,9 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedMsg: `scopes [does-not-exist] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
-			expectedErr: `no scope evaluator found for "does-not-exist"`,
+			expectedAllowed: kauthorizer.DecisionDeny,
+			expectedMsg:     `scopes [does-not-exist] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
+			expectedErr:     `no scope evaluator found for "does-not-exist"`,
 		},
 		{
 			name: "bad scope 2",
@@ -74,8 +79,9 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedMsg: `scopes [user:dne] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
-			expectedErr: `unrecognized scope: user:dne`,
+			expectedAllowed: kauthorizer.DecisionDeny,
+			expectedMsg:     `scopes [user:dne] prevent this action; User "" cannot "" "" with name "" in project "ns"`,
+			expectedErr:     `unrecognized scope: user:dne`,
 		},
 		{
 			name: "scope doesn't cover",
@@ -84,7 +90,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 				Verb:            "get", Resource: "users", Name: "harold"},
-			expectedMsg: `scopes [user:info] prevent this action; User "" cannot get users in project "ns"`,
+			expectedAllowed: kauthorizer.DecisionDeny,
+			expectedMsg:     `scopes [user:info] prevent this action; User "" cannot get users in project "ns"`,
 		},
 		{
 			name: "scope covers",
@@ -93,7 +100,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 				Verb:            "get", Resource: "users", Name: "~"},
-			expectedCalled: true,
+			expectedCalled:  true,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
 			name: "scope covers for discovery",
@@ -102,7 +110,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: false,
 				Namespace:       "ns",
 				Verb:            "get", Path: "/api"},
-			expectedCalled: true,
+			expectedCalled:  true,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
 			name: "user:full covers any resource",
@@ -111,7 +120,8 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 				Verb:            "update", Resource: "users", Name: "harold"},
-			expectedCalled: true,
+			expectedCalled:  true,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
 			name: "user:full covers any non-resource",
@@ -120,35 +130,38 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: false,
 				Namespace:       "ns",
 				Verb:            "post", Path: "/foo/bar/baz"},
-			expectedCalled: true,
+			expectedCalled:  true,
+			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 	}
 
 	for _, tc := range testCases {
-		delegate := &fakeAuthorizer{allowed: tc.delegateAuthAllowed}
-		authorizer := NewAuthorizer(delegate, nil, defaultauthorizer.NewForbiddenMessageResolver(""))
+		t.Run(tc.name, func(t *testing.T) {
+			delegate := &fakeAuthorizer{allowed: tc.delegateAuthAllowed}
+			authorizer := NewAuthorizer(delegate, nil, defaultauthorizer.NewForbiddenMessageResolver(""))
 
-		actualAllowed, actualMsg, actualErr := authorizer.Authorize(tc.attributes)
-		switch {
-		case len(tc.expectedErr) == 0 && actualErr == nil:
-		case len(tc.expectedErr) == 0 && actualErr != nil:
-			t.Errorf("%s: unexpected error: %v", tc.name, actualErr)
-		case len(tc.expectedErr) != 0 && actualErr == nil:
-			t.Errorf("%s: missing error: %v", tc.name, tc.expectedErr)
-		case len(tc.expectedErr) != 0 && actualErr != nil:
-			if !strings.Contains(actualErr.Error(), tc.expectedErr) {
-				t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedErr, actualErr)
+			actualAllowed, actualMsg, actualErr := authorizer.Authorize(tc.attributes)
+			switch {
+			case len(tc.expectedErr) == 0 && actualErr == nil:
+			case len(tc.expectedErr) == 0 && actualErr != nil:
+				t.Errorf("%s: unexpected error: %v", tc.name, actualErr)
+			case len(tc.expectedErr) != 0 && actualErr == nil:
+				t.Errorf("%s: missing error: %v", tc.name, tc.expectedErr)
+			case len(tc.expectedErr) != 0 && actualErr != nil:
+				if !strings.Contains(actualErr.Error(), tc.expectedErr) {
+					t.Errorf("expected %v, got %v", tc.expectedErr, actualErr)
+				}
 			}
-		}
-		if tc.expectedMsg != actualMsg {
-			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedMsg, actualMsg)
-		}
-		if tc.expectedAllowed != actualAllowed {
-			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedAllowed, actualAllowed)
-		}
-		if tc.expectedCalled != delegate.called {
-			t.Errorf("%s: expected %v, got %v", tc.name, tc.expectedCalled, delegate.called)
-		}
+			if tc.expectedMsg != actualMsg {
+				t.Errorf("expected %v, got %v", tc.expectedMsg, actualMsg)
+			}
+			if tc.expectedAllowed != actualAllowed {
+				t.Errorf("expected %v, got %v", tc.expectedAllowed, actualAllowed)
+			}
+			if tc.expectedCalled != delegate.called {
+				t.Errorf("expected %v, got %v", tc.expectedCalled, delegate.called)
+			}
+		})
 	}
 }
 
@@ -162,7 +175,7 @@ func (a *fakeAuthorizer) Authorize(passedAttributes kauthorizer.Attributes) (kau
 	if a.allowed {
 		return kauthorizer.DecisionAllow, "", nil
 	}
-	return kauthorizer.DecisionDeny, "", nil
+	return kauthorizer.DecisionNoOpinion, "", nil
 }
 
 func (a *fakeAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {

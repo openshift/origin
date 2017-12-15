@@ -54,7 +54,7 @@ func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attribu
 func TestNoNamespace(t *testing.T) {
 	test := &subjectAccessTest{
 		authorizer: &testAuthorizer{
-			allowed: kauthorizer.DecisionDeny,
+			allowed: kauthorizer.DecisionNoOpinion,
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{
 			Action: authorizationapi.Action{
@@ -73,7 +73,7 @@ func TestNoNamespace(t *testing.T) {
 
 func TestConflictingNamespace(t *testing.T) {
 	authorizer := &testAuthorizer{
-		allowed: kauthorizer.DecisionDeny,
+		allowed: kauthorizer.DecisionNoOpinion,
 	}
 	reviewRequest := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.Action{
@@ -99,7 +99,7 @@ func TestConflictingNamespace(t *testing.T) {
 func TestEmptyReturn(t *testing.T) {
 	test := &subjectAccessTest{
 		authorizer: &testAuthorizer{
-			allowed: kauthorizer.DecisionDeny,
+			allowed: kauthorizer.DecisionNoOpinion,
 			reason:  "because reasons",
 		},
 		reviewRequest: &authorizationapi.LocalSubjectAccessReview{

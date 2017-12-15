@@ -39,7 +39,7 @@ func (a *testAuthorizer) Authorize(passedAttributes kauthorizer.Attributes) (all
 	// allow the initial check for "can I run this SAR at all"
 	if passedAttributes.GetResource() == "localsubjectaccessreviews" {
 		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(passedAttributes.GetNamespace()) {
-			return kauthorizer.DecisionDeny, "denied initial check", nil
+			return kauthorizer.DecisionNoOpinion, "no decision on initial check", nil
 		}
 
 		return kauthorizer.DecisionAllow, "", nil
@@ -59,7 +59,7 @@ func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attribu
 func TestDeniedNamespace(t *testing.T) {
 	test := &subjectAccessTest{
 		authorizer: &testAuthorizer{
-			allowed:          kauthorizer.DecisionDeny,
+			allowed:          kauthorizer.DecisionNoOpinion,
 			err:              "denied initial check",
 			deniedNamespaces: sets.NewString("foo"),
 		},
@@ -81,7 +81,7 @@ func TestDeniedNamespace(t *testing.T) {
 func TestEmptyReturn(t *testing.T) {
 	test := &subjectAccessTest{
 		authorizer: &testAuthorizer{
-			allowed: kauthorizer.DecisionDeny,
+			allowed: kauthorizer.DecisionNoOpinion,
 			reason:  "because reasons",
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{

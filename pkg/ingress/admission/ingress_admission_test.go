@@ -95,7 +95,7 @@ func TestAdmission(t *testing.T) {
 		},
 		{
 			admit:    false,
-			allow:    authorizer.DecisionDeny,
+			allow:    authorizer.DecisionNoOpinion,
 			config:   emptyConfig(),
 			op:       admission.Create,
 			newHost:  "foo.com",
