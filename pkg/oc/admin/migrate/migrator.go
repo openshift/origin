@@ -63,6 +63,7 @@ type ResourceOptions struct {
 	In          io.Reader
 	Out, ErrOut io.Writer
 
+	Unstructured  bool
 	AllNamespaces bool
 	Include       []string
 	Filenames     []string
@@ -222,7 +223,6 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 	}
 
 	o.Builder = f.NewBuilder().
-		Internal().
 		AllNamespaces(allNamespaces).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ContinueOnError().
@@ -230,6 +230,13 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		RequireObject(true).
 		SelectAllParam(true).
 		Flatten()
+
+	if o.Unstructured {
+		o.Builder = o.Builder.Unstructured()
+	} else {
+		o.Builder = o.Builder.Internal()
+	}
+
 	if !allNamespaces {
 		o.Builder.NamespaceParam(namespace)
 	}
