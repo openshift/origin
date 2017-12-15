@@ -136,7 +136,14 @@ func (o CancelOptions) Run() error {
 				return runtime.Encode(o.Encoder, rc)
 			})
 
-			if len(patches) == 0 {
+			allPatchesEmpty := true
+			for _, patch := range patches {
+				if len(patch.Patch) > 0 {
+					allPatchesEmpty = false
+					break
+				}
+			}
+			if allPatchesEmpty {
 				kcmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "already cancelled")
 				return false
 			}

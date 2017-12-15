@@ -263,8 +263,6 @@ var (
 		// consistent 500 errors
 		"should expose prometheus metrics for a route",
 		"should expose the profiling endpoints",
-		// super flaky
-		"should only deploy the last deployment",
 
 		`\[Skipped\]`,
 		`\[Slow\]`,
