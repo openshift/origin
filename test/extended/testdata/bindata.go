@@ -159,6 +159,7 @@
 // test/extended/testdata/ldap/ldapserver-service.json
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/reencrypt-serving-cert.yaml
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
@@ -8800,6 +8801,33 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/long_names/fixture.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml = []byte(`apiVersion: v1
+data:
+  password: c2VjcmV0Y3JlZHN5bmMK
+  username: c2VjcmV0Y3JlZHN5bmMK
+kind: Secret
+metadata:
+  labels:
+    credential.sync.jenkins.openshift.io: "true"
+  name: secret-to-credential
+type: Opaque
+`)
+
+func testExtendedTestdataOpenshiftSecretToJenkinsCredentialYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, nil
+}
+
+func testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOpenshiftSecretToJenkinsCredentialYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/openshift-secret-to-jenkins-credential.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28833,6 +28861,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
@@ -29288,6 +29317,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
+				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
 				"roles": &bintree{nil, map[string]*bintree{
 					"empty-role.yaml": &bintree{testExtendedTestdataRolesEmptyRoleYaml, map[string]*bintree{}},

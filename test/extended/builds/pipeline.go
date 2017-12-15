@@ -30,6 +30,8 @@ const (
 	syncLicenseText                      = "About OpenShift Sync"
 	clientPluginName                     = "openshift-client"
 	syncPluginName                       = "openshift-sync"
+	secretName                           = "secret-to-credential"
+	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
 )
 
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
@@ -63,6 +65,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		imagestreamPodTemplatePath    = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
 		imagestreamtagPodTemplatePath = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
 		podTemplateSlavePipelinePath  = exutil.FixturePath("testdata", "jenkins-slave-template.yaml")
+		secretPath                    = exutil.FixturePath("testdata", "openshift-secret-to-jenkins-credential.yaml")
 
 		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                   *time.Ticker
@@ -186,6 +189,63 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			_, err = exutil.GetEndpointAddress(oc, "openshift-jee-sample")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+	})
+
+	g.Context("Sync secret to credential", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
+				g.By("stopping jenkins gc tracking")
+				ticker.Stop()
+			}
+		})
+
+		g.It("should map openshift secret to a jenkins credential as the secret is manipulated", func() {
+			g.By("create secret for jenkins credential")
+			err := oc.Run("create").Args("-f", secretPath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verify credential created since label should be there")
+			// NOTE, for the credential URL in Jenkins
+			// it returns rc 200 with no output if credential exists and a 404 if it does not exists
+			_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verify credential deleted when label removed")
+			err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"-").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verify credential added when label added")
+			err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"=true").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verify credential deleted when secret deleted")
+			err = oc.Run("delete").Args("secret", secretName).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+		})
+
 	})
 
 	g.Context("Pipeline using config map slave", func() {
