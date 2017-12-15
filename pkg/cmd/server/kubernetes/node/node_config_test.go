@@ -42,8 +42,9 @@ func TestKubeletDefaults(t *testing.T) {
 			CloudProvider:           "", // now disabled
 			RootDirectory:           "/var/lib/kubelet",
 			CertDirectory:           "/var/lib/kubelet/pki",
-			RegisterNode:            true,                              // this looks suspicious
+			RegisterNode:            true,
 			RemoteRuntimeEndpoint:   "unix:///var/run/dockershim.sock", // overridden
+			Containerized:           false,                             // overridden based on OPENSHIFT_CONTAINERIZED
 			VolumePluginDir:         "/usr/libexec/kubernetes/kubelet-plugins/volume/exec/",
 			SeccompProfileRoot:      "/var/lib/kubelet/seccomp",
 			MaxContainerCount:       -1,
@@ -147,7 +148,7 @@ func TestKubeletDefaults(t *testing.T) {
 	}
 
 	if goruntime.GOOS == "darwin" {
-		//expectedDefaults.KubeletConfiguration.RemoteRuntimeEndpoint = ""
+		expectedDefaults.KubeletFlags.RemoteRuntimeEndpoint = ""
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
