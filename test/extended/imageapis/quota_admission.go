@@ -23,7 +23,7 @@ const (
 
 	quotaName = "isquota"
 
-	waitTimeout = time.Second * 30
+	waitTimeout = time.Second * 600
 )
 
 var _ = g.Describe("[Feature:ImageQuota][registry][Serial] Image resource quota", func() {
