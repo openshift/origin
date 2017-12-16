@@ -9,7 +9,7 @@ export NETWORKING_E2E_NETWORKPOLICY="${NETWORKING_E2E_NETWORKPOLICY:-true}"
 # redhat/openshift-ovs-multitenant
 export NETWORKING_E2E_ISOLATION="${NETWORKING_E2E_ISOLATION:-false}"
 
-export NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-\[networking\]}"
+export NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-\[Area:Networking\]}"
 export NETWORKING_E2E_EXTERNAL=1
 
 # Checking for a given kubeconfig
