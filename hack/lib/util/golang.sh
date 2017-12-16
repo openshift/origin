@@ -8,7 +8,7 @@ function os::golang::verify_go_version() {
 
 	local go_version
 	go_version=($(go version))
-	if [[ "${go_version[2]}" != go1.8* ]]; then
+	if [[ "${go_version[2]}" < "${OS_REQUIRED_GO_VERSION}" ]]; then
 		os::log::info "Detected go version: ${go_version[*]}."
 		if [[ -z "${PERMISSIVE_GO:-}" ]]; then
 			os::log::warning "Please install Go version ${OS_REQUIRED_GO_VERSION} or use PERMISSIVE_GO=y to bypass this check."
