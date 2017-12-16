@@ -43,6 +43,36 @@ func timeoutAsDuration(timeout int32) time.Duration {
 	return time.Duration(timeout) * time.Second
 }
 
+// This interface is used to allow mocking time from unit tests
+// NOTE: Never use time.Now() directly in the code, use this interface
+// Now() function instead.
+type internalTickerInterface interface {
+	Now() time.Time
+	NewTicker(d time.Duration)
+	C() <-chan time.Time
+	Stop()
+}
+
+type internalTicker struct {
+	ticker *time.Ticker
+}
+
+func (t *internalTicker) Now() time.Time {
+	return time.Now()
+}
+
+func (t *internalTicker) C() <-chan time.Time {
+	return t.ticker.C
+}
+
+func (t *internalTicker) Stop() {
+	t.ticker.Stop()
+}
+
+func (t *internalTicker) NewTicker(d time.Duration) {
+	t.ticker = time.NewTicker(d)
+}
+
 type TimeoutValidator struct {
 	oauthClients   oauthclientlister.OAuthClientLister
 	tokens         oauthclient.OAuthAccessTokenInterface
@@ -50,6 +80,11 @@ type TimeoutValidator struct {
 	data           *rankedset.RankedSet
 	defaultTimeout time.Duration
 	tickerInterval time.Duration
+
+	// fields that are used to have a deterministic order of events in unit tests
+	flushHandler    func(flushHorizon time.Time) // allows us to decorate this func during unit tests
+	putTokenHandler func(td *tokenData)          // allows us to decorate this func during unit tests
+	ticker          internalTickerInterface      // allows us to control time during unit tests
 }
 
 func NewTimeoutValidator(tokens oauthclient.OAuthAccessTokenInterface, oauthClients oauthclientlister.OAuthClientLister, defaultTimeout int32, minValidTimeout int32) *TimeoutValidator {
@@ -60,7 +95,10 @@ func NewTimeoutValidator(tokens oauthclient.OAuthAccessTokenInterface, oauthClie
 		data:           rankedset.New(),
 		defaultTimeout: timeoutAsDuration(defaultTimeout),
 		tickerInterval: timeoutAsDuration(minValidTimeout / 3), // we tick at least 3 times within each timeout period
+		ticker:         &internalTicker{},
 	}
+	a.flushHandler = a.flush
+	a.putTokenHandler = a.putToken
 	glog.V(5).Infof("Token Timeout Validator primed with defaultTimeout=%s tickerInterval=%s", a.defaultTimeout, a.tickerInterval)
 	return a
 }
@@ -75,7 +113,7 @@ func (a *TimeoutValidator) Validate(token *oauth.OAuthAccessToken, _ *user.User)
 
 	td := &tokenData{
 		token: token,
-		seen:  time.Now(),
+		seen:  a.ticker.Now(),
 	}
 	if td.timeout().Before(td.seen) {
 		return errTimedout
@@ -88,7 +126,7 @@ func (a *TimeoutValidator) Validate(token *oauth.OAuthAccessToken, _ *user.User)
 	// After a positive timeout check we need to update the timeout and
 	// schedule an update so that we can either set or update the Timeout
 	// we do that launching a micro goroutine to avoid blocking
-	go a.putToken(td)
+	go a.putTokenHandler(td)
 
 	return nil
 }
@@ -186,16 +224,16 @@ func (a *TimeoutValidator) flush(flushHorizon time.Time) {
 func (a *TimeoutValidator) nextTick() time.Time {
 	// Add a small safety Margin so flushes tend to
 	// overlap a little rather than have gaps
-	return time.Now().Add(a.tickerInterval + 10*time.Second)
+	return a.ticker.Now().Add(a.tickerInterval + 10*time.Second)
 }
 
 func (a *TimeoutValidator) Run(stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
 	glog.V(5).Infof("Started Token Timeout Flush Handling thread!")
 
-	ticker := time.NewTicker(a.tickerInterval)
+	a.ticker.NewTicker(a.tickerInterval)
 	// make sure to kill the ticker when we exit
-	defer ticker.Stop()
+	defer a.ticker.Stop()
 
 	nextTick := a.nextTick()
 
@@ -204,6 +242,7 @@ func (a *TimeoutValidator) Run(stopCh <-chan struct{}) {
 		case <-stopCh:
 			// if channel closes terminate
 			return
+
 		case td := <-a.tokenChannel:
 			a.data.Insert(td)
 			// if this token is going to time out before the timer, flush now
@@ -211,12 +250,12 @@ func (a *TimeoutValidator) Run(stopCh <-chan struct{}) {
 			if tokenTimeout.Before(nextTick) {
 				glog.V(5).Infof("Timeout for user=%q client=%q scopes=%v falls before next ticker (%s < %s), forcing flush!",
 					td.token.UserName, td.token.ClientName, td.token.Scopes, tokenTimeout, nextTick)
-				a.flush(nextTick)
+				a.flushHandler(nextTick)
 			}
 
-		case <-ticker.C:
+		case <-a.ticker.C():
 			nextTick = a.nextTick()
-			a.flush(nextTick)
+			a.flushHandler(nextTick)
 		}
 	}
 }

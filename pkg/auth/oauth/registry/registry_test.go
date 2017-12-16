@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clienttesting "k8s.io/client-go/testing"
@@ -486,15 +487,34 @@ func (f fakeOAuthClientLister) Get(name string) (*oapi.OAuthClient, error) {
 }
 
 func (f fakeOAuthClientLister) List(selector labels.Selector) ([]*oapi.OAuthClient, error) {
-	var list []*oapi.OAuthClient
-	ret, _ := f.clients.List(metav1.ListOptions{})
-	for i := range ret.Items {
-		list = append(list, &ret.Items[i])
-	}
-	return list, nil
+	panic("not used")
 }
 
-func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oauthclient.OAuthAccessTokenInterface, present bool) {
+type fakeTicker struct {
+	clock *clock.FakeClock
+	ch    <-chan time.Time
+}
+
+func (t *fakeTicker) Now() time.Time {
+	return t.clock.Now()
+}
+
+func (t *fakeTicker) C() <-chan time.Time {
+	return t.ch
+}
+
+func (t *fakeTicker) Stop() {}
+
+func (t *fakeTicker) NewTicker(d time.Duration) {
+	t.ch = t.clock.Tick(d)
+}
+
+func (t *fakeTicker) Sleep(d time.Duration) {
+	t.clock.Sleep(d)
+}
+
+func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oauthclient.OAuthAccessTokenInterface, current *fakeTicker, present bool) {
+	t.Helper()
 	userInfo, found, err := authf.AuthenticateToken(name)
 	if present {
 		if !found {
@@ -508,9 +528,12 @@ func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oau
 		}
 	} else {
 		if found {
-			token, _ := tokens.Get(name, metav1.GetOptions{})
+			token, tokenErr := tokens.Get(name, metav1.GetOptions{})
+			if tokenErr != nil {
+				t.Fatal(tokenErr)
+			}
 			t.Errorf("Found token (created=%s, timeout=%di, now=%s), but it should be gone!",
-				token.CreationTimestamp, token.InactivityTimeoutSeconds, time.Now())
+				token.CreationTimestamp, token.InactivityTimeoutSeconds, current.Now())
 		}
 		if err != errTimedout {
 			t.Errorf("Unexpected error checking absence of token %s: %v", name, err)
@@ -521,13 +544,24 @@ func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oau
 	}
 }
 
+func wait(t *testing.T, c chan struct{}) {
+	t.Helper()
+	select {
+	case <-c:
+	case <-time.After(30 * time.Second):
+		t.Fatal("failed to see channel event")
+	}
+}
+
 func TestAuthenticateTokenTimeout(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
+	testClock := &fakeTicker{clock: clock.NewFakeClock(time.Time{})}
+
 	defaultTimeout := int32(30) // 30 seconds
-	clientTimeout := int32(15)  // 15 seconds so flush -> 5 seconds
-	minTimeout := int32(10)     // 10 seconds
+	clientTimeout := int32(15)  // 15 seconds
+	minTimeout := int32(10)     // 10 seconds -> 10/3 = a tick per 3 seconds
 
 	testClient := oapi.OAuthClient{
 		ObjectMeta:                          metav1.ObjectMeta{Name: "testClient"},
@@ -541,7 +575,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "slowClient"},
 	}
 	testToken := oapi.OAuthAccessToken{
-		ObjectMeta:               metav1.ObjectMeta{Name: "testToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ObjectMeta:               metav1.ObjectMeta{Name: "testToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "testClient",
 		ExpiresIn:                600, // 10 minutes
 		UserName:                 "foo",
@@ -549,7 +583,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		InactivityTimeoutSeconds: clientTimeout,
 	}
 	quickToken := oapi.OAuthAccessToken{
-		ObjectMeta:               metav1.ObjectMeta{Name: "quickToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ObjectMeta:               metav1.ObjectMeta{Name: "quickToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "quickClient",
 		ExpiresIn:                600, // 10 minutes
 		UserName:                 "foo",
@@ -557,7 +591,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		InactivityTimeoutSeconds: minTimeout,
 	}
 	slowToken := oapi.OAuthAccessToken{
-		ObjectMeta:               metav1.ObjectMeta{Name: "slowToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ObjectMeta:               metav1.ObjectMeta{Name: "slowToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "slowClient",
 		ExpiresIn:                600, // 10 minutes
 		UserName:                 "foo",
@@ -565,7 +599,7 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		InactivityTimeoutSeconds: defaultTimeout,
 	}
 	emergToken := oapi.OAuthAccessToken{
-		ObjectMeta:               metav1.ObjectMeta{Name: "emergToken", CreationTimestamp: metav1.Time{Time: time.Now()}},
+		ObjectMeta:               metav1.ObjectMeta{Name: "emergToken", CreationTimestamp: metav1.Time{Time: testClock.Now()}},
 		ClientName:               "quickClient",
 		ExpiresIn:                600, // 10 minutes
 		UserName:                 "foo",
@@ -580,34 +614,77 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 	lister := &fakeOAuthClientLister{
 		clients: oauthClients,
 	}
+
 	timeouts := NewTimeoutValidator(accessTokenGetter, lister, defaultTimeout, minTimeout)
+
+	// inject fake clock, which has some interesting properties
+	// 1. A sleep will cause at most one ticker event, regardless of how long the sleep was
+	// 2. The clock will hold one tick event and will drop the next one if something does not consume it first
+	timeouts.ticker = testClock
+
+	// decorate flush
+	// The fake clock 1. and 2. require that we issue a wait(t, timeoutsSync) after each testClock.Sleep that causes a tick
+	originalFlush := timeouts.flushHandler
+	timeoutsSync := make(chan struct{})
+	timeouts.flushHandler = func(flushHorizon time.Time) {
+		originalFlush(flushHorizon)
+		timeoutsSync <- struct{}{} // signal that flush is complete so we never race against it
+	}
+
+	// decorate putToken
+	// We must issue a wait(t, putTokenSync) after each call to checkToken that should be successful
+	originalPutToken := timeouts.putTokenHandler
+	putTokenSync := make(chan struct{})
+	timeouts.putTokenHandler = func(td *tokenData) {
+		originalPutToken(td)
+		putTokenSync <- struct{}{} // signal that putToken is complete so we never race against it
+	}
+
+	// add some padding to all sleep invocations to make sure we are not failing on any boundary values
+	buffer := time.Nanosecond
+
 	tokenAuthenticator := NewTokenAuthenticator(accessTokenGetter, userRegistry, identitymapper.NoopGroupMapper{}, timeouts)
 
 	go timeouts.Run(stopCh)
 
-	// wait to see that the other thread has updated the timeouts
-	time.Sleep(1 * time.Second)
-
-	// TIME: 1 seconds have passed here
+	// TIME: 0 seconds have passed here
 
 	// first time should succeed for all
-	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
-	checkToken(t, "quickToken", tokenAuthenticator, accessTokenGetter, true)
-	checkToken(t, "slowToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
+	checkToken(t, "quickToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
+	wait(t, timeoutsSync) // from emergency flush because quickToken has a short enough timeout
+
+	checkToken(t, "slowToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
 	// this should cause an emergency flush, if not the next auth will fail,
 	// as the token will be timed out
-	checkToken(t, "emergToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "emergToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
 
-	// wait 5 seconds
-	time.Sleep(5 * time.Second)
+	wait(t, timeoutsSync) // from emergency flush because emergToken has a super short timeout
+
+	// wait 6 seconds
+	testClock.Sleep(5*time.Second + buffer)
+
+	// a tick happens every 3 seconds
+	wait(t, timeoutsSync)
 
 	// TIME: 6th second
 
 	// See if emergency flush happened
-	checkToken(t, "emergToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "emergToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
+	wait(t, timeoutsSync) // from emergency flush because emergToken has a super short timeout
 
 	// wait for timeout (minTimeout + 1 - the previously waited 6 seconds)
-	time.Sleep(time.Duration(minTimeout-5) * time.Second)
+	testClock.Sleep(time.Duration(minTimeout-5)*time.Second + buffer)
+	wait(t, timeoutsSync)
 
 	// TIME: 11th second
 
@@ -625,21 +702,34 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 		}
 	}
 
-	// this should fail
-	checkToken(t, "quickToken", tokenAuthenticator, accessTokenGetter, false)
+	// this should fail, thus no call to wait(t, putTokenSync)
+	checkToken(t, "quickToken", tokenAuthenticator, accessTokenGetter, testClock, false)
+
 	// while this should get updated
-	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
+	wait(t, timeoutsSync)
 
 	// wait for timeout
-	time.Sleep(time.Duration(clientTimeout+1) * time.Second)
+	testClock.Sleep(time.Duration(clientTimeout+1)*time.Second + buffer)
+
+	// 16 seconds equals 5 more flushes, but the fake clock will only tick once during this time
+	wait(t, timeoutsSync)
 
 	// TIME: 27th second
 
 	// this should get updated
-	checkToken(t, "slowToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "slowToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
+	wait(t, timeoutsSync)
 
 	// while this should not fail
-	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
+	wait(t, timeoutsSync)
 	// and should be updated to last at least till the 31st second
 	token, err := accessTokenGetter.Get("testToken", metav1.GetOptions{})
 	if err != nil {
@@ -663,10 +753,15 @@ func TestAuthenticateTokenTimeout(t *testing.T) {
 	}
 
 	// and wait until test token should time out, and has been flushed for sure
-	time.Sleep(time.Duration(minTimeout) * time.Second)
+	testClock.Sleep(time.Duration(minTimeout)*time.Second + buffer)
+	wait(t, timeoutsSync)
 
 	// while this should not fail
-	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, true)
+	checkToken(t, "testToken", tokenAuthenticator, accessTokenGetter, testClock, true)
+	wait(t, putTokenSync)
+
+	wait(t, timeoutsSync)
+
 	// and should be updated to have a ZERO timeout
 	token, err = accessTokenGetter.Get("testToken", metav1.GetOptions{})
 	if err != nil {
