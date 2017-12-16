@@ -21,6 +21,8 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+
+	"github.com/golang/glog"
 )
 
 // Lister enforces ability to enumerate a resource based on role
@@ -292,7 +294,7 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 			namespaceResourceVersion: namespace.ResourceVersion,
 		}
 		if err := ac.syncHandler(reviewRequest, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore); err != nil {
-			utilruntime.HandleError(fmt.Errorf("error synchronizing: %v", err))
+			glog.V(5).Infof("project authorization cache: error synchronizing namespaces: %v", err)
 		}
 	}
 	return namespaceSet
@@ -311,7 +313,7 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 			roleUIDToResourceVersion: map[types.UID]string{role.UID: role.ResourceVersion},
 		}
 		if err := ac.syncHandler(reviewRequest, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore); err != nil {
-			utilruntime.HandleError(fmt.Errorf("error synchronizing: %v", err))
+			glog.V(5).Infof("project authorization cache: error synchronizing roles: %v", err)
 		}
 	}
 }
@@ -329,7 +331,7 @@ func (ac *AuthorizationCache) synchronizeRoleBindings(userSubjectRecordStore cac
 			roleBindingUIDToResourceVersion: map[types.UID]string{roleBinding.UID: roleBinding.ResourceVersion},
 		}
 		if err := ac.syncHandler(reviewRequest, userSubjectRecordStore, groupSubjectRecordStore, reviewRecordStore); err != nil {
-			utilruntime.HandleError(fmt.Errorf("error synchronizing: %v", err))
+			glog.V(5).Infof("project authorization cache: error synchronizing role bindings: %v", err)
 		}
 	}
 }
