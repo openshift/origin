@@ -408,8 +408,14 @@ func printBuildConfigList(buildList *buildapi.BuildConfigList, w io.Writer, opts
 
 func printImage(image *imageapi.Image, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, image.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\n", name, image.DockerImageReference)
-	return err
+
+	if _, err := fmt.Fprintf(w, "%s\t%s", name, image.DockerImageReference); err != nil {
+		return err
+	}
+	if err := appendItemLabels(image.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, opts kprinters.PrintOptions) error {
