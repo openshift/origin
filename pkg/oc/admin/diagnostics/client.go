@@ -18,14 +18,14 @@ func availableClientDiagnostics() types.DiagnosticList {
 }
 
 // buildClientDiagnostics builds client Diagnostic objects based on the rawConfig passed in.
-// Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
-func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
+// Returns the Diagnostics built, and any fatal errors encountered during the building of diagnostics.
+func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, error) {
 	available := availableClientDiagnostics().Names()
 
 	networkClient, err := o.Factory.OpenshiftInternalNetworkClient()
 	kubeClient, clientErr := o.Factory.ClientSet()
 	if clientErr != nil || err != nil {
-		o.Logger.Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
+		o.Logger().Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
 		available = sets.NewString(clientdiags.ConfigContextsName)
 	}
 
@@ -64,8 +64,8 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 			nd.PreventModification = o.PreventModification
 			diagnostics = append(diagnostics, nd)
 		default:
-			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
+			return nil, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
 	}
-	return diagnostics, true, clientErr
+	return diagnostics, clientErr
 }

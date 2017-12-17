@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
@@ -49,8 +50,8 @@ type DiagnosticsOptions struct {
 	ClientClusterContext string
 	// LogOptions determine globally what the user wants to see and how.
 	LogOptions *log.LoggerOptions
-	// The Logger is built with the options and should be used for all diagnostic output.
-	Logger *log.Logger
+	// The logger is built with the options and should be used for all diagnostic output.
+	logger *log.Logger
 }
 
 const (
@@ -104,7 +105,7 @@ var (
 		`)
 )
 
-// NewCmdDiagnostics is the base command for running any diagnostics.
+// NewCmdDiagnostics is the base command for running a standard set of diagnostics with generic options only.
 func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
 	available := availableDiagnostics()
 	o := &DiagnosticsOptions{
@@ -117,18 +118,7 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 		Use:   name,
 		Short: "Diagnose common cluster problems",
 		Long:  fmt.Sprintf(longDescription, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(c, args))
-
-			failed, err, warnCount, errorCount := o.RunDiagnostics()
-			o.Logger.Summary(warnCount, errorCount)
-
-			kcmdutil.CheckErr(err)
-			if failed {
-				os.Exit(1)
-			}
-
-		},
+		Run:   commandRunFunc(o),
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 	o.bindCommonFlags(cmd.Flags())
@@ -157,18 +147,7 @@ func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available
 		Use:   name,
 		Short: "Diagnose common cluster problems",
 		Long:  fmt.Sprintf(longDescriptionAll, fullName),
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(c, args))
-
-			failed, err, warnCount, errorCount := o.RunDiagnostics()
-			o.Logger.Summary(warnCount, errorCount)
-
-			kcmdutil.CheckErr(err)
-			if failed {
-				os.Exit(1)
-			}
-
-		},
+		Run:   commandRunFunc(o),
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 	o.bindCommonFlags(cmd.Flags())
@@ -178,7 +157,7 @@ func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available
 	return cmd
 }
 
-// NewCmdDiagnosticsIndividual is a generic subcommand providing a single diagnostic and its flags.
+// NewCmdDiagnosticsIndividual is a parameterized subcommand providing a single diagnostic and its flags.
 func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, diagnostic types.Diagnostic) *cobra.Command {
 	o := &DiagnosticsOptions{
 		RequestedDiagnostics:     sets.NewString(diagnostic.Name()),
@@ -187,21 +166,10 @@ func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, di
 	}
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: diagnostic.Description(),
-		Long:  fmt.Sprintf(longDescriptionIndividual, diagnostic.Name(), diagnostic.Description()),
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(c, args))
-
-			failed, err, warnCount, errorCount := o.RunDiagnostics()
-			o.Logger.Summary(warnCount, errorCount)
-
-			kcmdutil.CheckErr(err)
-			if failed {
-				os.Exit(1)
-			}
-
-		},
+		Use:     name,
+		Short:   diagnostic.Description(),
+		Long:    fmt.Sprintf(longDescriptionIndividual, diagnostic.Name(), diagnostic.Description()),
+		Run:     commandRunFunc(o),
 		Aliases: []string{diagnostic.Name()},
 	}
 	cmd.SetOutput(out) // for output re: usage / help
@@ -217,6 +185,32 @@ func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, di
 		o.bindHostFlags(cmd.Flags())
 	}
 	return cmd
+}
+
+type optionsRunner interface {
+	Logger() *log.Logger
+	Complete(*cobra.Command, []string) error
+	RunDiagnostics() error
+}
+
+// returns a shared function that runs when one of these Commands actually executes
+func commandRunFunc(o optionsRunner) func(c *cobra.Command, args []string) {
+	return func(c *cobra.Command, args []string) {
+		kcmdutil.CheckErr(o.Complete(c, args))
+
+		if err := o.RunDiagnostics(); err != nil {
+			o.Logger().Error("CED3001", fmt.Sprintf("Encountered fatal error while building diagnostics: %s", err.Error()))
+		}
+		o.Logger().Summary()
+		if o.Logger().ErrorsSeen() {
+			os.Exit(1)
+		}
+	}
+}
+
+// returns the logger built according to options (must be Complete()ed)
+func (o *DiagnosticsOptions) Logger() *log.Logger {
+	return o.logger
 }
 
 // gather a list of all diagnostics that are available to be invoked by the main command
@@ -266,7 +260,7 @@ func (o *DiagnosticsOptions) bindRequestedIndividualFlags(flags *flag.FlagSet) {
 	}
 }
 
-// bind flags for parameters on a single diagnostic
+// bind flags for parameters from a single diagnostic
 func bindIndividualFlags(diag types.ParameterizedDiagnostic, prefix string, flags *flag.FlagSet) {
 	for _, param := range diag.AvailableParameters() {
 		name := prefix + param.Name
@@ -286,7 +280,7 @@ func bindIndividualFlags(diag types.ParameterizedDiagnostic, prefix string, flag
 // Complete fills in DiagnosticsConfig needed if the command is actually invoked.
 func (o *DiagnosticsOptions) Complete(c *cobra.Command, args []string) error {
 	var err error
-	o.Logger, err = o.LogOptions.NewLogger()
+	o.logger, err = o.LogOptions.NewLogger()
 	if err != nil {
 		return err
 	}
@@ -312,130 +306,67 @@ func (o *DiagnosticsOptions) Complete(c *cobra.Command, args []string) error {
 	return nil
 }
 
-// RunDiagnostics builds diagnostics based on the options and executes them, returning a summary. Returns:
-// failure ("true" meaning there was not a clean diagnostic result),
-// error (raised during construction or execution of diagnostics; may be an aggregate error object),
-// number of warnings encountered in diagnostics results,
-// number of errors encountered (diagnostic results plus errors previously raised).
-func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
-	failed := false
-	warnings := []error{}
-	errors := []error{}
+// RunDiagnostics builds diagnostics based on the options and executes them. Returns:
+// error (raised during construction of diagnostics; may be an aggregate error object),
+func (o DiagnosticsOptions) RunDiagnostics() error {
+	diagnostics, failure := o.buildDiagnostics()
+	if failure != nil {
+		return failure
+	}
+	return util.RunDiagnostics(o.Logger(), diagnostics)
+}
+
+func (o DiagnosticsOptions) buildDiagnostics() (diags []types.Diagnostic, failure error) {
 	diagnostics := []types.Diagnostic{}
 
-	func() { // don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
-		defer func() {
-			if r := recover(); r != nil {
-				failed = true
-				stack := debug.Stack()
-				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, stack))
-			}
-		}()
-
-		// build client/cluster diags if there is a client config for them to use
-		expected, detected, detectWarnings, detectErrors := o.detectClientConfig() // may log and return problems
-		for _, warn := range detectWarnings {
-			warnings = append(warnings, warn)
-		}
-		for _, err := range detectErrors {
-			errors = append(errors, err)
-		}
-		if !expected {
-			// no diagnostic required a client config, nothing to do
-		} else if !detected {
-			// there just plain isn't any client config file available
-			o.Logger.Notice("CED3014", "No client configuration specified; skipping client and cluster diagnostics.")
-		} else if rawConfig, err := o.buildRawConfig(); err != nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
-			o.Logger.Error("CED3015", fmt.Sprintf("Client configuration failed to load; skipping client and cluster diagnostics due to error: %s", err.Error()))
-			errors = append(errors, err)
-		} else {
-			clientDiags, ok, err := o.buildClientDiagnostics(rawConfig)
-			failed = failed || !ok
-			if ok {
-				diagnostics = append(diagnostics, clientDiags...)
-			}
-			if err != nil {
-				errors = append(errors, err)
-			}
-
-			clusterDiags, ok, err := o.buildClusterDiagnostics(rawConfig)
-			failed = failed || !ok
-			if ok {
-				diagnostics = append(diagnostics, clusterDiags...)
-			}
-			if err != nil {
-				errors = append(errors, err)
-			}
-		}
-
-		// build host diagnostics if config is available
-		hostDiags, err := o.buildHostDiagnostics()
-		if err != nil {
-			errors = append(errors, err)
-		} else {
-			diagnostics = append(diagnostics, hostDiags...)
-		}
-
-		// complete any diagnostics that require it
-		for _, d := range diagnostics {
-			if toComplete, ok := d.(types.IncompleteDiagnostic); ok {
-				if err := toComplete.Complete(o.Logger); err != nil {
-					errors = append(errors, err)
-					failed = true
-				}
-			}
+	// don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
+	defer func() {
+		if r := recover(); r != nil {
+			failure = fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, debug.Stack())
 		}
 	}()
 
-	if failed {
-		return failed, kutilerrors.NewAggregate(errors), len(warnings), len(errors)
+	// build client/cluster diags if there is a client config for them to use
+	expected, detected := o.detectClientConfig() // may log and return problems
+	if !expected {
+		// no diagnostic required a client config, nothing to do
+	} else if !detected {
+		// there just plain isn't any client config file available
+		o.Logger().Notice("CED3014", "No client configuration specified; skipping client and cluster diagnostics.")
+	} else if rawConfig, err := o.buildRawConfig(); err != nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
+		o.Logger().Error("CED3015", fmt.Sprintf("Client configuration failed to load; skipping client and cluster diagnostics due to error: %s", err.Error()))
+	} else {
+		clientDiags, err := o.buildClientDiagnostics(rawConfig)
+		if err != nil {
+			return diagnostics, err
+		}
+		diagnostics = append(diagnostics, clientDiags...)
+
+		clusterDiags, err := o.buildClusterDiagnostics(rawConfig)
+		if err != nil {
+			return diagnostics, err
+		}
+		diagnostics = append(diagnostics, clusterDiags...)
 	}
 
-	failed, err, numWarnings, numErrors := o.Run(diagnostics)
-	numWarnings += len(warnings)
-	numErrors += len(errors)
-	return failed, err, numWarnings, numErrors
-}
+	// build host diagnostics if config is available
+	hostDiags, err := o.buildHostDiagnostics()
+	if err != nil {
+		return diagnostics, err
+	}
+	diagnostics = append(diagnostics, hostDiags...)
 
-// Run performs the actual execution of diagnostics once they're built.
-func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, int, int) {
-	warnCount := 0
-	errorCount := 0
-	runCount := 0
-	for _, diagnostic := range diagnostics {
-		func() { // wrap diagnostic panic nicely in case of developer error
-			defer func() {
-				if r := recover(); r != nil {
-					errorCount += 1
-					stack := debug.Stack()
-					o.Logger.Error("CED3017",
-						fmt.Sprintf("While running the %s diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%s\n%s",
-							diagnostic.Name(), fmt.Sprintf("%v", r), stack))
-				}
-			}()
-
-			if canRun, reason := diagnostic.CanRun(); !canRun {
-				if reason == nil {
-					o.Logger.Notice("CED3018", fmt.Sprintf("Skipping diagnostic: %s\nDescription: %s", diagnostic.Name(), diagnostic.Description()))
-				} else {
-					o.Logger.Notice("CED3019", fmt.Sprintf("Skipping diagnostic: %s\nDescription: %s\nBecause: %s", diagnostic.Name(), diagnostic.Description(), reason.Error()))
-				}
-				return
+	// complete any diagnostics that require it
+	errors := []error{}
+	for _, d := range diagnostics {
+		if toComplete, ok := d.(types.IncompleteDiagnostic); ok {
+			if err := toComplete.Complete(o.Logger()); err != nil {
+				errors = append(errors, err)
 			}
-
-			o.Logger.Notice("CED3020", fmt.Sprintf("Running diagnostic: %s\nDescription: %s", diagnostic.Name(), diagnostic.Description()))
-			r := diagnostic.Check()
-			for _, entry := range r.Logs() {
-				o.Logger.LogEntry(entry)
-			}
-			warnCount += len(r.Warnings())
-			errorCount += len(r.Errors())
-			runCount += 1
-		}()
+		}
 	}
-	if runCount == 0 {
-		o.Logger.Error("CED3016", "Requested diagnostic(s) skipped; nothing to run. See --help and consider setting flags or providing config to enable running.")
-		return true, nil, 0, 1
+	if len(errors) > 0 {
+		return diagnostics, kutilerrors.NewAggregate(errors)
 	}
-	return errorCount > 0, nil, warnCount, errorCount
+	return diagnostics, nil
 }
