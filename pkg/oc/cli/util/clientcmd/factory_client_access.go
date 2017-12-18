@@ -282,6 +282,18 @@ func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kprinters.Prin
 	return describe.NewHumanReadablePrinter(f.JSONEncoder(), f.Decoder(true), options), nil
 }
 
+func (f *ring0Factory) GetControllerFromReference(namespace string, controllerRef *metav1.OwnerReference) (runtime.Object, error) {
+	switch controllerRef.Kind {
+	case "Build":
+		buildClient, err := f.OpenshiftInternalBuildClient()
+		if err != nil {
+			return nil, err
+		}
+		return buildClient.Build().BuildConfigs(namespace).Get(controllerRef.Name, metav1.GetOptions{})
+	}
+	return f.kubeClientAccessFactory.GetControllerFromReference(namespace, controllerRef)
+}
+
 func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
