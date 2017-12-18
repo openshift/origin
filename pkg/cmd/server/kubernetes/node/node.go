@@ -226,22 +226,22 @@ func (c *NodeConfig) RunKubelet() {
 				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
 			}
 		}
-	}
-	if clusterDNS == nil {
-		if endpoint, err := c.DNSClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
-			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
-				// Use first endpoint if endpoint includes "dns" port 53.
-				clusterDNS = net.ParseIP(endpointIP)
-			} else if endpointIP, ok := firstEndpointIP(endpoint, 53); ok {
-				// Test and use first endpoint if endpoint includes any port 53.
-				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", endpointIP, 53), 50*time.Millisecond, 0, 2); err == nil {
+		if clusterDNS == nil {
+			if endpoint, err := c.DNSClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
+				if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
+					// Use first endpoint if endpoint includes "dns" port 53.
 					clusterDNS = net.ParseIP(endpointIP)
+				} else if endpointIP, ok := firstEndpointIP(endpoint, 53); ok {
+					// Test and use first endpoint if endpoint includes any port 53.
+					if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", endpointIP, 53), 50*time.Millisecond, 0, 2); err == nil {
+						clusterDNS = net.ParseIP(endpointIP)
+					}
 				}
 			}
 		}
-	}
-	if clusterDNS != nil && !clusterDNS.IsUnspecified() {
-		c.KubeletServer.ClusterDNS = []string{clusterDNS.String()}
+		if clusterDNS != nil && !clusterDNS.IsUnspecified() {
+			c.KubeletServer.ClusterDNS = []string{clusterDNS.String()}
+		}
 	}
 
 	// only set when ContainerRuntime == "docker"
