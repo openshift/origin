@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kexternalinformers "k8s.io/client-go/informers"
 	kinformers "k8s.io/client-go/informers"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
@@ -35,9 +34,11 @@ func newKubeControllerContext(informers *informers) func(s *controlleroptions.CM
 			return controllerapp.ControllerContext{}, err
 		}
 
-		// Overwrite the informers.  Since nothing accessed the existing informers that we're overwriting, they are inert.
-		// TODO Remove this.  It keeps in-process memory utilization down, but we shouldn't do it.
-		ret.InformerFactory = newGenericInformers(informers)
+		// Overwrite the informers, because we have our custom generic informers.
+		ret.InformerFactory = externalKubeInformersWithExtraGenerics{
+			SharedInformerFactory:   informers.GetExternalKubeInformers(),
+			genericResourceInformer: informers.ToGenericInformer(),
+		}
 
 		return ret, nil
 	}
@@ -249,85 +250,11 @@ func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCA
 	}
 }
 
-type GenericResourceInformer interface {
-	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
-}
-
-// genericInternalResourceInformerFunc will return an internal informer for any resource matching
-// its group resource, instead of the external version. Only valid for use where the type is accessed
-// via generic interfaces, such as the garbage collector with ObjectMeta.
-type genericInternalResourceInformerFunc func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
-
-func (fn genericInternalResourceInformerFunc) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-	resource.Version = runtime.APIVersionInternal
-	return fn(resource)
-}
-
-type genericInformers struct {
+type externalKubeInformersWithExtraGenerics struct {
 	kinformers.SharedInformerFactory
-	generic []GenericResourceInformer
-	// bias is a map that tries loading an informer from another GVR before using the original
-	bias map[schema.GroupVersionResource]schema.GroupVersionResource
+	genericResourceInformer GenericResourceInformer
 }
 
-func newGenericInformers(informers *informers) genericInformers {
-	return genericInformers{
-		SharedInformerFactory: informers.GetExternalKubeInformers(),
-		generic: []GenericResourceInformer{
-			// use our existing internal informers to satisfy the generic informer requests (which don't require strong
-			// types).
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.appInformers.ForResource(resource)
-			}),
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.authorizationInformers.ForResource(resource)
-			}),
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.buildInformers.ForResource(resource)
-			}),
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.imageInformers.ForResource(resource)
-			}),
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.quotaInformers.ForResource(resource)
-			}),
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.securityInformers.ForResource(resource)
-			}),
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.templateInformers.ForResource(resource)
-			}),
-			informers.externalKubeInformers,
-			genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-				return informers.internalKubeInformers.ForResource(resource)
-			}),
-		},
-		bias: map[schema.GroupVersionResource]schema.GroupVersionResource{
-			{Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: runtime.APIVersionInternal},
-			{Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: "v1beta1"}: {Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: runtime.APIVersionInternal},
-			{Group: "rbac.authorization.k8s.io", Resource: "roles", Version: "v1beta1"}:               {Group: "rbac.authorization.k8s.io", Resource: "roles", Version: runtime.APIVersionInternal},
-			{Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: runtime.APIVersionInternal},
-			{Group: "", Resource: "securitycontextconstraints", Version: "v1"}:                        {Group: "", Resource: "securitycontextconstraints", Version: runtime.APIVersionInternal},
-		},
-	}
-}
-
-func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-	if try, ok := i.bias[resource]; ok {
-		if res, err := i.ForResource(try); err == nil {
-			return res, nil
-		}
-	}
-
-	informer, firstErr := i.SharedInformerFactory.ForResource(resource)
-	if firstErr == nil {
-		return informer, nil
-	}
-	for _, generic := range i.generic {
-		if informer, err := generic.ForResource(resource); err == nil {
-			return informer, nil
-		}
-	}
-	glog.V(4).Infof("Couldn't find informer for %v", resource)
-	return nil, firstErr
+func (i externalKubeInformersWithExtraGenerics) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+	return i.genericResourceInformer.ForResource(resource)
 }
