@@ -2063,6 +2063,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - namespaces
     - pods
     - replicationcontrollers
     verbs:

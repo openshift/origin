@@ -1892,6 +1892,7 @@ items:
   - apiGroups:
     - ""
     resources:
+    - namespaces
     - pods
     - replicationcontrollers
     verbs:
