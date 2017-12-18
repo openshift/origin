@@ -69,9 +69,12 @@ import:
   repo:    git@github.com:openshift/kubernetes
   version: release-1.8.1
 - package: github.com/openshift/api
-  version: master
+  version: release-3.8
 - package: github.com/openshift/client-go
-  version: master
+  version: release-3.8
+- package: github.com/opencontainers/runc
+  repo:    git@github.com:openshift/opencontainers-runc
+  version: openshift-3.8
 # only used by pkg/build/builder
 - package: github.com/kubernetes-incubator/cri-o
   version: a8ee86b1cce0c13bd541a99140682a92635ba9f7
@@ -84,3 +87,17 @@ import:
 # ours because of genapidocs.  This is the current kube level
 - package: github.com/go-openapi/loads
   version: 18441dfa706d924a39a030ee2c3b1d8d81917b38
+
+# pinned
+- package: github.com/RangelReale/osin
+  version: 829186e6c125f77df6d6ae0162a9ba59fad91e2d
+- package: github.com/joho/godotenv
+  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
+- package: github.com/openshift/imagebuilder
+  version: 3b557eef586b3bc9c43515404bdb98af657cf088
+- package: github.com/containers/storage
+  version: 138cddaf9d6b3910b18de44a017417f60bff4e66
+- package: github.com/getsentry/raven-go
+  version: c9de0b92586aaba092c2a231cb7384354b178544
+- package: github.com/lestrrat/go-jspointer
+  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
