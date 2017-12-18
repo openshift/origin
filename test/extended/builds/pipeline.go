@@ -14,6 +14,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -150,6 +152,25 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// additionally ensure that the build works in a memory constrained
+			// environment
+			_, err = oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(&v1.LimitRange{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "limitrange",
+				},
+				Spec: v1.LimitRangeSpec{
+					Limits: []v1.LimitRangeItem{
+						{
+							Type: v1.LimitTypeContainer,
+							Default: v1.ResourceList{
+								v1.ResourceMemory: resource.MustParse("512Mi"),
+							},
+						},
+					},
+				},
+			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
