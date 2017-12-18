@@ -55,8 +55,9 @@ func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI,
 var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 	var (
-		jenkinsTemplatePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
-		mavenSlavePipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
+		jenkinsTemplatePath          = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		mavenSlavePipelinePath       = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
+		mavenSlaveGradlePipelinePath = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
 		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
 		blueGreenPipelinePath         = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		clientPluginPipelinePath      = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
@@ -142,7 +143,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		}
 	)
 
-	g.Context("Pipeline with maven slave", func() {
+	g.Context("Pipelines with maven slave", func() {
 		g.BeforeEach(func() {
 			setupJenkins()
 
@@ -184,7 +185,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 		})
 
-		g.It("should build and complete successfully", func() {
+		g.It("should build a maven project and complete successfully", func() {
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", mavenSlavePipelinePath))
 			err := oc.Run("new-app").Args("-f", mavenSlavePipelinePath).Execute()
@@ -206,6 +207,22 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("expecting the openshift-jee-sample service to be deployed and running")
 			_, err = exutil.GetEndpointAddress(oc, "openshift-jee-sample")
 			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should build a gradle project and complete successfully", func() {
+			err := oc.Run("create").Args("-f", mavenSlaveGradlePipelinePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// start the build
+			g.By("waiting for the build to complete")
+			br := &exutil.BuildResult{Oc: oc, BuildName: "gradle-1"}
+			err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
+			if err != nil || !br.BuildSuccess {
+				exutil.DumpBuilds(oc)
+				exutil.DumpPodLogsStartingWith("maven", oc)
+			}
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-gradle-pipeline", oc, true)
+			br.AssertSuccess()
 		})
 	})
 
