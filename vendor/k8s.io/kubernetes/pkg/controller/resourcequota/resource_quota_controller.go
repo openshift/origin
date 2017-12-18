@@ -148,7 +148,7 @@ func NewResourceQuotaController(options *ResourceQuotaControllerOptions) (*Resou
 		rq.resyncPeriod(),
 	)
 
-	if options.DiscoveryFunc != nil{
+	if options.DiscoveryFunc != nil {
 		qm := &QuotaMonitor{
 			informersStarted:  options.InformersStarted,
 			informerFactory:   options.InformerFactory,
@@ -277,7 +277,7 @@ func (rq *ResourceQuotaController) Run(workers int, stopCh <-chan struct{}) {
 	glog.Infof("Starting resource quota controller")
 	defer glog.Infof("Shutting down resource quota controller")
 
-	if rq.quotaMonitor != nil{
+	if rq.quotaMonitor != nil {
 		go rq.quotaMonitor.Run(stopCh)
 	}
 
@@ -460,7 +460,7 @@ func (rq *ResourceQuotaController) Sync(discoveryFunc NamespacedResourcesFunc, p
 // resyncMonitors starts or stops quota monitors as needed to ensure that all
 // (and only) those resources present in the map are monitored.
 func (rq *ResourceQuotaController) resyncMonitors(resources map[schema.GroupVersionResource]struct{}) error {
-	if rq.quotaMonitor == nil{
+	if rq.quotaMonitor == nil {
 		return nil
 	}
 
@@ -478,7 +478,7 @@ func GetQuotableResources(discoveryFunc NamespacedResourcesFunc) (map[schema.Gro
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover resources: %v", err)
 	}
-	quotableResources := discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"create", "list", "delete"}}, possibleResources)
+	quotableResources := discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"create", "list", "watch", "delete"}}, possibleResources)
 	quotableGroupVersionResources, err := discovery.GroupVersionResources(quotableResources)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse resources: %v", err)
