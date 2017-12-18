@@ -4,6 +4,8 @@ excludeDirs:
 - cmd/service-catalog
 - pkg/build/builder
 import:
+- package: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
 - package: github.com/coreos/etcd
   version: v3.2.8
 - package: github.com/gonum/graph
