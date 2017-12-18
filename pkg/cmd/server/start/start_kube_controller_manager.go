@@ -27,7 +27,7 @@ import (
 )
 
 // newKubeControllerContext provides a function which overrides the default and plugs a different set of informers in
-func newKubeControllerContext(informers *informers) func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
+func newKubeControllerContext(informers *informers, informersStarted chan struct{}) func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
 	oldContextFunc := controllerapp.CreateControllerContext
 	return func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
 		ret, err := oldContextFunc(s, rootClientBuilder, clientBuilder, stop)
@@ -38,6 +38,7 @@ func newKubeControllerContext(informers *informers) func(s *controlleroptions.CM
 		// Overwrite the informers.  Since nothing accessed the existing informers that we're overwriting, they are inert.
 		// TODO Remove this.  It keeps in-process memory utilization down, but we shouldn't do it.
 		ret.InformerFactory = newGenericInformers(informers)
+		ret.InformersStarted = informersStarted
 
 		return ret, nil
 	}
@@ -219,10 +220,11 @@ func createRecylerTemplate(recyclerImage string) (string, error) {
 }
 
 func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string,
-	recyclerImage string, informers *informers) {
-	controllerapp.CreateControllerContext = newKubeControllerContext(informers)
+	recyclerImage string, informers *informers, informersStarted chan struct{}, kubeControllersStarted chan struct{}) {
+	controllerapp.CreateControllerContext = newKubeControllerContext(informers, informersStarted)
 	controllerapp.StartInformers = func(stop <-chan struct{}) {
-		informers.Start(stop)
+		// We'll start everything out of band, BUT we don't want to start until kube has called this
+		close(kubeControllersStarted)
 	}
 
 	// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
