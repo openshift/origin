@@ -445,6 +445,10 @@ func (f *FakeFactory) Resumer(info *resource.Info) ([]byte, error) {
 	return nil, nil
 }
 
+func (f *FakeFactory) GetControllerFromReference(ns string, ref *metav1.OwnerReference) (runtime.Object, error) {
+	return nil, nil
+}
+
 func (f *FakeFactory) ResolveImage(name string) (string, error) {
 	return name, nil
 }

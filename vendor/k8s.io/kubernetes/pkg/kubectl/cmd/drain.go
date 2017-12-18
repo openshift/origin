@@ -328,22 +328,6 @@ func (o *DrainOptions) deleteOrEvictPodsSimple(nodeInfo *resource.Info) error {
 	return err
 }
 
-func (o *DrainOptions) getController(namespace string, controllerRef *metav1.OwnerReference) (interface{}, error) {
-	switch controllerRef.Kind {
-	case "ReplicationController":
-		return o.client.Core().ReplicationControllers(namespace).Get(controllerRef.Name, metav1.GetOptions{})
-	case "DaemonSet":
-		return o.client.Extensions().DaemonSets(namespace).Get(controllerRef.Name, metav1.GetOptions{})
-	case "Job":
-		return o.client.Batch().Jobs(namespace).Get(controllerRef.Name, metav1.GetOptions{})
-	case "ReplicaSet":
-		return o.client.Extensions().ReplicaSets(namespace).Get(controllerRef.Name, metav1.GetOptions{})
-	case "StatefulSet":
-		return o.client.AppsV1beta1().StatefulSets(namespace).Get(controllerRef.Name, metav1.GetOptions{})
-	}
-	return nil, fmt.Errorf("Unknown controller kind %q", controllerRef.Kind)
-}
-
 func (o *DrainOptions) getPodController(pod corev1.Pod) (*metav1.OwnerReference, error) {
 	controllerRef := metav1.GetControllerOf(&pod)
 	if controllerRef == nil {
@@ -355,7 +339,7 @@ func (o *DrainOptions) getPodController(pod corev1.Pod) (*metav1.OwnerReference,
 	// TODO(mml): something more sophisticated than this
 	// TODO(juntee): determine if it's safe to remove getController(),
 	// so that drain can work for controller types that we don't know about
-	_, err := o.getController(pod.Namespace, controllerRef)
+	_, err := o.Factory.GetControllerFromReference(pod.Namespace, controllerRef)
 	if err != nil {
 		return nil, err
 	}

@@ -53,12 +53,12 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
+	"k8s.io/kubernetes/pkg/apis/batch"
+	"k8s.io/kubernetes/pkg/apis/core"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/printers"
 	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
@@ -299,7 +299,6 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 	}
 }
 
-
 func ConvertExteralPodSpecToInternal(inFn func(*v1.PodSpec) error) func(*core.PodSpec) error {
 	return func(specToMutate *core.PodSpec) error {
 		externalPodSpec := &v1.PodSpec{}
@@ -497,6 +496,27 @@ func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("resuming is not supported")
 	}
+}
+
+func (f *ring0Factory) GetControllerFromReference(namespace string, controllerRef *metav1.OwnerReference) (runtime.Object, error) {
+	kc, err := f.ClientSet()
+	if err != nil {
+		return nil, err
+	}
+	switch controllerRef.Kind {
+	case "ReplicationController":
+		return kc.Core().ReplicationControllers(namespace).Get(controllerRef.Name, metav1.GetOptions{})
+	case "DaemonSet":
+		return kc.Extensions().DaemonSets(namespace).Get(controllerRef.Name, metav1.GetOptions{})
+	case "Job":
+		return kc.Batch().Jobs(namespace).Get(controllerRef.Name, metav1.GetOptions{})
+	case "ReplicaSet":
+		return kc.Extensions().ReplicaSets(namespace).Get(controllerRef.Name, metav1.GetOptions{})
+	case "StatefulSet":
+		return kc.Apps().StatefulSets(namespace).Get(controllerRef.Name, metav1.GetOptions{})
+	}
+	return nil, fmt.Errorf("Unknown controller kind %q", controllerRef.Kind)
+
 }
 
 func (f *ring0Factory) DefaultNamespace() (string, bool, error) {
