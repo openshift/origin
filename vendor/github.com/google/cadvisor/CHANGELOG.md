@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.27.3 (2017-11-22)
+- Update Jquery and Bootstrap
+
+### 0.27.2 (2017-10-23)
+- Fix Overlay2 contianer disk stats for docker and cri-o
+
 ### 0.27.1 (2017-09-06)
 - Add CRI-O support
 

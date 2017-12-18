@@ -1,5 +1,5 @@
-hash: 1e97567ad9140134b9bd2cf11b83f4d75251307ae28eba9c5f949ce8ba422f7d
-updated: 2018-01-10T10:14:43.598209-05:00
+hash: beeb02d75af1c7e10de785c27f81e1588bf0cd0a88c38b25ab8fd61dbf1583be
+updated: 2018-01-10T10:31:45.137908-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -511,7 +511,7 @@ imports:
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/cadvisor
-  version: 0a835958eb76bd27224e5f098f93dfda50a58c09
+  version: 42adc602080cb4388a32939f5de7a643e12bc0dd
   repo: git@github.com:openshift/google-cadvisor
   subpackages:
   - api

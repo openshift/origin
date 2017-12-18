@@ -17,7 +17,7 @@ import:
   version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
 - package: github.com/google/cadvisor
   repo:    git@github.com:openshift/google-cadvisor
-  version: release-0.27.1
+  version: release-0.27.3
 - package: github.com/emicklei/go-restful-swagger12
   repo:    https://github.com/openshift/emicklei-go-restful-swagger12
   version: release-1.0.1
