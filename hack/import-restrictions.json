@@ -17,6 +17,22 @@
   },
 
   {
+     "checkedPackageRoots": [
+       "github.com/openshift/origin/pkg"
+     ],
+     "ignoredSubTrees": [
+       "github.com/openshift/origin/pkg/oc"
+     ],
+     "forbiddenImportPackageRoots": [
+       "github.com/openshift/origin/pkg/oc"
+     ],
+     "allowedImportPackageRoots": [
+       "vendor",
+       ""
+     ]
+  },
+
+  {
     "checkedPackageRoots": [
       "github.com/openshift/origin/pkg"
     ],
@@ -32,7 +48,6 @@
       ""
     ]
   },
-
 
   {
     "checkedPackageRoots": [
