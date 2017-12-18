@@ -157,6 +157,10 @@ type ClientAccessFactory interface {
 	// in case the object is already resumed.
 	Resumer(info *resource.Info) ([]byte, error)
 
+	// GetControllerFromReference fetches the referenced controller from the object
+	// reference.
+	GetControllerFromReference(ns string, ref *metav1.OwnerReference) (runtime.Object, error)
+
 	// ResolveImage resolves the image names. For kubernetes this function is just
 	// passthrough but it allows to perform more sophisticated image name resolving for
 	// third-party vendors.
