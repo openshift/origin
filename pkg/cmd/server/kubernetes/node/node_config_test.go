@@ -31,6 +31,7 @@ func TestKubeletDefaults(t *testing.T) {
 			ContainerRuntimeOptions: kubeletoptions.ContainerRuntimeOptions{
 				DockershimRootDirectory:   "/var/lib/dockershim",
 				DockerExecHandlerName:     "native",
+				DockerDisableSharedPID:    true,
 				DockerEndpoint:            "unix:///var/run/docker.sock",
 				ImagePullProgressDeadline: metav1.Duration{Duration: 1 * time.Minute},
 				RktAPIEndpoint:            rkt.DefaultRktAPIServiceEndpoint,
