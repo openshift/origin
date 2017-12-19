@@ -615,6 +615,8 @@ os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-i
 # unprotect the imagestreamtag
 os::cmd::expect_success 'oc annotate -n openshift istag --all "image.openshift.io/prune-immunity-"'
 
+oc get istag --all-namespaces
+
 # run image pruning
 os::cmd::expect_success_and_not_text "oc adm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --keep-tag-revisions=1 --confirm -l 'image.openshift.io/allow-prune-immunity=true'" 'error'
 
