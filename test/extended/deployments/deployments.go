@@ -1359,7 +1359,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 			// Wait for deployment pod to be running
 			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
-				"", func(currentRC *kapiv1.ReplicationController) (bool, error) {
+				rc.ResourceVersion, func(currentRC *kapiv1.ReplicationController) (bool, error) {
 					if appsutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
 						return true, nil
 					}
