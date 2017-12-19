@@ -338,8 +338,12 @@ func (oc *ovsController) SetPodBandwidth(hostVeth string, ingressBPS, egressBPS 
 	return nil
 }
 
-func getPodDetailsBySandboxID(flows []string, sandboxID string) (int, string, string, string, error) {
+func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, string, string, string, error) {
 	note, err := getPodNote(sandboxID)
+	if err != nil {
+		return 0, "", "", "", err
+	}
+	flows, err := oc.ovs.DumpFlows()
 	if err != nil {
 		return 0, "", "", "", err
 	}
@@ -381,11 +385,7 @@ func getPodDetailsBySandboxID(flows []string, sandboxID string) (int, string, st
 }
 
 func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
-	flows, err := oc.ovs.DumpFlows()
-	if err != nil {
-		return err
-	}
-	ofport, podIP, podMAC, note, err := getPodDetailsBySandboxID(flows, sandboxID)
+	ofport, podIP, podMAC, note, err := oc.getPodDetailsBySandboxID(sandboxID)
 	if err != nil {
 		return err
 	}
@@ -398,11 +398,7 @@ func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
 
 func (oc *ovsController) TearDownPod(hostVeth, podIP, sandboxID string) error {
 	if podIP == "" {
-		flows, err := oc.ovs.DumpFlows()
-		if err != nil {
-			return err
-		}
-		_, ip, _, _, err := getPodDetailsBySandboxID(flows, sandboxID)
+		_, ip, _, _, err := oc.getPodDetailsBySandboxID(sandboxID)
 		if err != nil {
 			// OVS flows related to sandboxID not found
 			// Nothing needs to be done in that case
