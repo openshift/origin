@@ -66,16 +66,21 @@ var expectedCategories = map[string][]string{
 	"HorizontalPodAutoscaler/autoscaling/v1":      {"all"},
 	"HorizontalPodAutoscaler/autoscaling/v2beta1": {"all"},
 	"Job/batch/v1":                                {"all"},
+	"DeploymentConfig/apps.openshift.io/v1":       {"all"}, // FIX: discovered with no categories
+	"BuildConfig/build.openshift.io/v1":           {"all"}, // FIX: discovered with no categories
+	"Build/build.openshift.io/v1":                 {"all"}, // FIX: discovered with no categories
+	"ImageStream/image.openshift.io/v1":           {"all"}, // FIX: discovered with no categories
+	"Route/route.openshift.io/v1":                 {"all"}, // FIX: discovered with no categories
 	"Pod/v1":                                      {"all"},
 	"CronJob/batch/v1beta1":                       {"all"},
 	"CronJob/batch/v2alpha1":                      {"all"},
 	"ReplicationController/v1":                    {"all"},
 	"Service/v1":                                  {"all"},
-	"BuildConfig/v1":                              {"all"},
-	"Build/v1":                                    {"all"},
-	"DeploymentConfig/v1":                         {"all"},
-	"ImageStream/v1":                              {"all"},
-	"Route/v1":                                    {"all"},
+	"BuildConfig/v1":                              {"all"}, // FIX: discovered with no categories
+	"Build/v1":                                    {"all"}, // FIX: discovered with no categories
+	"DeploymentConfig/v1":                         {"all"}, // FIX: discovered with no categories
+	"ImageStream/v1":                              {"all"}, // FIX: discovered with no categories
+	"Route/v1":                                    {"all"}, // FIX: discovered with no categories
 }
 
 func TestDiscoveryCategoriesContainExpectedResources(t *testing.T) {
