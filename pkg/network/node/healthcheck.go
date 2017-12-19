@@ -42,7 +42,7 @@ func waitForOVS(network, addr string) error {
 // from the OVS server and then checks healthFn, and one that periodically checks
 // healthFn. If healthFn returns false in either of these two cases while the OVS
 // server is responsive the node process will terminate.
-func runOVSHealthCheck(network, addr string, healthFn func() bool) {
+func runOVSHealthCheck(network, addr string, healthFn func() error) {
 	// this loop holds an open socket connection to OVS until it times out, then
 	// checks for health
 	go utilwait.Until(func() {
@@ -67,8 +67,8 @@ func runOVSHealthCheck(network, addr string, healthFn func() bool) {
 				glog.V(2).Infof("SDN healthcheck unable to ping OVS server: %v", err)
 				return false, nil
 			}
-			if !healthFn() {
-				return false, fmt.Errorf("OVS health check failed")
+			if err := healthFn(); err != nil {
+				return false, fmt.Errorf("OVS health check failed, %v", err)
 			}
 			return true, nil
 		})
@@ -92,7 +92,7 @@ func runOVSHealthCheck(network, addr string, healthFn func() bool) {
 			glog.V(2).Infof("SDN healthcheck unable to ping OVS server: %v", err)
 			return
 		}
-		if !healthFn() {
+		if err := healthFn(); err != nil {
 			glog.Fatalf("SDN healthcheck detected unhealthy OVS server, restarting: %v", err)
 		}
 		glog.V(4).Infof("SDN healthcheck succeeded")
