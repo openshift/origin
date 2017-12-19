@@ -13,10 +13,7 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(templateapi.GroupName, templateapi.AddToSchemeInCoreGroup, templateapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("BrokerTemplateInstance"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacyTemplate(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

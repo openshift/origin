@@ -17,6 +17,21 @@ var (
 	coreV1   = schema.GroupVersion{Group: "", Version: "v1"}
 )
 
+func LegacyInstallAll(scheme *runtime.Scheme, registry *registered.APIRegistrationManager) {
+	InstallLegacyApps(scheme, registry)
+	InstallLegacyAuthorization(scheme, registry)
+	InstallLegacyBuild(scheme, registry)
+	InstallLegacyImage(scheme, registry)
+	InstallLegacyNetwork(scheme, registry)
+	InstallLegacyOAuth(scheme, registry)
+	InstallLegacyProject(scheme, registry)
+	InstallLegacyQuota(scheme, registry)
+	InstallLegacyRoute(scheme, registry)
+	InstallLegacySecurity(scheme, registry)
+	InstallLegacyTemplate(scheme, registry)
+	InstallLegacyUser(scheme, registry)
+}
+
 func InstallLegacy(group string, addToCore, addToCoreV1 func(*runtime.Scheme) error, rootScopedKinds sets.String, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	interfacesFor := interfacesForGroup(group)
 

@@ -13,10 +13,7 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(userapi.GroupName, userapi.AddToSchemeInCoreGroup, userapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("User", "Identity", "UserIdentityMapping", "Group"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacyUser(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

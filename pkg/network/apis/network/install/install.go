@@ -13,10 +13,7 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(sdnapi.GroupName, sdnapi.AddToSchemeInCoreGroup, sdnapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterNetwork", "HostSubnet", "NetNamespace"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacyNetwork(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

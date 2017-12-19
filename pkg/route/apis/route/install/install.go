@@ -9,11 +9,10 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func init() {
-	legacy.InstallLegacy(routeapi.GroupName, routeapi.AddToSchemeInCoreGroup, routeapiv1.AddToSchemeInCoreGroup, sets.NewString(), legacyscheme.Registry, legacyscheme.Scheme)
+	legacy.InstallLegacyRoute(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

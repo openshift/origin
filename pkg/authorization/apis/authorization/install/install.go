@@ -14,10 +14,7 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacyAuthorization(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

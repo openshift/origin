@@ -15,10 +15,7 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(imageapi.GroupName, imageapi.AddToSchemeInCoreGroup, imageapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("Image", "ImageSignature"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacyImage(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

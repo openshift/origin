@@ -15,6 +15,7 @@ import (
 
 	// install all APIs
 	apiinstall "github.com/openshift/origin/pkg/api/install"
+	apilegacy "github.com/openshift/origin/pkg/api/legacy"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -33,6 +34,7 @@ func main() {
 	}
 
 	apiinstall.InstallAll(scheme.Scheme, scheme.GroupFactoryRegistry, scheme.Registry)
+	apilegacy.LegacyInstallAll(scheme.Scheme, scheme.Registry)
 
 	basename := filepath.Base(os.Args[0])
 	command := cli.CommandFor(basename)
