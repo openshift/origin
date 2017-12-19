@@ -38,7 +38,7 @@ JUNIT_REPORT ?= true
 #   make all
 #   make all WHAT=cmd/oc GOFLAGS=-v
 all build:
-	hack/build-go.sh $(WHAT) $(GOFLAGS)
+	OS_GOFLAGS=$(GOFLAGS) hack/build-go.sh $(WHAT)
 .PHONY: all build
 
 # Build the test binaries.
@@ -209,7 +209,7 @@ test-tools:
 # Example:
 #   make test-extended SUITE=core
 #   make test-extended SUITE=conformance FOCUS=pods
-# 
+#
 SUITE ?= conformance
 test-extended:
 	test/extended/$(SUITE).sh
@@ -284,7 +284,7 @@ build-rpms-redistributable:
 .PHONY: build-rpms-redistributable
 
 # Build images from the official RPMs
-# 
+#
 # Args:
 #
 # Example:
