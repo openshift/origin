@@ -494,7 +494,7 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
-			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, utilwait.NeverStop, make(chan struct{}))
+			controllerContext := newControllerContext(openshiftControllerOptions, m.config.ControllerConfig.Controllers, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, utilwait.NeverStop, make(chan struct{}))
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}

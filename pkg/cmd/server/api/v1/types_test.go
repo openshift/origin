@@ -127,6 +127,7 @@ auditConfig:
 authConfig:
   requestHeader: null
 controllerConfig:
+  controllers: null
   election: null
   serviceServingCert:
     signer: null
