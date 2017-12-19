@@ -2,7 +2,10 @@ package install
 
 import (
 	kv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
@@ -21,19 +24,20 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/settings/install"
 	_ "k8s.io/kubernetes/pkg/apis/storage/install"
 
-	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
-	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
-	_ "github.com/openshift/origin/pkg/image/apis/image/install"
-	_ "github.com/openshift/origin/pkg/network/apis/network/install"
-	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
-	_ "github.com/openshift/origin/pkg/project/apis/project/install"
-	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
-	_ "github.com/openshift/origin/pkg/route/apis/route/install"
-	_ "github.com/openshift/origin/pkg/security/apis/security/install"
-	_ "github.com/openshift/origin/pkg/template/apis/template/install"
-	_ "github.com/openshift/origin/pkg/user/apis/user/install"
+
+	apps "github.com/openshift/origin/pkg/apps/apis/apps/install"
+	authz "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
+	build "github.com/openshift/origin/pkg/build/apis/build/install"
+	image "github.com/openshift/origin/pkg/image/apis/image/install"
+	network "github.com/openshift/origin/pkg/network/apis/network/install"
+	oauth "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
+	project "github.com/openshift/origin/pkg/project/apis/project/install"
+	quota "github.com/openshift/origin/pkg/quota/apis/quota/install"
+	route "github.com/openshift/origin/pkg/route/apis/route/install"
+	security "github.com/openshift/origin/pkg/security/apis/security/install"
+	template "github.com/openshift/origin/pkg/template/apis/template/install"
+	user "github.com/openshift/origin/pkg/user/apis/user/install"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -591,4 +595,20 @@ func init() {
 		}
 		return false, nil
 	})
+}
+
+func InstallAll(scheme *runtime.Scheme, groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager) {
+	// add Origin types to the given scheme
+	apps.Install(groupFactoryRegistry, registry, scheme)
+	authz.Install(groupFactoryRegistry, registry, scheme)
+	build.Install(groupFactoryRegistry, registry, scheme)
+	image.Install(groupFactoryRegistry, registry, scheme)
+	network.Install(groupFactoryRegistry, registry, scheme)
+	oauth.Install(groupFactoryRegistry, registry, scheme)
+	project.Install(groupFactoryRegistry, registry, scheme)
+	quota.Install(groupFactoryRegistry, registry, scheme)
+	route.Install(groupFactoryRegistry, registry, scheme)
+	security.Install(groupFactoryRegistry, registry, scheme)
+	template.Install(groupFactoryRegistry, registry, scheme)
+	user.Install(groupFactoryRegistry, registry, scheme)
 }

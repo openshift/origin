@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/wait"
 	oapi "k8s.io/kube-openapi/pkg/util/proto"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
@@ -46,6 +45,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util/openapi"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 )
 
@@ -621,7 +621,7 @@ func (p *patcher) patchSimple(obj runtime.Object, modified []byte, source, names
 	if patch == nil {
 		// Create the versioned struct from the type defined in the restmapping
 		// (which is the API version we'll be submitting the patch to)
-		versionedObject, err := legacyscheme.Scheme.New(p.mapping.GroupVersionKind)
+		versionedObject, err := scheme.Scheme.New(p.mapping.GroupVersionKind)
 		switch {
 		case runtime.IsNotRegisteredError(err):
 			// fall back to generic JSON merge patch

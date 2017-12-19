@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
 	"github.com/openshift/origin/pkg/oc/cli"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	apiinstall "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -30,6 +31,8 @@ func main() {
 	if len(os.Getenv("GOMAXPROCS")) == 0 {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
+
+	apiinstall.InstallAll(scheme.Scheme, scheme.GroupFactoryRegistry, scheme.Registry)
 
 	basename := filepath.Base(os.Args[0])
 	command := cli.CommandFor(basename)
