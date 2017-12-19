@@ -604,21 +604,19 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt" 0
 
 # protect the imagestreamtag
-os::cmd::expect_success 'oc label ns/openshift "image.openshift.io/allow-prune-immunity=true"'
-os::cmd::expect_success 'oc annotate -n openshift istag --all "image.openshift.io/prune-immunity=true"'
-os::cmd::expect_success_and_not_text "oc adm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --keep-tag-revisions=1 --confirm -l 'image.openshift.io/allow-prune-immunity=true'" 'error'
+os::cmd::expect_success 'oc label ns --all "image.openshift.io/allow-prune-immunity=true"'
+os::cmd::expect_success 'oc get ns -o name | xargs -I{} -n 1 oc annotate istag -n {} --all "image.openshift.io/prune-immunity=true"'
+os::cmd::expect_success_and_not_text "oc adm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --keep-tag-revisions=1 --confirm" 'error'
 # record the storage after pruning
 os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.after.txt'"
 # make sure there were no changes to the registry's storage
 os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt" 0
 
 # unprotect the imagestreamtag
-os::cmd::expect_success 'oc annotate -n openshift istag --all "image.openshift.io/prune-immunity-"'
-
-oc get istag --all-namespaces
+os::cmd::expect_success 'oc get ns -o name | xargs -I{} -n 1 oc annotate istag -n {} --all "image.openshift.io/prune-immunity-"'
 
 # run image pruning
-os::cmd::expect_success_and_not_text "oc adm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --keep-tag-revisions=1 --confirm -l 'image.openshift.io/allow-prune-immunity=true'" 'error'
+os::cmd::expect_success_and_not_text "oc adm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --keep-tag-revisions=1 --confirm" 'error'
 
 # record the storage after pruning
 os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.after.txt'"
