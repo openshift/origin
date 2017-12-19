@@ -68,7 +68,7 @@ func runOVSHealthCheck(network, addr string, healthFn func() error) {
 				return false, nil
 			}
 			if err := healthFn(); err != nil {
-				return false, fmt.Errorf("OVS health check failed, %v", err)
+				return false, fmt.Errorf("OVS health check failed: %v", err)
 			}
 			return true, nil
 		})
