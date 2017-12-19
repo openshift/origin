@@ -275,7 +275,9 @@ readonly extra_args=(
     #"--loglevel=5 --image=registry.access.redhat.com/openshift3/ose --version=v3.7"
 
     # Test the previous origin release
-    "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
+    # TODO - enable this once oc cluster up v3.9 supports modifiying cluster
+    # roles on a 3.7 cluster image (https://github.com/openshift/origin/issues/17867)
+    # "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
 
     # Test the current published release
     "--loglevel=5"  # can't be empty, so pass something benign
