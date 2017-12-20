@@ -57,40 +57,24 @@ func TestGenerateRandomAsciiStringIsAscii(t *testing.T) {
 	}
 }
 
-func TestEllipsis(t *testing.T) {
-	str := "t🐳ststring"
-	newstr := Ellipsis(str, 3)
-	if newstr != "t🐳s" {
-		t.Fatalf("Expected t🐳s, got %s", newstr)
-	}
-	newstr = Ellipsis(str, 8)
-	if newstr != "t🐳sts..." {
-		t.Fatalf("Expected tests..., got %s", newstr)
-	}
-	newstr = Ellipsis(str, 20)
-	if newstr != "t🐳ststring" {
-		t.Fatalf("Expected t🐳ststring, got %s", newstr)
-	}
-}
-
 func TestTruncate(t *testing.T) {
-	str := "t🐳ststring"
+	str := "teststring"
 	newstr := Truncate(str, 4)
-	if newstr != "t🐳st" {
-		t.Fatalf("Expected t🐳st, got %s", newstr)
+	if newstr != "test" {
+		t.Fatalf("Expected test, got %s", newstr)
 	}
 	newstr = Truncate(str, 20)
-	if newstr != "t🐳ststring" {
-		t.Fatalf("Expected t🐳ststring, got %s", newstr)
+	if newstr != "teststring" {
+		t.Fatalf("Expected teststring, got %s", newstr)
 	}
 }
 
 func TestInSlice(t *testing.T) {
-	slice := []string{"t🐳st", "in", "slice"}
+	slice := []string{"test", "in", "slice"}
 
-	test := InSlice(slice, "t🐳st")
+	test := InSlice(slice, "test")
 	if !test {
-		t.Fatalf("Expected string t🐳st to be in slice")
+		t.Fatalf("Expected string test to be in slice")
 	}
 	test = InSlice(slice, "SLICE")
 	if !test {

@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	"github.com/containers/storage/pkg/system"
-	"golang.org/x/sys/unix"
 )
 
 func statDifferent(oldStat *system.StatT, newStat *system.StatT) bool {
@@ -17,7 +16,7 @@ func statDifferent(oldStat *system.StatT, newStat *system.StatT) bool {
 		oldStat.GID() != newStat.GID() ||
 		oldStat.Rdev() != newStat.Rdev() ||
 		// Don't look at size for dirs, its not a good measure of change
-		(oldStat.Mode()&unix.S_IFDIR != unix.S_IFDIR &&
+		(oldStat.Mode()&syscall.S_IFDIR != syscall.S_IFDIR &&
 			(!sameFsTimeSpec(oldStat.Mtim(), newStat.Mtim()) || (oldStat.Size() != newStat.Size()))) {
 		return true
 	}
@@ -25,11 +24,11 @@ func statDifferent(oldStat *system.StatT, newStat *system.StatT) bool {
 }
 
 func (info *FileInfo) isDir() bool {
-	return info.parent == nil || info.stat.Mode()&unix.S_IFDIR != 0
+	return info.parent == nil || info.stat.Mode()&syscall.S_IFDIR != 0
 }
 
 func getIno(fi os.FileInfo) uint64 {
-	return fi.Sys().(*syscall.Stat_t).Ino
+	return uint64(fi.Sys().(*syscall.Stat_t).Ino)
 }
 
 func hasHardlinks(fi os.FileInfo) bool {

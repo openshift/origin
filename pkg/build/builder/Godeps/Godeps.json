@@ -768,6 +768,10 @@
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/user",
 			"Comment": "v1.1.7-63-ge3140d0",
 			"Rev": "e3140d019517368c7c3f72476f9cae7a8b1269d0"
+		},
+		{
+			"ImportPath": "github.com/kubernetes-incubator/cri-o",
+			"Rev": "a8ee86b1cce0c13bd541a99140682a92635ba9f7"
 		}
 	]
 }

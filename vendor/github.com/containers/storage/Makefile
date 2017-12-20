@@ -4,7 +4,7 @@ PACKAGE := github.com/containers/storage
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 EPOCH_TEST_COMMIT := 0418ebf59f9e1f564831c0ba9378b7f8e40a1c73
-NATIVETAGS := exclude_graphdriver_devicemapper exclude_graphdriver_btrfs exclude_graphdriver_overlay
+NATIVETAGS := exclude_graphdriver_devicemapper exclude_graphdriver_btrfs
 AUTOTAGS := $(shell ./hack/btrfs_tag.sh) $(shell ./hack/libdm_tag.sh)
 BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
 GO := go
@@ -16,21 +16,8 @@ default all: local-binary docs local-validate local-cross local-gccgo test-unit 
 clean: ## remove all built files
 	$(RM) -f containers-storage containers-storage.* docs/*.1
 
-sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go) layers_ffjson.go images_ffjson.go containers_ffjson.go
-
-containers-storage: $(sources) ## build using gc on the host
+binary local-binary: ## build using gc on the host
 	$(GO) build -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
-
-layers_ffjson.go: layers.go
-	ffjson layers.go
-
-images_ffjson.go: images.go
-	ffjson images.go
-
-containers_ffjson.go: containers.go
-	ffjson containers.go
-
-binary local-binary: containers-storage
 
 local-gccgo: ## build using gccgo on the host
 	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO) build -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
@@ -62,7 +49,7 @@ test-unit: local-binary ## run the unit tests using VMs
 	$(RUNINVM) make local-$@
 
 local-test-integration: local-binary ## run the integration tests on the host (requires\nsuperuser privileges)
-	@cd tests; ./test_runner.bash
+	@cd tests; ./test_runner.sh
 
 test-integration: local-binary ## run the integration tests using VMs
 	$(RUNINVM) make local-$@

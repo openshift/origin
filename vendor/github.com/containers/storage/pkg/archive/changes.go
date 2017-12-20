@@ -267,7 +267,7 @@ func (info *FileInfo) addChanges(oldInfo *FileInfo, changes *[]Change) {
 	}
 
 	for name, newChild := range info.children {
-		oldChild := oldChildren[name]
+		oldChild, _ := oldChildren[name]
 		if oldChild != nil {
 			// change?
 			oldStat := oldChild.stat
@@ -279,7 +279,7 @@ func (info *FileInfo) addChanges(oldInfo *FileInfo, changes *[]Change) {
 			// breaks down is if some code intentionally hides a change by setting
 			// back mtime
 			if statDifferent(oldStat, newStat) ||
-				!bytes.Equal(oldChild.capability, newChild.capability) {
+				bytes.Compare(oldChild.capability, newChild.capability) != 0 {
 				change := Change{
 					Path: newChild.path(),
 					Kind: ChangeModify,
@@ -391,11 +391,16 @@ func ChangesSize(newDir string, changes []Change) int64 {
 }
 
 // ExportChanges produces an Archive from the provided changes, relative to dir.
-func ExportChanges(dir string, changes []Change, uidMaps, gidMaps []idtools.IDMap) (io.ReadCloser, error) {
+func ExportChanges(dir string, changes []Change, uidMaps, gidMaps []idtools.IDMap) (Archive, error) {
 	reader, writer := io.Pipe()
 	go func() {
-		ta := newTarAppender(idtools.NewIDMappingsFromMaps(uidMaps, gidMaps), writer, nil)
-
+		ta := &tarAppender{
+			TarWriter: tar.NewWriter(writer),
+			Buffer:    pools.BufioWriter32KPool.Get(nil),
+			SeenFiles: make(map[uint64]string),
+			UIDMaps:   uidMaps,
+			GIDMaps:   gidMaps,
+		}
 		// this buffer is needed for the duration of this piped stream
 		defer pools.BufioWriter32KPool.Put(ta.Buffer)
 
