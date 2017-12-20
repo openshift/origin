@@ -311,6 +311,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 			}
 		}
 		if err != nil {
+			PodOperationsErrors.WithLabelValues(PodOperationSetup).Inc()
 			result.Err = err
 		}
 	case cniserver.CNI_UPDATE:
@@ -329,6 +330,9 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 			}
 		}
 		result.Err = m.podHandler.teardown(request)
+		if result.Err != nil {
+			PodOperationsErrors.WithLabelValues(PodOperationTeardown).Inc()
+		}
 	default:
 		result.Err = fmt.Errorf("unhandled CNI request %v", request.Command)
 	}
@@ -543,7 +547,7 @@ func podIsExited(p *kcontainer.Pod) bool {
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *runningPod, error) {
-	defer PodSetupLatency.WithLabelValues(req.PodNamespace, req.PodName, req.SandboxID).Observe(sinceInMicroseconds(time.Now()))
+	defer PodOperationsLatency.WithLabelValues(PodOperationSetup).Observe(sinceInMicroseconds(time.Now()))
 
 	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
@@ -672,7 +676,7 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
-	defer PodTeardownLatency.WithLabelValues(req.PodNamespace, req.PodName, req.SandboxID).Observe(sinceInMicroseconds(time.Now()))
+	defer PodOperationsLatency.WithLabelValues(PodOperationTeardown).Observe(sinceInMicroseconds(time.Now()))
 
 	netnsValid := true
 	if err := ns.IsNSorErr(req.Netns); err != nil {
