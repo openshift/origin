@@ -102,6 +102,7 @@ var expectedIndex = []string{
 	"/healthz/autoregister-completion",
 	"/healthz/etcd",
 	"/healthz/ping",
+	"/healthz/poststarthook/apiservice-openapi-controller",
 	"/healthz/poststarthook/apiservice-registration-controller",
 	"/healthz/poststarthook/apiservice-status-available-controller",
 	"/healthz/poststarthook/authorization.openshift.io-bootstrapclusterroles",
