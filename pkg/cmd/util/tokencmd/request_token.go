@@ -9,15 +9,16 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/RangelReale/osincli"
+	"github.com/golang/glog"
+	"github.com/pkg/errors"
+
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/oauth/util"
-
-	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
 )
 
 const (
@@ -106,23 +107,23 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 	// get the OAuth metadata from the server
 	rt, err := restclient.TransportFor(o.ClientConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get transport for client")
 	}
 
 	requestURL := strings.TrimRight(o.ClientConfig.Host, "/") + oauthMetadataEndpoint
 	resp, err := request(rt, requestURL, nil)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to request OAuth metadata at url %q", requestURL)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("couldn't get %v: unexpected response status %v", requestURL, resp.StatusCode)
+		return errors.Errorf("couldn't get %q: unexpected response status %q", requestURL, resp.Status)
 	}
 
 	metadata := &util.OauthAuthorizationServerMetadata{}
 	if err := json.NewDecoder(resp.Body).Decode(metadata); err != nil {
-		return err
+		return errors.Wrap(err, "failed to decode OAuth metadata")
 	}
 
 	// use the metadata to build the osin config
@@ -134,7 +135,7 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 	}
 	if !o.TokenFlow && sets.NewString(metadata.CodeChallengeMethodsSupported...).Has(pkce_s256) {
 		if err := osincli.PopulatePKCE(config); err != nil {
-			return err
+			return errors.Wrap(err, "failed to populate PKCE")
 		}
 	}
 
@@ -159,18 +160,18 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 
 	rt, err := restclient.TransportFor(o.ClientConfig)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to create transport for client")
 	}
 
 	if o.OsinConfig == nil {
 		if err := o.SetDefaultOsinConfig(); err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "failed to set default osin config")
 		}
 	}
 
 	client, err := osincli.NewClient(o.OsinConfig)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to create new client")
 	}
 	client.Transport = rt
 	authorizeRequest := client.NewAuthorizeRequest(osincli.CODE) // assume code flow to start with
@@ -200,7 +201,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 		// Make the request
 		resp, err := request(rt, requestURL, requestHeaders)
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "failed to request token")
 		}
 		defer resp.Body.Close()
 
@@ -212,7 +213,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 				// Handle the challenge
 				newRequestHeaders, shouldRetry, err := o.Handler.HandleChallenge(requestURL, resp.Header)
 				if err != nil {
-					return "", err
+					return "", errors.Wrapf(err, "failed to handle challenge")
 				}
 				if !shouldRetry {
 					return "", apierrs.NewUnauthorized("challenger chose not to retry the request")
@@ -246,7 +247,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 		// this is required for negotiate flows with mutual authentication.
 		if handledChallenge {
 			if err := o.Handler.CompleteChallenge(requestURL, resp.Header); err != nil {
-				return "", err
+				return "", errors.Wrapf(err, "failed to complete challenge")
 			}
 		}
 
@@ -256,7 +257,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 			// OAuth response case
 			accessToken, err := oauthTokenFunc(redirectURL)
 			if err != nil {
-				return "", err
+				return "", errors.Wrapf(err, "failed to get token after redirect")
 			}
 			if len(accessToken) > 0 {
 				return accessToken, nil

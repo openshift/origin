@@ -1,12 +1,12 @@
 package login
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,10 +69,12 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out,
 
 			err := RunLogin(cmd, options)
 
-			if kapierrors.IsUnauthorized(err) {
+			// We need to unwrap error so it's type can be checked later
+			unwrappedErr := errors.Cause(err)
+			if kapierrors.IsUnauthorized(unwrappedErr) {
 				fmt.Fprintln(out, "Login failed (401 Unauthorized)")
 
-				if err, isStatusErr := err.(*kapierrors.StatusError); isStatusErr {
+				if err, isStatusErr := unwrappedErr.(*kapierrors.StatusError); isStatusErr {
 					if details := err.Status().Details; details != nil {
 						for _, cause := range details.Causes {
 							fmt.Fprintln(out, cause.Message)

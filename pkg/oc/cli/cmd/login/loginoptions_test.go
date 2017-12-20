@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pkg/errors"
 
 	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/oauth/util"
@@ -331,7 +332,7 @@ func TestPreserveErrTypeAuthInfo(t *testing.T) {
 		t.Fatalf("expecting unauthorized error when gathering authinfo")
 	}
 
-	if !kapierrs.IsUnauthorized(err) {
+	if !kapierrs.IsUnauthorized(errors.Cause(err)) {
 		t.Fatalf("expecting error of type metav1.StatusReasonUnauthorized, but got %T", err)
 	}
 }

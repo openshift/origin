@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
@@ -360,7 +362,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		if !tc.ExpectSuccess {
 			if err == nil {
 				t.Errorf("%s: Expected error, got token=%v", k, accessToken)
-			} else if statusErr, ok := err.(*apierrs.StatusError); !ok {
+			} else if statusErr, ok := errors.Cause(err).(*apierrs.StatusError); !ok {
 				t.Errorf("%s: expected status error, got %#v", k, err)
 			} else if statusErr.ErrStatus.Code != tc.ExpectErrStatus {
 				t.Errorf("%s: expected error status %d, got %#v", k, tc.ExpectErrStatus, statusErr)
