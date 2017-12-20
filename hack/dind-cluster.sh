@@ -125,6 +125,7 @@ function start() {
 
   if [[ -n "${ADDITIONAL_NETWORK_INTERFACE}" ]]; then
     add-network-interface-to-nodes
+    update-node-config
   fi
 
   local rc_file="dind-${cluster_id}.rc"
@@ -193,6 +194,22 @@ function add-network-interface-to-nodes () {
     (( bridge_num += 1 ))
     (( ipam_num += 1 ))
   done
+}
+
+function update-node-config() {
+  local config_path="/data/openshift.local.config"
+  local host="$(hostname)"
+  local node_config_path="${config_path}/node-${host}"
+  local node_config_file="${node_config_path}/node-config.yaml"
+
+  # Remove node config file to trigger node config regeneration
+  #
+  # openshift-generate-node-config.sh script repopulates node config
+  # with certs for both eth0 and eth1 IP addrs.
+  #
+  # openshift-node service executes openshift-generate-node-config.sh
+  # as pre start hook.
+  rm -f "${node_config_file}"
 }
 
 function add-node () {

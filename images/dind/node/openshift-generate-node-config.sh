@@ -38,8 +38,18 @@ function ensure-node-config() {
     local master_host
     master_host="$(grep server "${master_config_file}" | grep -v localhost | awk '{print $2}')"
 
-    local ip_addr
-    ip_addr="$(ip addr | grep inet | grep eth0 | awk '{print $2}' | sed -e 's+/.*++')"
+    local ip_addr1
+    ip_addr1="$(ip addr | grep inet | grep eth0 | awk '{print $2}' | sed -e 's+/.*++')"
+
+    local ip_addr2
+    ip_addr2="$(ip addr | grep inet | (grep eth1 || true) | awk '{print $2}' | sed -e 's+/.*++')"
+
+    local ip_addrs
+    if [[ ! -z "${ip_addr2}" ]]; then
+      ip_addrs="${ip_addr1},${ip_addr2}"
+    else
+      ip_addrs="${ip_addr1}"
+    fi
 
     # Hold a lock on the shared volume to ensure cert generation is
     # performed serially.  Cert generation is not compatible with
@@ -50,7 +60,7 @@ function ensure-node-config() {
        --node-dir="${node_config_path}" \
        --node="${host}" \
        --master="${master_host}" \
-       --hostnames="${host},${ip_addr}" \
+       --hostnames="${host},${ip_addrs}" \
        --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
        --node-client-certificate-authority="${master_config_path}/ca.crt" \
        --certificate-authority="${master_config_path}/ca.crt" \
