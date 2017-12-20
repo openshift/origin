@@ -156,7 +156,7 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (
 	podIP := ""
 	err = waitForPodCondition(f.ClientSet, f.Namespace.Name, podName, "running", podStartTimeout, func(pod *kapiv1.Pod) (bool, error) {
 		podIP = pod.Status.PodIP
-		return podIP != "", nil
+		return (podIP != "" && pod.Status.Phase != kapiv1.PodPending), nil
 	})
 	return podIP, err
 }
