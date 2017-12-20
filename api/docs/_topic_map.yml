@@ -135,6 +135,11 @@
     File: v1beta1.MutatingWebhookConfiguration
   - Name: v1beta1.ValidatingWebhookConfiguration
     File: v1beta1.ValidatingWebhookConfiguration
+- Name: /apis/apiregistration.k8s.io/v1beta1
+  Dir: apis-apiregistration.k8s.io
+  Topics:
+  - Name: v1beta1.APIService
+    File: v1beta1.APIService
 - Name: /apis/authentication.k8s.io/v1
   Dir: apis-authentication.k8s.io
   Topics:
@@ -214,3 +219,218 @@
   Topics:
   - Name: v1beta1.StorageClass
     File: v1beta1.StorageClass
+- Name: /apis/apps.openshift.io/v1
+  Dir: apis-apps.openshift.io
+  Topics:
+  - Name: v1.DeploymentConfig
+    File: v1.DeploymentConfig
+- Name: /apis/authorization.openshift.io/v1
+  Dir: apis-authorization.openshift.io
+  Topics:
+  - Name: v1.ClusterRole
+    File: v1.ClusterRole
+  - Name: v1.ClusterRoleBinding
+    File: v1.ClusterRoleBinding
+  - Name: v1.LocalResourceAccessReview
+    File: v1.LocalResourceAccessReview
+  - Name: v1.LocalSubjectAccessReview
+    File: v1.LocalSubjectAccessReview
+  - Name: v1.ResourceAccessReview
+    File: v1.ResourceAccessReview
+  - Name: v1.Role
+    File: v1.Role
+  - Name: v1.RoleBinding
+    File: v1.RoleBinding
+  - Name: v1.RoleBindingRestriction
+    File: v1.RoleBindingRestriction
+  - Name: v1.SelfSubjectRulesReview
+    File: v1.SelfSubjectRulesReview
+  - Name: v1.SubjectAccessReview
+    File: v1.SubjectAccessReview
+  - Name: v1.SubjectRulesReview
+    File: v1.SubjectRulesReview
+- Name: /apis/build.openshift.io/v1
+  Dir: apis-build.openshift.io
+  Topics:
+  - Name: v1.Build
+    File: v1.Build
+  - Name: v1.BuildConfig
+    File: v1.BuildConfig
+- Name: /apis/image.openshift.io/v1
+  Dir: apis-image.openshift.io
+  Topics:
+  - Name: v1.Image
+    File: v1.Image
+  - Name: v1.ImageSignature
+    File: v1.ImageSignature
+  - Name: v1.ImageStream
+    File: v1.ImageStream
+  - Name: v1.ImageStreamImage
+    File: v1.ImageStreamImage
+  - Name: v1.ImageStreamImport
+    File: v1.ImageStreamImport
+  - Name: v1.ImageStreamMapping
+    File: v1.ImageStreamMapping
+  - Name: v1.ImageStreamTag
+    File: v1.ImageStreamTag
+- Name: /apis/network.openshift.io/v1
+  Dir: apis-network.openshift.io
+  Topics:
+  - Name: v1.ClusterNetwork
+    File: v1.ClusterNetwork
+  - Name: v1.EgressNetworkPolicy
+    File: v1.EgressNetworkPolicy
+  - Name: v1.HostSubnet
+    File: v1.HostSubnet
+  - Name: v1.NetNamespace
+    File: v1.NetNamespace
+- Name: /apis/oauth.openshift.io/v1
+  Dir: apis-oauth.openshift.io
+  Topics:
+  - Name: v1.OAuthAccessToken
+    File: v1.OAuthAccessToken
+  - Name: v1.OAuthAuthorizeToken
+    File: v1.OAuthAuthorizeToken
+  - Name: v1.OAuthClient
+    File: v1.OAuthClient
+  - Name: v1.OAuthClientAuthorization
+    File: v1.OAuthClientAuthorization
+- Name: /apis/project.openshift.io/v1
+  Dir: apis-project.openshift.io
+  Topics:
+  - Name: v1.Project
+    File: v1.Project
+  - Name: v1.ProjectRequest
+    File: v1.ProjectRequest
+- Name: /apis/quota.openshift.io/v1
+  Dir: apis-quota.openshift.io
+  Topics:
+  - Name: v1.AppliedClusterResourceQuota
+    File: v1.AppliedClusterResourceQuota
+  - Name: v1.ClusterResourceQuota
+    File: v1.ClusterResourceQuota
+- Name: /apis/route.openshift.io/v1
+  Dir: apis-route.openshift.io
+  Topics:
+  - Name: v1.Route
+    File: v1.Route
+- Name: /apis/security.openshift.io/v1
+  Dir: apis-security.openshift.io
+  Topics:
+  - Name: v1.PodSecurityPolicyReview
+    File: v1.PodSecurityPolicyReview
+  - Name: v1.PodSecurityPolicySelfSubjectReview
+    File: v1.PodSecurityPolicySelfSubjectReview
+  - Name: v1.PodSecurityPolicySubjectReview
+    File: v1.PodSecurityPolicySubjectReview
+  - Name: v1.SecurityContextConstraints
+    File: v1.SecurityContextConstraints
+- Name: /apis/template.openshift.io/v1
+  Dir: apis-template.openshift.io
+  Topics:
+  - Name: v1.BrokerTemplateInstance
+    File: v1.BrokerTemplateInstance
+  - Name: v1.Template
+    File: v1.Template
+  - Name: v1.TemplateInstance
+    File: v1.TemplateInstance
+- Name: /apis/user.openshift.io/v1
+  Dir: apis-user.openshift.io
+  Topics:
+  - Name: v1.Group
+    File: v1.Group
+  - Name: v1.Identity
+    File: v1.Identity
+  - Name: v1.User
+    File: v1.User
+  - Name: v1.UserIdentityMapping
+    File: v1.UserIdentityMapping
+- Name: /oapi/v1
+  Dir: oapi
+  Topics:
+  - Name: v1.AppliedClusterResourceQuota
+    File: v1.AppliedClusterResourceQuota
+  - Name: v1.Build
+    File: v1.Build
+  - Name: v1.BuildConfig
+    File: v1.BuildConfig
+  - Name: v1.ClusterNetwork
+    File: v1.ClusterNetwork
+  - Name: v1.ClusterResourceQuota
+    File: v1.ClusterResourceQuota
+  - Name: v1.ClusterRole
+    File: v1.ClusterRole
+  - Name: v1.ClusterRoleBinding
+    File: v1.ClusterRoleBinding
+  - Name: v1.DeploymentConfig
+    File: v1.DeploymentConfig
+  - Name: v1.EgressNetworkPolicy
+    File: v1.EgressNetworkPolicy
+  - Name: v1.Group
+    File: v1.Group
+  - Name: v1.HostSubnet
+    File: v1.HostSubnet
+  - Name: v1.Identity
+    File: v1.Identity
+  - Name: v1.Image
+    File: v1.Image
+  - Name: v1.ImageSignature
+    File: v1.ImageSignature
+  - Name: v1.ImageStream
+    File: v1.ImageStream
+  - Name: v1.ImageStreamImage
+    File: v1.ImageStreamImage
+  - Name: v1.ImageStreamImport
+    File: v1.ImageStreamImport
+  - Name: v1.ImageStreamMapping
+    File: v1.ImageStreamMapping
+  - Name: v1.ImageStreamTag
+    File: v1.ImageStreamTag
+  - Name: v1.LocalResourceAccessReview
+    File: v1.LocalResourceAccessReview
+  - Name: v1.LocalSubjectAccessReview
+    File: v1.LocalSubjectAccessReview
+  - Name: v1.NetNamespace
+    File: v1.NetNamespace
+  - Name: v1.OAuthAccessToken
+    File: v1.OAuthAccessToken
+  - Name: v1.OAuthAuthorizeToken
+    File: v1.OAuthAuthorizeToken
+  - Name: v1.OAuthClient
+    File: v1.OAuthClient
+  - Name: v1.OAuthClientAuthorization
+    File: v1.OAuthClientAuthorization
+  - Name: v1.PodSecurityPolicyReview
+    File: v1.PodSecurityPolicyReview
+  - Name: v1.PodSecurityPolicySelfSubjectReview
+    File: v1.PodSecurityPolicySelfSubjectReview
+  - Name: v1.PodSecurityPolicySubjectReview
+    File: v1.PodSecurityPolicySubjectReview
+  - Name: v1.ProcessedTemplate
+    File: v1.ProcessedTemplate
+  - Name: v1.Project
+    File: v1.Project
+  - Name: v1.ProjectRequest
+    File: v1.ProjectRequest
+  - Name: v1.ResourceAccessReview
+    File: v1.ResourceAccessReview
+  - Name: v1.Role
+    File: v1.Role
+  - Name: v1.RoleBinding
+    File: v1.RoleBinding
+  - Name: v1.RoleBindingRestriction
+    File: v1.RoleBindingRestriction
+  - Name: v1.Route
+    File: v1.Route
+  - Name: v1.SelfSubjectRulesReview
+    File: v1.SelfSubjectRulesReview
+  - Name: v1.SubjectAccessReview
+    File: v1.SubjectAccessReview
+  - Name: v1.SubjectRulesReview
+    File: v1.SubjectRulesReview
+  - Name: v1.Template
+    File: v1.Template
+  - Name: v1.User
+    File: v1.User
+  - Name: v1.UserIdentityMapping
+    File: v1.UserIdentityMapping

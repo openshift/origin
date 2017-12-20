@@ -1,0 +1,116 @@
+= v1.SubjectAccessReview
+{product-author}
+{product-version}
+:data-uri:
+:icons:
+:toc: macro
+:toc-title:
+:toclevels: 2
+
+toc::[]
+
+== Description
+[%hardbreaks]
+SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
+
+== Object Schema
+Expand or mouse-over a field for more information about it.
+
+++++
+<pre>
+<div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
+</div><details><summary><span title="(runtime.RawExtension) Content is the actual content of the request for create and update">content</span>:
+</summary><div style="margin-left:13px;">  <span title="(string) Raw is the underlying serialization of this object.">Raw</span>:
+</div></details><details><summary><span title="(array) GroupsSlice is optional. Groups is the list of groups to which the User belongs.">groups</span>:
+</summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
+</div></details><div style="margin-left:13px;"><span title="(boolean) IsNonResourceURL is true if this is a request for a non-resource URL (outside of the resource hieraarchy)">isNonResourceURL</span>:
+</div><div style="margin-left:13px;"><span title="(string) Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">kind</span>:
+</div><div style="margin-left:13px;"><span title="(string) Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces">namespace</span>:
+</div><div style="margin-left:13px;"><span title="(string) Path is the path of a non resource URL">path</span>:
+</div><div style="margin-left:13px;"><span title="(string) Resource is one of the existing resource types">resource</span>:
+</div><div style="margin-left:13px;"><span title="(string) Group is the API group of the resource Serialized as resourceAPIGroup to avoid confusion with the &#39;groups&#39; field when inlined">resourceAPIGroup</span>:
+</div><div style="margin-left:13px;"><span title="(string) Version is the API version of the resource Serialized as resourceAPIVersion to avoid confusion with TypeMeta.apiVersion and ObjectMeta.resourceVersion when inlined">resourceAPIVersion</span>:
+</div><div style="margin-left:13px;"><span title="(string) ResourceName is the name of the resource being requested for a &#34;get&#34; or deleted for a &#34;delete&#34;">resourceName</span>:
+</div><details><summary><span title="(array) Scopes to use for the evaluation.  Empty means &#34;use the unscoped (full) permissions of the user/groups&#34;. Nil for a self-SAR, means &#34;use the scopes on this request&#34;. Nil for a regular SAR, means the same as empty.">scopes</span>:
+</summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
+</div></details><div style="margin-left:13px;"><span title="(string) User is optional. If both User and Groups are empty, the current authenticated user is used.">user</span>:
+</div><div style="margin-left:13px;"><span title="(string) Verb is one of: get, list, watch, create, update, delete">verb</span>:
+</div>
+</pre>
+++++
+
+== Operations
+
+[[Post-apis-authorization.openshift.io-v1-subjectaccessreviews]]
+=== Create a SubjectAccessReview
+Create a SubjectAccessReview
+
+==== HTTP request
+----
+POST /apis/authorization.openshift.io/v1/subjectaccessreviews HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+Content-Type: application/json'
+
+{
+  "kind": "SubjectAccessReview",
+  "apiVersion": "authorization.openshift.io/v1",
+  ...
+}
+
+----
+
+==== Curl request
+----
+$ curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://$ENDPOINT/apis/authorization.openshift.io/v1/subjectaccessreviews <<'EOF'
+{
+  "kind": "SubjectAccessReview",
+  "apiVersion": "authorization.openshift.io/v1",
+  ...
+}
+EOF
+----
+
+==== HTTP body
+[cols="1,5", options="header"]
+|===
+|Parameter|Schema
+|body|v1.SubjectAccessReview
+|===
+
+==== Query parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|pretty|If 'true', then the output is pretty printed.
+|===
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.SubjectAccessReview
+|201 Created|v1.SubjectAccessReview
+|202 Accepted|v1.SubjectAccessReview
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* \*/*
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+
