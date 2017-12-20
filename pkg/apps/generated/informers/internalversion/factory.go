@@ -3,6 +3,10 @@
 package internalversion
 
 import (
+	reflect "reflect"
+	sync "sync"
+	time "time"
+
 	apps "github.com/openshift/origin/pkg/apps/generated/informers/internalversion/apps"
 	internalinterfaces "github.com/openshift/origin/pkg/apps/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset"
@@ -10,9 +14,6 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	reflect "reflect"
-	sync "sync"
-	time "time"
 )
 
 type sharedInformerFactory struct {

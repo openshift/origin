@@ -4,6 +4,7 @@ package internalversion
 
 import (
 	"fmt"
+
 	apps "github.com/openshift/origin/pkg/apps/apis/apps"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
