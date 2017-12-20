@@ -20,5 +20,6 @@ func NewCmdDepCheck(name string, out, errout io.Writer) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdPinImports(name, out, errout))
+	cmd.AddCommand(NewCmdTraceImports(name, out, errout))
 	return cmd
 }
