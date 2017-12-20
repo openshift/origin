@@ -9,11 +9,10 @@ import (
 	legacy "github.com/openshift/origin/pkg/api/legacy"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func init() {
-	legacy.InstallLegacy(appsapi.GroupName, appsapi.AddToSchemeInCoreGroup, appsapiv1.AddToSchemeInCoreGroup, sets.NewString(), legacyscheme.Registry, legacyscheme.Scheme)
+	legacy.InstallLegacyApps(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

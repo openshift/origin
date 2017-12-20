@@ -13,10 +13,7 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(oauthapi.GroupName, oauthapi.AddToSchemeInCoreGroup, oauthapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("OAuthAccessToken", "OAuthAuthorizeToken", "OAuthClient", "OAuthClientAuthorization"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacyOAuth(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
