@@ -107,7 +107,7 @@ func ValidateOutputArgs(cmd *cobra.Command) error {
 
 // PrinterForCommand returns the default printer for this command.
 // Requires that printer flags have been added to cmd (see AddPrinterFlags).
-func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime.ObjectTyper, decoders []runtime.Decoder) (printers.ResourcePrinter, bool, error) {
+func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime.ObjectTyper, encoder runtime.Encoder, decoders []runtime.Decoder) (printers.ResourcePrinter, bool, error) {
 	outputFormat := GetFlagString(cmd, "output")
 
 	// templates are logically optional for specifying a format.
@@ -139,7 +139,7 @@ func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime
 	}
 	printer, generic, err := printers.GetStandardPrinter(
 		outputFormat, templateFile, noHeaders, allowMissingTemplateKeys,
-		mapper, typer, decoders,
+		mapper, typer, encoder, decoders, printers.PrintOptions{},
 	)
 	if err != nil {
 		return nil, generic, err

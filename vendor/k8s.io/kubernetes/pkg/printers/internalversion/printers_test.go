@@ -81,7 +81,7 @@ func TestVersionedPrinter(t *testing.T) {
 }
 
 func TestPrintDefault(t *testing.T) {
-	printer, found, err := printers.GetStandardPrinter("", "", false, false, nil, nil, nil)
+	printer, found, err := printers.GetStandardPrinter("", "", false, false, nil, nil, api.Codecs.LegacyCodec(api.Registry.EnabledVersions()...), []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme}, printers.PrintOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	}
@@ -136,7 +136,7 @@ func TestPrinter(t *testing.T) {
 	}
 	for _, test := range printerTests {
 		buf := bytes.NewBuffer([]byte{})
-		printer, generic, err := printers.GetStandardPrinter(test.Format, test.FormatArgument, false, true, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme})
+		printer, generic, err := printers.GetStandardPrinter(test.Format, test.FormatArgument, false, true, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, nil, []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme}, printers.PrintOptions{})
 		if err != nil {
 			t.Errorf("in %s, unexpected error: %#v", test.Name, err)
 		}
@@ -166,7 +166,7 @@ func TestBadPrinter(t *testing.T) {
 		{"bad jsonpath", "jsonpath", "{.Name", fmt.Errorf("error parsing jsonpath {.Name, unclosed action\n")},
 	}
 	for _, test := range badPrinterTests {
-		_, _, err := printers.GetStandardPrinter(test.Format, test.FormatArgument, false, false, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme})
+		_, _, err := printers.GetStandardPrinter(test.Format, test.FormatArgument, false, false, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, nil, []runtime.Decoder{api.Codecs.UniversalDecoder(), nil, unstructured.UnstructuredJSONScheme}, printers.PrintOptions{})
 		if err == nil || err.Error() != test.Error.Error() {
 			t.Errorf("in %s, expect %s, got %s", test.Name, test.Error, err)
 		}
@@ -359,7 +359,7 @@ func TestNamePrinter(t *testing.T) {
 			},
 			"pods/foo\npods/bar\n"},
 	}
-	printer, _, _ := printers.GetStandardPrinter("name", "", false, false, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme})
+	printer, _, _ := printers.GetStandardPrinter("name", "", false, false, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, nil, []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme}, printers.PrintOptions{})
 	for name, item := range tests {
 		buff := &bytes.Buffer{}
 		err := printer.PrintObj(item.obj, buff)
@@ -2198,7 +2198,7 @@ func TestAllowMissingKeys(t *testing.T) {
 	}
 	for _, test := range tests {
 		buf := bytes.NewBuffer([]byte{})
-		printer, _, err := printers.GetStandardPrinter(test.Format, test.Template, false, test.AllowMissingTemplateKeys, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme})
+		printer, _, err := printers.GetStandardPrinter(test.Format, test.Template, false, test.AllowMissingTemplateKeys, api.Registry.RESTMapper(api.Registry.EnabledVersions()...), api.Scheme, nil, []runtime.Decoder{api.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme}, printers.PrintOptions{})
 		if err != nil {
 			t.Errorf("in %s, unexpected error: %#v", test.Name, err)
 		}
