@@ -5,6 +5,8 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+
+	"github.com/openshift/origin/tools/depcheck/pkg/cmd/trace"
 )
 
 func NewCmdDepCheck(name string, out, errout io.Writer) *cobra.Command {
@@ -20,6 +22,6 @@ func NewCmdDepCheck(name string, out, errout io.Writer) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdPinImports(name, out, errout))
-	cmd.AddCommand(NewCmdTraceImports(name, out, errout))
+	cmd.AddCommand(trace.NewCmdTraceImports(name, out, errout))
 	return cmd
 }

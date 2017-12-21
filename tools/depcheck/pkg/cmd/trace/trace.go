@@ -1,4 +1,4 @@
-package cmd
+package trace
 
 import (
 	"encoding/json"
@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gonum/graph"
-	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
 )
 
@@ -23,24 +22,10 @@ var traceImportsExample = `# create a dependency graph
 %[1]s trace --root=pkg/one --output=dot
 `
 
-var (
-	validPackages = []string{
-		"/vendor/bitbucket.org/",
-		"/vendor/cloud.google.com",
-		"/vendor/github.com",
-		"/vendor/go4.org",
-		"/vendor/golang.org",
-		"/vendor/google.golang.org",
-		"/vendor/gopkg.in",
-		"/vendor/k8s.io/",
-		"/vendor/vbom.ml",
-	}
-	validDepPrefixes = []string{"github.com/openshift/origin"}
-)
-
 type TraceImportsOpts struct {
 	BaseDir string
 	Roots   []string
+	Exclude []string
 
 	OutputFormat string
 
@@ -51,11 +36,13 @@ type TraceImportsOpts struct {
 type TraceImportsFlags struct {
 	OutputFormat string
 	Roots        []string
+	Exclude      []string
 }
 
 func (o *TraceImportsFlags) ToOptions(out, errout io.Writer) (*TraceImportsOpts, error) {
 	return &TraceImportsOpts{
-		Roots: o.Roots,
+		Roots:   o.Roots,
+		Exclude: o.Exclude,
 
 		OutputFormat: o.OutputFormat,
 
@@ -93,16 +80,21 @@ func NewCmdTraceImports(parent string, out, errout io.Writer) *cobra.Command {
 	}
 
 	cmd.Flags().StringSliceVar(&flags.Roots, "root", flags.Roots, "set of entrypoints for dependency trees used to generate a depedency graph.")
+	cmd.Flags().StringSliceVar(&flags.Exclude, "exclude", flags.Roots, "set of paths to exclude when traversing the set of given entrypoints specified through --root.")
 	cmd.Flags().StringVarP(&flags.OutputFormat, "output", "o", "", "output generated dependency graph in specified format. One of: dot.")
 	return cmd
 }
 
 func (o *TraceImportsOpts) Complete() error {
-	o.Roots = ensureRecursiveRootFormat(o.Roots)
+	o.Roots = expandRecursePackages(o.Roots)
 	return nil
 }
 
-func ensureRecursiveRootFormat(roots []string) []string {
+// expandRecursePackages receives a list of root packages specified
+// via --root, and ensures that each path ends in an ellipsis (...).
+// This ensures that "go list" returns a recursive list of each root
+// package's dependencies.
+func expandRecursePackages(roots []string) []string {
 	parsedRoots := []string{}
 	for _, root := range roots {
 		if strings.HasSuffix(root, "...") {
@@ -132,71 +124,6 @@ func (o *TraceImportsOpts) Validate() error {
 	return nil
 }
 
-type Node struct {
-	id         int
-	uniqueName string
-	labelName  string
-}
-
-func (n Node) ID() int {
-	return n.id
-}
-
-// DOTAttributes implements an attribute getter for the DOT encoding
-func (n Node) DOTAttributes() []dot.Attribute {
-	return []dot.Attribute{{Key: "label", Value: fmt.Sprintf("%q", n.labelName)}}
-}
-
-type PackageImports struct {
-	Imports []string
-}
-
-type Package struct {
-	ImportPath string
-	Imports    []string
-}
-
-type PackageList struct {
-	Packages []Package
-}
-
-func (p *PackageList) filterDeps(pkg *Package) {
-	validImports := []string{}
-	for _, dep := range pkg.Imports {
-		for _, valid := range validDepPrefixes {
-			if strings.HasPrefix(dep, valid) {
-				validImports = append(validImports, dep)
-				break
-			}
-		}
-	}
-
-	pkg.Imports = validImports
-}
-
-// TODO: provide a way for consumers of this command
-// to specify a differentiation between vendored and
-// non-vendored dependencies
-func (p *PackageList) FilteredAdd(pkg Package) {
-	if !strings.Contains(pkg.ImportPath, "/vendor/") {
-		p.filterDeps(&pkg)
-		p.Add(pkg)
-		return
-	}
-
-	for _, valid := range validPackages {
-		if strings.Contains(pkg.ImportPath, valid) {
-			p.filterDeps(&pkg)
-			p.Add(pkg)
-			return
-		}
-	}
-}
-
-func (p *PackageList) Add(pkg Package) {
-	p.Packages = append(p.Packages, pkg)
-}
-
 // Run execs `go list` on all package entrypoints specified through --root.
 // Each package's ImportPath and non-transitive (immediate) imports are
 // filtered and aggregated. A package is filtered based on whether its ImportPath
@@ -204,7 +131,7 @@ func (p *PackageList) Add(pkg Package) {
 // Each aggregated package becomes a node in a generated dependency graph.
 // An edge is created between a package and each of its Imports.
 func (o *TraceImportsOpts) Run() error {
-	args := []string{"list", "--json"} // "./pkg/...", "./vendor/...", "./cmd/.."
+	args := []string{"list", "--json"}
 	golist := exec.Command("go", append(args, o.Roots...)...)
 
 	r, w := io.Pipe()
@@ -224,7 +151,7 @@ func (o *TraceImportsOpts) Run() error {
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			}
 
-			list.FilteredAdd(pkg)
+			list.FilteredAdd(pkg, o.Exclude)
 		}
 	}(pkgs)
 
@@ -232,69 +159,16 @@ func (o *TraceImportsOpts) Run() error {
 		return err
 	}
 
-	g := o.buildGraph(pkgs)
+	g, err := BuildGraph(pkgs)
+	if err != nil {
+		return err
+	}
+
 	if len(o.OutputFormat) > 0 {
 		return o.outputGraph(g)
 	}
 
 	return nil
-}
-
-func labelNameForNode(importPath string) string {
-	segs := strings.Split(importPath, "/vendor/")
-	if len(segs) > 1 {
-		return segs[1]
-	}
-
-	return importPath
-}
-
-func (o *TraceImportsOpts) buildGraph(packages *PackageList) graph.Directed {
-	g := concrete.NewDirectedGraph()
-	nodeIdsByName := map[string]int{}
-
-	// add nodes to graph
-	for _, pkg := range packages.Packages {
-		n := Node{
-			id:         g.NewNodeID(),
-			uniqueName: pkg.ImportPath,
-			labelName:  labelNameForNode(pkg.ImportPath),
-		}
-		g.AddNode(graph.Node(n))
-		nodeIdsByName[pkg.ImportPath] = n.ID()
-	}
-
-	// add edges
-	for _, pkg := range packages.Packages {
-		nid, exists := nodeIdsByName[pkg.ImportPath]
-		if !exists {
-			continue
-		}
-
-		from := g.Node(nid)
-		if from == nil {
-			continue
-		}
-
-		for _, dependency := range pkg.Imports {
-			nid, exists := nodeIdsByName[dependency]
-			if !exists {
-				continue
-			}
-
-			to := g.Node(nid)
-			if to == nil {
-				continue
-			}
-
-			g.SetEdge(concrete.Edge{
-				F: from,
-				T: to,
-			}, 0)
-		}
-	}
-
-	return g
 }
 
 func (o *TraceImportsOpts) outputGraph(g graph.Directed) error {
