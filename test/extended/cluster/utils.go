@@ -13,8 +13,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/fatih/structs"
-
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -165,10 +163,9 @@ func firstLowercase(s string) string {
 }
 
 // convertVariables takes our loaded struct and converts it into a map[string]string.
-func convertVariablesToMap(params ParameterConfigType) map[string]string {
-	m := structs.Map(params)
+func convertVariablesToMap(params map[string]interface{}) map[string]string {
 	values := make(map[string]string)
-	for k, v := range m {
+	for k, v := range params {
 		k = firstLowercase(k)
 		if v != 0 && v != "" {
 			if _, ok := v.(int); ok {
@@ -181,9 +178,8 @@ func convertVariablesToMap(params ParameterConfigType) map[string]string {
 	return values
 }
 
-func convertVariablesToString(params ParameterConfigType) (args []string) {
-	m := structs.Map(params)
-	for k, v := range m {
+func convertVariablesToString(params map[string]interface{}) (args []string) {
+	for k, v := range params {
 		k = strings.ToUpper(k)
 		if v != 0 && v != "" {
 			args = append(args, "-p")
@@ -194,7 +190,7 @@ func convertVariablesToString(params ParameterConfigType) (args []string) {
 }
 
 // InjectConfigMap modifies the pod struct and replaces the environment variables.
-func InjectConfigMap(c kclientset.Interface, ns string, vars ParameterConfigType, config kapiv1.Pod) string {
+func InjectConfigMap(c kclientset.Interface, ns string, vars map[string]interface{}, config kapiv1.Pod) string {
 	configMapName := ns + "-configmap"
 	freshConfigVars := convertVariablesToMap(vars)
 	dirtyConfigVars := getClusterData(c, freshConfigVars)
