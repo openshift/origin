@@ -219,7 +219,7 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
-	if len(c.KubeletServer.ClusterDNS) == 0 {
+	if len(c.KubeletServer.ClusterDNS[0]) == 0 {
 		if service, err := c.DNSClient.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
