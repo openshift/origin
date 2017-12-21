@@ -8,7 +8,6 @@ import (
 	"os"
 	"reflect"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
@@ -196,26 +195,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 		)
 
 		switch pluginName {
-		case lifecycle.PluginName:
-			// We need to include our infrastructure and shared resource namespaces in the immortal namespaces list
-			immortalNamespaces := sets.NewString(metav1.NamespaceDefault)
-			if len(options.PolicyConfig.OpenShiftSharedResourcesNamespace) > 0 {
-				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftSharedResourcesNamespace)
-			}
-			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
-				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
-			}
-			lc, err := lifecycle.NewLifecycle(immortalNamespaces)
-			if err != nil {
-				return nil, err
-			}
-			admissionInitializer.Initialize(lc)
-			if err := lc.ValidateInitialization(); err != nil {
-				return nil, err
-			}
-			plugin = lc
-			admissionInitializer.Initialize(plugin)
-
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
 			reject, admit, err := serviceadmit.ParseRejectAdmitCIDRRules(options.NetworkConfig.ExternalIPNetworkCIDRs)
