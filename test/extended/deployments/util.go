@@ -24,13 +24,12 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsconversionsv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -200,7 +199,7 @@ func deploymentReachedCompletion(dc *appsapi.DeploymentConfig, rcs []*corev1.Rep
 	}
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_core_ReplicationController(rcv1, rc, nil)
+	legacyscheme.Scheme.Convert(rcv1, rc, nil)
 	version := appsutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
@@ -234,7 +233,7 @@ func deploymentFailed(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCon
 	}
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_core_ReplicationController(rcv1, rc, nil)
+	legacyscheme.Scheme.Convert(rcv1, rc, nil)
 	version := appsutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		return false, nil
@@ -252,7 +251,7 @@ func deploymentRunning(dc *appsapi.DeploymentConfig, rcs []*corev1.ReplicationCo
 	}
 	rcv1 := rcs[len(rcs)-1]
 	rc := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_core_ReplicationController(rcv1, rc, nil)
+	legacyscheme.Scheme.Convert(rcv1, rc, nil)
 	version := appsutil.DeploymentVersionFor(rc)
 	if version != dc.Status.LatestVersion {
 		//e2e.Logf("deployment %s is not the latest version on DC: %d", rc.Name, version)
@@ -634,7 +633,7 @@ func readDCFixture(path string) (*appsapi.DeploymentConfig, error) {
 	}
 
 	dc := new(appsapi.DeploymentConfig)
-	err = appsconversionsv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(dcv1, dc, nil)
+	err = legacyscheme.Scheme.Convert(dcv1, dc, nil)
 	return dc, err
 }
 
