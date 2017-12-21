@@ -28,13 +28,13 @@ func (c *webhooks) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy)
 	hooks := c.client.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks")
 	switch {
 	case trigger.GenericWebHook != nil:
-		return hooks.Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
+		return hooks.Suffix("<secret>", "generic").URL(), nil
 	case trigger.GitHubWebHook != nil:
-		return hooks.Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
+		return hooks.Suffix("<secret>", "github").URL(), nil
 	case trigger.GitLabWebHook != nil:
-		return hooks.Suffix(trigger.GitLabWebHook.Secret, "gitlab").URL(), nil
+		return hooks.Suffix("<secret>", "gitlab").URL(), nil
 	case trigger.BitbucketWebHook != nil:
-		return hooks.Suffix(trigger.BitbucketWebHook.Secret, "bitbucket").URL(), nil
+		return hooks.Suffix("<secret>", "bitbucket").URL(), nil
 	default:
 		return nil, ErrTriggerIsNotAWebHook
 	}

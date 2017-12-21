@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,6 +16,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/client"
@@ -24,20 +27,22 @@ import (
 type WebHook struct {
 	groupVersion      schema.GroupVersion
 	buildConfigClient buildclient.BuildInterface
+	secretsClient     kcoreclient.SecretsGetter
 	instantiator      client.BuildConfigInstantiator
 	plugins           map[string]webhook.Plugin
 }
 
 // NewWebHookREST returns the webhook handler
-func NewWebHookREST(buildConfigClient buildclient.BuildInterface, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
-	return newWebHookREST(buildConfigClient, client.BuildConfigInstantiatorClient{Client: buildConfigClient}, groupVersion, plugins)
+func NewWebHookREST(buildConfigClient buildclient.BuildInterface, secretsClient kcoreclient.SecretsGetter, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
+	return newWebHookREST(buildConfigClient, secretsClient, client.BuildConfigInstantiatorClient{Client: buildConfigClient}, groupVersion, plugins)
 }
 
 // this supports simple unit testing
-func newWebHookREST(buildConfigClient buildclient.BuildInterface, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
+func newWebHookREST(buildConfigClient buildclient.BuildInterface, secretsClient kcoreclient.SecretsGetter, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
 	return &WebHook{
 		groupVersion:      groupVersion,
 		buildConfigClient: buildConfigClient,
+		secretsClient:     secretsClient,
 		instantiator:      instantiator,
 		plugins:           plugins,
 	}
@@ -58,6 +63,7 @@ func (h *WebHook) Connect(ctx apirequest.Context, name string, options runtime.O
 		groupVersion:      h.groupVersion,
 		plugins:           h.plugins,
 		buildConfigClient: h.buildConfigClient,
+		secretsClient:     h.secretsClient,
 		instantiator:      h.instantiator,
 	}, nil
 }
@@ -81,6 +87,7 @@ type WebHookHandler struct {
 	groupVersion      schema.GroupVersion
 	plugins           map[string]webhook.Plugin
 	buildConfigClient buildclient.BuildInterface
+	secretsClient     kcoreclient.SecretsGetter
 	instantiator      client.BuildConfigInstantiator
 }
 
@@ -113,7 +120,18 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
-	revision, envvars, dockerStrategyOptions, proceed, err := plugin.Extract(config, secret, "", req)
+	triggers, err := plugin.GetTriggers(config)
+	if err != nil {
+		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
+	}
+
+	glog.V(4).Infof("checking secret for %q webhook trigger of buildconfig %s/%s", hookType, config.Namespace, config.Name)
+	trigger, err := webhook.CheckSecret(config.Namespace, secret, triggers, w.secretsClient)
+	if err != nil {
+		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
+	}
+
+	revision, envvars, dockerStrategyOptions, proceed, err := plugin.Extract(config, trigger, req)
 	if !proceed {
 		switch err {
 		case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
@@ -128,7 +146,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	}
 	warning := err
 
-	buildTriggerCauses := generateBuildTriggerInfo(revision, hookType, secret)
+	buildTriggerCauses := webhook.GenerateBuildTriggerInfo(revision, hookType, secret)
 	request := &buildapi.BuildRequest{
 		TriggeredBy: buildTriggerCauses,
 		ObjectMeta:  metav1.ObjectMeta{Name: name},
@@ -150,51 +168,4 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	}
 
 	return warning
-}
-
-func generateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secret string) (buildTriggerCauses []buildapi.BuildTriggerCause) {
-	hiddenSecret := fmt.Sprintf("%s***", secret[:(len(secret)/2)])
-	switch {
-	case hookType == "generic":
-		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseGenericMsg,
-				GenericWebHook: &buildapi.GenericWebHookCause{
-					Revision: revision,
-					Secret:   hiddenSecret,
-				},
-			})
-	case hookType == "github":
-		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseGithubMsg,
-				GitHubWebHook: &buildapi.GitHubWebHookCause{
-					Revision: revision,
-					Secret:   hiddenSecret,
-				},
-			})
-	case hookType == "gitlab":
-		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseGitLabMsg,
-				GitLabWebHook: &buildapi.GitLabWebHookCause{
-					CommonWebHookCause: buildapi.CommonWebHookCause{
-						Revision: revision,
-						Secret:   hiddenSecret,
-					},
-				},
-			})
-	case hookType == "bitbucket":
-		buildTriggerCauses = append(buildTriggerCauses,
-			buildapi.BuildTriggerCause{
-				Message: buildapi.BuildTriggerCauseBitbucketMsg,
-				BitbucketWebHook: &buildapi.BitbucketWebHookCause{
-					CommonWebHookCause: buildapi.CommonWebHookCause{
-						Revision: revision,
-						Secret:   hiddenSecret,
-					},
-				},
-			})
-	}
-	return buildTriggerCauses
 }

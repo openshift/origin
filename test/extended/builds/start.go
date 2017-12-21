@@ -3,6 +3,7 @@ package builds
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -20,7 +22,7 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture      = exutil.FixturePath("testdata", "builds", "test-build.json")
+		buildFixture      = exutil.FixturePath("testdata", "builds", "test-build.yaml")
 		bcWithPRRef       = exutil.FixturePath("testdata", "builds", "test-bc-with-pr-ref.yaml")
 		exampleGemfile    = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
 		exampleBuild      = exutil.FixturePath("testdata", "builds", "test-build-app")
@@ -347,6 +349,86 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(out).To(o.ContainSubstring("Merge pull request #61 from gabemontero/config"))
 				})
 			})
+
+			g.Describe("start a build via a webhook", func() {
+				g.It("should be able to start builds via the webhook with valid secrets and fail with invalid secrets", func() {
+					g.By("clearing existing builds")
+					_, err := oc.Run("delete").Args("builds", "--all").Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					builds, err := oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(builds.Items).To(o.BeEmpty())
+
+					g.By("getting the api server host")
+					out, err := oc.WithoutNamespace().Run("status").Args().Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					e2e.Logf("got status value of: %s", out)
+					matcher := regexp.MustCompile("https?://.*?8443")
+					apiServer := matcher.FindString(out)
+					o.Expect(apiServer).NotTo(o.BeEmpty())
+
+					out, err = oc.Run("describe").Args("bc", "sample-build").Output()
+					e2e.Logf("build description: %s", out)
+
+					g.By("starting the build via the webhook with the deprecated secret")
+					curlArgs := []string{"-X",
+						"POST",
+						"-k",
+						fmt.Sprintf("%s/apis/build.openshift.io/v1/namespaces/%s/buildconfigs/sample-build/webhooks/%s/generic",
+							apiServer, oc.Namespace(), "mysecret"),
+					}
+					curlOut, err := exec.Command("curl", curlArgs...).Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					e2e.Logf("curl cmd: %v, output: %s", curlArgs, string(curlOut))
+					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(builds.Items).NotTo(o.BeEmpty())
+
+					g.By("clearing existing builds")
+					_, err = oc.Run("delete").Args("builds", "--all").Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(builds.Items).To(o.BeEmpty())
+
+					g.By("starting the build via the webhook with the referenced secret")
+					curlArgs = []string{"-X",
+						"POST",
+						"-k",
+						fmt.Sprintf("%s/apis/build.openshift.io/v1/namespaces/%s/buildconfigs/sample-build/webhooks/%s/generic",
+							apiServer, oc.Namespace(), "secretvalue1"),
+					}
+					curlOut, err = exec.Command("curl", curlArgs...).Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					e2e.Logf("curl cmd: %s, output: %s", curlArgs, string(curlOut))
+					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(builds.Items).NotTo(o.BeEmpty())
+
+					g.By("clearing existing builds")
+					_, err = oc.Run("delete").Args("builds", "--all").Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(builds.Items).To(o.BeEmpty())
+
+					g.By("starting the build via the webhook with an invalid secret")
+					curlArgs = []string{"-X",
+						"POST",
+						"-k",
+						fmt.Sprintf("%s/apis/build.openshift.io/v1/namespaces/%s/buildconfigs/sample-build/webhooks/%s/generic",
+							apiServer, oc.Namespace(), "invalid"),
+					}
+					curlOut, err = exec.Command("curl", curlArgs...).Output()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					e2e.Logf("curl cmd: %v, output: %s", curlArgs, string(curlOut))
+					builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(builds.Items).To(o.BeEmpty())
+
+				})
+			})
+
 		})
 	})
 })

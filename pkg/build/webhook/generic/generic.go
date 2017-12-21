@@ -26,18 +26,7 @@ func New() *WebHookPlugin {
 }
 
 // Extract services generic webhooks.
-func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (revision *buildapi.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *buildapi.DockerStrategyOptions, proceed bool, err error) {
-	triggers, err := webhook.FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildCfg)
-	if err != nil {
-		return revision, envvars, dockerStrategyOptions, false, err
-	}
-	glog.V(4).Infof("Checking if the provided secret for BuildConfig %s/%s matches", buildCfg.Namespace, buildCfg.Name)
-
-	trigger, err := webhook.ValidateWebHookSecret(triggers, secret)
-	if err != nil {
-		return revision, envvars, dockerStrategyOptions, false, err
-	}
-
+func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, trigger *buildapi.WebHookTrigger, req *http.Request) (revision *buildapi.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *buildapi.DockerStrategyOptions, proceed bool, err error) {
 	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
 		return revision, envvars, dockerStrategyOptions, false, err
@@ -116,6 +105,21 @@ func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, secret, path str
 		Git: &data.Git.GitSourceRevision,
 	}
 	return revision, envvars, dockerStrategyOptions, true, nil
+}
+
+// GetTriggers retrieves the WebHookTriggers for this webhook type (if any)
+func (p *WebHookPlugin) GetTriggers(buildConfig *buildapi.BuildConfig) ([]*buildapi.WebHookTrigger, error) {
+	triggers := buildapi.FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildConfig)
+	webhookTriggers := []*buildapi.WebHookTrigger{}
+	for _, trigger := range triggers {
+		if trigger.GenericWebHook != nil {
+			webhookTriggers = append(webhookTriggers, trigger.GenericWebHook)
+		}
+	}
+	if len(webhookTriggers) == 0 {
+		return nil, webhook.ErrHookNotEnabled
+	}
+	return webhookTriggers, nil
 }
 
 func verifyRequest(req *http.Request) error {

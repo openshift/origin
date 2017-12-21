@@ -88,19 +88,21 @@ echo "patchAnonFields: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/builds/config"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/<secret>/github"
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
-os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/<secret>/generic"
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook Generic"
 os::cmd::expect_success 'oc start-build --list-webhooks=all ruby-sample-build'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all bc/ruby-sample-build' 'generic'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'github'
-os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sample-build' 'secret101'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sample-build' '<secret>'
 os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
-os::cmd::expect_success_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)'" "build \"ruby-sample-build-[0-9]\" started"
-os::cmd::expect_failure_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)/foo'" "error: server rejected our request"
+hook=$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)
+hook=${hook/<secret>/secret101}
+os::cmd::expect_success_and_text "oc start-build --from-webhook=${hook}" "build \"ruby-sample-build-[0-9]\" started"
+os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}/foo" "error: server rejected our request"
 os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"from\":{\"name\":\"asdf:7\"}}}}}'"
-os::cmd::expect_failure_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)'" "Error resolving ImageStreamTag asdf:7"
+os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}" "Error resolving ImageStreamTag asdf:7"
 os::cmd::expect_success 'oc get builds'
 os::cmd::expect_success 'oc delete all -l build=docker'
 echo "buildConfig: ok"

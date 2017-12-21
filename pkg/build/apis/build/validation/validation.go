@@ -604,8 +604,11 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy, buildFrom *kapi.Objec
 
 func validateWebHook(webHook *buildapi.WebHookTrigger, fldPath *field.Path, isGeneric bool) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if len(webHook.Secret) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("secret"), ""))
+	if len(webHook.Secret) == 0 && webHook.SecretReference == nil {
+		allErrs = append(allErrs, field.Invalid(fldPath, webHook, "must provide a value for at least one of secret or secretReference"))
+	}
+	if webHook.SecretReference != nil && len(webHook.SecretReference.Name) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("secretReference").Child("name"), ""))
 	}
 	if !isGeneric && webHook.AllowEnv {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("allowEnv"), webHook, "git webhooks cannot allow env vars"))

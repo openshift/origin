@@ -153,6 +153,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildClient.Build(),
+		kubeInternalClient.Core(),
 		// We use the buildapiv1 schemegroup to encode the Build that gets
 		// returned. As such, we need to make sure that the GroupVersion we use
 		// is the same API version that the storage is going to be used for.

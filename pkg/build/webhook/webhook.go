@@ -3,12 +3,16 @@ package webhook
 import (
 	"crypto/hmac"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -32,7 +36,8 @@ type Plugin interface {
 	// - newly created build object or nil if default is to be created
 	// - information whether to trigger the build itself
 	// - eventual error.
-	Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, *buildapi.DockerStrategyOptions, bool, error)
+	Extract(buildCfg *buildapi.BuildConfig, trigger *buildapi.WebHookTrigger, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, *buildapi.DockerStrategyOptions, bool, error)
+	GetTriggers(buildConfig *buildapi.BuildConfig) ([]*buildapi.WebHookTrigger, error)
 }
 
 // GitRefMatches determines if the ref from a webhook event matches a build
@@ -47,48 +52,6 @@ func GitRefMatches(eventRef, configRef string, buildSource *buildapi.BuildSource
 	return configRef == eventRef
 }
 
-// FindTriggerPolicy retrieves the BuildTrigger of a given type from a build
-// configuration
-func FindTriggerPolicy(triggerType buildapi.BuildTriggerType, config *buildapi.BuildConfig) (buildTriggers []buildapi.BuildTriggerPolicy, err error) {
-	buildTriggers = buildapi.FindTriggerPolicy(triggerType, config)
-	if len(buildTriggers) == 0 {
-		err = ErrHookNotEnabled
-	}
-	return buildTriggers, err
-}
-
-// ValidateWebHookSecret validates the provided secret against all currently
-// defined webhook secrets and if it is valid, returns its information.
-func ValidateWebHookSecret(webHookTriggers []buildapi.BuildTriggerPolicy, secret string) (*buildapi.WebHookTrigger, error) {
-	for _, trigger := range webHookTriggers {
-		switch trigger.Type {
-		case buildapi.GenericWebHookBuildTriggerType:
-			if !hmac.Equal([]byte(trigger.GenericWebHook.Secret), []byte(secret)) {
-				continue
-			}
-			return trigger.GenericWebHook, nil
-		case buildapi.GitHubWebHookBuildTriggerType:
-			if !hmac.Equal([]byte(trigger.GitHubWebHook.Secret), []byte(secret)) {
-				continue
-			}
-			return trigger.GitHubWebHook, nil
-
-		case buildapi.GitLabWebHookBuildTriggerType:
-			if !hmac.Equal([]byte(trigger.GitLabWebHook.Secret), []byte(secret)) {
-				continue
-			}
-			return trigger.GitLabWebHook, nil
-
-		case buildapi.BitbucketWebHookBuildTriggerType:
-			if !hmac.Equal([]byte(trigger.BitbucketWebHook.Secret), []byte(secret)) {
-				continue
-			}
-			return trigger.BitbucketWebHook, nil
-		}
-	}
-	return nil, ErrSecretMismatch
-}
-
 // NewWarning returns an StatusError object with a http.StatusOK (200) code.
 func NewWarning(message string) *kerrors.StatusError {
 	return &kerrors.StatusError{ErrStatus: metav1.Status{
@@ -96,4 +59,79 @@ func NewWarning(message string) *kerrors.StatusError {
 		Code:    http.StatusOK,
 		Message: message,
 	}}
+}
+
+// CheckSecret tests the user provided secret against the secrets for the webhook triggers, if a match is found
+// then the corresponding webhook trigger is returned.
+func CheckSecret(namespace, userSecret string, triggers []*buildapi.WebHookTrigger, secretsClient kcoreclient.SecretsGetter) (*buildapi.WebHookTrigger, error) {
+	for i := range triggers {
+		secretRef := triggers[i].SecretReference
+		secret := triggers[i].Secret
+		if len(secret) > 0 {
+			if hmac.Equal([]byte(secret), []byte(userSecret)) {
+				return triggers[i], nil
+			}
+		}
+		if secretRef != nil {
+			glog.V(4).Infof("Checking user secret against secret ref %s", secretRef.Name)
+			s, err := secretsClient.Secrets(namespace).Get(secretRef.Name, metav1.GetOptions{})
+			if err != nil && !kerrors.IsNotFound(err) {
+				return nil, err
+			}
+			if v, ok := s.Data[buildapi.WebHookSecretKey]; ok {
+				if hmac.Equal(v, []byte(userSecret)) {
+					return triggers[i], nil
+				}
+			}
+		}
+	}
+	glog.V(4).Infof("did not find a matching secret")
+	return nil, ErrSecretMismatch
+}
+
+func GenerateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secret string) (buildTriggerCauses []buildapi.BuildTriggerCause) {
+	hiddenSecret := fmt.Sprintf("%s***", secret[:(len(secret)/2)])
+	switch {
+	case hookType == "generic":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: buildapi.BuildTriggerCauseGenericMsg,
+				GenericWebHook: &buildapi.GenericWebHookCause{
+					Revision: revision,
+					Secret:   hiddenSecret,
+				},
+			})
+	case hookType == "github":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: buildapi.BuildTriggerCauseGithubMsg,
+				GitHubWebHook: &buildapi.GitHubWebHookCause{
+					Revision: revision,
+					Secret:   hiddenSecret,
+				},
+			})
+	case hookType == "gitlab":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: buildapi.BuildTriggerCauseGitLabMsg,
+				GitLabWebHook: &buildapi.GitLabWebHookCause{
+					CommonWebHookCause: buildapi.CommonWebHookCause{
+						Revision: revision,
+						Secret:   hiddenSecret,
+					},
+				},
+			})
+	case hookType == "bitbucket":
+		buildTriggerCauses = append(buildTriggerCauses,
+			buildapi.BuildTriggerCause{
+				Message: buildapi.BuildTriggerCauseBitbucketMsg,
+				BitbucketWebHook: &buildapi.BitbucketWebHookCause{
+					CommonWebHookCause: buildapi.CommonWebHookCause{
+						Revision: revision,
+						Secret:   hiddenSecret,
+					},
+				},
+			})
+	}
+	return buildTriggerCauses
 }
