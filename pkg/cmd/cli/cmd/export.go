@@ -147,6 +147,8 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		infos = newInfos
 	}
 
+	outputFormat := kcmdutil.GetFlagString(cmd, "output")
+
 	var result runtime.Object
 	if len(asTemplate) > 0 {
 		objects, err := resource.AsVersionedObjects(infos, outputVersion, kapi.Codecs.LegacyCodec(outputVersion))
@@ -161,6 +163,20 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		if err != nil {
 			return err
 		}
+	} else if len(outputFormat) > 0 && outputFormat != "json" && outputFormat != "yaml" {
+		// handle printing for non-generic output formats
+		for _, info := range infos {
+			p, err := f.PrinterForMapping(cmd, info.Mapping, false)
+			if err != nil {
+				return err
+			}
+
+			if err := p.PrintObj(info.Object, out); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	} else {
 		object, err := resource.AsVersionedObject(infos, !one, outputVersion, kapi.Codecs.LegacyCodec(outputVersion))
 		if err != nil {
@@ -170,7 +186,6 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	}
 
 	// use YAML as the default format
-	outputFormat := kcmdutil.GetFlagString(cmd, "output")
 	templateFile := kcmdutil.GetFlagString(cmd, "template")
 	if len(outputFormat) == 0 && len(templateFile) != 0 {
 		outputFormat = "template"
@@ -178,8 +193,14 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	if len(outputFormat) == 0 {
 		outputFormat = "yaml"
 	}
+
 	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
-	p, _, err := kprinters.GetStandardPrinter(outputFormat, templateFile, kcmdutil.GetFlagBool(cmd, "no-headers"), kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"), mapper, typer, decoders)
+	p, _, err := kprinters.GetStandardPrinter(
+		outputFormat,
+		templateFile,
+		kcmdutil.GetFlagBool(cmd, "no-headers"),
+		kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"),
+		mapper, typer, kapi.Codecs.LegacyCodec(outputVersion), decoders, kprinters.PrintOptions{})
 	if err != nil {
 		return err
 	}

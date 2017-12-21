@@ -43,7 +43,7 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 		items = append(items, example)
 	}
 
-	printer, _, err := printers.GetStandardPrinter("template", string(template), false, false, nil, nil, nil)
+	printer, _, err := printers.GetStandardPrinter("template", string(template), false, false, nil, nil, nil, nil, printers.PrintOptions{})
 	if err != nil {
 		return err
 	}
