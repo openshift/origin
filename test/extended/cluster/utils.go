@@ -21,6 +21,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/onsi/gomega"
 )
 
 const maxRetries = 5
@@ -349,4 +350,8 @@ func writeJSONToDisk(result TestResult, path string) error {
 	resultJSON, _ := json.Marshal(result)
 	err := ioutil.WriteFile(path, resultJSON, 0644)
 	return err
+}
+
+func OcErrorAssertion(er error) {
+	gomega.Expect(er).NotTo(gomega.HaveOccurred())
 }

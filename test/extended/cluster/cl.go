@@ -3,30 +3,29 @@ package cluster
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo"
-	o "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	oapi "github.com/openshift/origin/pkg/api"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
+	"github.com/wushilin/stream"
 )
 
-const deploymentRunTimeout = 5 * time.Minute
-const testResultFile = "/tmp/TestResult"
+const (
+	deploymentRunTimeout = 5 * time.Minute
+	testResultFile       = "/tmp/TestResult"
+)
 
 var rootDir string
 
-var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
-	defer g.GinkgoRecover()
+var _ = ginkgo.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
+	defer ginkgo.GinkgoRecover()
 	var (
 		oc                = exutil.NewCLI("cl", exutil.KubeConfigPath())
 		masterVertFixture = exutil.FixturePath("testdata", "cluster", "master-vert.yaml")
@@ -37,10 +36,10 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "rails-postgresql.json")
 	)
 
-	var c kclientset.Interface
-	g.BeforeEach(func() {
+	var ocClient kclientset.Interface
+	ginkgo.BeforeEach(func() {
 		var err error
-		c = oc.AdminKubeClient()
+		ocClient = oc.AdminKubeClient()
 		viperConfig := e2e.TestContext.Viper
 		if viperConfig == "e2e" {
 			e2e.Logf("Undefined config file, using built-in config %v\n", masterVertFixture)
@@ -56,33 +55,42 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 	})
 
-	g.It("should load the cluster", func() {
-		project := ConfigContext.ClusterLoader.Projects
+	ginkgo.It("should load the cluster", func() {
+
+		// Prepare projects and tuningSets
+		projects := ConfigContext.ClusterLoader.Projects
 		tuningSets := ConfigContext.ClusterLoader.TuningSets
-		if project == nil {
-			e2e.Failf("Invalid config file.\nFile: %v", project)
+
+		if projects == nil {
+			e2e.Failf("Invalid config file.\nFile: %v", projects)
 		}
 
 		var namespaces []string
 		//totalPods := 0 // Keep track of how many pods for stepping
 		// TODO sjug: add concurrency
+		// TODO: move any Create call to a generic 'Create' function in utils.
 		testStartTime := time.Now()
-		for _, p := range project {
+		for _, project := range projects {
 			// Find tuning if we have it
-			tuning := GetTuningSet(tuningSets, p.Tuning)
+			tuning := GetTuningSet(tuningSets, project.Tuning)
 			if tuning != nil {
 				e2e.Logf("Our tuning set is: %v", tuning)
 			}
-			for j := 0; j < p.Number; j++ {
+
+			// Iterate multi project
+			stream.Range(0, project.Number).Each(func(pro_num int) {
+
 				// Create namespaces as defined in Cluster Loader config
-				nsName := fmt.Sprintf("%s%d", p.Basename, j)
-				err := oc.Run("new-project").Args(nsName).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
+				nsName := fmt.Sprintf("%s%d", project.Basename, pro_num)
+
+				//Create New Project
+				OcErrorAssertion(oc.Run("new-project").Args(nsName).Execute())
+
+				e2e.Logf("%d/%d : Created new namespace: %v", pro_num+1, project.Number, nsName)
 				namespaces = append(namespaces, nsName)
 
 				// Create templates as defined
-				for _, template := range p.Templates {
+				for _, template := range project.Templates {
 					var allArgs []string
 					templateFile := mkPath(template.File)
 					e2e.Logf("We're loading file %v: ", templateFile)
@@ -102,11 +110,10 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					config, err := oc.AdminTemplateClient().Template().Templates(nsName).Create(templateObj)
 					e2e.Logf("Template %v created, arguments: %v, config: %+v", templateObj.Name, allArgs, config)
 
-					err = oc.SetNamespace(nsName).Run("new-app").Args(allArgs...).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
+					OcErrorAssertion(oc.SetNamespace(nsName).Run("new-app").Args(allArgs...).Execute())
 				}
 				// This is too familiar, create pods
-				for _, pod := range p.Pods {
+				for _, pod := range project.Pods {
 					// Parse Pod file into struct
 					config := ParsePods(mkPath(pod.File))
 					// Check if environment variables are defined in CL config
@@ -114,20 +121,21 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 						e2e.Logf("Pod environment variables will not be modified.")
 					} else {
 						// Override environment variables for Pod using ConfigMap
-						configMapName := InjectConfigMap(c, nsName, pod.Parameters, config)
+						configMapName := InjectConfigMap(ocClient, nsName, pod.Parameters, config)
 						// Cleanup ConfigMap at some point after the Pods are created
 						defer func() {
-							_ = c.Core().ConfigMaps(nsName).Delete(configMapName, nil)
+							_ = ocClient.Core().ConfigMaps(nsName).Delete(configMapName, nil)
 						}()
 					}
 					// TODO sjug: pass label via config
 					labels := map[string]string{"purpose": "test"}
-					CreatePods(c, pod.Basename, nsName, labels, config.Spec, pod.Number, tuning)
+					CreatePods(ocClient, pod.Basename, nsName, labels, config.Spec, pod.Number, tuning)
 				}
-			}
+			})
 		}
 
 		// Wait for builds and deployments to complete
+		// TODO:  replace this code with `oc rollout status deployment/grafana-ocp`
 		for _, ns := range namespaces {
 			buildList, err := oc.BuildClient().Build().Builds(ns).List(metav1.ListOptions{})
 			if err != nil {
@@ -156,41 +164,17 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		testDuration := time.Since(testStartTime)
 		e2e.Logf("Cluster loading duration: %s", testDuration)
 		err := writeJSONToDisk(TestResult{testDuration}, testResultFile)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// Wait for pods to be running
-		//for _, ns := range namespaces {
-		//	label := labels.SelectorFromSet(labels.Set(map[string]string{"purpose": "test"}))
-		//	err := testutils.WaitForPodsWithLabelRunning(c, ns, label)
-		//	if err != nil {
-		//		e2e.Failf("Got %v when trying to wait for the pods to start", err)
-		//	}
-		//	o.Expect(err).NotTo(o.HaveOccurred())
-		//	e2e.Logf("All pods running in namespace %s.", ns)
-		//}
+		OcErrorAssertion(writeJSONToDisk(TestResult{testDuration}, testResultFile))
 
 		// If config context set to cleanup on completion
 		if ConfigContext.ClusterLoader.Cleanup == true {
 			for _, ns := range namespaces {
 				e2e.Logf("Deleting project %s", ns)
-				err := oc.AsAdmin().KubeClient().CoreV1().Namespaces().Delete(ns, nil)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				OcErrorAssertion(oc.AsAdmin().KubeClient().CoreV1().Namespaces().Delete(ns, nil))
 			}
 		}
 	})
 })
-
-func newProject(nsName string) *projectapi.Project {
-	return &projectapi.Project{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nsName,
-			Annotations: map[string]string{
-				oapi.OpenShiftDisplayName: nsName,
-				//"openshift.io/node-selector": "purpose=test",
-			},
-		},
-	}
-}
 
 // mkPath returns fully qualfied file location as a string
 func mkPath(file string) string {
@@ -202,9 +186,4 @@ func mkPath(file string) string {
 		rootDir = "content"
 	}
 	return filepath.Join(rootDir+"/", file)
-}
-
-// appendIntToString appends an integer i to string s
-func appendIntToString(s string, i int) string {
-	return s + strconv.Itoa(i)
 }
