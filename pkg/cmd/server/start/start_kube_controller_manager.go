@@ -34,7 +34,8 @@ func newKubeControllerContext(informers *informers) func(s *controlleroptions.CM
 			return controllerapp.ControllerContext{}, err
 		}
 
-		// Overwrite the informers, because we have our custom generic informers.
+		// Overwrite the informers, because we have our custom generic informers for quota.
+		// TODO update quota to create its own informer like garbage collection or if we split this out, actually add our external types to the kube generic informer
 		ret.InformerFactory = externalKubeInformersWithExtraGenerics{
 			SharedInformerFactory:   informers.GetExternalKubeInformers(),
 			genericResourceInformer: informers.ToGenericInformer(),
@@ -225,9 +226,6 @@ func createRecylerTemplate(recyclerImage string) (string, error) {
 func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string,
 	recyclerImage string, informers *informers) {
 	controllerapp.CreateControllerContext = newKubeControllerContext(informers)
-	controllerapp.StartInformers = func(stop <-chan struct{}) {
-		informers.Start(stop)
-	}
 
 	// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
 	controllerManager, cleanupFunctions, err := newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, recyclerImage, dynamicProvisioningEnabled, cmdLineArgs)
@@ -257,4 +255,9 @@ type externalKubeInformersWithExtraGenerics struct {
 
 func (i externalKubeInformersWithExtraGenerics) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 	return i.genericResourceInformer.ForResource(resource)
+}
+
+func (i externalKubeInformersWithExtraGenerics) Start(stopCh <-chan struct{}) {
+	i.SharedInformerFactory.Start(stopCh)
+	i.genericResourceInformer.Start(stopCh)
 }

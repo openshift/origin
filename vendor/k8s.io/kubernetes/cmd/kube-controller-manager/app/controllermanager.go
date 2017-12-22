@@ -157,11 +157,7 @@ func Run(s *options.CMServer) error {
 			glog.Fatalf("error starting controllers: %v", err)
 		}
 
-		if StartInformers == nil {
-			ctx.InformerFactory.Start(ctx.Stop)
-		} else {
-			StartInformers(ctx.Stop)
-		}
+		ctx.InformerFactory.Start(ctx.Stop)
 		close(ctx.InformersStarted)
 
 		select {}
