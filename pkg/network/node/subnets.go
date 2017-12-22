@@ -3,8 +3,13 @@
 package node
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 
@@ -19,14 +24,50 @@ func (node *OsdnNode) SubnetStartNode() error {
 
 type hostSubnetMap map[string]*networkapi.HostSubnet
 
-func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
+func (node *OsdnNode) getLocalSubnet() (string, error) {
+	var subnet *networkapi.HostSubnet
+	// If the HostSubnet doesn't already exist, it will be created by the SDN master in
+	// response to the kubelet registering itself with the master (which should be
+	// happening in another goroutine in parallel with this). Sometimes this takes
+	// unexpectedly long though, so give it plenty of time before returning an error
+	// (since that will cause the node process to exit).
+	backoff := utilwait.Backoff{
+		// ~2 mins total
+		Duration: time.Second,
+		Factor:   1.5,
+		Steps:    11,
+	}
+	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+		var err error
+		subnet, err = node.networkClient.Network().HostSubnets().Get(node.hostName, metav1.GetOptions{})
+		if err == nil {
+			return true, nil
+		} else if kapierrors.IsNotFound(err) {
+			glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", node.hostName)
+			return false, nil
+		} else {
+			return false, err
+		}
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to get subnet for this host: %s, error: %v", node.hostName, err)
+	}
+
+	if err = node.networkInfo.ValidateNodeIP(subnet.HostIP); err != nil {
+		return "", fmt.Errorf("failed to validate own HostSubnet: %v", err)
+	}
+
+	return subnet.Subnet, nil
+}
+
+func (node *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
 	remoteIPs := make([]string, 0, len(subnets))
 	for _, subnet := range subnets {
-		if subnet.HostIP != plugin.localIP {
+		if subnet.HostIP != node.localIP {
 			remoteIPs = append(remoteIPs, subnet.HostIP)
 		}
 	}
-	if err := plugin.oc.UpdateVXLANMulticastFlows(remoteIPs); err != nil {
+	if err := node.oc.UpdateVXLANMulticastFlows(remoteIPs); err != nil {
 		glog.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
 	}
 }

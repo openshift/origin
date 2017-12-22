@@ -23,7 +23,7 @@ func (node *OsdnNode) getRuntimeService() (kubeletapi.RuntimeService, error) {
 		kwait.Backoff{
 			Duration: 100 * time.Millisecond,
 			Factor:   1.2,
-			Steps:    23,
+			Steps:    24,
 		},
 		func() (bool, error) {
 			runtimeService, err := kubeletremote.NewRemoteRuntimeService(node.runtimeEndpoint, node.runtimeRequestTimeout)
