@@ -879,10 +879,10 @@ func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parse
 			err = ErrHelp
 			return
 		}
-		//TODO continue on error
+		
 		err = f.failf("unknown shorthand flag: %q in -%s", c, shorthands)
-		return
 	}
+
 	var value string
 	if len(shorthands) > 2 && shorthands[1] == '=' {
 		value = shorthands[2:]
