@@ -537,6 +537,7 @@ function copy-runtime() {
   local target=$2
 
   cp "$(os::util::find::built_binary openshift)" "${target}"
+  cp "$(os::util::find::built_binary openshift-diagnostics)" "${target}"
   cp "$(os::util::find::built_binary oc)" "${target}"
   cp "$(os::util::find::built_binary host-local)" "${target}"
   cp "$(os::util::find::built_binary loopback)" "${target}"
