@@ -412,6 +412,10 @@ backend be_secure:{{$cfgIdx}}
 
             {{- if and (not $endpoint.NoHealthCheck) (gt $cfg.ActiveEndpoints 1) }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
+            {{- with $podMaxConn := index $cfg.Annotations "haproxy.router.openshift.io/pod-concurrent-connections" }}
+              {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/pod-concurrent-connections")) }} maxconn {{$podMaxConn}} {{- end }}
+            {{- end}}{{/* end pod-concurrent-connections annotation */}}
+
           {{- end }}{{/* end if cg.TLSTermination */}}
         {{- end }}{{/* end range processEndpointsForAlias */}}
       {{- end }}{{/* end get serviceUnit from its name */}}
@@ -464,6 +468,10 @@ backend be_tcp:{{$cfgIdx}}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} weight {{$weight}}
             {{- if and (not $endpoint.NoHealthCheck) (gt $cfg.ActiveEndpoints 1) }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
+            {{- with $podMaxConn := index $cfg.Annotations "haproxy.router.openshift.io/pod-concurrent-connections" }}
+              {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/pod-concurrent-connections")) }} maxconn {{$podMaxConn}} {{- end }}
+            {{- end}}{{/* end pod-concurrent-connections annotation */}}
+
           {{- end }}{{/* end range processEndpointsForAlias */}}
         {{- end }}{{/* end get ServiceUnit from serviceUnitName */}}
       {{- end }}{{/* end if weight != 0 */}}
