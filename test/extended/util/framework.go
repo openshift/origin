@@ -237,23 +237,20 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 			e2e.Logf("Error retrieving description for pod %q: %v\n\n", pod.Name, err)
 		}
 
-		depOutput, err := oc.Run("logs").Args("pod/" + pod.Name).Output()
-		if err == nil {
-			e2e.Logf("Log for pod %q\n---->\n%s\n<----end of log for %[1]q\n", pod.Name, depOutput)
-		} else {
-			e2e.Logf("Error retrieving logs for pod %q: %v\n\n", pod.Name, err)
+		dumpContainer := func(container *kapiv1.Container) {
+			depOutput, err := oc.Run("logs").Args("pod/"+pod.Name, "-c", container.Name).Output()
+			if err == nil {
+				e2e.Logf("Log for pod %q/%q\n---->\n%s\n<----end of log for %[1]q/%[2]q\n", pod.Name, container.Name, depOutput)
+			} else {
+				e2e.Logf("Error retrieving logs for pod %q/%q: %v\n\n", pod.Name, container.Name, err)
+			}
 		}
-	}
 
-}
-
-func DumpPodContainerLogs(podName string, containerNames []string, oc *CLI) {
-	for _, c := range containerNames {
-		output, err := oc.Run("logs").Args(podName, "-c", c).Output()
-		if err == nil {
-			e2e.Logf("Log for pod %q container %q\n---->\n%s\n<----end of log for %[1]q%[2]q\n", podName, c, output)
-		} else {
-			e2e.Logf("Error retrieving logs for pod %q container %q: %v\n\n", podName, c, err)
+		for _, c := range pod.Spec.InitContainers {
+			dumpContainer(&c)
+		}
+		for _, c := range pod.Spec.Containers {
+			dumpContainer(&c)
 		}
 	}
 }

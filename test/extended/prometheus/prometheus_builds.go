@@ -177,9 +177,7 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI) {
 	}
 
 	if len(errsMap) != 0 {
-		// the prometheus pod and container names are well known / consistent
-		containers := []string{"prometheus", "prom-proxy"}
-		exutil.DumpPodContainerLogs("prometheus-0", containers, oc)
+		exutil.DumpPodLogsStartingWith("prometheus-0", oc)
 	}
 	o.Expect(errsMap).To(o.BeEmpty())
 }
