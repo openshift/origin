@@ -1,8 +1,6 @@
 #!/bin/bash
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 SCRIPT_ROOT=$(dirname ${BASH_SOURCE})/..
 
@@ -45,27 +43,7 @@ EOF
   mv "$TMPFILE" ""${gv_dir}"/types_swagger_doc_generated.go"
 }
 
-rm -f "${SCRIPT_ROOT}/apps/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "apps/v1" "apps/v1"
-rm -f "${SCRIPT_ROOT}/authorization/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "authorization/v1" "authorization/v1"
-rm -f "${SCRIPT_ROOT}/build/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "build/v1" "build/v1"
-rm -f "${SCRIPT_ROOT}/image/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "image/v1" "image/v1"
-rm -f "${SCRIPT_ROOT}/network/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "network/v1" "network/v1"
-rm -f "${SCRIPT_ROOT}/oauth/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "oauth/v1" "oauth/v1"
-rm -f "${SCRIPT_ROOT}/project/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "project/v1" "project/v1"
-rm -f "${SCRIPT_ROOT}/quota/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "quota/v1" "quota/v1"
-rm -f "${SCRIPT_ROOT}/route/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "route/v1" "route/v1"
-rm -f "${SCRIPT_ROOT}/security/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "security/v1" "security/v1"
-rm -f "${SCRIPT_ROOT}/template/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "template/v1" "template/v1"
-rm -f "${SCRIPT_ROOT}/user/v1/types_swagger_doc_generated.go"
-kube::swagger::gen_types_swagger_doc "user/v1" "user/v1"
+for gv in ${API_GROUP_VERSIONS}; do
+  rm -f "${SCRIPT_ROOT}/${gv}/types_swagger_doc_generated.go"
+  kube::swagger::gen_types_swagger_doc "${gv}" "${gv}"
+done
