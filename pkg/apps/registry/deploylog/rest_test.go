@@ -19,10 +19,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -31,7 +31,7 @@ import (
 var testSelector = map[string]string{"test": "rest"}
 
 func makeDeployment(version int64) kapi.ReplicationController {
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(appsapi.SchemeGroupVersion))
 	deployment.Namespace = metav1.NamespaceDefault
 	deployment.Spec.Selector = testSelector
 	return *deployment
@@ -95,9 +95,9 @@ func (*fakeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*ku
 }
 
 // mockREST mocks a DeploymentLog REST
-func mockREST(version, desired int64, status deployapi.DeploymentStatus) *REST {
+func mockREST(version, desired int64, status appsapi.DeploymentStatus) *REST {
 	// Fake deploymentConfig
-	config := deploytest.OkDeploymentConfig(version)
+	config := appstest.OkDeploymentConfig(version)
 	fakeDn := appsfake.NewSimpleClientset(config)
 	fakeDn.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, config, nil
@@ -123,11 +123,11 @@ func mockREST(version, desired int64, status deployapi.DeploymentStatus) *REST {
 	fakeWatch := watch.NewFake()
 	fakeRn.PrependWatchReactor("replicationcontrollers", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 	obj := &fakeDeployments.Items[desired-1]
-	obj.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
+	obj.Annotations[appsapi.DeploymentStatusAnnotation] = string(status)
 	go fakeWatch.Add(obj)
 
 	fakePn := fake.NewSimpleClientset()
-	if status == deployapi.DeploymentStatusComplete {
+	if status == appsapi.DeploymentStatusComplete {
 		// If the deployment is complete, we will try to get the logs from the oldest
 		// application pod...
 		fakePn.PrependReactor("list", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -140,13 +140,13 @@ func mockREST(version, desired int64, status deployapi.DeploymentStatus) *REST {
 		// ...otherwise try to get the logs from the deployer pod.
 		fakeDeployer := &kapi.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      deployutil.DeployerPodNameForDeployment(obj.Name),
+				Name:      appsutil.DeployerPodNameForDeployment(obj.Name),
 				Namespace: metav1.NamespaceDefault,
 			},
 			Spec: kapi.PodSpec{
 				Containers: []kapi.Container{
 					{
-						Name: deployutil.DeployerPodNameForDeployment(obj.Name) + "-container",
+						Name: appsutil.DeployerPodNameForDeployment(obj.Name) + "-container",
 					},
 				},
 				NodeName: "some-host",
@@ -182,9 +182,9 @@ func TestRESTGet(t *testing.T) {
 	}{
 		{
 			testName: "running deployment",
-			rest:     mockREST(1, 1, deployapi.DeploymentStatusRunning),
+			rest:     mockREST(1, 1, appsapi.DeploymentStatusRunning),
 			name:     "config",
-			opts:     &deployapi.DeploymentLogOptions{Follow: true, Version: intp(1)},
+			opts:     &appsapi.DeploymentLogOptions{Follow: true, Version: intp(1)},
 			expected: &genericrest.LocationStreamer{
 				Location: &url.URL{
 					Scheme:   "https",
@@ -201,9 +201,9 @@ func TestRESTGet(t *testing.T) {
 		},
 		{
 			testName: "complete deployment",
-			rest:     mockREST(5, 5, deployapi.DeploymentStatusComplete),
+			rest:     mockREST(5, 5, appsapi.DeploymentStatusComplete),
 			name:     "config",
-			opts:     &deployapi.DeploymentLogOptions{Follow: true, Version: intp(5)},
+			opts:     &appsapi.DeploymentLogOptions{Follow: true, Version: intp(5)},
 			expected: &genericrest.LocationStreamer{
 				Location: &url.URL{
 					Scheme:   "https",
@@ -220,9 +220,9 @@ func TestRESTGet(t *testing.T) {
 		},
 		{
 			testName: "previous failed deployment",
-			rest:     mockREST(3, 2, deployapi.DeploymentStatusFailed),
+			rest:     mockREST(3, 2, appsapi.DeploymentStatusFailed),
 			name:     "config",
-			opts:     &deployapi.DeploymentLogOptions{Follow: false, Version: intp(2)},
+			opts:     &appsapi.DeploymentLogOptions{Follow: false, Version: intp(2)},
 			expected: &genericrest.LocationStreamer{
 				Location: &url.URL{
 					Scheme: "https",
@@ -238,9 +238,9 @@ func TestRESTGet(t *testing.T) {
 		},
 		{
 			testName: "previous deployment",
-			rest:     mockREST(3, 2, deployapi.DeploymentStatusFailed),
+			rest:     mockREST(3, 2, appsapi.DeploymentStatusFailed),
 			name:     "config",
-			opts:     &deployapi.DeploymentLogOptions{Follow: false, Previous: true},
+			opts:     &appsapi.DeploymentLogOptions{Follow: false, Previous: true},
 			expected: &genericrest.LocationStreamer{
 				Location: &url.URL{
 					Scheme: "https",
@@ -258,7 +258,7 @@ func TestRESTGet(t *testing.T) {
 			testName:    "non-existent previous deployment",
 			rest:        mockREST(1 /* won't be used */, 101, ""),
 			name:        "config",
-			opts:        &deployapi.DeploymentLogOptions{Follow: false, Previous: true},
+			opts:        &appsapi.DeploymentLogOptions{Follow: false, Previous: true},
 			expected:    nil,
 			expectedErr: errors.NewBadRequest("no previous deployment exists for deploymentConfig \"config\""),
 		},

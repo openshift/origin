@@ -11,7 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/webhook"
 )
 
 var testBuildConfig = &buildapi.BuildConfig{
@@ -127,7 +126,7 @@ func GivenRequest(method string) *http.Request {
 }
 
 type testContext struct {
-	plugin   WebHook
+	plugin   WebHookPlugin
 	buildCfg *buildapi.BuildConfig
 	req      *http.Request
 	path     string
@@ -135,7 +134,7 @@ type testContext struct {
 
 func setup(t *testing.T, filename, eventType, ref string) *testContext {
 	context := testContext{
-		plugin: WebHook{},
+		plugin: WebHookPlugin{},
 		buildCfg: &buildapi.BuildConfig{
 			Spec: buildapi.BuildConfigSpec{
 				Triggers: []buildapi.BuildTriggerPolicy{
@@ -177,26 +176,10 @@ func setup(t *testing.T, filename, eventType, ref string) *testContext {
 func TestVerifyRequestForMethod(t *testing.T) {
 	req := GivenRequest("GET")
 	plugin := New()
-	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err == nil || !strings.Contains(err.Error(), "unsupported HTTP method") {
 		t.Errorf("Expected unsupported HTTP method, got %v", err)
-	}
-	if proceed {
-		t.Error("Expected 'proceed' return value to be 'false'")
-	}
-	if revision != nil {
-		t.Error("Expected the 'revision' return value to be nil")
-	}
-}
-
-func TestWrongSecret(t *testing.T) {
-	req := GivenRequest("POST")
-	plugin := New()
-	revision, _, _, proceed, err := plugin.Extract(buildConfig, "wrongsecret", "", req)
-
-	if err != webhook.ErrSecretMismatch {
-		t.Errorf("Expected %v, got %v", webhook.ErrSecretMismatch, err)
 	}
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false'")
@@ -210,7 +193,7 @@ func TestMissingEvent(t *testing.T) {
 	req := GivenRequest("POST")
 	req.Header.Add("Content-Type", "application/json")
 	plugin := New()
-	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err == nil || !strings.Contains(err.Error(), "missing X-Event-Key") {
 		t.Errorf("Expected missing X-Event-Key, got %v", err)
@@ -228,7 +211,7 @@ func TestWrongEventKey(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("X-Event-Key", "wrong")
 	plugin := New()
-	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err == nil || !strings.Contains(err.Error(), "Unknown Bitbucket X-Event-Key") {
 		t.Errorf("Expected missing Unknown Bitbucket X-Event-Key, got %v", err)
@@ -244,7 +227,7 @@ func TestWrongEventKey(t *testing.T) {
 func TestJsonPushEventError(t *testing.T) {
 	req := post("X-Event-Key", "repo:push", []byte{}, "http://some.url", http.StatusBadRequest, t)
 	plugin := New()
-	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	revision, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err == nil || !strings.Contains(err.Error(), "unexpected end of JSON input") {
 		t.Errorf("Expected unexpected end of JSON input, got %v", err)
@@ -260,7 +243,7 @@ func TestJsonPushEventError(t *testing.T) {
 func TestJsonBitbucketPushEvent(t *testing.T) {
 	req := postFile("X-Event-Key", "repo:push", "pushevent.json", "http://some.url", http.StatusOK, t)
 	plugin := New()
-	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	_, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -273,7 +256,7 @@ func TestJsonBitbucketPushEvent(t *testing.T) {
 func TestJsonBitbucketPushEvent54(t *testing.T) {
 	req := postFile("X-Event-Key", "repo:refs_changed", "pushevent54.json", "http://some.url", http.StatusOK, t)
 	plugin := New()
-	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	_, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -286,7 +269,7 @@ func TestJsonBitbucketPushEvent54(t *testing.T) {
 func TestJsonGitHubPushEventWithCharset(t *testing.T) {
 	req := postFileWithCharset("X-Event-Key", "repo:push", "pushevent.json", "http://some.url", "application/json; charset=utf-8", http.StatusOK, t)
 	plugin := New()
-	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	_, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -299,7 +282,7 @@ func TestJsonGitHubPushEventWithCharset(t *testing.T) {
 func TestJsonGitHubPushEventWithCharset54(t *testing.T) {
 	req := postFileWithCharset("X-Event-Key", "repo:refs_changed", "pushevent54.json", "http://some.url", "application/json; charset=utf-8", http.StatusOK, t)
 	plugin := New()
-	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
+	_, _, _, proceed, err := plugin.Extract(buildConfig, buildConfig.Spec.Triggers[0].BitbucketWebHook, req)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -314,7 +297,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	context := setup(t, "pushevent.json", "repo:push", "")
 
 	//execute
-	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 
 	//validation
 	if err != nil {
@@ -337,7 +320,7 @@ func TestExtractProvidesValidBuildForAPushEvent54(t *testing.T) {
 	context := setup(t, "pushevent54.json", "repo:refs_changed", "")
 
 	//execute
-	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 
 	//validation
 	if err != nil {
@@ -359,7 +342,7 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent-not-master.json", "repo:push", "this-is-not-master")
 	//execute
-	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 
 	//validation
 	if err != nil {
@@ -380,7 +363,7 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster54(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent54-not-master.json", "repo:refs_changed", "other")
 	//execute
-	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 
 	//validation
 	if err != nil {
@@ -402,7 +385,7 @@ func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	context := setup(t, "pushevent.json", "repo:push", "wrongref")
 
 	//execute
-	_, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	_, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -416,7 +399,7 @@ func TestExtractSkipsBuildForUnmatchedBranches54(t *testing.T) {
 	context := setup(t, "pushevent54.json", "repo:refs_changed", "wrongref")
 
 	//execute
-	_, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	_, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -430,7 +413,7 @@ func TestExtractErrorForWrongEventPayload(t *testing.T) {
 	context := setup(t, "pushevent.json", "repo:refs_changed", "")
 
 	//execute
-	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 	if err == nil {
 		t.Errorf("Did not get expected error due to mismatched payload and event type")
 	}
@@ -450,7 +433,7 @@ func TestExtractErrorForWrongEventPayload54(t *testing.T) {
 	context := setup(t, "pushevent54.json", "repo:push", "")
 
 	//execute
-	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret100", context.path, context.req)
+	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, buildConfig.Spec.Triggers[0].BitbucketWebHook, context.req)
 	if err == nil {
 		t.Errorf("Did not get expected error due to mismatched payload and event type")
 	}

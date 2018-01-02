@@ -15,7 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -166,8 +166,8 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 		}
 		o.Options = bopts
 
-	case deployapi.IsResourceOrLegacy("deploymentconfig", gr):
-		dopts := &deployapi.DeploymentLogOptions{
+	case appsapi.IsResourceOrLegacy("deploymentconfig", gr):
+		dopts := &appsapi.DeploymentLogOptions{
 			Follow:       podLogOptions.Follow,
 			Previous:     podLogOptions.Previous,
 			SinceSeconds: podLogOptions.SinceSeconds,
@@ -201,7 +201,7 @@ func (o OpenShiftLogsOptions) Validate() error {
 		if t.Previous && t.Version != nil {
 			return errors.New("cannot use both --previous and --version")
 		}
-	case *deployapi.DeploymentLogOptions:
+	case *appsapi.DeploymentLogOptions:
 		if t.Previous && t.Version != nil {
 			return errors.New("cannot use both --previous and --version")
 		}

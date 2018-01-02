@@ -7,15 +7,15 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 	type existingDeployment struct {
 		version int64
-		status  deployapi.DeploymentStatus
+		status  appsapi.DeploymentStatus
 	}
 	tests := []struct {
 		name            string
@@ -29,9 +29,9 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{1, deployapi.DeploymentStatusComplete},
-				{2, deployapi.DeploymentStatusComplete},
-				{3, deployapi.DeploymentStatusComplete},
+				{1, appsapi.DeploymentStatusComplete},
+				{2, appsapi.DeploymentStatusComplete},
+				{3, appsapi.DeploymentStatusComplete},
 			},
 			desiredVersion:  1,
 			expectedVersion: 1,
@@ -41,8 +41,8 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired not found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{2, deployapi.DeploymentStatusComplete},
-				{3, deployapi.DeploymentStatusComplete},
+				{2, appsapi.DeploymentStatusComplete},
+				{3, appsapi.DeploymentStatusComplete},
 			},
 			desiredVersion: 1,
 			errorExpected:  true,
@@ -51,9 +51,9 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired not supplied, target found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{1, deployapi.DeploymentStatusComplete},
-				{2, deployapi.DeploymentStatusFailed},
-				{3, deployapi.DeploymentStatusComplete},
+				{1, appsapi.DeploymentStatusComplete},
+				{2, appsapi.DeploymentStatusFailed},
+				{3, appsapi.DeploymentStatusComplete},
 			},
 			desiredVersion:  0,
 			expectedVersion: 1,
@@ -63,9 +63,9 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			name:          "desired not supplied, target not found",
 			configVersion: 3,
 			existing: []existingDeployment{
-				{1, deployapi.DeploymentStatusFailed},
-				{2, deployapi.DeploymentStatusFailed},
-				{3, deployapi.DeploymentStatusComplete},
+				{1, appsapi.DeploymentStatusFailed},
+				{2, appsapi.DeploymentStatusFailed},
+				{3, appsapi.DeploymentStatusComplete},
 			},
 			desiredVersion: 0,
 			errorExpected:  true,
@@ -77,9 +77,9 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 
 		existingControllers := &kapi.ReplicationControllerList{}
 		for _, existing := range test.existing {
-			config := deploytest.OkDeploymentConfig(existing.version)
-			deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
-			deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(existing.status)
+			config := appstest.OkDeploymentConfig(existing.version)
+			deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsapi.SchemeGroupVersion))
+			deployment.Annotations[appsapi.DeploymentStatusAnnotation] = string(existing.status)
 			existingControllers.Items = append(existingControllers.Items, *deployment)
 		}
 
@@ -88,7 +88,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			kc: fakekc,
 		}
 
-		config := deploytest.OkDeploymentConfig(test.configVersion)
+		config := appstest.OkDeploymentConfig(test.configVersion)
 		target, err := opts.findTargetDeployment(config, test.desiredVersion)
 		if err != nil {
 			if !test.errorExpected {
@@ -104,7 +104,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 		if target == nil {
 			t.Fatalf("expected a target deployment")
 		}
-		if e, a := test.expectedVersion, deployutil.DeploymentVersionFor(target); e != a {
+		if e, a := test.expectedVersion, appsutil.DeploymentVersionFor(target); e != a {
 			t.Errorf("expected target version %d, got %d", e, a)
 		}
 	}

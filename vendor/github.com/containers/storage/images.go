@@ -10,15 +10,12 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
-	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
-const (
-	// ImageDigestBigDataKey is the name of the big data item whose
-	// contents we consider useful for computing a "digest" of the
-	// image, by which we can locate the image later.
-	ImageDigestBigDataKey = "manifest"
+var (
+	// ErrImageUnknown indicates that there was no image with the specified name or ID
+	ErrImageUnknown = errors.New("image not known")
 )
 
 // An Image is a reference to a layer and an associated metadata string.
@@ -32,10 +29,9 @@ type Image struct {
 	// unique among images.
 	Names []string `json:"names,omitempty"`
 
-	// TopLayer is the ID of the topmost layer of the image itself, if the
-	// image contains one or more layers.  Multiple images can refer to the
-	// same top layer.
-	TopLayer string `json:"layer,omitempty"`
+	// TopLayer is the ID of the topmost layer of the image itself.
+	// Multiple images can refer to the same top layer.
+	TopLayer string `json:"layer"`
 
 	// Metadata is data we keep for the convenience of the caller.  It is not
 	// expected to be large, since it is kept in memory.
@@ -49,10 +45,6 @@ type Image struct {
 	// BigDataSizes maps the names in BigDataNames to the sizes of the data
 	// that has been stored, if they're known.
 	BigDataSizes map[string]int64 `json:"big-data-sizes,omitempty"`
-
-	// BigDataDigests maps the names in BigDataNames to the digests of the
-	// data that has been stored, if they're known.
-	BigDataDigests map[string]digest.Digest `json:"big-data-digests,omitempty"`
 
 	// Created is the datestamp for when this image was created.  Older
 	// versions of the library did not track this information, so callers
@@ -81,10 +73,6 @@ type ROImageStore interface {
 
 	// Images returns a slice enumerating the known images.
 	Images() ([]Image, error)
-
-	// Images returns a slice enumerating the images which have a big data
-	// item with the name ImageDigestBigDataKey and the specified digest.
-	ByDigest(d digest.Digest) ([]*Image, error)
 }
 
 // ImageStore provides bookkeeping for information about Images.
@@ -118,7 +106,6 @@ type imageStore struct {
 	idindex  *truncindex.TruncIndex
 	byid     map[string]*Image
 	byname   map[string]*Image
-	bydigest map[digest.Digest][]*Image
 }
 
 func (r *imageStore) Images() ([]Image, error) {
@@ -152,9 +139,7 @@ func (r *imageStore) Load() error {
 	idlist := []string{}
 	ids := make(map[string]*Image)
 	names := make(map[string]*Image)
-	digests := make(map[digest.Digest][]*Image)
 	if err = json.Unmarshal(data, &images); len(data) == 0 || err == nil {
-		idlist = make([]string, 0, len(images))
 		for n, image := range images {
 			ids[image.ID] = images[n]
 			idlist = append(idlist, image.ID)
@@ -165,19 +150,15 @@ func (r *imageStore) Load() error {
 				}
 				names[name] = images[n]
 			}
-			if digest, ok := image.BigDataDigests[ImageDigestBigDataKey]; ok {
-				digests[digest] = append(digests[digest], images[n])
-			}
 		}
 	}
 	if shouldSave && !r.IsReadWrite() {
-		return ErrDuplicateImageNames
+		return errors.New("image store assigns the same name to multiple images")
 	}
 	r.images = images
 	r.idindex = truncindex.NewTruncIndex(idlist)
 	r.byid = ids
 	r.byname = names
-	r.bydigest = digests
 	if shouldSave {
 		return r.Save()
 	}
@@ -216,7 +197,6 @@ func newImageStore(dir string) (ImageStore, error) {
 		images:   []*Image{},
 		byid:     make(map[string]*Image),
 		byname:   make(map[string]*Image),
-		bydigest: make(map[digest.Digest][]*Image),
 	}
 	if err := istore.Load(); err != nil {
 		return nil, err
@@ -237,7 +217,6 @@ func newROImageStore(dir string) (ROImageStore, error) {
 		images:   []*Image{},
 		byid:     make(map[string]*Image),
 		byname:   make(map[string]*Image),
-		bydigest: make(map[digest.Digest][]*Image),
 	}
 	if err := istore.Load(); err != nil {
 		return nil, err
@@ -277,9 +256,6 @@ func (r *imageStore) SetFlag(id string, flag string, value interface{}) error {
 	if !ok {
 		return ErrImageUnknown
 	}
-	if image.Flags == nil {
-		image.Flags = make(map[string]interface{})
-	}
 	image.Flags[flag] = value
 	return r.Save()
 }
@@ -299,7 +275,6 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 	if _, idInUse := r.byid[id]; idInUse {
 		return nil, ErrDuplicateID
 	}
-	names = dedupeNames(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {
 			return nil, ErrDuplicateName
@@ -310,15 +285,14 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 	}
 	if err == nil {
 		image = &Image{
-			ID:             id,
-			Names:          names,
-			TopLayer:       layer,
-			Metadata:       metadata,
-			BigDataNames:   []string{},
-			BigDataSizes:   make(map[string]int64),
-			BigDataDigests: make(map[string]digest.Digest),
-			Created:        created,
-			Flags:          make(map[string]interface{}),
+			ID:           id,
+			Names:        names,
+			TopLayer:     layer,
+			Metadata:     metadata,
+			BigDataNames: []string{},
+			BigDataSizes: make(map[string]int64),
+			Created:      created,
+			Flags:        make(map[string]interface{}),
 		}
 		r.images = append(r.images, image)
 		r.idindex.Add(id)
@@ -357,7 +331,6 @@ func (r *imageStore) SetNames(id string, names []string) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to change image name assignments at %q", r.imagespath())
 	}
-	names = dedupeNames(names)
 	if image, ok := r.lookup(id); ok {
 		for _, name := range image.Names {
 			delete(r.byname, name)
@@ -402,17 +375,6 @@ func (r *imageStore) Delete(id string) error {
 			r.images = append(r.images[:toDeleteIndex], r.images[toDeleteIndex+1:]...)
 		}
 	}
-	if digest, ok := image.BigDataDigests[ImageDigestBigDataKey]; ok {
-		// remove the image from the digest-based index
-		if list, ok := r.bydigest[digest]; ok {
-			prunedList := imageSliceWithoutValue(list, image)
-			if len(prunedList) == 0 {
-				delete(r.bydigest, digest)
-			} else {
-				r.bydigest[digest] = prunedList
-			}
-		}
-	}
 	if err := r.Save(); err != nil {
 		return err
 	}
@@ -441,17 +403,7 @@ func (r *imageStore) Exists(id string) bool {
 	return ok
 }
 
-func (r *imageStore) ByDigest(d digest.Digest) ([]*Image, error) {
-	if images, ok := r.bydigest[d]; ok {
-		return images, nil
-	}
-	return nil, ErrImageUnknown
-}
-
 func (r *imageStore) BigData(id, key string) ([]byte, error) {
-	if key == "" {
-		return nil, errors.Wrapf(ErrInvalidBigDataName, "can't retrieve image big data value for empty name")
-	}
 	image, ok := r.lookup(id)
 	if !ok {
 		return nil, ErrImageUnknown
@@ -460,59 +412,14 @@ func (r *imageStore) BigData(id, key string) ([]byte, error) {
 }
 
 func (r *imageStore) BigDataSize(id, key string) (int64, error) {
-	if key == "" {
-		return -1, errors.Wrapf(ErrInvalidBigDataName, "can't retrieve size of image big data with empty name")
-	}
 	image, ok := r.lookup(id)
 	if !ok {
 		return -1, ErrImageUnknown
 	}
-	if image.BigDataSizes == nil {
-		image.BigDataSizes = make(map[string]int64)
-	}
 	if size, ok := image.BigDataSizes[key]; ok {
 		return size, nil
 	}
-	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
-			image, ok := r.lookup(id)
-			if !ok {
-				return -1, ErrImageUnknown
-			}
-			if size, ok := image.BigDataSizes[key]; ok {
-				return size, nil
-			}
-		}
-	}
 	return -1, ErrSizeUnknown
-}
-
-func (r *imageStore) BigDataDigest(id, key string) (digest.Digest, error) {
-	if key == "" {
-		return "", errors.Wrapf(ErrInvalidBigDataName, "can't retrieve digest of image big data value with empty name")
-	}
-	image, ok := r.lookup(id)
-	if !ok {
-		return "", ErrImageUnknown
-	}
-	if image.BigDataDigests == nil {
-		image.BigDataDigests = make(map[string]digest.Digest)
-	}
-	if d, ok := image.BigDataDigests[key]; ok {
-		return d, nil
-	}
-	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
-			image, ok := r.lookup(id)
-			if !ok {
-				return "", ErrImageUnknown
-			}
-			if d, ok := image.BigDataDigests[key]; ok {
-				return d, nil
-			}
-		}
-	}
-	return "", ErrDigestUnknown
 }
 
 func (r *imageStore) BigDataNames(id string) ([]string, error) {
@@ -523,21 +430,7 @@ func (r *imageStore) BigDataNames(id string) ([]string, error) {
 	return image.BigDataNames, nil
 }
 
-func imageSliceWithoutValue(slice []*Image, value *Image) []*Image {
-	modified := make([]*Image, 0, len(slice))
-	for _, v := range slice {
-		if v == value {
-			continue
-		}
-		modified = append(modified, v)
-	}
-	return modified
-}
-
 func (r *imageStore) SetBigData(id, key string, data []byte) error {
-	if key == "" {
-		return errors.Wrapf(ErrInvalidBigDataName, "can't set empty name for image big data item")
-	}
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to save data items associated with images at %q", r.imagespath())
 	}
@@ -550,53 +443,22 @@ func (r *imageStore) SetBigData(id, key string, data []byte) error {
 	}
 	err := ioutils.AtomicWriteFile(r.datapath(image.ID, key), data, 0600)
 	if err == nil {
+		add := true
 		save := false
-		if image.BigDataSizes == nil {
-			image.BigDataSizes = make(map[string]int64)
-		}
-		oldSize, sizeOk := image.BigDataSizes[key]
+		oldSize, ok := image.BigDataSizes[key]
 		image.BigDataSizes[key] = int64(len(data))
-		if image.BigDataDigests == nil {
-			image.BigDataDigests = make(map[string]digest.Digest)
-		}
-		oldDigest, digestOk := image.BigDataDigests[key]
-		newDigest := digest.Canonical.FromBytes(data)
-		image.BigDataDigests[key] = newDigest
-		if !sizeOk || oldSize != image.BigDataSizes[key] || !digestOk || oldDigest != newDigest {
+		if !ok || oldSize != image.BigDataSizes[key] {
 			save = true
 		}
-		addName := true
 		for _, name := range image.BigDataNames {
 			if name == key {
-				addName = false
+				add = false
 				break
 			}
 		}
-		if addName {
+		if add {
 			image.BigDataNames = append(image.BigDataNames, key)
 			save = true
-		}
-		if key == ImageDigestBigDataKey {
-			if oldDigest != "" && oldDigest != newDigest {
-				// remove the image from the list of images in the digest-based
-				// index which corresponds to the old digest for this item
-				if list, ok := r.bydigest[oldDigest]; ok {
-					prunedList := imageSliceWithoutValue(list, image)
-					if len(prunedList) == 0 {
-						delete(r.bydigest, oldDigest)
-					} else {
-						r.bydigest[oldDigest] = prunedList
-					}
-				}
-			}
-			// add the image to the list of images in the digest-based index which
-			// corresponds to the new digest for this item, unless it's already there
-			list := r.bydigest[newDigest]
-			if len(list) == len(imageSliceWithoutValue(list, image)) {
-				// the list isn't shortened by trying to prune this image from it,
-				// so it's not in there yet
-				r.bydigest[newDigest] = append(list, image)
-			}
 		}
 		if save {
 			err = r.Save()
@@ -609,7 +471,7 @@ func (r *imageStore) Wipe() error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to delete images at %q", r.imagespath())
 	}
-	ids := make([]string, 0, len(r.byid))
+	ids := []string{}
 	for id := range r.byid {
 		ids = append(ids, id)
 	}

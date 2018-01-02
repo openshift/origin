@@ -13,8 +13,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 func NewDeploymentConfigHistoryViewer(kc kclientset.Interface) kubectl.HistoryViewer {
@@ -31,7 +31,7 @@ var _ kubectl.HistoryViewer = &DeploymentConfigHistoryViewer{}
 
 // ViewHistory returns a description of all the history it can find for a deployment config.
 func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revision int64) (string, error) {
-	opts := metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(name).String()}
+	opts := metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(name).String()}
 	deploymentList, err := h.rn.ReplicationControllers(namespace).List(opts)
 	if err != nil {
 		return "", err
@@ -54,7 +54,7 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 		for i := range history {
 			rc := history[i]
 
-			if deployutil.DeploymentVersionFor(rc) == revision {
+			if appsutil.DeploymentVersionFor(rc) == revision {
 				desired = rc.Spec.Template
 				break
 			}
@@ -69,16 +69,16 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 		return buf.String(), nil
 	}
 
-	sort.Sort(deployutil.ByLatestVersionAsc(history))
+	sort.Sort(appsutil.ByLatestVersionAsc(history))
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		fmt.Fprintf(out, "REVISION\tSTATUS\tCAUSE\n")
 		for i := range history {
 			rc := history[i]
 
-			rev := deployutil.DeploymentVersionFor(rc)
-			status := deployutil.DeploymentStatusFor(rc)
-			cause := rc.Annotations[deployapi.DeploymentStatusReasonAnnotation]
+			rev := appsutil.DeploymentVersionFor(rc)
+			status := appsutil.DeploymentStatusFor(rc)
+			cause := rc.Annotations[appsapi.DeploymentStatusReasonAnnotation]
 			if len(cause) == 0 {
 				cause = "<unknown>"
 			}

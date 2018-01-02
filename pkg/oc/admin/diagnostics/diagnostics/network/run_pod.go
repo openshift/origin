@@ -137,13 +137,13 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 	// In Collection phase, results from each node are moved to the user machine where the CLI cmd is executed.
 
 	// TEST Phase: Run network diagnostic pod on all valid nodes in parallel
-	command := fmt.Sprintf("openshift infra network-diagnostic-pod -l %d", loglevel)
+	command := fmt.Sprintf("openshift-diagnostics network-diagnostic-pod -l %d", loglevel)
 	if err := d.runNetworkPod(command); err != nil {
 		d.res.Error("DNet2006", err, err.Error())
 		return
 	}
 	// Wait for network diagnostic pod completion (timeout: ~3 mins)
-	backoff := wait.Backoff{Steps: 38, Duration: 500 * time.Millisecond, Factor: 1.1}
+	backoff := wait.Backoff{Steps: 39, Duration: 500 * time.Millisecond, Factor: 1.1}
 	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, backoff, []kapi.PodPhase{kapi.PodSucceeded, kapi.PodFailed}); err != nil {
 		d.res.Error("DNet2007", err, err.Error())
 		return
@@ -164,7 +164,7 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 	}
 
 	// Wait for network diagnostic pod to start (timeout: ~5 mins)
-	backoff = wait.Backoff{Steps: 36, Duration: time.Second, Factor: 1.1}
+	backoff = wait.Backoff{Steps: 37, Duration: time.Second, Factor: 1.1}
 	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, backoff, []kapi.PodPhase{kapi.PodRunning, kapi.PodFailed, kapi.PodSucceeded}); err != nil {
 		d.res.Error("DNet2010", err, err.Error())
 		// Do not bail out here, collect what ever info is available from all valid nodes

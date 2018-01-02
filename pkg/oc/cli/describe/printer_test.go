@@ -15,7 +15,7 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -29,13 +29,13 @@ import (
 // If you add something to this list, explain why it doesn't need printing.  waaaa is not a valid
 // reason.
 var PrinterCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&imageapi.DockerImage{}),           // not a top level resource
-	reflect.TypeOf(&imageapi.ImageStreamImport{}),     // normal users don't ever look at these
-	reflect.TypeOf(&buildapi.BuildLog{}),              // just a marker type
-	reflect.TypeOf(&buildapi.BuildLogOptions{}),       // just a marker type
-	reflect.TypeOf(&deployapi.DeploymentRequest{}),    // normal users don't ever look at these
-	reflect.TypeOf(&deployapi.DeploymentLog{}),        // just a marker type
-	reflect.TypeOf(&deployapi.DeploymentLogOptions{}), // just a marker type
+	reflect.TypeOf(&imageapi.DockerImage{}),         // not a top level resource
+	reflect.TypeOf(&imageapi.ImageStreamImport{}),   // normal users don't ever look at these
+	reflect.TypeOf(&buildapi.BuildLog{}),            // just a marker type
+	reflect.TypeOf(&buildapi.BuildLogOptions{}),     // just a marker type
+	reflect.TypeOf(&appsapi.DeploymentRequest{}),    // normal users don't ever look at these
+	reflect.TypeOf(&appsapi.DeploymentLog{}),        // just a marker type
+	reflect.TypeOf(&appsapi.DeploymentLogOptions{}), // just a marker type
 
 	// these resources can't be "GET"ed, so we probably don't need a printer for them
 	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
@@ -61,7 +61,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 // You should never add to this list
 // TODO printers should be added for these types
 var MissingPrinterCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),
+	reflect.TypeOf(&appsapi.DeploymentConfigRollback{}),
 	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
 	reflect.TypeOf(&projectapi.ProjectRequest{}),
 }

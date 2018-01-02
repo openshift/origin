@@ -13,9 +13,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployapiv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsapiv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
@@ -24,7 +24,7 @@ import (
 
 type AnnotationFunc func(currentReplicas int32, annotations map[string]string)
 
-func NewScaleAnnotater(scales kextensionsclient.ScalesGetter, dcs deployclient.DeploymentConfigsGetter, rcs kcoreclient.ReplicationControllersGetter, changeAnnots AnnotationFunc) *ScaleAnnotater {
+func NewScaleAnnotater(scales kextensionsclient.ScalesGetter, dcs appsclient.DeploymentConfigsGetter, rcs kcoreclient.ReplicationControllersGetter, changeAnnots AnnotationFunc) *ScaleAnnotater {
 	return &ScaleAnnotater{
 		scales:            scales,
 		dcs:               dcs,
@@ -35,7 +35,7 @@ func NewScaleAnnotater(scales kextensionsclient.ScalesGetter, dcs deployclient.D
 
 type ScaleAnnotater struct {
 	scales            kextensionsclient.ScalesGetter
-	dcs               deployclient.DeploymentConfigsGetter
+	dcs               appsclient.DeploymentConfigsGetter
 	rcs               kcoreclient.ReplicationControllersGetter
 	ChangeAnnotations AnnotationFunc
 }
@@ -49,11 +49,11 @@ type ScaleUpdater interface {
 type scaleUpdater struct {
 	encoder   runtime.Encoder
 	namespace string
-	dcGetter  deployclient.DeploymentConfigsGetter
+	dcGetter  appsclient.DeploymentConfigsGetter
 	rcGetter  kcoreclient.ReplicationControllersGetter
 }
 
-func NewScaleUpdater(encoder runtime.Encoder, namespace string, dcGetter deployclient.DeploymentConfigsGetter, rcGetter kcoreclient.ReplicationControllersGetter) ScaleUpdater {
+func NewScaleUpdater(encoder runtime.Encoder, namespace string, dcGetter appsclient.DeploymentConfigsGetter, rcGetter kcoreclient.ReplicationControllersGetter) ScaleUpdater {
 	return scaleUpdater{
 		encoder:   encoder,
 		namespace: namespace,
@@ -74,7 +74,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 	}
 
 	switch typedObj := obj.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		if typedObj.Annotations == nil {
 			typedObj.Annotations = make(map[string]string)
 		}
@@ -87,7 +87,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		patchBytes, err = strategicpatch.CreateTwoWayMergePatch(originalObj, newObj, &deployapiv1.DeploymentConfig{})
+		patchBytes, err = strategicpatch.CreateTwoWayMergePatch(originalObj, newObj, &appsapiv1.DeploymentConfig{})
 		if err != nil {
 			return err
 		}
@@ -124,8 +124,8 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 	var scale *kextapi.Scale
 
 	switch {
-	case ref.Kind == "DeploymentConfig" && (ref.Group == deployapi.GroupName || ref.Group == deployapi.LegacyGroupName):
-		var dc *deployapi.DeploymentConfig
+	case ref.Kind == "DeploymentConfig" && (ref.Group == appsapi.GroupName || ref.Group == appsapi.LegacyGroupName):
+		var dc *appsapi.DeploymentConfig
 		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, nil, err
@@ -166,7 +166,7 @@ func (c *ScaleAnnotater) UpdateObjectScale(updater ScaleUpdater, namespace strin
 	}
 
 	switch obj.(type) {
-	case *deployapi.DeploymentConfig, *kapi.ReplicationController:
+	case *appsapi.DeploymentConfig, *kapi.ReplicationController:
 		return updater.Update(c, obj, scale)
 	default:
 		glog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations", obj)

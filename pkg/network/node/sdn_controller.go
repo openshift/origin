@@ -13,50 +13,12 @@ import (
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/netutils"
 
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 
 	"github.com/vishvananda/netlink"
 )
-
-func (plugin *OsdnNode) getLocalSubnet() (string, error) {
-	var subnet *networkapi.HostSubnet
-	// If the HostSubnet doesn't already exist, it will be created by the SDN master in
-	// response to the kubelet registering itself with the master (which should be
-	// happening in another goroutine in parallel with this). Sometimes this takes
-	// unexpectedly long though, so give it plenty of time before returning an error
-	// (since that will cause the node process to exit).
-	backoff := utilwait.Backoff{
-		// A bit over 1 minute total
-		Duration: time.Second,
-		Factor:   1.5,
-		Steps:    8,
-	}
-	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
-		var err error
-		subnet, err = plugin.networkClient.Network().HostSubnets().Get(plugin.hostName, metav1.GetOptions{})
-		if err == nil {
-			return true, nil
-		} else if kapierrors.IsNotFound(err) {
-			glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", plugin.hostName)
-			return false, nil
-		} else {
-			return false, err
-		}
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to get subnet for this host: %s, error: %v", plugin.hostName, err)
-	}
-
-	if err = plugin.networkInfo.ValidateNodeIP(subnet.HostIP); err != nil {
-		return "", fmt.Errorf("failed to validate own HostSubnet: %v", err)
-	}
-
-	return subnet.Subnet, nil
-}
 
 func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetworkCIDR []string) bool {
 	var found bool
@@ -106,10 +68,11 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 }
 
 func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
+	// ~1 sec total
 	backoff := utilwait.Backoff{
 		Duration: 100 * time.Millisecond,
 		Factor:   1.25,
-		Steps:    6,
+		Steps:    7,
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		l, err := netlink.LinkByName(device)

@@ -78,29 +78,14 @@ func addFile(drv graphdriver.Driver, layer, filename string, content []byte) err
 	return ioutil.WriteFile(path.Join(root, filename), content, 0755)
 }
 
-func addDirectory(drv graphdriver.Driver, layer, dir string) error {
+func removeFile(drv graphdriver.Driver, layer, filename string) error {
 	root, err := drv.Get(layer, "")
 	if err != nil {
 		return err
 	}
 	defer drv.Put(layer)
 
-	return os.MkdirAll(path.Join(root, dir), 0755)
-}
-
-func removeAll(drv graphdriver.Driver, layer string, names ...string) error {
-	root, err := drv.Get(layer, "")
-	if err != nil {
-		return err
-	}
-	defer drv.Put(layer)
-
-	for _, filename := range names {
-		if err := os.RemoveAll(path.Join(root, filename)); err != nil {
-			return err
-		}
-	}
-	return nil
+	return os.Remove(path.Join(root, filename))
 }
 
 func checkFileRemoved(drv graphdriver.Driver, layer, filename string) error {
@@ -275,7 +260,7 @@ func addManyLayers(drv graphdriver.Driver, baseLayer string, count int) (string,
 	lastLayer := baseLayer
 	for i := 1; i <= count; i++ {
 		nextLayer := stringid.GenerateRandomID()
-		if err := drv.Create(nextLayer, lastLayer, nil); err != nil {
+		if err := drv.Create(nextLayer, lastLayer, "", nil); err != nil {
 			return "", err
 		}
 		if err := addLayerFiles(drv, nextLayer, lastLayer, i); err != nil {

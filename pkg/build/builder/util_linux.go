@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/google/cadvisor/container/crio"
 	crioclient "github.com/kubernetes-incubator/cri-o/client"
 	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
@@ -32,7 +31,7 @@ func getContainerNetworkConfig() (string, string, error) {
 			return s2iapi.DockerNetworkModeContainerPrefix + id, "", nil
 		}
 
-		crioClient, err := crioclient.New(crio.CrioSocket)
+		crioClient, err := crioclient.New("/var/run/crio/crio.sock")
 		if err != nil {
 			return "", "", err
 		}

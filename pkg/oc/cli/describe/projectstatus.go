@@ -26,12 +26,12 @@ import (
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubeanalysis "github.com/openshift/origin/pkg/api/kubegraph/analysis"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	deployedges "github.com/openshift/origin/pkg/apps/graph"
-	deployanalysis "github.com/openshift/origin/pkg/apps/graph/analysis"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsedges "github.com/openshift/origin/pkg/apps/graph"
+	appsanalysis "github.com/openshift/origin/pkg/apps/graph/analysis"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -145,9 +145,9 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	kubeedges.AddHPAScaleRefEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
-	deployedges.AddAllTriggerEdges(g)
-	deployedges.AddAllDeploymentEdges(g)
-	deployedges.AddAllVolumeClaimEdges(g)
+	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllDeploymentEdges(g)
+	appsedges.AddAllVolumeClaimEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 	imageedges.AddAllImageStreamImageRefEdges(g)
 	routeedges.AddAllRouteEdges(g)
@@ -237,7 +237,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		rcNode:
 			for _, rcNode := range service.FulfillingRCs {
 				for _, coveredDC := range service.FulfillingDCs {
-					if deployedges.BelongsToDeploymentConfig(coveredDC.DeploymentConfig, rcNode.ReplicationController) {
+					if appsedges.BelongsToDeploymentConfig(coveredDC.DeploymentConfig, rcNode.ReplicationController) {
 						continue rcNode
 					}
 				}
@@ -432,11 +432,11 @@ func getMarkerScanners(logsCommandName, securityPolicyCommandFormat, setProbeCom
 		buildanalysis.FindUnpushableBuildConfigs,
 		buildanalysis.FindCircularBuilds,
 		buildanalysis.FindPendingTags,
-		deployanalysis.FindDeploymentConfigTriggerErrors,
-		deployanalysis.FindPersistentVolumeClaimWarnings,
+		appsanalysis.FindDeploymentConfigTriggerErrors,
+		appsanalysis.FindPersistentVolumeClaimWarnings,
 		buildanalysis.FindMissingInputImageStreams,
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
-			return deployanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
+			return appsanalysis.FindDeploymentConfigReadinessWarnings(g, f, setProbeCommandName)
 		},
 		func(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 			return kubeanalysis.FindMissingLivenessProbes(g, f, setProbeCommandName)
@@ -521,7 +521,7 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 	case *buildgraph.BuildNode:
 		return namespaceNameWithType("build", t.Build.Name, t.Build.Namespace, f.currentNamespace, f.hideNamespace)
 
-	case *deploygraph.DeploymentConfigNode:
+	case *appsgraph.DeploymentConfigNode:
 		return namespaceNameWithType("dc", t.DeploymentConfig.Name, t.DeploymentConfig.Namespace, f.currentNamespace, f.hideNamespace)
 
 	case *routegraph.RouteNode:
@@ -754,7 +754,7 @@ func describeRouteInServiceGroup(f formatter, routeNode *routegraph.RouteNode) [
 	return lines
 }
 
-func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
+func describeDeploymentConfigTrigger(dc *appsapi.DeploymentConfig) string {
 	if len(dc.Spec.Triggers) == 0 {
 		return "(manual)"
 	}
@@ -1023,7 +1023,7 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	return "", false
 }
 
-func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, restartFn func(*kubegraph.ReplicationControllerNode) int32, count int) []string {
+func describeDeployments(f formatter, dcNode *appsgraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, restartFn func(*kubegraph.ReplicationControllerNode) int32, count int) []string {
 	if dcNode == nil {
 		return nil
 	}
@@ -1050,7 +1050,7 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0, dcNode.DeploymentConfig.Spec.Test, restartCount))
 		switch {
 		case count == -1:
-			if deployutil.IsCompleteDeployment(deployment.ReplicationController) {
+			if appsutil.IsCompleteDeployment(deployment.ReplicationController) {
 				return out
 			}
 		default:
@@ -1064,28 +1064,28 @@ func describeDeployments(f formatter, dcNode *deploygraph.DeploymentConfigNode, 
 
 func describeDeploymentStatus(rc *kapi.ReplicationController, first, test bool, restartCount int32) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
-	status := deployutil.DeploymentStatusFor(rc)
-	version := deployutil.DeploymentVersionFor(rc)
+	status := appsutil.DeploymentStatusFor(rc)
+	version := appsutil.DeploymentVersionFor(rc)
 	maybeCancelling := ""
-	if deployutil.IsDeploymentCancelled(rc) && !deployutil.IsTerminatedDeployment(rc) {
+	if appsutil.IsDeploymentCancelled(rc) && !appsutil.IsTerminatedDeployment(rc) {
 		maybeCancelling = " (cancelling)"
 	}
 
 	switch status {
-	case deployapi.DeploymentStatusFailed:
-		reason := deployutil.DeploymentStatusReasonFor(rc)
+	case appsapi.DeploymentStatusFailed:
+		reason := appsutil.DeploymentStatusReasonFor(rc)
 		if len(reason) > 0 {
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
 		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
-	case deployapi.DeploymentStatusComplete:
+	case appsapi.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
 			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
 		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, first, restartCount))
-	case deployapi.DeploymentStatusRunning:
+	case appsapi.DeploymentStatusRunning:
 		format := "deployment #%d running%s for %s%s"
 		if test {
 			format = "test deployment #%d running%s for %s%s"
@@ -1143,13 +1143,13 @@ func describePodSummary(ready, requested int32, includeEmpty bool, restartCount 
 	return fmt.Sprintf("%d/%d pods", ready, requested) + restartWarn
 }
 
-func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (string, bool) {
+func describeDeploymentConfigTriggers(config *appsapi.DeploymentConfig) (string, bool) {
 	hasConfig, hasImage := false, false
 	for _, t := range config.Spec.Triggers {
 		switch t.Type {
-		case deployapi.DeploymentTriggerOnConfigChange:
+		case appsapi.DeploymentTriggerOnConfigChange:
 			hasConfig = true
-		case deployapi.DeploymentTriggerOnImageChange:
+		case appsapi.DeploymentTriggerOnImageChange:
 			hasImage = true
 		}
 	}
@@ -1241,7 +1241,7 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, isDeployerPod := meta.GetLabels()[deployapi.DeployerPodForDeploymentLabel]
+		_, isDeployerPod := meta.GetLabels()[appsapi.DeployerPodForDeploymentLabel]
 		_, isBuilderPod := meta.GetAnnotations()[buildapi.BuildAnnotation]
 		isFinished := actualPod.Status.Phase == kapi.PodSucceeded || actualPod.Status.Phase == kapi.PodFailed
 		if isDeployerPod || isBuilderPod || isFinished {
@@ -1481,7 +1481,7 @@ func (l *isLoader) AddToGraph(g osgraph.Graph) error {
 type dcLoader struct {
 	namespace string
 	lister    appsclient.DeploymentConfigsGetter
-	items     []deployapi.DeploymentConfig
+	items     []appsapi.DeploymentConfig
 }
 
 func (l *dcLoader) Load() error {
@@ -1496,7 +1496,7 @@ func (l *dcLoader) Load() error {
 
 func (l *dcLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
-		deploygraph.EnsureDeploymentConfigNode(g, &l.items[i])
+		appsgraph.EnsureDeploymentConfigNode(g, &l.items[i])
 	}
 
 	return nil

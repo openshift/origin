@@ -1,8 +1,8 @@
 language: go
 go:
-    - 1.9
-    - 1.8
+    - tip
     - 1.7
+    - 1.6
 dist: trusty
 sudo: required
 before_install:

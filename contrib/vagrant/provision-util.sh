@@ -57,7 +57,7 @@ os::provision::install-cmds() {
   local deployed_root=$1
 
   local output_path="$(os::build::get-bin-output-path "${deployed_root}")"
-  cp ${output_path}/{openshift,oc} /usr/bin
+  cp ${output_path}/{openshift,openshift-diagnostics,oc} /usr/bin
 }
 
 os::provision::add-to-hosts-file() {

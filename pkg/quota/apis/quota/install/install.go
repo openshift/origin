@@ -13,10 +13,7 @@ import (
 )
 
 func init() {
-	legacy.InstallLegacy(quotaapi.GroupName, quotaapi.AddToSchemeInCoreGroup, quotaapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterResourceQuota"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacyQuota(legacyscheme.Scheme, legacyscheme.Registry)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 

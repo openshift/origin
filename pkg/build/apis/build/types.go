@@ -90,6 +90,10 @@ const (
 	// if the buildconfig does not specify a value.  This only applies to buildconfigs created
 	// via the new group api resource, not the legacy resource.
 	DefaultFailedBuildsHistoryLimit = int32(5)
+
+	// WebHookSecretKey is the key used to identify the value containing the webhook invocation
+	// secret within a secret referenced by a webhook trigger.
+	WebHookSecretKey = "WebHookSecretKey"
 )
 
 var (
@@ -1060,6 +1064,7 @@ type SecretLocalReference struct {
 // WebHookTrigger is a trigger that gets invoked using a webhook type of post
 type WebHookTrigger struct {
 	// Secret used to validate requests.
+	// Deprecated: use SecretReference instead.
 	Secret string
 
 	// AllowEnv determines whether the webhook can set environment variables; can only

@@ -11,8 +11,8 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/golang/glog"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 var (
@@ -50,10 +50,10 @@ func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, obser
 			return false, fmt.Errorf("received unknown object while watching for deployments: %v", obj)
 		}
 		observed = obj
-		switch deployutil.DeploymentStatusFor(observed) {
-		case deployapi.DeploymentStatusRunning, deployapi.DeploymentStatusFailed, deployapi.DeploymentStatusComplete:
+		switch appsutil.DeploymentStatusFor(observed) {
+		case appsapi.DeploymentStatusRunning, appsapi.DeploymentStatusFailed, appsapi.DeploymentStatusComplete:
 			return true, nil
-		case deployapi.DeploymentStatusNew, deployapi.DeploymentStatusPending:
+		case appsapi.DeploymentStatusNew, appsapi.DeploymentStatusPending:
 			return false, nil
 		default:
 			return false, ErrUnknownDeploymentPhase

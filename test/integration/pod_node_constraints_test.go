@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -208,8 +208,8 @@ func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) 
 	return job
 }
 
-func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[string]string) *deployapi.DeploymentConfig {
-	dc := &deployapi.DeploymentConfig{}
+func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[string]string) *appsapi.DeploymentConfig {
+	dc := &appsapi.DeploymentConfig{}
 	dc.Name = "testdc"
 	dc.Spec.Replicas = 1
 	dc.Spec.Template = &kapi.PodTemplateSpec{}

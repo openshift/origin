@@ -10,12 +10,12 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 )
 
 var (
-	nonDefaultRevisionHistoryLimit = deployapi.DefaultRevisionHistoryLimit + 42
+	nonDefaultRevisionHistoryLimit = appsapi.DefaultRevisionHistoryLimit + 42
 )
 
 func int32ptr(v int32) *int32 {
@@ -30,18 +30,18 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 	if CommonStrategy.AllowCreateOnUpdate() {
 		t.Errorf("DeploymentConfig should not allow create on update")
 	}
-	deploymentConfig := &deployapi.DeploymentConfig{
+	deploymentConfig := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec:       deploytest.OkDeploymentConfigSpec(),
+		Spec:       appstest.OkDeploymentConfigSpec(),
 	}
 	CommonStrategy.PrepareForCreate(ctx, deploymentConfig)
 	errs := CommonStrategy.Validate(ctx, deploymentConfig)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
-	updatedDeploymentConfig := &deployapi.DeploymentConfig{
+	updatedDeploymentConfig := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "default", Generation: 1},
-		Spec:       deploytest.OkDeploymentConfigSpec(),
+		Spec:       appstest.OkDeploymentConfigSpec(),
 	}
 	errs = CommonStrategy.ValidateUpdate(ctx, updatedDeploymentConfig, deploymentConfig)
 	if len(errs) == 0 {
@@ -54,7 +54,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
-	invalidDeploymentConfig := &deployapi.DeploymentConfig{}
+	invalidDeploymentConfig := &appsapi.DeploymentConfig{}
 	errs = CommonStrategy.Validate(ctx, invalidDeploymentConfig)
 	if len(errs) == 0 {
 		t.Errorf("Expected error validating")
@@ -94,58 +94,58 @@ func TestPrepareForUpdate(t *testing.T) {
 }
 
 // prevDeployment is the old object tested for both old and new client updates.
-func prevDeployment() *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
+func prevDeployment() *appsapi.DeploymentConfig {
+	return &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default", Generation: 4, Annotations: make(map[string]string)},
-		Spec:       deploytest.OkDeploymentConfigSpec(),
-		Status:     deploytest.OkDeploymentConfigStatus(1),
+		Spec:       appstest.OkDeploymentConfigSpec(),
+		Status:     appstest.OkDeploymentConfigStatus(1),
 	}
 }
 
 // afterDeployment is used for a spec change check.
-func afterDeployment() *deployapi.DeploymentConfig {
+func afterDeployment() *appsapi.DeploymentConfig {
 	dc := prevDeployment()
 	dc.Spec.Replicas++
 	return dc
 }
 
 // expectedAfterDeployment is used for a spec change check.
-func expectedAfterDeployment() *deployapi.DeploymentConfig {
+func expectedAfterDeployment() *appsapi.DeploymentConfig {
 	dc := afterDeployment()
 	dc.Generation++
 	return dc
 }
 
 // afterDeploymentVersionBump is a deployment config updated to a newer version.
-func afterDeploymentVersionBump() *deployapi.DeploymentConfig {
+func afterDeploymentVersionBump() *appsapi.DeploymentConfig {
 	dc := prevDeployment()
 	dc.Status.LatestVersion++
 	return dc
 }
 
 // expectedAfterVersionBump is the object we expect after a version bump.
-func expectedAfterVersionBump() *deployapi.DeploymentConfig {
+func expectedAfterVersionBump() *appsapi.DeploymentConfig {
 	dc := afterDeploymentVersionBump()
 	dc.Generation++
 	return dc
 }
 
-func setRevisionHistoryLimit(v *int32, dc *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
+func setRevisionHistoryLimit(v *int32, dc *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
 	dc.Spec.RevisionHistoryLimit = v
 	return dc
 }
 
-func okDeploymentConfig(generation int64) *deployapi.DeploymentConfig {
-	dc := deploytest.OkDeploymentConfig(0)
+func okDeploymentConfig(generation int64) *appsapi.DeploymentConfig {
+	dc := appstest.OkDeploymentConfig(0)
 	dc.ObjectMeta.Generation = generation
 	return dc
 }
 
 func TestLegacyStrategy_PrepareForCreate(t *testing.T) {
-	nonDefaultRevisionHistoryLimit := deployapi.DefaultRevisionHistoryLimit + 42
+	nonDefaultRevisionHistoryLimit := appsapi.DefaultRevisionHistoryLimit + 42
 	tt := []struct {
-		obj      *deployapi.DeploymentConfig
-		expected *deployapi.DeploymentConfig
+		obj      *appsapi.DeploymentConfig
+		expected *appsapi.DeploymentConfig
 	}{
 		{
 			obj: setRevisionHistoryLimit(nil, okDeploymentConfig(0)),
@@ -185,13 +185,13 @@ func TestLegacyStrategy_DefaultGarbageCollectionPolicy(t *testing.T) {
 
 func TestGroupStrategy_PrepareForCreate(t *testing.T) {
 	tt := []struct {
-		obj      *deployapi.DeploymentConfig
-		expected *deployapi.DeploymentConfig
+		obj      *appsapi.DeploymentConfig
+		expected *appsapi.DeploymentConfig
 	}{
 		{
 			obj: setRevisionHistoryLimit(nil, okDeploymentConfig(0)),
 			// Group API should default RevisionHistoryLimit
-			expected: setRevisionHistoryLimit(int32ptr(deployapi.DefaultRevisionHistoryLimit), okDeploymentConfig(1)),
+			expected: setRevisionHistoryLimit(int32ptr(appsapi.DefaultRevisionHistoryLimit), okDeploymentConfig(1)),
 		},
 		{
 			obj:      setRevisionHistoryLimit(&nonDefaultRevisionHistoryLimit, okDeploymentConfig(0)),

@@ -391,10 +391,6 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
-		kubeControllerInformers, err := NewInformers(*m.config)
-		if err != nil {
-			return err
-		}
 
 		_, config, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
@@ -470,38 +466,42 @@ func (m *Master) Start() error {
 			glog.Fatalf("Controller graceful shutdown requested")
 		}()
 
+		go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
+
+		kubeControllerInformers, err := NewInformers(*m.config)
+		if err != nil {
+			return err
+		}
+		go runEmbeddedKubeControllerManager(
+			m.config.MasterClients.OpenShiftLoopbackKubeConfig,
+			m.config.ServiceAccountConfig.PrivateKeyFile,
+			m.config.ServiceAccountConfig.MasterCA,
+			m.config.KubernetesMasterConfig.PodEvictionTimeout,
+			m.config.VolumeConfig.DynamicProvisioningEnabled,
+			m.config.KubernetesMasterConfig.ControllerArguments,
+			recyclerImage,
+			kubeControllerInformers)
+
 		go func() {
 			controllerPlug.WaitForStart()
 			if err := waitForHealthyAPIServer(kubeExternal.Discovery().RESTClient()); err != nil {
 				glog.Fatal(err)
 			}
 
-			// continuously run the scheduler while we have the primary lease
-			go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
-
-			go runEmbeddedKubeControllerManager(
-				m.config.MasterClients.OpenShiftLoopbackKubeConfig,
-				m.config.ServiceAccountConfig.PrivateKeyFile,
-				m.config.ServiceAccountConfig.MasterCA,
-				m.config.KubernetesMasterConfig.PodEvictionTimeout,
-				m.config.VolumeConfig.DynamicProvisioningEnabled,
-				m.config.KubernetesMasterConfig.ControllerArguments,
-				recyclerImage,
-				kubeControllerInformers)
-
 			openshiftControllerOptions, err := getOpenshiftControllerOptions(m.config.KubernetesMasterConfig.ControllerArguments)
 			if err != nil {
 				glog.Fatal(err)
 			}
 
-			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, utilwait.NeverStop, make(chan struct{}))
+			stopCh := utilwait.NeverStop
+			informersStarted := make(chan struct{})
+			controllerContext := newControllerContext(openshiftControllerOptions, m.config.ControllerConfig.Controllers, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
-			openshiftControllerInformers.Start(utilwait.NeverStop)
-			close(controllerContext.InformersStarted)
-
+			openshiftControllerInformers.Start(stopCh)
+			close(informersStarted)
 		}()
 	}
 

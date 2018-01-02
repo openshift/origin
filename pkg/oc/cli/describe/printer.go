@@ -16,7 +16,7 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -406,8 +406,14 @@ func printBuildConfigList(buildList *buildapi.BuildConfigList, w io.Writer, opts
 
 func printImage(image *imageapi.Image, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, image.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\n", name, image.DockerImageReference)
-	return err
+
+	if _, err := fmt.Fprintf(w, "%s\t%s", name, image.DockerImageReference); err != nil {
+		return err
+	}
+	if err := appendItemLabels(image.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, opts kprinters.PrintOptions) error {
@@ -659,7 +665,7 @@ func printRouteList(routeList *routeapi.RouteList, w io.Writer, opts kprinters.P
 	return nil
 }
 
-func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kprinters.PrintOptions) error {
+func printDeploymentConfig(dc *appsapi.DeploymentConfig, w io.Writer, opts kprinters.PrintOptions) error {
 	var desired string
 	if dc.Spec.Test {
 		desired = fmt.Sprintf("%d (during test)", dc.Spec.Replicas)
@@ -679,9 +685,9 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kpr
 	triggers := sets.String{}
 	for _, trigger := range dc.Spec.Triggers {
 		switch t := trigger.Type; t {
-		case deployapi.DeploymentTriggerOnConfigChange:
+		case appsapi.DeploymentTriggerOnConfigChange:
 			triggers.Insert("config")
-		case deployapi.DeploymentTriggerOnImageChange:
+		case appsapi.DeploymentTriggerOnImageChange:
 			if p := trigger.ImageChangeParams; p != nil && p.Automatic {
 				var prefix string
 				if len(containers) != 1 && !containers.HasAll(p.ContainerNames...) {
@@ -716,7 +722,7 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, opts kpr
 	return err
 }
 
-func printDeploymentConfigList(list *deployapi.DeploymentConfigList, w io.Writer, opts kprinters.PrintOptions) error {
+func printDeploymentConfigList(list *appsapi.DeploymentConfigList, w io.Writer, opts kprinters.PrintOptions) error {
 	for _, dc := range list.Items {
 		if err := printDeploymentConfig(&dc, w, opts); err != nil {
 			return err

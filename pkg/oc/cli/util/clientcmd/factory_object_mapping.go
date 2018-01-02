@@ -26,11 +26,11 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
-	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
+	appscmd "github.com/openshift/origin/pkg/apps/cmd"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -168,8 +168,8 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 
 func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error) {
 	switch t := object.(type) {
-	case *deployapi.DeploymentConfig:
-		dopts, ok := options.(*deployapi.DeploymentLogOptions)
+	case *appsapi.DeploymentConfig:
+		dopts, ok := options.(*appsapi.DeploymentLogOptions)
 		if !ok {
 			return nil, errors.New("provided options object is not a DeploymentLogOptions")
 		}
@@ -222,7 +222,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 }
 
 func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
-	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
+	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
 		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
@@ -231,7 +231,7 @@ func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error)
 		if err != nil {
 			return nil, err
 		}
-		return deploycmd.NewDeploymentConfigScaler(appsclient.NewForConfigOrDie(config), kc), nil
+		return appscmd.NewDeploymentConfigScaler(appsclient.NewForConfigOrDie(config), kc), nil
 	}
 	return f.kubeObjectMappingFactory.Scaler(mapping)
 }
@@ -239,7 +239,7 @@ func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error)
 func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
 	gk := mapping.GroupVersionKind.GroupKind()
 	switch {
-	case deployapi.IsKindOrLegacy("DeploymentConfig", gk):
+	case appsapi.IsKindOrLegacy("DeploymentConfig", gk):
 		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
@@ -248,7 +248,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
-		return deploycmd.NewDeploymentConfigReaper(appsclient.NewForConfigOrDie(config), kc), nil
+		return appscmd.NewDeploymentConfigReaper(appsclient.NewForConfigOrDie(config), kc), nil
 	case authorizationapi.IsKindOrLegacy("Role", gk):
 		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
 		if err != nil {
@@ -316,23 +316,23 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 }
 
 func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
-	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
+	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
 		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
-		return deploycmd.NewDeploymentConfigHistoryViewer(kc), nil
+		return appscmd.NewDeploymentConfigHistoryViewer(kc), nil
 	}
 	return f.kubeObjectMappingFactory.HistoryViewer(mapping)
 }
 
 func (f *ring1Factory) Rollbacker(mapping *meta.RESTMapping) (kubectl.Rollbacker, error) {
-	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
+	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
 		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
 		if err != nil {
 			return nil, err
 		}
-		return deploycmd.NewDeploymentConfigRollbacker(appsclient.NewForConfigOrDie(config)), nil
+		return appscmd.NewDeploymentConfigRollbacker(appsclient.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeObjectMappingFactory.Rollbacker(mapping)
 }
@@ -342,8 +342,8 @@ func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusVi
 	if err != nil {
 		return nil, err
 	}
-	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		return deploycmd.NewDeploymentConfigStatusViewer(appsclient.NewForConfigOrDie(config)), nil
+	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
+		return appscmd.NewDeploymentConfigStatusViewer(appsclient.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeObjectMappingFactory.StatusViewer(mapping)
 }
@@ -375,7 +375,7 @@ func (f *ring1Factory) ApproximatePodTemplateForObject(object runtime.Object) (*
 				},
 			},
 		}, nil
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		fallback := t.Spec.Template
 
 		kc, err := f.clientAccessFactory.ClientSet()
@@ -383,7 +383,7 @@ func (f *ring1Factory) ApproximatePodTemplateForObject(object runtime.Object) (*
 			return fallback, err
 		}
 
-		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(t)
 		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			return fallback, err
@@ -418,7 +418,7 @@ func (f *ring1Factory) ApproximatePodTemplateForObject(object runtime.Object) (*
 
 func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout time.Duration) (*kapi.Pod, error) {
 	switch t := object.(type) {
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err

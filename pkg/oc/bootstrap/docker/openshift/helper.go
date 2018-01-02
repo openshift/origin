@@ -668,9 +668,8 @@ func (h *Helper) ServerPrereleaseVersion() (semver.Version, error) {
 			break
 		}
 	}
-
 	if len(versionStr) == 0 {
-		return semver.Version{}, fmt.Errorf("did not find version in command output")
+		return semver.Version{}, fmt.Errorf("did not find version in command output: %s", versionText)
 	}
 	return parseOpenshiftVersion(versionStr)
 }

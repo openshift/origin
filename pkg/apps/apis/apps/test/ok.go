@@ -10,8 +10,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -21,8 +21,8 @@ const (
 	DockerImageReference = "registry:5000/openshift/test-image-stream@sha256:0000000000000000000000000000000000000000000000000000000000000001"
 )
 
-func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
+func OkDeploymentConfig(version int64) *appsapi.DeploymentConfig {
+	return &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
 			Namespace: kapi.NamespaceDefault,
@@ -32,62 +32,62 @@ func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
 	}
 }
 
-func OkDeploymentConfigSpec() deployapi.DeploymentConfigSpec {
-	return deployapi.DeploymentConfigSpec{
+func OkDeploymentConfigSpec() appsapi.DeploymentConfigSpec {
+	return appsapi.DeploymentConfigSpec{
 		Replicas: 1,
 		Selector: OkSelector(),
 		Strategy: OkStrategy(),
 		Template: OkPodTemplate(),
-		Triggers: []deployapi.DeploymentTriggerPolicy{
+		Triggers: []appsapi.DeploymentTriggerPolicy{
 			OkImageChangeTrigger(),
 			OkConfigChangeTrigger(),
 		},
 	}
 }
 
-func OkDeploymentConfigStatus(version int64) deployapi.DeploymentConfigStatus {
-	return deployapi.DeploymentConfigStatus{
+func OkDeploymentConfigStatus(version int64) appsapi.DeploymentConfigStatus {
+	return appsapi.DeploymentConfigStatus{
 		LatestVersion: version,
 	}
 }
 
-func OkImageChangeDetails() *deployapi.DeploymentDetails {
-	return &deployapi.DeploymentDetails{
-		Causes: []deployapi.DeploymentCause{{
-			Type: deployapi.DeploymentTriggerOnImageChange,
-			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
+func OkImageChangeDetails() *appsapi.DeploymentDetails {
+	return &appsapi.DeploymentDetails{
+		Causes: []appsapi.DeploymentCause{{
+			Type: appsapi.DeploymentTriggerOnImageChange,
+			ImageTrigger: &appsapi.DeploymentCauseImageTrigger{
 				From: kapi.ObjectReference{
 					Name: imageapi.JoinImageStreamTag(ImageStreamName, imageapi.DefaultImageTag),
 					Kind: "ImageStreamTag",
 				}}}}}
 }
 
-func OkConfigChangeDetails() *deployapi.DeploymentDetails {
-	return &deployapi.DeploymentDetails{
-		Causes: []deployapi.DeploymentCause{{
-			Type: deployapi.DeploymentTriggerOnConfigChange,
+func OkConfigChangeDetails() *appsapi.DeploymentDetails {
+	return &appsapi.DeploymentDetails{
+		Causes: []appsapi.DeploymentCause{{
+			Type: appsapi.DeploymentTriggerOnConfigChange,
 		}}}
 }
 
-func OkStrategy() deployapi.DeploymentStrategy {
-	return deployapi.DeploymentStrategy{
-		Type: deployapi.DeploymentStrategyTypeRecreate,
+func OkStrategy() appsapi.DeploymentStrategy {
+	return appsapi.DeploymentStrategy{
+		Type: appsapi.DeploymentStrategyTypeRecreate,
 		Resources: kapi.ResourceRequirements{
 			Limits: kapi.ResourceList{
 				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
 				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 			},
 		},
-		RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+		RecreateParams: &appsapi.RecreateDeploymentStrategyParams{
 			TimeoutSeconds: mkintp(20),
 		},
-		ActiveDeadlineSeconds: mkintp(int(deployapi.MaxDeploymentDurationSeconds)),
+		ActiveDeadlineSeconds: mkintp(int(appsapi.MaxDeploymentDurationSeconds)),
 	}
 }
 
-func OkCustomStrategy() deployapi.DeploymentStrategy {
-	return deployapi.DeploymentStrategy{
-		Type:         deployapi.DeploymentStrategyTypeCustom,
+func OkCustomStrategy() appsapi.DeploymentStrategy {
+	return appsapi.DeploymentStrategy{
+		Type:         appsapi.DeploymentStrategyTypeCustom,
 		CustomParams: OkCustomParams(),
 		Resources: kapi.ResourceRequirements{
 			Limits: kapi.ResourceList{
@@ -98,8 +98,8 @@ func OkCustomStrategy() deployapi.DeploymentStrategy {
 	}
 }
 
-func OkCustomParams() *deployapi.CustomDeploymentStrategyParams {
-	return &deployapi.CustomDeploymentStrategyParams{
+func OkCustomParams() *appsapi.CustomDeploymentStrategyParams {
+	return &appsapi.CustomDeploymentStrategyParams{
 		Image: "openshift/origin-deployer",
 		Environment: []kapi.EnvVar{
 			{
@@ -116,10 +116,10 @@ func mkintp(i int) *int64 {
 	return &v
 }
 
-func OkRollingStrategy() deployapi.DeploymentStrategy {
-	return deployapi.DeploymentStrategy{
-		Type: deployapi.DeploymentStrategyTypeRolling,
-		RollingParams: &deployapi.RollingDeploymentStrategyParams{
+func OkRollingStrategy() appsapi.DeploymentStrategy {
+	return appsapi.DeploymentStrategy{
+		Type: appsapi.DeploymentStrategyTypeRolling,
+		RollingParams: &appsapi.RollingDeploymentStrategyParams{
 			UpdatePeriodSeconds: mkintp(1),
 			IntervalSeconds:     mkintp(1),
 			TimeoutSeconds:      mkintp(20),
@@ -193,16 +193,16 @@ func OkPodTemplateMissingImage(missing ...string) *kapi.PodTemplateSpec {
 	return template
 }
 
-func OkConfigChangeTrigger() deployapi.DeploymentTriggerPolicy {
-	return deployapi.DeploymentTriggerPolicy{
-		Type: deployapi.DeploymentTriggerOnConfigChange,
+func OkConfigChangeTrigger() appsapi.DeploymentTriggerPolicy {
+	return appsapi.DeploymentTriggerPolicy{
+		Type: appsapi.DeploymentTriggerOnConfigChange,
 	}
 }
 
-func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
-	return deployapi.DeploymentTriggerPolicy{
-		Type: deployapi.DeploymentTriggerOnImageChange,
-		ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
+func OkImageChangeTrigger() appsapi.DeploymentTriggerPolicy {
+	return appsapi.DeploymentTriggerPolicy{
+		Type: appsapi.DeploymentTriggerOnImageChange,
+		ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
 			Automatic: true,
 			ContainerNames: []string{
 				"container1",
@@ -215,30 +215,30 @@ func OkImageChangeTrigger() deployapi.DeploymentTriggerPolicy {
 	}
 }
 
-func OkTriggeredImageChange() deployapi.DeploymentTriggerPolicy {
+func OkTriggeredImageChange() appsapi.DeploymentTriggerPolicy {
 	ict := OkImageChangeTrigger()
 	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
 	return ict
 }
 
-func OkNonAutomaticICT() deployapi.DeploymentTriggerPolicy {
+func OkNonAutomaticICT() appsapi.DeploymentTriggerPolicy {
 	ict := OkImageChangeTrigger()
 	ict.ImageChangeParams.Automatic = false
 	return ict
 }
 
-func OkTriggeredNonAutomatic() deployapi.DeploymentTriggerPolicy {
+func OkTriggeredNonAutomatic() appsapi.DeploymentTriggerPolicy {
 	ict := OkNonAutomaticICT()
 	ict.ImageChangeParams.LastTriggeredImage = DockerImageReference
 	return ict
 }
 
-func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
+func TestDeploymentConfig(config *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
 	config.Spec.Test = true
 	return config
 }
 
-func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *autoscaling.HorizontalPodAutoscaler {
+func OkHPAForDeploymentConfig(config *appsapi.DeploymentConfig, min, max int) *autoscaling.HorizontalPodAutoscaler {
 	newMin := int32(min)
 	return &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
@@ -253,9 +253,9 @@ func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) 
 	}
 }
 
-func OkStreamForConfig(config *deployapi.DeploymentConfig) *imageapi.ImageStream {
+func OkStreamForConfig(config *appsapi.DeploymentConfig) *imageapi.ImageStream {
 	for _, t := range config.Spec.Triggers {
-		if t.Type != deployapi.DeploymentTriggerOnImageChange {
+		if t.Type != appsapi.DeploymentTriggerOnImageChange {
 			continue
 		}
 
@@ -276,13 +276,13 @@ func OkStreamForConfig(config *deployapi.DeploymentConfig) *imageapi.ImageStream
 	return nil
 }
 
-func RemoveTriggerTypes(config *deployapi.DeploymentConfig, triggerTypes ...deployapi.DeploymentTriggerType) {
+func RemoveTriggerTypes(config *appsapi.DeploymentConfig, triggerTypes ...appsapi.DeploymentTriggerType) {
 	types := sets.NewString()
 	for _, triggerType := range triggerTypes {
 		types.Insert(string(triggerType))
 	}
 
-	remaining := []deployapi.DeploymentTriggerPolicy{}
+	remaining := []appsapi.DeploymentTriggerPolicy{}
 	for _, trigger := range config.Spec.Triggers {
 		if types.Has(string(trigger.Type)) {
 			continue
@@ -293,16 +293,16 @@ func RemoveTriggerTypes(config *deployapi.DeploymentConfig, triggerTypes ...depl
 	config.Spec.Triggers = remaining
 }
 
-func RoundTripConfig(t *testing.T, config *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
-	versioned, err := legacyscheme.Scheme.ConvertToVersion(config, deployv1.SchemeGroupVersion)
+func RoundTripConfig(t *testing.T, config *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
+	versioned, err := legacyscheme.Scheme.ConvertToVersion(config, appsv1.SchemeGroupVersion)
 	if err != nil {
 		t.Errorf("unexpected conversion error: %v", err)
 		return nil
 	}
-	defaulted, err := legacyscheme.Scheme.ConvertToVersion(versioned, deployapi.SchemeGroupVersion)
+	defaulted, err := legacyscheme.Scheme.ConvertToVersion(versioned, appsapi.SchemeGroupVersion)
 	if err != nil {
 		t.Errorf("unexpected conversion error: %v", err)
 		return nil
 	}
-	return defaulted.(*deployapi.DeploymentConfig)
+	return defaulted.(*appsapi.DeploymentConfig)
 }

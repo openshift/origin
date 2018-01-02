@@ -72,7 +72,7 @@ func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 				{
 					Name:    "pod-diagnostics",
 					Image:   imageName,
-					Command: []string{"openshift", "infra", "diagnostic-pod", "-l", strconv.Itoa(loglevel)},
+					Command: []string{"openshift-diagnostics", "diagnostic-pod", "-l", strconv.Itoa(loglevel)},
 				},
 			},
 		},

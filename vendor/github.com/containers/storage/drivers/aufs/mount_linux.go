@@ -1,7 +1,7 @@
 package aufs
 
-import "golang.org/x/sys/unix"
+import "syscall"
 
 func mount(source string, target string, fstype string, flags uintptr, data string) error {
-	return unix.Mount(source, target, fstype, flags, data)
+	return syscall.Mount(source, target, fstype, flags, data)
 }

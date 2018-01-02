@@ -155,7 +155,7 @@ func (d *NetworkDiagnostic) waitForTestPodAndService(nsList []string) error {
 	errList := []error{}
 	validPhases := []kapi.PodPhase{kapi.PodRunning, kapi.PodSucceeded, kapi.PodFailed}
 	for _, name := range nsList {
-		backoff := wait.Backoff{Steps: 36, Duration: time.Second, Factor: 1.1} // timeout: ~5 mins
+		backoff := wait.Backoff{Steps: 37, Duration: time.Second, Factor: 1.1} // timeout: ~5 mins
 		if err := d.waitForNetworkPod(name, util.NetworkDiagTestPodNamePrefix, backoff, validPhases); err != nil {
 			errList = append(errList, err)
 		}
@@ -171,6 +171,8 @@ func (d *NetworkDiagnostic) waitForTestPodAndService(nsList []string) error {
 				errList = append(errList, fmt.Errorf("Failed to run network diags test pods, failed: %d, total: %d", (totalPods-runningPods), totalPods))
 			}
 		}
+	} else {
+		errList = append(errList, fmt.Errorf("Failed to count test pods: %v ", err))
 	}
 	return kerrors.NewAggregate(errList)
 }

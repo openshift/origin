@@ -260,11 +260,6 @@ var (
 		// these broke in the rebase, but everything else is working
 		`should function for intra-pod communication`,
 		`should function for node-pod communication`,
-		// consistent 500 errors
-		"should expose prometheus metrics for a route",
-		"should expose the profiling endpoints",
-		// super flaky
-		"should only deploy the last deployment",
 
 		`\[Skipped\]`,
 		`\[Slow\]`,

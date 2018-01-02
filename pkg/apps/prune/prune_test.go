@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 type mockDeleteRecorder struct {
@@ -35,16 +35,16 @@ func (m *mockDeleteRecorder) Verify(t *testing.T, expected sets.String) {
 }
 
 func TestPruneTask(t *testing.T) {
-	deploymentStatusOptions := []deployapi.DeploymentStatus{
-		deployapi.DeploymentStatusComplete,
-		deployapi.DeploymentStatusFailed,
-		deployapi.DeploymentStatusNew,
-		deployapi.DeploymentStatusPending,
-		deployapi.DeploymentStatusRunning,
+	deploymentStatusOptions := []appsapi.DeploymentStatus{
+		appsapi.DeploymentStatusComplete,
+		appsapi.DeploymentStatusFailed,
+		appsapi.DeploymentStatusNew,
+		appsapi.DeploymentStatusPending,
+		appsapi.DeploymentStatusRunning,
 	}
-	deploymentStatusFilter := []deployapi.DeploymentStatus{
-		deployapi.DeploymentStatusComplete,
-		deployapi.DeploymentStatusFailed,
+	deploymentStatusFilter := []appsapi.DeploymentStatus{
+		appsapi.DeploymentStatusComplete,
+		appsapi.DeploymentStatusFailed,
 	}
 	deploymentStatusFilterSet := sets.String{}
 	for _, deploymentStatus := range deploymentStatusFilter {
@@ -58,7 +58,7 @@ func TestPruneTask(t *testing.T) {
 			now := metav1.Now()
 			old := metav1.NewTime(now.Time.Add(-1 * keepYoungerThan))
 
-			deploymentConfigs := []*deployapi.DeploymentConfig{}
+			deploymentConfigs := []*appsapi.DeploymentConfig{}
 			deployments := []*kapi.ReplicationController{}
 
 			deploymentConfig := mockDeploymentConfig("a", "deployment-config")

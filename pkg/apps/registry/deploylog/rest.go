@@ -22,11 +22,11 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/apps/registry"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (
@@ -81,12 +81,12 @@ func NewREST(dn appsclient.DeploymentConfigsGetter, rn kcoreclient.ReplicationCo
 
 // NewGetOptions returns a new options object for deployment logs
 func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
-	return &deployapi.DeploymentLogOptions{}, false, ""
+	return &appsapi.DeploymentLogOptions{}, false, ""
 }
 
 // New creates an empty DeploymentLog resource
 func (r *REST) New() runtime.Object {
-	return &deployapi.DeploymentLog{}
+	return &appsapi.DeploymentLog{}
 }
 
 // Get returns a streamer resource with the contents of the deployment log
@@ -98,19 +98,19 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 	}
 
 	// Validate DeploymentLogOptions
-	deployLogOpts, ok := opts.(*deployapi.DeploymentLogOptions)
+	deployLogOpts, ok := opts.(*appsapi.DeploymentLogOptions)
 	if !ok {
 		return nil, errors.NewBadRequest("did not get an expected options.")
 	}
 	if errs := validation.ValidateDeploymentLogOptions(deployLogOpts); len(errs) > 0 {
-		return nil, errors.NewInvalid(deployapi.Kind("DeploymentLogOptions"), "", errs)
+		return nil, errors.NewInvalid(appsapi.Kind("DeploymentLogOptions"), "", errs)
 	}
 
 	// Fetch deploymentConfig and check latest version; if 0, there are no deployments
 	// for this config
 	config, err := r.dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.NewNotFound(deployapi.Resource("deploymentconfig"), name)
+		return nil, errors.NewNotFound(appsapi.Resource("deploymentconfig"), name)
 	}
 	desiredVersion := config.Status.LatestVersion
 	if desiredVersion == 0 {
@@ -135,50 +135,50 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 	}
 
 	// Get desired deployment
-	targetName := deployutil.DeploymentNameForConfigVersion(config.Name, desiredVersion)
+	targetName := appsutil.DeploymentNameForConfigVersion(config.Name, desiredVersion)
 	target, err := r.waitForExistingDeployment(namespace, targetName)
 	if err != nil {
 		return nil, err
 	}
-	podName := deployutil.DeployerPodNameForDeployment(target.Name)
+	podName := appsutil.DeployerPodNameForDeployment(target.Name)
 
 	// Check for deployment status; if it is new or pending, we will wait for it. If it is complete,
 	// the deployment completed successfully and the deployer pod will be deleted so we will return a
 	// success message. If it is running or failed, retrieve the log from the deployer pod.
-	status := deployutil.DeploymentStatusFor(target)
+	status := appsutil.DeploymentStatusFor(target)
 	switch status {
-	case deployapi.DeploymentStatusNew, deployapi.DeploymentStatusPending:
+	case appsapi.DeploymentStatusNew, appsapi.DeploymentStatusPending:
 		if deployLogOpts.NoWait {
-			glog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", deployutil.LabelForDeployment(target), status)
+			glog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", appsutil.LabelForDeployment(target), status)
 			return &genericrest.LocationStreamer{}, nil
 		}
-		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", deployutil.LabelForDeployment(target), status)
+		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", appsutil.LabelForDeployment(target), status)
 
-		if err := deployutil.WaitForRunningDeployerPod(r.pn, target, r.timeout); err != nil {
+		if err := appsutil.WaitForRunningDeployerPod(r.pn, target, r.timeout); err != nil {
 			return nil, errors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))
 		}
 
 		latest, ok, err := registry.WaitForRunningDeployment(r.rn, target, r.timeout)
 		if err != nil {
-			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", deployutil.LabelForDeployment(target), err))
+			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", appsutil.LabelForDeployment(target), err))
 		}
 		if !ok {
 			return nil, errors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
 		}
-		if deployutil.IsCompleteDeployment(latest) {
+		if appsutil.IsCompleteDeployment(latest) {
 			podName, err = r.returnApplicationPodName(target)
 			if err != nil {
 				return nil, err
 			}
 		}
-	case deployapi.DeploymentStatusComplete:
+	case appsapi.DeploymentStatusComplete:
 		podName, err = r.returnApplicationPodName(target)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	logOpts := deployapi.DeploymentToPodLogOptions(deployLogOpts)
+	logOpts := appsapi.DeploymentToPodLogOptions(deployLogOpts)
 	location, transport, err := pod.LogLocation(&podGetter{r.pn}, r.connInfo, ctx, podName, logOpts)
 	if err != nil {
 		return nil, errors.NewBadRequest(err.Error())

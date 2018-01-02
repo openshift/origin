@@ -12,11 +12,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	apps "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.
@@ -41,7 +41,7 @@ func NewREST(appsclient appsclientinternal.Interface, kc kclientset.Interface, c
 
 // New creates an empty DeploymentConfigRollback resource
 func (r *REST) New() runtime.Object {
-	return &deployapi.DeploymentConfigRollback{}
+	return &appsapi.DeploymentConfigRollback{}
 }
 
 // Create generates a new DeploymentConfig representing a rollback.
@@ -50,13 +50,13 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	if !ok {
 		return nil, kerrors.NewBadRequest("namespace parameter required.")
 	}
-	rollback, ok := obj.(*deployapi.DeploymentConfigRollback)
+	rollback, ok := obj.(*appsapi.DeploymentConfigRollback)
 	if !ok {
 		return nil, kerrors.NewBadRequest(fmt.Sprintf("not a rollback spec: %#v", obj))
 	}
 
 	if errs := validation.ValidateDeploymentConfigRollback(rollback); len(errs) > 0 {
-		return nil, kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), rollback.Name, errs)
+		return nil, kerrors.NewInvalid(appsapi.Kind("DeploymentConfigRollback"), rollback.Name, errs)
 	}
 	if err := createValidation(obj); err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	case 0:
 		return nil, newInvalidError(rollback, "cannot rollback an undeployed config")
 	case 1:
-		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", deployutil.LabelForDeploymentConfig(from)))
+		return nil, newInvalidError(rollback, fmt.Sprintf("no previous deployment exists for %q", appsutil.LabelForDeploymentConfig(from)))
 	case rollback.Spec.Revision:
 		return nil, newInvalidError(rollback, fmt.Sprintf("version %d is already the latest", rollback.Spec.Revision))
 	}
@@ -82,13 +82,13 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	}
 
 	// Find the target deployment and decode its config.
-	name := deployutil.DeploymentNameForConfigVersion(from.Name, revision)
+	name := appsutil.DeploymentNameForConfigVersion(from.Name, revision)
 	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, newInvalidError(rollback, err.Error())
 	}
 
-	to, err := deployutil.DecodeDeploymentConfig(targetDeployment, r.codec)
+	to, err := appsutil.DecodeDeploymentConfig(targetDeployment, r.codec)
 	if err != nil {
 		return nil, newInvalidError(rollback, fmt.Sprintf("couldn't decode deployment config from deployment: %v", err))
 	}
@@ -103,7 +103,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	return r.generator.GenerateRollback(from, to, &rollback.Spec)
 }
 
-func newInvalidError(rollback *deployapi.DeploymentConfigRollback, reason string) error {
+func newInvalidError(rollback *appsapi.DeploymentConfigRollback, reason string) error {
 	err := field.Invalid(field.NewPath("name"), rollback.Name, reason)
-	return kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), rollback.Name, field.ErrorList{err})
+	return kerrors.NewInvalid(appsapi.Kind("DeploymentConfigRollback"), rollback.Name, field.ErrorList{err})
 }

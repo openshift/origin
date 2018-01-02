@@ -44,6 +44,14 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.Controllers) == 0 {
 				obj.Controllers = configapi.ControllersAll
 			}
+			if len(obj.ControllerConfig.Controllers) == 0 {
+				switch {
+				case obj.Controllers == configapi.ControllersAll:
+					obj.ControllerConfig.Controllers = []string{"*"}
+				case obj.Controllers == configapi.ControllersDisabled:
+					obj.ControllerConfig.Controllers = []string{}
+				}
+			}
 			if election := obj.ControllerConfig.Election; election != nil {
 				if len(election.LockNamespace) == 0 {
 					election.LockNamespace = "kube-system"

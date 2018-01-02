@@ -13,10 +13,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	strat "github.com/openshift/origin/pkg/apps/strategy"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -43,9 +43,9 @@ func TestRolling_deployInitial(t *testing.T) {
 		apiRetryTimeout:   10 * time.Millisecond,
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = deploytest.OkRollingStrategy()
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = appstest.OkRollingStrategy()
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 	strategy.out, strategy.errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	err := strategy.Deploy(nil, deployment, 2)
 	if err != nil {
@@ -57,12 +57,12 @@ func TestRolling_deployInitial(t *testing.T) {
 }
 
 func TestRolling_deployRolling(t *testing.T) {
-	latestConfig := deploytest.OkDeploymentConfig(1)
-	latestConfig.Spec.Strategy = deploytest.OkRollingStrategy()
-	latest, _ := deployutil.MakeDeployment(latestConfig, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
-	config := deploytest.OkDeploymentConfig(2)
-	config.Spec.Strategy = deploytest.OkRollingStrategy()
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	latestConfig := appstest.OkDeploymentConfig(1)
+	latestConfig.Spec.Strategy = appstest.OkRollingStrategy()
+	latest, _ := appsutil.MakeDeployment(latestConfig, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	config := appstest.OkDeploymentConfig(2)
+	config.Spec.Strategy = appstest.OkRollingStrategy()
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 
 	deployments := map[string]*kapi.ReplicationController{
 		latest.Name:     latest,
@@ -146,17 +146,17 @@ func TestRolling_deployRolling(t *testing.T) {
 }
 
 type hookExecutorImpl struct {
-	executeFunc func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
+	executeFunc func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error
 }
 
-func (h *hookExecutorImpl) Execute(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
+func (h *hookExecutorImpl) Execute(hook *appsapi.LifecycleHook, rc *kapi.ReplicationController, suffix, label string) error {
 	return h.executeFunc(hook, rc, suffix, label)
 }
 
 func TestRolling_deployRollingHooks(t *testing.T) {
-	config := deploytest.OkDeploymentConfig(1)
-	config.Spec.Strategy = deploytest.OkRollingStrategy()
-	latest, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	config := appstest.OkDeploymentConfig(1)
+	config.Spec.Strategy = appstest.OkRollingStrategy()
+	latest, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 
 	var hookError error
 
@@ -186,7 +186,7 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return hookError
 			},
 		},
@@ -196,20 +196,20 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	}
 
 	cases := []struct {
-		params               *deployapi.RollingDeploymentStrategyParams
+		params               *appsapi.RollingDeploymentStrategyParams
 		hookShouldFail       bool
 		deploymentShouldFail bool
 	}{
-		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), true, true},
-		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), false, false},
-		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, true},
-		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), false, false},
+		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), true, true},
+		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), false, false},
+		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), true, true},
+		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), false, false},
 	}
 
 	for _, tc := range cases {
-		config := deploytest.OkDeploymentConfig(2)
+		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+		deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 		deployments[deployment.Name] = deployment
 		hookError = nil
 		if tc.hookShouldFail {
@@ -247,7 +247,7 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			return nil
 		},
 		hookExecutor: &hookExecutorImpl{
-			executeFunc: func(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
+			executeFunc: func(hook *appsapi.LifecycleHook, deployment *kapi.ReplicationController, suffix, label string) error {
 				return hookError
 			},
 		},
@@ -257,20 +257,20 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	}
 
 	cases := []struct {
-		params               *deployapi.RollingDeploymentStrategyParams
+		params               *appsapi.RollingDeploymentStrategyParams
 		hookShouldFail       bool
 		deploymentShouldFail bool
 	}{
-		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), true, true},
-		{rollingParams(deployapi.LifecycleHookFailurePolicyAbort, ""), false, false},
-		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), true, true},
-		{rollingParams("", deployapi.LifecycleHookFailurePolicyAbort), false, false},
+		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), true, true},
+		{rollingParams(appsapi.LifecycleHookFailurePolicyAbort, ""), false, false},
+		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), true, true},
+		{rollingParams("", appsapi.LifecycleHookFailurePolicyAbort), false, false},
 	}
 
 	for i, tc := range cases {
-		config := deploytest.OkDeploymentConfig(2)
+		config := appstest.OkDeploymentConfig(2)
 		config.Spec.Strategy.RollingParams = tc.params
-		deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+		deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(legacyscheme.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]))
 		hookError = nil
 		if tc.hookShouldFail {
 			hookError = fmt.Errorf("hook failure")
@@ -302,23 +302,23 @@ func mkintp(i int) *int64 {
 	return &v
 }
 
-func rollingParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookFailurePolicy) *deployapi.RollingDeploymentStrategyParams {
-	var pre *deployapi.LifecycleHook
-	var post *deployapi.LifecycleHook
+func rollingParams(preFailurePolicy, postFailurePolicy appsapi.LifecycleHookFailurePolicy) *appsapi.RollingDeploymentStrategyParams {
+	var pre *appsapi.LifecycleHook
+	var post *appsapi.LifecycleHook
 
 	if len(preFailurePolicy) > 0 {
-		pre = &deployapi.LifecycleHook{
+		pre = &appsapi.LifecycleHook{
 			FailurePolicy: preFailurePolicy,
-			ExecNewPod:    &deployapi.ExecNewPodHook{},
+			ExecNewPod:    &appsapi.ExecNewPodHook{},
 		}
 	}
 	if len(postFailurePolicy) > 0 {
-		post = &deployapi.LifecycleHook{
+		post = &appsapi.LifecycleHook{
 			FailurePolicy: postFailurePolicy,
-			ExecNewPod:    &deployapi.ExecNewPodHook{},
+			ExecNewPod:    &appsapi.ExecNewPodHook{},
 		}
 	}
-	return &deployapi.RollingDeploymentStrategyParams{
+	return &appsapi.RollingDeploymentStrategyParams{
 		UpdatePeriodSeconds: mkintp(1),
 		IntervalSeconds:     mkintp(1),
 		TimeoutSeconds:      mkintp(20),

@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -36,7 +36,7 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 
 	if latestRevision == 0 {
 		switch {
-		case deployutil.HasImageChangeTrigger(config):
+		case appsutil.HasImageChangeTrigger(config):
 			return fmt.Sprintf("Deployment config %q waiting on image update\n", name), false, nil
 
 		case len(config.Spec.Triggers) == 0:
@@ -48,20 +48,20 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 		return "", false, fmt.Errorf("desired revision (%d) is different from the running revision (%d)", desiredRevision, latestRevision)
 	}
 
-	cond := deployutil.GetDeploymentCondition(config.Status, deployapi.DeploymentProgressing)
+	cond := appsutil.GetDeploymentCondition(config.Status, appsapi.DeploymentProgressing)
 
 	if config.Generation <= config.Status.ObservedGeneration {
 		switch {
-		case cond != nil && cond.Reason == deployapi.NewRcAvailableReason:
+		case cond != nil && cond.Reason == appsapi.NewRcAvailableReason:
 			return fmt.Sprintf("%s\n", cond.Message), true, nil
 
-		case cond != nil && cond.Reason == deployapi.TimedOutReason:
+		case cond != nil && cond.Reason == appsapi.TimedOutReason:
 			return "", true, errors.New(cond.Message)
 
-		case cond != nil && cond.Reason == deployapi.CancelledRolloutReason:
+		case cond != nil && cond.Reason == appsapi.CancelledRolloutReason:
 			return "", true, errors.New(cond.Message)
 
-		case cond != nil && cond.Reason == deployapi.PausedConfigReason:
+		case cond != nil && cond.Reason == appsapi.PausedConfigReason:
 			return "", true, fmt.Errorf("Deployment config %q is paused. Resume to continue watching the status of the rollout.\n", config.Name)
 
 		case config.Status.UpdatedReplicas < config.Spec.Replicas:

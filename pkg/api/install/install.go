@@ -2,7 +2,10 @@ package install
 
 import (
 	kv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
@@ -21,25 +24,26 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/settings/install"
 	_ "k8s.io/kubernetes/pkg/apis/storage/install"
 
-	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
-	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
-	_ "github.com/openshift/origin/pkg/image/apis/image/install"
-	_ "github.com/openshift/origin/pkg/network/apis/network/install"
-	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
-	_ "github.com/openshift/origin/pkg/project/apis/project/install"
-	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
-	_ "github.com/openshift/origin/pkg/route/apis/route/install"
-	_ "github.com/openshift/origin/pkg/security/apis/security/install"
-	_ "github.com/openshift/origin/pkg/template/apis/template/install"
-	_ "github.com/openshift/origin/pkg/user/apis/user/install"
+
+	apps "github.com/openshift/origin/pkg/apps/apis/apps/install"
+	authz "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
+	build "github.com/openshift/origin/pkg/build/apis/build/install"
+	image "github.com/openshift/origin/pkg/image/apis/image/install"
+	network "github.com/openshift/origin/pkg/network/apis/network/install"
+	oauth "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
+	project "github.com/openshift/origin/pkg/project/apis/project/install"
+	quota "github.com/openshift/origin/pkg/quota/apis/quota/install"
+	route "github.com/openshift/origin/pkg/route/apis/route/install"
+	security "github.com/openshift/origin/pkg/security/apis/security/install"
+	template "github.com/openshift/origin/pkg/template/apis/template/install"
+	user "github.com/openshift/origin/pkg/user/apis/user/install"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -49,7 +53,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 
-	deployv1 "github.com/openshift/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -59,7 +63,7 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	userv1 "github.com/openshift/api/user/v1"
 
-	deployconversionv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	appsconversionv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	authorizationconversionv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildconversionv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageconversionv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
@@ -313,15 +317,15 @@ func init() {
 				return true, templateconversionv1.Convert_template_BrokerTemplateInstanceList_To_v1_BrokerTemplateInstanceList(a, b, s)
 			}
 
-		case *deployv1.DeploymentConfig:
+		case *appsv1.DeploymentConfig:
 			switch b := objB.(type) {
-			case *deployapi.DeploymentConfig:
-				return true, deployconversionv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(a, b, s)
+			case *appsapi.DeploymentConfig:
+				return true, appsconversionv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(a, b, s)
 			}
-		case *deployapi.DeploymentConfig:
+		case *appsapi.DeploymentConfig:
 			switch b := objB.(type) {
-			case *deployv1.DeploymentConfig:
-				return true, deployconversionv1.Convert_apps_DeploymentConfig_To_v1_DeploymentConfig(a, b, s)
+			case *appsv1.DeploymentConfig:
+				return true, appsconversionv1.Convert_apps_DeploymentConfig_To_v1_DeploymentConfig(a, b, s)
 			}
 
 		case *imagev1.ImageStream:
@@ -591,4 +595,20 @@ func init() {
 		}
 		return false, nil
 	})
+}
+
+func InstallAll(scheme *runtime.Scheme, groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager) {
+	// add Origin types to the given scheme
+	apps.Install(groupFactoryRegistry, registry, scheme)
+	authz.Install(groupFactoryRegistry, registry, scheme)
+	build.Install(groupFactoryRegistry, registry, scheme)
+	image.Install(groupFactoryRegistry, registry, scheme)
+	network.Install(groupFactoryRegistry, registry, scheme)
+	oauth.Install(groupFactoryRegistry, registry, scheme)
+	project.Install(groupFactoryRegistry, registry, scheme)
+	quota.Install(groupFactoryRegistry, registry, scheme)
+	route.Install(groupFactoryRegistry, registry, scheme)
+	security.Install(groupFactoryRegistry, registry, scheme)
+	template.Install(groupFactoryRegistry, registry, scheme)
+	user.Install(groupFactoryRegistry, registry, scheme)
 }

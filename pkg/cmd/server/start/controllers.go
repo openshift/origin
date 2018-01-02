@@ -24,6 +24,7 @@ import (
 
 func newControllerContext(
 	openshiftControllerOptions origincontrollers.OpenshiftControllerOptions,
+	enabledControllers []string,
 	privilegedLoopbackConfig *rest.Config,
 	kubeExternal kclientsetexternal.Interface,
 	informers *informers,
@@ -42,6 +43,7 @@ func newControllerContext(
 
 	openshiftControllerContext := origincontrollers.ControllerContext{
 		OpenshiftControllerOptions: openshiftControllerOptions,
+		EnabledControllers:         enabledControllers,
 
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
 			ControllerClientBuilder: controller.SAControllerClientBuilder{
@@ -51,18 +53,18 @@ func newControllerContext(
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		InternalKubeInformers:  informers.internalKubeInformers,
-		ExternalKubeInformers:  newGenericInformers(informers),
-		AppInformers:           informers.appInformers,
-		AuthorizationInformers: informers.authorizationInformers,
-		BuildInformers:         informers.buildInformers,
-		ImageInformers:         informers.imageInformers,
-		QuotaInformers:         informers.quotaInformers,
-		SecurityInformers:      informers.securityInformers,
-		TemplateInformers:      informers.templateInformers,
-		GenericInformerFunc:    newGenericInformers(informers).ForResource,
-		Stop:                   stopCh,
-		InformersStarted:       informersStarted,
+		InternalKubeInformers:   informers.internalKubeInformers,
+		ExternalKubeInformers:   informers.GetExternalKubeInformers(),
+		AppInformers:            informers.appInformers,
+		AuthorizationInformers:  informers.authorizationInformers,
+		BuildInformers:          informers.buildInformers,
+		ImageInformers:          informers.imageInformers,
+		QuotaInformers:          informers.quotaInformers,
+		SecurityInformers:       informers.securityInformers,
+		TemplateInformers:       informers.templateInformers,
+		GenericResourceInformer: informers.ToGenericInformer(),
+		Stop:             stopCh,
+		InformersStarted: informersStarted,
 	}
 
 	return openshiftControllerContext

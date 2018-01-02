@@ -19,7 +19,7 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 	resourceQuotaSyncPeriod := ctx.OpenshiftControllerOptions.ResourceQuotaOptions.SyncPeriod.Duration
 	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.OpenshiftControllerOptions.ResourceQuotaOptions.MinResyncPeriod.Duration)
 	saName := "resourcequota-controller"
-	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.GenericInformerFunc)
+	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.GenericResourceInformer.ForResource)
 	quotaConfiguration := quotainstall.NewQuotaConfigurationForControllers(listerFuncForResource)
 
 	imageEvaluators := image.NewReplenishmentEvaluators(
@@ -36,7 +36,7 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 		IgnoredResourcesFunc:      quotaConfiguration.IgnoredResources,
 		InformersStarted:          ctx.InformersStarted,
-		InformerFactory:           ctx.ExternalKubeInformers,
+		InformerFactory:           ctx.GenericResourceInformer,
 	}
 	controller, err := kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions)
 	if err != nil {
@@ -60,7 +60,7 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 		ctx.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
 	resourceQuotaControllerClient := ctx.ClientBuilder.ClientOrDie("resourcequota-controller")
 	discoveryFunc := resourceQuotaControllerClient.Discovery().ServerPreferredNamespacedResources
-	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.GenericInformerFunc)
+	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.GenericResourceInformer.ForResource)
 	quotaConfiguration := quotainstall.NewQuotaConfigurationForControllers(listerFuncForResource)
 
 	// TODO make a union registry
@@ -84,7 +84,7 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 		DiscoveryFunc:             discoveryFunc,
 		IgnoredResourcesFunc:      quotaConfiguration.IgnoredResources,
 		InformersStarted:          ctx.InformersStarted,
-		InformerFactory:           ctx.ExternalKubeInformers,
+		InformerFactory:           ctx.GenericResourceInformer,
 	}
 	clusterQuotaReconciliationController, err := clusterquotareconciliation.NewClusterQuotaReconcilationController(options)
 	if err != nil {

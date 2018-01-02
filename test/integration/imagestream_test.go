@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -419,8 +419,8 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	// can tag to a stream that exists
 	exec := stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
 	err = exec.Execute(
-		&deployapi.LifecycleHook{
-			TagImages: []deployapi.TagImageHook{
+		&appsapi.LifecycleHook{
+			TagImages: []appsapi.TagImageHook{
 				{
 					ContainerName: "test",
 					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
@@ -457,8 +457,8 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	// can execute a second time the same tag and it should work
 	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
 	err = exec.Execute(
-		&deployapi.LifecycleHook{
-			TagImages: []deployapi.TagImageHook{
+		&appsapi.LifecycleHook{
+			TagImages: []appsapi.TagImageHook{
 				{
 					ContainerName: "test",
 					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: stream.Name + ":test"},
@@ -489,8 +489,8 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	// can lifecycle tag a new image stream
 	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, legacyscheme.Codecs.UniversalDecoder())
 	err = exec.Execute(
-		&deployapi.LifecycleHook{
-			TagImages: []deployapi.TagImageHook{
+		&appsapi.LifecycleHook{
+			TagImages: []appsapi.TagImageHook{
 				{
 					ContainerName: "test",
 					To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test2:test"},

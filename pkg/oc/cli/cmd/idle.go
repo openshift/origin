@@ -25,7 +25,7 @@ import (
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	"github.com/openshift/origin/pkg/api"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
@@ -307,7 +307,7 @@ func getControllerRef(obj runtime.Object, decoder runtime.Decoder) (*kapi.Object
 	creatorRefRaw, creatorListed := annotations[api.DeprecatedKubeCreatedByAnnotation]
 	if !creatorListed {
 		// if we don't have a creator listed, try the openshift-specific Deployment annotation
-		dcName, dcNameListed := annotations[deployapi.DeploymentConfigAnnotation]
+		dcName, dcNameListed := annotations[appsapi.DeploymentConfigAnnotation]
 		if !dcNameListed {
 			return nil, nil
 		}

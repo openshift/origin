@@ -1,13 +1,13 @@
 reviewers:
   - juanvallejo
-  - fabianofranz
   - pecameron
   - knobunc
   - dcbw
   - danwinship
+  - soltysh
 approvers:
   - stevekuznetsov
   - knobunc
   - dcbw
   - danwinship
-  - fabianofranz
+  - soltysh

@@ -29,8 +29,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -270,7 +270,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 				},
 			},
 		}, nil
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		fallback := t.Spec.Template
 
 		kc, err := f.ClientSet()
@@ -278,7 +278,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 			return fallback, err
 		}
 
-		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
+		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(t)
 		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			return fallback, err
@@ -337,7 +337,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		return pod.Name, nil
-	case deployapi.Resource("deploymentconfigs"), deployapi.LegacyResource("deploymentconfigs"):
+	case appsapi.Resource("deploymentconfigs"), appsapi.LegacyResource("deploymentconfigs"):
 		appsClient, err := f.OpenshiftInternalAppsClient()
 		if err != nil {
 			return "", err

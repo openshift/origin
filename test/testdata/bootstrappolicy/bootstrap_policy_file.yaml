@@ -784,7 +784,6 @@ items:
     - deployments
     - deployments/rollback
     - deployments/scale
-    - networkpolicies
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -1100,6 +1099,21 @@ items:
     - templateconfigs
     - templateinstances
     - templates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    - networking.k8s.io
+    attributeRestrictions: null
+    resources:
+    - networkpolicies
     verbs:
     - create
     - delete
@@ -1489,6 +1503,21 @@ items:
     - templateconfigs
     - templateinstances
     - templates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    - networking.k8s.io
+    attributeRestrictions: null
+    resources:
+    - networkpolicies
     verbs:
     - create
     - delete
@@ -1913,6 +1942,7 @@ items:
     - /oapi/*
     - /osapi
     - /osapi/
+    - /swagger-2.0.0.pb-v1
     - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
@@ -2612,6 +2642,15 @@ items:
     - list
     - watch
   - apiGroups:
+    - networking.k8s.io
+    attributeRestrictions: null
+    resources:
+    - networkpolicies
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - ""
     - network.openshift.io
     attributeRestrictions: null
@@ -2700,6 +2739,7 @@ items:
     - /oapi/*
     - /osapi
     - /osapi/
+    - /swagger-2.0.0.pb-v1
     - /swagger.json
     - /swaggerapi
     - /swaggerapi/*

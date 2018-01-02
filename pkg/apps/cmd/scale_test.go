@@ -11,11 +11,11 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 func TestScale(t *testing.T) {
@@ -45,9 +45,9 @@ func TestScale(t *testing.T) {
 		kc := &fake.Clientset{}
 		scaler := NewDeploymentConfigScaler(oc, kc)
 
-		config := deploytest.OkDeploymentConfig(1)
+		config := appstest.OkDeploymentConfig(1)
 		config.Spec.Replicas = 1
-		deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployapi.SchemeGroupVersion))
+		deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsapi.SchemeGroupVersion))
 
 		var wait *kubectl.RetryParams
 		if test.wait {

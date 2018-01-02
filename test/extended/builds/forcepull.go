@@ -85,10 +85,8 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 			err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			defer func() {
-				err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}()
+			// do not bother with removal of role as occasional etcd update conflicts would arise ... user is recreated with
+			// each extended test project anyway so this user will be going away when this test is over.
 
 			g.By("create application build configs for 3 strategies")
 			apps := exutil.FixturePath("testdata", "forcepull-test.json")

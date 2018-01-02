@@ -15,7 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/apps/prune"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -134,7 +134,7 @@ func (o PruneDeploymentsOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	deploymentConfigs := []*deployapi.DeploymentConfig{}
+	deploymentConfigs := []*appsapi.DeploymentConfig{}
 	for i := range deploymentConfigList.Items {
 		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
 	}

@@ -1,7 +1,7 @@
 package validation
 
 import (
-	deployvalidation "github.com/openshift/origin/pkg/apps/apis/apps/validation"
+	appsvalidation "github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
 	imagevalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
@@ -14,7 +14,7 @@ import (
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -60,10 +60,10 @@ func registerAll() {
 	Validator.MustRegister(&buildapi.BuildRequest{}, buildvalidation.ValidateBuildRequest, nil)
 	Validator.MustRegister(&buildapi.BuildLogOptions{}, buildvalidation.ValidateBuildLogOptions, nil)
 
-	Validator.MustRegister(&deployapi.DeploymentConfig{}, deployvalidation.ValidateDeploymentConfig, deployvalidation.ValidateDeploymentConfigUpdate)
-	Validator.MustRegister(&deployapi.DeploymentConfigRollback{}, deployvalidation.ValidateDeploymentConfigRollback, nil)
-	Validator.MustRegister(&deployapi.DeploymentLogOptions{}, deployvalidation.ValidateDeploymentLogOptions, nil)
-	Validator.MustRegister(&deployapi.DeploymentRequest{}, deployvalidation.ValidateDeploymentRequest, nil)
+	Validator.MustRegister(&appsapi.DeploymentConfig{}, appsvalidation.ValidateDeploymentConfig, appsvalidation.ValidateDeploymentConfigUpdate)
+	Validator.MustRegister(&appsapi.DeploymentConfigRollback{}, appsvalidation.ValidateDeploymentConfigRollback, nil)
+	Validator.MustRegister(&appsapi.DeploymentLogOptions{}, appsvalidation.ValidateDeploymentLogOptions, nil)
+	Validator.MustRegister(&appsapi.DeploymentRequest{}, appsvalidation.ValidateDeploymentRequest, nil)
 
 	Validator.MustRegister(&imageapi.Image{}, imagevalidation.ValidateImage, imagevalidation.ValidateImageUpdate)
 	Validator.MustRegister(&imageapi.ImageSignature{}, imagevalidation.ValidateImageSignature, imagevalidation.ValidateImageSignatureUpdate)

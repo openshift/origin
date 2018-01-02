@@ -5,7 +5,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kexternalinformers "k8s.io/client-go/informers"
+	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
@@ -29,25 +31,32 @@ import (
 type ControllerContext struct {
 	OpenshiftControllerOptions OpenshiftControllerOptions
 
+	EnabledControllers []string
+
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
 
-	ExternalKubeInformers  kexternalinformers.SharedInformerFactory
-	InternalKubeInformers  kinternalinformers.SharedInformerFactory
-	AppInformers           appinformer.SharedInformerFactory
-	BuildInformers         buildinformer.SharedInformerFactory
-	ImageInformers         imageinformer.SharedInformerFactory
-	TemplateInformers      templateinformer.SharedInformerFactory
-	QuotaInformers         quotainformer.SharedInformerFactory
-	AuthorizationInformers authorizationinformer.SharedInformerFactory
-	SecurityInformers      securityinformer.SharedInformerFactory
-	GenericInformerFunc    func(schema.GroupVersionResource) (kexternalinformers.GenericInformer, error)
+	ExternalKubeInformers   kexternalinformers.SharedInformerFactory
+	InternalKubeInformers   kinternalinformers.SharedInformerFactory
+	AppInformers            appinformer.SharedInformerFactory
+	BuildInformers          buildinformer.SharedInformerFactory
+	ImageInformers          imageinformer.SharedInformerFactory
+	TemplateInformers       templateinformer.SharedInformerFactory
+	QuotaInformers          quotainformer.SharedInformerFactory
+	AuthorizationInformers  authorizationinformer.SharedInformerFactory
+	SecurityInformers       securityinformer.SharedInformerFactory
+	GenericResourceInformer GenericResourceInformer
 
 	// Stop is the stop channel
 	Stop <-chan struct{}
 	// InformersStarted is closed after all of the controllers have been initialized and are running.  After this point it is safe,
 	// for an individual controller to start the shared informers. Before it is closed, they should not.
 	InformersStarted chan struct{}
+}
+
+type GenericResourceInformer interface {
+	ForResource(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error)
+	Start(stopCh <-chan struct{})
 }
 
 // OpenshiftControllerOptions contain the options used to run the controllers.  Eventually we need to construct a way to properly
@@ -74,9 +83,8 @@ type ServiceAccountTokenOptions struct {
 	ConcurrentSyncs int32
 }
 
-// TODO wire this up to something that handles the names.  The logic is available upstream, we just have to wire to it
 func (c ControllerContext) IsControllerEnabled(name string) bool {
-	return true
+	return controllerapp.IsControllerEnabled(name, sets.String{}, c.EnabledControllers...)
 }
 
 type ControllerClientBuilder interface {

@@ -14,10 +14,7 @@ import (
 
 func init() {
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
-	legacy.InstallLegacy(securityapi.GroupName, securityapi.AddToSchemeInCoreGroup, securityapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("SecurityContextConstraints"),
-		legacyscheme.Registry, legacyscheme.Scheme,
-	)
+	legacy.InstallLegacySecurity(legacyscheme.Scheme, legacyscheme.Registry)
 }
 
 // Install registers the API group and adds types to a scheme

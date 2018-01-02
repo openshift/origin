@@ -55,7 +55,7 @@ os::util::sed '$a\' "${generated_file}" # add eof newline if it is missing
 # Copy all protobuf generated specs into the api/protobuf-spec directory
 proto_spec_out_dir="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/protobuf-spec"
 mkdir -p "${proto_spec_out_dir}"
-for proto_file in $( find "${OS_ROOT}/pkg" "${OS_ROOT}/vendor/k8s.io/kubernetes/pkg" -name generated.proto ); do
+for proto_file in $( find "${OS_ROOT}/vendor/github.com/openshift/api/" "${OS_ROOT}/vendor/k8s.io/kubernetes/staging/src/k8s.io/api/" -name generated.proto ); do
     # package declaration lines will always begin with
     # `package ` and end with `;` so to extract the
     # package name without lookarounds we can simply

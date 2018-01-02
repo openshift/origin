@@ -22,10 +22,10 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	deployv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -35,7 +35,7 @@ func nowFunc() *metav1.Time {
 	return &metav1.Time{Time: time.Now().Add(-5 * time.Second)}
 }
 
-func newTestClient(config *deployapi.DeploymentConfig) *fake.Clientset {
+func newTestClient(config *appsapi.DeploymentConfig) *fake.Clientset {
 	client := &fake.Clientset{}
 	// when creating a lifecycle pod, we query the deployer pod for the start time to
 	// calculate the active deadline seconds for the lifecycle pod.
@@ -57,14 +57,14 @@ func newTestClient(config *deployapi.DeploymentConfig) *fake.Clientset {
 }
 
 func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &deployapi.ExecNewPodHook{
+	hook := &appsapi.LifecycleHook{
+		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsapi.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
-	dc := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(dc, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	dc := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(dc, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 	client := newTestClient(dc)
 	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("could not create the pod")
@@ -80,15 +80,15 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 }
 
 func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &deployapi.ExecNewPodHook{
+	hook := &appsapi.LifecycleHook{
+		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsapi.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
 	client := newTestClient(config)
@@ -142,21 +142,21 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 		t.Fatalf("expected ActiveDeadlineSeconds to be set on the deployment hook executor pod")
 	}
 
-	if *createdPod.Spec.ActiveDeadlineSeconds >= deployapi.MaxDeploymentDurationSeconds {
-		t.Fatalf("expected ActiveDeadlineSeconds %+v to be lower than %+v", *createdPod.Spec.ActiveDeadlineSeconds, deployapi.MaxDeploymentDurationSeconds)
+	if *createdPod.Spec.ActiveDeadlineSeconds >= appsapi.MaxDeploymentDurationSeconds {
+		t.Fatalf("expected ActiveDeadlineSeconds %+v to be lower than %+v", *createdPod.Spec.ActiveDeadlineSeconds, appsapi.MaxDeploymentDurationSeconds)
 	}
 }
 
 func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &deployapi.ExecNewPodHook{
+	hook := &appsapi.LifecycleHook{
+		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsapi.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 
 	client := newTestClient(config)
 	podCreated := make(chan struct{})
@@ -197,15 +197,15 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 }
 
 func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &deployapi.ExecNewPodHook{
+	hook := &appsapi.LifecycleHook{
+		FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+		ExecNewPod: &appsapi.ExecNewPodHook{
 			ContainerName: "undefined",
 		},
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 
 	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err == nil {
@@ -216,21 +216,21 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 func TestHookExecutor_makeHookPod(t *testing.T) {
 	deploymentName := "deployment-1"
 	deploymentNamespace := "test"
-	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+	maxDeploymentDurationSeconds := appsapi.MaxDeploymentDurationSeconds
 	gracePeriod := int64(10)
 
 	tests := []struct {
 		name                string
-		hook                *deployapi.LifecycleHook
+		hook                *appsapi.LifecycleHook
 		expected            *kapi.Pod
 		strategyLabels      map[string]string
 		strategyAnnotations map[string]string
 	}{
 		{
 			name: "overrides",
-			hook: &deployapi.LifecycleHook{
-				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &deployapi.ExecNewPodHook{
+			hook: &appsapi.LifecycleHook{
+				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsapi.ExecNewPodHook{
 					ContainerName: "container1",
 					Command:       []string{"overridden"},
 					Env: []kapi.EnvVar{
@@ -250,11 +250,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						deployapi.DeploymentPodTypeLabel:        "hook",
-						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsapi.DeploymentPodTypeLabel:        "hook",
+						appsapi.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						deployapi.DeploymentAnnotation: deploymentName,
+						appsapi.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -319,9 +319,9 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 		},
 		{
 			name: "no overrides",
-			hook: &deployapi.LifecycleHook{
-				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &deployapi.ExecNewPodHook{
+			hook: &appsapi.LifecycleHook{
+				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsapi.ExecNewPodHook{
 					ContainerName: "container1",
 				},
 			},
@@ -329,11 +329,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						deployapi.DeploymentPodTypeLabel:        "hook",
-						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsapi.DeploymentPodTypeLabel:        "hook",
+						appsapi.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						deployapi.DeploymentAnnotation: deploymentName,
+						appsapi.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -378,9 +378,9 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 		},
 		{
 			name: "labels and annotations",
-			hook: &deployapi.LifecycleHook{
-				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &deployapi.ExecNewPodHook{
+			hook: &appsapi.LifecycleHook{
+				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsapi.ExecNewPodHook{
 					ContainerName: "container1",
 				},
 			},
@@ -388,13 +388,13 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						deployapi.DeploymentPodTypeLabel:        "hook",
-						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsapi.DeploymentPodTypeLabel:        "hook",
+						appsapi.DeployerPodForDeploymentLabel: deploymentName,
 						"label1": "value1",
 					},
 					Annotations: map[string]string{
-						deployapi.DeploymentAnnotation: deploymentName,
-						"annotation2":                  "value2",
+						appsapi.DeploymentAnnotation: deploymentName,
+						"annotation2":                "value2",
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -437,16 +437,16 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			strategyLabels: map[string]string{
-				deployapi.DeployerPodForDeploymentLabel: "ignoredValue",
+				appsapi.DeployerPodForDeploymentLabel: "ignoredValue",
 				"label1": "value1",
 			},
 			strategyAnnotations: map[string]string{"annotation2": "value2"},
 		},
 		{
 			name: "allways pull image",
-			hook: &deployapi.LifecycleHook{
-				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-				ExecNewPod: &deployapi.ExecNewPodHook{
+			hook: &appsapi.LifecycleHook{
+				FailurePolicy: appsapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &appsapi.ExecNewPodHook{
 					ContainerName: "container2",
 				},
 			},
@@ -454,11 +454,11 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
-						deployapi.DeploymentPodTypeLabel:        "hook",
-						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+						appsapi.DeploymentPodTypeLabel:        "hook",
+						appsapi.DeployerPodForDeploymentLabel: deploymentName,
 					},
 					Annotations: map[string]string{
-						deployapi.DeploymentAnnotation: deploymentName,
+						appsapi.DeploymentAnnotation: deploymentName,
 					},
 				},
 				Spec: kapi.PodSpec{
@@ -519,15 +519,15 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 }
 
 func TestHookExecutor_makeHookPodRestart(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
-		ExecNewPod: &deployapi.ExecNewPodHook{
+	hook := &appsapi.LifecycleHook{
+		FailurePolicy: appsapi.LifecycleHookFailurePolicyRetry,
+		ExecNewPod: &appsapi.ExecNewPodHook{
 			ContainerName: "container1",
 		},
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	config := appstest.OkDeploymentConfig(1)
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 
 	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err != nil {
@@ -539,20 +539,20 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 }
 
-func deployment(name, namespace string, strategyLabels, strategyAnnotations map[string]string) (*deployapi.DeploymentConfig, *kapi.ReplicationController) {
-	config := &deployapi.DeploymentConfig{
+func deployment(name, namespace string, strategyLabels, strategyAnnotations map[string]string) (*appsapi.DeploymentConfig, *kapi.ReplicationController) {
+	config := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Status: deployapi.DeploymentConfigStatus{
+		Status: appsapi.DeploymentConfigStatus{
 			LatestVersion: 1,
 		},
-		Spec: deployapi.DeploymentConfigSpec{
+		Spec: appsapi.DeploymentConfigSpec{
 			Replicas: 1,
 			Selector: map[string]string{"a": "b"},
-			Strategy: deployapi.DeploymentStrategy{
-				Type: deployapi.DeploymentStrategyTypeRecreate,
+			Strategy: appsapi.DeploymentStrategy{
+				Type: appsapi.DeploymentStrategyTypeRecreate,
 				Resources: kapi.ResourceRequirements{
 					Limits: kapi.ResourceList{
 						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
@@ -617,7 +617,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 			},
 		},
 	}
-	deployment, _ := deployutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	deployment, _ := appsutil.MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 	deployment.Namespace = namespace
 	return config, deployment
 }

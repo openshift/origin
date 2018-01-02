@@ -4,6 +4,8 @@ excludeDirs:
 - cmd/service-catalog
 - pkg/build/builder
 import:
+- package: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
 - package: github.com/coreos/etcd
   version: v3.2.8
 - package: github.com/gonum/graph
@@ -67,14 +69,17 @@ import:
   version: release-3.9
 - package: github.com/openshift/client-go
   version: release-3.9
-# only used by pkg/build/builder
-- package: github.com/kubernetes-incubator/cri-o
-  version: a8ee86b1cce0c13bd541a99140682a92635ba9f7
 - package: github.com/containers/image
   repo:    git@github.com:openshift/containers-image
   version: openshift-3.8
+# yours: containers/image.  No idea why this isn't self-pinning.
+- package: github.com/containers/storage
+  version: 47536c89fcc545a87745e1a1573addc439409165
 - package: github.com/vjeantet/ldapserver
   version: v1.0
+# ours: containers/storage uses it, but oc/bootstrap does too.  pinning to last level
+- package: github.com/docker/engine-api
+  version: dea108d3aa0c67d7162a3fd8aa65f38a430019fd
 
 # ours because of genapidocs.  This is the current kube level
 - package: github.com/go-openapi/loads

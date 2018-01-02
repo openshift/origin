@@ -17,10 +17,11 @@ limitations under the License.
 package v1
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/json"
+	"github.com/ugorji/go/codec"
 )
 
 func TestVerbsUgorjiMarshalJSON(t *testing.T) {
@@ -58,7 +59,7 @@ func TestVerbsUgorjiUnmarshalJSON(t *testing.T) {
 	for i, c := range cases {
 		var result APIResource
 		// if err := jsoniter.ConfigFastest.Unmarshal([]byte(c.input), &result); err != nil {
-		if err := json.Unmarshal([]byte(c.input), &result); err != nil {
+		if err := codec.NewDecoderBytes([]byte(c.input), new(codec.JsonHandle)).Decode(&result); err != nil {
 			t.Errorf("[%d] Failed to unmarshal input '%v': %v", i, c.input, err)
 		}
 		if !reflect.DeepEqual(result, c.result) {

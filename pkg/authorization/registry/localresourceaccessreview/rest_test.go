@@ -36,7 +36,7 @@ func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (decision 
 		return kauthorizer.DecisionAllow, "", nil
 	}
 
-	return kauthorizer.DecisionDeny, "", errors.New("Unsupported")
+	return kauthorizer.DecisionNoOpinion, "", errors.New("Unsupported")
 }
 func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attributes) (sets.String, sets.String, error) {
 	a.actualAttributes = passedAttributes

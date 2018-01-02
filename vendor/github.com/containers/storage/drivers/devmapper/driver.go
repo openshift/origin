@@ -14,10 +14,8 @@ import (
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/devicemapper"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/locker"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/system"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 )
 
 func init() {
@@ -31,7 +29,6 @@ type Driver struct {
 	uidMaps []idtools.IDMap
 	gidMaps []idtools.IDMap
 	ctr     *graphdriver.RefCounter
-	locker  *locker.Locker
 }
 
 // Init creates a driver with the given home and the set of options.
@@ -51,7 +48,6 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		uidMaps:   uidMaps,
 		gidMaps:   gidMaps,
 		ctr:       graphdriver.NewRefCounter(graphdriver.NewDefaultChecker()),
-		locker:    locker.New(),
 	}
 
 	return graphdriver.NewNaiveDiffDriver(d, uidMaps, gidMaps), nil
@@ -69,18 +65,18 @@ func (d *Driver) Status() [][2]string {
 
 	status := [][2]string{
 		{"Pool Name", s.PoolName},
-		{"Pool Blocksize", units.HumanSize(float64(s.SectorSize))},
-		{"Base Device Size", units.HumanSize(float64(s.BaseDeviceSize))},
+		{"Pool Blocksize", fmt.Sprintf("%s", units.HumanSize(float64(s.SectorSize)))},
+		{"Base Device Size", fmt.Sprintf("%s", units.HumanSize(float64(s.BaseDeviceSize)))},
 		{"Backing Filesystem", s.BaseDeviceFS},
 		{"Data file", s.DataFile},
 		{"Metadata file", s.MetadataFile},
-		{"Data Space Used", units.HumanSize(float64(s.Data.Used))},
-		{"Data Space Total", units.HumanSize(float64(s.Data.Total))},
-		{"Data Space Available", units.HumanSize(float64(s.Data.Available))},
-		{"Metadata Space Used", units.HumanSize(float64(s.Metadata.Used))},
-		{"Metadata Space Total", units.HumanSize(float64(s.Metadata.Total))},
-		{"Metadata Space Available", units.HumanSize(float64(s.Metadata.Available))},
-		{"Thin Pool Minimum Free Space", units.HumanSize(float64(s.MinFreeSpace))},
+		{"Data Space Used", fmt.Sprintf("%s", units.HumanSize(float64(s.Data.Used)))},
+		{"Data Space Total", fmt.Sprintf("%s", units.HumanSize(float64(s.Data.Total)))},
+		{"Data Space Available", fmt.Sprintf("%s", units.HumanSize(float64(s.Data.Available)))},
+		{"Metadata Space Used", fmt.Sprintf("%s", units.HumanSize(float64(s.Metadata.Used)))},
+		{"Metadata Space Total", fmt.Sprintf("%s", units.HumanSize(float64(s.Metadata.Total)))},
+		{"Metadata Space Available", fmt.Sprintf("%s", units.HumanSize(float64(s.Metadata.Available)))},
+		{"Thin Pool Minimum Free Space", fmt.Sprintf("%s", units.HumanSize(float64(s.MinFreeSpace)))},
 		{"Udev Sync Supported", fmt.Sprintf("%v", s.UdevSyncSupported)},
 		{"Deferred Removal Enabled", fmt.Sprintf("%v", s.DeferredRemoveEnabled)},
 		{"Deferred Deletion Enabled", fmt.Sprintf("%v", s.DeferredDeleteEnabled)},
@@ -126,17 +122,12 @@ func (d *Driver) Cleanup() error {
 
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
-func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
-	return d.Create(id, parent, opts)
+func (d *Driver) CreateReadWrite(id, parent, mountLabel string, storageOpt map[string]string) error {
+	return d.Create(id, parent, mountLabel, storageOpt)
 }
 
 // Create adds a device with a given id and the parent.
-func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
-	var storageOpt map[string]string
-	if opts != nil {
-		storageOpt = opts.StorageOpt
-	}
-
+func (d *Driver) Create(id, parent, mountLabel string, storageOpt map[string]string) error {
 	if err := d.DeviceSet.AddDevice(id, parent, storageOpt); err != nil {
 		return err
 	}
@@ -146,8 +137,6 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 
 // Remove removes a device with a given id, unmounts the filesystem.
 func (d *Driver) Remove(id string) error {
-	d.locker.Lock(id)
-	defer d.locker.Unlock(id)
 	if !d.DeviceSet.HasDevice(id) {
 		// Consider removing a non-existing device a no-op
 		// This is useful to be able to progress on container removal
@@ -157,15 +146,19 @@ func (d *Driver) Remove(id string) error {
 
 	// This assumes the device has been properly Get/Put:ed and thus is unmounted
 	if err := d.DeviceSet.DeleteDevice(id, false); err != nil {
-		return fmt.Errorf("failed to remove device %s: %v", id, err)
+		return err
 	}
-	return system.EnsureRemoveAll(path.Join(d.home, "mnt", id))
+
+	mp := path.Join(d.home, "mnt", id)
+	if err := os.RemoveAll(mp); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	return nil
 }
 
 // Get mounts a device with given id into the root filesystem
 func (d *Driver) Get(id, mountLabel string) (string, error) {
-	d.locker.Lock(id)
-	defer d.locker.Unlock(id)
 	mp := path.Join(d.home, "mnt", id)
 	rootFs := path.Join(mp, "rootfs")
 	if count := d.ctr.Increment(mp); count > 1 {
@@ -216,8 +209,6 @@ func (d *Driver) Get(id, mountLabel string) (string, error) {
 
 // Put unmounts a device and removes it.
 func (d *Driver) Put(id string) error {
-	d.locker.Lock(id)
-	defer d.locker.Unlock(id)
 	mp := path.Join(d.home, "mnt", id)
 	if count := d.ctr.Decrement(mp); count > 0 {
 		return nil
@@ -236,5 +227,6 @@ func (d *Driver) Exists(id string) bool {
 
 // AdditionalImageStores returns additional image stores supported by the driver
 func (d *Driver) AdditionalImageStores() []string {
-	return nil
+	var imageStores []string
+	return imageStores
 }

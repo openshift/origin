@@ -15,15 +15,21 @@ spec:
       intervalSeconds: 1
       maxSurge: 25%
       maxUnavailable: 25%
-      timeoutSeconds: 40
+      timeoutSeconds: 5
       updatePeriodSeconds: 1
       pre:
         failurePolicy: Abort
         execNewPod:
           containerName: myapp
           command:
-          - /bin/echo
-          - test pre hook executed
+            - /bin/sh
+            - -c
+            - |
+              echo test pre hook executed
+              # FIXME: The sleep here is needed so the Docker have time to acquire the
+              # logs from this hook. This is a bug and this sleep should be removed
+              # when the Docker bug is fixed.
+              sleep 1
   template:
     metadata:
       creationTimestamp: null
