@@ -12,6 +12,7 @@ import (
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	kclientset "k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -104,6 +105,40 @@ func TestBuildDefaultAnnotations(t *testing.T) {
 	_, pod := runBuildPodAdmissionTest(t, oclient, kclientset, buildPodAdmissionTestDockerBuild())
 	if actual := pod.Annotations; strings.Compare(actual["KEY"], annotations["KEY"]) != 0 {
 		t.Errorf("Resulting pod did not get expected annotations: actual: %v, expected: %v", actual["KEY"], annotations["KEY"])
+	}
+}
+
+func TestBuildOverrideTolerations(t *testing.T) {
+	tolerations := []kapi.Toleration{
+		{
+			Key:      "mykey1",
+			Value:    "myvalue1",
+			Effect:   "NoSchedule",
+			Operator: "Equal",
+		},
+		{
+			Key:      "mykey2",
+			Value:    "myvalue2",
+			Effect:   "NoSchedule",
+			Operator: "Equal",
+		},
+	}
+
+	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
+		Tolerations: tolerations,
+	})
+
+	defer fn()
+
+	_, pod := runBuildPodAdmissionTest(t, oclient, kclientset, buildPodAdmissionTestDockerBuild())
+	for i, toleration := range tolerations {
+		tol := v1.Toleration{}
+		if err := kapiv1.Convert_core_Toleration_To_v1_Toleration(&toleration, &tol, nil); err != nil {
+			t.Errorf("Unable to convert core.Toleration to v1.Toleration: %v", err)
+		}
+		if !reflect.DeepEqual(pod.Spec.Tolerations[i], tol) {
+			t.Errorf("Resulting pod did not get expected tolerations, expected: %#v, actual: %#v", toleration, pod.Spec.Tolerations[i])
+		}
 	}
 }
 
