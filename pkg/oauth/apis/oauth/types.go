@@ -35,6 +35,11 @@ type OAuthAccessToken struct {
 
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string
+
+	// InactivityTimeoutSeconds is the value in seconds, from the
+	// CreationTimestamp, after which this token can no longer be used.
+	// The value is automatically incremented when the token is used.
+	InactivityTimeoutSeconds int32
 }
 
 // +genclient
@@ -107,6 +112,19 @@ type OAuthClient struct {
 	// AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client.
 	// 0 means no expiration.
 	AccessTokenMaxAgeSeconds *int32
+
+	// AccessTokenInactivityTimeoutSeconds overrides the default token
+	// inactivity timeout for tokens granted to this client.
+	// The value represents the maximum amount of time that can occur between
+	// consecutive uses of the token. Tokens become invalid if they are not
+	// used within this temporal window. The user will need to acquire a new
+	// token to regain access once a token times out.
+	// This value needs to be set only if the default set in configuration is
+	// not appropriate for this client. Valid values are:
+	// - 0: Tokens for this client never time out
+	// - X: Tokens time out if there is no activity for X seconds
+	// The current minimum allowed value for X is 300 (5 minutes)
+	AccessTokenInactivityTimeoutSeconds *int32
 }
 
 type GrantHandlerType string
