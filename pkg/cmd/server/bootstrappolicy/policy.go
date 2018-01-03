@@ -266,35 +266,12 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: AdminRoleName,
-				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "A user that has edit rights within the project and can change the project's membership.",
-				},
-			},
+			// a role for a namespace level admin.  It is `edit` plus the power to grant permissions to other users.
+			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:aggregate-to-admin", Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true"}},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule(readWrite...).Groups(kapiGroup).Resources("pods", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward").RuleOrDie(),
-				rbac.NewRule(readWrite...).Groups(kapiGroup).Resources("replicationcontrollers", "replicationcontrollers/scale", "serviceaccounts",
-					"services", "services/proxy", "endpoints", "persistentvolumeclaims", "configmaps", "secrets").RuleOrDie(),
-				rbac.NewRule(read...).Groups(kapiGroup).Resources("limitranges", "resourcequotas", "bindings", "events",
-					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
-				rbac.NewRule("impersonate").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(appsGroup, extensionsGroup).Resources("replicationcontrollers/scale",
-					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
-
 				rbac.NewRule(readWrite...).Groups(authzGroup, legacyAuthzGroup).Resources("roles", "rolebindings").RuleOrDie(),
-				rbac.NewRule(readWrite...).Groups(rbacGroup).Resources("roles", "rolebindings").RuleOrDie(),
 				rbac.NewRule("create").Groups(authzGroup, legacyAuthzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "subjectrulesreviews").RuleOrDie(),
 				rbac.NewRule("create").Groups(securityGroup, legacySecurityGroup).Resources("podsecuritypolicysubjectreviews", "podsecuritypolicyselfsubjectreviews", "podsecuritypolicyreviews").RuleOrDie(),
-				rbac.NewRule("create").Groups(kAuthzGroup).Resources("localsubjectaccessreviews").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("rolebindingrestrictions").RuleOrDie(),
 
@@ -328,7 +305,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(extensionsGroup, networkingGroup).Resources("networkpolicies").RuleOrDie(),
+				rbac.NewRule(readWrite...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
 				// backwards compatibility
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
@@ -337,30 +314,11 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: EditRoleName,
-				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "A user that can create and edit most objects in a project, but can not update the project's membership.",
-				},
-			},
+			// a role for a namespace level editor.  It grants access to all user level actions in a namespace.
+			// It does not grant powers for "privileged" resources which are domain of the system: `/status`
+			// subresources or `quota`/`limits` which are used to control namespaces
+			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:aggregate-to-edit", Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-edit": "true"}},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule(readWrite...).Groups(kapiGroup).Resources("pods", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward").RuleOrDie(),
-				rbac.NewRule(readWrite...).Groups(kapiGroup).Resources("replicationcontrollers", "replicationcontrollers/scale", "serviceaccounts",
-					"services", "services/proxy", "endpoints", "persistentvolumeclaims", "configmaps", "secrets").RuleOrDie(),
-				rbac.NewRule(read...).Groups(kapiGroup).Resources("limitranges", "resourcequotas", "bindings", "events",
-					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
-				rbac.NewRule("impersonate").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(appsGroup, extensionsGroup).Resources("replicationcontrollers/scale",
-					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
-
-				rbac.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
-
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
 				rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
@@ -389,7 +347,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(extensionsGroup, networkingGroup).Resources("networkpolicies").RuleOrDie(),
+				rbac.NewRule(readWrite...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
 				// backwards compatibility
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
@@ -397,28 +355,10 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ViewRoleName,
-				Annotations: map[string]string{
-					oapi.OpenShiftDescription: "A user who can view but not edit any resources within the project. They can not view secrets or membership.",
-				},
-			},
+			// a role for namespace level viewing.  It grants Read-only access to non-escalating resources in
+			// a namespace.
+			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:aggregate-to-view", Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"}},
 			Rules: []rbac.PolicyRule{
-				// TODO add "replicationcontrollers/scale" here
-				rbac.NewRule(read...).Groups(kapiGroup).Resources("pods", "replicationcontrollers", "serviceaccounts",
-					"services", "endpoints", "persistentvolumeclaims", "configmaps").RuleOrDie(),
-				rbac.NewRule(read...).Groups(kapiGroup).Resources("limitranges", "resourcequotas", "bindings", "events",
-					"namespaces", "pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status", "pods/log").RuleOrDie(),
-
-				rbac.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers").RuleOrDie(),
-
-				rbac.NewRule(read...).Groups(batchGroup).Resources("jobs", "cronjobs").RuleOrDie(),
-
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("deployments", "deployments/scale", "replicasets", "replicasets/scale").RuleOrDie(),
-				rbac.NewRule(read...).Groups(appsGroup, extensionsGroup).Resources("daemonsets").RuleOrDie(),
-
-				rbac.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale").RuleOrDie(),
-
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
 				// access to jenkins
@@ -896,6 +836,25 @@ func GetBootstrapClusterRoles() []rbac.ClusterRole {
 			}
 			role.Annotations[roleSystemOnly] = roleIsSystemOnly
 		}
+
+		// add a couple selected descriptions
+		switch role.Name {
+		case "admin":
+			if role.Annotations == nil {
+				role.Annotations = map[string]string{}
+			}
+			role.Annotations[oapi.OpenShiftDescription] = "A user that has edit rights within the project and can change the project's membership."
+		case "edit":
+			if role.Annotations == nil {
+				role.Annotations = map[string]string{}
+			}
+			role.Annotations[oapi.OpenShiftDescription] = "A user that can create and edit most objects in a project, but can not update the project's membership."
+		case "view":
+			if role.Annotations == nil {
+				role.Annotations = map[string]string{}
+			}
+			role.Annotations[oapi.OpenShiftDescription] = "A user who can view but not edit any resources within the project. They can not view secrets or membership."
+		}
 	}
 
 	return finalClusterRoles
@@ -1045,11 +1004,6 @@ func GetBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 // clusterRoleConflicts lists the roles which are known to conflict with upstream and which we have manually
 // deconflicted with our own.
 var clusterRoleConflicts = sets.NewString(
-	// these require special treatment to handle origin resources
-	"admin",
-	"edit",
-	"view",
-
 	// TODO this should probably be re-swizzled to be the delta on top of the kube role
 	"system:discovery",
 

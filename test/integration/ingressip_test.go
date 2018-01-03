@@ -32,7 +32,7 @@ func TestIngressIPAllocation(t *testing.T) {
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.NetworkConfig.ExternalIPNetworkCIDRs = []string{"172.16.0.0/24"}
 	masterConfig.NetworkConfig.IngressIPNetworkCIDR = "172.16.1.0/24"
-	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterWithOptions(masterConfig, testserver.TestOptions{})
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterWithOptions(masterConfig)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
