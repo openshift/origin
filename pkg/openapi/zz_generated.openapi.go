@@ -6752,7 +6752,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"from": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage.",
+								Description: "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage.  ImageStreamTag references can only reference a tag within this same ImageStream.",
 								Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
 							},
 						},
@@ -7458,6 +7458,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"inactivityTimeoutSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "InactivityTimeoutSeconds is the value in seconds, from the CreationTimestamp, after which this token can no longer be used. The value is automatically incremented when the token is used.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
 					},
 				},
 			},
@@ -7750,6 +7757,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						"accessTokenMaxAgeSeconds": {
 							SchemaProps: spec.SchemaProps{
 								Description: "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"accessTokenInactivityTimeoutSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AccessTokenInactivityTimeoutSeconds overrides the default token inactivity timeout for tokens granted to this client. The value represents the maximum amount of time that can occur between consecutive uses of the token. Tokens become invalid if they are not used within this temporal window. The user will need to acquire a new token to regain access once a token times out. This value needs to be set only if the default set in configuration is not appropriate for this client. Valid values are: - 0: Tokens for this client never time out - X: Tokens time out if there is no activity for X seconds The current minimum allowed value for X is 300 (5 minutes)",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},

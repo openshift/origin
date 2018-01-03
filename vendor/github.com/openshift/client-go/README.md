@@ -2,7 +2,6 @@ OpenShift Client in Go
 ==============================
 
 
-Not yet ready.
+Go clients for speaking to an OpenShift cluster.
 
-
-This will provide a generate go-client for interacting with OpenShift resource.  At this time is untested, untagged, and unsupported while we work on getting it started.
+Versions track OpenShift releases.

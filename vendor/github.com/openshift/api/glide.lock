@@ -1,10 +1,16 @@
-hash: 258b95b667907a6342a978b2814e89022dddbed0cbd2cd5fcf9391696aae448a
-updated: 2017-12-01T13:30:58.068687374-05:00
+hash: 3251cedf1b8706f384ce638077ae7622c7edd9c34914aed63d0abdbf3af40409
+updated: 2017-12-20T09:27:40.430041541-05:00
 imports:
+- name: github.com/davecgh/go-spew
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
+  subpackages:
+  - spew
 - name: github.com/emicklei/go-restful
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
   - log
+- name: github.com/ghodss/yaml
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
@@ -14,14 +20,24 @@ imports:
 - name: github.com/go-openapi/swag
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
 - name: github.com/gogo/protobuf
-  version: fd9a4790f3963525fb889cc00e0a8f828e0b3a29
+  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
   subpackages:
   - proto
   - sortkeys
 - name: github.com/golang/glog
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
+- name: github.com/golang/protobuf
+  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
+- name: github.com/json-iterator/go
+  version: 36b14963da70d11297d313183d7e6388c8510e1e
 - name: github.com/mailru/easyjson
   version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
   subpackages:
@@ -60,28 +76,44 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: abe47f56cf980731ebaeddba938f4fcc21527e2b
-  repo: git@github.com:openshift/kubernetes-api
+  version: af4bc157c3a209798fc897f6d4aaaaeb6c2e0d6a
   subpackages:
   - apps/v1beta1
   - core/v1
   - extensions/v1beta1
+  - rbac/v1
 - name: k8s.io/apimachinery
-  version: 0ede59012bac185794d667987ff32eecd524390d
-  repo: git@github.com:openshift/kubernetes-apimachinery
+  version: 180eddb345a5be3a157cea1c624700ad5bd27b8f
   subpackages:
+  - pkg/api/equality
+  - pkg/api/meta
   - pkg/api/resource
+  - pkg/api/testing
+  - pkg/api/testing/fuzzer
+  - pkg/api/testing/roundtrip
+  - pkg/apimachinery
+  - pkg/apimachinery/announced
+  - pkg/apimachinery/registered
+  - pkg/apis/meta/fuzzer
   - pkg/apis/meta/v1
   - pkg/apis/meta/v1/unstructured
+  - pkg/apis/meta/v1alpha1
   - pkg/conversion
   - pkg/conversion/queryparams
   - pkg/fields
   - pkg/labels
   - pkg/runtime
   - pkg/runtime/schema
+  - pkg/runtime/serializer
+  - pkg/runtime/serializer/json
+  - pkg/runtime/serializer/protobuf
+  - pkg/runtime/serializer/recognizer
+  - pkg/runtime/serializer/versioning
   - pkg/selection
   - pkg/types
+  - pkg/util/diff
   - pkg/util/errors
+  - pkg/util/framer
   - pkg/util/intstr
   - pkg/util/json
   - pkg/util/net
@@ -90,10 +122,11 @@ imports:
   - pkg/util/validation
   - pkg/util/validation/field
   - pkg/util/wait
+  - pkg/util/yaml
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/code-generator
-  version: ab6a26516389c2569fbbcf2ddfb68ae3dee31cc8
+  version: 0ea404e72920cc2978c0bfcc05a37528e01e5bcf
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e
