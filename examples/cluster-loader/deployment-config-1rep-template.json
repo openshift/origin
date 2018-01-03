@@ -1,0 +1,135 @@
+{
+  "Kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "deploymentConfigTemplate",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "This template will create a deploymentConfig with 1 replica, 4 env vars, and a service.",
+      "tags": ""
+    }
+  },
+  "objects": [
+      {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "deploymentconfig${IDENTIFIER}"
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "replicationcontroller${IDENTIFIER}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "helloworld${IDENTIFIER}",
+                "image": "openshift/${IMAGE}",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "ENVVAR1_${IDENTIFIER}",
+                    "value": "${ENV_VALUE}"
+                  },
+                  {
+                    "name": "ENVVAR2_${IDENTIFIER}",
+                    "value": "${ENV_VALUE}"
+                  },
+                  {
+                    "name": "ENVVAR3_${IDENTIFIER}",
+                    "value": "${ENV_VALUE}"
+                  },
+                  {
+                    "name": "ENVVAR4_${IDENTIFIER}",
+                    "value": "${ENV_VALUE}"
+                  }
+                ],
+                "resources": {},
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "serviceAccount": ""
+          }
+        },
+        "replicas": 1,
+        "selector": {
+          "name": "replicationcontroller${IDENTIFIER}"
+        },
+        "triggers": [
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "strategy": {
+          "type": "Rolling"
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "service${IDENTIFIER}"
+      },
+      "spec": {
+        "selector": {
+          "name": "replicationcontroller${IDENTIFIER}"
+        },
+        "ports": [
+          {
+            "name": "serviceport${IDENTIFIER}",
+            "protocol": "TCP",
+            "port": 80,
+            "targetPort": 8080
+          }
+        ],
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1",
+      "required": true
+    },
+    {
+      "name": "IMAGE",
+      "description": "Image to use for deploymentConfig",
+      "value": "hello-openshift",
+      "required": false
+    },
+    {
+      "name": "ENV_VALUE",
+      "description": "Value to use for environment variables",
+      "generate": "expression",
+      "from": "[A-Za-z0-9]{255}",
+      "required": false
+    }
+  ],
+  "labels": {
+    "template": "deploymentConfigTemplate"
+  }
+
+}
+

@@ -1,0 +1,69 @@
+{
+  "Kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "buildConfigTemplate",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "This template will create a single buildConfig.",
+      "tags": ""
+    }
+  },
+  "objects": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "buildconfig${IDENTIFIER}"
+      },
+      "spec": {
+        "triggers": [ 
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "hello-openshift-secret${IDENTIFIER}"
+            }
+          },
+          {
+            "type": "ImageChange"
+          }
+        ],
+        "source": { 
+          "type": "Git",
+          "git": {
+            "uri": "git://github.com/tiwillia/hello-openshift-example.git"
+          },
+          "dockerfile": "FROM openshift/hello-openshift\nUSER example"
+        },
+        "strategy": { 
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "imagestream${IDENTIFIER}:latest"
+            }
+          }
+        },
+        "output": { 
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "imagestream${IDENTIFIER}:latest"
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "buildConfigTemplate"
+  }
+
+}
+
