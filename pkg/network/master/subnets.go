@@ -22,24 +22,34 @@ import (
 )
 
 func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetwork) error {
-	subrange := make([]string, 0)
+	subrange := make(map[common.ClusterNetwork][]string)
 	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
 		glog.Errorf("Error in initializing/fetching subnets: %v", err)
 		return err
 	}
 	for _, sub := range subnets.Items {
-		subrange = append(subrange, sub.Subnet)
 		if err = master.networkInfo.ValidateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
 			glog.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(&sub), err)
 		} else {
 			glog.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
+			_, subnetIP, err := net.ParseCIDR(sub.Subnet)
+			if err != nil {
+				return fmt.Errorf("Failed to parse network address: %q", sub.Subnet)
+			}
+
+			for _, cn := range clusterNetworks {
+				if cn.ClusterCIDR.Contains(subnetIP.IP) {
+					subrange[cn] = append(subrange[cn], sub.Subnet)
+					break
+				}
+			}
 		}
 	}
 	var subnetAllocatorList []*netutils.SubnetAllocator
 	for _, cn := range clusterNetworks {
-		subnetAllocator, err := netutils.NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, subrange)
+		subnetAllocator, err := netutils.NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, subrange[cn])
 		if err != nil {
 			return err
 		}
