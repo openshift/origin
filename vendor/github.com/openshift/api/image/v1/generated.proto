@@ -469,7 +469,8 @@ message TagReference {
   map<string, string> annotations = 2;
 
   // Optional; if specified, a reference to another image that this tag should point to. Valid values
-  // are ImageStreamTag, ImageStreamImage, and DockerImage.
+  // are ImageStreamTag, ImageStreamImage, and DockerImage.  ImageStreamTag references
+  // can only reference a tag within this same ImageStream.
   optional k8s.io.api.core.v1.ObjectReference from = 3;
 
   // Reference states if the tag will be imported. Default value is false, which means the tag will

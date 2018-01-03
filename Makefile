@@ -140,6 +140,14 @@ update-api:
 	hack/update-generated-swagger-spec.sh
 .PHONY: update-api
 
+# Update vendored dependencies
+#
+# Example:
+#	make update-deps
+update-deps:
+	hack/update-deps.sh
+.PHONY: update-deps
+
 # Build and run the complete test-suite.
 #
 # Example:
@@ -209,7 +217,7 @@ test-tools:
 # Example:
 #   make test-extended SUITE=core
 #   make test-extended SUITE=conformance FOCUS=pods
-# 
+#
 SUITE ?= conformance
 test-extended:
 	test/extended/$(SUITE).sh
@@ -284,7 +292,7 @@ build-rpms-redistributable:
 .PHONY: build-rpms-redistributable
 
 # Build images from the official RPMs
-# 
+#
 # Args:
 #
 # Example:

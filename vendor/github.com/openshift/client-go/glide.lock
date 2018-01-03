@@ -1,5 +1,5 @@
-hash: e95d08b1cb4332fd5f7d65b67a0e014b96050174dfceb919d3a6b3c2dee94ee1
-updated: 2017-12-01T17:14:26.430880152-05:00
+hash: 6da94a04d17790083fe43232e1633957692729a49ee9d4a223dbc8225915b94c
+updated: 2017-12-15T12:18:26.934482511-05:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -25,7 +25,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
   version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
@@ -52,6 +52,8 @@ imports:
   version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
   subpackages:
   - simplelru
+- name: github.com/json-iterator/go
+  version: 36b14963da70d11297d313183d7e6388c8510e1e
 - name: github.com/juju/ratelimit
   version: 5b9ff866471762aa2ab2dced63c9fb6f53921342
 - name: github.com/mailru/easyjson
@@ -61,7 +63,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/openshift/api
-  version: 1ece25cd3e05d47db70fab18c2cf9a943741b912
+  version: 3922a2604003bc9fba95f09e17581e9917270a65
   subpackages:
   - apps/v1
   - authorization/v1
@@ -114,8 +116,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: abe47f56cf980731ebaeddba938f4fcc21527e2b
-  repo: git@github.com:openshift/kubernetes-api
+  version: af4bc157c3a209798fc897f6d4aaaaeb6c2e0d6a
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -146,8 +147,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: 0ede59012bac185794d667987ff32eecd524390d
-  repo: git@github.com:openshift/kubernetes-apimachinery
+  version: 180eddb345a5be3a157cea1c624700ad5bd27b8f
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
@@ -188,8 +188,7 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: cc4f56d30cb3feb36ca21b873a7bbffafe53deb3
-  repo: git@github.com:openshift/kubernetes-client-go
+  version: 78700dec6369ba22221b72770783300f143df150
   subpackages:
   - discovery
   - discovery/fake
@@ -208,7 +207,7 @@ imports:
   - util/flowcontrol
   - util/integer
 - name: k8s.io/code-generator
-  version: 004ef858db39afcedf99c8cb82f6666865f9bea9
+  version: 0ea404e72920cc2978c0bfcc05a37528e01e5bcf
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e

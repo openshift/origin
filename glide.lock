@@ -1,5 +1,5 @@
-hash: 9b485ae9459521abe626017a55313b4308ac73cd0321a14bb49d25e816aaebd4
-updated: 2017-12-14T15:33:35.768942902-05:00
+hash: 3e20074518a5819a98ebf359189a0707a3153ba5835b1020f4efd50030817c30
+updated: 2018-01-02T15:05:33.403891829-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -812,7 +812,8 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: 4d6e6720a7c885c37b4cb083c0d372dda3425120
+  version: 76d724007fdff600a264f86c21e82ec624921ad5
+  repo: git@github.com:openshift/opencontainers-runc
   subpackages:
   - libcontainer
   - libcontainer/apparmor
@@ -839,7 +840,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 420fe685a7b5a26ce1ca907081270e7218bd7920
+  version: 3d85da175a2137c582afc6feb4253ea369b87215
   subpackages:
   - apps/v1
   - authorization/v1
@@ -857,7 +858,7 @@ imports:
   - template/v1
   - user/v1
 - name: github.com/openshift/client-go
-  version: afbc32c35ecb86301a1c276116eb5157d7325007
+  version: 5a2427467298401a1a6f5fc8845003a55072e63e
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -878,6 +879,11 @@ imports:
   - network/clientset/versioned
   - network/clientset/versioned/scheme
   - network/clientset/versioned/typed/network/v1
+  - network/informers/externalversions
+  - network/informers/externalversions/internalinterfaces
+  - network/informers/externalversions/network
+  - network/informers/externalversions/network/v1
+  - network/listers/network/v1
   - project/clientset/versioned
   - project/clientset/versioned/scheme
   - project/clientset/versioned/typed/project/v1
@@ -887,6 +893,11 @@ imports:
   - route/clientset/versioned
   - route/clientset/versioned/scheme
   - route/clientset/versioned/typed/route/v1
+  - route/informers/externalversions
+  - route/informers/externalversions/internalinterfaces
+  - route/informers/externalversions/route
+  - route/informers/externalversions/route/v1
+  - route/listers/route/v1
   - template/clientset/versioned
   - template/clientset/versioned/scheme
   - template/clientset/versioned/typed/template/v1
@@ -906,7 +917,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 3b557eef586b3bc9c43515404bdb98af657cf088
+  version: 7525b8f62295493c15f31261b73d35bed1e4b85b
   subpackages:
   - imageprogress
 - name: github.com/openshift/source-to-image
@@ -1246,7 +1257,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 54d98ad4baf0e046bc3b6f7d159ca009de7843c0
+  version: a53b443767b8371359bc21c8f857d8cd2d229f90
   repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - admission/v1beta1
@@ -1280,7 +1291,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: d1af2d75c27f2415e054c9e87f4e4f461e9b8459
+  version: 39ba0205056018a0a3d0f43f7c76b2393d2dbfe7
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1312,7 +1323,7 @@ imports:
   - pkg/registry/customresource
   - pkg/registry/customresourcedefinition
 - name: k8s.io/apimachinery
-  version: 9666710a63d6c2411d9544d5f9d31fa4f9043536
+  version: 618a852e51809ef38ec9b42ba539383a6d8f1eca
   repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
   - pkg/api/equality
@@ -1378,7 +1389,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 2b30e13a0d6652b75408c85e078702842a0128a2
+  version: 506b0518afb83da963eee1f0f76a4eb69601c4cb
   repo: git@github.com:openshift/kubernetes-apiserver
   subpackages:
   - pkg/admission
@@ -1487,7 +1498,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 0752038789137ee7795faa62a088d76b1372abf9
+  version: 9999b1b0caa040548e1e38737ee762e647ba3ed0
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1665,7 +1676,7 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: 0ea404e72920cc2978c0bfcc05a37528e01e5bcf
+  version: ff3e9afce6dc489cc817ade6556ccf62373dfd56
   repo: git@github.com:openshift/kubernetes-code-generator
   subpackages:
   - cmd/conversion-gen/generators
@@ -1686,7 +1697,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 82dbda776181ed57aa38c5434c905251bf6fdab1
+  version: bd60ab8c0b65f79ed5bc405ab806a55fb3022704
   repo: git@github.com:openshift/kube-aggregator
   subpackages:
   - pkg/apis/apiregistration
@@ -1723,7 +1734,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 350c920997b060eb37f74c870b7b320619cbcfa7
+  version: 1289624871fadf1dd3caf64c4678ab494638f44c
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
@@ -1735,6 +1746,7 @@ imports:
   - cmd/kubeadm/app/apis/kubeadm/fuzzer
   - cmd/kubelet/app
   - cmd/kubelet/app/options
+  - pkg/api
   - pkg/api/endpoints
   - pkg/api/events
   - pkg/api/legacyscheme
@@ -2473,7 +2485,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: 316e6926aa457ce7549a24119a9c0098cae844c1
+  version: 5bbfa182de9efee1b171c3f2d0c83ce9fd04f9fd
   repo: git@github.com:openshift/kubernetes-metrics
   subpackages:
   - pkg/apis/custom_metrics

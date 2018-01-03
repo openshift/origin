@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -16,8 +15,6 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/builder/dockerfile/parser"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/fileutils"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
@@ -38,11 +35,19 @@ type Mount struct {
 
 // ClientExecutor can run Docker builds from a Docker client.
 type ClientExecutor struct {
+	// TempDir is the temporary directory to use for storing file
+	// contents. If unset, the default temporary directory for the
+	// system will be used.
+	TempDir string
 	// Client is a client to a Docker daemon.
 	Client *docker.Client
 	// Directory is the context directory to build from, will use
-	// the current working directory if not set.
+	// the current working directory if not set. Ignored if
+	// ContextArchive is set.
 	Directory string
+	// A compressed or uncompressed tar archive that should be used
+	// as the build context.
+	ContextArchive string
 	// Excludes are a list of file patterns that should be excluded
 	// from the context. Will be set to the contents of the
 	// .dockerignore file if nil.
@@ -556,7 +561,7 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	if e.StrictVolumeOwnership && !e.Volumes.Empty() {
 		return fmt.Errorf("a RUN command was executed after a VOLUME command, which may result in ownership information being lost")
 	}
-	if err := e.Volumes.Save(e.Container.ID, e.Client); err != nil {
+	if err := e.Volumes.Save(e.Container.ID, e.TempDir, e.Client); err != nil {
 		return err
 	}
 
@@ -609,7 +614,7 @@ func (e *ClientExecutor) CopyContainer(container *docker.Container, excludes []s
 		// TODO: reuse source
 		for _, src := range c.Src {
 			glog.V(4).Infof("Archiving %s %t", src, c.Download)
-			r, closer, err := e.Archive(src, c.Dest, c.Download, c.Download, excludes)
+			r, closer, err := e.Archive(src, c.Dest, c.Download, excludes)
 			if err != nil {
 				return err
 			}
@@ -642,74 +647,18 @@ func (c closers) Close() error {
 	return lastErr
 }
 
-func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownload bool, excludes []string) (io.Reader, io.Closer, error) {
-	var closer closers
-	var base string
-	var infos []CopyInfo
-	var err error
+// TODO: this does not support decompressing nested archives for ADD (when the source is a compressed file)
+func (e *ClientExecutor) Archive(src, dst string, allowDownload bool, excludes []string) (io.Reader, io.Closer, error) {
 	if isURL(src) {
 		if !allowDownload {
 			return nil, nil, fmt.Errorf("source can't be a URL")
 		}
-		infos, base, err = DownloadURL(src, dst)
-		if len(base) > 0 {
-			closer = append(closer, func() error { return os.RemoveAll(base) })
-		}
-	} else {
-		if filepath.IsAbs(src) {
-			base = filepath.Dir(src)
-			src, err = filepath.Rel(base, src)
-			if err != nil {
-				return nil, nil, err
-			}
-		} else {
-			base = e.Directory
-		}
-		infos, err = CalcCopyInfo(src, base, allowDecompression, true)
+		return archiveFromURL(src, dst, e.TempDir)
 	}
-	if err != nil {
-		closer.Close()
-		return nil, nil, err
+	if len(e.ContextArchive) > 0 {
+		return archiveFromFile(e.ContextArchive, src, dst, excludes)
 	}
-
-	options := archiveOptionsFor(infos, dst, excludes)
-
-	glog.V(4).Infof("Tar of directory %s %#v", base, options)
-	rc, err := archive.TarWithOptions(base, options)
-	closer = append(closer, rc.Close)
-	return rc, closer, err
-}
-
-func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive.TarOptions {
-	dst = trimLeadingPath(dst)
-	options := &archive.TarOptions{}
-	pm, err := fileutils.NewPatternMatcher(excludes)
-	if err != nil {
-		return options
-	}
-	for _, info := range infos {
-		if ok, _ := pm.Matches(info.Path); ok {
-			continue
-		}
-		options.IncludeFiles = append(options.IncludeFiles, info.Path)
-		if len(dst) == 0 {
-			continue
-		}
-		if options.RebaseNames == nil {
-			options.RebaseNames = make(map[string]string)
-		}
-		if info.FromDir || strings.HasSuffix(dst, "/") || strings.HasSuffix(dst, "/.") || dst == "." {
-			if strings.HasSuffix(info.Path, "/") {
-				options.RebaseNames[info.Path] = dst
-			} else {
-				options.RebaseNames[info.Path] = path.Join(dst, path.Base(info.Path))
-			}
-		} else {
-			options.RebaseNames[info.Path] = dst
-		}
-	}
-	options.ExcludePatterns = excludes
-	return options
+	return archiveFromDisk(e.Directory, src, dst, allowDownload, excludes)
 }
 
 // ContainerVolumeTracker manages tracking archives of specific paths inside a container.
@@ -776,7 +725,7 @@ func (t *ContainerVolumeTracker) Invalidate(path string) {
 
 // Save ensures that all paths tracked underneath this container are archived or
 // returns an error.
-func (t *ContainerVolumeTracker) Save(containerID string, client *docker.Client) error {
+func (t *ContainerVolumeTracker) Save(containerID, tempDir string, client *docker.Client) error {
 	if t == nil {
 		return nil
 	}
@@ -795,7 +744,7 @@ func (t *ContainerVolumeTracker) Save(containerID string, client *docker.Client)
 		if len(archivePath) > 0 {
 			continue
 		}
-		archivePath, err := snapshotPath(dest, containerID, client)
+		archivePath, err := snapshotPath(dest, containerID, tempDir, client)
 		if err != nil {
 			return err
 		}
@@ -829,8 +778,8 @@ func filterTarPipe(w *tar.Writer, r *tar.Reader, fn func(*tar.Header) bool) erro
 
 // snapshotPath preserves the contents of path in container containerID as a temporary
 // archive, returning either an error or the path of the archived file.
-func snapshotPath(path, containerID string, client *docker.Client) (string, error) {
-	f, err := ioutil.TempFile("", "archived-path")
+func snapshotPath(path, containerID, tempDir string, client *docker.Client) (string, error) {
+	f, err := ioutil.TempFile(tempDir, "archived-path")
 	if err != nil {
 		return "", err
 	}
