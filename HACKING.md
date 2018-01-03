@@ -292,6 +292,42 @@ any local interaction with the filesystem or Docker.
 More information about running extended tests can be found in
 [test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
 
+## Changing API
+
+OpenShift is split into three major repositories:
+
+1. https://github.com/openshift/api/ - which holds all the external API objects definitions.
+1. https://github.com/openshift/client-go/ - which holds all the client code (written in Go).
+1. https://github.com/openshift/origin/ - which holds the actual code behind OpenShift.
+
+This split requires additional effort to introduce any API change.  The following steps
+should guide you through the process.
+
+1. The first place to introduce the changes is [openshift/api](https://github.com/openshift/api/).
+Here, you put your external API updates and when you are done run `make generate`.  If you
+need to introduce a new dependency run `make update-deps`, and almost never update `glide.yaml`
+directly.  When you're done open a PR against the aforementioned repository and ping
+[@openshift/api-review](https://github.com/orgs/openshift/teams/api-review) for a review.
+
+2. The next step includes updating the [openshit/client-go](https://github.com/openshift/client-go/)
+with the changes from step 1, since it vendors it.  To do so run `make update-deps` to pick up
+the changes from step 1 and then run `make generate` to update the client code with necessary
+changes.  When you're done open a PR against the aforementioned repository and ping
+[@openshift/sig-master](https://github.com/orgs/openshift/teams/sig-master) for a review.
+
+3. The final step happens in [openshift/origin](https://github.com/openshift/origin/) repository.
+As previously, run `make update-deps` to pick up the changes from previous two steps.  Afterwards
+run `make update` to generated the remaining bits in origin repository. When you're done open
+a PR against the aforementioned repository and ping [@openshift/sig-master](https://github.com/orgs/openshift/teams/sig-master)
+for a review.
+
+If at any point you have doubts about any step of the flow reach out to
+[@openshift/sig-master](https://github.com/orgs/openshift/teams/sig-master) team for help.
+
+NOTE: It may happen that during `make update-deps` step you will pick up the changes introduced
+by someone else in his PR.  In that case sync with the other PR's author and include his changes
+in your PR noting the fact to your reviewer.
+
 ## Installing Godep
 
 OpenShift and Kubernetes use [Godep](https://github.com/tools/godep) for
