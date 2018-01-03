@@ -438,8 +438,12 @@ func (e *EndpointController) syncService(key string) error {
 	readyEps := 0
 	notReadyEps := 0
 	for i := range pods {
-		// TODO: Do we need to copy here?
-		pod := &(*pods[i])
+		podObj, err := api.Scheme.DeepCopy(pods[i])
+		if err != nil {
+			glog.V(5).Infof("Failed to deep copy pod %s/%s: %v", pods[i].Namespace, pods[i].Name, err)
+			continue
+		}
+		pod := podObj.(*v1.Pod)
 
 		for i := range service.Spec.Ports {
 			servicePort := &service.Spec.Ports[i]
