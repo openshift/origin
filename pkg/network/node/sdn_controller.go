@@ -41,7 +41,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 		}
 	}
 	if !found {
-		return errors.New("Local subnet gateway CIDR not found")
+		return errors.New("local subnet gateway CIDR not found")
 	}
 
 	routes, err := netlink.RouteList(l, netlink.FAMILY_V4)
@@ -57,12 +57,12 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 			}
 		}
 		if !found {
-			return errors.New("Cluster CIDR not found")
+			return errors.New("cluster CIDR not found")
 		}
 	}
 
 	if !plugin.oc.AlreadySetUp() {
-		return errors.New("Plugin is not setup")
+		return errors.New("plugin is not setup")
 	}
 
 	return nil
@@ -97,7 +97,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	})
 
 	if err != nil {
-		glog.Errorf("Error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err)
+		glog.Errorf("error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err)
 	}
 }
 
