@@ -24696,7 +24696,6 @@ objects:
         - name: prometheus
           args:
           - --storage.tsdb.retention=6h
-          - --storage.tsdb.min-block-duration=2m
           - --config.file=/etc/prometheus/prometheus.yml
           - --web.listen-address=localhost:9090
           image: ${IMAGE_PROMETHEUS}
