@@ -29022,7 +29022,7 @@
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage."
+      "description": "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage.  ImageStreamTag references can only reference a tag within this same ImageStream."
      },
      "reference": {
       "type": "boolean",
@@ -29682,6 +29682,11 @@
      "refreshToken": {
       "type": "string",
       "description": "RefreshToken is the value by which this token can be renewed. Can be blank."
+     },
+     "inactivityTimeoutSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "InactivityTimeoutSeconds is the value in seconds, from the CreationTimestamp, after which this token can no longer be used. The value is automatically incremented when the token is used."
      }
     }
    },
@@ -29917,6 +29922,11 @@
       "type": "integer",
       "format": "int32",
       "description": "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration."
+     },
+     "accessTokenInactivityTimeoutSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "AccessTokenInactivityTimeoutSeconds overrides the default token inactivity timeout for tokens granted to this client. The value represents the maximum amount of time that can occur between consecutive uses of the token. Tokens become invalid if they are not used within this temporal window. The user will need to acquire a new token to regain access once a token times out. This value needs to be set only if the default set in configuration is not appropriate for this client. Valid values are: - 0: Tokens for this client never time out - X: Tokens time out if there is no activity for X seconds The current minimum allowed value for X is 300 (5 minutes)"
      }
     }
    },

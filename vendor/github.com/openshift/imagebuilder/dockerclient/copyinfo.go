@@ -20,7 +20,7 @@ type CopyInfo struct {
 }
 
 // CalcCopyInfo identifies the source files selected by a Dockerfile ADD or COPY instruction.
-func CalcCopyInfo(origPath, rootPath string, allowLocalDecompression, allowWildcards bool) ([]CopyInfo, error) {
+func CalcCopyInfo(origPath, rootPath string, allowWildcards bool) ([]CopyInfo, error) {
 	origPath = trimLeadingPath(origPath)
 	// Deal with wildcards
 	if allowWildcards && containsWildcards(origPath) {
@@ -40,7 +40,7 @@ func CalcCopyInfo(origPath, rootPath string, allowLocalDecompression, allowWildc
 
 			// Note we set allowWildcards to false in case the name has
 			// a * in it
-			subInfos, err := CalcCopyInfo(trimLeadingPath(strings.TrimPrefix(path, rootPath)), rootPath, allowLocalDecompression, false)
+			subInfos, err := CalcCopyInfo(trimLeadingPath(strings.TrimPrefix(path, rootPath)), rootPath, false)
 			if err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ func CalcCopyInfo(origPath, rootPath string, allowLocalDecompression, allowWildc
 			return nil, err
 		}
 		for _, info := range infos {
-			copyInfos = append(copyInfos, CopyInfo{FileInfo: info, Path: info.Name(), Decompress: allowLocalDecompression, FromDir: true})
+			copyInfos = append(copyInfos, CopyInfo{FileInfo: info, Path: info.Name(), FromDir: true})
 		}
 		return copyInfos, nil
 	}
@@ -72,10 +72,10 @@ func CalcCopyInfo(origPath, rootPath string, allowLocalDecompression, allowWildc
 	}
 
 	origPath = trimTrailingDot(origPath)
-	return []CopyInfo{{FileInfo: fi, Path: origPath, Decompress: allowLocalDecompression}}, nil
+	return []CopyInfo{{FileInfo: fi, Path: origPath}}, nil
 }
 
-func DownloadURL(src, dst string) ([]CopyInfo, string, error) {
+func DownloadURL(src, dst, tempDir string) ([]CopyInfo, string, error) {
 	// get filename from URL
 	u, err := url.Parse(src)
 	if err != nil {
@@ -95,7 +95,7 @@ func DownloadURL(src, dst string) ([]CopyInfo, string, error) {
 		return nil, "", fmt.Errorf("server returned a status code >= 400: %s", resp.Status)
 	}
 
-	tmpDir, err := ioutil.TempDir("", "dockerbuildurl-")
+	tmpDir, err := ioutil.TempDir(tempDir, "dockerbuildurl-")
 	if err != nil {
 		return nil, "", err
 	}

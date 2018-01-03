@@ -16,9 +16,15 @@ build:
 	go build github.com/openshift/api/user/...
 .PHONY: build
 
-clean:
-	rm -rf _output
-.PHONY: clean
+test:
+	go test github.com/openshift/api/pkg/testing/...
+.PHONY: test
+
+verify:
+	hack/verify-deepcopy.sh
+	hack/verify-protobuf.sh
+	hack/verify-swagger-docs.sh
+.PHONY: verify
 
 update-deps:
 	hack/update-deps.sh

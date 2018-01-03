@@ -118,7 +118,7 @@ func TestCalcCopyInfo(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		infos, err := CalcCopyInfo(test.origPath, test.rootPath, false, test.allowWildcards)
+		infos, err := CalcCopyInfo(test.origPath, test.rootPath, test.allowWildcards)
 		if !test.errFn(err) {
 			t.Errorf("%d: unexpected error: %v", i, err)
 			continue

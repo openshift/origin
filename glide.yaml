@@ -4,38 +4,7 @@ excludeDirs:
 - cmd/service-catalog
 - pkg/build/builder
 import:
-- package: github.com/ugorji/go
-  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
-- package: github.com/coreos/etcd
-  version: v3.2.8
-- package: github.com/gonum/graph
-  version: bde6d0fbd9dec5a997e906611fe0364001364c41
-- package: github.com/google/certificate-transparency
-  repo:    git@github.com:openshift/google-certificate-transparency
-  version: master
-- package: github.com/vishvananda/netlink
-  version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
-- package: github.com/emicklei/go-restful-swagger12
-  repo:    https://github.com/openshift/emicklei-go-restful-swagger12
-  version: release-1.0.1
-- package: github.com/containernetworking/plugins
-  version: ~0.6.0
-- package: google.golang.org/appengine
-  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
-- package: github.com/fsouza/go-dockerclient
-  version: 3f9370a4738ba8d0ed6eea63582ca6db5eb48032
-- package: github.com/cloudflare/cfssl
-  repo:    https://github.com/openshift/cloudflare-cfssl
-  version: stable-20160905
-- package: github.com/skynetservices/skydns
-  repo:    https://github.com/openshift/skynetservices-skydns
-  version: release-2.5.3a
-- package: github.com/onsi/ginkgo
-  repo:    git@github.com:openshift/onsi-ginkgo
-  version: release-v1.2.0
-- package: k8s.io/gengo
-  repo:    git@github.com:openshift/kubernetes-gengo
-  version: openshift-3.9
+# kube first
 - package: k8s.io/kube-openapi
   version: 39a7bf85c140f972372c2a0d1ee40adbf0c8bfe1
 - package: k8s.io/code-generator
@@ -65,22 +34,97 @@ import:
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
   version: release-1.9.0-beta.1
+
+# openshift second
 - package: github.com/openshift/api
-  version: release-3.9
+  version: master
 - package: github.com/openshift/client-go
-  version: release-3.9
+  version: master
+- package: github.com/openshift/imagebuilder
+  version: master
+
+# forks third
+# master
+- package: k8s.io/gengo
+  repo:    git@github.com:openshift/kubernetes-gengo
+  version: openshift-3.9
+# master
+- package: github.com/google/certificate-transparency
+  repo:    git@github.com:openshift/google-certificate-transparency
+  version: master
+# master
+- package: github.com/emicklei/go-restful-swagger12
+  repo:    https://github.com/openshift/emicklei-go-restful-swagger12
+  version: release-1.0.1
+# master
+- package: github.com/cloudflare/cfssl
+  repo:    https://github.com/openshift/cloudflare-cfssl
+  version: stable-20160905
+# master
+- package: github.com/skynetservices/skydns
+  repo:    https://github.com/openshift/skynetservices-skydns
+  version: release-2.5.3a
+# master
+- package: github.com/onsi/ginkgo
+  repo:    git@github.com:openshift/onsi-ginkgo
+  version: release-v1.2.0
 - package: github.com/containers/image
   repo:    git@github.com:openshift/containers-image
   version: openshift-3.8
+# pod - sjenning
+- package: github.com/opencontainers/runc
+  repo:    git@github.com:openshift/opencontainers-runc
+  version: openshift-3.9
+
+# ours: shared with kube, but forced by openshift
+# master
+- package: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
+# master
+- package: github.com/coreos/etcd
+  version: v3.2.8
+# cli
+- package: github.com/gonum/graph
+  version: bde6d0fbd9dec5a997e906611fe0364001364c41
+# networking
+- package: github.com/vishvananda/netlink
+  version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
+# because of genapidocs.  This is the current kube level
+- package: github.com/go-openapi/loads
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+
+# mine: specific to openshift
+# networking
+- package: github.com/containernetworking/plugins
+  version: ~0.6.0
+# builds/cli
+- package: github.com/fsouza/go-dockerclient
+  version: 3f9370a4738ba8d0ed6eea63582ca6db5eb48032
+# auth (for testing)
+- package: github.com/vjeantet/ldapserver
+  version: v1.0
+# master
+- package: github.com/getsentry/raven-go
+  version: 32a13797442ccb601b11761d74232773c1402d14
+# auth (for sally)
+- package: github.com/RangelReale/osin
+  version: 829186e6c125f77df6d6ae0162a9ba59fad91e2d
+# auth (for sally)
+- package: github.com/RangelReale/osincli
+  version: fababb0555f21315d1a34af6615a16eaab44396b
+# new-app
+- package: github.com/joho/godotenv
+  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
+
+# why do we have this?
+- package: google.golang.org/appengine
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+
+# yours that I suspect aren't pinning because vendor.conf is respected
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
   version: 47536c89fcc545a87745e1a1573addc439409165
-- package: github.com/vjeantet/ldapserver
-  version: v1.0
+
 # ours: containers/storage uses it, but oc/bootstrap does too.  pinning to last level
 - package: github.com/docker/engine-api
   version: dea108d3aa0c67d7162a3fd8aa65f38a430019fd
-
-# ours because of genapidocs.  This is the current kube level
-- package: github.com/go-openapi/loads
-  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
