@@ -1,0 +1,44 @@
+{
+  "Kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "imagestreamTemplate",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "This template will create a single imageStream.",
+      "tags": ""
+    }
+  },
+  "objects": [
+    {
+      "apiVersion": "v1",
+      "kind": "ImageStream",
+      "metadata": {
+        "name": "imagestream${IDENTIFIER}"
+      },
+      "spec": {
+        "dockerImageRepository": "${IMAGE}"
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "IDENTIFIER",
+      "description": "Number to append to the name of resources",
+      "value": "1",
+      "required": true
+    },
+    {
+      "name": "IMAGE",
+      "description": "Image to use for this image stream",
+      "value": "openshift/hello-openshift",
+      "required": false
+    }
+  ],
+  "labels": {
+    "template": "imagestreamTemplate"
+  }
+
+}
+
+

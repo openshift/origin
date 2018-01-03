@@ -1,0 +1,66 @@
+provider: local
+ClusterLoader:
+  cleanup: true
+  projects:
+    - num: 1
+      basename: build-config-template
+      tuning: default
+      templates:
+        - num: 3
+          file: ./examples/cluster-loader/build-config-template.json
+
+    - num: 1
+      basename: build-template
+      tuning: default
+      templates:
+        - num: 6
+          file: ./examples/cluster-loader/build-template.json
+
+    - num: 1
+      basename: image-stream-template
+      tuning: default
+      templates:
+        - num: 1
+          file: ./examples/cluster-loader/image-stream-template.json
+
+    - num: 1
+      basename: deployment-config-1rep-template
+      tuning: default
+      templates:
+        - num: 2
+          file: ./examples/cluster-loader/deployment-config-1rep-template.json
+          parameters:
+            ENV_VALUE: "asodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij12"
+
+    - num: 1
+      basename: deployment-config-2rep-template
+      tuning: default
+      templates:
+        - num: 2
+          file: ./examples/cluster-loader/deployment-config-2rep-template.json
+          parameters:
+            ENV_VALUE: "asodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij12"
+
+    - num: 1
+      basename: deployment-config-2rep-template
+      tuning: default
+      templates:
+        - num: 2
+          file: ./examples/cluster-loader/deployment-config-2rep-template.json
+          parameters:
+            ENV_VALUE: "asodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij0emc2oed2ed2ed2e2easodfn209e8j0eij12"
+
+    - num: 20
+      file: ./examples/cluster-loader/ssh-secret-template.json
+
+    - num: 3
+      file: ./examples/cluster-loader/route-template.json
+
+  tuningsets:
+    - name: default
+      pods:
+        stepping:
+          stepsize: 5
+          pause: 0 min
+        rate_limit:
+          delay: 0 ms
