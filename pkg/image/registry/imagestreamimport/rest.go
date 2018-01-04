@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/registryclient"
 	"github.com/openshift/origin/pkg/image/util"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
@@ -201,7 +202,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 		}
 		return secretsv1, nil
 	})
-	importCtx := importer.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
+	importCtx := registryclient.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
 	imports := r.importFn(importCtx)
 	if err := imports.Import(ctx.(gocontext.Context), isi, stream); err != nil {
 		return nil, kapierrors.NewInternalError(err)

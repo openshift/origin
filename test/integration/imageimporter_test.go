@@ -25,6 +25,7 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/registryclient"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -796,7 +797,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 
 func TestImageStreamImportDockerHub(t *testing.T) {
 	rt, _ := restclient.TransportFor(&restclient.Config{})
-	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx := registryclient.NewContext(rt, nil)
 
 	imports := &imageapi.ImageStreamImport{
 		Spec: imageapi.ImageStreamImportSpec{
@@ -857,7 +858,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 
 func TestImageStreamImportQuayIO(t *testing.T) {
 	rt, _ := restclient.TransportFor(&restclient.Config{})
-	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx := registryclient.NewContext(rt, nil)
 
 	repositoryName := quayRegistryName + "/coreos/etcd"
 	imports := &imageapi.ImageStreamImport{
@@ -910,7 +911,7 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 
 func TestImageStreamImportRedHatRegistry(t *testing.T) {
 	rt, _ := restclient.TransportFor(&restclient.Config{})
-	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx := registryclient.NewContext(rt, nil)
 
 	repositoryName := pulpRegistryName + "/rhel7"
 	// test without the client on the context
@@ -947,7 +948,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 		},
 	}
 	context := gocontext.WithValue(gocontext.Background(), importer.ContextKeyV1RegistryClient, dockerregistry.NewClient(20*time.Second, false))
-	importCtx = importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx = registryclient.NewContext(rt, nil)
 	err := retryWhenUnreachable(t, func() error {
 		i = importer.NewImageStreamImporter(importCtx, 3, nil, nil)
 		if err := i.Import(context, imports, &imageapi.ImageStream{}); err != nil {

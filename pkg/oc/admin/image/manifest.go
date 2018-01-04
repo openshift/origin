@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/client-go/rest"
 
-	"github.com/openshift/origin/pkg/image/importer"
+	"github.com/openshift/origin/pkg/image/registryclient"
 )
 
 // getImageManifestByIDFromRegistry retrieves the image manifest from the registry using the basic
@@ -17,7 +17,7 @@ import (
 func getImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID, username, password string, insecure bool) ([]byte, error) {
 	ctx := context.Background()
 
-	credentials := importer.NewBasicCredentials()
+	credentials := registryclient.NewBasicCredentials()
 	credentials.Add(registry, username, password)
 
 	insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
@@ -25,7 +25,7 @@ func getImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID
 		return nil, err
 	}
 
-	repo, err := importer.NewContext(http.DefaultTransport, insecureRT).
+	repo, err := registryclient.NewContext(http.DefaultTransport, insecureRT).
 		WithCredentials(credentials).
 		Repository(ctx, registry, repositoryName, insecure)
 	if err != nil {

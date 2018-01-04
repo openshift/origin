@@ -1,13 +1,13 @@
-package importer
+package dockercredentials
 
 import (
 	"net/url"
 	"strings"
-	"sync"
 
 	"github.com/golang/glog"
 
-	kapiv1 "k8s.io/api/core/v1"
+	"github.com/docker/distribution/registry/client/auth"
+
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	"github.com/openshift/origin/pkg/image/registryclient"
@@ -17,66 +17,25 @@ var (
 	emptyKeyring = &credentialprovider.BasicDockerKeyring{}
 )
 
-func NewCredentialsForSecrets(secrets []kapiv1.Secret) *SecretCredentialStore {
-	return &SecretCredentialStore{
-		secrets:           secrets,
+func NewLocal() auth.CredentialStore {
+	return &keyringCredentialStore{
+		DockerKeyring:     credentialprovider.NewDockerKeyring(),
 		RefreshTokenStore: registryclient.NewRefreshTokenStore(),
 	}
 }
 
-func NewLazyCredentialsForSecrets(secretsFn func() ([]kapiv1.Secret, error)) *SecretCredentialStore {
-	return &SecretCredentialStore{
-		secretsFn:         secretsFn,
-		RefreshTokenStore: registryclient.NewRefreshTokenStore(),
-	}
-}
-
-type SecretCredentialStore struct {
-	lock      sync.Mutex
-	secrets   []kapiv1.Secret
-	secretsFn func() ([]kapiv1.Secret, error)
-	err       error
-	keyring   credentialprovider.DockerKeyring
-
+type keyringCredentialStore struct {
+	credentialprovider.DockerKeyring
 	registryclient.RefreshTokenStore
 }
 
-func (s *SecretCredentialStore) Basic(url *url.URL) (string, string) {
-	return basicCredentialsFromKeyring(s.init(), url)
+func (s *keyringCredentialStore) Basic(url *url.URL) (string, string) {
+	return BasicFromKeyring(s.DockerKeyring, url)
 }
 
-func (s *SecretCredentialStore) Err() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	return s.err
-}
-
-func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	if s.keyring != nil {
-		return s.keyring
-	}
-
-	// lazily load the secrets
-	if s.secrets == nil {
-		if s.secretsFn != nil {
-			s.secrets, s.err = s.secretsFn()
-		}
-	}
-
-	// TODO: need a version of this that is best effort secret - otherwise one error blocks all secrets
-	keyring, err := credentialprovider.MakeDockerKeyring(s.secrets, emptyKeyring)
-	if err != nil {
-		glog.V(5).Infof("Loading keyring failed for credential store: %v", err)
-		s.err = err
-		keyring = emptyKeyring
-	}
-	s.keyring = keyring
-	return keyring
-}
-
-func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, target *url.URL) (string, string) {
+// BasicFromKeyring finds Basic authorization credentials from a Docker keyring for the given URL as username and
+// password. It returns empty strings if no such URL matches.
+func BasicFromKeyring(keyring credentialprovider.DockerKeyring, target *url.URL) (string, string) {
 	// TODO: compare this logic to Docker authConfig in v2 configuration
 	var value string
 	if len(target.Scheme) == 0 || target.Scheme == "https" {
@@ -104,12 +63,12 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 		// do a special case check for docker.io to match historical lookups when we respond to a challenge
 		if value == "auth.docker.io/token" {
 			glog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "index.docker.io/v1")
-			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "index.docker.io", Path: "/v1"})
+			return BasicFromKeyring(keyring, &url.URL{Host: "index.docker.io", Path: "/v1"})
 		}
 		// docker 1.9 saves 'docker.io' in config in f23, see https://bugzilla.redhat.com/show_bug.cgi?id=1309739
 		if value == "index.docker.io" {
 			glog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "docker.io")
-			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "docker.io"})
+			return BasicFromKeyring(keyring, &url.URL{Host: "docker.io"})
 		}
 
 		// try removing the canonical ports for the given requests
@@ -118,7 +77,7 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 			host := strings.SplitN(target.Host, ":", 2)[0]
 			glog.V(5).Infof("Being asked for %s (%s), trying %s without port", target, value, host)
 
-			return basicCredentialsFromKeyring(keyring, &url.URL{Scheme: target.Scheme, Host: host, Path: target.Path})
+			return BasicFromKeyring(keyring, &url.URL{Scheme: target.Scheme, Host: host, Path: target.Path})
 		}
 
 		glog.V(5).Infof("Unable to find a secret to match %s (%s)", target, value)

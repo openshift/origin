@@ -1,45 +1,14 @@
-package importer
+package dockercredentials
 
 import (
-	"io/ioutil"
 	"net/url"
 	"reflect"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
-
-func TestCredentialsForSecrets(t *testing.T) {
-	data, err := ioutil.ReadFile("../../../test/testdata/image-secrets.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	secrets := obj.(*kapi.SecretList)
-	secretsv1 := make([]corev1.Secret, len(secrets.Items))
-	for i, secret := range secrets.Items {
-		err := kapiv1.Convert_core_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
-		if err != nil {
-			t.Logf("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
-			continue
-		}
-	}
-	store := NewCredentialsForSecrets(secretsv1)
-	user, pass := store.Basic(&url.URL{Scheme: "https", Host: "172.30.213.112:5000"})
-	if user != "serviceaccount" || len(pass) == 0 {
-		t.Errorf("unexpected username and password: %s %s", user, pass)
-	}
-}
 
 type mockKeyring struct {
 	calls []string
@@ -52,13 +21,13 @@ func (k *mockKeyring) Lookup(image string) ([]credentialprovider.LazyAuthConfigu
 
 func TestHubFallback(t *testing.T) {
 	k := &mockKeyring{}
-	basicCredentialsFromKeyring(k, &url.URL{Host: "auth.docker.io", Path: "/token"})
+	BasicFromKeyring(k, &url.URL{Host: "auth.docker.io", Path: "/token"})
 	if !reflect.DeepEqual([]string{"auth.docker.io/token", "index.docker.io", "docker.io"}, k.calls) {
 		t.Errorf("unexpected calls: %v", k.calls)
 	}
 }
 
-func Test_basicCredentialsFromKeyring(t *testing.T) {
+func Test_BasicFromKeyring(t *testing.T) {
 	fn := func(host string, entry credentialprovider.DockerConfigEntry) credentialprovider.DockerKeyring {
 		k := &credentialprovider.BasicDockerKeyring{}
 		k.Add(map[string]credentialprovider.DockerConfigEntry{host: entry})
@@ -103,12 +72,12 @@ func Test_basicCredentialsFromKeyring(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			user, password := basicCredentialsFromKeyring(tt.args.keyring, tt.args.target)
+			user, password := BasicFromKeyring(tt.args.keyring, tt.args.target)
 			if user != tt.user {
-				t.Errorf("basicCredentialsFromKeyring() user = %v, actual = %v", user, tt.user)
+				t.Errorf("BasicFromKeyring() user = %v, actual = %v", user, tt.user)
 			}
 			if password != tt.password {
-				t.Errorf("basicCredentialsFromKeyring() password = %v, actual = %v", password, tt.password)
+				t.Errorf("BasicFromKeyring() password = %v, actual = %v", password, tt.password)
 			}
 		})
 	}
