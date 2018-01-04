@@ -5,7 +5,7 @@
 #
 FROM openshift/origin
 
-RUN INSTALL_PKGS="haproxy" && \
+RUN INSTALL_PKGS="haproxy18" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
