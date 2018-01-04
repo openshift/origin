@@ -17,19 +17,33 @@ function ensure-master-config() {
     return
   fi
 
-  local ip_addr
-  ip_addr="$(ip addr | grep inet | grep eth0 | awk '{print $2}' | sed -e 's+/.*++')"
   local name
   name="$(hostname)"
+
+  local ip_addr1
+  ip_addr1="$(ip addr | grep inet | grep eth0 | awk '{print $2}' | sed -e 's+/.*++')"
+
+  local ip_addr2
+  ip_addr2="$(ip addr | grep inet | (grep eth1 || true) | awk '{print $2}' | sed -e 's+/.*++')"
+
+  local ip_addrs
+  local serving_ip_addr
+  if [[ ! -z "${ip_addr2}" ]]; then
+    ip_addrs="${ip_addr1},${ip_addr2}"
+    serving_ip_addr="${ip_addr2}"
+  else
+    ip_addrs="${ip_addr1}"
+    serving_ip_addr="${ip_addr1}"
+  fi
 
   /usr/local/bin/oc adm ca create-master-certs \
     --overwrite=false \
     --cert-dir="${master_path}" \
-    --master="https://${ip_addr}:8443" \
-    --hostnames="${ip_addr},${name}"
+    --master="https://${serving_ip_addr}:8443" \
+    --hostnames="${ip_addrs},${name}"
 
   /usr/local/bin/openshift start master --write-config="${master_path}" \
-    --master="https://${ip_addr}:8443" \
+    --master="https://${serving_ip_addr}:8443" \
     --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
     ${OPENSHIFT_ADDITIONAL_ARGS}
 
