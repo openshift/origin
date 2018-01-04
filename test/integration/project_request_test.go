@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -115,7 +117,22 @@ func TestProjectRequestError(t *testing.T) {
 		for _, e := range events {
 			t.Logf("%s %#v", e.Type, e.Object)
 		}
-		t.Errorf("expected 1 namespace to be added and deleted, got %d added / %d deleted", added, deleted)
+		// TODO remove this additional wait.Poll when namespace termination will be properly fixed.
+		t.Logf("expected 1 namespace to be added and deleted, got %d added / %d deleted", added, deleted)
+		t.Logf("waiting additional 30 seconds to see if namespace will be removed...")
+		if err := wait.Poll(500*time.Millisecond, 50*time.Second, func() (bool, error) {
+			_, err := kubeClientset.Core().Namespaces().Get(ns, metav1.GetOptions{})
+			if err != nil {
+				if strings.Contains(err.Error(), "not found") {
+					return true, nil
+				}
+				return true, err
+			}
+			return false, nil
+		}); err != nil {
+			t.Errorf("expected 1 namespace to be added and deleted, got %d added / %d deleted", added, deleted)
+		}
+
 	}
 	if added, deleted, events := pairCreationDeletion(roleWatch); added != deleted || added != 4 {
 		for _, e := range events {
