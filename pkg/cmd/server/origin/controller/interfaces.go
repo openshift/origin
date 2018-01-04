@@ -43,6 +43,10 @@ type ControllerContext struct {
 
 	// Stop is the stop channel
 	Stop <-chan struct{}
+
+	// InformersStarted is closed after all of the controllers have been initialized and are running.  After this point it is safe,
+	// for an individual controller to start the shared informers. Before it is closed, they should not.
+	InformersStarted chan struct{}
 }
 
 // OpenshiftControllerOptions contain the options used to run the controllers.  Eventually we need to construct a way to properly

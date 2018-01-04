@@ -28,6 +28,7 @@ func newControllerContext(
 	kubeExternal kclientsetexternal.Interface,
 	informers *informers,
 	stopCh <-chan struct{},
+	informersStarted chan struct{},
 ) origincontrollers.ControllerContext {
 
 	// divide up the QPS since it re-used separately for every client
@@ -60,6 +61,7 @@ func newControllerContext(
 		SecurityInformers:      informers.securityInformers,
 		TemplateInformers:      informers.templateInformers,
 		Stop:                   stopCh,
+		InformersStarted:       informersStarted,
 	}
 
 	return openshiftControllerContext
