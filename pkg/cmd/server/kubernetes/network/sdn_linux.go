@@ -3,6 +3,8 @@ package network
 import (
 	"strings"
 
+	"github.com/golang/glog"
+
 	kclientv1 "k8s.io/api/core/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -13,11 +15,11 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
 	"github.com/openshift/origin/pkg/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.Interface, kubeClientset kclientset.Interface, kubeClient kinternalclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *kubeproxyconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
@@ -72,37 +74,22 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 }
 
 func GetNodeIPs(options configapi.NodeConfig) (string, string, error) {
-	podTrafficNodeIP, err := getIPFromIface(options.NetworkConfig.PodTrafficNodeIP, options.NetworkConfig.PodTrafficNodeInterface)
+	podTrafficNodeIP, err := nodeoptions.GetPodTrafficNodeIP(options)
 	if err != nil {
 		return "", "", err
 	}
 
-	if len(podTrafficNodeIP) == 0 {
-		if options.KubeletArguments != nil {
-			if ips, ok := options.KubeletArguments["node-ip"]; ok {
-				podTrafficNodeIP = ips[0]
-			}
-		}
-	}
-
-	masterTrafficNodeIP, err := getIPFromIface(options.NetworkConfig.MasterTrafficNodeIP, options.NetworkConfig.MasterTrafficNodeInterface)
+	masterTrafficNodeIP, err := nodeoptions.GetIPFromIface(options.NetworkConfig.MasterTrafficNodeIP, options.NetworkConfig.MasterTrafficNodeInterface)
 	if err != nil {
 		return "", "", err
 	}
+
+	// If master and pod traffic node IPs are same, then don't set the master traffic node IP
+	// as we don't need to set node annotation in this case
+	if masterTrafficNodeIP == podTrafficNodeIP {
+		masterTrafficNodeIP = ""
+	}
+	glog.Infof("Resolved pod traffic node IP to %q and master traffic node IP to %q", podTrafficNodeIP, masterTrafficNodeIP)
 
 	return podTrafficNodeIP, masterTrafficNodeIP, nil
-}
-
-func getIPFromIface(nodeIP, nodeIface string) (string, error) {
-	if len(nodeIP) == 0 {
-		if len(nodeIface) > 0 {
-			ips, err := netutils.GetIPAddrsFromNetworkInterface(nodeIface)
-			if err != nil {
-				return "", err
-			}
-			nodeIP = ips[0].String()
-		}
-	}
-
-	return nodeIP, nil
 }
