@@ -103,6 +103,27 @@ func TestInstanceUpdate(t *testing.T) {
 			shouldGenerationIncrement: true,
 			shouldPlanRefClear:        true,
 		},
+		{
+			name: "plan change using k8s name",
+			older: func() *servicecatalog.ServiceInstance {
+				i := getTestInstance()
+				i.Spec.ClusterServiceClassExternalName = ""
+				i.Spec.ClusterServicePlanExternalName = ""
+				i.Spec.ClusterServiceClassName = "class-name"
+				i.Spec.ClusterServicePlanName = "old-plan-name"
+				return i
+			}(),
+			newer: func() *servicecatalog.ServiceInstance {
+				i := getTestInstance()
+				i.Spec.ClusterServiceClassExternalName = ""
+				i.Spec.ClusterServicePlanExternalName = ""
+				i.Spec.ClusterServiceClassName = "class-name"
+				i.Spec.ClusterServicePlanName = "new-plan-name"
+				return i
+			}(),
+			shouldGenerationIncrement: true,
+			shouldPlanRefClear:        true,
+		},
 	}
 
 	for _, tc := range cases {

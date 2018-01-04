@@ -71,6 +71,10 @@ spec:
         - --feature-gates
         - OriginatingIdentity=true
         {{- end }}
+        {{- if .Values.asyncBindingOperationsEnabled }}
+        - --feature-gates
+        - AsyncBindingOperations=true
+        {{- end }}
         ports:
         - containerPort: 8080
         volumeMounts:

@@ -46,10 +46,25 @@ If you don't already have an appropriate Helm version, see the
 
 ### Helm Charts
 
-You need to download the
-[charts/catalog](https://github.com/kubernetes-incubator/service-catalog/tree/master/charts/catalog)
-directory to your local machine. Please refer to
-[this guide](https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/devguide.md#2-clone-fork-to-local-storage).
+You need to add the service-catalog Helm repository to your local machine.
+Execute the following to do so:
+
+```console
+helm repo add svc-cat https://svc-catalog-charts.storage.googleapis.com
+```
+
+To ensure that it worked, execute the following:
+
+```console
+helm search service-catalog
+```
+
+You should see the following output:
+
+```console
+NAME           	VERSION	DESCRIPTION
+svc-cat/catalog	0.0.1  	service-catalog API server and controller-manag...
+```
 
 ## RBAC
 
@@ -114,6 +129,6 @@ executable.
 Use Helm to install the Service Catalog. From the root of this repository:
 
 ```console
-helm install charts/catalog \
+helm install svc-cat/catalog \
     --name catalog --namespace catalog
 ```

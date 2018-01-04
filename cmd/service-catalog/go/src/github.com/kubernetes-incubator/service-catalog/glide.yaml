@@ -4,6 +4,9 @@ import:
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
   - swagger
+# This is a dependency of github.com/emicklei/go-restful
+- package: google.golang.org/appengine
+  version: 24e4144ec923c2374f6b06610c0df16a9222c3d9
 - package: github.com/PuerkitoBio/purell
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - package: github.com/spf13/pflag
@@ -90,4 +93,6 @@ import:
 - package: github.com/gorilla/context
   version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
 - package: github.com/pmorie/go-open-service-broker-client
-  version: 9e257974620c1db53c4d3549fd9eddaa2d2d653e 
+  version: 31d8027f493f8f23f850415d171c7c52a972a6f2
+- package: github.com/coreos/etcd
+  version: ^3.2.9
