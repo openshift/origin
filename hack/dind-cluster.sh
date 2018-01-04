@@ -125,6 +125,7 @@ function start() {
 
   if [[ -n "${ADDITIONAL_NETWORK_INTERFACE}" ]]; then
     add-network-interface-to-nodes
+    update-master-config
     update-node-config
   fi
 
@@ -168,7 +169,7 @@ function add-network-interface-to-nodes () {
 
   sudo mkdir -p "${netns_path}"
 
-  for pid in $( ${DOCKER_CMD} ps -q --filter "name=${NODE_PREFIX}" | xargs ${DOCKER_CMD} inspect --format '{{.State.Pid}}' ); do
+  for pid in $( ${DOCKER_CMD} ps -q --filter "name=${MASTER_NAME}|${NODE_PREFIX}" | xargs ${DOCKER_CMD} inspect --format '{{.State.Pid}}' ); do
     local bridge="${BRIDGE_PREFIX}${bridge_num}"
     # Create new bridge
     sudo brctl addbr "${bridge}"
@@ -194,6 +195,21 @@ function add-network-interface-to-nodes () {
     (( bridge_num += 1 ))
     (( ipam_num += 1 ))
   done
+}
+
+function update-master-config() {
+  local config_path="/data/openshift.local.config"
+  local master_config_path="${config_path}/master"
+  local master_config_file="${master_config_path}/master-config.yaml"
+
+  # Remove master config file to trigger master config regeneration
+  #
+  # openshift-generate-master-config.sh script repopulates master config
+  # with certs for both eth0 and eth1 IP addrs.
+  #
+  # openshift-master service executes openshift-generate-master-config.sh
+  # as pre start hook.
+  rm -f "${master_config_file}"
 }
 
 function update-node-config() {
