@@ -31,7 +31,14 @@ func (plugin *OsdnNode) AnnotateMasterTrafficNodeIP() error {
 		var err error
 		node, err = plugin.kClient.Core().Nodes().Get(plugin.hostName, metav1.GetOptions{})
 		if err == nil {
-			return true, nil
+			if len(node.Status.Addresses) > 0 &&
+				node.Status.Addresses[0].Address != "" &&
+				node.Status.Addresses[0].Address == plugin.localIP {
+				return true, nil
+			} else {
+				glog.Warningf("Found local node object: %s, Waiting for node address to be updated...", plugin.hostName)
+				return false, nil
+			}
 		} else if kapierrors.IsNotFound(err) {
 			glog.Warningf("Could not find local node object: %s, Waiting...", plugin.hostName)
 			return false, nil
