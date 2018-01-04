@@ -96,7 +96,7 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 		ImagePullProgressDeadline: c.KubeletServer.ImagePullProgressDeadline.Duration,
 	}
 	client := dockertools.ConnectToDockerOrDie(endpoint, c.KubeletServer.RuntimeRequestTimeout.Duration, c.KubeletServer.ImagePullProgressDeadline.Duration, false, false)
-	dockerClient := &dockerutil.KubeDocker{client}
+	dockerClient := &dockerutil.KubeDocker{Interface: client}
 
 	if url, err := url.Parse(endpoint); err == nil && url.Scheme == "unix" && len(url.Path) > 0 {
 		s, err := os.Stat(url.Path)
