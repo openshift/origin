@@ -13325,6 +13325,7 @@ objects:
     annotations:
       serviceaccounts.openshift.io/oauth-redirectreference.prom: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"prometheus"}}'
       serviceaccounts.openshift.io/oauth-redirectreference.alerts: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"alerts"}}'
+      serviceaccounts.openshift.io/oauth-redirectreference.alertmanager: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"alertmanager"}}'
 - apiVersion: authorization.openshift.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -13374,6 +13375,81 @@ objects:
     namespace: "${NAMESPACE}"
   stringData:
     session_secret: "${SESSION_SECRET}="
+
+# Create a fully end-to-end TLS connection to the alert proxy
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: alerts
+    namespace: "${NAMESPACE}"
+  spec:
+    to:
+      name: alerts
+    tls:
+      termination: Reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: alerts-tls
+    labels:
+      name: alerts
+    name: alerts
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - name: alerts
+      port: 443
+      protocol: TCP
+      targetPort: 9443
+    selector:
+      app: prometheus
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: alerts-proxy
+    namespace: "${NAMESPACE}"
+  stringData:
+    session_secret: "${SESSION_SECRET}="
+
+# Create a fully end-to-end TLS connection to the alertmanager proxy
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+  spec:
+    to:
+      name: alertmanager
+    tls:
+      termination: Reencrypt
+      insecureEdgeTerminationPolicy: Redirect
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: alertmanager-tls
+    labels:
+      name: alertmanager
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - name: alertmanager
+      port: 443
+      protocol: TCP
+      targetPort: 10443
+    selector:
+      app: prometheus
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: alertmanager-proxy
+    namespace: "${NAMESPACE}"
+  stringData:
+    session_secret: "${SESSION_SECRET}="
+
 - apiVersion: apps/v1beta1
   kind: StatefulSet
   metadata:
@@ -13421,9 +13497,9 @@ objects:
           - -skip-auth-regex=^/metrics
           volumeMounts:
           - mountPath: /etc/tls/private
-            name: prometheus-tls
+            name: prometheus-tls-secret
           - mountPath: /etc/proxy/secrets
-            name: prometheus-secrets
+            name: prometheus-proxy-secret
           - mountPath: /prometheus
             name: prometheus-data
 
@@ -13466,9 +13542,9 @@ objects:
           - -cookie-secret-file=/etc/proxy/secrets/session_secret
           volumeMounts:
           - mountPath: /etc/tls/private
-            name: alerts-tls
+            name: alerts-tls-secret
           - mountPath: /etc/proxy/secrets
-            name: alerts-secrets
+            name: alerts-proxy-secrets
 
         - name: alert-buffer
           args:
@@ -13477,10 +13553,38 @@ objects:
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - mountPath: /alert-buffer
-            name: alert-buffer-data
+            name: alerts-data
           ports:
           - containerPort: 9099
             name: alert-buf
+
+        - name: alertmanager-proxy
+          image: ${IMAGE_PROXY}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 10443
+            name: web
+          args:
+          - -provider=openshift
+          - -https-address=:10443
+          - -http-address=
+          - -email-domain=*
+          - -upstream=http://localhost:9093
+          - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
+          - -openshift-ca=/etc/pki/tls/cert.pem
+          - -openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          - '-openshift-sar={"resource": "namespaces", "verb": "get", "resourceName": "${NAMESPACE}", "namespace": "${NAMESPACE}"}'
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "resourceName": "${NAMESPACE}", "namespace": "${NAMESPACE}"}}'
+          - -tls-cert=/etc/tls/private/tls.crt
+          - -tls-key=/etc/tls/private/tls.key
+          - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -skip-auth-regex=^/metrics
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: alertmanager-tls-secret
+          - mountPath: /etc/proxy/secrets
+            name: alertmanager-proxy-secret
 
         - name: alertmanager
           args:
@@ -13498,31 +13602,40 @@ objects:
 
         restartPolicy: Always
         volumes:
+
         - name: prometheus-config
           configMap:
             defaultMode: 420
             name: prometheus
-        - name: prometheus-secrets
+        - name: prometheus-proxy-secret
           secret:
             secretName: prometheus-proxy
-        - name: prometheus-tls
+        - name: prometheus-tls-secret
           secret:
             secretName: prometheus-tls
         - name: prometheus-data
           emptyDir: {}
+
         - name: alertmanager-config
           configMap:
             defaultMode: 420
-            name: prometheus-alerts
-        - name: alerts-secrets
+            name: alertmanager
+        - name: alertmanager-tls-secret
+          secret:
+            secretName: alertmanager-tls  
+        - name: alertmanager-proxy-secret
+          secret:
+            secretName: alertmanager-proxy         
+
+        - name: alerts-proxy-secrets
           secret:
             secretName: alerts-proxy
-        - name: alerts-tls
+        - name: alerts-tls-secret
           secret:
-            secretName: prometheus-alerts-tls
+            secretName: alerts-tls
         - name: alertmanager-data
           emptyDir: {}
-        - name: alert-buffer-data #TODO: make persistent
+        - name: alerts-data
           emptyDir: {}
 
 - apiVersion: v1
@@ -13725,47 +13838,10 @@ objects:
           - targets:
             - "localhost:9093"
 
-# Create a fully end-to-end TLS connection to the alert proxy
-- apiVersion: route.openshift.io/v1
-  kind: Route
-  metadata:
-    name: alerts
-    namespace: "${NAMESPACE}"
-  spec:
-    to:
-      name: alerts
-    tls:
-      termination: Reencrypt
-      insecureEdgeTerminationPolicy: Redirect
-- apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: prometheus-alerts-tls
-    labels:
-      name: alerts
-    name: alerts
-    namespace: "${NAMESPACE}"
-  spec:
-    ports:
-    - name: alerts
-      port: 443
-      protocol: TCP
-      targetPort: 9443
-    selector:
-      app: prometheus
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: alerts-proxy
-    namespace: "${NAMESPACE}"
-  stringData:
-    session_secret: "${SESSION_SECRET}="
-
 - apiVersion: v1
   kind: ConfigMap
   metadata:
-    name: prometheus-alerts
+    name: alertmanager
     namespace: "${NAMESPACE}"
   data:
     alertmanager.yml: |
