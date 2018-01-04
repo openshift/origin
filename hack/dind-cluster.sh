@@ -124,7 +124,7 @@ function start() {
   done
 
   if [[ -n "${ADDITIONAL_NETWORK_INTERFACE}" ]]; then
-    add-network-interface-to-nodes
+    add-network-interface-to-nodes "${config_root}"
     update-master-config
     update-node-config
   fi
@@ -163,18 +163,19 @@ cluster's rc file to configure the bash environment:
 }
 
 function add-network-interface-to-nodes () {
-  local bridge_num=${BRIDGE_START_NUM}
-  local ipam_num=${IPAM_START_NUM}
-  local netns_path="/var/run/netns"
+  config_root=$1
 
+  # Create new bridge
+  sudo brctl addbr "${ADDITIONAL_BRIDGE_NAME}"
+  # Assign IPAM to the bridge
+  sudo ifconfig "${ADDITIONAL_BRIDGE_NAME}" "172.${ADDITIONAL_NETWORK_NUM}.0.1/16"
+  echo "OPENSHIFT_ADDITIONAL_BRIDGE_NAME=${ADDITIONAL_BRIDGE_NAME}" >> "${config_root}/dind-env"
+
+  local netns_path="/var/run/netns"
   sudo mkdir -p "${netns_path}"
 
+  local num=3
   for pid in $( ${DOCKER_CMD} ps -q --filter "name=${MASTER_NAME}|${NODE_PREFIX}" | xargs ${DOCKER_CMD} inspect --format '{{.State.Pid}}' ); do
-    local bridge="${BRIDGE_PREFIX}${bridge_num}"
-    # Create new bridge
-    sudo brctl addbr "${bridge}"
-    # Assign IPAM to the bridge
-    sudo ifconfig "${bridge}" "172.${ipam_num}.0.1/16"
     # Link container network namespace so that 'ip netns' can recognize
     sudo ln -s /proc/"${pid}"/ns/net "${netns_path}/ns-${pid}"
     # Create veth pair
@@ -184,16 +185,15 @@ function add-network-interface-to-nodes () {
     # Rename interface name inside the container
     sudo ip netns exec ns-"${pid}" ip link set veth1-ns-"${pid}" name "${ADDITIONAL_IFACE_NAME}"
     # Assign address to the added interface in the container
-    sudo ip netns exec ns-"${pid}" ifconfig "${ADDITIONAL_IFACE_NAME}" "172.${ipam_num}.0.3/16"
+    sudo ip netns exec ns-"${pid}" ifconfig "${ADDITIONAL_IFACE_NAME}" "172.${ADDITIONAL_NETWORK_NUM}.0.${num}/24"
     # Bring up the link connected to the container
     sudo ip netns exec ns-"${pid}" ip link set "${ADDITIONAL_IFACE_NAME}" up
     # Move other end of the veth pair to the bridge
-    sudo brctl addif "${bridge}" veth2-ns-"${pid}"
+    sudo brctl addif "${ADDITIONAL_BRIDGE_NAME}" veth2-ns-"${pid}"
     # Bring up the link connected to the bridge
     sudo ip link set dev veth2-ns-"${pid}" up
 
-    (( bridge_num += 1 ))
-    (( ipam_num += 1 ))
+    (( num += 1 ))
   done
 }
 
@@ -305,16 +305,12 @@ function stop() {
   echo "Stopping dind cluster '${cluster_id}'"
   sudo echo -n
 
-  # Delete additional network interface on the nodes if needed
-  local bridge_num=${BRIDGE_START_NUM}
-  for (( i=1; i<=NODE_COUNT; i++ )); do
-    local bridge="${BRIDGE_PREFIX}${bridge_num}"
-
-    sudo ip link set "${bridge}" down 2> /dev/null || "true"
-    sudo brctl delbr "${bridge}" 2> /dev/null || "true"
-
-    (( bridge_num += 1 ))
-  done
+  # Delete additional bridge if present
+  additional_bridge_name=$(cat ${config_root}/dind-env | grep OPENSHIFT_ADDITIONAL_BRIDGE_NAME | cut -d'=' -f2 || true)
+  if [[ -n "${additional_bridge_name}" ]]; then
+      sudo ip link set "${additional_bridge_name}" down 2> /dev/null || "true"
+      sudo brctl delbr "${additional_bridge_name}" 2> /dev/null || "true"
+  fi
 
   # Delete the containers
   for cid in $( ${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}|${NODE_PREFIX}" ); do
@@ -697,9 +693,8 @@ NODE_PREFIX="${CLUSTER_ID}-node-"
 NODE_COUNT=2
 NODE_NAMES=()
 
-BRIDGE_PREFIX="docker"
-BRIDGE_START_NUM=10
-IPAM_START_NUM=100
+ADDITIONAL_BRIDGE_NAME="${ADDITIONAL_BRIDGE_NAME:-os-addbr-1}"
+ADDITIONAL_NETWORK_NUM=18
 ADDITIONAL_IFACE_NAME="${ADDITIONAL_IFACE_NAME:-eth1}"
 
 BASE_IMAGE="openshift/dind"
