@@ -167,7 +167,7 @@ objects:
           - -https-address=:9443
           - -http-address=
           - -email-domain=*
-          - -upstream=http://localhost:9099
+          - -upstream=http://localhost:9093
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
           - -openshift-ca=/etc/pki/tls/cert.pem
           - -openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
