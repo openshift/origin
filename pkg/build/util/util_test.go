@@ -7,14 +7,13 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
-	"k8s.io/api/core/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/api/build/v1"
 )
 
 func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
-	input := []v1.EnvVar{
+	input := []corev1.EnvVar{
 		// stripped by whitelist
 		{Name: "foo", Value: "bar"},
 		// stripped by whitelist
@@ -22,7 +21,7 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		{Name: "GIT_SSL_NO_VERIFY", Value: "source"},
 		{Name: "BUILD_LOGLEVEL", Value: "source"},
 	}
-	output := []v1.EnvVar{
+	output := []corev1.EnvVar{
 		{Name: "foo", Value: "test"},
 		{Name: "GIT_SSL_NO_VERIFY", Value: "target"},
 	}
@@ -52,7 +51,7 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		t.Errorf("Expected output env 'BUILD_LOGLEVEL' to have value 'loglevel', got %+v", output[1])
 	}
 
-	input = []v1.EnvVar{
+	input = []corev1.EnvVar{
 		// stripped by whitelist
 		{Name: "foo", Value: "bar"},
 		// stripped by whitelist
@@ -60,7 +59,7 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		{Name: "GIT_SSL_NO_VERIFY", Value: "source"},
 		{Name: "BUILD_LOGLEVEL", Value: "source"},
 	}
-	output = []v1.EnvVar{
+	output = []corev1.EnvVar{
 		{Name: "foo", Value: "test"},
 		{Name: "GIT_SSL_NO_VERIFY", Value: "target"},
 	}
@@ -200,20 +199,20 @@ func checkEnvList(t *testing.T, envs s2iapi.EnvironmentList, orig bool) {
 func TestSafeForLoggingBuild(t *testing.T) {
 	httpProxy := "http://user:password@proxy.com"
 	httpsProxy := "https://user:password@proxy.com"
-	proxyBuild := &buildapi.Build{
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
-						ProxyConfig: buildapi.ProxyConfig{
+	proxyBuild := &buildapiv1.Build{
+		Spec: buildapiv1.BuildSpec{
+			CommonSpec: buildapiv1.CommonSpec{
+				Source: buildapiv1.BuildSource{
+					Git: &buildapiv1.GitBuildSource{
+						ProxyConfig: buildapiv1.ProxyConfig{
 							HTTPProxy:  &httpProxy,
 							HTTPSProxy: &httpsProxy,
 						},
 					},
 				},
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						Env: []kapi.EnvVar{
+				Strategy: buildapiv1.BuildStrategy{
+					SourceStrategy: &buildapiv1.SourceBuildStrategy{
+						Env: []corev1.EnvVar{
 							{
 								Name:  "HTTP_PROXY",
 								Value: "http://user:password@proxy.com",
@@ -228,8 +227,8 @@ func TestSafeForLoggingBuild(t *testing.T) {
 							},
 						},
 					},
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						Env: []kapi.EnvVar{
+					DockerStrategy: &buildapiv1.DockerBuildStrategy{
+						Env: []corev1.EnvVar{
 							{
 								Name:  "HTTP_PROXY",
 								Value: "http://user:password@proxy.com",
@@ -244,8 +243,8 @@ func TestSafeForLoggingBuild(t *testing.T) {
 							},
 						},
 					},
-					CustomStrategy: &buildapi.CustomBuildStrategy{
-						Env: []kapi.EnvVar{
+					CustomStrategy: &buildapiv1.CustomBuildStrategy{
+						Env: []corev1.EnvVar{
 							{
 								Name:  "HTTP_PROXY",
 								Value: "http://user:password@proxy.com",
@@ -260,8 +259,8 @@ func TestSafeForLoggingBuild(t *testing.T) {
 							},
 						},
 					},
-					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
-						Env: []kapi.EnvVar{
+					JenkinsPipelineStrategy: &buildapiv1.JenkinsPipelineBuildStrategy{
+						Env: []corev1.EnvVar{
 							{
 								Name:  "HTTP_PROXY",
 								Value: "http://user:password@proxy.com",
@@ -294,7 +293,7 @@ func TestSafeForLoggingBuild(t *testing.T) {
 	checkEnv(t, stripped.Spec.Strategy.JenkinsPipelineStrategy.Env)
 }
 
-func checkEnv(t *testing.T, envs []kapi.EnvVar) {
+func checkEnv(t *testing.T, envs []corev1.EnvVar) {
 	for _, env := range envs {
 		if env.Name == "other_value" {
 			if !credsRegex.MatchString(env.Value) {

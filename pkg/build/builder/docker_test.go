@@ -10,28 +10,29 @@ import (
 	"testing"
 
 	"github.com/fsouza/go-dockerclient"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/api/build/v1"
+	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
-	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
 func TestInsertEnvAfterFrom(t *testing.T) {
 	tests := map[string]struct {
 		original string
-		env      []kapi.EnvVar
+		env      []corev1.EnvVar
 		want     string
 	}{
 		"no FROM instruction": {
 			original: `RUN echo "invalid Dockerfile"
 `,
-			env: []kapi.EnvVar{
+			env: []corev1.EnvVar{
 				{Name: "PATH", Value: "/bin"},
 			},
 			want: `RUN echo "invalid Dockerfile"
@@ -39,14 +40,14 @@ func TestInsertEnvAfterFrom(t *testing.T) {
 		"empty env": {
 			original: `FROM busybox
 `,
-			env: []kapi.EnvVar{},
+			env: []corev1.EnvVar{},
 			want: `FROM busybox
 `},
 		"single FROM instruction": {
 			original: `FROM busybox
 RUN echo "hello world"
 `,
-			env: []kapi.EnvVar{
+			env: []corev1.EnvVar{
 				{Name: "PATH", Value: "/bin"},
 			},
 			want: `FROM busybox
@@ -58,7 +59,7 @@ RUN echo "hello world"
 FROM busybox
 RUN echo "hello world"
 `,
-			env: []kapi.EnvVar{
+			env: []corev1.EnvVar{
 				{Name: "PATH", Value: "/bin"},
 				{Name: "GOPATH", Value: "/go"},
 				{Name: "PATH", Value: "/go/bin:$PATH"},
@@ -145,24 +146,24 @@ func TestDockerfilePath(t *testing.T) {
 	tests := []struct {
 		contextDir     string
 		dockerfilePath string
-		dockerStrategy *buildapi.DockerBuildStrategy
+		dockerStrategy *buildapiv1.DockerBuildStrategy
 	}{
 		// default Dockerfile path
 		{
 			dockerfilePath: "Dockerfile",
-			dockerStrategy: &buildapi.DockerBuildStrategy{},
+			dockerStrategy: &buildapiv1.DockerBuildStrategy{},
 		},
 		// custom Dockerfile path in the root context
 		{
 			dockerfilePath: "mydockerfile",
-			dockerStrategy: &buildapi.DockerBuildStrategy{
+			dockerStrategy: &buildapiv1.DockerBuildStrategy{
 				DockerfilePath: "mydockerfile",
 			},
 		},
 		// custom Dockerfile path in a sub directory
 		{
 			dockerfilePath: "dockerfiles/mydockerfile",
-			dockerStrategy: &buildapi.DockerBuildStrategy{
+			dockerStrategy: &buildapiv1.DockerBuildStrategy{
 				DockerfilePath: "dockerfiles/mydockerfile",
 			},
 		},
@@ -171,7 +172,7 @@ func TestDockerfilePath(t *testing.T) {
 		{
 			contextDir:     "somedir",
 			dockerfilePath: "dockerfiles/mydockerfile",
-			dockerStrategy: &buildapi.DockerBuildStrategy{
+			dockerStrategy: &buildapiv1.DockerBuildStrategy{
 				DockerfilePath: "dockerfiles/mydockerfile",
 			},
 		},
@@ -217,20 +218,20 @@ func TestDockerfilePath(t *testing.T) {
 			continue
 		}
 
-		build := &buildapi.Build{
-			Spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{
-						Git: &buildapi.GitBuildSource{
+		build := &buildapiv1.Build{
+			Spec: buildapiv1.BuildSpec{
+				CommonSpec: buildapiv1.CommonSpec{
+					Source: buildapiv1.BuildSource{
+						Git: &buildapiv1.GitBuildSource{
 							URI: "http://github.com/openshift/origin.git",
 						},
 						ContextDir: test.contextDir,
 					},
-					Strategy: buildapi.BuildStrategy{
+					Strategy: buildapiv1.BuildStrategy{
 						DockerStrategy: test.dockerStrategy,
 					},
-					Output: buildapi.BuildOutput{
-						To: &kapi.ObjectReference{
+					Output: buildapiv1.BuildOutput{
+						To: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/test-result:latest",
 						},
@@ -284,7 +285,7 @@ func TestDockerfilePath(t *testing.T) {
 		}
 
 		// check that the docker client is called with the right Dockerfile parameter
-		if err = dockerBuilder.dockerBuild(buildDir, "", []buildapi.SecretBuildSource{}); err != nil {
+		if err = dockerBuilder.dockerBuild(buildDir, "", []buildapiv1.SecretBuildSource{}); err != nil {
 			t.Errorf("failed to build: %v", err)
 			continue
 		}
@@ -293,19 +294,19 @@ func TestDockerfilePath(t *testing.T) {
 }
 
 func TestEmptySource(t *testing.T) {
-	build := &buildapi.Build{
+	build := &buildapiv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "buildid",
 			Namespace: "default",
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{},
+		Spec: buildapiv1.BuildSpec{
+			CommonSpec: buildapiv1.CommonSpec{
+				Source: buildapiv1.BuildSource{},
+				Strategy: buildapiv1.BuildStrategy{
+					DockerStrategy: &buildapiv1.DockerBuildStrategy{},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildapiv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "test/test-result:latest",
 					},
@@ -347,28 +348,28 @@ USER 1001`
 		},
 	}
 
-	build := &buildapi.Build{
+	build := &buildapiv1.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "buildid",
 			Namespace: "default",
 		},
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
+		Spec: buildapiv1.BuildSpec{
+			CommonSpec: buildapiv1.CommonSpec{
+				Source: buildapiv1.BuildSource{
 					ContextDir: "",
 					Dockerfile: &dockerFile,
 				},
-				Strategy: buildapi.BuildStrategy{
-					DockerStrategy: &buildapi.DockerBuildStrategy{
+				Strategy: buildapiv1.BuildStrategy{
+					DockerStrategy: &buildapiv1.DockerBuildStrategy{
 						DockerfilePath: "",
-						From: &kapi.ObjectReference{
+						From: &corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "scratch",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildapiv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "scratch",
 					},
