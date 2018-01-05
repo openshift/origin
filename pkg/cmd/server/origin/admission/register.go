@@ -85,7 +85,7 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
-		"SecurityContextConstraint",
+		securityadmission.PluginName,
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"DefaultStorageClass",

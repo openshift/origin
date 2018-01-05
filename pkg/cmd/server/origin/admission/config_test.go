@@ -11,6 +11,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	sccadmission "github.com/openshift/origin/pkg/security/admission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
 
@@ -66,7 +67,7 @@ var legacyOpenshiftAdmissionPlugins = sets.NewString(
 	"OriginPodNodeEnvironment",
 	overrideapi.PluginName,
 	serviceadmit.ExternalIPPluginName,
-	"SecurityContextConstraint",
+	sccadmission.PluginName,
 	"SCCExecRestrictions",
 	"ResourceQuota",
 )

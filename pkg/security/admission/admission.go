@@ -24,8 +24,10 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
 
+const PluginName = "SecurityContextConstraint"
+
 func Register(plugins *admission.Plugins) {
-	plugins.Register("SecurityContextConstraint",
+	plugins.Register(PluginName,
 		func(config io.Reader) (admission.Interface, error) {
 			return NewConstraint(), nil
 		})
@@ -137,8 +139,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
-// SetInformers implements WantsInformers interface for constraint.
-
+// SetSecurityInformers implements WantsSecurityInformer interface for constraint.
 func (c *constraint) SetSecurityInformers(informers securityinformer.SharedInformerFactory) {
 	c.sccLister = informers.Security().InternalVersion().SecurityContextConstraints().Lister()
 }
@@ -147,10 +148,13 @@ func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {
 	c.client = client
 }
 
-// Validate defines actions to vallidate security admission
+// ValidateInitialization implements InitializationValidator interface for constraint.
 func (c *constraint) ValidateInitialization() error {
 	if c.sccLister == nil {
-		return fmt.Errorf("sccLister not initialized")
+		return fmt.Errorf("%s requires an sccLister", PluginName)
+	}
+	if c.client == nil {
+		return fmt.Errorf("%s requires a client", PluginName)
 	}
 	return nil
 }

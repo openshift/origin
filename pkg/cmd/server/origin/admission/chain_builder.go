@@ -24,6 +24,7 @@ import (
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	sccadmission "github.com/openshift/origin/pkg/security/admission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
 
@@ -61,7 +62,7 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
-		"SecurityContextConstraint",
+		sccadmission.PluginName,
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
@@ -107,7 +108,7 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
-		"SecurityContextConstraint",
+		sccadmission.PluginName,
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
