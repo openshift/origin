@@ -174,10 +174,15 @@ test-unit:
 # Run integration tests. Compiles its own tests, cannot be run
 # in parallel with any other go compilation.
 #
+# Args:
+#   WHAT: Regular expression that matches the names of all of the
+#     integration tests to run.  If not specified, "everything" will be tested.
+#
 # Example:
 #   make test-integration
+#   make test-integration WHAT=TestProjectRequestError
 test-integration:
-	hack/test-integration.sh
+	hack/test-integration.sh $(WHAT)
 .PHONY: test-integration
 
 # Run command tests. Uses whatever binaries are currently built.
