@@ -190,7 +190,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, opt
 		switch pluginName {
 		case lifecycle.PluginName:
 			// We need to include our infrastructure and shared resource namespaces in the immortal namespaces list
-			immortalNamespaces := sets.NewString(metav1.NamespaceDefault)
+			immortalNamespaces := sets.NewString(metav1.NamespaceDefault, metav1.NamespaceSystem)
 			if len(options.PolicyConfig.OpenShiftSharedResourcesNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftSharedResourcesNamespace)
 			}
