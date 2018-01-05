@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 
-	"github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorization "github.com/openshift/api/authorization/v1"
 )
 
 // LegacyPolicyResourceGate returns err if the server does not support the set of legacy policy objects (< 3.7)
