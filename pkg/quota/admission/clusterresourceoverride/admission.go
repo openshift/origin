@@ -1,8 +1,10 @@
 package clusterresourceoverride
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/golang/glog"
@@ -201,11 +203,50 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 		glog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
 	}
 	glog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
+
+	// track what the original input was
+	podAnnotation := make(map[string]interface{})
+	containers := []*kapi.Container{}
 	for i := range pod.Spec.InitContainers {
-		updateContainerResources(a.config, &pod.Spec.InitContainers[i])
+		containers = append(containers, &pod.Spec.InitContainers[i])
 	}
 	for i := range pod.Spec.Containers {
-		updateContainerResources(a.config, &pod.Spec.Containers[i])
+		containers = append(containers, &pod.Spec.Containers[i])
+	}
+	for i := range containers {
+		container := containers[i]
+		inputResources := container.Resources.DeepCopy()
+		updateContainerResources(a.config, container)
+		if reflect.DeepEqual(inputResources, container.Resources) {
+			continue
+		}
+		// capture the input since it was mutated
+		containerAnnotation := make(map[string]interface{})
+		podAnnotation[container.Name] = containerAnnotation
+		resourceRequirements := map[string]kapi.ResourceList{
+			"requests": inputResources.Requests,
+			"limits":   inputResources.Limits,
+		}
+		for requestOrLimit, resourceRequirement := range resourceRequirements {
+			if len(resourceRequirement) == 0 {
+				continue
+			}
+			resourcesAnnotation := map[string]string{}
+			containerAnnotation[requestOrLimit] = resourcesAnnotation
+			for k, v := range resourceRequirement {
+				resourcesAnnotation[string(k)] = v.String()
+			}
+		}
+	}
+	if len(podAnnotation) > 0 {
+		data, err := json.Marshal(podAnnotation)
+		if err != nil {
+			return err
+		}
+		if len(pod.Annotations) == 0 {
+			pod.Annotations = map[string]string{}
+		}
+		pod.Annotations["cluster-resource-override.openshift.io/original-resource-requirements"] = string(data)
 	}
 	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec)
 	return nil
