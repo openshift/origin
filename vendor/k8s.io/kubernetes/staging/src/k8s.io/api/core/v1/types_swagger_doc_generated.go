@@ -617,7 +617,7 @@ func (FCVolumeSource) SwaggerDoc() map[string]string {
 }
 
 var map_FlexVolumeSource = map[string]string{
-	"":          "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+	"":          "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 	"driver":    "Driver is the name of the driver to use for this volume.",
 	"fsType":    "Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\". The default filesystem depends on FlexVolume script.",
 	"secretRef": "Optional: SecretRef is reference to the secret object containing sensitive information to pass to the plugin scripts. This may be empty if no secret object is specified. If the secret object contains more than one secret, all secrets are passed to the plugin scripts.",
@@ -1251,7 +1251,7 @@ var map_PersistentVolumeSource = map[string]string{
 	"cephfs":               "CephFS represents a Ceph FS mount on the host that shares a pod's lifetime",
 	"fc":                   "FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.",
 	"flocker":              "Flocker represents a Flocker volume attached to a kubelet's host machine and exposed to the pod for its usage. This depends on the Flocker control service being running",
-	"flexVolume":           "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+	"flexVolume":           "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 	"azureFile":            "AzureFile represents an Azure File Service mount on the host and bind mount to the pod.",
 	"vsphereVolume":        "VsphereVolume represents a vSphere volume attached and mounted on kubelets host machine",
 	"quobyte":              "Quobyte represents a Quobyte mount on the host that shares a pod's lifetime",
@@ -1481,7 +1481,7 @@ var map_PodSpec = map[string]string{
 	"restartPolicy":                 "Restart policy for all containers within the pod. One of Always, OnFailure, Never. Default to Always. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy",
 	"terminationGracePeriodSeconds": "Optional duration in seconds the pod needs to terminate gracefully. May be decreased in delete request. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period will be used instead. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process. Defaults to 30 seconds.",
 	"activeDeadlineSeconds":         "Optional duration in seconds the pod may be active on the node relative to StartTime before the system will actively try to mark it failed and kill associated containers. Value must be a positive integer.",
-	"dnsPolicy":                     "Set DNS policy for the pod. Defaults to \"ClusterFirst\". Valid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'. DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy. To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'.",
+	"dnsPolicy":                     "Set DNS policy for the pod. Defaults to \"ClusterFirst\". Valid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'. DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy. To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'. Note that 'None' policy is an alpha feature introduced in v1.9 and CustomPodDNS feature gate must be enabled to use it.",
 	"nodeSelector":                  "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/",
 	"serviceAccountName":            "ServiceAccountName is the name of the ServiceAccount to use to run this pod. More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
 	"serviceAccount":                "DeprecatedServiceAccount is a depreciated alias for ServiceAccountName. Deprecated: Use serviceAccountName instead.",
@@ -1500,7 +1500,7 @@ var map_PodSpec = map[string]string{
 	"hostAliases":                   "HostAliases is an optional list of hosts and IPs that will be injected into the pod's hosts file if specified. This is only valid for non-hostNetwork pods.",
 	"priorityClassName":             "If specified, indicates the pod's priority. \"SYSTEM\" is a special keyword which indicates the highest priority. Any other name must be defined by creating a PriorityClass object with that name. If not specified, the pod priority will be default or zero if there is no default.",
 	"priority":                      "The priority value. Various system components use this field to find the priority of the pod. When Priority Admission Controller is enabled, it prevents users from setting this field. The admission controller populates this field from PriorityClassName. The higher the value, the higher the priority.",
-	"dnsConfig":                     "Specifies the DNS parameters of a pod. Parameters specified here will be merged to the generated DNS configuration based on DNSPolicy.",
+	"dnsConfig":                     "Specifies the DNS parameters of a pod. Parameters specified here will be merged to the generated DNS configuration based on DNSPolicy. This is an alpha feature introduced in v1.9 and CustomPodDNS feature gate must be enabled to use it.",
 }
 
 func (PodSpec) SwaggerDoc() map[string]string {
@@ -2184,7 +2184,7 @@ var map_VolumeSource = map[string]string{
 	"glusterfs":             "Glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md",
 	"persistentVolumeClaim": "PersistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims",
 	"rbd":                  "RBD represents a Rados Block Device mount on the host that shares a pod's lifetime. More info: https://releases.k8s.io/HEAD/examples/volumes/rbd/README.md",
-	"flexVolume":           "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+	"flexVolume":           "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 	"cinder":               "Cinder represents a cinder volume attached and mounted on kubelets host machine More info: https://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md",
 	"cephfs":               "CephFS represents a Ceph FS mount on the host that shares a pod's lifetime",
 	"flocker":              "Flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running",

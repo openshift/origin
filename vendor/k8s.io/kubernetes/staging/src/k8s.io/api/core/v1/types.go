@@ -302,8 +302,7 @@ type VolumeSource struct {
 	// +optional
 	RBD *RBDVolumeSource `json:"rbd,omitempty" protobuf:"bytes,11,opt,name=rbd"`
 	// FlexVolume represents a generic volume resource that is
-	// provisioned/attached using an exec based plugin. This is an
-	// alpha feature and may change in future.
+	// provisioned/attached using an exec based plugin.
 	// +optional
 	FlexVolume *FlexVolumeSource `json:"flexVolume,omitempty" protobuf:"bytes,12,opt,name=flexVolume"`
 	// Cinder represents a cinder volume attached and mounted on kubelets host machine
@@ -417,8 +416,7 @@ type PersistentVolumeSource struct {
 	// +optional
 	Flocker *FlockerVolumeSource `json:"flocker,omitempty" protobuf:"bytes,11,opt,name=flocker"`
 	// FlexVolume represents a generic volume resource that is
-	// provisioned/attached using an exec based plugin. This is an
-	// alpha feature and may change in future.
+	// provisioned/attached using an exec based plugin.
 	// +optional
 	FlexVolume *FlexVolumeSource `json:"flexVolume,omitempty" protobuf:"bytes,12,opt,name=flexVolume"`
 	// AzureFile represents an Azure File Service mount on the host and bind mount to the pod.
@@ -1084,7 +1082,7 @@ type QuobyteVolumeSource struct {
 }
 
 // FlexVolume represents a generic volume resource that is
-// provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.
+// provisioned/attached using an exec based plugin.
 type FlexVolumeSource struct {
 	// Driver is the name of the driver to use for this volume.
 	Driver string `json:"driver" protobuf:"bytes,1,opt,name=driver"`
@@ -2771,6 +2769,7 @@ type PodSpec struct {
 	// DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy.
 	// To have DNS options set along with hostNetwork, you have to specify DNS policy
 	// explicitly to 'ClusterFirstWithHostNet'.
+	// Note that 'None' policy is an alpha feature introduced in v1.9 and CustomPodDNS feature gate must be enabled to use it.
 	// +optional
 	DNSPolicy DNSPolicy `json:"dnsPolicy,omitempty" protobuf:"bytes,6,opt,name=dnsPolicy,casttype=DNSPolicy"`
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
@@ -2866,6 +2865,7 @@ type PodSpec struct {
 	// Specifies the DNS parameters of a pod.
 	// Parameters specified here will be merged to the generated DNS
 	// configuration based on DNSPolicy.
+	// This is an alpha feature introduced in v1.9 and CustomPodDNS feature gate must be enabled to use it.
 	// +optional
 	DNSConfig *PodDNSConfig `json:"dnsConfig,omitempty" protobuf:"bytes,26,opt,name=dnsConfig"`
 }

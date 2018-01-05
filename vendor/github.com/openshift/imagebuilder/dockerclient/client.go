@@ -370,8 +370,9 @@ func (e *ClientExecutor) PopulateTransientMounts(opts docker.CreateContainerOpti
 	for i, mount := range transientMounts {
 		source := mount.SourcePath
 		copies = append(copies, imagebuilder.Copy{
-			Src:  []string{source},
-			Dest: filepath.Join(e.ContainerTransientMount, strconv.Itoa(i)),
+			FromFS: true,
+			Src:    []string{source},
+			Dest:   filepath.Join(e.ContainerTransientMount, strconv.Itoa(i)),
 		})
 	}
 	if err := e.CopyContainer(container, nil, copies...); err != nil {
@@ -614,7 +615,7 @@ func (e *ClientExecutor) CopyContainer(container *docker.Container, excludes []s
 		// TODO: reuse source
 		for _, src := range c.Src {
 			glog.V(4).Infof("Archiving %s %t", src, c.Download)
-			r, closer, err := e.Archive(src, c.Dest, c.Download, excludes)
+			r, closer, err := e.Archive(c.FromFS, src, c.Dest, c.Download, excludes)
 			if err != nil {
 				return err
 			}
@@ -648,16 +649,22 @@ func (c closers) Close() error {
 }
 
 // TODO: this does not support decompressing nested archives for ADD (when the source is a compressed file)
-func (e *ClientExecutor) Archive(src, dst string, allowDownload bool, excludes []string) (io.Reader, io.Closer, error) {
+func (e *ClientExecutor) Archive(fromFS bool, src, dst string, allowDownload bool, excludes []string) (io.Reader, io.Closer, error) {
 	if isURL(src) {
 		if !allowDownload {
 			return nil, nil, fmt.Errorf("source can't be a URL")
 		}
 		return archiveFromURL(src, dst, e.TempDir)
 	}
+	// the input is from the filesystem, use the source as the input
+	if fromFS {
+		return archiveFromDisk(src, ".", dst, allowDownload, excludes)
+	}
+	// if the context is in archive form, read from it without decompressing
 	if len(e.ContextArchive) > 0 {
 		return archiveFromFile(e.ContextArchive, src, dst, excludes)
 	}
+	// if the context is a directory, we only allow relative includes
 	return archiveFromDisk(e.Directory, src, dst, allowDownload, excludes)
 }
 

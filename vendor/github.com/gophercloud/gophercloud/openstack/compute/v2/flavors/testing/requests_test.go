@@ -37,7 +37,7 @@ func TestListFlavors(t *testing.T) {
 								"disk": 1,
 								"ram": 512,
 								"swap":"",
-								"is_public": true
+								"os-flavor-access:is_public": true
 							},
 							{
 								"id": "2",
@@ -46,7 +46,7 @@ func TestListFlavors(t *testing.T) {
 								"disk": 20,
 								"ram": 2048,
 								"swap": 1000,
-								"is_public": true
+								"os-flavor-access:is_public": true
 							},
 							{
 								"id": "3",
@@ -55,7 +55,7 @@ func TestListFlavors(t *testing.T) {
 								"disk": 40,
 								"ram": 4096,
 								"swap": 1000,
-								"is_public": false
+								"os-flavor-access:is_public": false
 							}
 						],
 						"flavors_links": [
