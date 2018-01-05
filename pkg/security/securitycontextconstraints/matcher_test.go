@@ -87,10 +87,6 @@ func TestAssignSecurityContext(t *testing.T) {
 		}
 	}
 
-	// these are set up such that the containers always have a nil uid.  If the case should not
-	// validate then the uids should not have been updated by the strategy.  If the case should
-	// validate then uids should be set.  This is ensuring that we're hanging on to the old SC
-	// as we generate/validate and only updating the original container if the entire pod validates
 	testCases := map[string]struct {
 		pod            *kapi.Pod
 		shouldValidate bool
@@ -138,31 +134,6 @@ func TestAssignSecurityContext(t *testing.T) {
 			if !v.shouldValidate && len(errs) == 0 {
 				t.Errorf("%s expected validation errors but received none", k)
 				continue
-			}
-
-			// if we shouldn't have validated ensure that uid is not set on the containers
-			// and ensure the psc does not have fsgroup set
-			if !v.shouldValidate {
-				if v.pod.Spec.SecurityContext.FSGroup != nil {
-					t.Errorf("%s had a non-nil FSGroup %d.  FSGroup should not be set on test cases that don't validate", k, *v.pod.Spec.SecurityContext.FSGroup)
-				}
-				for _, c := range v.pod.Spec.Containers {
-					if c.SecurityContext.RunAsUser != nil {
-						t.Errorf("%s had non-nil UID %d.  UID should not be set on test cases that don't validate", k, *c.SecurityContext.RunAsUser)
-					}
-				}
-			}
-
-			// if we validated then the pod sc should be updated now with the defaults from the SCC
-			if v.shouldValidate {
-				if *v.pod.Spec.SecurityContext.FSGroup != fsGroup {
-					t.Errorf("%s expected fsgroup to be defaulted but found %v", k, v.pod.Spec.SecurityContext.FSGroup)
-				}
-				for _, c := range v.pod.Spec.Containers {
-					if *c.SecurityContext.RunAsUser != uid {
-						t.Errorf("%s expected uid to be defaulted to %d but found %v", k, uid, c.SecurityContext.RunAsUser)
-					}
-				}
 			}
 		}
 	}

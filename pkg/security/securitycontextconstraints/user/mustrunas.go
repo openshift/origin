@@ -35,24 +35,18 @@ func (s *mustRunAs) Generate(pod *api.Pod, container *api.Container) (*int64, er
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *mustRunAs) Validate(pod *api.Pod, container *api.Container) field.ErrorList {
+func (s *mustRunAs) Validate(fldPath *field.Path, _ *api.Pod, _ *api.Container, runAsNonRoot *bool, runAsUser *int64) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	securityContextPath := field.NewPath("securityContext")
-	if container.SecurityContext == nil {
-		detail := fmt.Sprintf("unable to validate nil security context for container %s", container.Name)
-		allErrs = append(allErrs, field.Invalid(securityContextPath, container.SecurityContext, detail))
-		return allErrs
-	}
-	if container.SecurityContext.RunAsUser == nil {
-		detail := fmt.Sprintf("unable to validate nil runAsUser for container %s", container.Name)
-		allErrs = append(allErrs, field.Invalid(securityContextPath.Child("runAsUser"), container.SecurityContext.RunAsUser, detail))
+	if runAsUser == nil {
+		allErrs = append(allErrs, field.Required(fldPath.Child("runAsUser"), ""))
 		return allErrs
 	}
 
-	if *s.opts.UID != *container.SecurityContext.RunAsUser {
-		detail := fmt.Sprintf("UID on container %s does not match required UID.  Found %d, wanted %d", container.Name, *container.SecurityContext.RunAsUser, *s.opts.UID)
-		allErrs = append(allErrs, field.Invalid(securityContextPath.Child("runAsUser"), *container.SecurityContext.RunAsUser, detail))
+	if *s.opts.UID != *runAsUser {
+		detail := fmt.Sprintf("must be: %v", *s.opts.UID)
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("runAsUser"), *runAsUser, detail))
+		return allErrs
 	}
 
 	return allErrs
