@@ -19,6 +19,10 @@ func TestGenerateAdds(t *testing.T) {
 		"no required, no container requests": {
 			expectedCaps: nil,
 		},
+		"no required, no container requests, non-nil": {
+			containerCaps: &api.Capabilities{},
+			expectedCaps:  &api.Capabilities{},
+		},
 		"required, no container requests": {
 			defaultAddCaps: []api.Capability{"foo"},
 			expectedCaps: &api.Capabilities{
@@ -52,13 +56,22 @@ func TestGenerateAdds(t *testing.T) {
 				Add: []api.Capability{"bar", "foo"},
 			},
 		},
-		"generation dedupes": {
-			defaultAddCaps: []api.Capability{"foo", "foo", "foo", "foo"},
+		"generation does not mutate unnecessarily": {
+			defaultAddCaps: []api.Capability{"foo", "bar"},
 			containerCaps: &api.Capabilities{
-				Add: []api.Capability{"foo", "foo", "foo"},
+				Add: []api.Capability{"foo", "foo", "bar", "baz"},
 			},
 			expectedCaps: &api.Capabilities{
-				Add: []api.Capability{"foo"},
+				Add: []api.Capability{"foo", "foo", "bar", "baz"},
+			},
+		},
+		"generation dedupes": {
+			defaultAddCaps: []api.Capability{"foo", "bar"},
+			containerCaps: &api.Capabilities{
+				Add: []api.Capability{"foo", "baz"},
+			},
+			expectedCaps: &api.Capabilities{
+				Add: []api.Capability{"bar", "baz", "foo"},
 			},
 		},
 		"generation is case sensitive - will not dedupe": {
@@ -109,6 +122,10 @@ func TestGenerateDrops(t *testing.T) {
 		"no required, no container requests": {
 			expectedCaps: nil,
 		},
+		"no required, no container requests, non-nil": {
+			containerCaps: &api.Capabilities{},
+			expectedCaps:  &api.Capabilities{},
+		},
 		"required drops are defaulted": {
 			requiredDropCaps: []api.Capability{"foo"},
 			expectedCaps: &api.Capabilities{
@@ -116,12 +133,21 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"required drops are defaulted when making container requests": {
-			requiredDropCaps: []api.Capability{"foo"},
+			requiredDropCaps: []api.Capability{"baz"},
 			containerCaps: &api.Capabilities{
 				Drop: []api.Capability{"foo", "bar"},
 			},
 			expectedCaps: &api.Capabilities{
-				Drop: []api.Capability{"bar", "foo"},
+				Drop: []api.Capability{"bar", "baz", "foo"},
+			},
+		},
+		"required drops do not mutate unnecessarily": {
+			requiredDropCaps: []api.Capability{"baz"},
+			containerCaps: &api.Capabilities{
+				Drop: []api.Capability{"foo", "bar", "baz"},
+			},
+			expectedCaps: &api.Capabilities{
+				Drop: []api.Capability{"foo", "bar", "baz"},
 			},
 		},
 		"can drop a required add": {
@@ -155,12 +181,12 @@ func TestGenerateDrops(t *testing.T) {
 			},
 		},
 		"generation dedupes": {
-			requiredDropCaps: []api.Capability{"bar", "bar", "bar", "bar"},
+			requiredDropCaps: []api.Capability{"baz", "foo"},
 			containerCaps: &api.Capabilities{
-				Drop: []api.Capability{"bar", "bar", "bar"},
+				Drop: []api.Capability{"bar", "foo"},
 			},
 			expectedCaps: &api.Capabilities{
-				Drop: []api.Capability{"bar"},
+				Drop: []api.Capability{"bar", "baz", "foo"},
 			},
 		},
 		"generation is case sensitive - will not dedupe": {
@@ -295,18 +321,12 @@ func TestValidateAdds(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		container := &api.Container{
-			SecurityContext: &api.SecurityContext{
-				Capabilities: v.containerCaps,
-			},
-		}
-
 		strategy, err := NewDefaultCapabilities(v.defaultAddCaps, v.requiredDropCaps, v.allowedCaps)
 		if err != nil {
 			t.Errorf("%s failed: %v", k, err)
 			continue
 		}
-		errs := strategy.Validate(nil, container)
+		errs := strategy.Validate(nil, nil, v.containerCaps)
 		if v.shouldPass && len(errs) > 0 {
 			t.Errorf("%s should have passed but had errors %v", k, errs)
 			continue
@@ -358,18 +378,12 @@ func TestValidateDrops(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		container := &api.Container{
-			SecurityContext: &api.SecurityContext{
-				Capabilities: v.containerCaps,
-			},
-		}
-
 		strategy, err := NewDefaultCapabilities(v.defaultAddCaps, v.requiredDropCaps, nil)
 		if err != nil {
 			t.Errorf("%s failed: %v", k, err)
 			continue
 		}
-		errs := strategy.Validate(nil, container)
+		errs := strategy.Validate(nil, nil, v.containerCaps)
 		if v.shouldPass && len(errs) > 0 {
 			t.Errorf("%s should have passed but had errors %v", k, errs)
 			continue

@@ -1,9 +1,9 @@
 package user
 
 import (
+	"fmt"
+	"strings"
 	"testing"
-
-	api "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -58,19 +58,24 @@ func TestMustRunAsValidate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
 	}
-	container := &api.Container{
-		SecurityContext: &api.SecurityContext{
-			RunAsUser: &badUID,
-		},
+
+	errs := mustRunAs.Validate(nil, nil, nil, nil, nil)
+	expectedMessage := "runAsUser: Required value"
+	if len(errs) == 0 {
+		t.Errorf("expected errors from nil runAsUser but got none")
+	} else if !strings.Contains(errs[0].Error(), expectedMessage) {
+		t.Errorf("expected error to contain %q but it did not: %v", expectedMessage, errs)
 	}
 
-	errs := mustRunAs.Validate(nil, container)
+	errs = mustRunAs.Validate(nil, nil, nil, nil, &badUID)
+	expectedMessage = fmt.Sprintf("runAsUser: Invalid value: %d: must be: %d", badUID, uid)
 	if len(errs) == 0 {
 		t.Errorf("expected errors from mismatch uid but got none")
+	} else if !strings.Contains(errs[0].Error(), expectedMessage) {
+		t.Errorf("expected error to contain %q but it did not: %v", expectedMessage, errs)
 	}
 
-	container.SecurityContext.RunAsUser = &uid
-	errs = mustRunAs.Validate(nil, container)
+	errs = mustRunAs.Validate(nil, nil, nil, nil, &uid)
 	if len(errs) != 0 {
 		t.Errorf("expected no errors from matching uid but got %v", errs)
 	}

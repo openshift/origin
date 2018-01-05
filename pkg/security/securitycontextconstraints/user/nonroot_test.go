@@ -1,9 +1,8 @@
 package user
 
 import (
+	"strings"
 	"testing"
-
-	api "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
@@ -38,27 +37,41 @@ func TestNonRootValidate(t *testing.T) {
 	var badUID int64 = 0
 	s, err := NewRunAsNonRoot(&securityapi.RunAsUserStrategyOptions{})
 	if err != nil {
-		t.Fatalf("unexpected error initializing NewMustRunAs %v", err)
-	}
-	container := &api.Container{
-		SecurityContext: &api.SecurityContext{
-			RunAsUser: &badUID,
-		},
+		t.Fatalf("unexpected error initializing NewRunAsNonRoot %v", err)
 	}
 
-	errs := s.Validate(nil, container)
+	errs := s.Validate(nil, nil, nil, nil, &badUID)
+	expectedMessage := "runAsUser: Invalid value: 0: running with the root UID is forbidden"
 	if len(errs) == 0 {
 		t.Errorf("expected errors from root uid but got none")
+	} else if !strings.Contains(errs[0].Error(), expectedMessage) {
+		t.Errorf("expected error to contain %q but it did not: %v", expectedMessage, errs)
 	}
 
-	container.SecurityContext.RunAsUser = &uid
-	errs = s.Validate(nil, container)
+	errs = s.Validate(nil, nil, nil, nil, nil)
+	expectedMessage = "runAsNonRoot: Required value: must be true"
+	if len(errs) == 0 {
+		t.Errorf("expected error when neither runAsUser nor runAsNonRoot are specified but got none")
+	} else if !strings.Contains(errs[0].Error(), expectedMessage) {
+		t.Errorf("expected error to contain %q but it did not: %v", expectedMessage, errs)
+	}
+
+	no := false
+	errs = s.Validate(nil, nil, nil, &no, nil)
+	expectedMessage = "runAsNonRoot: Invalid value: false: must be true"
+	if len(errs) == 0 {
+		t.Errorf("expected error when runAsNonRoot is false but got none")
+	} else if !strings.Contains(errs[0].Error(), expectedMessage) {
+		t.Errorf("expected error to contain %q but it did not: %v", expectedMessage, errs)
+	}
+
+	errs = s.Validate(nil, nil, nil, nil, &uid)
 	if len(errs) != 0 {
 		t.Errorf("expected no errors from non-root uid but got %v", errs)
 	}
 
-	container.SecurityContext.RunAsUser = nil
-	errs = s.Validate(nil, container)
+	yes := true
+	errs = s.Validate(nil, nil, nil, &yes, nil)
 	if len(errs) != 0 {
 		t.Errorf("expected no errors from nil uid but got %v", errs)
 	}
