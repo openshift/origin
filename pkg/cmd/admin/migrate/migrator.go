@@ -350,10 +350,13 @@ var ErrUnchanged = fmt.Errorf("migration was not necessary")
 // both status and spec must be changed).
 var ErrRecalculate = fmt.Errorf("recalculate migration")
 
+// MigrateError is an exported alias to error to allow external packages to use ErrRetriable and ErrNotRetriable
+type MigrateError error
+
 // ErrRetriable is a wrapper for an error that a migrator may use to indicate the
 // specific error can be retried.
 type ErrRetriable struct {
-	error
+	MigrateError
 }
 
 func (ErrRetriable) Temporary() bool { return true }
@@ -361,12 +364,14 @@ func (ErrRetriable) Temporary() bool { return true }
 // ErrNotRetriable is a wrapper for an error that a migrator may use to indicate the
 // specific error cannot be retried.
 type ErrNotRetriable struct {
-	error
+	MigrateError
 }
 
 func (ErrNotRetriable) Temporary() bool { return false }
 
-type temporary interface {
+// TemporaryError is a wrapper interface that is used to determine if an error can be retried.
+type TemporaryError interface {
+	error
 	// Temporary should return true if this is a temporary error
 	Temporary() bool
 }
@@ -478,7 +483,7 @@ func (t *migrateTracker) try(info *resource.Info, retries int) (attemptResult, e
 
 // canRetry returns true if the provided error indicates a retry is possible.
 func canRetry(err error) bool {
-	if temp, ok := err.(temporary); ok && temp.Temporary() {
+	if temp, ok := err.(TemporaryError); ok && temp.Temporary() {
 		return true
 	}
 	return err == ErrRecalculate

@@ -83,12 +83,12 @@ func (o OverwriteBootstrapPolicyOptions) Validate(args []string) error {
 }
 
 func (o OverwriteBootstrapPolicyOptions) Complete(f *clientcmd.Factory) error {
-	_, kclient, err := f.Clients()
+	discovery, err := f.DiscoveryClient()
 	if err != nil {
 		return err
 	}
 
-	return clientcmd.LegacyPolicyResourceGate(kclient.Discovery())
+	return clientcmd.LegacyPolicyResourceGate(discovery)
 }
 
 func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
