@@ -72,12 +72,12 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	}
 	o.BindingNamespace = namespace
 
-	kclient, err := f.ClientSet()
+	discovery, err := f.DiscoveryClient()
 	if err != nil {
 		return err
 	}
 
-	if err := clientcmd.LegacyPolicyResourceGate(kclient.Discovery()); err != nil {
+	if err := clientcmd.LegacyPolicyResourceGate(discovery); err != nil {
 		return err
 	}
 	client, err := f.OpenshiftInternalAuthorizationClient()
