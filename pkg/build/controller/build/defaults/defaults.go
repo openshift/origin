@@ -45,9 +45,9 @@ func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
 	}
 
 	glog.V(4).Infof("Applying defaults to build %s/%s", build.Namespace, build.Name)
-
 	b.applyBuildDefaults(build)
 
+	glog.V(4).Infof("Applying defaults to pod %s/%s", pod.Namespace, pod.Name)
 	b.applyPodDefaults(pod)
 
 	err = buildadmission.SetPodLogLevelFromBuild(pod, build)
@@ -68,11 +68,13 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 		}
 	}
 
-	if len(b.config.Annotations) != 0 && pod.Annotations == nil {
-		pod.Annotations = map[string]string{}
-	}
-	for k, v := range b.config.Annotations {
-		addDefaultAnnotations(k, v, pod.Annotations)
+	if len(b.config.Annotations) != 0 {
+		if pod.Annotations == nil {
+			pod.Annotations = map[string]string{}
+		}
+		for k, v := range b.config.Annotations {
+			addDefaultAnnotation(k, v, pod.Annotations)
+		}
 	}
 
 	// Apply default resources
@@ -187,29 +189,22 @@ func addDefaultEnvVar(build *buildapi.Build, v kapi.EnvVar) {
 }
 
 func addDefaultLabel(defaultLabel buildapi.ImageLabel, buildLabels *[]buildapi.ImageLabel) {
-	found := false
 	for _, lbl := range *buildLabels {
 		if lbl.Name == defaultLabel.Name {
-			found = true
+			return
 		}
 	}
-	if !found {
-		*buildLabels = append(*buildLabels, defaultLabel)
-	}
+	*buildLabels = append(*buildLabels, defaultLabel)
 }
 
-func addDefaultNodeSelector(k, v string, selectors map[string]string) bool {
+func addDefaultNodeSelector(k, v string, selectors map[string]string) {
 	if _, ok := selectors[k]; !ok {
 		selectors[k] = v
-		return true
 	}
-	return false
 }
 
-func addDefaultAnnotations(k, v string, annotations map[string]string) bool {
+func addDefaultAnnotation(k, v string, annotations map[string]string) {
 	if _, ok := annotations[k]; !ok {
 		annotations[k] = v
-		return true
 	}
-	return false
 }
