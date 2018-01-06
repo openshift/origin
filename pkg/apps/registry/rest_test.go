@@ -18,6 +18,7 @@ func TestWaitForRunningDeploymentSuccess(t *testing.T) {
 	fakeController := &kapi.ReplicationController{}
 	fakeController.Name = "test-1"
 	fakeController.Namespace = "test"
+	fakeController.Annotations = map[string]string{deployapi.DeploymentStatusAnnotation: string(deployapi.DeploymentStatusRunning)}
 
 	kubeclient := fake.NewSimpleClientset([]runtime.Object{fakeController}...)
 	fakeWatch := watch.NewFake()
@@ -38,7 +39,6 @@ func TestWaitForRunningDeploymentSuccess(t *testing.T) {
 		}
 	}()
 
-	fakeController.Annotations = map[string]string{deployapi.DeploymentStatusAnnotation: string(deployapi.DeploymentStatusRunning)}
 	fakeWatch.Modify(fakeController)
 	<-stopChan
 }

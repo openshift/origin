@@ -175,13 +175,13 @@ func DeploymentNameForConfigVersion(name string, version int64) string {
 // TODO: Using the annotation constant for now since the value is correct
 // but we could consider adding a new constant to the public types.
 func ConfigSelector(name string) labels.Selector {
-	return labels.Set{deployapi.DeploymentConfigAnnotation: name}.AsSelector()
+	return labels.SelectorFromValidatedSet(labels.Set{deployapi.DeploymentConfigAnnotation: name})
 }
 
 // DeployerPodSelector returns a label Selector which can be used to find all
 // deployer pods associated with a deployment with name.
 func DeployerPodSelector(name string) labels.Selector {
-	return labels.Set{deployapi.DeployerPodForDeploymentLabel: name}.AsSelector()
+	return labels.SelectorFromValidatedSet(labels.Set{deployapi.DeployerPodForDeploymentLabel: name})
 }
 
 // AnyDeployerPodSelector returns a label Selector which can be used to find
@@ -837,7 +837,7 @@ func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.Replica
 	}
 	watcher, err := podClient.Pods(rc.Namespace).Watch(
 		metav1.ListOptions{
-			FieldSelector: fields.Set{"metadata.name": podName}.AsSelector().String(),
+			FieldSelector: fields.OneTermEqualSelector("metadata.name", podName).String(),
 		},
 	)
 	if err != nil {

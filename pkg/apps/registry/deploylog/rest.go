@@ -221,7 +221,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 // returnApplicationPodName returns the best candidate pod for the target deployment in order to
 // view its logs.
 func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (string, error) {
-	selector := labels.Set(target.Spec.Selector).AsSelector()
+	selector := labels.SelectorFromValidatedSet(labels.Set(target.Spec.Selector))
 	sortBy := func(pods []*kapiv1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
 	pod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector, r.timeout, sortBy)
