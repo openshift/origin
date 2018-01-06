@@ -40,6 +40,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	apitesting "k8s.io/kubernetes/cmd/kube-apiserver/app/testing"
 	"k8s.io/kubernetes/pkg/controller/garbagecollector"
@@ -201,8 +202,11 @@ type testContext struct {
 
 // if workerCount > 0, will start the GC, otherwise it's up to the caller to Run() the GC.
 func setup(t *testing.T, workerCount int) *testContext {
-	masterConfig, tearDownMaster := apitesting.StartTestServerOrDie(t)
+	clientConfig, tearDown := apitesting.StartTestServerOrDie(t)
+	return setupWithServer(t, clientConfig, tearDown, workerCount)
+}
 
+func setupWithServer(t *testing.T, masterConfig *rest.Config, tearDownMaster func(), workerCount int) *testContext {
 	// TODO: Disable logging here until we resolve teardown issues which result in
 	// massive log spam. Another path forward would be to refactor
 	// StartTestServerOrDie to work with the etcd instance already started by the
