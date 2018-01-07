@@ -3,6 +3,7 @@
 package node
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -20,17 +21,17 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetworkCIDR []string) bool {
+func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetworkCIDR []string) error {
 	var found bool
 
 	l, err := netlink.LinkByName(Tun0)
 	if err != nil {
-		return false
+		return err
 	}
 
 	addrs, err := netlink.AddrList(l, netlink.FAMILY_V4)
 	if err != nil {
-		return false
+		return err
 	}
 	found = false
 	for _, addr := range addrs {
@@ -40,12 +41,12 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 		}
 	}
 	if !found {
-		return false
+		return errors.New("local subnet gateway CIDR not found")
 	}
 
 	routes, err := netlink.RouteList(l, netlink.FAMILY_V4)
 	if err != nil {
-		return false
+		return err
 	}
 	for _, clusterCIDR := range clusterNetworkCIDR {
 		found = false
@@ -56,15 +57,15 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 			}
 		}
 		if !found {
-			return false
+			return errors.New("cluster CIDR not found")
 		}
 	}
 
 	if !plugin.oc.AlreadySetUp() {
-		return false
+		return errors.New("plugin is not setup")
 	}
 
-	return true
+	return nil
 }
 
 func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
@@ -96,7 +97,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	})
 
 	if err != nil {
-		glog.Errorf("Error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err)
+		glog.Errorf("error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err)
 	}
 }
 
@@ -133,8 +134,8 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	}
 
 	var changed bool
-	if plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) {
-		glog.V(5).Infof("[SDN setup] no SDN setup required")
+	if err := plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs); err == nil {
+		glog.V(5).Infof("[SDN setup] no SDN setup required: %v", err)
 	} else {
 		glog.Infof("[SDN setup] full SDN setup required")
 		if err := plugin.setup(clusterNetworkCIDRs, localSubnetCIDR, localSubnetGateway, gwCIDR); err != nil {
@@ -145,7 +146,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 
 	// TODO: make it possible to safely reestablish node configuration after restart
 	// If OVS goes down and fails the health check, restart the entire process
-	healthFn := func() bool { return plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) }
+	healthFn := func() error { return plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) }
 	runOVSHealthCheck(ovsDialDefaultNetwork, ovsDialDefaultAddress, healthFn)
 
 	return changed, nil
