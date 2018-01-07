@@ -252,9 +252,18 @@ objects:
         - alert: Node Down
           expr: up{job="kubernetes-nodes"} == 0
           annotations:
-            miqTarget: "ContainerNode"
             severity: "HIGH"
             message: "{{$labels.instance}} is down"
+        #
+        # Example alert with annotations needed for ManageIQ alert collection.
+        #
+        #- alert: "ManageIQ test alert"
+        #  expr: up{job="kubernetes-nodes"} == 0
+        #  annotations:
+        #    miqTarget: "ContainerNode"
+        #    severity: "HIGH"
+        #    url: "https://www.example.com/fixing_instructions"
+        #    message: "Alerts configured correctly! ContainerNode {{$labels.instance}} is up"
     prometheus.yml: |
       rule_files:
         - 'prometheus.rules'
