@@ -28,6 +28,7 @@ parameters:
   name: SESSION_SECRET
   generate: expression
   from: "[a-zA-Z0-9]{43}"
+
 objects:
 # Authorize the prometheus service account to read data about the cluster
 - apiVersion: v1
@@ -244,7 +245,7 @@ objects:
     name: prometheus
     namespace: "${NAMESPACE}"
   data:
-    prometheus.rules: |
+    alerting.rules: |
       groups:
       - name: example-rules
         interval: 30s # defaults to global interval
@@ -255,9 +256,23 @@ objects:
             miqTarget: "ContainerNode"
             severity: "HIGH"
             message: "{{$labels.instance}} is down"
+    
+    recording.rules: |
+      groups:
+      - name: aggregate_container_resources
+        rules:
+        - record: container_cpu_usage_rate
+          expr: sum without (cpu) (rate(container_cpu_usage_seconds_total[5m]))
+        - record: container_memory_rss_by_type
+          expr: container_memory_rss{id=~"/|/system.slice|/kubepods.slice"} > 0
+        - record: container_cpu_usage_percent_by_host
+          expr: sum by (hostname,type)(rate(container_cpu_usage_seconds_total{id="/"}[5m])) / on (hostname,type) machine_cpu_cores
+        - record: apiserver_request_count_rate_by_resources
+          expr: sum without (client,instance,contentType) (rate(apiserver_request_count[5m]))
+
     prometheus.yml: |
       rule_files:
-        - 'prometheus.rules'
+        - '*.rules'
 
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
       # This uses separate scrape configs for cluster components (i.e. API server, node)
@@ -292,24 +307,6 @@ objects:
           action: keep
           regex: default;kubernetes;https
 
-      # Scrape config for nodes.
-      #
-      # Each node exposes a /metrics endpoint that contains operational metrics for
-      # the Kubelet and other components.
-      - job_name: 'kubernetes-nodes'
-
-        scheme: https
-        tls_config:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
-        kubernetes_sd_configs:
-        - role: node
-
-        relabel_configs:
-        - action: labelmap
-          regex: __meta_kubernetes_node_label_(.+)
-
       # Scrape config for controllers.
       #
       # Each master node exposes a /metrics endpoint on :8444 that contains operational metrics for
@@ -340,6 +337,31 @@ objects:
           regex: (.+)(?::\d+)
           replacement: $1:8444
 
+      # Scrape config for nodes.
+      #
+      # Each node exposes a /metrics endpoint that contains operational metrics for
+      # the Kubelet and other components.
+      - job_name: 'kubernetes-nodes'
+
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: node
+
+        # Drop a very high cardinality metric that is incorrect in 3.7. It will be
+        # fixed in 3.9.
+        metric_relabel_configs:
+        - source_labels: [__name__]
+          action: drop
+          regex: 'openshift_sdn_pod_(setup|teardown)_latency(.*)'
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
       # Scrape config for cAdvisor.
       #
       # Beginning in Kube 1.7, each node exposes a /metrics/cadvisor endpoint that
@@ -355,6 +377,14 @@ objects:
 
         kubernetes_sd_configs:
         - role: node
+
+        # Exclude a set of high cardinality metrics that can contribute to significant
+        # memory use in large clusters. These can be selectively enabled as necessary
+        # for medium or small clusters.
+        metric_relabel_configs:
+        - source_labels: [__name__]
+          action: drop
+          regex: 'container_(cpu_user_seconds_total|cpu_cfs_periods_total|memory_usage_bytes|memory_swap|memory_working_set_bytes|memory_cache|last_seen|fs_(read_seconds_total|write_seconds_total|sector_(.*)|io_(.*)|reads_merged_total|writes_merged_total)|tasks_state|memory_failcnt|memory_failures_total|spec_memory_swap_limit_bytes|fs_(.*)_bytes_total|spec_(.*))'
 
         relabel_configs:
         - action: labelmap
