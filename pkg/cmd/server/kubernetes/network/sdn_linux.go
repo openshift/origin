@@ -63,7 +63,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		return nil, nil, err
 	}
 
-	proxy, err := sdnproxy.New(options.NetworkConfig.NetworkPluginName, networkClient, kubeClient, internalKubeInformers, internalNetworkInformers)
+	proxy, err := sdnproxy.New(options.NetworkConfig.NetworkPluginName, networkClient, kubeClient, internalNetworkInformers)
 	if err != nil {
 		return nil, nil, err
 	}

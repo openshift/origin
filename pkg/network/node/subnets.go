@@ -23,7 +23,7 @@ func (node *OsdnNode) SubnetStartNode() {
 
 func (node *OsdnNode) watchSubnets() {
 	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, node.handleAddOrUpdateHostSubnet, node.handleDeleteHostSubnet)
-	node.informers.NetworkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
+	node.networkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
 }
 
 func (node *OsdnNode) getLocalSubnet() (string, error) {

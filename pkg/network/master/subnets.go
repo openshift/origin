@@ -205,7 +205,7 @@ func GetNodeCondition(status *kapi.NodeStatus, conditionType kapi.NodeConditionT
 
 func (master *OsdnMaster) watchNodes() {
 	funcs := common.InformerFuncs(&kapi.Node{}, master.handleAddOrUpdateNode, master.handleDeleteNode)
-	master.informers.KubeInformers.Core().InternalVersion().Nodes().Informer().AddEventHandler(funcs)
+	master.kubeInformers.Core().InternalVersion().Nodes().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType watch.EventType) {
@@ -249,7 +249,7 @@ func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 //   node deletion event to trigger HostSubnet deletion in this case.
 func (master *OsdnMaster) watchSubnets() {
 	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, master.handleAddOrUpdateSubnet, master.handleDeleteSubnet)
-	master.informers.NetworkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
+	master.networkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType watch.EventType) {

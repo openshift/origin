@@ -16,13 +16,14 @@ import (
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
 type nodeVNIDMap struct {
-	policy        osdnPolicy
-	networkClient networkclient.Interface
-	informers     common.SDNInformers
+	policy           osdnPolicy
+	networkClient    networkclient.Interface
+	networkInformers networkinformers.SharedInformerFactory
 
 	// Synchronizes add or remove ids/namespaces
 	lock       sync.Mutex
@@ -179,8 +180,8 @@ func (vmap *nodeVNIDMap) populateVNIDs() error {
 	return nil
 }
 
-func (vmap *nodeVNIDMap) Start(informers common.SDNInformers) error {
-	vmap.informers = informers
+func (vmap *nodeVNIDMap) Start(networkInformers networkinformers.SharedInformerFactory) error {
+	vmap.networkInformers = networkInformers
 
 	// Populate vnid map synchronously so that existing services can fetch vnid
 	err := vmap.populateVNIDs()
@@ -194,7 +195,7 @@ func (vmap *nodeVNIDMap) Start(informers common.SDNInformers) error {
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, vmap.handleAddOrUpdateNetNamespace, vmap.handleDeleteNetNamespace)
-	vmap.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
+	vmap.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (vmap *nodeVNIDMap) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {

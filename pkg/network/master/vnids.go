@@ -285,7 +285,7 @@ func (master *OsdnMaster) VnidStartMaster() error {
 
 func (master *OsdnMaster) watchNamespaces() {
 	funcs := common.InformerFuncs(&kapi.Namespace{}, master.handleAddOrUpdateNamespace, master.handleDeleteNamespace)
-	master.informers.KubeInformers.Core().InternalVersion().Namespaces().Informer().AddEventHandler(funcs)
+	master.kubeInformers.Core().InternalVersion().Namespaces().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
@@ -306,7 +306,7 @@ func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 
 func (master *OsdnMaster) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, master.handleAddOrUpdateNetNamespace, nil)
-	master.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
+	master.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {

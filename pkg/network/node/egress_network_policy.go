@@ -46,7 +46,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 	funcs := common.InformerFuncs(&networkapi.EgressNetworkPolicy{}, plugin.handleAddOrUpdateEgressNetworkPolicy, plugin.handleDeleteEgressNetworkPolicy)
-	plugin.informers.NetworkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
+	plugin.networkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
 }
 
 func (plugin *OsdnNode) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {

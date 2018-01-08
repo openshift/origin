@@ -13,6 +13,7 @@ import (
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 
 	"github.com/vishvananda/netlink"
 )
@@ -38,8 +39,8 @@ type egressIPWatcher struct {
 	localIP string
 	oc      *ovsController
 
-	informers common.SDNInformers
-	iptables  *NodeIPTables
+	networkInformers networkinformers.SharedInformerFactory
+	iptables         *NodeIPTables
 
 	// from HostSubnets
 	nodesByNodeIP   map[string]*nodeEgress
@@ -68,14 +69,14 @@ func newEgressIPWatcher(localIP string, oc *ovsController) *egressIPWatcher {
 	}
 }
 
-func (eip *egressIPWatcher) Start(informers common.SDNInformers, iptables *NodeIPTables) error {
+func (eip *egressIPWatcher) Start(networkInformers networkinformers.SharedInformerFactory, iptables *NodeIPTables) error {
 	var err error
 	if eip.localEgressLink, eip.localEgressNet, err = GetLinkDetails(eip.localIP); err != nil {
 		// Not expected, should already be caught by node.New()
 		return nil
 	}
 
-	eip.informers = informers
+	eip.networkInformers = networkInformers
 	eip.iptables = iptables
 
 	eip.watchHostSubnets()
@@ -94,7 +95,7 @@ func ipToHex(ip string) string {
 
 func (eip *egressIPWatcher) watchHostSubnets() {
 	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, eip.handleAddOrUpdateHostSubnet, eip.handleDeleteHostSubnet)
-	eip.informers.NetworkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
+	eip.networkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
 }
 
 func (eip *egressIPWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
@@ -184,7 +185,7 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 
 func (eip *egressIPWatcher) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, eip.handleAddOrUpdateNetNamespace, eip.handleDeleteNetNamespace)
-	eip.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
+	eip.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (eip *egressIPWatcher) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {

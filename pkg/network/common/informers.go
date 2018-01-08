@@ -5,18 +5,10 @@ import (
 
 	"github.com/golang/glog"
 
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
-
-type SDNInformers struct {
-	KubeInformers    kinternalinformers.SharedInformerFactory
-	NetworkInformers networkinformers.SharedInformerFactory
-}
 
 type InformerAddOrUpdateFunc func(interface{}, interface{}, watch.EventType)
 type InformerDeleteFunc func(interface{})

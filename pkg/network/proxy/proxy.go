@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 
 	"github.com/openshift/origin/pkg/network"
@@ -51,7 +50,7 @@ type proxyEndpoints struct {
 type OsdnProxy struct {
 	kClient              kclientset.Interface
 	networkClient        networkclient.Interface
-	informers            common.SDNInformers
+	networkInformers     networkinformers.SharedInformerFactory
 	networkInfo          *common.NetworkInfo
 	egressDNS            *common.EgressDNS
 	baseEndpointsHandler pconfig.EndpointsHandler
@@ -66,26 +65,20 @@ type OsdnProxy struct {
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
 func New(pluginName string, networkClient networkclient.Interface, kClient kclientset.Interface,
-	kubeInformers kinternalinformers.SharedInformerFactory,
 	networkInformers networkinformers.SharedInformerFactory) (network.ProxyInterface, error) {
 
 	if !network.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
 
-	sdnInformers := common.SDNInformers{
-		KubeInformers:    kubeInformers,
-		NetworkInformers: networkInformers,
-	}
-
 	return &OsdnProxy{
-		kClient:       kClient,
-		networkClient: networkClient,
-		informers:     sdnInformers,
-		ids:           make(map[string]uint32),
-		egressDNS:     common.NewEgressDNS(),
-		firewall:      make(map[string]*proxyFirewallItem),
-		allEndpoints:  make(map[ktypes.UID]*proxyEndpoints),
+		kClient:          kClient,
+		networkClient:    networkClient,
+		networkInformers: networkInformers,
+		ids:              make(map[string]uint32),
+		egressDNS:        common.NewEgressDNS(),
+		firewall:         make(map[string]*proxyFirewallItem),
+		allEndpoints:     make(map[ktypes.UID]*proxyEndpoints),
 	}, nil
 }
 
@@ -126,7 +119,7 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicyLocked(policy networkapi.Egress
 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 	funcs := common.InformerFuncs(&networkapi.EgressNetworkPolicy{}, proxy.handleAddOrUpdateEgressNetworkPolicy, proxy.handleDeleteEgressNetworkPolicy)
-	proxy.informers.NetworkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
+	proxy.networkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
 }
 
 func (proxy *OsdnProxy) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
@@ -153,7 +146,7 @@ func (proxy *OsdnProxy) handleDeleteEgressNetworkPolicy(obj interface{}) {
 
 func (proxy *OsdnProxy) watchNetNamespaces() {
 	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, proxy.handleAddOrUpdateNetNamespace, proxy.handleDeleteNetNamespace)
-	proxy.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
+	proxy.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (proxy *OsdnProxy) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {

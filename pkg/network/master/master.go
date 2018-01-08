@@ -34,7 +34,9 @@ type OsdnMaster struct {
 	networkInfo         *common.NetworkInfo
 	subnetAllocatorList []*netutils.SubnetAllocator
 	vnids               *masterVNIDMap
-	informers           common.SDNInformers
+
+	kubeInformers    kinternalinformers.SharedInformerFactory
+	networkInformers networkinformers.SharedInformerFactory
 
 	// Holds Node IP used in creating host subnet for a node
 	hostSubnetNodeIPs map[ktypes.UID]string
@@ -50,15 +52,11 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
-	sdnInformers := common.SDNInformers{
-		KubeInformers:    kubeInformers,
-		NetworkInformers: networkInformers,
-	}
-
 	master := &OsdnMaster{
 		kClient:           kClient,
 		networkClient:     networkClient,
-		informers:         sdnInformers,
+		kubeInformers:     kubeInformers,
+		networkInformers:  networkInformers,
 		hostSubnetNodeIPs: map[ktypes.UID]string{},
 	}
 

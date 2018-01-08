@@ -111,7 +111,8 @@ type OsdnNode struct {
 
 	hostSubnetMap map[string]*networkapi.HostSubnet
 
-	informers common.SDNInformers
+	kubeInformers    kinternalinformers.SharedInformerFactory
+	networkInformers networkinformers.SharedInformerFactory
 
 	// Holds runtime endpoint shim to make SDN <-> runtime communication
 	runtimeEndpoint       string
@@ -162,10 +163,6 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		return nil, err
 	}
 	oc := NewOVSController(ovsif, pluginId, useConnTrack, c.SelfIP)
-	sdnInformers := common.SDNInformers{
-		KubeInformers:    c.KubeInformers,
-		NetworkInformers: c.NetworkInformers,
-	}
 
 	plugin := &OsdnNode{
 		policy:             policy,
@@ -182,7 +179,8 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
 		egressDNS:          common.NewEgressDNS(),
 		hostSubnetMap:      make(map[string]*networkapi.HostSubnet),
-		informers:          sdnInformers,
+		kubeInformers:      c.KubeInformers,
+		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(c.SelfIP, oc),
 
 		runtimeEndpoint: c.RuntimeEndpoint,
@@ -338,7 +336,7 @@ func (node *OsdnNode) Start() error {
 		if err := node.SetupEgressNetworkPolicy(); err != nil {
 			return err
 		}
-		if err := node.egressIP.Start(node.informers, nodeIPTables); err != nil {
+		if err := node.egressIP.Start(node.networkInformers, nodeIPTables); err != nil {
 			return err
 		}
 	}
@@ -465,7 +463,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	funcs := common.InformerFuncs(&kapi.Service{}, node.handleAddOrUpdateService, node.handleDeleteService)
-	node.informers.KubeInformers.Core().InternalVersion().Services().Informer().AddEventHandler(funcs)
+	node.kubeInformers.Core().InternalVersion().Services().Informer().AddEventHandler(funcs)
 }
 
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {
