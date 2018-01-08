@@ -33,6 +33,7 @@
 // test/extended/testdata/builds/build-timing/test-docker-build.json
 // test/extended/testdata/builds/build-timing/test-is.json
 // test/extended/testdata/builds/build-timing/test-s2i-build.json
+// test/extended/testdata/builds/gradle-pipeline.yaml
 // test/extended/testdata/builds/incremental-auth-build.json
 // test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble
 // test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml
@@ -1355,6 +1356,38 @@ func testExtendedTestdataBuildsBuildTimingTestS2iBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsGradlePipelineYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: gradle
+spec:
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        node("maven") {
+          git url: "https://github.com/openshift/gs-spring-boot-spock.git"
+          sh "./gradlew build"
+        }
+  triggers:
+  - type: ConfigChange
+`)
+
+func testExtendedTestdataBuildsGradlePipelineYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsGradlePipelineYaml, nil
+}
+
+func testExtendedTestdataBuildsGradlePipelineYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsGradlePipelineYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/gradle-pipeline.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28597,6 +28630,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-timing/test-docker-build.json": testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/builds/build-timing/test-is.json": testExtendedTestdataBuildsBuildTimingTestIsJson,
 	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
 	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
 	"test/extended/testdata/builds/statusfail-badcontextdirs2i.yaml": testExtendedTestdataBuildsStatusfailBadcontextdirs2iYaml,
@@ -28992,6 +29026,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-is.json": &bintree{testExtendedTestdataBuildsBuildTimingTestIsJson, map[string]*bintree{}},
 						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 					}},
+					"gradle-pipeline.yaml": &bintree{testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
 					"statusfail-assemble": &bintree{nil, map[string]*bintree{
 						".s2i": &bintree{nil, map[string]*bintree{
