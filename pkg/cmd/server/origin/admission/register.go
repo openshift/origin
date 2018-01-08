@@ -17,6 +17,7 @@ import (
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy"
+	imagequalify "github.com/openshift/origin/pkg/image/admission/imagequalify"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	projectlifecycle "github.com/openshift/origin/pkg/project/admission/lifecycle"
 	projectnodeenv "github.com/openshift/origin/pkg/project/admission/nodeenv"
@@ -32,6 +33,7 @@ import (
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	imagequalifyapi "github.com/openshift/origin/pkg/image/admission/imagequalify/api"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 
@@ -55,6 +57,7 @@ func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
 	buildstrategyrestrictions.Register(plugins)
 	imageadmission.Register(plugins)
 	imagepolicy.Register(plugins)
+	imagequalify.Register(plugins)
 	ingressadmission.Register(plugins)
 	projectlifecycle.Register(plugins)
 	projectnodeenv.Register(plugins)
@@ -103,6 +106,7 @@ var (
 		"PodNodeConstraints",
 		overrideapi.PluginName,
 		imagepolicyapi.PluginName,
+		imagequalifyapi.PluginName,
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
 		"openshift.io/RestrictSubjectBindings",
