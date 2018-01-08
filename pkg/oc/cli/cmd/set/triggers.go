@@ -376,7 +376,7 @@ func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
 				}
 				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource, info.Name, "image", details, image.Auto)
 			}
-			for _, s := range triggers.WebHooks {
+			for _, s := range triggers.GenericWebHooks {
 				fmt.Fprintf(w, "%s/%s\t%s\t%s\t%s\n", info.Mapping.Resource, info.Name, "webhook", s, "")
 			}
 			for _, s := range triggers.GitHubWebHooks {
@@ -421,11 +421,10 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 			triggers.ImageChange = newTriggers
 		}
 		if o.FromWebHook != nil && *o.FromWebHook {
-			triggers.WebHooks = nil
+			triggers.GenericWebHooks = nil
 		}
 		if o.FromWebHookAllowEnv != nil && *o.FromWebHookAllowEnv {
-			triggers.WebHooks = nil
-			triggers.WebHooksAllowEnv = false
+			triggers.GenericWebHooks = nil
 		}
 		if o.FromGitHub != nil && *o.FromGitHub {
 			triggers.GitHubWebHooks = nil
@@ -476,20 +475,46 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 		}
 	}
 	if o.FromWebHook != nil && *o.FromWebHook {
-		triggers.WebHooks = []string{app.GenerateSecret(20)}
+		secret := app.GenerateSecret(20)
+		triggers.GenericWebHooks = append(triggers.GenericWebHooks,
+			buildapi.WebHookTrigger{
+				Secret:   secret,
+				AllowEnv: false,
+			},
+		)
 	}
 	if o.FromWebHookAllowEnv != nil && *o.FromWebHookAllowEnv {
-		triggers.WebHooks = []string{app.GenerateSecret(20)}
-		triggers.WebHooksAllowEnv = true
+		secret := app.GenerateSecret(20)
+		triggers.GenericWebHooks = append(triggers.GenericWebHooks,
+			buildapi.WebHookTrigger{
+				Secret:   secret,
+				AllowEnv: true,
+			},
+		)
 	}
 	if o.FromGitHub != nil && *o.FromGitHub {
-		triggers.GitHubWebHooks = []string{app.GenerateSecret(20)}
+		secret := app.GenerateSecret(20)
+		triggers.GitHubWebHooks = append(triggers.GitHubWebHooks,
+			buildapi.WebHookTrigger{
+				Secret: secret,
+			},
+		)
 	}
 	if o.FromGitLab != nil && *o.FromGitLab {
-		triggers.GitLabWebHooks = []string{app.GenerateSecret(20)}
+		secret := app.GenerateSecret(20)
+		triggers.GitLabWebHooks = append(triggers.GitLabWebHooks,
+			buildapi.WebHookTrigger{
+				Secret: secret,
+			},
+		)
 	}
 	if o.FromBitbucket != nil && *o.FromBitbucket {
-		triggers.BitbucketWebHooks = []string{app.GenerateSecret(20)}
+		secret := app.GenerateSecret(20)
+		triggers.BitbucketWebHooks = append(triggers.BitbucketWebHooks,
+			buildapi.WebHookTrigger{
+				Secret: secret,
+			},
+		)
 	}
 }
 
@@ -506,15 +531,14 @@ type ImageChangeTrigger struct {
 	Names []string
 }
 
-// TriggerDefinition is the abstract representation of triggers for builds and deploymnet configs.
+// TriggerDefinition is the abstract representation of triggers for builds and deployment configs.
 type TriggerDefinition struct {
 	ConfigChange      bool
 	ImageChange       []ImageChangeTrigger
-	WebHooks          []string
-	WebHooksAllowEnv  bool
-	GitHubWebHooks    []string
-	GitLabWebHooks    []string
-	BitbucketWebHooks []string
+	GenericWebHooks   []buildapi.WebHookTrigger
+	GitHubWebHooks    []buildapi.WebHookTrigger
+	GitLabWebHooks    []buildapi.WebHookTrigger
+	BitbucketWebHooks []buildapi.WebHookTrigger
 }
 
 // defaultNamespace returns an empty string if the provided namespace matches the default namespace, or
@@ -592,14 +616,34 @@ func NewBuildConfigTriggers(config *buildapi.BuildConfig) *TriggerDefinition {
 		case buildapi.ConfigChangeBuildTriggerType:
 			t.ConfigChange = true
 		case buildapi.GenericWebHookBuildTriggerType:
-			t.WebHooks = append(t.WebHooks, trigger.GenericWebHook.Secret)
-			t.WebHooksAllowEnv = trigger.GenericWebHook.AllowEnv
+			t.GenericWebHooks = append(t.GenericWebHooks,
+				buildapi.WebHookTrigger{
+					Secret:          trigger.GenericWebHook.Secret,
+					SecretReference: trigger.GenericWebHook.SecretReference,
+					AllowEnv:        trigger.GenericWebHook.AllowEnv,
+				},
+			)
 		case buildapi.GitHubWebHookBuildTriggerType:
-			t.GitHubWebHooks = append(t.GitHubWebHooks, trigger.GitHubWebHook.Secret)
+			t.GitHubWebHooks = append(t.GitHubWebHooks,
+				buildapi.WebHookTrigger{
+					Secret:          trigger.GitHubWebHook.Secret,
+					SecretReference: trigger.GitHubWebHook.SecretReference,
+				},
+			)
 		case buildapi.GitLabWebHookBuildTriggerType:
-			t.GitLabWebHooks = append(t.GitLabWebHooks, trigger.GitLabWebHook.Secret)
+			t.GitLabWebHooks = append(t.GitLabWebHooks,
+				buildapi.WebHookTrigger{
+					Secret:          trigger.GitLabWebHook.Secret,
+					SecretReference: trigger.GitLabWebHook.SecretReference,
+				},
+			)
 		case buildapi.BitbucketWebHookBuildTriggerType:
-			t.BitbucketWebHooks = append(t.BitbucketWebHooks, trigger.BitbucketWebHook.Secret)
+			t.BitbucketWebHooks = append(t.BitbucketWebHooks,
+				buildapi.WebHookTrigger{
+					Secret:          trigger.BitbucketWebHook.Secret,
+					SecretReference: trigger.BitbucketWebHook.SecretReference,
+				},
+			)
 		case buildapi.ImageChangeBuildTriggerType:
 			if trigger.ImageChange.From == nil {
 				if strategyTrigger := strategyTrigger(config); strategyTrigger != nil {
@@ -633,7 +677,7 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		if len(t.GitHubWebHooks) > 0 {
 			return fmt.Errorf("deployment configs do not support GitHub web hooks")
 		}
-		if len(t.WebHooks) > 0 {
+		if len(t.GenericWebHooks) > 0 {
 			return fmt.Errorf("deployment configs do not support web hooks")
 		}
 		if len(t.GitLabWebHooks) > 0 {
@@ -686,37 +730,28 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		if t.ConfigChange {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType})
 		}
-		for _, trigger := range t.WebHooks {
+		for i := range t.GenericWebHooks {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{
-				Type: buildapi.GenericWebHookBuildTriggerType,
-				GenericWebHook: &buildapi.WebHookTrigger{
-					Secret:   trigger,
-					AllowEnv: t.WebHooksAllowEnv,
-				},
+				Type:           buildapi.GenericWebHookBuildTriggerType,
+				GenericWebHook: &t.GenericWebHooks[i],
 			})
 		}
-		for _, trigger := range t.GitHubWebHooks {
+		for i := range t.GitHubWebHooks {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: trigger,
-				},
+				Type:          buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &t.GitHubWebHooks[i],
 			})
 		}
-		for _, trigger := range t.GitLabWebHooks {
+		for i := range t.GitLabWebHooks {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{
-				Type: buildapi.GitLabWebHookBuildTriggerType,
-				GitLabWebHook: &buildapi.WebHookTrigger{
-					Secret: trigger,
-				},
+				Type:          buildapi.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &t.GitLabWebHooks[i],
 			})
 		}
-		for _, trigger := range t.BitbucketWebHooks {
+		for i := range t.BitbucketWebHooks {
 			triggers = append(triggers, buildapi.BuildTriggerPolicy{
-				Type: buildapi.BitbucketWebHookBuildTriggerType,
-				BitbucketWebHook: &buildapi.WebHookTrigger{
-					Secret: trigger,
-				},
+				Type:             buildapi.BitbucketWebHookBuildTriggerType,
+				BitbucketWebHook: &t.BitbucketWebHooks[i],
 			})
 		}
 
@@ -759,7 +794,7 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		if len(t.GitHubWebHooks) > 0 {
 			return fmt.Errorf("does not support GitHub web hooks")
 		}
-		if len(t.WebHooks) > 0 {
+		if len(t.GenericWebHooks) > 0 {
 			return fmt.Errorf("does not support web hooks")
 		}
 		if len(t.GitLabWebHooks) > 0 {
