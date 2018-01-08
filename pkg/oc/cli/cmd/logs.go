@@ -168,6 +168,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	case appsapi.IsResourceOrLegacy("deploymentconfig", gr):
 		dopts := &appsapi.DeploymentLogOptions{
+			Container:    podLogOptions.Container,
 			Follow:       podLogOptions.Follow,
 			Previous:     podLogOptions.Previous,
 			SinceSeconds: podLogOptions.SinceSeconds,
