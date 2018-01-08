@@ -43,10 +43,25 @@ func scrapeLogs(bldPrefix string, oc *exutil.CLI) {
 func checkPodFlag(bldPrefix string, oc *exutil.CLI) {
 	if bldPrefix == buildPrefixTC {
 		// grant access to the custom build strategy
-		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
+		var err error
+		for i := 0; i < 5; i++ {
+			err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
+			if err != nil && strings.Contains(err.(exutil.ExitError).StdErr, "Conflict") {
+				continue
+			}
+			break
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
+
 		defer func() {
-			err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
+			var err error
+			for i := 0; i < 5; i++ {
+				err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
+				if err != nil && strings.Contains(err.(exutil.ExitError).StdErr, "Conflict") {
+					continue
+				}
+				break
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}()
 	}
