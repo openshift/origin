@@ -14108,6 +14108,8 @@ objects:
           - "5m"
           - --feature-gates
           - OriginatingIdentity=true
+          - --feature-gates
+          - AsyncBindingOperations=true
           image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: controller-manager
