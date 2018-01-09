@@ -500,14 +500,13 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 		if len(result.Objects) > 0 {
 			// if environment variables were passed in, let's apply the environment variables
 			// to every pod template object
-			for i := range result.Objects {
-				switch result.Objects[i].(type) {
-				case *buildapi.BuildConfig:
-					buildEnv := buildutil.GetBuildConfigEnv(result.Objects[i].(*buildapi.BuildConfig))
+			for _, obj := range result.Objects {
+				if bc, ok := obj.(*buildapi.BuildConfig); ok {
+					buildEnv := buildutil.GetBuildConfigEnv(bc)
 					buildEnv = app.JoinEnvironment(buildEnv, buildEnvironment.List())
-					buildutil.SetBuildConfigEnv(result.Objects[i].(*buildapi.BuildConfig), buildEnv)
+					buildutil.SetBuildConfigEnv(bc, buildEnv)
 				}
-				podSpec, _, err := ometa.GetPodSpec(result.Objects[i])
+				podSpec, _, err := ometa.GetPodSpec(obj)
 				if err == nil {
 					for ii := range podSpec.Containers {
 						if podSpec.Containers[ii].Env != nil {
