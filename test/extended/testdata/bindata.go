@@ -1918,27 +1918,59 @@ func testExtendedTestdataBuildsTestAuthBuildYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestBcWithPrRefYaml = []byte(`apiVersion: v1
-kind: BuildConfig
-metadata:
-  creationTimestamp: null
-  name: bc-with-pr-ref
-spec:
-  resources: {}
-  source:
-    git:
-      uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
-      ref: refs/pull/1/head
-    type: Git
-  strategy:
-    sourceStrategy:
-      from:
+var _testExtendedTestdataBuildsTestBcWithPrRefYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref-docker
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
+        ref: refs/pull/1/head
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: wildfly:latest
+          namespace: openshift
+    output:
+      to:
         kind: ImageStreamTag
-        name: wildfly:latest
-        namespace: openshift
-    type: Source
-status:
-  lastVersion: 0
+        name: bc-with-pr-ref:latest
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: bc-with-pr-ref-docker
+  spec:
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
+        ref: refs/pull/1/head
+      dockerfile: FROM centos/ruby-22-centos7
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+    output:
+      to:
+        kind: ImageStreamTag
+        name: bc-with-pr-ref-docker:latest
 `)
 
 func testExtendedTestdataBuildsTestBcWithPrRefYamlBytes() ([]byte, error) {
