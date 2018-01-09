@@ -237,12 +237,22 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				}
 
 				firstDeploymentName := appsutil.DeploymentNameForConfigVersion(name, 1)
-				firstDeployerRemoved := len(deploymentNamesToDeployers[firstDeploymentName]) == 0
+				firstDeployerRemoved := true
+				for _, deployer := range deploymentNamesToDeployers[firstDeploymentName] {
+					if deployer.Status.Phase != kapiv1.PodFailed && deployer.Status.Phase != kapiv1.PodSucceeded {
+						firstDeployerRemoved = false
+					}
+				}
 
 				secondDeploymentName := appsutil.DeploymentNameForConfigVersion(name, 2)
-				secondDeployerExists := len(deploymentNamesToDeployers[secondDeploymentName]) == 1
+				secondDeployerRemoved := true
+				for _, deployer := range deploymentNamesToDeployers[secondDeploymentName] {
+					if deployer.Status.Phase != kapiv1.PodFailed && deployer.Status.Phase != kapiv1.PodSucceeded {
+						secondDeployerRemoved = false
+					}
+				}
 
-				return firstDeployerRemoved && secondDeployerExists, nil
+				return firstDeployerRemoved && !secondDeployerRemoved, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
@@ -1366,6 +1376,83 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					return false, nil
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Describe("won't deploy RC with unresolved images [Conformance]", func() {
+		dcName := "example"
+		rcName := func(i int) string { return fmt.Sprintf("%s-%d", dcName, i) }
+		g.AfterEach(func() {
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("when patched with empty image", func() {
+			namespace := oc.Namespace()
+
+			g.By("creating DC")
+			dc, err := readDCFixture(imageChangeTriggerFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Name).To(o.Equal(dcName))
+
+			rcList, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			dc.Spec.Replicas = 1
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("tagging the busybox:latest as test:v1 image to create ImageStream")
+			out, err := oc.Run("tag").Args("docker.io/busybox:latest", "test:v1").Output()
+			e2e.Logf("%s", out)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for deployment #1 to complete")
+			_, err = waitForRCModification(oc, namespace, rcName(1), deploymentRunTimeout,
+				rcList.ResourceVersion, func(currentRC *kapiv1.ReplicationController) (bool, error) {
+					switch appsutil.DeploymentStatusFor(currentRC) {
+					case appsapi.DeploymentStatusComplete:
+						return true, nil
+					case appsapi.DeploymentStatusFailed:
+						return true, fmt.Errorf("deployment #1 failed")
+					default:
+						return false, nil
+					}
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("setting DC image repeatedly to empty string to fight with image trigger")
+			for i := 0; i < 50; i++ {
+				dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Patch(dc.Name, types.StrategicMergePatchType,
+					[]byte(`{"spec":{"template":{"spec":{"containers":[{"name":"test","image":""}]}}}}`))
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
+			g.By("waiting to see if it won't deploy RC with invalid revision or the same one multiple times")
+			// Wait for image trigger to inject image
+			dc, err = waitForDCModification(oc, namespace, dc.Name, deploymentChangeTimeout,
+				dc.GetResourceVersion(), func(config *appsapi.DeploymentConfig) (bool, error) {
+					if config.Spec.Template.Spec.Containers[0].Image != "" {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			dcTmp, err := waitForDCModification(oc, namespace, dc.Name, deploymentChangeTimeout,
+				dc.GetResourceVersion(), func(config *appsapi.DeploymentConfig) (bool, error) {
+					if config.Status.ObservedGeneration >= dc.Generation {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to wait on generation >= %d to be observed by DC %s/%s", dc.Generation, dc.Namespace, dc.Name))
+			dc = dcTmp
+
+			rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{
+				LabelSelector: appsutil.ConfigSelector(dc.Name).String(),
+			})
+			o.Expect(rcs.Items).To(o.HaveLen(1))
+			o.Expect(strings.TrimSpace(rcs.Items[0].Spec.Template.Spec.Containers[0].Image)).NotTo(o.BeEmpty())
 		})
 	})
 })

@@ -4838,37 +4838,34 @@ func testExtendedTestdataDeploymentsDeploymentSimpleYaml() (*asset, error) {
 }
 
 var _testExtendedTestdataDeploymentsDeploymentTriggerYaml = []byte(`apiVersion: v1
-kind: List
-items:
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    labels:
-      app: example
-    name: example
-  spec:
-    replicas: 1
-    template:
-      metadata:
-        labels:
-          app: example
-      spec:
-        containers:
-        - imagePullPolicy: Always
-          name: test
-          command:
-          - /bin/sleep
-          - "100"
-    test: false
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - test
-        from:
-          kind: ImageStreamTag
-          name: test:v1
-      type: ImageChange
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: example
+  name: example
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - imagePullPolicy: Always
+        name: test
+        command:
+        - /bin/sleep
+        - "100"
+  test: false
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - test
+      from:
+        kind: ImageStreamTag
+        name: test:v1
+    type: ImageChange
 `)
 
 func testExtendedTestdataDeploymentsDeploymentTriggerYamlBytes() ([]byte, error) {
