@@ -475,6 +475,9 @@ func (m *Master) Start() error {
 			// continuously run the scheduler while we have the primary lease
 			go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
 
+			informersStarted := make(chan struct{})
+			kubeControllersStarted := make(chan struct{})
+
 			go runEmbeddedKubeControllerManager(
 				m.config.MasterClients.OpenShiftLoopbackKubeConfig,
 				m.config.ServiceAccountConfig.PrivateKeyFile,
@@ -483,18 +486,23 @@ func (m *Master) Start() error {
 				m.config.VolumeConfig.DynamicProvisioningEnabled,
 				m.config.KubernetesMasterConfig.ControllerArguments,
 				recyclerImage,
-				informers)
+				informers,
+				informersStarted,
+				kubeControllersStarted)
 
 			openshiftControllerOptions, err := getOpenshiftControllerOptions(m.config.KubernetesMasterConfig.ControllerArguments)
 			if err != nil {
 				glog.Fatal(err)
 			}
-			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop)
+			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop, informersStarted)
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
+			// don't start any controllers until kube is ready
+			<-kubeControllersStarted
 			informers.Start(utilwait.NeverStop)
+			close(informersStarted)
 		}()
 	}
 
