@@ -12,8 +12,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	buildapi "github.com/openshift/api/build/v1"
 	buildinternalapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build/v1"
 )
 
 type BuildAnalyzerOptions struct {
@@ -128,11 +128,11 @@ func (o *BuildAnalyzerOptions) Run() error {
 
 			// ignore builds that completed before the earliest time we care about.
 			if o.StartTime != nil {
-				if build.Status.CompletionTimestamp != nil && build.Status.CompletionTimestamp.Before(*o.StartTime) {
+				if build.Status.CompletionTimestamp != nil && build.Status.CompletionTimestamp.Before(o.StartTime) {
 					continue
 				}
 			}
-			if o.TriggerTime != nil && build.Status.CompletionTimestamp != nil && build.Status.CompletionTimestamp.Before(*o.TriggerTime) {
+			if o.TriggerTime != nil && build.Status.CompletionTimestamp != nil && build.Status.CompletionTimestamp.Before(o.TriggerTime) {
 				// the set of builds that completed(successfully or otherwise) before the new set of builds were triggered.
 				beforecnt += 1
 				if build.Status.Phase == buildapi.BuildPhaseComplete {
@@ -246,7 +246,7 @@ func appendBuild(bcs map[string][]buildapi.Build, build buildapi.Build) {
 
 	f := false
 	for i, b := range bcs[bc] {
-		if build.CreationTimestamp.Before(b.CreationTimestamp) {
+		if build.CreationTimestamp.Before(&b.CreationTimestamp) {
 			if i == 0 {
 				bcs[bc] = append([]buildapi.Build{build}, bcs[bc]...)
 				f = true
