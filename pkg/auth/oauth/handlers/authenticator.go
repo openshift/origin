@@ -32,6 +32,13 @@ type TokenMaxAgeSeconds interface {
 	GetTokenMaxAgeSeconds() *int32
 }
 
+type TokenTimeoutSeconds interface {
+	// GetAccessTokenInactivityTimeoutSeconds returns the inactivity timeout
+	// for the token in seconds. 0 means no timeout.
+	// nil means to use the default expiration.
+	GetAccessTokenInactivityTimeoutSeconds() *int32
+}
+
 // HandleAuthorize implements osinserver.AuthorizeHandler to ensure the AuthorizeRequest is authenticated.
 // If the request is authenticated, UserData and Authorized are set and false is returned.
 // If the request is not authenticated, the auth handler is called and the request is not authorized

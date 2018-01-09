@@ -16,7 +16,14 @@ import (
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
-const MinTokenLength = 32
+const (
+	MinTokenLength = 32
+	// MinimumInactivityTimeoutSeconds defines the the smallest value allowed
+	// for AccessTokenInactivityTimeoutSeconds.
+	// It also defines the ticker interval for the token update routine as
+	// MinimumInactivityTimeoutSeconds / 3 is used there.
+	MinimumInactivityTimeoutSeconds = 5 * 60
+)
 
 // PKCE [RFC7636] code challenge methods supported
 // https://tools.ietf.org/html/rfc7636#section-4.3
@@ -70,6 +77,11 @@ func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList
 	if len(accessToken.UserUID) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("userUID"), ""))
 	}
+	// negative values are not allowed
+	if accessToken.InactivityTimeoutSeconds < 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("inactivityTimeoutSeconds"),
+			accessToken.InactivityTimeoutSeconds, "cannot be a negative value"))
+	}
 	if ok, msg := ValidateRedirectURI(accessToken.RedirectURI); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), accessToken.RedirectURI, msg))
 	}
@@ -79,8 +91,29 @@ func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList
 
 func ValidateAccessTokenUpdate(newToken, oldToken *oauthapi.OAuthAccessToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newToken.ObjectMeta, &oldToken.ObjectMeta, field.NewPath("metadata"))
+	// since InactivityTimeoutSeconds can be concurrently updated by multipe masters we do
+	// not allow it to decrease in value, as that would cause "updated" tokens
+	// to timeout earlier than they should. 0 is the exception, as this value
+	// indicates that the token does not expire, and it is an allowed new
+	// value.
+	if newToken.InactivityTimeoutSeconds > 0 && newToken.InactivityTimeoutSeconds < oldToken.InactivityTimeoutSeconds {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("inactivityTimeoutSeconds"), newToken.InactivityTimeoutSeconds,
+			fmt.Sprintf("cannot be less than the current value=%d", oldToken.InactivityTimeoutSeconds)))
+	}
+	// negative values are not allowed either
+	if newToken.InactivityTimeoutSeconds < 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("inactivityTimeoutSeconds"), newToken.InactivityTimeoutSeconds,
+			"cannot be a negative value"))
+	}
+	// we do not allow tokens to turn into timing out tokens after issuance
+	if oldToken.InactivityTimeoutSeconds == 0 && newToken.InactivityTimeoutSeconds != 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("inactivityTimeoutSeconds"), newToken.InactivityTimeoutSeconds,
+			"cannot update non-timing-out token"))
+	}
 	copied := *oldToken
 	copied.ObjectMeta = newToken.ObjectMeta
+	// allow only InactivityTimeoutSeconds to be changed
+	copied.InactivityTimeoutSeconds = newToken.InactivityTimeoutSeconds
 	return append(allErrs, validation.ValidateImmutableField(newToken, &copied, field.NewPath(""))...)
 }
 
@@ -137,6 +170,21 @@ func ValidateClient(client *oauthapi.OAuthClient) field.ErrorList {
 
 	for i, restriction := range client.ScopeRestrictions {
 		allErrs = append(allErrs, ValidateScopeRestriction(restriction, field.NewPath("scopeRestrictions").Index(i))...)
+	}
+
+	if client.AccessTokenInactivityTimeoutSeconds != nil {
+		timeout := *client.AccessTokenInactivityTimeoutSeconds
+		if timeout > 0 && timeout < MinimumInactivityTimeoutSeconds {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("accessTokenInactivityTimeoutSeconds"),
+				client.AccessTokenInactivityTimeoutSeconds,
+				fmt.Sprintf("The minimum valid timeout value is %d seconds", MinimumInactivityTimeoutSeconds)))
+		}
+		if timeout < 0 {
+			allErrs = append(allErrs, field.Invalid(
+				field.NewPath("accessTokenInactivityTimeoutSeconds"),
+				client.AccessTokenInactivityTimeoutSeconds, "value cannot be negative"))
+		}
 	}
 
 	return allErrs

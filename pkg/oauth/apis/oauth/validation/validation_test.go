@@ -179,6 +179,9 @@ func TestValidateClient(t *testing.T) {
 		t.Errorf("expected success: %v", errs)
 	}
 
+	var badTimeout int32 = MinimumInactivityTimeoutSeconds - 1
+	var negTimeout int32 = -1
+
 	errorCases := map[string]struct {
 		Client oapi.OAuthClient
 		T      field.ErrorType
@@ -225,6 +228,22 @@ func TestValidateClient(t *testing.T) {
 			},
 			T: field.ErrorTypeRequired,
 			F: "scopeRestrictions[0].clusterRole.namespaces",
+		},
+		"minimum timeout value": {
+			Client: oapi.OAuthClient{
+				ObjectMeta:                          metav1.ObjectMeta{Name: "client-name"},
+				AccessTokenInactivityTimeoutSeconds: &badTimeout,
+			},
+			T: field.ErrorTypeInvalid,
+			F: "accessTokenInactivityTimeoutSeconds",
+		},
+		"negative timeout value": {
+			Client: oapi.OAuthClient{
+				ObjectMeta:                          metav1.ObjectMeta{Name: "client-name"},
+				AccessTokenInactivityTimeoutSeconds: &negTimeout,
+			},
+			T: field.ErrorTypeInvalid,
+			F: "accessTokenInactivityTimeoutSeconds",
 		},
 	}
 	for k, v := range errorCases {
@@ -300,6 +319,17 @@ func TestValidateAccessTokens(t *testing.T) {
 			},
 			T: field.ErrorTypeInvalid,
 			F: "scopes[0]",
+		},
+		"negative timeout": {
+			Token: oapi.OAuthAccessToken{
+				ObjectMeta:               metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+				ClientName:               "myclient",
+				UserName:                 "myusername",
+				UserUID:                  "myuseruid",
+				InactivityTimeoutSeconds: -1,
+			},
+			T: field.ErrorTypeInvalid,
+			F: "inactivityTimeoutSeconds",
 		},
 	}
 	for k, v := range errorCases {
@@ -435,12 +465,24 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 
 func TestValidateAccessTokensUpdate(t *testing.T) {
 	valid := &oapi.OAuthAccessToken{
-		ObjectMeta: metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength", ResourceVersion: "1"},
-		ClientName: "myclient",
-		UserName:   "myusername",
-		UserUID:    "myuseruid",
+		ObjectMeta:               metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength", ResourceVersion: "1"},
+		ClientName:               "myclient",
+		UserName:                 "myusername",
+		UserUID:                  "myuseruid",
+		InactivityTimeoutSeconds: 300,
+	}
+	validNoTimeout := &oapi.OAuthAccessToken{
+		ObjectMeta:               metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength", ResourceVersion: "1"},
+		ClientName:               "myclient",
+		UserName:                 "myusername",
+		UserUID:                  "myuseruid",
+		InactivityTimeoutSeconds: 0,
 	}
 	errs := ValidateAccessTokenUpdate(valid, valid)
+	if len(errs) != 0 {
+		t.Errorf("expected success: %v", errs)
+	}
+	errs = ValidateAccessTokenUpdate(validNoTimeout, validNoTimeout)
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
 	}
@@ -466,6 +508,30 @@ func TestValidateAccessTokensUpdate(t *testing.T) {
 			},
 			T: field.ErrorTypeInvalid,
 			F: "[]",
+		},
+		"change InactivityTimeoutSeconds to smaller value": {
+			Token: *valid,
+			Change: func(obj *oapi.OAuthAccessToken) {
+				obj.InactivityTimeoutSeconds = 299
+			},
+			T: field.ErrorTypeInvalid,
+			F: "inactivityTimeoutSeconds",
+		},
+		"change InactivityTimeoutSeconds to negative value": {
+			Token: *valid,
+			Change: func(obj *oapi.OAuthAccessToken) {
+				obj.InactivityTimeoutSeconds = -1
+			},
+			T: field.ErrorTypeInvalid,
+			F: "inactivityTimeoutSeconds",
+		},
+		"change InactivityTimeoutSeconds from 0 value": {
+			Token: *validNoTimeout,
+			Change: func(obj *oapi.OAuthAccessToken) {
+				obj.InactivityTimeoutSeconds = MinimumInactivityTimeoutSeconds
+			},
+			T: field.ErrorTypeInvalid,
+			F: "inactivityTimeoutSeconds",
 		},
 	}
 	for k, v := range errorCases {
