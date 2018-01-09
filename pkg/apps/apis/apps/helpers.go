@@ -16,6 +16,7 @@ import (
 // so it shouldn't be included here.
 func DeploymentToPodLogOptions(opts *DeploymentLogOptions) *kapi.PodLogOptions {
 	return &kapi.PodLogOptions{
+		Container:    opts.Container,
 		Follow:       opts.Follow,
 		SinceSeconds: opts.SinceSeconds,
 		SinceTime:    opts.SinceTime,
