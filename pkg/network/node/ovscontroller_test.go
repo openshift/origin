@@ -903,12 +903,17 @@ func TestAlreadySetUp(t *testing.T) {
 	}{
 		{
 			// Good note
-			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.05.00.00.00.00",
+			flow:    fmt.Sprintf("cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.%02x.00.00.00.00", ruleVersion),
 			success: true,
 		},
 		{
+			// Wrong version
+			flow:    fmt.Sprintf("cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.%02x.00.00.00.00", ruleVersion-1),
+			success: false,
+		},
+		{
 			// Wrong table
-			flow:    "cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.05.00.00.00.00",
+			flow:    fmt.Sprintf("cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.%02x.00.00.00.00", ruleVersion),
 			success: false,
 		},
 		{
