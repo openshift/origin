@@ -9,6 +9,8 @@ import (
 	"k8s.io/client-go/scale"
 	hpacontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	hpametrics "k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
+	resourceclient "k8s.io/metrics/pkg/client/clientset_generated/clientset/typed/metrics/v1beta1"
+	"k8s.io/metrics/pkg/client/custom_metrics"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -18,6 +20,7 @@ import (
 
 type HorizontalPodAutoscalerControllerConfig struct {
 	HeapsterNamespace string
+	UseRESTClients    bool
 }
 
 func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx ControllerContext) (bool, error) {
@@ -31,13 +34,22 @@ func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx Contro
 		return false, err
 	}
 
-	metricsClient := hpametrics.NewHeapsterMetricsClient(
-		hpaClient,
-		c.HeapsterNamespace,
-		"https",
-		"heapster",
-		"",
-	)
+	var metricsClient hpametrics.MetricsClient
+	if c.UseRESTClients {
+		metricsClient = hpametrics.NewRESTMetricsClient(
+			resourceclient.NewForConfigOrDie(hpaClientConfig),
+			custom_metrics.NewForConfigOrDie(hpaClientConfig),
+		)
+	} else {
+		metricsClient = hpametrics.NewHeapsterMetricsClient(
+			hpaClient,
+			c.HeapsterNamespace,
+			"https",
+			"heapster",
+			"",
+		)
+	}
+
 	replicaCalc := hpacontroller.NewReplicaCalculator(
 		metricsClient,
 		hpaClient.CoreV1(),
