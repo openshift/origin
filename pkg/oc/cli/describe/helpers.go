@@ -289,7 +289,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 			}
 			scheduled, insecure = tagRef.ImportPolicy.Scheduled, tagRef.ImportPolicy.Insecure
 			gen := imageapi.LatestObservedTagGeneration(stream, tag)
-			importing = !tagRef.Reference && tagRef.Generation != nil && *tagRef.Generation != gen
+			importing = !tagRef.Reference && tagRef.Generation != nil && *tagRef.Generation > gen
 		}
 
 		//   updates whenever tag :5.2 is changed
