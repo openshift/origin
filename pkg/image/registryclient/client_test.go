@@ -1,7 +1,6 @@
-package importer
+package registryclient
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,15 +13,9 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 	godigest "github.com/opencontainers/go-digest"
-
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
 type mockRetriever struct {
@@ -146,70 +139,8 @@ func (r *mockTagService) Lookup(ctx context.Context, digest distribution.Descrip
 	return nil, fmt.Errorf("not implemented")
 }
 
-func TestSchema1ToImage(t *testing.T) {
-	m := &schema1.SignedManifest{}
-	if err := json.Unmarshal([]byte(etcdManifest), m); err != nil {
-		t.Fatal(err)
-	}
-	image, err := schema1ToImage(m, godigest.Digest("sha256:test"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if image.DockerImageMetadata.ID != "sha256:test" {
-		t.Errorf("unexpected image: %#v", image.DockerImageMetadata.ID)
-	}
-}
-
-func TestDockerV1Fallback(t *testing.T) {
-	var uri *url.URL
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Docker-Endpoints", uri.Host)
-
-		// get all tags
-		if strings.HasSuffix(r.URL.Path, "/tags") {
-			fmt.Fprintln(w, `{"tag1":"image1", "test":"image2"}`)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		if strings.HasSuffix(r.URL.Path, "/images") {
-			fmt.Fprintln(w, `{"tag1":"image1", "test":"image2"}`)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		if strings.HasSuffix(r.URL.Path, "/json") {
-			fmt.Fprintln(w, `{"ID":"image2"}`)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		t.Logf("tried to access %s", r.URL.Path)
-		w.WriteHeader(http.StatusNotFound)
-	}))
-
-	client := dockerregistry.NewClient(10*time.Second, false)
-	ctx := gocontext.WithValue(gocontext.Background(), ContextKeyV1RegistryClient, client)
-
-	uri, _ = url.Parse(server.URL)
-	isi := &imageapi.ImageStreamImport{
-		Spec: imageapi.ImageStreamImportSpec{
-			Repository: &imageapi.RepositoryImportSpec{
-				From:         kapi.ObjectReference{Kind: "DockerImage", Name: uri.Host + "/test:test"},
-				ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
-			},
-		},
-	}
-
-	retriever := &mockRetriever{err: fmt.Errorf("does not support v2 API")}
-	im := NewImageStreamImporter(retriever, 5, nil, nil)
-	if err := im.Import(ctx, isi, nil); err != nil {
-		t.Fatal(err)
-	}
-	if images := isi.Status.Repository.Images; len(images) != 2 || images[0].Tag != "tag1" || images[1].Tag != "test" {
-		t.Errorf("unexpected images: %#v", images)
-	}
-}
-
 func TestPing(t *testing.T) {
-	retriever := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials).(*repositoryRetriever)
+	retriever := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials)
 
 	fn404 := func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(404) }
 	var fn http.HandlerFunc
@@ -292,12 +223,18 @@ func TestPing(t *testing.T) {
 
 	for _, test := range testCases {
 		fn = test.fn
-		_, err := retriever.ping(test.uri, true, retriever.context.InsecureTransport)
+		_, err := retriever.ping(test.uri, true, retriever.InsecureTransport)
 		if (err != nil && strings.Contains(err.Error(), "does not support v2 API")) == test.expectV2 {
 			t.Errorf("%s: Expected ErrNotV2Registry, got %v", test.name, err)
 		}
 	}
 }
+
+type temporaryError struct{}
+
+func (temporaryError) Error() string   { return "temporary" }
+func (temporaryError) Timeout() bool   { return false }
+func (temporaryError) Temporary() bool { return true }
 
 func TestShouldRetry(t *testing.T) {
 	r := NewRetryRepository(nil, 1, 0).(*retryRepository)
@@ -332,46 +269,46 @@ func TestShouldRetry(t *testing.T) {
 	}
 	// should retry unauthorized
 	r = NewRetryRepository(nil, 1, 0).(*retryRepository)
-	if !r.shouldRetry(errcode.ErrorCodeUnauthorized) {
+	if !r.shouldRetry(temporaryError{}) {
 		t.Fatal(r)
 	}
 	if r.retries != 0 || r.initial == nil || !r.initial.Equal(now) {
 		t.Fatal(r)
 	}
-	if r.shouldRetry(errcode.ErrorCodeUnauthorized) {
+	if r.shouldRetry(temporaryError{}) {
 		t.Fatal(r)
 	}
 
 	// should not retry unauthorized after one second
 	r = NewRetryRepository(nil, 2, time.Second).(*retryRepository)
-	if !r.shouldRetry(errcode.ErrorCodeUnauthorized) {
+	if !r.shouldRetry(temporaryError{}) {
 		t.Fatal(r)
 	}
 	if r.retries != 1 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second) {
 		t.Fatal(r)
 	}
 	now = time.Unix(3, 0)
-	if !r.shouldRetry(errcode.ErrorCodeUnauthorized) {
+	if !r.shouldRetry(temporaryError{}) {
 		t.Fatal(r)
 	}
 	if r.retries != 0 || r.initial == nil || !r.initial.Equal(time.Unix(1, 0)) || r.wait != (time.Second) {
 		t.Fatal(r)
 	}
-	if r.shouldRetry(errcode.ErrorCodeUnauthorized) {
+	if r.shouldRetry(temporaryError{}) {
 		t.Fatal(r)
 	}
 
 	// should retry unauthorized within one second and preserve initial time
 	now = time.Unix(0, 0)
 	r = NewRetryRepository(nil, 2, time.Millisecond).(*retryRepository)
-	if !r.shouldRetry(errcode.ErrorCodeUnauthorized) {
+	if !r.shouldRetry(temporaryError{}) {
 		t.Fatal(r)
 	}
 	if r.retries != 1 || r.initial == nil || !r.initial.Equal(time.Unix(0, 0)) {
 		t.Fatal(r)
 	}
 	now = time.Unix(0, time.Millisecond.Nanoseconds()/2)
-	if !r.shouldRetry(errcode.ErrorCodeUnauthorized) {
+	if !r.shouldRetry(temporaryError{}) {
 		t.Fatal(r)
 	}
 	if r.retries != 0 || r.initial == nil || !r.initial.Equal(time.Unix(0, 0)) {
@@ -380,10 +317,6 @@ func TestShouldRetry(t *testing.T) {
 }
 
 func TestRetryFailure(t *testing.T) {
-	if !isDockerError(errcode.ErrorCodeUnauthorized, errcode.ErrorCodeUnauthorized) {
-		t.Fatal("not an error")
-	}
-
 	// do not retry on Manifests()
 	repo := &mockRepository{repoErr: fmt.Errorf("does not support v2 API")}
 	r := NewRetryRepository(repo, 1, 0).(*retryRepository)
@@ -392,7 +325,7 @@ func TestRetryFailure(t *testing.T) {
 	}
 
 	// do not retry on Manifests()
-	repo = &mockRepository{repoErr: errcode.ErrorCodeUnauthorized}
+	repo = &mockRepository{repoErr: temporaryError{}}
 	r = NewRetryRepository(repo, 4, 0).(*retryRepository)
 	if m, err := r.Manifests(nil); m != nil || err != repo.repoErr || r.retries != 4 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
@@ -411,11 +344,11 @@ func TestRetryFailure(t *testing.T) {
 
 	// retry four times
 	repo = &mockRepository{
-		getErr: errcode.ErrorCodeUnauthorized,
+		getErr: temporaryError{},
 		blobs: &mockBlobStore{
-			serveErr: errcode.ErrorCodeUnauthorized,
-			statErr:  errcode.ErrorCodeUnauthorized,
-			openErr:  errcode.ErrorCodeUnauthorized,
+			serveErr: temporaryError{},
+			statErr:  temporaryError{},
+			openErr:  temporaryError{},
 		},
 	}
 	r = NewRetryRepository(repo, 4, 0).(*retryRepository)

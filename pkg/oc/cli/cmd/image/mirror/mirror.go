@@ -24,7 +24,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/importer"
+	"github.com/openshift/origin/pkg/image/registryclient"
+	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 )
 
 var (
@@ -315,7 +316,7 @@ func (e retrieverError) Error() string {
 	return e.err.Error()
 }
 
-func (o *pushOptions) Repository(ctx apirequest.Context, context importer.Context, creds auth.CredentialStore, t DestinationType, ref imageapi.DockerImageReference) (distribution.Repository, error) {
+func (o *pushOptions) Repository(ctx apirequest.Context, context *registryclient.Context, creds auth.CredentialStore, t DestinationType, ref imageapi.DockerImageReference) (distribution.Repository, error) {
 	switch t {
 	case DestinationRegistry:
 		toClient := context.WithCredentials(creds)
@@ -349,7 +350,7 @@ var ErrAlreadyExists = fmt.Errorf("blob already exists in the target location")
 func (o *pushOptions) Run() error {
 	tree := buildTargetTree(o.Mappings)
 
-	creds := importer.NewLocalCredentials()
+	creds := dockercredentials.NewLocal()
 	ctx := apirequest.NewContext()
 
 	rt, err := rest.TransportFor(&rest.Config{})
@@ -360,8 +361,8 @@ func (o *pushOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	srcClient := importer.NewContext(rt, insecureRT).WithCredentials(creds)
-	toContext := importer.NewContext(rt, insecureRT).WithActions("pull", "push")
+	srcClient := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
+	toContext := registryclient.NewContext(rt, insecureRT).WithActions("pull", "push")
 
 	var errs []error
 	for _, src := range tree {
