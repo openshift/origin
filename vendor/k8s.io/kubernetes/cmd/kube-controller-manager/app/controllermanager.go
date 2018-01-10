@@ -134,7 +134,7 @@ func Run(s *options.CMServer) error {
 		}
 		var clientBuilder controller.ControllerClientBuilder
 		if s.UseServiceAccountCredentials {
-			if len(s.ServiceAccountKeyFile) > 0 {
+			if len(s.ServiceAccountKeyFile) == 0 {
 				// It's possible another controller process is creating the tokens for us.
 				// If one isn't, we'll timeout and exit when our client builder is unable to create the tokens.
 				glog.Warningf("--use-service-account-credentials was specified without providing a --service-account-private-key-file")
@@ -445,6 +445,10 @@ func createControllerContext(s *options.CMServer, rootClientBuilder, clientBuild
 		} else {
 			return ControllerContext{}, fmt.Errorf("no ClusterID Found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
 		}
+	}
+
+	if informerUserCloud, ok := cloud.(cloudprovider.InformerUser); ok {
+		informerUserCloud.SetInformers(sharedInformers)
 	}
 
 	ctx := ControllerContext{

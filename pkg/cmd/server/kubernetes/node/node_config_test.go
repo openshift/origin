@@ -180,6 +180,9 @@ func TestProxyConfig(t *testing.T) {
 			MasqueradeBit: &ipTablesMasqueratebit,
 			SyncPeriod:    metav1.Duration{Duration: 30 * time.Second},
 		},
+		IPVS: componentconfig.KubeProxyIPVSConfiguration{
+			SyncPeriod: metav1.Duration{Duration: 30 * time.Second},
+		},
 		OOMScoreAdj:       &oomScoreAdj,  // disabled
 		ResourceContainer: "/kube-proxy", // disabled
 		UDPIdleTimeout:    metav1.Duration{Duration: 250 * time.Millisecond},

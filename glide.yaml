@@ -17,7 +17,7 @@ import:
   version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
 - package: github.com/google/cadvisor
   repo:    git@github.com:openshift/google-cadvisor
-  version: release-0.27.1
+  version: release-0.27.3
 - package: github.com/emicklei/go-restful-swagger12
   repo:    https://github.com/openshift/emicklei-go-restful-swagger12
   version: release-1.0.1
@@ -43,35 +43,38 @@ import:
   version: 868f2f29720b192240e18284659231b440f9cda5
 - package: k8s.io/code-generator
   repo:    git@github.com:openshift/kubernetes-code-generator
-  version: release-1.8.1
+  version: release-1.8.5
 - package: k8s.io/apimachinery
   repo:    git@github.com:openshift/kubernetes-apimachinery
-  version: release-1.8.1
+  version: release-1.8.5
 - package: k8s.io/api
   repo:    git@github.com:openshift/kubernetes-api
-  version: release-1.8.1
+  version: release-1.8.5
 - package: k8s.io/client-go
   repo:    git@github.com:openshift/kubernetes-client-go
-  version: release-1.8.1
+  version: release-1.8.5
 - package: k8s.io/metrics
   repo:    git@github.com:openshift/kubernetes-metrics
-  version: release-1.8.1
+  version: release-1.8.5
 - package: k8s.io/apiserver
   repo:    git@github.com:openshift/kubernetes-apiserver
-  version: release-1.8.1
+  version: release-1.8.5
 - package: k8s.io/kube-aggregator
-  repo:    git@github.com:openshift/kube-aggregator
-  version: release-1.8.1
+  repo:    git@github.com:openshift/kubernetes-kube-aggregator
+  version: release-1.8.5
 - package: k8s.io/apiextensions-apiserver
   repo:    git@github.com:openshift/kubernetes-apiextensions-apiserver
-  version: release-1.8.1
+  version: release-1.8.5
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
-  version: release-1.8.1
+  version: release-1.8.5
 - package: github.com/openshift/api
-  version: master
+  version: release-3.8
 - package: github.com/openshift/client-go
-  version: master
+  version: release-3.8
+- package: github.com/opencontainers/runc
+  repo:    git@github.com:openshift/opencontainers-runc
+  version: openshift-3.8
 # only used by pkg/build/builder
 - package: github.com/kubernetes-incubator/cri-o
   version: a8ee86b1cce0c13bd541a99140682a92635ba9f7
@@ -84,3 +87,17 @@ import:
 # ours because of genapidocs.  This is the current kube level
 - package: github.com/go-openapi/loads
   version: 18441dfa706d924a39a030ee2c3b1d8d81917b38
+
+# pinned
+- package: github.com/RangelReale/osin
+  version: 829186e6c125f77df6d6ae0162a9ba59fad91e2d
+- package: github.com/joho/godotenv
+  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
+- package: github.com/openshift/imagebuilder
+  version: 3b557eef586b3bc9c43515404bdb98af657cf088
+- package: github.com/containers/storage
+  version: 138cddaf9d6b3910b18de44a017417f60bff4e66
+- package: github.com/getsentry/raven-go
+  version: c9de0b92586aaba092c2a231cb7384354b178544
+- package: github.com/lestrrat/go-jspointer
+  version: f4881e611bdbe9fb413a7780721ef8400a1f2341

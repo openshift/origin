@@ -37,6 +37,7 @@ import (
 const (
 	defaultFSType             = "ext4"
 	defaultStorageAccountType = storage.StandardLRS
+	defaultAzureDiskKind      = v1.AzureSharedBlobDisk
 )
 
 type dataDisk struct {
@@ -57,7 +58,7 @@ var (
 		string(api.AzureDedicatedBlobDisk),
 		string(api.AzureManagedDisk))
 
-	supportedStorageAccountTypes = sets.NewString("Premium_LRS", "Standard_LRS")
+	supportedStorageAccountTypes = sets.NewString("Premium_LRS", "Standard_LRS", "Standard_GRS", "Standard_RAGRS")
 )
 
 func getPath(uid types.UID, volName string, host volume.VolumeHost) string {
@@ -116,7 +117,7 @@ func normalizeFsType(fsType string) string {
 
 func normalizeKind(kind string) (v1.AzureDataDiskKind, error) {
 	if kind == "" {
-		return v1.AzureDedicatedBlobDisk, nil
+		return defaultAzureDiskKind, nil
 	}
 
 	if !supportedDiskKinds.Has(kind) {
