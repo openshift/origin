@@ -15,12 +15,12 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
@@ -169,11 +169,11 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) ([]byte, error) {
+		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(info *resource.Info) (bool, error) {
 			rc.Annotations[appsapi.DeploymentStatusAnnotation] = string(appsapi.DeploymentStatusNew)
 			delete(rc.Annotations, appsapi.DeploymentStatusReasonAnnotation)
 			delete(rc.Annotations, appsapi.DeploymentCancelledAnnotation)
-			return runtime.Encode(o.Encoder, rc)
+			return true, nil
 		})
 
 		if len(patches) == 0 {
