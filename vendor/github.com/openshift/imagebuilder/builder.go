@@ -19,6 +19,9 @@ import (
 
 // Copy defines a copy operation required on the container.
 type Copy struct {
+	// If true, this is a copy from the file system to the container. If false,
+	// the copy is from the context.
+	FromFS   bool
 	Src      []string
 	Dest     string
 	Download bool

@@ -86,11 +86,9 @@ ensure-local-disks() {
 function config-ip-firewall {
   echo "Configuring IP firewall rules"
 
-  iptables -N KUBE-METADATA-SERVER
-  iptables -I FORWARD -p tcp -d 169.254.169.254 --dport 80 -j KUBE-METADATA-SERVER
-
   if [[ "${ENABLE_METADATA_CONCEALMENT:-}" == "true" ]]; then
-    iptables -A KUBE-METADATA-SERVER -j DROP
+    echo "Add rule for metadata concealment"
+    iptables -w -t nat -I PREROUTING -p tcp -d 169.254.169.254 --dport 80 -m comment --comment "metadata-concealment: bridge traffic to metadata server goes to metadata proxy" -j DNAT --to-destination 127.0.0.1:988
   fi
 }
 
@@ -463,6 +461,16 @@ EOF
     if [ -n "${KUBE_APISERVER_REQUEST_TIMEOUT_SEC:-}" ]; then
       cat <<EOF >>/srv/salt-overlay/pillar/cluster-params.sls
 kube_apiserver_request_timeout_sec: '$(echo "$KUBE_APISERVER_REQUEST_TIMEOUT_SEC" | sed -e "s/'/''/g")'
+EOF
+    fi
+    if [ -n "${ETCD_LIVENESS_PROBE_INITIAL_DELAY_SEC:-}" ]; then
+      cat <<EOF >>/srv/salt-overlay/pillar/cluster-params.sls
+etcd_liveness_probe_initial_delay: '$(echo "$ETCD_LIVENESS_PROBE_INITIAL_DELAY_SEC" | sed -e "s/'/''/g")'
+EOF
+    fi
+    if [ -n "${KUBE_APISERVER_LIVENESS_PROBE_INITIAL_DELAY_SEC:-}" ]; then
+      cat <<EOF >>/srv/salt-overlay/pillar/cluster-params.sls
+kube_apiserver_liveness_probe_initial_delay: '$(echo "$KUBE_APISERVER_LIVENESS_PROBE_INITIAL_DELAY_SEC" | sed -e "s/'/''/g")'
 EOF
     fi
     if [ -n "${ADMISSION_CONTROL:-}" ] && [ ${ADMISSION_CONTROL} == *"ImagePolicyWebhook"* ]; then
@@ -856,7 +864,6 @@ fi
 if [[ -z "${is_push}" ]]; then
   echo "== kube-up node config starting =="
   set-broken-motd
-  config-ip-firewall
   ensure-basic-networking
   fix-apt-sources
   ensure-install-dir
@@ -873,6 +880,7 @@ if [[ -z "${is_push}" ]]; then
   download-release
   configure-salt
   remove-docker-artifacts
+  config-ip-firewall
   run-salt
   reset-motd
 
