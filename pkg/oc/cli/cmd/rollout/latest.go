@@ -36,7 +36,7 @@ var (
 	# Start a new rollout based on the latest images defined in the image change triggers.
 	%[1]s rollout latest dc/nginx
 
-	# Print the deployment config that would be rolled out in JSON format, without performing the rollout.
+	# Print the rolled out deployment config
 	%[1]s rollout latest dc/nginx -o json`)
 )
 
@@ -128,9 +128,11 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.again = kcmdutil.GetFlagBool(cmd, "again")
 
-	o.printer, err = f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
-	if err != nil {
-		return err
+	if o.output != "revision" {
+		o.printer, err = f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -196,9 +198,7 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 	if o.output == "revision" {
 		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
 		return nil
-	}
-
-	if len(o.output) > 0 {
+	} else if len(o.output) > 0 {
 		return o.printer.PrintObj(dc, o.out)
 	}
 
