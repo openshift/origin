@@ -27,6 +27,8 @@ os::cmd::expect_success_and_text 'oc secrets new-dockercfg dockercfg --docker-us
 os::cmd::expect_success_and_text 'oc secrets new from-file .dockercfg=${HOME}/dockerconfig -o yaml' 'kubernetes.io/dockercfg'
 # check to make sure malformed names fail as expected
 os::cmd::expect_failure_and_text 'oc secrets new bad-name .docker=cfg=${HOME}/dockerconfig' "error: Key names or file paths cannot contain '='."
+# ensure the docker-registry helper stores secret data in the "config.json" format under the .dockerfg field
+os::cmd::expect_success_and_text "oc create secret docker-registry dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o go-template='{{range \$key, \$value := .data}}{{ \$value }}{{end}}' --dry-run | base64 --decode" '"auths"\:'
 
 workingdir="$( mktemp -d )"
 os::cmd::try_until_success "oc get secret/dockercfg"
