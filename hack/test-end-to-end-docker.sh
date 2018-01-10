@@ -50,6 +50,10 @@ if os::util::ensure::system_binary_exists 'systemctl'; then
 	${USE_SUDO:+sudo} systemctl restart docker.service
 fi
 
+# Tag the web console image with the same tag as the other origin images
+docker pull openshift/origin-web-console:latest
+docker tag openshift/origin-web-console:latest openshift/origin-web-console:${TAG}
+
 # Setup
 os::log::info "openshift version: `openshift version`"
 os::log::info "oc version:        `oc version`"
