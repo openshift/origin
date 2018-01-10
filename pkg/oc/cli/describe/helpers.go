@@ -167,31 +167,17 @@ func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace st
 	result := map[string][]DescribeWebhook{}
 
 	for _, trigger := range triggers {
-		var webHookTrigger string
 		var allowEnv *bool
 
 		switch trigger.Type {
-		case buildapi.GitHubWebHookBuildTriggerType:
-			webHookTrigger = trigger.GitHubWebHook.Secret
-
-		case buildapi.GitLabWebHookBuildTriggerType:
-			webHookTrigger = trigger.GitLabWebHook.Secret
-
-		case buildapi.BitbucketWebHookBuildTriggerType:
-			webHookTrigger = trigger.BitbucketWebHook.Secret
-
+		case buildapi.GitHubWebHookBuildTriggerType, buildapi.GitLabWebHookBuildTriggerType, buildapi.BitbucketWebHookBuildTriggerType:
 		case buildapi.GenericWebHookBuildTriggerType:
-			webHookTrigger = trigger.GenericWebHook.Secret
 			allowEnv = &trigger.GenericWebHook.AllowEnv
 
 		default:
 			continue
 		}
 		webHookDesc := result[string(trigger.Type)]
-
-		if len(webHookTrigger) == 0 {
-			continue
-		}
 
 		var urlStr string
 		webhookClient := buildinternalclient.NewWebhookURLClient(c, namespace)
