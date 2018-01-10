@@ -3,7 +3,6 @@ package integration
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -78,44 +77,6 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 	}
 
 	return resp
-}
-
-func TestAccessDisabledWebConsole(t *testing.T) {
-	masterOptions, err := testserver.DefaultMasterOptions()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	masterOptions.DisabledFeatures.Add(configapi.FeatureWebConsole) // this isn't controlling anything but the root redirect now
-	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterOptions)
-
-	resp := tryAccessURL(t, masterOptions.AssetConfig.MasterPublicURL+"/", http.StatusOK, "", nil)
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Errorf("failed to read reposponse's body: %v", err)
-	} else {
-		var value interface{}
-		if err = json.Unmarshal(body, &value); err != nil {
-			t.Errorf("expected json body which couldn't be parsed: %v, got: %s", err, body)
-		}
-	}
-
-	for endpoint, exp := range map[string]struct {
-		statusCode int
-		location   string
-	}{
-		"healthz":             {http.StatusOK, ""},
-		"login?then=%2F":      {http.StatusOK, ""},
-		"oauth/token/request": {http.StatusFound, masterOptions.AssetConfig.MasterPublicURL + "/oauth/authorize"},
-		"console":             {http.StatusNotFound, ""}, // without the service, you get a 404
-		"console/":            {http.StatusNotFound, ""}, // without the service, you get a 404
-		"console/java":        {http.StatusNotFound, ""}, // without the service, you get a 404
-	} {
-		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
-		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
-	}
 }
 
 func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {

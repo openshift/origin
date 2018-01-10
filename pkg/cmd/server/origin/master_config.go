@@ -254,8 +254,3 @@ func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, name
 		internalRBACInformers,
 	)
 }
-
-// WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
-func (c *MasterConfig) WebConsoleEnabled() bool {
-	return c.Options.AssetConfig != nil && !c.Options.DisabledFeatures.Has(configapi.FeatureWebConsole)
-}
