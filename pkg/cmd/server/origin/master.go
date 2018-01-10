@@ -2,6 +2,7 @@ package origin
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,7 +17,6 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
-	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
@@ -27,6 +27,7 @@ import (
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
+	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
 const (
@@ -154,22 +155,16 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 	return preparedKubeAPIServer.GenericAPIServer, nil
 }
 
-func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (http.Handler, error) {
-	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
-		return http.NotFoundHandler(), nil
-	}
-
-	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig, genericConfig.SecureServingInfo.Listener)
+func (c *MasterConfig) newWebConsoleProxy() (http.Handler, error) {
+	caBundle, err := ioutil.ReadFile(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile)
 	if err != nil {
 		return nil, err
 	}
-	config.GenericConfig.AuditBackend = genericConfig.AuditBackend
-	config.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
-	assetServer, err := config.Complete().New(apiserver.EmptyDelegate)
+	proxyHandler, err := NewServiceProxyHandler("webconsole", "openshift-web-console", aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()), caBundle)
 	if err != nil {
 		return nil, err
 	}
-	return assetServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
+	return proxyHandler, nil
 }
 
 func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (http.Handler, map[string]apiserver.PostStartHookFunc, error) {
@@ -268,7 +263,7 @@ func (c *MasterConfig) Run(controllerPlug plug.Plug, stopCh <-chan struct{}) err
 }
 
 func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
-	assetServerHandler, err := c.newAssetServerHandler(genericConfig)
+	webconsoleProxyHandler, err := c.newWebConsoleProxy()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -289,12 +284,12 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 			handler = serverhandlers.TranslateLegacyScopeImpersonation(handler)
 			handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
-			if c.WebConsoleEnabled() {
-				handler = assetapiserver.WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
-			}
+			// redirects from / to /console if you're using a browser
+			handler = withAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
+
 			// these handlers are actually separate API servers which have their own handler chains.
 			// our server embeds these
-			handler = c.withConsoleRedirection(handler, assetServerHandler, c.Options.AssetConfig)
+			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, c.Options.AssetConfig)
 			handler = c.withOAuthRedirection(handler, oauthServerHandler)
 
 			return handler
@@ -303,11 +298,22 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 		nil
 }
 
+// If we know the location of the asset server, redirect to it when / is requested
+// and the Accept header supports text/html
+func withAssetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/" {
+			if httprequest.PrefersHTML(req) {
+				http.Redirect(w, req, assetPublicURL, http.StatusFound)
+			}
+		}
+		// Dispatch to the next handler
+		handler.ServeHTTP(w, req)
+	})
+}
+
 func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, assetConfig *configapi.AssetConfig) http.Handler {
 	if assetConfig == nil {
-		return handler
-	}
-	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
 		return handler
 	}
 
@@ -323,7 +329,6 @@ func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.H
 		prefix = publicURL.Path[0:lastIndex]
 	}
 
-	glog.Infof("Starting Web Console %s", assetConfig.PublicURL)
 	return WithPatternPrefixHandler(handler, assetServerHandler, prefix)
 }
 
