@@ -28088,8 +28088,8 @@ func examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson() (*asset, error) {
 	return a, nil
 }
 
-var _installOriginWebConsoleConsoleConfigYaml = []byte(`kind: AssetConfig
-apiVersion: v1
+var _installOriginWebConsoleConsoleConfigYaml = []byte(`kind: WebConsoleConfiguration
+apiVersion: webconsole.config.openshift.io/v1
 extensionDevelopment: false
 extensionProperties: null
 extensionScripts: null
@@ -28108,7 +28108,8 @@ servingInfo:
   keyFile: /var/serving-cert/tls.key
   maxRequestsInFlight: 0
   namedCertificates: null
-  requestTimeoutSeconds: 0`)
+  requestTimeoutSeconds: 0
+`)
 
 func installOriginWebConsoleConsoleConfigYamlBytes() ([]byte, error) {
 	return _installOriginWebConsoleConsoleConfigYaml, nil
