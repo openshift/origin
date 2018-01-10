@@ -706,14 +706,18 @@ func (c *CommonStartConfig) CheckDockerInsecureRegistry(out io.Writer) error {
 // CheckNsenterMounter checks whether the Docker host can use the nsenter mounter from Kubernetes.
 // Otherwise, a shared volume is needed in Docker
 func (c *CommonStartConfig) CheckNsenterMounter(out io.Writer) error {
-	var err error
-	c.UseNsenterMount, err = c.HostHelper().CanUseNsenterMounter()
-	if c.UseNsenterMount && c.isRHDocker {
+	useNsenterMount, err := c.HostHelper().CanUseNsenterMounter()
+	if err != nil {
+		return err
+	}
+	if useNsenterMount && c.isRHDocker {
+		c.UseNsenterMount = true
 		fmt.Fprintf(out, "Using nsenter mounter for OpenShift volumes\n")
 	} else {
+		c.UseNsenterMount = false
 		fmt.Fprintf(out, "Using Docker shared volumes for OpenShift volumes\n")
 	}
-	return err
+	return nil
 }
 
 // CheckDockerVersion checks that the appropriate Docker version is installed based on whether we are using the nsenter mounter
