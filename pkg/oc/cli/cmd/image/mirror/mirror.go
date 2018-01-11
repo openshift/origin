@@ -101,6 +101,12 @@ type pushOptions struct {
 	AttemptS3BucketCopy []string
 }
 
+// schema2ManifestOnly specifically requests a manifest list first
+var schema2ManifestOnly = distribution.WithManifestMediaTypes([]string{
+	manifestlist.MediaTypeManifestList,
+	schema2.MediaTypeManifest,
+})
+
 // NewCommandMirrorImage copies images from one location to another.
 func NewCmdMirrorImage(name string, out, errOut io.Writer) *cobra.Command {
 	o := &pushOptions{}
@@ -398,8 +404,7 @@ func (o *pushOptions) Run() error {
 		for srcDigestString, pushTargets := range src.digests {
 			// load the manifest
 			srcDigest := godigest.Digest(srcDigestString)
-			// var contentDigest godigest.Digest / client.ReturnContentDigest(&contentDigest),
-			srcManifest, err := manifests.Get(ctx, godigest.Digest(srcDigest), distribution.WithTag(manifestlist.MediaTypeManifestList), distribution.WithTag(schema2.MediaTypeManifest))
+			srcManifest, err := manifests.Get(ctx, godigest.Digest(srcDigest), schema2ManifestOnly)
 			if err != nil {
 				digestErrs = append(digestErrs, retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s manifest: %v", src.ref, err)})
 				continue
