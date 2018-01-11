@@ -32,7 +32,7 @@
  */
 
 // Package metadata define the structure of the metadata supported by gRPC library.
-package metadata
+package metadata // import "google.golang.org/grpc/metadata"
 
 import (
 	"encoding/base64"
@@ -141,6 +141,8 @@ func NewContext(ctx context.Context, md MD) context.Context {
 }
 
 // FromContext returns the MD in ctx if it exists.
+// The returned md should be immutable, writing to it may cause races.
+// Modification should be made to the copies of the returned md.
 func FromContext(ctx context.Context) (md MD, ok bool) {
 	md, ok = ctx.Value(mdKey{}).(MD)
 	return
