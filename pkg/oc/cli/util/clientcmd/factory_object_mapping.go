@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -62,34 +61,7 @@ func (f *ring1Factory) Object() (meta.RESTMapper, runtime.ObjectTyper) {
 }
 
 func (f *ring1Factory) CategoryExpander() categories.CategoryExpander {
-	upstreamExpander := f.kubeObjectMappingFactory.CategoryExpander()
-
-	var openshiftCategoryExpander categories.CategoryExpander
-	openshiftCategoryExpander = legacyOpeshiftCategoryExpander
-	discoveryClient, err := f.clientAccessFactory.DiscoveryClient()
-	if err == nil {
-		// wrap with discovery based filtering
-		openshiftCategoryExpander, err = categories.NewDiscoveryFilteredExpander(openshiftCategoryExpander, discoveryClient)
-		// you only have an error on missing discoveryClient, so this shouldn't fail.  Check anyway.
-		kcmdutil.CheckErr(err)
-	}
-
-	return categories.UnionCategoryExpander{legacyOpeshiftCategoryExpander, upstreamExpander}
-}
-
-var legacyOpenshiftUserResources = []schema.GroupResource{
-	{Group: "", Resource: "buildconfigs"},
-	{Group: "", Resource: "builds"},
-	{Group: "", Resource: "imagestreams"},
-	{Group: "", Resource: "deploymentconfigs"},
-	{Group: "", Resource: "routes"},
-}
-
-// legacyOpeshiftCategoryExpander is the old hardcoded expansion for servers without listed categories
-var legacyOpeshiftCategoryExpander categories.CategoryExpander = categories.SimpleCategoryExpander{
-	Expansions: map[string][]schema.GroupResource{
-		"all": legacyOpenshiftUserResources,
-	},
+	return f.kubeObjectMappingFactory.CategoryExpander()
 }
 
 func (f *ring1Factory) ClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
