@@ -87,7 +87,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 	glog.V(5).Infof("Reconciling %s/%s", config.Namespace, config.Name)
 	// There's nothing to reconcile until the version is nonzero.
 	if appsutil.IsInitialDeployment(config) && !appsutil.HasTrigger(config) {
-		return c.updateStatus(config, []*v1.ReplicationController{})
+		return c.updateStatus(config, []*v1.ReplicationController{}, true)
 	}
 
 	// List all ReplicationControllers to find also those we own but that no longer match our selector.
@@ -118,7 +118,18 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 	// the latest available information. Some deletions make take some time to complete so there
 	// is value in doing this.
 	if config.DeletionTimestamp != nil {
-		return c.updateStatus(config, existingDeployments)
+		return c.updateStatus(config, existingDeployments, true)
+	}
+
+	// If the config is paused we shouldn't create new deployments for it.
+	if config.Spec.Paused {
+		// in order for revision history limit cleanup to work for paused
+		// deployments, we need to trigger it here
+		if err := c.cleanupOldDeployments(existingDeployments, config); err != nil {
+			c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
+		}
+
+		return c.updateStatus(config, existingDeployments, true)
 	}
 
 	latestExists, latestDeployment := appsutil.LatestDeploymentInfo(config, existingDeployments)
@@ -128,42 +139,56 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 			return err
 		}
 	}
-	// Process triggers and start an initial rollouts
+
+	// Never deploy with invalid or unresolved images
+	for i, container := range config.Spec.Template.Spec.Containers {
+		if len(strings.TrimSpace(container.Image)) == 0 {
+			glog.V(4).Infof("Postponing rollout #%d for DeploymentConfig %s/%s because of invalid or unresolved image for container #%d (name=%s)", config.Status.LatestVersion, config.Namespace, config.Name, i, container.Name)
+			return c.updateStatus(config, existingDeployments, true)
+		}
+	}
+
 	configCopy, err := appsutil.DeploymentConfigDeepCopy(config)
 	if err != nil {
 		glog.Errorf("Unable to copy deployment config: %v", err)
-		return c.updateStatus(config, existingDeployments)
+		return c.updateStatus(config, existingDeployments, false)
 	}
-	shouldTrigger, shouldSkip := triggerActivated(configCopy, latestExists, latestDeployment, c.codec)
-	if !shouldSkip && shouldTrigger {
+	// Process triggers and start an initial rollouts
+	shouldTrigger, shouldSkip, err := triggerActivated(configCopy, latestExists, latestDeployment, c.codec)
+	if err != nil {
+		return fmt.Errorf("triggerActivated failed: %v", err)
+	}
+
+	if shouldSkip {
+		return c.updateStatus(configCopy, existingDeployments, true)
+	}
+
+	if shouldTrigger {
 		configCopy.Status.LatestVersion++
-		return c.updateStatus(configCopy, existingDeployments)
+		_, err := c.dn.DeploymentConfigs(configCopy.Namespace).UpdateStatus(configCopy)
+		return err
 	}
-	// Have to wait for the image trigger to get the image before proceeding.
-	if shouldSkip && appsutil.IsInitialDeployment(config) {
-		return c.updateStatus(configCopy, existingDeployments)
-	}
+
 	// If the latest deployment already exists, reconcile existing deployments
 	// and return early.
 	if latestExists {
 		// If the latest deployment is still running, try again later. We don't
 		// want to compete with the deployer.
 		if !appsutil.IsTerminatedDeployment(latestDeployment) {
-			return c.updateStatus(config, existingDeployments)
+			return c.updateStatus(config, existingDeployments, false)
 		}
 
 		return c.reconcileDeployments(existingDeployments, config, cm)
 	}
-	// If the config is paused we shouldn't create new deployments for it.
-	if config.Spec.Paused {
-		// in order for revision history limit cleanup to work for paused
-		// deployments, we need to trigger it here
-		if err := c.cleanupOldDeployments(existingDeployments, config); err != nil {
-			c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
-		}
 
-		return c.updateStatus(config, existingDeployments)
+	// Never deploy with invalid or unresolved images
+	for i, container := range config.Spec.Template.Spec.Containers {
+		if len(strings.TrimSpace(container.Image)) == 0 {
+			glog.V(4).Infof("Postponing rollout #%d for DeploymentConfig %s/%s because of invalid or unresolved image for container #%d (name=%s)", config.Status.LatestVersion, config.Namespace, config.Name, i, container.Name)
+			return c.updateStatus(config, existingDeployments, true)
+		}
 	}
+
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
 	deployment, err := appsutil.MakeDeploymentV1(config, c.codec)
@@ -186,17 +211,17 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 			if isOurs {
 				// If the deployment was already created, just move on. The cache could be
 				// stale, or another process could have already handled this update.
-				return c.updateStatus(config, existingDeployments)
+				return c.updateStatus(config, existingDeployments, true)
 			} else {
-				err = fmt.Errorf("replication controller %s already exists and deployment config is not allowed to claim it.", deployment.Name)
+				err = fmt.Errorf("replication controller %s already exists and deployment config is not allowed to claim it", deployment.Name)
 				c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %v", config.Status.LatestVersion, err)
-				return c.updateStatus(config, existingDeployments)
+				return c.updateStatus(config, existingDeployments, true)
 			}
 		}
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		// We don't care about this error since we need to report the create failure.
 		cond := appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionFalse, appsapi.FailedRcCreateReason, err.Error())
-		_ = c.updateStatus(config, existingDeployments, *cond)
+		_ = c.updateStatus(config, existingDeployments, true, *cond)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", appsutil.LabelForDeploymentConfig(config), err)
 	}
 	msg := fmt.Sprintf("Created new replication controller %q for version %d", created.Name, config.Status.LatestVersion)
@@ -210,7 +235,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 	}
 
 	cond := appsutil.NewDeploymentCondition(appsapi.DeploymentProgressing, kapi.ConditionTrue, appsapi.NewReplicationControllerReason, msg)
-	return c.updateStatus(config, existingDeployments, *cond)
+	return c.updateStatus(config, existingDeployments, true, *cond)
 }
 
 // reconcileDeployments reconciles existing deployment replica counts which
@@ -292,13 +317,13 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		c.recorder.Eventf(config, v1.EventTypeWarning, "ReplicationControllerCleanupFailed", "Couldn't clean up replication controllers: %v", err)
 	}
 
-	return c.updateStatus(config, updatedDeployments)
+	return c.updateStatus(config, updatedDeployments, true)
 }
 
 // Update the status of the provided deployment config. Additional conditions will override any other condition in the
 // deployment config status.
-func (c *DeploymentConfigController) updateStatus(config *appsapi.DeploymentConfig, deployments []*v1.ReplicationController, additional ...appsapi.DeploymentCondition) error {
-	newStatus := calculateStatus(config, deployments, additional...)
+func (c *DeploymentConfigController) updateStatus(config *appsapi.DeploymentConfig, deployments []*v1.ReplicationController, updateObservedGeneration bool, additional ...appsapi.DeploymentCondition) error {
+	newStatus := calculateStatus(config, deployments, updateObservedGeneration, additional...)
 
 	// NOTE: We should update the status of the deployment config only if we need to, otherwise
 	// we hotloop between updates.
@@ -390,7 +415,7 @@ func (c *DeploymentConfigController) cancelRunningRollouts(config *appsapi.Deplo
 	return nil
 }
 
-func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationController, additional ...appsapi.DeploymentCondition) appsapi.DeploymentConfigStatus {
+func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationController, updateObservedGeneration bool, additional ...appsapi.DeploymentCondition) appsapi.DeploymentConfigStatus {
 	// UpdatedReplicas represents the replicas that use the current deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.
 	latestReplicas := int32(0)
@@ -408,10 +433,15 @@ func calculateStatus(config *appsapi.DeploymentConfig, rcs []*v1.ReplicationCont
 		unavailableReplicas = 0
 	}
 
+	generation := config.Status.ObservedGeneration
+	if updateObservedGeneration {
+		generation = config.Generation
+	}
+
 	status := appsapi.DeploymentConfigStatus{
 		LatestVersion:       config.Status.LatestVersion,
 		Details:             config.Status.Details,
-		ObservedGeneration:  config.Generation,
+		ObservedGeneration:  generation,
 		Replicas:            appsutil.GetStatusReplicaCountForDeployments(rcs),
 		UpdatedReplicas:     latestReplicas,
 		AvailableReplicas:   available,
@@ -533,9 +563,9 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 // triggers were activated (config change or image change). The first bool indicates that
 // the triggers are active and second indicates if we should skip the rollout because we
 // are waiting for the trigger to complete update (waiting for image for example).
-func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, latestDeployment *v1.ReplicationController, codec runtime.Codec) (bool, bool) {
+func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, latestDeployment *v1.ReplicationController, codec runtime.Codec) (bool, bool, error) {
 	if config.Spec.Paused {
-		return false, false
+		return false, false, nil
 	}
 	imageTrigger := appsutil.HasImageChangeTrigger(config)
 	configTrigger := appsutil.HasChangeTrigger(config)
@@ -543,7 +573,7 @@ func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, lates
 
 	// no-op when no triggers are defined.
 	if !hasTrigger {
-		return false, false
+		return false, false, nil
 	}
 
 	// Handle initial rollouts
@@ -556,50 +586,49 @@ func triggerActivated(config *appsapi.DeploymentConfig, latestExists bool, lates
 				// TODO: Technically this is not a config change cause, but we will have to report the image that caused the trigger.
 				//       In some cases it might be difficult because config can have multiple ICT.
 				appsutil.RecordConfigChangeCause(config)
-				return true, false
+				return true, false, nil
 			}
 			glog.V(4).Infof("Rolling out initial deployment for %s/%s deferred until its images are ready", config.Namespace, config.Name)
-			return false, true
+			return false, true, nil
 		}
 		// Rollout if we only have config change trigger.
 		if configTrigger {
 			glog.V(4).Infof("Rolling out initial deployment for %s/%s", config.Namespace, config.Name)
 			appsutil.RecordConfigChangeCause(config)
-			return true, false
+			return true, false, nil
 		}
 		// We are waiting for the initial RC to be created.
-		return false, false
+		return false, false, nil
 	}
 
 	// Wait for the RC to be created
 	if !latestExists {
-		return false, true
+		return false, false, nil
 	}
 
 	// We need existing deployment at this point to compare its template with current config template.
 	if latestDeployment == nil {
-		return false, false
+		return false, false, nil
 	}
 
 	if imageTrigger {
 		if ok, imageNames := appsutil.HasUpdatedImages(config, latestDeployment); ok {
 			glog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by image changes (%s)", config.Status.LatestVersion+1, config.Namespace, config.Name, strings.Join(imageNames, ","))
 			appsutil.RecordImageChangeCauses(config, imageNames)
-			return true, false
+			return true, false, nil
 		}
 	}
 
 	if configTrigger {
 		isLatest, changes, err := appsutil.HasLatestPodTemplate(config, latestDeployment, codec)
 		if err != nil {
-			glog.Errorf("Error while checking for latest pod template in replication controller: %v", err)
-			return false, true
+			return false, false, fmt.Errorf("error while checking for latest pod template in replication controller: %v", err)
 		}
 		if !isLatest {
 			glog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by config change, diff: %s", config.Status.LatestVersion+1, config.Namespace, config.Name, changes)
 			appsutil.RecordConfigChangeCause(config)
-			return true, false
+			return true, false, nil
 		}
 	}
-	return false, false
+	return false, false, nil
 }

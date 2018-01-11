@@ -663,13 +663,15 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 	})
 
 	g.Describe("paused [Conformance]", func() {
+		dcName := "paused"
 		g.AfterEach(func() {
-			failureTrap(oc, "paused", g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
 		})
 
 		g.It("should disable actions on deployments", func() {
 			resource, name, err := createFixture(oc, pausedDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(name).To(o.Equal(dcName))
 
 			_, rcs, _, err := deploymentInfo(oc, name)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -719,6 +721,20 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("making sure it updates observedGeneration after being paused")
+			dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Patch(dcName,
+				types.StrategicMergePatchType, []byte(`{"spec": {"paused": true}}`))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, err = waitForDCModification(oc, dc.Namespace, dc.Name, deploymentChangeTimeout,
+				dc.GetResourceVersion(), func(config *appsapi.DeploymentConfig) (bool, error) {
+					if config.Status.ObservedGeneration >= dc.Generation {
+						return true, nil
+					}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("failed to wait on generation >= %d to be observed by DC %s/%s", dc.Generation, dc.Namespace, dc.Name))
 		})
 	})
 
