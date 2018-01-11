@@ -125,9 +125,7 @@ func (o CreateDockerConfigOptions) NewDockerSecret() (*api.Secret, error) {
 		Email:    o.EmailAddress,
 	}
 
-	dockerCfg := credentialprovider.DockerConfigJson{
-		Auths: map[string]credentialprovider.DockerConfigEntry{o.RegistryLocation: dockercfgAuth},
-	}
+	dockerCfg := map[string]credentialprovider.DockerConfigEntry{o.RegistryLocation: dockercfgAuth}
 
 	dockercfgContent, err := json.Marshal(dockerCfg)
 	if err != nil {
