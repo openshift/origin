@@ -39,7 +39,12 @@ func ValidateDeploymentConfigSpec(spec appsapi.DeploymentConfigSpec) field.Error
 		podSpec = &spec.Template.Spec
 	}
 
-	allErrs = append(allErrs, validateDeploymentStrategy(&spec.Strategy, podSpec, specPath.Child("strategy"))...)
+	// gate calls to validation functions that depend on a podSpec
+	// if we have don't have an actual podSpec here.
+	if podSpec != nil {
+		allErrs = append(allErrs, validateDeploymentStrategy(&spec.Strategy, podSpec, specPath.Child("strategy"))...)
+	}
+
 	if spec.RevisionHistoryLimit != nil {
 		allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(*spec.RevisionHistoryLimit), specPath.Child("revisionHistoryLimit"))...)
 	}
