@@ -572,7 +572,12 @@ func StartAPI(oc *origin.MasterConfig, controllerPlug plug.Plug) error {
 
 	// if the webconsole is configured to be standalone, go ahead and create and run it
 	if oc.WebConsoleEnabled() && oc.WebConsoleStandalone() {
-		config, err := assetapiserver.NewAssetServerConfig(*oc.Options.AssetConfig)
+		clusterResourceOverrideConfig, err := origin.GetResourceOverrideConfig(oc.Options)
+		if err != nil {
+			return err
+		}
+
+		config, err := assetapiserver.NewAssetServerConfig(*oc.Options.AssetConfig, clusterResourceOverrideConfig)
 		if err != nil {
 			return err
 		}
