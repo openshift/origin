@@ -122,9 +122,7 @@ func handleDockercfgContent(username, password, email, server string) ([]byte, e
 		Email:    email,
 	}
 
-	dockerCfg := credentialprovider.DockerConfigJson{
-		Auths: map[string]credentialprovider.DockerConfigEntry{server: dockercfgAuth},
-	}
+	dockerCfg := map[string]credentialprovider.DockerConfigEntry{server: dockercfgAuth}
 
 	return json.Marshal(dockerCfg)
 }
