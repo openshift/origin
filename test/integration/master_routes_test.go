@@ -244,12 +244,16 @@ func TestWellKnownOAuthOff(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	transport, err := anonymousHttpTransport(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+"/.well-known/oauth-authorization-server", nil)
+	req, err := http.NewRequest("GET", clusterAdminClientConfig.Host+"/.well-known/oauth-authorization-server", nil)
 	req.Header.Set("Accept", "*/*")
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
@@ -298,7 +302,6 @@ func TestApiGroupPreferredVersions(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	masterConfig.OAuthConfig = nil
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -342,7 +345,6 @@ func TestApiGroups(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	masterConfig.OAuthConfig = nil
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

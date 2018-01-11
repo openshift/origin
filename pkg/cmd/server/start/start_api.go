@@ -134,9 +134,6 @@ func applyBindAddressOverride(addr string, config *configapi.MasterConfig) {
 	if config.DNSConfig != nil {
 		config.DNSConfig.BindAddress = overrideAddress(config.DNSConfig.BindAddress, defaultHost, "")
 	}
-	if config.AssetConfig != nil {
-		config.AssetConfig.ServingInfo.BindAddress = overrideAddress(config.AssetConfig.ServingInfo.BindAddress, defaultHost, defaultPort)
-	}
 }
 
 // overrideAddress applies an optional host or port override to a incoming addr. If host or port are empty they will

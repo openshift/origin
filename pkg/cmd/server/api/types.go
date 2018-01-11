@@ -397,8 +397,6 @@ type MasterConfig struct {
 	EtcdConfig *EtcdConfig
 	// OAuthConfig, if present start the /oauth endpoint in this process
 	OAuthConfig *OAuthConfig
-	// AssetConfig, if present start the asset server in this process
-	AssetConfig *AssetConfig
 	// DNSConfig, if present start the DNS server in this process
 	DNSConfig *DNSConfig
 
@@ -826,50 +824,6 @@ type DNSConfig struct {
 	// resolvers can be used for DNS amplification attacks and the master DNS should not be made accessible
 	// to public networks.
 	AllowRecursiveQueries bool
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type AssetConfig struct {
-	metav1.TypeMeta
-
-	ServingInfo HTTPServingInfo
-
-	// PublicURL is where you can find the asset server (TODO do we really need this?)
-	PublicURL string
-
-	// LogoutURL is an optional, absolute URL to redirect web browsers to after logging out of the web console.
-	// If not specified, the built-in logout page is shown.
-	LogoutURL string
-
-	// MasterPublicURL is how the web console can access the OpenShift api server
-	MasterPublicURL string
-
-	// LoggingPublicURL is the public endpoint for logging (optional)
-	LoggingPublicURL string
-
-	// MetricsPublicURL is the public endpoint for metrics (optional)
-	MetricsPublicURL string
-
-	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
-	// Console loads
-	ExtensionScripts []string
-
-	// ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under
-	// the global variable OPENSHIFT_EXTENSION_PROPERTIES
-	ExtensionProperties map[string]string
-
-	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
-	// the Web Console loads
-	ExtensionStylesheets []string
-
-	// Extensions are files to serve from the asset server filesystem under a subcontext
-	Extensions []AssetExtensionsConfig
-
-	// ExtensionDevelopment when true tells the asset server to reload extension scripts and
-	// stylesheets for every request rather than only at startup. It lets you develop extensions
-	// without having to restart the server for every change.
-	ExtensionDevelopment bool
 }
 
 type OAuthConfig struct {
@@ -1319,19 +1273,6 @@ type PodManifestConfig struct {
 	// FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
 	// The interval needs to be a positive value
 	FileCheckIntervalSeconds int64
-}
-
-type AssetExtensionsConfig struct {
-	// Name is the path under /<context>/extensions/ to serve files from SourceDirectory
-	Name string
-	// SourceDirectory is a directory on the asset server to serve files under Name in the Web
-	// Console. It may have nested folders.
-	SourceDirectory string
-	// HTML5Mode determines whether to redirect to the root index.html when a file is not found.
-	// This is needed for apps that use the HTML5 history API like AngularJS apps with HTML5
-	// mode enabled. If HTML5Mode is true, also rewrite the base element in index.html with the
-	// Web Console's context root. Defaults to false.
-	HTML5Mode bool
 }
 
 const (

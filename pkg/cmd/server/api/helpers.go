@@ -215,26 +215,6 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		}
 	}
 
-	if config.AssetConfig != nil {
-		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.CertFile)
-		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.KeyFile)
-		refs = append(refs, &config.AssetConfig.ServingInfo.ClientCA)
-		for i := range config.AssetConfig.ServingInfo.NamedCertificates {
-			refs = append(refs, &config.AssetConfig.ServingInfo.NamedCertificates[i].CertFile)
-			refs = append(refs, &config.AssetConfig.ServingInfo.NamedCertificates[i].KeyFile)
-		}
-
-		for i := range config.AssetConfig.ExtensionScripts {
-			refs = append(refs, &config.AssetConfig.ExtensionScripts[i])
-		}
-		for i := range config.AssetConfig.ExtensionStylesheets {
-			refs = append(refs, &config.AssetConfig.ExtensionStylesheets[i])
-		}
-		for i := range config.AssetConfig.Extensions {
-			refs = append(refs, &config.AssetConfig.Extensions[i].SourceDirectory)
-		}
-	}
-
 	for k := range config.AdmissionConfig.PluginConfig {
 		refs = append(refs, &config.AdmissionConfig.PluginConfig[k].Location)
 	}

@@ -297,7 +297,8 @@ readonly extra_args=(
     # "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
 
     # Test the current published release
-    "--loglevel=5"  # can't be empty, so pass something benign
+    # disabling this based on irc with clayton.  This is more strict than openshift-ansible.
+    #"--loglevel=5"  # can't be empty, so pass something benign
 
     # Test the code being delivered
     "--loglevel=5 --version=${ORIGIN_COMMIT}"

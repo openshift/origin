@@ -261,6 +261,10 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 }
 
 func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
+	webconsolePublicURL := ""
+	if c.Options.OAuthConfig != nil {
+		webconsolePublicURL = c.Options.OAuthConfig.AssetPublicURL
+	}
 	webconsoleProxyHandler, err := c.newWebConsoleProxy()
 	if err != nil {
 		return nil, nil, err
@@ -283,11 +287,11 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 			handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / to /console if you're using a browser
-			handler = withAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
+			handler = withAssetServerRedirect(handler, webconsolePublicURL)
 
 			// these handlers are actually separate API servers which have their own handler chains.
 			// our server embeds these
-			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, c.Options.AssetConfig)
+			handler = c.withConsoleRedirection(handler, webconsoleProxyHandler, webconsolePublicURL)
 			handler = c.withOAuthRedirection(handler, oauthServerHandler)
 
 			return handler
@@ -298,11 +302,15 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 
 // If we know the location of the asset server, redirect to it when / is requested
 // and the Accept header supports text/html
-func withAssetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
+func withAssetServerRedirect(handler http.Handler, webconsolePublicURL string) http.Handler {
+	if len(webconsolePublicURL) == 0 {
+		return handler
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/" {
 			if httprequest.PrefersHTML(req) {
-				http.Redirect(w, req, assetPublicURL, http.StatusFound)
+				http.Redirect(w, req, webconsolePublicURL, http.StatusFound)
 			}
 		}
 		// Dispatch to the next handler
@@ -310,12 +318,12 @@ func withAssetServerRedirect(handler http.Handler, assetPublicURL string) http.H
 	})
 }
 
-func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, assetConfig *configapi.AssetConfig) http.Handler {
-	if assetConfig == nil {
+func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, webconsolePublicURL string) http.Handler {
+	if len(webconsolePublicURL) == 0 {
 		return handler
 	}
 
-	publicURL, err := url.Parse(assetConfig.PublicURL)
+	publicURL, err := url.Parse(webconsolePublicURL)
 	if err != nil {
 		// fails validation before here
 		glog.Fatal(err)

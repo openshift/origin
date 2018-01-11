@@ -224,9 +224,6 @@ func TestMasterConfig(t *testing.T) {
 			SessionConfig: &internal.SessionConfig{},
 			Templates:     &internal.OAuthTemplates{},
 		},
-		AssetConfig: &internal.AssetConfig{
-			Extensions: []internal.AssetExtensionsConfig{{}},
-		},
 		DNSConfig: &internal.DNSConfig{},
 		AdmissionConfig: internal.AdmissionConfig{
 			PluginConfig: map[string]*internal.AdmissionPluginConfig{ // test config as an embedded object
