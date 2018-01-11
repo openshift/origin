@@ -33,7 +33,7 @@ func TestRootAPIPaths(t *testing.T) {
 		t.Fatalf("unexpected error getting transport for client config: %v", err)
 	}
 
-	rootRequest, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+"/", nil)
+	rootRequest, err := http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL+"/", nil)
 	rootRequest.Header.Set("Accept", "*/*")
 	rootResponse, err := transport.RoundTrip(rootRequest)
 	if err != nil {
@@ -70,7 +70,7 @@ func TestRootAPIPaths(t *testing.T) {
 
 	// Send a GET to every advertised address and check that we get the correct response
 	for _, route := range broadcastRootPaths.Paths {
-		req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+route, nil)
+		req, err := http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL+route, nil)
 		req.Header.Set("Accept", "*/*")
 		resp, err := transport.RoundTrip(req)
 		if err != nil {

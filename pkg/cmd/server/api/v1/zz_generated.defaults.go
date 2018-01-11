@@ -12,14 +12,9 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&AssetConfig{}, func(obj interface{}) { SetObjectDefaults_AssetConfig(obj.(*AssetConfig)) })
 	scheme.AddTypeDefaultingFunc(&MasterConfig{}, func(obj interface{}) { SetObjectDefaults_MasterConfig(obj.(*MasterConfig)) })
 	scheme.AddTypeDefaultingFunc(&NodeConfig{}, func(obj interface{}) { SetObjectDefaults_NodeConfig(obj.(*NodeConfig)) })
 	return nil
-}
-
-func SetObjectDefaults_AssetConfig(in *AssetConfig) {
-	SetDefaults_ServingInfo(&in.ServingInfo.ServingInfo)
 }
 
 func SetObjectDefaults_MasterConfig(in *MasterConfig) {
@@ -39,9 +34,6 @@ func SetObjectDefaults_MasterConfig(in *MasterConfig) {
 			SetDefaults_IdentityProvider(a)
 		}
 		SetDefaults_GrantConfig(&in.OAuthConfig.GrantConfig)
-	}
-	if in.AssetConfig != nil {
-		SetObjectDefaults_AssetConfig(in.AssetConfig)
 	}
 	if in.DNSConfig != nil {
 		SetDefaults_DNSConfig(in.DNSConfig)

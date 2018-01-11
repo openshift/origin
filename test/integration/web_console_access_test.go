@@ -162,12 +162,12 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 	}
 
 	// Test the loginSelectorBase for links to all of the IDPs
-	url := masterOptions.AssetConfig.MasterPublicURL + loginSelectorBase
+	url := masterOptions.OAuthConfig.MasterPublicURL + loginSelectorBase
 	tryAccessURL(t, url, http.StatusOK, "", linkRegexps)
 
 	// Test all of these URLs
 	for endpoint, exp := range urlMap {
-		url := masterOptions.AssetConfig.MasterPublicURL + endpoint
+		url := masterOptions.OAuthConfig.MasterPublicURL + endpoint
 		tryAccessURL(t, url, exp.statusCode, exp.location, nil)
 	}
 }

@@ -147,7 +147,7 @@ func TestRootRedirect(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL, nil)
+	req, err := http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL, nil)
 	req.Header.Set("Accept", "*/*")
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
@@ -185,7 +185,7 @@ func TestRootRedirect(t *testing.T) {
 		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v,\n\ndiff=%v", got.Paths, expectedIndex, diff.ObjectDiff(expectedIndex, got.Paths))
 	}
 
-	req, err = http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL, nil)
+	req, err = http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL, nil)
 	req.Header.Set("Accept", "text/html")
 	resp, err = transport.RoundTrip(req)
 	if err != nil {
@@ -194,8 +194,8 @@ func TestRootRedirect(t *testing.T) {
 	if resp.StatusCode != http.StatusFound {
 		t.Errorf("Expected %d, got %d", http.StatusFound, resp.StatusCode)
 	}
-	if resp.Header.Get("Location") != masterConfig.AssetConfig.PublicURL {
-		t.Errorf("Expected %s, got %s", masterConfig.AssetConfig.PublicURL, resp.Header.Get("Location"))
+	if resp.Header.Get("Location") != masterConfig.OAuthConfig.AssetPublicURL {
+		t.Errorf("Expected %s, got %s", masterConfig.OAuthConfig.AssetPublicURL, resp.Header.Get("Location"))
 	}
 
 	// TODO add a test for when asset config is nil, the redirect should not occur in this case even when
@@ -214,7 +214,7 @@ func TestWellKnownOAuth(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+"/.well-known/oauth-authorization-server", nil)
+	req, err := http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL+"/.well-known/oauth-authorization-server", nil)
 	req.Header.Set("Accept", "*/*")
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
@@ -409,7 +409,7 @@ func TestApiGroups(t *testing.T) {
 	defer kclientset.Core().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 
 	t.Logf("GETting builds")
-	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version), nil)
+	req, err := http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version), nil)
 	req.Header.Set("Accept", "*/*")
 	resp, err := kclientset.Discovery().RESTClient().(*rest.RESTClient).Client.Transport.RoundTrip(req)
 	if err != nil {
@@ -427,7 +427,7 @@ func TestApiGroups(t *testing.T) {
 	}
 
 	t.Logf("GETting builds again")
-	req, err = http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s/namespaces/%s/builds/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version, ns, originalBuild.Name), nil)
+	req, err = http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s/namespaces/%s/builds/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version, ns, originalBuild.Name), nil)
 	req.Header.Set("Accept", "*/*")
 	resp, err = kclientset.Discovery().RESTClient().(*rest.RESTClient).Client.Transport.RoundTrip(req)
 	if err != nil {
