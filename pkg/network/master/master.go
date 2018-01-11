@@ -45,11 +45,6 @@ type OsdnMaster struct {
 func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkclient.Interface,
 	kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory,
 	networkInformers networkinformers.SharedInformerFactory) error {
-
-	if !network.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
-		return nil
-	}
-
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
