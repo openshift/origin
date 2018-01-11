@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: web-console-server-rbac
+parameters:
+- name: NAMESPACE
+  # This namespace cannot be changed. Only `openshift-web-console` is supported.
+  value: openshift-web-console
+objects:
+
+
+# allow grant powers to the webconsole server for cluster inspection
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: system:openshift:web-console-server
+  rules:
+  - apiGroups:
+    - "servicecatalog.k8s.io"
+    resources:
+    - clusterservicebrokers
+    verbs:
+    - get
+    - list
+    - watch
+
+# Grant the service account for the web console
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:web-console-server
+  roleRef:
+    kind: ClusterRole
+    name: system:openshift:web-console-server
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: webconsole

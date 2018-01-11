@@ -245,6 +245,7 @@
 // examples/quickstarts/cakephp-mysql.json
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
+// install/origin-web-console/rbac-template.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
@@ -28263,6 +28264,61 @@ func installOriginWebConsoleConsoleTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installOriginWebConsoleRbacTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: web-console-server-rbac
+parameters:
+- name: NAMESPACE
+  # This namespace cannot be changed. Only `+"`"+`openshift-web-console`+"`"+` is supported.
+  value: openshift-web-console
+objects:
+
+
+# allow grant powers to the webconsole server for cluster inspection
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: system:openshift:web-console-server
+  rules:
+  - apiGroups:
+    - "servicecatalog.k8s.io"
+    resources:
+    - clusterservicebrokers
+    verbs:
+    - get
+    - list
+    - watch
+
+# Grant the service account for the web console
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: system:openshift:web-console-server
+  roleRef:
+    kind: ClusterRole
+    name: system:openshift:web-console-server
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: webconsole
+`)
+
+func installOriginWebConsoleRbacTemplateYamlBytes() ([]byte, error) {
+	return _installOriginWebConsoleRbacTemplateYaml, nil
+}
+
+func installOriginWebConsoleRbacTemplateYaml() (*asset, error) {
+	bytes, err := installOriginWebConsoleRbacTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/origin-web-console/rbac-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -29018,6 +29074,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
+	"install/origin-web-console/rbac-template.yaml": installOriginWebConsoleRbacTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
@@ -29132,6 +29189,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"origin-web-console": &bintree{nil, map[string]*bintree{
 			"console-config.yaml": &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
 			"console-template.yaml": &bintree{installOriginWebConsoleConsoleTemplateYaml, map[string]*bintree{}},
+			"rbac-template.yaml": &bintree{installOriginWebConsoleRbacTemplateYaml, map[string]*bintree{}},
 		}},
 		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
 			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
