@@ -849,6 +849,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		}
 		cfg.AssetConfig.ExtensionScripts = append(cfg.AssetConfig.ExtensionScripts, serviceCatalogExtensionPath)
 
+		// TODO: remove when we can detect this is enabled in origin-web-console-server
 		extension := "window.OPENSHIFT_CONSTANTS.TEMPLATE_SERVICE_BROKER_ENABLED = true;\n"
 		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
 		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)

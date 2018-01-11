@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/kr/pty"
 )
@@ -38,13 +39,25 @@ type ExpectProcess struct {
 	lines []string
 	count int // increment whenever new line gets added
 	err   error
-}
 
-var printDebugLines = os.Getenv("EXPECT_DEBUG") != ""
+	// StopSignal is the signal Stop sends to the process; defaults to SIGKILL.
+	StopSignal os.Signal
+}
 
 // NewExpect creates a new process for expect testing.
 func NewExpect(name string, arg ...string) (ep *ExpectProcess, err error) {
-	ep = &ExpectProcess{cmd: exec.Command(name, arg...)}
+	// if env[] is nil, use current system env
+	return NewExpectWithEnv(name, arg, nil)
+}
+
+// NewExpectWithEnv creates a new process with user defined env variables for expect testing.
+func NewExpectWithEnv(name string, args []string, env []string) (ep *ExpectProcess, err error) {
+	cmd := exec.Command(name, args...)
+	cmd.Env = env
+	ep = &ExpectProcess{
+		cmd:        cmd,
+		StopSignal: syscall.SIGKILL,
+	}
 	ep.cond = sync.NewCond(&ep.mu)
 	ep.cmd.Stderr = ep.cmd.Stdout
 	ep.cmd.Stdin = nil
@@ -60,6 +73,7 @@ func NewExpect(name string, arg ...string) (ep *ExpectProcess, err error) {
 
 func (ep *ExpectProcess) read() {
 	defer ep.wg.Done()
+	printDebugLines := os.Getenv("EXPECT_DEBUG") != ""
 	r := bufio.NewReader(ep.fpty)
 	for ep.err == nil {
 		ep.ptyMu.Lock()
@@ -132,7 +146,7 @@ func (ep *ExpectProcess) close(kill bool) error {
 		return ep.err
 	}
 	if kill {
-		ep.cmd.Process.Kill()
+		ep.Signal(ep.StopSignal)
 	}
 
 	err := ep.cmd.Wait()

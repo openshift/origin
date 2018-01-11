@@ -18,6 +18,7 @@ import (
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	utilconfig "k8s.io/apiserver/pkg/util/flag"
+	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	kubeapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -125,12 +126,22 @@ func TestAPIServerDefaults(t *testing.T) {
 			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
+		// we currently overwrite this entire stanza, but we should be trying to collapse onto the upstream
+		// flag or config mechanism for kube.
 		Audit: &apiserveroptions.AuditOptions{
 			LogOptions: apiserveroptions.AuditLogOptions{
 				Format: "json",
 			},
 			WebhookOptions: apiserveroptions.AuditWebhookOptions{
 				Mode: "batch",
+				BatchConfig: pluginwebhook.BatchBackendConfig{
+					BufferSize:     10000,
+					MaxBatchSize:   400,
+					MaxBatchWait:   time.Duration(30000000000),
+					ThrottleQPS:    10,
+					ThrottleBurst:  15,
+					InitialBackoff: time.Duration(10000000000),
+				},
 			},
 		},
 		Features: &apiserveroptions.FeatureOptions{

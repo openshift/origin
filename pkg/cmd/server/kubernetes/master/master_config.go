@@ -46,6 +46,7 @@ import (
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
+	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	kubeclientgoinformers "k8s.io/client-go/informers"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
@@ -819,7 +820,7 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 
 		// webhook configuration, only when config file was provided
 		if len(auditConfig.WebHookKubeConfig) > 0 {
-			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, string(auditConfig.WebHookMode), auditv1beta1.SchemeGroupVersion)
+			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, string(auditConfig.WebHookMode), auditv1beta1.SchemeGroupVersion, pluginwebhook.NewDefaultBatchBackendConfig())
 			if err != nil {
 				glog.Fatalf("Audit webhook initialization failed: %v", err)
 			}

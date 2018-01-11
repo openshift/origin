@@ -42,6 +42,7 @@ func TestLessorGrant(t *testing.T) {
 	defer be.Close()
 
 	le := newLessor(be, minLeaseTTL)
+	defer le.Stop()
 	le.Promote(0)
 
 	l, err := le.Grant(1, 1)
@@ -57,11 +58,12 @@ func TestLessorGrant(t *testing.T) {
 		t.Errorf("term = %v, want at least %v", l.Remaining(), minLeaseTTLDuration-time.Second)
 	}
 
-	nl, err := le.Grant(1, 1)
+	_, err = le.Grant(1, 1)
 	if err == nil {
 		t.Errorf("allocated the same lease")
 	}
 
+	var nl *Lease
 	nl, err = le.Grant(2, 1)
 	if err != nil {
 		t.Errorf("could not grant lease 2 (%v)", err)
@@ -85,10 +87,9 @@ func TestLeaseConcurrentKeys(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	fd := &fakeDeleter{}
-
 	le := newLessor(be, minLeaseTTL)
-	le.SetRangeDeleter(fd)
+	defer le.Stop()
+	le.SetRangeDeleter(func() TxnDelete { return newFakeDeleter(be) })
 
 	// grant a lease with long term (100 seconds) to
 	// avoid early termination during the test.
@@ -134,10 +135,13 @@ func TestLessorRevoke(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	fd := &fakeDeleter{}
-
 	le := newLessor(be, minLeaseTTL)
-	le.SetRangeDeleter(fd)
+	defer le.Stop()
+	var fd *fakeDeleter
+	le.SetRangeDeleter(func() TxnDelete {
+		fd = newFakeDeleter(be)
+		return fd
+	})
 
 	// grant a lease with long term (100 seconds) to
 	// avoid early termination during the test.
@@ -184,6 +188,7 @@ func TestLessorRenew(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	le := newLessor(be, minLeaseTTL)
+	defer le.Stop()
 	le.Promote(0)
 
 	l, err := le.Grant(1, minLeaseTTL)
@@ -209,15 +214,67 @@ func TestLessorRenew(t *testing.T) {
 	}
 }
 
+// TestLessorRenewExtendPileup ensures Lessor extends leases on promotion if too many
+// expire at the same time.
+func TestLessorRenewExtendPileup(t *testing.T) {
+	oldRevokeRate := leaseRevokeRate
+	defer func() { leaseRevokeRate = oldRevokeRate }()
+	leaseRevokeRate = 10
+
+	dir, be := NewTestBackend(t)
+	defer os.RemoveAll(dir)
+
+	le := newLessor(be, minLeaseTTL)
+	ttl := int64(10)
+	for i := 1; i <= leaseRevokeRate*10; i++ {
+		if _, err := le.Grant(LeaseID(2*i), ttl); err != nil {
+			t.Fatal(err)
+		}
+		// ttls that overlap spillover for ttl=10
+		if _, err := le.Grant(LeaseID(2*i+1), ttl+1); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// simulate stop and recovery
+	le.Stop()
+	be.Close()
+	bcfg := backend.DefaultBackendConfig()
+	bcfg.Path = filepath.Join(dir, "be")
+	be = backend.New(bcfg)
+	defer be.Close()
+	le = newLessor(be, minLeaseTTL)
+	defer le.Stop()
+
+	// extend after recovery should extend expiration on lease pile-up
+	le.Promote(0)
+
+	windowCounts := make(map[int64]int)
+	for _, l := range le.leaseMap {
+		// round up slightly for baseline ttl
+		s := int64(l.Remaining().Seconds() + 0.1)
+		windowCounts[s]++
+	}
+
+	for i := ttl; i < ttl+20; i++ {
+		c := windowCounts[i]
+		if c > leaseRevokeRate {
+			t.Errorf("expected at most %d expiring at %ds, got %d", leaseRevokeRate, i, c)
+		}
+		if c < leaseRevokeRate/2 {
+			t.Errorf("expected at least %d expiring at %ds, got %d", leaseRevokeRate/2, i, c)
+		}
+	}
+}
+
 func TestLessorDetach(t *testing.T) {
 	dir, be := NewTestBackend(t)
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	fd := &fakeDeleter{}
-
 	le := newLessor(be, minLeaseTTL)
-	le.SetRangeDeleter(fd)
+	defer le.Stop()
+	le.SetRangeDeleter(func() TxnDelete { return newFakeDeleter(be) })
 
 	// grant a lease with long term (100 seconds) to
 	// avoid early termination during the test.
@@ -256,6 +313,7 @@ func TestLessorRecover(t *testing.T) {
 	defer be.Close()
 
 	le := newLessor(be, minLeaseTTL)
+	defer le.Stop()
 	l1, err1 := le.Grant(1, 10)
 	l2, err2 := le.Grant(2, 20)
 	if err1 != nil || err2 != nil {
@@ -264,6 +322,7 @@ func TestLessorRecover(t *testing.T) {
 
 	// Create a new lessor with the same backend
 	nle := newLessor(be, minLeaseTTL)
+	defer nle.Stop()
 	nl1 := nle.Lookup(l1.ID)
 	if nl1 == nil || nl1.ttl != l1.ttl {
 		t.Errorf("nl1 = %v, want nl1.ttl= %d", nl1.ttl, l1.ttl)
@@ -379,19 +438,20 @@ func TestLessorExpireAndDemote(t *testing.T) {
 
 type fakeDeleter struct {
 	deleted []string
+	tx      backend.BatchTx
 }
 
-func (fd *fakeDeleter) TxnBegin() int64 {
-	return 0
+func newFakeDeleter(be backend.Backend) *fakeDeleter {
+	fd := &fakeDeleter{nil, be.BatchTx()}
+	fd.tx.Lock()
+	return fd
 }
 
-func (fd *fakeDeleter) TxnEnd(txnID int64) error {
-	return nil
-}
+func (fd *fakeDeleter) End() { fd.tx.Unlock() }
 
-func (fd *fakeDeleter) TxnDeleteRange(tid int64, key, end []byte) (int64, int64, error) {
+func (fd *fakeDeleter) DeleteRange(key, end []byte) (int64, int64) {
 	fd.deleted = append(fd.deleted, string(key)+"_"+string(end))
-	return 0, 0, nil
+	return 0, 0
 }
 
 func NewTestBackend(t *testing.T) (string, backend.Backend) {
@@ -399,6 +459,7 @@ func NewTestBackend(t *testing.T) (string, backend.Backend) {
 	if err != nil {
 		t.Fatalf("failed to create tmpdir (%v)", err)
 	}
-
-	return tmpPath, backend.New(filepath.Join(tmpPath, "be"), time.Second, 10000)
+	bcfg := backend.DefaultBackendConfig()
+	bcfg.Path = filepath.Join(tmpPath, "be")
+	return tmpPath, backend.New(bcfg)
 }

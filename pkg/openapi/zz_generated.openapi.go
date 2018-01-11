@@ -13400,7 +13400,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/apps/v1beta2.ControllerRevision": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "ControllerRevision implements an immutable snapshot of state data. Clients are responsible for serializing and deserializing the objects that contain their internal state. Once a ControllerRevision has been successfully created, it can not be updated. The API Server will fail validation of all requests that attempt to mutate the Data field. ControllerRevisions may, however, be deleted. Note that, due to its use by both the DaemonSet and StatefulSet controllers for update and rollback, this object is beta. However, it may be subject to name and representation changes in future releases, and clients should not depend on its stability. It is primarily for internal use by controllers.",
+					Description: "DEPRECATED - This group version of ControllerRevision is deprecated by apps/v1/ControllerRevision. See the release notes for more information. ControllerRevision implements an immutable snapshot of state data. Clients are responsible for serializing and deserializing the objects that contain their internal state. Once a ControllerRevision has been successfully created, it can not be updated. The API Server will fail validation of all requests that attempt to mutate the Data field. ControllerRevisions may, however, be deleted. Note that, due to its use by both the DaemonSet and StatefulSet controllers for update and rollback, this object is beta. However, it may be subject to name and representation changes in future releases, and clients should not depend on its stability. It is primarily for internal use by controllers.",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
@@ -13490,7 +13490,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/apps/v1beta2.DaemonSet": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "DaemonSet represents the configuration of a daemon set.",
+					Description: "DEPRECATED - This group version of DaemonSet is deprecated by apps/v1/DaemonSet. See the release notes for more information. DaemonSet represents the configuration of a daemon set.",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
@@ -13786,7 +13786,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/apps/v1beta2.Deployment": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "Deployment enables declarative updates for Pods and ReplicaSets.",
+					Description: "DEPRECATED - This group version of Deployment is deprecated by apps/v1/Deployment. See the release notes for more information. Deployment enables declarative updates for Pods and ReplicaSets.",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
@@ -14094,7 +14094,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/apps/v1beta2.ReplicaSet": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "ReplicaSet ensures that a specified number of pod replicas are running at any given time.",
+					Description: "DEPRECATED - This group version of ReplicaSet is deprecated by apps/v1/ReplicaSet. See the release notes for more information. ReplicaSet ensures that a specified number of pod replicas are running at any given time.",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
@@ -14488,7 +14488,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/apps/v1beta2.StatefulSet": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "StatefulSet represents a set of pods with consistent identities. Identities are defined as:\n - Network: A single stable DNS and hostname.\n - Storage: As many VolumeClaims as requested.\nThe StatefulSet guarantees that a given network identity will always map to the same storage identity.",
+					Description: "DEPRECATED - This group version of StatefulSet is deprecated by apps/v1/StatefulSet. See the release notes for more information. StatefulSet represents a set of pods with consistent identities. Identities are defined as:\n - Network: A single stable DNS and hostname.\n - Storage: As many VolumeClaims as requested.\nThe StatefulSet guarantees that a given network identity will always map to the same storage identity.",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
@@ -20435,7 +20435,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/core/v1.FlexVolumeSource": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+					Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 					Properties: map[string]spec.Schema{
 						"driver": {
 							SchemaProps: spec.SchemaProps{
@@ -22688,7 +22688,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"flexVolume": {
 							SchemaProps: spec.SchemaProps{
-								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 								Ref:         ref("k8s.io/api/core/v1.FlexVolumeSource"),
 							},
 						},
@@ -22844,7 +22844,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"flexVolume": {
 							SchemaProps: spec.SchemaProps{
-								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 								Ref:         ref("k8s.io/api/core/v1.FlexVolumeSource"),
 							},
 						},
@@ -23789,7 +23789,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"dnsPolicy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Set DNS policy for the pod. Defaults to \"ClusterFirst\". Valid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'. DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy. To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'.",
+								Description: "Set DNS policy for the pod. Defaults to \"ClusterFirst\". Valid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'. DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy. To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'. Note that 'None' policy is an alpha feature introduced in v1.9 and CustomPodDNS feature gate must be enabled to use it.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -23957,7 +23957,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"dnsConfig": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Specifies the DNS parameters of a pod. Parameters specified here will be merged to the generated DNS configuration based on DNSPolicy.",
+								Description: "Specifies the DNS parameters of a pod. Parameters specified here will be merged to the generated DNS configuration based on DNSPolicy. This is an alpha feature introduced in v1.9 and CustomPodDNS feature gate must be enabled to use it.",
 								Ref:         ref("k8s.io/api/core/v1.PodDNSConfig"),
 							},
 						},
@@ -26437,7 +26437,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"flexVolume": {
 							SchemaProps: spec.SchemaProps{
-								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 								Ref:         ref("k8s.io/api/core/v1.FlexVolumeSource"),
 							},
 						},
@@ -26711,7 +26711,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"flexVolume": {
 							SchemaProps: spec.SchemaProps{
-								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.",
+								Description: "FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.",
 								Ref:         ref("k8s.io/api/core/v1.FlexVolumeSource"),
 							},
 						},
@@ -28012,7 +28012,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.IPBlock": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "IPBlock describes a particular CIDR (Ex. \"192.168.1.1/24\") that is allowed to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs that should not be included within this rule.",
+					Description: "DEPRECATED 1.9 - This group version of IPBlock is deprecated by networking/v1/IPBlock. IPBlock describes a particular CIDR (Ex. \"192.168.1.1/24\") that is allowed to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs that should not be included within this rule.",
 					Properties: map[string]spec.Schema{
 						"cidr": {
 							SchemaProps: spec.SchemaProps{
@@ -28287,7 +28287,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.NetworkPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "NetworkPolicy describes what network traffic is allowed for a set of Pods",
+					Description: "DEPRECATED 1.9 - This group version of NetworkPolicy is deprecated by networking/v1/NetworkPolicy. NetworkPolicy describes what network traffic is allowed for a set of Pods",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
@@ -28324,7 +28324,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.NetworkPolicyEgressRule": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "NetworkPolicyEgressRule describes a particular set of traffic that is allowed out of pods matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and to. This type is beta-level in 1.8",
+					Description: "DEPRECATED 1.9 - This group version of NetworkPolicyEgressRule is deprecated by networking/v1/NetworkPolicyEgressRule. NetworkPolicyEgressRule describes a particular set of traffic that is allowed out of pods matched by a NetworkPolicySpec's podSelector. The traffic must match both ports and to. This type is beta-level in 1.8",
 					Properties: map[string]spec.Schema{
 						"ports": {
 							SchemaProps: spec.SchemaProps{
@@ -28361,7 +28361,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.NetworkPolicyIngressRule": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "This NetworkPolicyIngressRule matches traffic if and only if the traffic matches both ports AND from.",
+					Description: "DEPRECATED 1.9 - This group version of NetworkPolicyIngressRule is deprecated by networking/v1/NetworkPolicyIngressRule. This NetworkPolicyIngressRule matches traffic if and only if the traffic matches both ports AND from.",
 					Properties: map[string]spec.Schema{
 						"ports": {
 							SchemaProps: spec.SchemaProps{
@@ -28398,7 +28398,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.NetworkPolicyList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "Network Policy List is a list of NetworkPolicy objects.",
+					Description: "DEPRECATED 1.9 - This group version of NetworkPolicyList is deprecated by networking/v1/NetworkPolicyList. Network Policy List is a list of NetworkPolicy objects.",
 					Properties: map[string]spec.Schema{
 						"kind": {
 							SchemaProps: spec.SchemaProps{
@@ -28443,6 +28443,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.NetworkPolicyPeer": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
+					Description: "DEPRECATED 1.9 - This group version of NetworkPolicyPeer is deprecated by networking/v1/NetworkPolicyPeer.",
 					Properties: map[string]spec.Schema{
 						"podSelector": {
 							SchemaProps: spec.SchemaProps{
@@ -28471,6 +28472,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.NetworkPolicyPort": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
+					Description: "DEPRECATED 1.9 - This group version of NetworkPolicyPort is deprecated by networking/v1/NetworkPolicyPort.",
 					Properties: map[string]spec.Schema{
 						"protocol": {
 							SchemaProps: spec.SchemaProps{
@@ -28494,6 +28496,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.NetworkPolicySpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
+					Description: "DEPRECATED 1.9 - This group version of NetworkPolicySpec is deprecated by networking/v1/NetworkPolicySpec.",
 					Properties: map[string]spec.Schema{
 						"podSelector": {
 							SchemaProps: spec.SchemaProps{

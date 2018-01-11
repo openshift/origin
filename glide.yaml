@@ -9,31 +9,31 @@ import:
   version: 39a7bf85c140f972372c2a0d1ee40adbf0c8bfe1
 - package: k8s.io/code-generator
   repo:    git@github.com:openshift/kubernetes-code-generator
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/apimachinery
   repo:    git@github.com:openshift/kubernetes-apimachinery
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/api
   repo:    git@github.com:openshift/kubernetes-api
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/client-go
   repo:    git@github.com:openshift/kubernetes-client-go
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/metrics
   repo:    git@github.com:openshift/kubernetes-metrics
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/apiserver
   repo:    git@github.com:openshift/kubernetes-apiserver
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/kube-aggregator
   repo:    git@github.com:openshift/kube-aggregator
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/apiextensions-apiserver
   repo:    git@github.com:openshift/kubernetes-apiextensions-apiserver
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/kubernetes
   repo:    git@github.com:openshift/kubernetes
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 
 # openshift second
 - package: github.com/openshift/api

@@ -17,12 +17,12 @@ import (
 	units "github.com/docker/go-units"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/set"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/spf13/cobra"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -130,10 +130,10 @@ func (o CancelOptions) Run() error {
 				return false
 			}
 
-			patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) ([]byte, error) {
+			patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(info *resource.Info) (bool, error) {
 				rc.Annotations[appsapi.DeploymentCancelledAnnotation] = appsapi.DeploymentCancelledAnnotationValue
 				rc.Annotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentCancelledByUser
-				return runtime.Encode(o.Encoder, rc)
+				return true, nil
 			})
 
 			allPatchesEmpty := true

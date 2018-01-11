@@ -145,7 +145,7 @@ Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-gu
 </summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
 </div></details><details><summary>    <span title="(array) Optional: FC volume world wide identifiers (wwids) Either wwids or combination of targetWWNs and lun must be set, but not both simultaneously.">wwids</span>:
 </summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
-</div></details></details><details><summary>  <span title="(v1.FlexVolumeSource) FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin. This is an alpha feature and may change in future.">flexVolume</span>:
+</div></details></details><details><summary>  <span title="(v1.FlexVolumeSource) FlexVolume represents a generic volume resource that is provisioned/attached using an exec based plugin.">flexVolume</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Driver is the name of the driver to use for this volume.">driver</span>:
 </div><div style="margin-left:13px;">    <span title="(string) Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. &#34;ext4&#34;, &#34;xfs&#34;, &#34;ntfs&#34;. The default filesystem depends on FlexVolume script.">fsType</span>:
 </div><details><summary>    <span title="(object) Optional: Extra command options if any.">options</span>:

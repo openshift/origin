@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
+	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -96,7 +97,7 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 		ImagePullProgressDeadline: c.KubeletServer.ImagePullProgressDeadline.Duration,
 	}
 	client := dockertools.ConnectToDockerOrDie(endpoint, c.KubeletServer.RuntimeRequestTimeout.Duration, c.KubeletServer.ImagePullProgressDeadline.Duration, false, false)
-	dockerClient := &dockerutil.KubeDocker{client}
+	dockerClient := &dockerutil.KubeDocker{Interface: client}
 
 	if url, err := url.Parse(endpoint); err == nil && url.Scheme == "unix" && len(url.Path) > 0 {
 		s, err := os.Stat(url.Path)
@@ -112,9 +113,19 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 			return
 		}
 	}
-	if err := dockerClient.Ping(); err != nil {
-		glog.Fatalf("Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", endpoint, err)
-		return
+	_, isFakeDocker := client.(*dockertools.FakeDockerClient)
+	if isFakeDocker {
+		// If using the fake docker client, ensure that the CgroupDriver for the kubelet matches
+		// the default cgroup driver, and use a fake mounter
+		c.KubeletServer.CgroupDriver = "cgroupfs"
+		c.KubeletDeps.Mounter = &mount.FakeMounter{}
+	}
+
+	if !isFakeDocker {
+		if err := dockerClient.Ping(); err != nil {
+			glog.Fatalf("Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", endpoint, err)
+			return
+		}
 	}
 
 	glog.Infof("Connecting to Docker at %s", endpoint)

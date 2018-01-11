@@ -71,29 +71,14 @@ func getMemberList(cx ctlCtx) (etcdserverpb.MemberListResponse, error) {
 }
 
 func memberRemoveTest(cx ctlCtx) {
-	n1 := cx.cfg.clusterSize
-	if n1 < 2 {
-		cx.t.Fatalf("%d-node is too small to test 'member remove'", n1)
-	}
-	resp, err := getMemberList(cx)
-	if err != nil {
-		cx.t.Fatal(err)
-	}
-	if n1 != len(resp.Members) {
-		cx.t.Fatalf("expected %d, got %d", n1, len(resp.Members))
-	}
-
-	var (
-		memIDToRemove = fmt.Sprintf("%x", resp.Header.MemberId)
-		cluserID      = fmt.Sprintf("%x", resp.Header.ClusterId)
-	)
-	if err = ctlV3MemberRemove(cx, memIDToRemove, cluserID); err != nil {
+	ep, memIDToRemove, clusterID := cx.memberToRemove()
+	if err := ctlV3MemberRemove(cx, ep, memIDToRemove, clusterID); err != nil {
 		cx.t.Fatal(err)
 	}
 }
 
-func ctlV3MemberRemove(cx ctlCtx, memberID, clusterID string) error {
-	cmdArgs := append(cx.PrefixArgs(), "member", "remove", memberID)
+func ctlV3MemberRemove(cx ctlCtx, ep, memberID, clusterID string) error {
+	cmdArgs := append(cx.prefixArgs([]string{ep}), "member", "remove", memberID)
 	return spawnWithExpect(cmdArgs, fmt.Sprintf("%s removed from cluster %s", memberID, clusterID))
 }
 

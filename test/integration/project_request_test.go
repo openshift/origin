@@ -101,7 +101,7 @@ func TestProjectRequestError(t *testing.T) {
 				case watch.Deleted:
 					deleted++
 				}
-			case <-time.After(10 * time.Second):
+			case <-time.After(30 * time.Second):
 				return added, deleted, events
 			}
 

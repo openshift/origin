@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
@@ -105,7 +106,7 @@ func TestV3LeaseGrantByID(t *testing.T) {
 	}
 
 	// create duplicate fixed lease
-	lresp, err = toGRPC(clus.RandClient()).Lease.LeaseGrant(
+	_, err = toGRPC(clus.RandClient()).Lease.LeaseGrant(
 		context.TODO(),
 		&pb.LeaseGrantRequest{ID: 1, TTL: 1})
 	if !eqErrGRPC(err, rpctypes.ErrGRPCLeaseExist) {
@@ -240,8 +241,8 @@ func TestV3LeaseRenewStress(t *testing.T) {
 	testLeaseStress(t, stressLeaseRenew)
 }
 
-// TestV3LeaseTimeToLiveStress keeps creating lease and retriving it immediately to ensure the lease can be retrived.
-// it was oberserved that the immediate lease retrival after granting a lease from follower resulted lease not found.
+// TestV3LeaseTimeToLiveStress keeps creating lease and retrieving it immediately to ensure the lease can be retrieved.
+// it was oberserved that the immediate lease retrieval after granting a lease from follower resulted lease not found.
 // related issue https://github.com/coreos/etcd/issues/6978
 func TestV3LeaseTimeToLiveStress(t *testing.T) {
 	testLeaseStress(t, stressLeaseTimeToLive)
@@ -334,8 +335,7 @@ func TestV3PutOnNonExistLease(t *testing.T) {
 	}
 }
 
-// TestV3GetNonExistLease tests the case where the non exist lease is report as lease not found error using LeaseTimeToLive()
-// A bug was found when a non leader etcd server returns nil instead of lease not found error which caues the server to crash.
+// TestV3GetNonExistLease ensures client retrieving nonexistent lease on a follower doesn't result node panic
 // related issue https://github.com/coreos/etcd/issues/6537
 func TestV3GetNonExistLease(t *testing.T) {
 	defer testutil.AfterTest(t)
@@ -344,16 +344,32 @@ func TestV3GetNonExistLease(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	lc := toGRPC(clus.RandClient()).Lease
+	lresp, err := lc.LeaseGrant(ctx, &pb.LeaseGrantRequest{TTL: 10})
+	if err != nil {
+		t.Errorf("failed to create lease %v", err)
+	}
+	_, err = lc.LeaseRevoke(context.TODO(), &pb.LeaseRevokeRequest{ID: lresp.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	leaseTTLr := &pb.LeaseTimeToLiveRequest{
-		ID:   123,
+		ID:   lresp.ID,
 		Keys: true,
 	}
 
 	for _, client := range clus.clients {
-		_, err := toGRPC(client).Lease.LeaseTimeToLive(ctx, leaseTTLr)
-		if !eqErrGRPC(err, rpctypes.ErrGRPCLeaseNotFound) {
-			t.Errorf("err = %v, want %v", err, rpctypes.ErrGRPCLeaseNotFound)
+		// quorum-read to ensure revoke completes before TimeToLive
+		if _, err := toGRPC(client).KV.Range(ctx, &pb.RangeRequest{Key: []byte("_")}); err != nil {
+			t.Fatal(err)
+		}
+		resp, err := toGRPC(client).Lease.LeaseTimeToLive(ctx, leaseTTLr)
+		if err != nil {
+			t.Fatalf("expected non nil error, but go %v", err)
+		}
+		if resp.TTL != -1 {
+			t.Fatalf("expected TTL to be -1, but got %v", resp.TTL)
 		}
 	}
 }
@@ -472,10 +488,49 @@ func TestV3LeaseFailover(t *testing.T) {
 	clus.waitLeader(t, clus.Members)
 
 	// lease should not expire at the last received expire deadline.
-	time.Sleep(expectedExp.Sub(time.Now()) - 500*time.Millisecond)
+	time.Sleep(time.Until(expectedExp) - 500*time.Millisecond)
 
 	if !leaseExist(t, clus, lresp.ID) {
 		t.Error("unexpected lease not exists")
+	}
+}
+
+// TestV3LeaseRequireLeader ensures that a Recv will get a leader
+// loss error if there is no leader.
+func TestV3LeaseRequireLeader(t *testing.T) {
+	defer testutil.AfterTest(t)
+
+	clus := NewClusterV3(t, &ClusterConfig{Size: 3})
+	defer clus.Terminate(t)
+
+	lc := toGRPC(clus.Client(0)).Lease
+	clus.Members[1].Stop(t)
+	clus.Members[2].Stop(t)
+
+	md := metadata.Pairs(rpctypes.MetadataRequireLeaderKey, rpctypes.MetadataHasLeader)
+	mctx := metadata.NewContext(context.Background(), md)
+	ctx, cancel := context.WithCancel(mctx)
+	defer cancel()
+	lac, err := lc.LeaseKeepAlive(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	donec := make(chan struct{})
+	go func() {
+		defer close(donec)
+		resp, err := lac.Recv()
+		if err == nil {
+			t.Fatalf("got response %+v, expected error", resp)
+		}
+		if grpc.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
+			t.Errorf("err = %v, want %v", err, rpctypes.ErrNoLeader)
+		}
+	}()
+	select {
+	case <-time.After(5 * time.Second):
+		t.Fatal("did not receive leader loss error (in 5-sec)")
+	case <-donec:
 	}
 }
 

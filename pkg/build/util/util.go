@@ -20,6 +20,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
+	buildapiv1 "github.com/openshift/api/build/v1"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 )
@@ -243,8 +244,8 @@ func SafeForLoggingURL(u *url.URL) *url.URL {
 
 // SafeForLoggingEnvVar returns a copy of an EnvVar array with
 // proxy credential values redacted.
-func SafeForLoggingEnvVar(env []kapi.EnvVar) []kapi.EnvVar {
-	newEnv := make([]kapi.EnvVar, len(env))
+func SafeForLoggingEnvVar(env []corev1.EnvVar) []corev1.EnvVar {
+	newEnv := make([]corev1.EnvVar, len(env))
 	copy(newEnv, env)
 	proxyRegex := regexp.MustCompile("(?i)proxy")
 	for i, env := range newEnv {
@@ -257,7 +258,7 @@ func SafeForLoggingEnvVar(env []kapi.EnvVar) []kapi.EnvVar {
 
 // SafeForLoggingBuildCommonSpec returns a copy of a CommonSpec with
 // proxy credential env variable values redacted.
-func SafeForLoggingBuildCommonSpec(spec *buildapi.CommonSpec) *buildapi.CommonSpec {
+func SafeForLoggingBuildCommonSpec(spec *buildapiv1.CommonSpec) *buildapiv1.CommonSpec {
 	newSpec := *spec
 	if newSpec.Source.Git != nil {
 		if newSpec.Source.Git.HTTPProxy != nil {
@@ -288,7 +289,7 @@ func SafeForLoggingBuildCommonSpec(spec *buildapi.CommonSpec) *buildapi.CommonSp
 
 // SafeForLoggingBuild returns a copy of a Build with
 // proxy credentials redacted.
-func SafeForLoggingBuild(build *buildapi.Build) *buildapi.Build {
+func SafeForLoggingBuild(build *buildapiv1.Build) *buildapiv1.Build {
 	newBuild := *build
 	newSpec := SafeForLoggingBuildCommonSpec(&build.Spec.CommonSpec)
 	newBuild.Spec.CommonSpec = *newSpec

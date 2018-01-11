@@ -948,6 +948,19 @@ type TokenConfig struct {
 	AuthorizeTokenMaxAgeSeconds int32
 	// AccessTokenMaxAgeSeconds defines the maximum age of access tokens
 	AccessTokenMaxAgeSeconds int32
+	// AccessTokenInactivityTimeoutSeconds defined the default token
+	// inactivity timeout for tokens granted by any client.
+	// Setting it to nil means the feature is completely disabled (default)
+	// The default setting can be overriden on OAuthClient basis.
+	// The value represents the maximum amount of time that can occur between
+	// consecutive uses of the token. Tokens become invalid if they are not
+	// used within this temporal window. The user will need to acquire a new
+	// token to regain access once a token times out.
+	// Valid values are:
+	// - 0: Tokens never time out
+	// - X: Tokens time out if there is no activity for X seconds
+	// The current minimum allowed value for X is 300 (5 minutes)
+	AccessTokenInactivityTimeoutSeconds *int32
 }
 
 // SessionConfig specifies options for cookie-based sessions. Used by AuthRequestHandlerSession

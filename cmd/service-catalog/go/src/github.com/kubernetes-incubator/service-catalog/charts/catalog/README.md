@@ -40,7 +40,7 @@ chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.2` |
+| `image` | apiserver image to use | `quay.io/kubernetes-service-catalog/service-catalog:v0.1.3` |
 | `imagePullPolicy` | `imagePullPolicy` for the service catalog | `Always` |
 | `apiserver.tls.requestHeaderCA` | Base64-encoded CA used to validate request-header authentication, when receiving delegated authentication from an aggregator. If not set, the service catalog API server will inherit this CA from the `extension-apiserver-authentication` ConfigMap if available. | `nil` |
 | `apiserver.service.type` | Type of service; valid values are `LoadBalancer` and `NodePort` | `NodePort` |
@@ -55,6 +55,7 @@ chart and their default values.
 | `controllerManager.brokerRelistInterval` | How often the controller should relist the catalogs of ready brokers; duration format (`20m`, `1h`, etc) | `24h` |
 | `useAggregator` | whether or not to set up the controller-manager to go through the main Kubernetes API server's API aggregator | `true` |
 | `rbacEnable` | If true, create & use RBAC resources | `true` |
+| `asyncBindingOperationsEnabled` | Whether or not alpha support for async binding operations is enabled | `false` |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to
 `helm install`.

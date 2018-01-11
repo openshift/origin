@@ -12,7 +12,8 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/api/build/v1"
+	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
@@ -66,9 +67,9 @@ func reportPushFailure(err error, authPresent bool, pushAuthConfig docker.AuthCo
 
 // addBuildLabels adds some common image labels describing the build that produced
 // this image.
-func addBuildLabels(labels map[string]string, build *buildapi.Build) {
-	labels[buildapi.DefaultDockerLabelNamespace+"build.name"] = build.Name
-	labels[buildapi.DefaultDockerLabelNamespace+"build.namespace"] = build.Namespace
+func addBuildLabels(labels map[string]string, build *buildapiv1.Build) {
+	labels[builderutil.DefaultDockerLabelNamespace+"build.name"] = build.Name
+	labels[builderutil.DefaultDockerLabelNamespace+"build.namespace"] = build.Namespace
 }
 
 // readInt64 reads a file containing a 64 bit integer value

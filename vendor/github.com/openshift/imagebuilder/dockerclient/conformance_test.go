@@ -33,10 +33,54 @@ type conformanceTest struct {
 	Name       string
 	Dockerfile string
 	Git        string
+	Mounts     []Mount
 	ContextDir string
 	Args       map[string]string
 	Ignore     []ignoreFunc
 	PostClone  func(dir string) error
+}
+
+func TestMount(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "dockerbuild-conformance-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	c, err := docker.NewClientFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	e := NewClientExecutor(c)
+	defer e.Release()
+
+	out := &bytes.Buffer{}
+	e.Out, e.ErrOut = out, out
+	e.Directory = tmpDir
+	e.Tag = filepath.Base(tmpDir)
+	e.TransientMounts = []Mount{
+		{SourcePath: "testdata/volume/", DestinationPath: "/tmp/test"},
+	}
+	b, node, err := imagebuilder.NewBuilderForFile("testdata/Dockerfile.mount", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Prepare(b, node, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Execute(b, node); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `91 /tmp/test/Dockerfile 644 regular file 0 0
+4 /tmp/test/file 644 regular file 0 0
+5 /tmp/test/file2 644 regular file 0 0
+`
+
+	if out.String() != expected {
+		t.Errorf("Unexpected build output:\n%s", out.String())
+	}
 }
 
 // TestConformance* compares the result of running the direct build against a

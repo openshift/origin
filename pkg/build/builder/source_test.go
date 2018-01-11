@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/generate/git"
 )
@@ -179,8 +179,8 @@ func TestUnqualifiedClone(t *testing.T) {
 	destDir, err := ioutil.TempDir("", "clone-dest-")
 	defer os.RemoveAll(destDir)
 	client := git.NewRepositoryWithEnv([]string{})
-	source := &buildapi.GitBuildSource{URI: "file://" + repo.Path}
-	revision := buildapi.SourceRevision{Git: &buildapi.GitSourceRevision{}}
+	source := &buildapiv1.GitBuildSource{URI: "file://" + repo.Path}
+	revision := buildapiv1.SourceRevision{Git: &buildapiv1.GitSourceRevision{}}
 	ctx := timing.NewContext(context.Background())
 	if _, err = extractGitSource(ctx, client, source, &revision, destDir, 10*time.Second); err != nil {
 		t.Errorf("%v", err)
@@ -223,11 +223,11 @@ func TestCloneFromRef(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	source := &buildapi.GitBuildSource{
+	source := &buildapiv1.GitBuildSource{
 		URI: "file://" + repo.Path,
 		Ref: firstCommitRef,
 	}
-	revision := buildapi.SourceRevision{Git: &buildapi.GitSourceRevision{}}
+	revision := buildapiv1.SourceRevision{Git: &buildapiv1.GitSourceRevision{}}
 	ctx := timing.NewContext(context.Background())
 	if _, err = extractGitSource(ctx, client, source, &revision, destDir, 10*time.Second); err != nil {
 		t.Errorf("%v", err)
@@ -278,11 +278,11 @@ func TestCloneFromBranch(t *testing.T) {
 	destDir, err := ioutil.TempDir("", "branch-dest-")
 	defer os.RemoveAll(destDir)
 	client := git.NewRepositoryWithEnv([]string{})
-	source := &buildapi.GitBuildSource{
+	source := &buildapiv1.GitBuildSource{
 		URI: "file://" + repo.Path,
 		Ref: "test",
 	}
-	revision := buildapi.SourceRevision{Git: &buildapi.GitSourceRevision{}}
+	revision := buildapiv1.SourceRevision{Git: &buildapiv1.GitSourceRevision{}}
 	ctx := timing.NewContext(context.Background())
 	if _, err = extractGitSource(ctx, client, source, &revision, destDir, 10*time.Second); err != nil {
 		t.Errorf("%v", err)

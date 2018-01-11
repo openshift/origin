@@ -2,6 +2,7 @@ package api
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -27,4 +28,8 @@ type BuildOverridesConfig struct {
 
 	// annotations are annotations that will be added to the build pod
 	Annotations map[string]string
+
+	// tolerations is a list of Tolerations that will override any existing
+	// tolerations set on a build pod.
+	Tolerations []kapi.Toleration
 }

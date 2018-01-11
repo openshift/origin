@@ -106,7 +106,7 @@ func (l *lifecycle) Admit(a admission.Attributes) error {
 			exists = true
 		}
 		if exists {
-			glog.V(4).Infof("found %s in cache after waiting", a.GetNamespace())
+			glog.V(4).Infof("found namespace %q in cache after waiting", a.GetNamespace())
 		}
 	}
 
@@ -120,7 +120,7 @@ func (l *lifecycle) Admit(a admission.Attributes) error {
 		case err != nil:
 			return errors.NewInternalError(err)
 		}
-		glog.V(4).Infof("found %s via storage lookup", a.GetNamespace())
+		glog.V(4).Infof("found namespace %q via storage lookup", a.GetNamespace())
 	}
 
 	// ensure that we're not trying to create objects in terminating namespaces
@@ -129,7 +129,7 @@ func (l *lifecycle) Admit(a admission.Attributes) error {
 			return nil
 		}
 
-		return admission.NewForbidden(a, fmt.Errorf("unable to create new content in namespace %s because it is being terminated", a.GetNamespace()))
+		return admission.NewForbidden(a, fmt.Errorf("unable to create new content in namespace %q because it is being terminated", a.GetNamespace()))
 	}
 
 	return nil
