@@ -188,6 +188,9 @@ frontend public_ssl
   bind :{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}}
     {{- end }}
     {{- if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} accept-proxy{{ end }}
+{{- if ne (env "ROUTER_SYSLOG_ADDRESS") ""}}
+  option tcplog
+{{- end }}
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
 
