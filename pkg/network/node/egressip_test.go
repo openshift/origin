@@ -31,7 +31,8 @@ func TestEgressIP(t *testing.T) {
 	if oc.localIP != "172.17.0.4" {
 		panic("details of fake ovsController changed")
 	}
-	eip := newEgressIPWatcher("172.17.0.4", oc)
+	masqBit := int32(0)
+	eip := newEgressIPWatcher(oc, "172.17.0.4", &masqBit)
 	eip.testModeChan = make(chan string, 10)
 
 	eip.updateNodeEgress("172.17.0.3", []string{})
@@ -160,7 +161,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=100", "reg0=44", "0xac110066->pkt_mark", "goto_table:101"},
+			match: []string{"table=100", "reg0=44", "0x0000002c->pkt_mark", "goto_table:101"},
 		},
 	)
 	if err != nil {
@@ -195,7 +196,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=100", "reg0=45", "0xac110067->pkt_mark", "goto_table:101"},
+			match: []string{"table=100", "reg0=45", "0x0100002c->pkt_mark", "goto_table:101"},
 		},
 	)
 	if err != nil {
@@ -216,7 +217,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowRemoved,
-			match: []string{"table=100", "reg0=44", "0xac110066->pkt_mark", "goto_table:101"},
+			match: []string{"table=100", "reg0=44", "0x0000002c->pkt_mark", "goto_table:101"},
 		},
 	)
 	if err != nil {
@@ -262,7 +263,7 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowRemoved,
-			match: []string{"table=100", "reg0=45", "0xac110067->pkt_mark", "goto_table:101"},
+			match: []string{"table=100", "reg0=45", "0x0100002c->pkt_mark", "goto_table:101"},
 		},
 		flowChange{
 			kind:  flowAdded,
@@ -287,5 +288,76 @@ func TestEgressIP(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows)
 	if err != nil {
 		t.Fatalf("Unexpected flow changes: %v", err)
+	}
+}
+
+func TestMarkForVNID(t *testing.T) {
+	testcases := []struct {
+		description   string
+		vnid          uint32
+		masqueradeBit uint32
+		result        uint32
+	}{
+		{
+			description:   "masqBit in VNID range, but not set in VNID",
+			vnid:          0x000000aa,
+			masqueradeBit: 0x00000001,
+			result:        0x000000aa,
+		},
+		{
+			description:   "masqBit in VNID range, and set in VNID",
+			vnid:          0x000000ab,
+			masqueradeBit: 0x00000001,
+			result:        0x010000aa,
+		},
+		{
+			description:   "masqBit in VNID range, VNID 0",
+			vnid:          0x00000000,
+			masqueradeBit: 0x00000001,
+			result:        0xff000000,
+		},
+		{
+			description:   "masqBit outside of VNID range",
+			vnid:          0x000000aa,
+			masqueradeBit: 0x80000000,
+			result:        0x000000aa,
+		},
+		{
+			description:   "masqBit outside of VNID range, VNID 0",
+			vnid:          0x00000000,
+			masqueradeBit: 0x80000000,
+			result:        0x7f000000,
+		},
+		{
+			description:   "masqBit == bit 24",
+			vnid:          0x000000aa,
+			masqueradeBit: 0x01000000,
+			result:        0x000000aa,
+		},
+		{
+			description:   "masqBit == bit 24, VNID 0",
+			vnid:          0x00000000,
+			masqueradeBit: 0x01000000,
+			result:        0xfe000000,
+		},
+		{
+			description:   "no masqBit, ordinary VNID",
+			vnid:          0x000000aa,
+			masqueradeBit: 0x00000000,
+			result:        0x000000aa,
+		},
+		{
+			description:   "no masqBit, VNID 0",
+			vnid:          0x00000000,
+			masqueradeBit: 0x00000000,
+			result:        0xff000000,
+		},
+	}
+
+	for _, tc := range testcases {
+		result := getMarkForVNID(tc.vnid, tc.masqueradeBit)
+		if result != fmt.Sprintf("0x%08x", tc.result) {
+			t.Fatalf("test %q expected %08x got %s", tc.description, tc.result, result)
+		}
 	}
 }

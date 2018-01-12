@@ -41,8 +41,9 @@ type namespaceEgress struct {
 type egressIPWatcher struct {
 	sync.Mutex
 
-	localIP string
-	oc      *ovsController
+	oc            *ovsController
+	localIP       string
+	masqueradeBit uint32
 
 	networkInformers networkinformers.SharedInformerFactory
 	iptables         *NodeIPTables
@@ -61,10 +62,10 @@ type egressIPWatcher struct {
 	testModeChan chan string
 }
 
-func newEgressIPWatcher(localIP string, oc *ovsController) *egressIPWatcher {
-	return &egressIPWatcher{
-		localIP: localIP,
+func newEgressIPWatcher(oc *ovsController, localIP string, masqueradeBit *int32) *egressIPWatcher {
+	eip := &egressIPWatcher{
 		oc:      oc,
+		localIP: localIP,
 
 		nodesByNodeIP:   make(map[string]*nodeEgress),
 		nodesByEgressIP: make(map[string]*nodeEgress),
@@ -72,6 +73,10 @@ func newEgressIPWatcher(localIP string, oc *ovsController) *egressIPWatcher {
 		namespacesByVNID:     make(map[uint32]*namespaceEgress),
 		namespacesByEgressIP: make(map[string]*namespaceEgress),
 	}
+	if masqueradeBit != nil {
+		eip.masqueradeBit = 1 << uint32(*masqueradeBit)
+	}
+	return eip
 }
 
 func (eip *egressIPWatcher) Start(networkInformers networkinformers.SharedInformerFactory, iptables *NodeIPTables) error {
@@ -89,13 +94,16 @@ func (eip *egressIPWatcher) Start(networkInformers networkinformers.SharedInform
 	return nil
 }
 
-func ipToHex(ip string) string {
-	bytes := net.ParseIP(ip)
-	if bytes == nil {
-		return "invalid IP: shouldn't happen"
+// Convert vnid to a hex value that is not 0, does not have masqueradeBit set, and isn't
+// the same value as would be returned for any other valid vnid.
+func getMarkForVNID(vnid, masqueradeBit uint32) string {
+	if vnid == 0 {
+		vnid = 0xff000000
 	}
-	bytes = bytes.To4()
-	return fmt.Sprintf("0x%02x%02x%02x%02x", bytes[0], bytes[1], bytes[2], bytes[3])
+	if (vnid & masqueradeBit) != 0 {
+		vnid = (vnid | 0x01000000) ^ masqueradeBit
+	}
+	return fmt.Sprintf("0x%08x", vnid)
 }
 
 func (eip *egressIPWatcher) watchHostSubnets() {
@@ -168,14 +176,14 @@ func (eip *egressIPWatcher) maybeAddEgressIP(egressIP string) {
 		return
 	}
 
-	hex := ipToHex(egressIP)
+	mark := getMarkForVNID(ns.vnid, eip.masqueradeBit)
 	nodeIP := ""
 
 	if node != nil && !node.assignedIPs.Has(egressIP) {
 		node.assignedIPs.Insert(egressIP)
 		nodeIP = node.nodeIP
 		if node.nodeIP == eip.localIP {
-			if err := eip.assignEgressIP(egressIP, hex); err != nil {
+			if err := eip.assignEgressIP(egressIP, mark); err != nil {
 				utilruntime.HandleError(fmt.Errorf("Error assigning Egress IP %q: %v", egressIP, err))
 				nodeIP = ""
 			}
@@ -186,7 +194,7 @@ func (eip *egressIPWatcher) maybeAddEgressIP(egressIP string) {
 		ns.assignedIP = egressIP
 		ns.nodeIP = nodeIP
 
-		err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, ns.nodeIP, hex)
+		err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, ns.nodeIP, mark)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
 		}
@@ -200,9 +208,9 @@ func (eip *egressIPWatcher) deleteEgressIP(egressIP string) {
 		return
 	}
 
-	hex := ipToHex(egressIP)
+	mark := getMarkForVNID(ns.vnid, eip.masqueradeBit)
 	if node.nodeIP == eip.localIP {
-		if err := eip.releaseEgressIP(egressIP, hex); err != nil {
+		if err := eip.releaseEgressIP(egressIP, mark); err != nil {
 			utilruntime.HandleError(fmt.Errorf("Error releasing Egress IP %q: %v", egressIP, err))
 		}
 	}
@@ -218,7 +226,7 @@ func (eip *egressIPWatcher) deleteEgressIP(egressIP string) {
 		err = eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", "")
 	} else {
 		// Namespace still wants EgressIP but no node provides it
-		err = eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", hex)
+		err = eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", mark)
 	}
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
@@ -294,7 +302,7 @@ func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
 	delete(eip.namespacesByVNID, vnid)
 }
 
-func (eip *egressIPWatcher) assignEgressIP(egressIP, egressHex string) error {
+func (eip *egressIPWatcher) assignEgressIP(egressIP, mark string) error {
 	if egressIP == eip.localIP {
 		return fmt.Errorf("desired egress IP %q is the node IP", egressIP)
 	}
@@ -322,14 +330,14 @@ func (eip *egressIPWatcher) assignEgressIP(egressIP, egressHex string) error {
 		}
 	}
 
-	if err := eip.iptables.AddEgressIPRules(egressIP, egressHex); err != nil {
+	if err := eip.iptables.AddEgressIPRules(egressIP, mark); err != nil {
 		return fmt.Errorf("could not add egress IP iptables rule: %v", err)
 	}
 
 	return nil
 }
 
-func (eip *egressIPWatcher) releaseEgressIP(egressIP, egressHex string) error {
+func (eip *egressIPWatcher) releaseEgressIP(egressIP, mark string) error {
 	if egressIP == eip.localIP {
 		return nil
 	}
@@ -354,7 +362,7 @@ func (eip *egressIPWatcher) releaseEgressIP(egressIP, egressHex string) error {
 		}
 	}
 
-	if err := eip.iptables.DeleteEgressIPRules(egressIP, egressHex); err != nil {
+	if err := eip.iptables.DeleteEgressIPRules(egressIP, mark); err != nil {
 		return fmt.Errorf("could not delete egress IP iptables rule: %v", err)
 	}
 
