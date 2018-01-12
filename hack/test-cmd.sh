@@ -68,7 +68,7 @@ fi
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
-export ADDITIONAL_ALLOWED_REGISTRIES=( "172.30.30.30:5000" "myregistry.com" )
+export ADDITIONAL_ALLOWED_REGISTRIES=( "172.30.30.30:5000" "myregistry.com" "registry.centos.org" )
 
 os::start::configure_server
 

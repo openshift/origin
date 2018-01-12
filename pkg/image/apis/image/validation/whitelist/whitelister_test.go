@@ -32,12 +32,12 @@ func TestRegistryWhitelister(t *testing.T) {
 			transport: WhitelistTransportSecure,
 			whitelist: mkAllowed(true),
 			hostnames: map[string]error{
-				"example.com":    fmt.Errorf(`registry "example.com" not allowed by whitelist {  }`),
-				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by whitelist {  }`),
+				"example.com":    fmt.Errorf(`registry "example.com" not allowed by empty whitelist`),
+				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by empty whitelist`),
 			},
 			difs: map[imageapi.DockerImageReference]error{
-				{Registry: "docker.io", Namespace: "library", Name: "busybox"}: fmt.Errorf(`registry "docker.io" not allowed by whitelist {  }`),
-				{Name: "busybox"}:                                              fmt.Errorf(`registry "docker.io:443" not allowed by whitelist {  }`),
+				{Registry: "docker.io", Namespace: "library", Name: "busybox"}: fmt.Errorf(`registry "docker.io" not allowed by empty whitelist`),
+				{Name: "busybox"}:                                              fmt.Errorf(`registry "docker.io:443" not allowed by empty whitelist`),
 			},
 		},
 
@@ -49,8 +49,8 @@ func TestRegistryWhitelister(t *testing.T) {
 				"docker.io":      nil,
 				"example.com":    nil,
 				"localhost:443":  nil,
-				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by whitelist { "*:443" }`),
-				"localhost:80":   fmt.Errorf(`registry "localhost:80" not allowed by whitelist { "*:443" }`),
+				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by whitelist: "*:443"`),
+				"localhost:80":   fmt.Errorf(`registry "localhost:80" not allowed by whitelist: "*:443"`),
 				"localhost":      nil,
 			},
 			difs: map[imageapi.DockerImageReference]error{
@@ -65,8 +65,8 @@ func TestRegistryWhitelister(t *testing.T) {
 			hostnames: map[string]error{
 				"docker.io":      nil,
 				"example.com":    nil,
-				"localhost:443":  fmt.Errorf(`registry "localhost:443" not allowed by whitelist { "*:80" }`),
-				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by whitelist { "*:80" }`),
+				"localhost:443":  fmt.Errorf(`registry "localhost:443" not allowed by whitelist: "*:80"`),
+				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by whitelist: "*:80"`),
 				"localhost:80":   nil,
 				"localhost":      nil,
 			},
@@ -82,8 +82,8 @@ func TestRegistryWhitelister(t *testing.T) {
 			hostnames: map[string]error{
 				"docker.io":      nil,
 				"example.com":    nil,
-				"localhost:443":  fmt.Errorf(`registry "localhost:443" not allowed by whitelist { "*:80" }`),
-				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by whitelist { "*:80" }`),
+				"localhost:443":  fmt.Errorf(`registry "localhost:443" not allowed by whitelist: "*:80"`),
+				"localhost:5000": fmt.Errorf(`registry "localhost:5000" not allowed by whitelist: "*:80"`),
 				"localhost:80":   nil,
 				"localhost":      nil,
 			},
@@ -163,12 +163,12 @@ func TestRegistryWhitelister(t *testing.T) {
 				"example.com:5000":         nil,
 				"example.com:80":           nil,
 				"example.com":              nil,
-				"localhost:443":            fmt.Errorf(`registry "localhost:443" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80" }`),
+				"localhost:443":            fmt.Errorf(`registry "localhost:443" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80"`),
 				"localhost:5000":           nil,
 				"registry-1.docker.io:443": nil,
-				"registry.com:443":         fmt.Errorf(`registry "registry.com:443" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80" }`),
+				"registry.com:443":         fmt.Errorf(`registry "registry.com:443" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80"`),
 				"registry.com:80":          nil,
-				"registry.com":             fmt.Errorf(`registry "registry.com" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80" }`),
+				"registry.com":             fmt.Errorf(`registry "registry.com" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80"`),
 			},
 			difs: map[imageapi.DockerImageReference]error{
 				{Registry: "docker.io"}:            nil,
@@ -176,7 +176,7 @@ func TestRegistryWhitelister(t *testing.T) {
 				{Registry: "example.com"}:          nil,
 				{Registry: "docker.io"}:            nil,
 				{Registry: "localhost:5000"}:       nil,
-				{Registry: "registry.example.com"}: fmt.Errorf(`registry "registry.example.com" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80" }`),
+				{Registry: "registry.example.com"}: fmt.Errorf(`registry "registry.example.com" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80"`),
 				{Name: "busybox"}:                  nil,
 			},
 		},
@@ -189,10 +189,10 @@ func TestRegistryWhitelister(t *testing.T) {
 				"a.b.c.d.foo.com:80": nil,
 				"domain.ltd":         nil,
 				"example.com":        nil,
-				"foo.com":            fmt.Errorf(`registry "foo.com" not allowed by whitelist { "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"foo.com":            fmt.Errorf(`registry "foo.com" not allowed by whitelist: "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ...`),
 				"index.docker.io":    nil,
 				"localhost:5000":     nil,
-				"my.domain.ltd:443":  fmt.Errorf(`registry "my.domain.ltd:443" not allowed by whitelist { "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"my.domain.ltd:443":  fmt.Errorf(`registry "my.domain.ltd:443" not allowed by whitelist: "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ...`),
 				"my.domain.ltd:80":   nil,
 				"my.domain.ltd":      nil,
 				"mydomain.ltd":       nil,
@@ -201,8 +201,8 @@ func TestRegistryWhitelister(t *testing.T) {
 			},
 			difs: map[imageapi.DockerImageReference]error{
 				{Registry: "docker.io", Namespace: "library", Name: "busybox"}: nil,
-				{Registry: "foo.com", Namespace: "library", Name: "busybox"}:   fmt.Errorf(`registry "foo.com" not allowed by whitelist { "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ... }`),
-				{Registry: "ffoo.com", Namespace: "library", Name: "busybox"}:  fmt.Errorf(`registry "ffoo.com" not allowed by whitelist { "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ... }`),
+				{Registry: "foo.com", Namespace: "library", Name: "busybox"}:   fmt.Errorf(`registry "foo.com" not allowed by whitelist: "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ...`),
+				{Registry: "ffoo.com", Namespace: "library", Name: "busybox"}:  fmt.Errorf(`registry "ffoo.com" not allowed by whitelist: "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ...`),
 			},
 		},
 
@@ -211,24 +211,24 @@ func TestRegistryWhitelister(t *testing.T) {
 			transport: WhitelistTransportAny,
 			whitelist: mkAllowed(false, "localhost:5000", "docker.io", "example.com:*", "registry.com:80", "*.foo.com", "*domain.ltd"),
 			hostnames: map[string]error{
-				"a.b.c.d.foo.com:80": fmt.Errorf(`registry "a.b.c.d.foo.com:80" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"a.b.c.d.foo.com:80": fmt.Errorf(`registry "a.b.c.d.foo.com:80" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ...`),
 				"domain.ltd":         nil,
 				"example.com":        nil,
-				"foo.com":            fmt.Errorf(`registry "foo.com" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"foo.com":            fmt.Errorf(`registry "foo.com" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ...`),
 				"index.docker.io":    nil,
 				"localhost:5000":     nil,
 				"my.domain.ltd:443":  nil,
-				"my.domain.ltd:80":   fmt.Errorf(`registry "my.domain.ltd:80" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"my.domain.ltd:80":   fmt.Errorf(`registry "my.domain.ltd:80" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ...`),
 				"my.domain.ltd":      nil,
 				"mydomain.ltd":       nil,
-				"registry.com:443":   fmt.Errorf(`registry "registry.com:443" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"registry.com:443":   fmt.Errorf(`registry "registry.com:443" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ...`),
 				"registry.com":       nil,
 				"registry.foo.com":   nil,
 			},
 			difs: map[imageapi.DockerImageReference]error{
 				{Registry: "docker.io", Namespace: "library", Name: "busybox"}: nil,
-				{Registry: "foo.com", Namespace: "library", Name: "busybox"}:   fmt.Errorf(`registry "foo.com" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ... }`),
-				{Registry: "ffoo.com", Namespace: "library", Name: "busybox"}:  fmt.Errorf(`registry "ffoo.com" not allowed by whitelist { "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ... }`),
+				{Registry: "foo.com", Namespace: "library", Name: "busybox"}:   fmt.Errorf(`registry "foo.com" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ...`),
+				{Registry: "ffoo.com", Namespace: "library", Name: "busybox"}:  fmt.Errorf(`registry "ffoo.com" not allowed by whitelist: "localhost:5000", "docker.io:443", "example.com:*", "registry.com:80", and 2 more ...`),
 			},
 		},
 
@@ -240,14 +240,14 @@ func TestRegistryWhitelister(t *testing.T) {
 				"a.b.c.d.foo.com:80/repo":     nil,
 				"domain.ltd/a/b":              nil,
 				"example.com/c/d":             nil,
-				"foo.com/foo":                 fmt.Errorf(`registry "foo.com" not allowed by whitelist { "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"foo.com/foo":                 fmt.Errorf(`registry "foo.com" not allowed by whitelist: "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ...`),
 				"index.docker.io/bar":         nil,
 				"localhost:5000/repo":         nil,
-				"my.domain.ltd:443/a/b":       fmt.Errorf(`registry "my.domain.ltd:443" not allowed by whitelist { "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"my.domain.ltd:443/a/b":       fmt.Errorf(`registry "my.domain.ltd:443" not allowed by whitelist: "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ...`),
 				"my.domain.ltd:80/foo:latest": nil,
 				"my.domain.ltd/bar:1.3.4":     nil,
 				"mydomain.ltd/my/repo/sitory": nil,
-				"registry.com:443/ab:tag":     fmt.Errorf(`registry "registry.com:443" not allowed by whitelist { "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ... }`),
+				"registry.com:443/ab:tag":     fmt.Errorf(`registry "registry.com:443" not allowed by whitelist: "localhost:5000", "docker.io:80", "example.com:*", "registry.com:80", and 2 more ...`),
 				"registry.com/repo":           nil,
 				"registry.foo.com/123":        nil,
 				"repository:latest":           nil,
@@ -296,7 +296,7 @@ func TestWhitelistRegistry(t *testing.T) {
 	if err := rw.WhitelistRegistry("foo.com", WhitelistTransportAny); err != nil {
 		t.Fatal(err)
 	}
-	exp := fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist { "foo.com:443", "foo.com:80" }`)
+	exp := fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist: "foo.com:443", "foo.com:80"`)
 	if err := rw.AdmitHostname("sub.foo.com", WhitelistTransportAny); err == nil || err.Error() != exp.Error() {
 		t.Fatalf("got unexpected error: %s", diff.ObjectGoPrintDiff(err, exp))
 	}
@@ -305,7 +305,7 @@ func TestWhitelistRegistry(t *testing.T) {
 	if err := rw.WhitelistRegistry("foo.com", WhitelistTransportInsecure); err != nil {
 		t.Fatal(err)
 	}
-	exp = fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist { "foo.com:80" }`)
+	exp = fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist: "foo.com:80"`)
 	if err := rw.AdmitHostname("sub.foo.com", WhitelistTransportAny); err == nil || err.Error() != exp.Error() {
 		t.Fatalf("got unexpected error: %s", diff.ObjectGoPrintDiff(err, exp))
 	}
@@ -313,7 +313,7 @@ func TestWhitelistRegistry(t *testing.T) {
 	if err := rw.WhitelistRegistry("foo.com", WhitelistTransportInsecure); err != nil {
 		t.Fatal(err)
 	}
-	exp = fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist { "foo.com:80" }`)
+	exp = fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist: "foo.com:80"`)
 	if err := rw.AdmitHostname("sub.foo.com", WhitelistTransportAny); err == nil || err.Error() != exp.Error() {
 		t.Fatalf("got unexpected error: %s", diff.ObjectGoPrintDiff(err, exp))
 	}
@@ -321,7 +321,7 @@ func TestWhitelistRegistry(t *testing.T) {
 	if err := rw.WhitelistRegistry("foo.com", WhitelistTransportAny); err != nil {
 		t.Fatal(err)
 	}
-	exp = fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist { "foo.com:443", "foo.com:80" }`)
+	exp = fmt.Errorf(`registry "sub.foo.com" not allowed by whitelist: "foo.com:443", "foo.com:80"`)
 	if err := rw.AdmitHostname("sub.foo.com", WhitelistTransportAny); err == nil || err.Error() != exp.Error() {
 		t.Fatalf("got unexpected error: %s", diff.ObjectGoPrintDiff(err, exp))
 	}

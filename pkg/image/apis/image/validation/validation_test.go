@@ -630,7 +630,7 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "tags").Key("fail").Child("from", "name"),
-					`registry "registry.ltd" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "registry.ltd" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 			},
 		},
 
@@ -673,11 +673,11 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("status", "tags").Key("secure").Child("items").Index(0).Child("dockerImageReference"),
-					`registry "docker.io" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "docker.io" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 				field.Forbidden(field.NewPath("status", "tags").Key("secure").Child("items").Index(2).Child("dockerImageReference"),
-					`registry "example.com:80" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "example.com:80" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 				field.Forbidden(field.NewPath("status", "tags").Key("secure").Child("items").Index(3).Child("dockerImageReference"),
-					`registry "dev.null.io" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "dev.null.io" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 			},
 		},
 
@@ -720,9 +720,9 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("status", "tags").Key("insecure").Child("items").Index(1).Child("dockerImageReference"),
-					`registry "example.com:80" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "example.com:80" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 				field.Forbidden(field.NewPath("status", "tags").Key("insecure").Child("items").Index(2).Child("dockerImageReference"),
-					`registry "registry.ltd" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "registry.ltd" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 			},
 		},
 
@@ -763,7 +763,7 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("status", "tags").Key("securebydefault").Child("items").Index(0).Child("dockerImageReference"),
-					`registry "localhost" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "localhost" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 			},
 		},
 
@@ -804,7 +804,7 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("status", "tags").Key("securebydefault").Child("items").Index(0).Child("dockerImageReference"),
-					`registry "localhost" not allowed by whitelist { "example.com:443", "localhost:5000", "dev.null.io:80" }`),
+					`registry "localhost" not allowed by whitelist: "example.com:443", "localhost:5000", "dev.null.io:80"`),
 			},
 		},
 
@@ -823,7 +823,7 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 			dockerImageRepository: "example.com/openshift/origin",
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "dockerImageRepository"),
-					`registry "example.com" not allowed by whitelist { "*.example.com:443" }`),
+					`registry "example.com" not allowed by whitelist: "*.example.com:443"`),
 			},
 		},
 	} {
@@ -916,9 +916,9 @@ func TestValidateImageStreamUpdateWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "tags").Key("fail").Child("from", "name"),
-					`registry "example.com" not allowed by whitelist { "docker.io:443" }`),
+					`registry "example.com" not allowed by whitelist: "docker.io:443"`),
 				field.Forbidden(field.NewPath("status", "tags").Key("fail").Child("items").Index(0).Child("dockerImageReference"),
-					`registry "example.com" not allowed by whitelist { "docker.io:443" }`),
+					`registry "example.com" not allowed by whitelist: "docker.io:443"`),
 			},
 		},
 
@@ -994,7 +994,7 @@ func TestValidateImageStreamUpdateWithWhitelister(t *testing.T) {
 			newDockerImageRepository: "example.com/my/newapp",
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "dockerImageRepository"),
-					`registry "example.com" not allowed by whitelist { "docker.io:443" }`)},
+					`registry "example.com" not allowed by whitelist: "docker.io:443"`)},
 		},
 
 		{
@@ -1148,7 +1148,7 @@ func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("tag", "from", "name"),
-					`registry "docker.io:443" not allowed by whitelist { "example.com:*" }`),
+					`registry "docker.io:443" not allowed by whitelist: "example.com:*"`),
 			},
 		},
 
@@ -1178,7 +1178,7 @@ func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("tag", "from", "name"),
-					`registry "docker.io:443" not allowed by whitelist { "example.com:*" }`),
+					`registry "docker.io:443" not allowed by whitelist: "example.com:*"`),
 			},
 		},
 
@@ -1191,7 +1191,7 @@ func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("tag", "from", "name"),
-					`registry "example.com" not allowed by whitelist { "example.com:80" }`),
+					`registry "example.com" not allowed by whitelist: "example.com:80"`),
 			},
 		},
 
@@ -1233,7 +1233,7 @@ func TestValidateISTUpdateWithWhitelister(t *testing.T) {
 			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("tag", "from", "name"),
-					`registry "docker.io" not allowed by whitelist { "example.com:443" }`),
+					`registry "docker.io" not allowed by whitelist: "example.com:443"`),
 			},
 		},
 	} {
@@ -1288,7 +1288,7 @@ func TestValidateRegistryAllowedForImport(t *testing.T) {
 			hostname:  "example.com:443",
 			whitelist: *mkAllowed(false, "foo.bar"),
 			expected: field.ErrorList{field.Forbidden(nil,
-				`importing images from registry "example.com:443" is forbidden: registry "example.com:443" not allowed by whitelist { "foo.bar:443" }`)},
+				`importing images from registry "example.com:443" is forbidden: registry "example.com:443" not allowed by whitelist: "foo.bar:443"`)},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

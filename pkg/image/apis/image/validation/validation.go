@@ -193,7 +193,7 @@ func ValidateImageStreamWithWhitelister(
 			}
 		}
 		if isValid && whitelister != nil {
-			if err := whitelister.AdmitDockerImageReference(&ref, whitelist.GetWhitelistTransportForFlag(insecureRepository, true)); err != nil {
+			if err := whitelister.AdmitDockerImageReference(&ref, getWhitelistTransportForFlag(insecureRepository, true)); err != nil {
 				result = append(result, field.Forbidden(dockerImageRepositoryPath, err.Error()))
 			}
 		}
@@ -218,7 +218,7 @@ func ValidateImageStreamWithWhitelister(
 				if tr, ok := stream.Spec.Tags[tag]; ok {
 					insecure = tr.ImportPolicy.Insecure
 				}
-				transport := whitelist.GetWhitelistTransportForFlag(insecure || insecureRepository, true)
+				transport := getWhitelistTransportForFlag(insecure || insecureRepository, true)
 				if err := whitelister.AdmitDockerImageReference(&ref, transport); err != nil {
 					result = append(result, field.Forbidden(field.NewPath("status", "tags").Key(tag).Child("items").Index(i).Child("dockerImageReference"), err.Error()))
 				}
@@ -249,7 +249,7 @@ func ValidateImageStreamTagReference(
 			} else if len(ref.ID) > 0 && tagRef.ImportPolicy.Scheduled {
 				errs = append(errs, field.Invalid(fldPath.Child("from", "name"), tagRef.From.Name, "only tags can be scheduled for import"))
 			} else if whitelister != nil {
-				transport := whitelist.GetWhitelistTransportForFlag(tagRef.ImportPolicy.Insecure || insecureRepository, true)
+				transport := getWhitelistTransportForFlag(tagRef.ImportPolicy.Insecure || insecureRepository, true)
 				if err := whitelister.AdmitDockerImageReference(&ref, transport); err != nil {
 					errs = append(errs, field.Forbidden(fldPath.Child("from", "name"), err.Error()))
 				}
@@ -341,7 +341,7 @@ func ValidateImageStreamStatusUpdateWithWhitelister(
 				}
 			}
 		}
-		transport := whitelist.GetWhitelistTransportForFlag(insecure, true)
+		transport := getWhitelistTransportForFlag(insecure, true)
 		if err := whitelister.AdmitDockerImageReference(&ref, transport); err != nil {
 			// TODO: should we whitelist references imported based on whitelisted/old spec?
 			// report error for each tag/history item having this reference
@@ -568,4 +568,14 @@ func isRepositoryInsecure(obj runtime.Object) bool {
 		return false
 	}
 	return accessor.GetAnnotations()[imageapi.InsecureRepositoryAnnotation] == "true"
+}
+
+func getWhitelistTransportForFlag(insecure, allowSecureFallback bool) whitelist.WhitelistTransport {
+	if insecure {
+		if allowSecureFallback {
+			return whitelist.WhitelistTransportAny
+		}
+		return whitelist.WhitelistTransportInsecure
+	}
+	return whitelist.WhitelistTransportSecure
 }

@@ -43,7 +43,6 @@ type RegistryWhitelister interface {
 	WhitelistRegistry(hostPortGlob string, transport WhitelistTransport) error
 	// WhitelistPullSpecs allows to whitelist particular pull specs. References must match exactly one of the
 	// given pull specs for it to be whitelisted.
-	// TODO: accept insecure flag
 	WhitelistPullSpecs(pullSpecs ...string)
 	// Copy returns a deep copy of the whitelister. This is useful for temporarily whitelisting additional
 	// registries/pullSpecs before a specific validation.
@@ -78,7 +77,11 @@ func NewRegistryWhitelister(
 	// iterate in reversed order to make the patterns appear in the same order as given (patterns are prepended)
 	for i := len(whitelist) - 1; i >= 0; i-- {
 		registry := whitelist[i]
-		err := rw.WhitelistRegistry(registry.DomainName, GetWhitelistTransportForFlag(registry.Insecure, false))
+		transport := WhitelistTransportSecure
+		if registry.Insecure {
+			transport = WhitelistTransportInsecure
+		}
+		err := rw.WhitelistRegistry(registry.DomainName, transport)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -113,8 +116,6 @@ func (rw *registryWhitelister) AdmitPullSpec(pullSpec string, transport Whitelis
 
 func (rw *registryWhitelister) AdmitDockerImageReference(ref *imageapi.DockerImageReference, transport WhitelistTransport) error {
 	const showMax = 5
-	const fullWhitelistLogLevel = 5
-
 	if rw.pullSpecs.Len() > 0 {
 		if rw.pullSpecs.Has(ref.Exact()) || rw.pullSpecs.Has(ref.DockerClientDefaults().Exact()) || rw.pullSpecs.Has(ref.DaemonMinimal().Exact()) {
 			return nil
@@ -187,20 +188,22 @@ func (rw *registryWhitelister) AdmitDockerImageReference(ref *imageapi.DockerIma
 			hostname = host
 		}
 	}
-	whitelist := []string{}
-	full := []string{}
+
+	var whitelist []string
 	for i := 0; i < len(rw.whitelist); i++ {
-		if i < showMax-1 || len(rw.whitelist)-showMax == 0 {
-			whitelist = append(whitelist, fmt.Sprintf("%q", net.JoinHostPort(rw.whitelist[i].host, rw.whitelist[i].port)))
-		} else if i < showMax {
-			whitelist = append(whitelist, fmt.Sprintf("and %d more ...", len(rw.whitelist)-showMax+1))
-		} else if !glog.V(fullWhitelistLogLevel) {
-			break
-		}
-		full = append(full, fmt.Sprintf("%q", net.JoinHostPort(rw.whitelist[i].host, rw.whitelist[i].port)))
+		whitelist = append(whitelist, fmt.Sprintf("%q", net.JoinHostPort(rw.whitelist[i].host, rw.whitelist[i].port)))
 	}
-	glog.V(fullWhitelistLogLevel).Infof("registry %q not allowed by whitelist { %s }", hostname, strings.Join(full, ", "))
-	return fmt.Errorf("registry %q not allowed by whitelist { %s }", hostname, strings.Join(whitelist, ", "))
+
+	if len(rw.whitelist) == 0 {
+		glog.V(5).Info("registry %q not allowed by empty whitelist", hostname)
+		return fmt.Errorf("registry %q not allowed by empty whitelist", hostname)
+	}
+
+	glog.V(5).Info("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
+	if len(rw.whitelist) <= showMax {
+		return fmt.Errorf("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
+	}
+	return fmt.Errorf("registry %q not allowed by whitelist: %s, and %d more ...", hostname, strings.Join(whitelist[:showMax-1], ", "), len(whitelist)-showMax+1)
 }
 
 func (rw *registryWhitelister) WhitelistRegistry(hostPortGlob string, transport WhitelistTransport) error {
@@ -254,15 +257,4 @@ func (rw *registryWhitelister) Copy() RegistryWhitelister {
 		newRW.whitelist[i] = item
 	}
 	return &newRW
-}
-
-// GetWhitelistTransportForFlag returns transport for the given insecure flag.
-func GetWhitelistTransportForFlag(insecure, allowSecureFallback bool) WhitelistTransport {
-	if insecure {
-		if allowSecureFallback {
-			return WhitelistTransportAny
-		}
-		return WhitelistTransportInsecure
-	}
-	return WhitelistTransportSecure
 }
