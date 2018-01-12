@@ -1,0 +1,198 @@
+= v1.SelfSubjectRulesReview
+{product-author}
+{product-version}
+:data-uri:
+:icons:
+:toc: macro
+:toc-title:
+:toclevels: 2
+
+toc::[]
+
+== Description
+[%hardbreaks]
+SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace
+
+== Object Schema
+Expand or mouse-over a field for more information about it.
+
+++++
+<pre>
+<div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
+</div><div style="margin-left:13px;"><span title="(string) Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">kind</span>:
+</div><details open><summary><span title="(v1.SelfSubjectRulesReviewSpec) Spec adds information about how to conduct the check">spec</span>:
+</summary><details><summary>  <span title="(array) Scopes to use for the evaluation.  Empty means &#34;use the unscoped (full) permissions of the user/groups&#34;. Nil means &#34;use the scopes on this request&#34;.">scopes</span>:
+</summary><div style="margin-left:13px;">  - <span title="(string)">[string]</span>:
+</div></details></details><details><summary><span title="(v1.SubjectRulesReviewStatus) Status is completed by the server to tell which permissions you have">status</span>:
+</summary><div style="margin-left:13px;">  <span title="(string) EvaluationError can appear in combination with Rules.  It means some error happened during evaluation that may have prevented additional rules from being populated.">evaluationError</span>:
+</div><details><summary>  <span title="(array) Rules is the list of rules (no particular sort) that are allowed for the subject">rules</span>:
+</summary><details><summary>  - <span title="(array) APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed. That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request will be allowed">apiGroups</span>:
+</summary><div style="margin-left:13px;">  - - <span title="(string)">[string]</span>:
+</div></details><details><summary>    <span title="(runtime.RawExtension) AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports. If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.">attributeRestrictions</span>:
+</summary><div style="margin-left:13px;">      <span title="(string) Raw is the underlying serialization of this object.">Raw</span>:
+</div></details><details><summary>    <span title="(array) NonResourceURLsSlice is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path This name is intentionally different than the internal type so that the DefaultConvert works nicely and because the ordering may be different.">nonResourceURLs</span>:
+</summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
+</div></details><details><summary>    <span title="(array) ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.">resourceNames</span>:
+</summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
+</div></details><details><summary>    <span title="(array) Resources is a list of resources this rule applies to.  ResourceAll represents all resources.">resources</span>:
+</summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
+</div></details><details><summary>    <span title="(array) Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.">verbs</span>:
+</summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
+</div></details></details></details>
+</pre>
+++++
+
+== Operations
+
+[[Post-oapi-v1-selfsubjectrulesreviews]]
+=== Create a SelfSubjectRulesReview
+Create a SelfSubjectRulesReview
+
+==== HTTP request
+----
+POST /oapi/v1/selfsubjectrulesreviews HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+Content-Type: application/json'
+
+{
+  "kind": "SelfSubjectRulesReview",
+  "apiVersion": "v1",
+  ...
+}
+
+----
+
+==== Curl request
+----
+$ curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://$ENDPOINT/oapi/v1/selfsubjectrulesreviews <<'EOF'
+{
+  "kind": "SelfSubjectRulesReview",
+  "apiVersion": "v1",
+  ...
+}
+EOF
+----
+
+==== HTTP body
+[cols="1,5", options="header"]
+|===
+|Parameter|Schema
+|body|v1.SelfSubjectRulesReview
+|===
+
+==== Query parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|pretty|If 'true', then the output is pretty printed.
+|===
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.SelfSubjectRulesReview
+|201 Created|v1.SelfSubjectRulesReview
+|202 Accepted|v1.SelfSubjectRulesReview
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* \*/*
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+[[Post-oapi-v1-namespaces-namespace-selfsubjectrulesreviews]]
+=== Create a SelfSubjectRulesReview in a namespace
+Create a SelfSubjectRulesReview
+
+==== HTTP request
+----
+POST /oapi/v1/namespaces/$NAMESPACE/selfsubjectrulesreviews HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+Content-Type: application/json'
+
+{
+  "kind": "SelfSubjectRulesReview",
+  "apiVersion": "v1",
+  ...
+}
+
+----
+
+==== Curl request
+----
+$ curl -k \
+    -X POST \
+    -d @- \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    -H 'Content-Type: application/json' \
+    https://$ENDPOINT/oapi/v1/namespaces/$NAMESPACE/selfsubjectrulesreviews <<'EOF'
+{
+  "kind": "SelfSubjectRulesReview",
+  "apiVersion": "v1",
+  ...
+}
+EOF
+----
+
+==== HTTP body
+[cols="1,5", options="header"]
+|===
+|Parameter|Schema
+|body|v1.SelfSubjectRulesReview
+|===
+
+==== Path parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|namespace|object name and auth scope, such as for teams and projects
+|===
+
+==== Query parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+|pretty|If 'true', then the output is pretty printed.
+|===
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.SelfSubjectRulesReview
+|201 Created|v1.SelfSubjectRulesReview
+|202 Accepted|v1.SelfSubjectRulesReview
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* \*/*
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
+

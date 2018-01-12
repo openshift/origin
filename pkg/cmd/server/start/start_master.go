@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
@@ -32,7 +31,6 @@ import (
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kutilerrors "k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/errors"
 
-	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -41,7 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
-	kubernetesmaster "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
@@ -567,27 +564,6 @@ func StartAPI(oc *origin.MasterConfig, controllerPlug plug.Plug) error {
 
 	if err := oc.Run(controllerPlug, utilwait.NeverStop); err != nil {
 		return err
-	}
-
-	// if the webconsole is configured to be standalone, go ahead and create and run it
-	if oc.WebConsoleEnabled() && oc.WebConsoleStandalone() {
-		config, err := assetapiserver.NewAssetServerConfig(*oc.Options.AssetConfig, nil)
-		if err != nil {
-			return err
-		}
-		backend, policy, err := kubernetesmaster.GetAuditConfig(oc.Options.AuditConfig)
-		if err != nil {
-			return err
-		}
-		config.GenericConfig.AuditBackend = backend
-		config.GenericConfig.AuditPolicyChecker = policy
-		assetServer, err := config.Complete().New(genericapiserver.EmptyDelegate)
-		if err != nil {
-			return err
-		}
-		if err := assetapiserver.RunAssetServer(assetServer, utilwait.NeverStop); err != nil {
-			return err
-		}
 	}
 
 	return nil

@@ -1,8 +1,13 @@
 package overrides
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
+
 	"k8s.io/api/core/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -82,6 +87,22 @@ func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 	for k, v := range b.config.Annotations {
 		glog.V(5).Infof("Adding override annotation %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
 		pod.Annotations[k] = v
+	}
+
+	// Override Tolerations
+	if len(b.config.Tolerations) != 0 {
+		glog.V(5).Infof("Overriding tolerations for pod %s/%s", pod.Namespace, pod.Name)
+		pod.Spec.Tolerations = []v1.Toleration{}
+		for _, toleration := range b.config.Tolerations {
+			t := v1.Toleration{}
+
+			if err := kapiv1.Convert_core_Toleration_To_v1_Toleration(&toleration, &t, nil); err != nil {
+				err := fmt.Errorf("Unable to convert core.Toleration to v1.Toleration: %v", err)
+				utilruntime.HandleError(err)
+				return err
+			}
+			pod.Spec.Tolerations = append(pod.Spec.Tolerations, t)
+		}
 	}
 
 	return buildadmission.SetBuildInPod(pod, build, version)

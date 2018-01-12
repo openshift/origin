@@ -104,7 +104,13 @@ os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}/foo" "er
 os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"from\":{\"name\":\"asdf:7\"}}}}}'"
 os::cmd::expect_failure_and_text "oc start-build --from-webhook=${hook}" "Error resolving ImageStreamTag asdf:7"
 os::cmd::expect_success 'oc get builds'
+os::cmd::expect_success 'oc set triggers bc/ruby-sample-build --from-github --remove'
+os::cmd::expect_success_and_not_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
+# make sure we describe webhooks using secretReferences properly
+os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"triggers\":[{\"github\":{\"secretReference\":{\"name\":\"mysecret\"}},\"type\":\"GitHub\"}]}}'"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
 os::cmd::expect_success 'oc delete all -l build=docker'
+
 echo "buildConfig: ok"
 os::test::junit::declare_suite_end
 

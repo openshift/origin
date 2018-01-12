@@ -11,37 +11,34 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/apis/build/validation"
+	buildapiv1 "github.com/openshift/api/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/build/builder/timing"
-	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
+	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/version"
 )
 
 type builder interface {
-	Build(dockerClient bld.DockerClient, sock string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error
 }
 
 type builderConfig struct {
 	out             io.Writer
-	build           *buildapi.Build
+	build           *buildapiv1.Build
 	sourceSecretDir string
 	dockerClient    *docker.Client
 	dockerEndpoint  string
-	buildsClient    buildinternalversion.BuildResourceInterface
+	buildsClient    buildclientv1.BuildInterface
 }
 
 func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderConfig, error) {
@@ -51,16 +48,17 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	cfg.out = out
 
 	buildStr := os.Getenv("BUILD")
-	cfg.build = &buildapi.Build{}
 
-	obj, groupVersionKind, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, nil)
+	cfg.build = &buildapiv1.Build{}
+
+	obj, groupVersionKind, err := legacyscheme.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, cfg.build)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse build string: %v", err)
 	}
 	ok := false
-	cfg.build, ok = obj.(*buildapi.Build)
+	cfg.build, ok = obj.(*buildapiv1.Build)
 	if !ok {
-		return nil, fmt.Errorf("build string is not a build: %v", err)
+		return nil, fmt.Errorf("build string %s is not a build: %#v", buildStr, obj)
 	}
 	if glog.V(4) {
 		redactedBuild := buildutil.SafeForLoggingBuild(cfg.build)
@@ -73,11 +71,8 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 		}
 		glog.V(4).Infof("redacted build: %v", string(bytes))
 	}
-	if errs := validation.ValidateBuild(cfg.build); len(errs) > 0 {
-		return nil, errors.NewInvalid(schema.GroupKind{Kind: "Build"}, cfg.build.Name, errs)
-	}
 
-	masterVersion := os.Getenv(buildapi.OriginVersion)
+	masterVersion := os.Getenv(builderutil.OriginVersion)
 	thisVersion := version.Get().String()
 	if len(masterVersion) != 0 && masterVersion != thisVersion {
 		glog.V(3).Infof("warning: OpenShift server version %q differs from this image %q\n", masterVersion, thisVersion)
@@ -102,11 +97,11 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	if err != nil {
 		return nil, fmt.Errorf("cannot connect to the server: %v", err)
 	}
-	buildsClient, err := buildclient.NewForConfig(clientConfig)
+	buildsClient, err := buildclientv1.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %v", err)
 	}
-	cfg.buildsClient = buildsClient.Build().Builds(cfg.build.Namespace)
+	cfg.buildsClient = buildsClient.Builds(cfg.build.Namespace)
 
 	return cfg, nil
 }
@@ -158,7 +153,7 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 // clone is responsible for cloning the source referenced in the buildconfig
 func (c *builderConfig) clone() error {
 	ctx := timing.NewContext(context.Background())
-	var sourceRev *buildapi.SourceRevision
+	var sourceRev *buildapiv1.SourceRevision
 	defer func() {
 		c.build.Status.Stages = timing.GetStages(ctx)
 		bld.HandleBuildStatusUpdate(c.build, c.buildsClient, sourceRev)
@@ -174,9 +169,9 @@ func (c *builderConfig) clone() error {
 	buildDir := buildutil.InputContentPath
 	sourceInfo, err := bld.GitClone(ctx, gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
 	if err != nil {
-		c.build.Status.Phase = buildapi.BuildPhaseFailed
-		c.build.Status.Reason = buildapi.StatusReasonFetchSourceFailed
-		c.build.Status.Message = buildapi.StatusMessageFetchSourceFailed
+		c.build.Status.Phase = buildapiv1.BuildPhaseFailed
+		c.build.Status.Reason = buildapiv1.StatusReasonFetchSourceFailed
+		c.build.Status.Message = builderutil.StatusMessageFetchSourceFailed
 		return err
 	}
 
@@ -186,18 +181,18 @@ func (c *builderConfig) clone() error {
 
 	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, buildDir)
 	if err != nil {
-		c.build.Status.Phase = buildapi.BuildPhaseFailed
-		c.build.Status.Reason = buildapi.StatusReasonFetchSourceFailed
-		c.build.Status.Message = buildapi.StatusMessageFetchSourceFailed
+		c.build.Status.Phase = buildapiv1.BuildPhaseFailed
+		c.build.Status.Reason = buildapiv1.StatusReasonFetchSourceFailed
+		c.build.Status.Message = builderutil.StatusMessageFetchSourceFailed
 		return err
 	}
 
 	if len(c.build.Spec.Source.ContextDir) > 0 {
 		if _, err := os.Stat(filepath.Join(buildDir, c.build.Spec.Source.ContextDir)); os.IsNotExist(err) {
 			err = fmt.Errorf("provided context directory does not exist: %s", c.build.Spec.Source.ContextDir)
-			c.build.Status.Phase = buildapi.BuildPhaseFailed
-			c.build.Status.Reason = buildapi.StatusReasonInvalidContextDirectory
-			c.build.Status.Message = buildapi.StatusMessageInvalidContextDirectory
+			c.build.Status.Phase = buildapiv1.BuildPhaseFailed
+			c.build.Status.Reason = buildapiv1.StatusReasonInvalidContextDirectory
+			c.build.Status.Message = builderutil.StatusMessageInvalidContextDirectory
 			return err
 		}
 	}
@@ -238,14 +233,14 @@ func (c *builderConfig) execute(b builder) error {
 type dockerBuilder struct{}
 
 // Build starts a Docker build.
-func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error {
 	return bld.NewDockerBuilder(dockerClient, buildsClient, build, cgLimits).Build()
 }
 
 type s2iBuilder struct{}
 
 // Build starts an S2I build.
-func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build, cgLimits *s2iapi.CGroupLimits) error {
 	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, cgLimits).Build()
 }
 

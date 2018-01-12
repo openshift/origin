@@ -170,7 +170,7 @@ func keyToEnvName(key string) string {
 func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	resources, envArgs, ok := cmdutil.SplitEnvironmentFromResources(args)
 	if !ok {
-		return kcmdutil.UsageErrorf(o.Cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
+		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
 	if len(o.Filenames) == 0 && len(resources) < 1 {
 		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")

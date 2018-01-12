@@ -10,6 +10,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/regions"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/roles"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/services"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/users"
 )
 
@@ -175,6 +176,33 @@ func CreateRegion(t *testing.T, client *gophercloud.ServiceClient, c *regions.Cr
 	return region, nil
 }
 
+// CreateService will create a service with a random name.
+// It takes an optional createOpts parameter since creating a service
+// has so many options. An error will be returned if the service was
+// unable to be created.
+func CreateService(t *testing.T, client *gophercloud.ServiceClient, c *services.CreateOpts) (*services.Service, error) {
+	name := tools.RandomString("ACPTTEST", 8)
+	t.Logf("Attempting to create service: %s", name)
+
+	var createOpts services.CreateOpts
+	if c != nil {
+		createOpts = *c
+	} else {
+		createOpts = services.CreateOpts{}
+	}
+
+	createOpts.Extra["name"] = name
+
+	service, err := services.Create(client, createOpts).Extract()
+	if err != nil {
+		return service, err
+	}
+
+	t.Logf("Successfully created service %s", service.ID)
+
+	return service, nil
+}
+
 // DeleteProject will delete a project by ID. A fatal error will occur if
 // the project ID failed to be deleted. This works best when using it as
 // a deferred function.
@@ -236,7 +264,7 @@ func DeleteRole(t *testing.T, client *gophercloud.ServiceClient, roleID string) 
 }
 
 // DeleteRegion will delete a reg by ID. A fatal error will occur if
-// the role failed to be deleted. This works best when using it as
+// the region failed to be deleted. This works best when using it as
 // a deferred function.
 func DeleteRegion(t *testing.T, client *gophercloud.ServiceClient, regionID string) {
 	err := regions.Delete(client, regionID).ExtractErr()
@@ -245,6 +273,18 @@ func DeleteRegion(t *testing.T, client *gophercloud.ServiceClient, regionID stri
 	}
 
 	t.Logf("Deleted region: %s", regionID)
+}
+
+// DeleteService will delete a reg by ID. A fatal error will occur if
+// the service failed to be deleted. This works best when using it as
+// a deferred function.
+func DeleteService(t *testing.T, client *gophercloud.ServiceClient, serviceID string) {
+	err := services.Delete(client, serviceID).ExtractErr()
+	if err != nil {
+		t.Fatalf("Unable to delete service %s: %v", serviceID, err)
+	}
+
+	t.Logf("Deleted service: %s", serviceID)
 }
 
 // UnassignRole will delete a role assigned to a user/group on a project/domain

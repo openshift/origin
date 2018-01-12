@@ -62,6 +62,13 @@ function os::test::extended::clusterup::skip_persistent_volumes () {
     os::cmd::expect_success_and_text "oc get pv | wc -l" "0"
 }
 
+function os::test::extended::clusterup::verify_console () {
+    os::cmd::expect_success "oc login -u system:admin"
+    os::cmd::expect_success_and_text "oc get svc -n openshift-web-console" "webconsole"
+    os::cmd::try_until_text "oc get endpoints webconsole -o jsonpath='{ .subsets[*].ports[?(@.name==\"https\")].port }' -n openshift-web-console" "8443" $(( 10*minute )) 1
+    os::cmd::expect_success "oc login -u developer"
+}
+
 function os::test::extended::clusterup::verify_metrics () {
     os::cmd::expect_success "oc login -u system:admin"
     os::cmd::expect_success_and_text "oc get pods -n openshift-infra" "metrics-deployer"
@@ -202,6 +209,13 @@ function os::test::extended::clusterup::numerichostname () {
     os::cmd::expect_success_and_text "docker exec origin cat /var/lib/origin/openshift.local.config/master/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
 }
 
+# Tests installation of console components
+function os::test::extended::clusterup::console () {
+    arg=$@
+    os::cmd::expect_success "oc cluster up $arg"
+    os::test::extended::clusterup::verify_console
+}
+
 # Tests installation of metrics components
 function os::test::extended::clusterup::metrics () {
     os::test::extended::clusterup::standard_test --metrics ${@}
@@ -260,11 +274,14 @@ readonly default_tests=(
     "portinuse"
     "svcaccess"
     "persistentvolumes"
+    "console"
 
 # logging+metrics team needs to fix/enable these tests.
 #    "metrics"
 #    "logging"
 )
+
+ORIGIN_COMMIT=${ORIGIN_COMMIT:-latest}
 
 # run each test with each of these set of additional args.  Primarily
 # intended to run the tests against different cluster versions.
@@ -275,7 +292,9 @@ readonly extra_args=(
     #"--loglevel=5 --image=registry.access.redhat.com/openshift3/ose --version=v3.7"
 
     # Test the previous origin release
-    "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
+    # TODO - enable this once oc cluster up v3.9 supports modifiying cluster
+    # roles on a 3.7 cluster image (https://github.com/openshift/origin/issues/17867)
+    # "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
 
     # Test the current published release
     "--loglevel=5"  # can't be empty, so pass something benign
@@ -285,8 +304,6 @@ readonly extra_args=(
 
 )
 tests=("${1:-"${default_tests[@]}"}")
-
-ORIGIN_COMMIT=${ORIGIN_COMMIT:-latest}
 
 # re-tag the latest service catalog image w/ the origin commit because we didn't
 # build it locally, so we need a tag that aligns with the other images we're going to test here.
@@ -299,16 +316,30 @@ echo "Running cluster up tests using tag $ORIGIN_COMMIT"
 docker pull openshift/origin-docker-registry:latest
 docker tag openshift/origin-docker-registry:latest openshift/origin-docker-registry:${ORIGIN_COMMIT}
 
+# Tag the web console image with the same tag as the other origin images
+docker pull openshift/origin-web-console:latest
+docker tag openshift/origin-web-console:latest openshift/origin-web-console:${ORIGIN_COMMIT}
+
 # Ensure that KUBECONFIG is not set
 unset KUBECONFIG
 for test in "${tests[@]}"; do
-  for extra_arg in "${extra_args[@]}"; do
-	cleanup_func=$("os::test::extended::clusterup::cleanup_func" "${test}")
-	# trap "${cleanup_func}; os::test::extended::clusterup::junit_cleanup" EXIT
-    os::test::extended::clusterup::run_test "${test}" "${extra_arg}"
-    # trap - EXIT
-	${cleanup_func}
-  done
+    # Special case the console tests, which only run in the current release.
+    # N-1 tests for the console should be enabled next release.
+    if [ "$test" == "console" ]; then
+        cleanup_func=$("os::test::extended::clusterup::cleanup_func" "${test}")
+        # trap "${cleanup_func}; os::test::extended::clusterup::junit_cleanup" EXIT
+        os::test::extended::clusterup::run_test "${test}" "--loglevel=2 --version=${ORIGIN_COMMIT}"
+        # trap - EXIT
+        ${cleanup_func}
+    else
+        for extra_arg in "${extra_args[@]}"; do
+            cleanup_func=$("os::test::extended::clusterup::cleanup_func" "${test}")
+            # trap "${cleanup_func}; os::test::extended::clusterup::junit_cleanup" EXIT
+            os::test::extended::clusterup::run_test "${test}" "${extra_arg}"
+            # trap - EXIT
+            ${cleanup_func}
+        done
+    fi
 done
 
 # os::test::extended::clusterup::junit_cleanup

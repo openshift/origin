@@ -36,6 +36,15 @@ os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'github'
 # note, oc new-app currently does not set up gitlab or bitbucket webhooks by default
 # remove all
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove-all' 'updated'
+# add a new secretReference style webhook to the BC
+os::cmd::expect_success "oc patch bc/ruby-hello-world -p '{\"spec\":{\"triggers\":[{\"github\":{\"secretReference\":{\"name\":\"mysecret\"}},\"type\":\"GitHub\"}]}}'"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-hello-world' "Webhook GitHub"
+# make sure we can still add/set other triggers
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --from-gitlab' 'updated'
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-hello-world' "Webhook GitHub"
+os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-hello-world' "Webhook GitLab"
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world --remove-all' 'updated'
+
 os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'webhook|github'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'config.*false'
 os::cmd::expect_success_and_text 'oc set triggers bc/ruby-hello-world' 'image.*ruby-22-centos7:latest.*false'

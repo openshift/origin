@@ -6,6 +6,7 @@ package v1
 
 import (
 	build_v1 "github.com/openshift/api/build/v1"
+	core_v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -30,6 +31,13 @@ func (in *BuildOverridesConfig) DeepCopyInto(out *BuildOverridesConfig) {
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
+		}
+	}
+	if in.Tolerations != nil {
+		in, out := &in.Tolerations, &out.Tolerations
+		*out = make([]core_v1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	return

@@ -143,11 +143,13 @@ func CreateFlavor(t *testing.T, client *gophercloud.ServiceClient) (*flavors.Fla
 	flavorName := tools.RandomString("flavor_", 5)
 	t.Logf("Attempting to create flavor %s", flavorName)
 
+	isPublic := true
 	createOpts := flavors.CreateOpts{
-		Name:  flavorName,
-		RAM:   1,
-		VCPUs: 1,
-		Disk:  gophercloud.IntToPointer(1),
+		Name:     flavorName,
+		RAM:      1,
+		VCPUs:    1,
+		Disk:     gophercloud.IntToPointer(1),
+		IsPublic: &isPublic,
 	}
 
 	flavor, err := flavors.Create(client, createOpts).Extract()

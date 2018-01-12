@@ -41,16 +41,6 @@ func scrapeLogs(bldPrefix string, oc *exutil.CLI) {
 }
 
 func checkPodFlag(bldPrefix string, oc *exutil.CLI) {
-	if bldPrefix == buildPrefixTC {
-		// grant access to the custom build strategy
-		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		defer func() {
-			err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}()
-	}
-
 	// kick off the app/lang build and verify the builder image accordingly
 	_, err := exutil.StartBuildAndWait(oc, bldPrefix)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
@@ -76,17 +66,15 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
-			g.By("waiting for openshift/ruby:latest ImageStreamTag")
-			err := exutil.WaitForAnImageStreamTag(oc, "openshift", "ruby", "latest")
-			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// grant access to the custom build strategy
 			g.By("granting system:build-strategy-custom")
-			err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
+			binding := fmt.Sprintf("custombuildaccess-%s", oc.Username())
+			err := oc.AsAdmin().Run("create").Args("clusterrolebinding", binding, "--clusterrole", "system:build-strategy-custom", "--user", oc.Username()).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// do not bother with removal of role as occasional etcd update conflicts would arise ... user is recreated with
-			// each extended test project anyway so this user will be going away when this test is over.
+			g.By("waiting for openshift/ruby:latest ImageStreamTag")
+			err = exutil.WaitForAnImageStreamTag(oc, "openshift", "ruby", "latest")
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("create application build configs for 3 strategies")
 			apps := exutil.FixturePath("testdata", "forcepull-test.json")
@@ -96,6 +84,11 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 		})
 
 		g.AfterEach(func() {
+
+			binding := fmt.Sprintf("custombuildaccess-%s", oc.Username())
+			err := oc.AsAdmin().Run("delete").Args("clusterrolebinding", binding).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
@@ -118,18 +111,14 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 		})
 
 		g.It("ForcePull test case execution docker", func() {
-
 			g.By("docker when force pull is true")
 			// run twice to ensure the builder image gets pulled even if it already exists on the node
 			scrapeLogs(buildPrefixTD, oc)
 			scrapeLogs(buildPrefixTD, oc)
-
 		})
 
 		g.It("ForcePull test case execution custom", func() {
-
 			g.By("when custom force pull is true")
-
 			checkPodFlag(buildPrefixTC, oc)
 		})
 	})

@@ -114,23 +114,24 @@ var (
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 	}
-	// internalTemplateLocations are templates that will be registered in an internal namespace
-	// when the service catalog is requested.  These templates are compatible with both vN and vN-1
-	// clusters.  If they are not, they should be moved into the internalCurrent and internalPrevious maps.
+	// internalTemplateLocations are templates that will be registered in an internal namespace. These
+	// templates are compatible with both vN and vN-1 clusters.  If they are not, they should be moved
+	// into the internalCurrent and internalPrevious maps.
 	internalTemplateLocations = map[string]string{
 		"service catalog":                      "examples/service-catalog/service-catalog.yaml",
 		"template service broker rbac":         "install/templateservicebroker/rbac-template.yaml",
 		"template service broker registration": "install/service-catalog-broker-resources/template-service-broker-registration.yaml",
 	}
-	// internalCurrentTemplateLocations are templates that will be registered in an internal namespace
-	// when the service catalog is requested.  These templates are for the current version of openshift
-	// (vN), for when the client version matches the cluster version.
+	// internalCurrentTemplateLocations are templates that will be registered in an internal namespace.
+	// These templates are for the current version of openshift (vN), for when the client version matches
+	// the cluster version.
 	internalCurrentTemplateLocations = map[string]string{
+		"web console server template":       "install/origin-web-console/console-template.yaml",
 		"template service broker apiserver": "install/templateservicebroker/apiserver-template.yaml",
 	}
-	// internalPreviousTemplateLocations are templates that will be registered in an internal namespace
-	// when the service catalog is requested, these templates are for the previous version of openshift
-	// (vN-1) to provide N-1 support for older clusters from a newer client.
+	// internalPreviousTemplateLocations are templates that will be registered in an internal namespace.
+	// These templates are for the previous version of openshift (vN-1) to provide N-1 support for older
+	// clusters from a newer client.
 	internalPreviousTemplateLocations = map[string]string{
 		"template service broker apiserver": "install/templateservicebroker/previous/apiserver-template.yaml",
 	}
@@ -148,6 +149,7 @@ var (
 
 	openshiftVersion36 = semver.MustParse("3.6.0")
 	openshiftVersion37 = semver.MustParse("3.7.0")
+	openshiftVersion39 = semver.MustParse("3.9.0")
 )
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
@@ -424,8 +426,14 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Import templates
 	c.addTask(conditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData))
 
-	// Import catalog templates
+	// Import internal templates
 	c.addTask(conditionalTask("Importing internal templates", c.ImportInternalTemplates, c.ShouldInitializeData))
+
+	// Install the web console
+	c.addTask(conditionalTask("Installing web console", c.InstallWebConsole, func() bool {
+		serverVersion, _ := c.OpenShiftHelper().ServerVersion()
+		return clusterVersionIsCurrent(serverVersion) && c.ShouldInitializeData()
+	}))
 
 	// Import logging templates
 	c.addTask(conditionalTask("Importing logging templates", c.ImportLoggingTemplates, func() bool {
@@ -698,14 +706,18 @@ func (c *CommonStartConfig) CheckDockerInsecureRegistry(out io.Writer) error {
 // CheckNsenterMounter checks whether the Docker host can use the nsenter mounter from Kubernetes.
 // Otherwise, a shared volume is needed in Docker
 func (c *CommonStartConfig) CheckNsenterMounter(out io.Writer) error {
-	var err error
-	c.UseNsenterMount, err = c.HostHelper().CanUseNsenterMounter()
-	if c.UseNsenterMount && c.isRHDocker {
+	useNsenterMount, err := c.HostHelper().CanUseNsenterMounter()
+	if err != nil {
+		return err
+	}
+	if useNsenterMount && c.isRHDocker {
+		c.UseNsenterMount = true
 		fmt.Fprintf(out, "Using nsenter mounter for OpenShift volumes\n")
 	} else {
+		c.UseNsenterMount = false
 		fmt.Fprintf(out, "Using Docker shared volumes for OpenShift volumes\n")
 	}
-	return err
+	return nil
 }
 
 // CheckDockerVersion checks that the appropriate Docker version is installed based on whether we are using the nsenter mounter
@@ -976,6 +988,33 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
 }
 
+// InstallWebConsole installs the OpenShift web console on the server
+func (c *ClientStartConfig) InstallWebConsole(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+
+	masterURL := c.OpenShiftHelper().Master(c.ServerIP)
+	if len(c.PublicHostname) > 0 {
+		masterURL = fmt.Sprintf("https://%s:8443", c.PublicHostname)
+	}
+
+	publicURL := fmt.Sprintf("%s/console/", masterURL)
+
+	metricsURL := ""
+	if c.ShouldInstallMetrics {
+		metricsURL = fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
+	}
+
+	loggingURL := ""
+	if c.ShouldInstallLogging {
+		loggingURL = fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix, c.ServerIP))
+	}
+
+	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
+}
+
 // ImportImageStreams imports default image streams into the server
 // TODO: Use streams compiled into oc
 func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
@@ -1044,7 +1083,7 @@ func useAnsible(v semver.Version) bool {
 // brought up matches the client binary being used.  This needs to
 // be updated each release.
 func clusterVersionIsCurrent(v semver.Version) bool {
-	return v.GT(openshiftVersion37)
+	return v.GTE(openshiftVersion39)
 }
 
 // InstallLogging will start the installation of logging components

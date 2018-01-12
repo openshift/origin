@@ -27,7 +27,9 @@ import (
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	oauthclientlister "github.com/openshift/origin/pkg/oauth/generated/listers/oauth/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
@@ -63,6 +65,7 @@ func NewAuthenticator(
 	return newAuthenticator(
 		options,
 		oauthClient.OAuthAccessTokens(),
+		informers.GetOauthInformers().Oauth().InternalVersion().OAuthClients().Lister(),
 		serviceAccountTokenGetter,
 		userClient.User().Users(),
 		apiClientCAs,
@@ -70,7 +73,7 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
@@ -92,6 +95,14 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 	// OAuth token
 	if config.OAuthConfig != nil {
 		validators := []openshiftauthenticator.OAuthTokenValidator{authnregistry.NewExpirationValidator(), authnregistry.NewUIDValidator()}
+		if inactivityTimeout := config.OAuthConfig.TokenConfig.AccessTokenInactivityTimeoutSeconds; inactivityTimeout != nil {
+			timeoutValidator := authnregistry.NewTimeoutValidator(accessTokenGetter, oauthClientLister, *inactivityTimeout, oauthvalidation.MinimumInactivityTimeoutSeconds)
+			validators = append(validators, timeoutValidator)
+			postStartHooks["openshift.io-TokenTimeoutUpdater"] = func(context genericapiserver.PostStartHookContext) error {
+				go timeoutValidator.Run(context.StopCh)
+				return nil
+			}
+		}
 		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)

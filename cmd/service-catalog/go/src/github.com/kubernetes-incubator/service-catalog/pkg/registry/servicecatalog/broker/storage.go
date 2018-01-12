@@ -102,8 +102,8 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	return labels.Set(broker.ObjectMeta.Labels), toSelectableFields(broker), broker.Initializers != nil, nil
 }
 
-// NewStorage creates a new rest.Storage responsible for accessing ServiceInstance
-// resources
+// NewStorage creates a new rest.Storage responsible for accessing
+// ClusterServiceBroker resources
 func NewStorage(opts server.Options) (brokers, brokersStatus rest.Storage) {
 	prefix := "/" + opts.ResourcePrefix()
 

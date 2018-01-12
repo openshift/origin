@@ -541,6 +541,7 @@ func (c *controller) reconcileClusterServiceClassFromClusterServiceBrokerCatalog
 	}
 
 	toUpdate := clone.(*v1beta1.ClusterServiceClass)
+	toUpdate.Spec.BindingRetrievable = serviceClass.Spec.BindingRetrievable
 	toUpdate.Spec.Bindable = serviceClass.Spec.Bindable
 	toUpdate.Spec.PlanUpdatable = serviceClass.Spec.PlanUpdatable
 	toUpdate.Spec.Tags = serviceClass.Spec.Tags

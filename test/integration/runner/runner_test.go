@@ -20,6 +20,11 @@ import (
 )
 
 var timeout = flag.Duration("sub.timeout", 5*time.Minute, "Specify the timeout for each sub test")
+var oauthtimeout = flag.Duration("oauth.timeout", 15*time.Minute, "Timeout for the OAuth tests")
+var timeoutException = map[string]*time.Duration{
+	"TestOAuthTimeout":           oauthtimeout,
+	"TestOAuthTimeoutNotEnabled": oauthtimeout,
+}
 
 func TestIntegration(t *testing.T) {
 	executeTests(t, "..", "github.com/openshift/origin/test/integration", 1)
@@ -160,7 +165,11 @@ func runSingleTest(t *testing.T, dir, binaryPath, name string) error {
 	if testing.Short() {
 		cmd.Args = append(cmd.Args, "-test.short")
 	}
-	cmd.Args = append(cmd.Args, "-test.timeout", (*timeout).String())
+	if specialTimeout, ok := timeoutException[name]; ok {
+		cmd.Args = append(cmd.Args, "-test.timeout", (*specialTimeout).String())
+	} else {
+		cmd.Args = append(cmd.Args, "-test.timeout", (*timeout).String())
+	}
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {

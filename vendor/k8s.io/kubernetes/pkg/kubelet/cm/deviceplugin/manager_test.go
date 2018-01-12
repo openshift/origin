@@ -19,6 +19,8 @@ package deviceplugin
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"sync/atomic"
 	"testing"
@@ -260,7 +262,12 @@ func TestCheckpoint(t *testing.T) {
 	resourceName1 := "domain1.com/resource1"
 	resourceName2 := "domain2.com/resource2"
 
+	as := assert.New(t)
+	tmpDir, err := ioutil.TempDir("", "checkpoint")
+	as.Nil(err)
+	defer os.RemoveAll(tmpDir)
 	testManager := &ManagerImpl{
+		socketdir:        tmpDir,
 		allDevices:       make(map[string]sets.String),
 		allocatedDevices: make(map[string]sets.String),
 		podDevices:       make(podDevices),
@@ -298,8 +305,7 @@ func TestCheckpoint(t *testing.T) {
 	expectedAllocatedDevices := testManager.podDevices.devices()
 	expectedAllDevices := testManager.allDevices
 
-	err := testManager.writeCheckpoint()
-	as := assert.New(t)
+	err = testManager.writeCheckpoint()
 
 	as.Nil(err)
 	testManager.podDevices = make(podDevices)
@@ -385,7 +391,11 @@ func TestPodContainerDeviceAllocation(t *testing.T) {
 	nodeInfo := &schedulercache.NodeInfo{}
 	nodeInfo.SetNode(cachedNode)
 
+	tmpDir, err := ioutil.TempDir("", "checkpoint")
+	as.Nil(err)
+	defer os.RemoveAll(tmpDir)
 	testManager := &ManagerImpl{
+		socketdir:        tmpDir,
 		callback:         monitorCallback,
 		allDevices:       make(map[string]sets.String),
 		allocatedDevices: make(map[string]sets.String),
@@ -485,7 +495,7 @@ func TestPodContainerDeviceAllocation(t *testing.T) {
 	}
 
 	podsStub.updateActivePods([]*v1.Pod{pod})
-	err := testManager.Allocate(nodeInfo, &lifecycle.PodAdmitAttributes{Pod: pod})
+	err = testManager.Allocate(nodeInfo, &lifecycle.PodAdmitAttributes{Pod: pod})
 	as.Nil(err)
 	runContainerOpts := testManager.GetDeviceRunContainerOptions(pod, &pod.Spec.Containers[0])
 	as.NotNil(runContainerOpts)
@@ -539,6 +549,70 @@ func TestPodContainerDeviceAllocation(t *testing.T) {
 	as.Nil(err)
 	runContainerOpts3 := testManager.GetDeviceRunContainerOptions(newPod, &newPod.Spec.Containers[0])
 	as.Equal(1, len(runContainerOpts3.Envs))
+
+	// Requesting to create a pod that requests resourceName1 in init containers and normal containers
+	// should succeed with devices allocated to init containers reallocated to normal containers.
+	podWithPluginResourcesInInitContainers := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			UID: uuid.NewUUID(),
+		},
+		Spec: v1.PodSpec{
+			InitContainers: []v1.Container{
+				{
+					Name: string(uuid.NewUUID()),
+					Resources: v1.ResourceRequirements{
+						Limits: v1.ResourceList{
+							v1.ResourceName(resourceName1): resourceQuantity2,
+						},
+					},
+				},
+				{
+					Name: string(uuid.NewUUID()),
+					Resources: v1.ResourceRequirements{
+						Limits: v1.ResourceList{
+							v1.ResourceName(resourceName1): resourceQuantity1,
+						},
+					},
+				},
+			},
+			Containers: []v1.Container{
+				{
+					Name: string(uuid.NewUUID()),
+					Resources: v1.ResourceRequirements{
+						Limits: v1.ResourceList{
+							v1.ResourceName(resourceName1): resourceQuantity2,
+							v1.ResourceName(resourceName2): resourceQuantity2,
+						},
+					},
+				},
+				{
+					Name: string(uuid.NewUUID()),
+					Resources: v1.ResourceRequirements{
+						Limits: v1.ResourceList{
+							v1.ResourceName(resourceName1): resourceQuantity2,
+							v1.ResourceName(resourceName2): resourceQuantity2,
+						},
+					},
+				},
+			},
+		},
+	}
+	podsStub.updateActivePods([]*v1.Pod{podWithPluginResourcesInInitContainers})
+	err = testManager.Allocate(nodeInfo, &lifecycle.PodAdmitAttributes{Pod: podWithPluginResourcesInInitContainers})
+	as.Nil(err)
+	podUID := string(podWithPluginResourcesInInitContainers.UID)
+	initCont1 := podWithPluginResourcesInInitContainers.Spec.InitContainers[0].Name
+	initCont2 := podWithPluginResourcesInInitContainers.Spec.InitContainers[1].Name
+	normalCont1 := podWithPluginResourcesInInitContainers.Spec.Containers[0].Name
+	normalCont2 := podWithPluginResourcesInInitContainers.Spec.Containers[1].Name
+	initCont1Devices := testManager.podDevices.containerDevices(podUID, initCont1, resourceName1)
+	initCont2Devices := testManager.podDevices.containerDevices(podUID, initCont2, resourceName1)
+	normalCont1Devices := testManager.podDevices.containerDevices(podUID, normalCont1, resourceName1)
+	normalCont2Devices := testManager.podDevices.containerDevices(podUID, normalCont2, resourceName1)
+	as.True(initCont2Devices.IsSuperset(initCont1Devices))
+	as.True(initCont2Devices.IsSuperset(normalCont1Devices))
+	as.True(initCont2Devices.IsSuperset(normalCont2Devices))
+	as.Equal(0, normalCont1Devices.Intersection(normalCont2Devices).Len())
 }
 
 func TestSanitizeNodeAllocatable(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
@@ -24,8 +25,10 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
 
+const PluginName = "SecurityContextConstraint"
+
 func Register(plugins *admission.Plugins) {
-	plugins.Register("SecurityContextConstraint",
+	plugins.Register(PluginName,
 		func(config io.Reader) (admission.Interface, error) {
 			return NewConstraint(), nil
 		})
@@ -115,20 +118,54 @@ func (c *constraint) Admit(a admission.Attributes) error {
 		return admission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
 	}
 
+	// TODO(liggitt): allow spec mutation during initializing updates?
+	specMutationAllowed := a.GetOperation() == admission.Create
+
 	// all containers in a single pod must validate under a single provider or we will reject the request
 	validationErrs := field.ErrorList{}
+	var (
+		allowedPod       *kapi.Pod
+		allowingProvider scc.SecurityContextConstraintsProvider
+	)
+
+loop:
 	for _, provider := range providers {
-		if errs := scc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
+		podCopy := pod.DeepCopy()
+
+		if errs := scc.AssignSecurityContext(provider, podCopy, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
 			validationErrs = append(validationErrs, errs...)
 			continue
 		}
 
-		// the entire pod validated, annotate and accept the pod
-		glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, provider.GetSCCName())
+		// the entire pod validated
+		switch {
+		case specMutationAllowed:
+			// if mutation is allowed, use the first found SCC that allows the pod.
+			// This behavior is different from Kubernetes which tries to search a non-mutating provider
+			// even on creating. We prefer most restrictive SCC in this case even if it mutates a pod.
+			allowedPod = podCopy
+			allowingProvider = provider
+			glog.V(6).Infof("pod %s (generate: %s) validated against provider %s with mutation", pod.Name, pod.GenerateName, provider.GetSCCName())
+			break loop
+		case apiequality.Semantic.DeepEqual(pod, podCopy):
+			// if we don't allow mutation, only use the validated pod if it didn't require any spec changes
+			allowedPod = podCopy
+			allowingProvider = provider
+			glog.V(6).Infof("pod %s (generate: %s) validated against provider %s without mutation", pod.Name, pod.GenerateName, provider.GetSCCName())
+			break loop
+		default:
+			glog.V(6).Infof("pod %s (generate: %s) validated against provider %s, but required mutation, skipping", pod.Name, pod.GenerateName, provider.GetSCCName())
+		}
+	}
+
+	if allowedPod != nil {
+		*pod = *allowedPod
+		// annotate and accept the pod
+		glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, allowingProvider.GetSCCName())
 		if pod.ObjectMeta.Annotations == nil {
 			pod.ObjectMeta.Annotations = map[string]string{}
 		}
-		pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = provider.GetSCCName()
+		pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = allowingProvider.GetSCCName()
 		return nil
 	}
 
@@ -137,8 +174,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
-// SetInformers implements WantsInformers interface for constraint.
-
+// SetSecurityInformers implements WantsSecurityInformer interface for constraint.
 func (c *constraint) SetSecurityInformers(informers securityinformer.SharedInformerFactory) {
 	c.sccLister = informers.Security().InternalVersion().SecurityContextConstraints().Lister()
 }
@@ -147,10 +183,13 @@ func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {
 	c.client = client
 }
 
-// Validate defines actions to vallidate security admission
+// ValidateInitialization implements InitializationValidator interface for constraint.
 func (c *constraint) ValidateInitialization() error {
 	if c.sccLister == nil {
-		return fmt.Errorf("sccLister not initialized")
+		return fmt.Errorf("%s requires an sccLister", PluginName)
+	}
+	if c.client == nil {
+		return fmt.Errorf("%s requires a client", PluginName)
 	}
 	return nil
 }

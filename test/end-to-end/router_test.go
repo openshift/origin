@@ -1252,7 +1252,8 @@ Jik7E2r1/yY0MrkawljOAxisXs821kJ+Z/51Ud2t5uhGxS6hJypbGspMS7OtBbw7
 8oThK7cWtCXOldNF6ruqY1agWnhRdAq5qSMnuBXuicOP0Kbtx51a1ugE3SnvQenJ
 nZxdtYUXvEsHZC/6bAtTfNh+/SwgxQJuL2ZM+VG3X2JIKY8xTDui+il7uTh422lq
 wED8uwKl+bOj6xFDyw4gWoBxRobsbFaME8pkykP1+GnKDberyAM=
------END CERTIFICATE-----`
+-----END CERTIFICATE-----
+`
 
 var defaultKey = `-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQDNAbvvqB1dcHKYVkWzC1H7fHw+5zxvecbO1Hiz6YRWbkoSIYXQ
@@ -1268,7 +1269,8 @@ Vt9Q7uMQQ3s72CGu3ANZDFS2nbRZFU5koxrggk6lRRk1fOq9NvrmHg10AQJABOea
 pgfj+yGLmkUw8JwgGH6xCUbHO+WBUFSlPf+Y50fJeO+OrjqPXAVKeSV3ZCwWjKT4
 9viXJNJJ4WfF0bO/XwJAOMB1wQnEOSZ4v+laMwNtMq6hre5K8woqteXICoGcIWe8
 u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
------END RSA PRIVATE KEY-----`
+-----END RSA PRIVATE KEY-----
+`
 
 // Constants used to default createAndStartRouterContainerExtended
 const (

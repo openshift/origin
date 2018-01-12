@@ -67,7 +67,7 @@ func TestOAuthStorage(t *testing.T) {
 	}
 
 	user := &testUser{UserName: "test", UserUID: "1"}
-	storage := registrystorage.New(oauthClient.OAuthAccessTokens(), oauthClient.OAuthAuthorizeTokens(), oauthClient.OAuthClients(), user)
+	storage := registrystorage.New(oauthClient.OAuthAccessTokens(), oauthClient.OAuthAuthorizeTokens(), oauthClient.OAuthClients(), user, 0)
 
 	oauthServer := osinserver.New(
 		osinserver.NewDefaultServerConfig(),

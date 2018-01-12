@@ -24,7 +24,6 @@ import (
 
 	"github.com/golang/glog"
 	osb "github.com/pmorie/go-open-service-broker-client/v2"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/api"
@@ -132,7 +131,7 @@ func (c *controller) instanceDelete(obj interface{}) {
 //     an instance, it calls its beginPollingServiceInstance method (or
 //     calls continuePollingServiceInstance, an alias of that method)
 // 2.  begin/continuePollingServiceInstance do a rate-limited add to the polling queue
-// 3.  the pollingQueue calls requeueServiceInstanceForPoll, which adds the instance's
+// 3.  the instancePollingQueue calls requeueServiceInstanceForPoll, which adds the instance's
 //     key to the instance work queue
 // 4.  the worker servicing the instance polling queue forgets the instances key,
 //     requiring the controller to call continuePollingServiceInstance if additional
@@ -165,7 +164,7 @@ func (c *controller) beginPollingServiceInstance(instance *v1beta1.ServiceInstan
 		return fmt.Errorf(s)
 	}
 
-	c.pollingQueue.AddRateLimited(key)
+	c.instancePollingQueue.AddRateLimited(key)
 
 	return nil
 }
@@ -187,7 +186,7 @@ func (c *controller) finishPollingServiceInstance(instance *v1beta1.ServiceInsta
 		return fmt.Errorf(s)
 	}
 
-	c.pollingQueue.Forget(key)
+	c.instancePollingQueue.Forget(key)
 
 	return nil
 }
@@ -652,70 +651,26 @@ func (c *controller) reconcileServiceInstance(instance *v1beta1.ServiceInstance)
 		return err
 	}
 
-	var (
-		parameters                 map[string]interface{}
-		parametersChecksum         string
-		rawParametersWithRedaction *runtime.RawExtension
+	parameters, parametersChecksum, rawParametersWithRedaction, err := prepareInProgressPropertyParameters(
+		c.kubeClient,
+		instance.Namespace,
+		instance.Spec.Parameters,
+		instance.Spec.ParametersFrom,
 	)
-	if instance.Spec.Parameters != nil || instance.Spec.ParametersFrom != nil {
-		var parametersWithSecretsRedacted map[string]interface{}
-		parameters, parametersWithSecretsRedacted, err = buildParameters(c.kubeClient, instance.Namespace, instance.Spec.ParametersFrom, instance.Spec.Parameters)
-		if err != nil {
-			s := fmt.Sprintf(`Failed to prepare ServiceInstance parameters %s: %s`, instance.Spec.Parameters, err)
-			glog.Warning(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorWithParameters, s)
-
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorWithParameters,
-				s,
-			)
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
+	if err != nil {
+		glog.Warning(pcb.Message(err.Error()))
+		c.recorder.Event(toUpdate, corev1.EventTypeWarning, errorWithParameters, err.Error())
+		setServiceInstanceCondition(
+			toUpdate,
+			v1beta1.ServiceInstanceConditionReady,
+			v1beta1.ConditionFalse,
+			errorWithParameters,
+			err.Error(),
+		)
+		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 			return err
 		}
-
-		parametersChecksum, err = generateChecksumOfParameters(parameters)
-		if err != nil {
-			s := fmt.Sprintf("Failed to generate the parameters checksum to store in Status: %s", err)
-			glog.Info(pcb.Message(s))
-			c.recorder.Eventf(instance, corev1.EventTypeWarning, errorWithParameters, s)
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorWithParameters,
-				s)
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return err
-		}
-
-		marshalledParametersWithRedaction, err := MarshalRawParameters(parametersWithSecretsRedacted)
-		if err != nil {
-			s := fmt.Sprintf("Failed to marshal the parameters to store in the Status: %s", err)
-			glog.Info(pcb.Message(s))
-			c.recorder.Eventf(instance, corev1.EventTypeWarning, errorWithParameters, s)
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorWithParameters,
-				s)
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return err
-		}
-
-		rawParametersWithRedaction = &runtime.RawExtension{
-			Raw: marshalledParametersWithRedaction,
-		}
+		return err
 	}
 
 	toUpdate.Status.InProgressProperties = &v1beta1.ServiceInstancePropertiesState{
@@ -1247,51 +1202,8 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 		glog.V(4).Info(pcb.Message(s))
 		c.recorder.Event(instance, corev1.EventTypeWarning, errorPollingLastOperationReason, s)
 
-		if !time.Now().Before(instance.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-			clone, err := api.Scheme.DeepCopy(instance)
-			if err != nil {
-				return err
-			}
-			toUpdate := clone.(*v1beta1.ServiceInstance)
-			s := "Stopping reconciliation retries because too much time has elapsed"
-			glog.Info(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-
-			if mitigatingOrphan {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionUnknown,
-					errorOrphanMitigationFailedReason,
-					"Orphan mitigation failed: "+s)
-			} else if deleting || provisioning {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			} else {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionFalse,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			}
-
-			if !provisioning {
-				clearServiceInstanceCurrentOperation(toUpdate)
-			} else {
-				c.setServiceInstanceStartOrphanMitigation(toUpdate)
-			}
-
-			if deleting {
-				toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-			}
-
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return c.finishPollingServiceInstance(instance)
+		if c.isReconciliationRetryDurationExceeded(instance) {
+			return c.reconciliationRetryDurationExceededFinishPollingServiceInstance(instance, mitigatingOrphan, provisioning, deleting)
 		}
 
 		return c.continuePollingServiceInstance(instance)
@@ -1589,55 +1501,73 @@ func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) erro
 
 	default:
 		glog.Warning(pcb.Messagef("Got invalid state in LastOperationResponse: %q", response.State))
-		if !time.Now().Before(instance.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-			clone, err := api.Scheme.DeepCopy(instance)
-			if err != nil {
-				return err
-			}
-			toUpdate := clone.(*v1beta1.ServiceInstance)
-			s := "Stopping reconciliation retries on ServiceInstance because too much time has elapsed"
-			glog.Info(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-
-			if mitigatingOrphan {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionUnknown,
-					errorOrphanMitigationFailedReason,
-					"Orphan mitigation failed: "+s)
-			} else if deleting || provisioning {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			} else {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionFalse,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			}
-
-			if !provisioning {
-				clearServiceInstanceCurrentOperation(toUpdate)
-			} else {
-				c.setServiceInstanceStartOrphanMitigation(toUpdate)
-			}
-
-			if deleting {
-				toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-			}
-
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return c.finishPollingServiceInstance(instance)
+		if c.isReconciliationRetryDurationExceeded(instance) {
+			return c.reconciliationRetryDurationExceededFinishPollingServiceInstance(instance, mitigatingOrphan, provisioning, deleting)
 		}
 		return fmt.Errorf(`Got invalid state in LastOperationResponse: %q`, response.State)
 	}
 	return nil
+}
+
+// isReconciliationRetryDurationExceeded tests if the current Operation State time has
+// elapsed the reconciliationRetryDuration time period
+func (c *controller) isReconciliationRetryDurationExceeded(instance *v1beta1.ServiceInstance) bool {
+	if time.Now().After(instance.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
+		return true
+	}
+	return false
+}
+
+// reconciliationRetryDurationExceededFinishPollingServiceInstance marks the instance as
+// failed from time expired based on current state and then prepares the
+// instance for removal from reconciliation
+func (c *controller) reconciliationRetryDurationExceededFinishPollingServiceInstance(instance *v1beta1.ServiceInstance, mitigatingOrphan, provisioning, deleting bool) error {
+	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+
+	clone, err := api.Scheme.DeepCopy(instance)
+	if err != nil {
+		return err
+	}
+	toUpdate := clone.(*v1beta1.ServiceInstance)
+	s := "Stopping reconciliation retries on ServiceInstance because too much time has elapsed"
+	glog.Info(pcb.Message(s))
+	c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
+
+	if mitigatingOrphan {
+		setServiceInstanceCondition(
+			toUpdate,
+			v1beta1.ServiceInstanceConditionReady,
+			v1beta1.ConditionUnknown,
+			errorOrphanMitigationFailedReason,
+			"Orphan mitigation failed: "+s)
+	} else if deleting || provisioning {
+		setServiceInstanceCondition(toUpdate,
+			v1beta1.ServiceInstanceConditionFailed,
+			v1beta1.ConditionTrue,
+			errorReconciliationRetryTimeoutReason,
+			s)
+	} else {
+		setServiceInstanceCondition(toUpdate,
+			v1beta1.ServiceInstanceConditionReady,
+			v1beta1.ConditionFalse,
+			errorReconciliationRetryTimeoutReason,
+			s)
+	}
+
+	if !provisioning {
+		clearServiceInstanceCurrentOperation(toUpdate)
+	} else {
+		c.setServiceInstanceStartOrphanMitigation(toUpdate)
+	}
+
+	if deleting {
+		toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
+	}
+
+	if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
+		return err
+	}
+	return c.finishPollingServiceInstance(instance)
 }
 
 // resolveReferences checks to see if ClusterServiceClassRef and/or ClusterServicePlanRef are

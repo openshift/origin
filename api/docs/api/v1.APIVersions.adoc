@@ -72,4 +72,45 @@ $ curl -k \
 * application/vnd.kubernetes.protobuf
 
 
+[[Get-oapi]]
+=== Get all APIVersions
+Get available API versions
+
+==== HTTP request
+----
+GET /oapi/ HTTP/1.1
+Authorization: Bearer $TOKEN
+Accept: application/json
+Connection: close
+----
+
+==== Curl request
+----
+$ curl -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -H 'Accept: application/json' \
+    https://$ENDPOINT/oapi/
+----
+
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+|200 OK|v1.APIVersions
+|401 Unauthorized|
+|===
+
+==== Consumes
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+==== Produces
+
+* application/json
+* application/yaml
+* application/vnd.kubernetes.protobuf
+
+
 

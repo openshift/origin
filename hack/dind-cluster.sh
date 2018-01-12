@@ -551,13 +551,11 @@ function copy-ovn-runtime() {
   local ovn_go_controller_built_binaries_path="${ovn_root}/go-controller/_output/go/bin"
   cp "${ovn_go_controller_built_binaries_path}/ovnkube" "${target}"
   cp "${ovn_go_controller_built_binaries_path}/ovn-kube-util" "${target}"
+  cp "${ovn_go_controller_built_binaries_path}/ovn-k8s-overlay" "${target}"
+  cp "${ovn_go_controller_built_binaries_path}/ovn-k8s-cni-overlay" "${target}"
 
   local ovn_k8s_binaries_path="${ovn_root}/bin"
-  cp "${ovn_k8s_binaries_path}/ovn-k8s-cni-overlay" "${target}"
   cp "${ovn_k8s_binaries_path}/ovn-k8s-gateway-helper" "${target}"
-  cp "${ovn_k8s_binaries_path}/ovn-k8s-overlay" "${target}"
-  cp "${ovn_k8s_binaries_path}/ovn-k8s-util" "${target}"
-  cp "${ovn_k8s_binaries_path}/ovn-k8s-watcher" "${target}"
 
   local ovn_k8s_python_module_path="${ovn_root}/ovn_k8s"
   cp -R "${ovn_k8s_python_module_path}" "${target}/"

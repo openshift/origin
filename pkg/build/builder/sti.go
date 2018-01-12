@@ -21,11 +21,12 @@ import (
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/api/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
+	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
-	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/generate/git"
 
@@ -71,20 +72,20 @@ type S2IBuilder struct {
 	validator    validator
 	dockerClient DockerClient
 	dockerSocket string
-	build        *buildapi.Build
-	client       buildinternalversion.BuildResourceInterface
+	build        *buildapiv1.Build
+	client       buildclientv1.BuildInterface
 	cgLimits     *s2iapi.CGroupLimits
 }
 
 // NewS2IBuilder creates a new STIBuilder instance
-func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build,
+func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build,
 	cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
 	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
-func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build,
+func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildclientv1.BuildInterface, build *buildapiv1.Build,
 	builder builderFactory, validator validator, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// just create instance
 	return &S2IBuilder{
@@ -105,7 +106,7 @@ func (s *S2IBuilder) Build() error {
 	var err error
 	ctx := timing.NewContext(context.Background())
 	defer func() {
-		s.build.Status.Stages = buildapi.AppendStageAndStepInfo(s.build.Status.Stages, timing.GetStages(ctx))
+		s.build.Status.Stages = timing.AppendStageAndStepInfo(s.build.Status.Stages, timing.GetStages(ctx))
 		HandleBuildStatusUpdate(s.build, s.client, nil)
 	}()
 
@@ -178,7 +179,7 @@ func (s *S2IBuilder) Build() error {
 		WorkingDir:         "/tmp",
 		DockerConfig:       &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
 		DockerCfgPath:      os.Getenv(dockercfg.PullAuthType),
-		LabelNamespace:     buildapi.DefaultDockerLabelNamespace,
+		LabelNamespace:     builderutil.DefaultDockerLabelNamespace,
 
 		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
 
@@ -221,21 +222,21 @@ func (s *S2IBuilder) Build() error {
 	}
 	config.PreviousImagePullPolicy = s2iapi.PullAlways
 
-	allowedUIDs := os.Getenv(buildapi.AllowedUIDs)
-	glog.V(4).Infof("The value of %s is [%s]", buildapi.AllowedUIDs, allowedUIDs)
+	allowedUIDs := os.Getenv(builderutil.AllowedUIDs)
+	glog.V(4).Infof("The value of %s is [%s]", builderutil.AllowedUIDs, allowedUIDs)
 	if len(allowedUIDs) > 0 {
 		err = config.AllowedUIDs.Set(allowedUIDs)
 		if err != nil {
 			return err
 		}
 	}
-	dropCaps := os.Getenv(buildapi.DropCapabilities)
-	glog.V(4).Infof("The value of %s is [%s]", buildapi.DropCapabilities, dropCaps)
+	dropCaps := os.Getenv(builderutil.DropCapabilities)
+	glog.V(4).Infof("The value of %s is [%s]", builderutil.DropCapabilities, dropCaps)
 	if len(dropCaps) > 0 {
 		config.DropCapabilities = strings.Split(dropCaps, ",")
 	}
 
-	// If DockerCfgPath is provided in buildapi.Config, then attempt to read the
+	// If DockerCfgPath is provided in buildapiv1.Config, then attempt to read the
 	// dockercfg file and get the authentication for pulling the builder image.
 	t, _ := dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
 	config.PullAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
@@ -261,7 +262,7 @@ func (s *S2IBuilder) Build() error {
 	}
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
-		s.build.Status.Phase = buildapi.BuildPhaseFailed
+		s.build.Status.Phase = buildapiv1.BuildPhaseFailed
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
 			buildInfo.FailureReason.Reason,
 			buildInfo.FailureReason.Message,
@@ -276,12 +277,12 @@ func (s *S2IBuilder) Build() error {
 
 	for _, stage := range result.BuildInfo.Stages {
 		for _, step := range stage.Steps {
-			timing.RecordNewStep(ctx, buildapi.StageName(stage.Name), buildapi.StepName(step.Name), metav1.NewTime(step.StartTime), metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
+			timing.RecordNewStep(ctx, buildapiv1.StageName(stage.Name), buildapiv1.StepName(step.Name), metav1.NewTime(step.StartTime), metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
 		}
 	}
 
 	if err != nil {
-		s.build.Status.Phase = buildapi.BuildPhaseFailed
+		s.build.Status.Phase = buildapiv1.BuildPhaseFailed
 		s.build.Status.Reason, s.build.Status.Message = convertS2IFailureType(
 			result.BuildInfo.FailureReason.Reason,
 			result.BuildInfo.FailureReason.Message,
@@ -295,9 +296,9 @@ func (s *S2IBuilder) Build() error {
 	err = execPostCommitHook(ctx, s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
 
 	if err != nil {
-		s.build.Status.Phase = buildapi.BuildPhaseFailed
-		s.build.Status.Reason = buildapi.StatusReasonPostCommitHookFailed
-		s.build.Status.Message = buildapi.StatusMessagePostCommitHookFailed
+		s.build.Status.Phase = buildapiv1.BuildPhaseFailed
+		s.build.Status.Reason = buildapiv1.StatusReasonPostCommitHookFailed
+		s.build.Status.Message = builderutil.StatusMessagePostCommitHookFailed
 		HandleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}
@@ -327,18 +328,18 @@ func (s *S2IBuilder) Build() error {
 		startTime = metav1.Now()
 		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
 
-		timing.RecordNewStep(ctx, buildapi.StagePushImage, buildapi.StepPushImage, startTime, metav1.Now())
+		timing.RecordNewStep(ctx, buildapiv1.StagePushImage, buildapiv1.StepPushImage, startTime, metav1.Now())
 
 		if err != nil {
-			s.build.Status.Phase = buildapi.BuildPhaseFailed
-			s.build.Status.Reason = buildapi.StatusReasonPushImageToRegistryFailed
-			s.build.Status.Message = buildapi.StatusMessagePushImageToRegistryFailed
+			s.build.Status.Phase = buildapiv1.BuildPhaseFailed
+			s.build.Status.Reason = buildapiv1.StatusReasonPushImageToRegistryFailed
+			s.build.Status.Message = builderutil.StatusMessagePushImageToRegistryFailed
 			HandleBuildStatusUpdate(s.build, s.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
 
 		if len(digest) > 0 {
-			s.build.Status.Output.To = &buildapi.BuildStatusOutputTo{
+			s.build.Status.Output.To = &buildapiv1.BuildStatusOutputTo{
 				ImageDigest: digest,
 			}
 			HandleBuildStatusUpdate(s.build, s.client, nil)
@@ -356,7 +357,7 @@ func (s *S2IBuilder) Build() error {
 // 2. In case of repeated Keys, the last Value takes precedence right here,
 //    instead of deferring what to do with repeated environment variables to the
 //    Docker runtime.
-func buildEnvVars(build *buildapi.Build, sourceInfo *git.SourceInfo) s2iapi.EnvironmentList {
+func buildEnvVars(build *buildapiv1.Build, sourceInfo *git.SourceInfo) s2iapi.EnvironmentList {
 	bi := buildInfo(build, sourceInfo)
 	envVars := &s2iapi.EnvironmentList{}
 	for _, item := range bi {
@@ -367,7 +368,7 @@ func buildEnvVars(build *buildapi.Build, sourceInfo *git.SourceInfo) s2iapi.Envi
 
 // s2iBuildLabels returns a slice of KeyValue pairs in a format that appendLabel can
 // consume.
-func s2iBuildLabels(build *buildapi.Build, sourceInfo *git.SourceInfo) map[string]string {
+func s2iBuildLabels(build *buildapiv1.Build, sourceInfo *git.SourceInfo) map[string]string {
 	labels := map[string]string{}
 	if sourceInfo == nil {
 		sourceInfo = &git.SourceInfo{}
@@ -376,7 +377,7 @@ func s2iBuildLabels(build *buildapi.Build, sourceInfo *git.SourceInfo) map[strin
 		sourceInfo.ContextDir = build.Spec.Source.ContextDir
 	}
 
-	labels = s2iutil.GenerateLabelsFromSourceInfo(labels, toS2ISourceInfo(sourceInfo), buildapi.DefaultDockerLabelNamespace)
+	labels = s2iutil.GenerateLabelsFromSourceInfo(labels, toS2ISourceInfo(sourceInfo), builderutil.DefaultDockerLabelNamespace)
 
 	// override autogenerated labels
 	for _, lbl := range build.Spec.Output.ImageLabels {
@@ -389,7 +390,7 @@ func s2iBuildLabels(build *buildapi.Build, sourceInfo *git.SourceInfo) map[strin
 // scripts from a URL. For now, it uses environment variables passed in
 // the strategy's environment. There is no preference given to either lowercase
 // or uppercase form of the variable.
-func scriptProxyConfig(build *buildapi.Build) (*s2iapi.ProxyConfig, error) {
+func scriptProxyConfig(build *buildapiv1.Build) (*s2iapi.ProxyConfig, error) {
 	httpProxy := ""
 	httpsProxy := ""
 	for _, env := range build.Spec.Strategy.SourceStrategy.Env {
@@ -423,7 +424,7 @@ func scriptProxyConfig(build *buildapi.Build) (*s2iapi.ProxyConfig, error) {
 
 // copyToVolumeList copies the artifacts set in the build config to the
 // VolumeList struct in the s2iapi.Config
-func copyToVolumeList(artifactsMapping []buildapi.ImageSourcePath) (volumeList s2iapi.VolumeList) {
+func copyToVolumeList(artifactsMapping []buildapiv1.ImageSourcePath) (volumeList s2iapi.VolumeList) {
 	for _, mappedPath := range artifactsMapping {
 		volumeList = append(volumeList, s2iapi.VolumeSpec{
 			Source:      mappedPath.SourcePath,
@@ -433,6 +434,6 @@ func copyToVolumeList(artifactsMapping []buildapi.ImageSourcePath) (volumeList s
 	return
 }
 
-func convertS2IFailureType(reason s2iapi.StepFailureReason, message s2iapi.StepFailureMessage) (buildapi.StatusReason, string) {
-	return buildapi.StatusReason(reason), string(message)
+func convertS2IFailureType(reason s2iapi.StepFailureReason, message s2iapi.StepFailureMessage) (buildapiv1.StatusReason, string) {
+	return buildapiv1.StatusReason(reason), string(message)
 }

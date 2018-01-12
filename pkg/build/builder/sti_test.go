@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1 "k8s.io/api/core/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	buildapiv1 "github.com/openshift/api/build/v1"
+	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	"github.com/openshift/origin/pkg/generate/git"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
@@ -69,37 +69,37 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 	)
 }
 
-func makeBuild() *buildapi.Build {
+func makeBuild() *buildapiv1.Build {
 	t := true
-	return &buildapi.Build{
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Source: buildapi.BuildSource{},
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						Env: append([]kapi.EnvVar{},
-							kapi.EnvVar{
+	return &buildapiv1.Build{
+		Spec: buildapiv1.BuildSpec{
+			CommonSpec: buildapiv1.CommonSpec{
+				Source: buildapiv1.BuildSource{},
+				Strategy: buildapiv1.BuildStrategy{
+					SourceStrategy: &buildapiv1.SourceBuildStrategy{
+						Env: append([]corev1.EnvVar{},
+							corev1.EnvVar{
 								Name:  "HTTPS_PROXY",
 								Value: "https://test/secure:8443",
-							}, kapi.EnvVar{
+							}, corev1.EnvVar{
 								Name:  "HTTP_PROXY",
 								Value: "http://test/insecure:8080",
 							}),
-						From: kapi.ObjectReference{
+						From: corev1.ObjectReference{
 							Kind: "DockerImage",
 							Name: "test/builder:latest",
 						},
 						Incremental: &t,
 					}},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
+				Output: buildapiv1.BuildOutput{
+					To: &corev1.ObjectReference{
 						Kind: "DockerImage",
 						Name: "test/test-result:latest",
 					},
 				},
 			},
 		},
-		Status: buildapi.BuildStatus{
+		Status: buildapiv1.BuildStatus{
 			OutputDockerImageReference: "test/test-result:latest",
 		},
 	}
@@ -136,7 +136,7 @@ func TestGetStrategyError(t *testing.T) {
 }
 
 func TestCopyToVolumeList(t *testing.T) {
-	newArtifacts := []buildapi.ImageSourcePath{
+	newArtifacts := []buildapiv1.ImageSourcePath{
 		{
 			SourcePath:     "/path/to/source",
 			DestinationDir: "path/to/destination",
@@ -189,7 +189,7 @@ func TestBuildEnvVars(t *testing.T) {
 	mockBuild := makeBuild()
 	mockBuild.Name = "openshift-test-1-build"
 	mockBuild.Namespace = "openshift-demo"
-	mockBuild.Spec.Source.Git = &buildapi.GitBuildSource{URI: "http://localhost/123"}
+	mockBuild.Spec.Source.Git = &buildapiv1.GitBuildSource{URI: "http://localhost/123"}
 	sourceInfo := &git.SourceInfo{}
 	sourceInfo.CommitID = "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee"
 	resultedEnvList := buildEnvVars(mockBuild, sourceInfo)
@@ -209,15 +209,15 @@ func TestBuildEnvVars(t *testing.T) {
 }
 
 func TestScriptProxyConfig(t *testing.T) {
-	newBuild := &buildapi.Build{
-		Spec: buildapi.BuildSpec{
-			CommonSpec: buildapi.CommonSpec{
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						Env: append([]kapi.EnvVar{}, kapi.EnvVar{
+	newBuild := &buildapiv1.Build{
+		Spec: buildapiv1.BuildSpec{
+			CommonSpec: buildapiv1.CommonSpec{
+				Strategy: buildapiv1.BuildStrategy{
+					SourceStrategy: &buildapiv1.SourceBuildStrategy{
+						Env: append([]corev1.EnvVar{}, corev1.EnvVar{
 							Name:  "HTTPS_PROXY",
 							Value: "https://test/secure",
-						}, kapi.EnvVar{
+						}, corev1.EnvVar{
 							Name:  "HTTP_PROXY",
 							Value: "http://test/insecure",
 						}),

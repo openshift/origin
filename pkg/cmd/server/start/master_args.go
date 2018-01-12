@@ -413,8 +413,9 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 		},
 
 		TokenConfig: configapi.TokenConfig{
-			AuthorizeTokenMaxAgeSeconds: 5 * 60,       // 5 minutes
-			AccessTokenMaxAgeSeconds:    24 * 60 * 60, // 1 day
+			AuthorizeTokenMaxAgeSeconds:         5 * 60,       // 5 minutes
+			AccessTokenMaxAgeSeconds:            24 * 60 * 60, // 1 day
+			AccessTokenInactivityTimeoutSeconds: nil,          // no timeouts by default
 		},
 	}
 

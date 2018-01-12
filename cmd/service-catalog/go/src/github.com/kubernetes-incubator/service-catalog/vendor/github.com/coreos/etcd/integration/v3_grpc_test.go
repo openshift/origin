@@ -15,17 +15,22 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/pkg/testutil"
+	"github.com/coreos/etcd/pkg/transport"
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -40,7 +45,7 @@ func TestV3PutOverwrite(t *testing.T) {
 
 	kvc := toGRPC(clus.RandClient()).KV
 	key := []byte("foo")
-	reqput := &pb.PutRequest{Key: key, Value: []byte("bar")}
+	reqput := &pb.PutRequest{Key: key, Value: []byte("bar"), PrevKv: true}
 
 	respput, err := kvc.Put(context.TODO(), reqput)
 	if err != nil {
@@ -56,6 +61,9 @@ func TestV3PutOverwrite(t *testing.T) {
 	if respput2.Header.Revision <= respput.Header.Revision {
 		t.Fatalf("expected newer revision on overwrite, got %v <= %v",
 			respput2.Header.Revision, respput.Header.Revision)
+	}
+	if pkv := respput2.PrevKv; pkv == nil || string(pkv.Value) != "bar" {
+		t.Fatalf("expected PrevKv=bar, got response %+v", respput2)
 	}
 
 	reqrange := &pb.RangeRequest{Key: key}
@@ -122,15 +130,24 @@ func TestV3CompactCurrentRev(t *testing.T) {
 			t.Fatalf("couldn't put key (%v)", err)
 		}
 	}
+	// get key to add to proxy cache, if any
+	if _, err := kvc.Range(context.TODO(), &pb.RangeRequest{Key: []byte("foo")}); err != nil {
+		t.Fatal(err)
+	}
 	// compact on current revision
 	_, err := kvc.Compact(context.Background(), &pb.CompactionRequest{Revision: 4})
 	if err != nil {
 		t.Fatalf("couldn't compact kv space (%v)", err)
 	}
-	// key still exists?
+	// key still exists when linearized?
 	_, err = kvc.Range(context.Background(), &pb.RangeRequest{Key: []byte("foo")})
 	if err != nil {
 		t.Fatalf("couldn't get key after compaction (%v)", err)
+	}
+	// key still exists when serialized?
+	_, err = kvc.Range(context.Background(), &pb.RangeRequest{Key: []byte("foo"), Serializable: true})
+	if err != nil {
+		t.Fatalf("couldn't get serialized key after compaction (%v)", err)
 	}
 }
 
@@ -311,6 +328,331 @@ func TestV3TxnRevision(t *testing.T) {
 	// updated revision
 	if tresp.Header.Revision != presp.Header.Revision+1 {
 		t.Fatalf("got rev %d, wanted rev %d", tresp.Header.Revision, presp.Header.Revision+1)
+	}
+}
+
+// Testv3TxnCmpHeaderRev tests that the txn header revision is set as expected
+// when compared to the Succeeded field in the txn response.
+func TestV3TxnCmpHeaderRev(t *testing.T) {
+	defer testutil.AfterTest(t)
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	kvc := toGRPC(clus.RandClient()).KV
+
+	for i := 0; i < 10; i++ {
+		// Concurrently put a key with a txn comparing on it.
+		revc := make(chan int64, 1)
+		go func() {
+			defer close(revc)
+			pr := &pb.PutRequest{Key: []byte("k"), Value: []byte("v")}
+			presp, err := kvc.Put(context.TODO(), pr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			revc <- presp.Header.Revision
+		}()
+
+		// The read-only txn uses the optimized readindex server path.
+		txnget := &pb.RequestOp{Request: &pb.RequestOp_RequestRange{
+			RequestRange: &pb.RangeRequest{Key: []byte("k")}}}
+		txn := &pb.TxnRequest{Success: []*pb.RequestOp{txnget}}
+		// i = 0 /\ Succeeded => put followed txn
+		cmp := &pb.Compare{
+			Result:      pb.Compare_EQUAL,
+			Target:      pb.Compare_VERSION,
+			Key:         []byte("k"),
+			TargetUnion: &pb.Compare_Version{Version: int64(i)},
+		}
+		txn.Compare = append(txn.Compare, cmp)
+
+		tresp, err := kvc.Txn(context.TODO(), txn)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		prev := <-revc
+		// put followed txn; should eval to false
+		if prev > tresp.Header.Revision && !tresp.Succeeded {
+			t.Errorf("#%d: got else but put rev %d followed txn rev (%+v)", i, prev, tresp)
+		}
+		// txn follows put; should eval to true
+		if tresp.Header.Revision >= prev && tresp.Succeeded {
+			t.Errorf("#%d: got then but put rev %d preceded txn (%+v)", i, prev, tresp)
+		}
+	}
+}
+
+// TestV3PutIgnoreValue ensures that writes with ignore_value overwrites with previous key-value pair.
+func TestV3PutIgnoreValue(t *testing.T) {
+	defer testutil.AfterTest(t)
+
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	kvc := toGRPC(clus.RandClient()).KV
+	key, val := []byte("foo"), []byte("bar")
+	putReq := pb.PutRequest{Key: key, Value: val}
+
+	// create lease
+	lc := toGRPC(clus.RandClient()).Lease
+	lresp, err := lc.LeaseGrant(context.TODO(), &pb.LeaseGrantRequest{TTL: 30})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lresp.Error != "" {
+		t.Fatal(lresp.Error)
+	}
+
+	tests := []struct {
+		putFunc  func() error
+		putErr   error
+		wleaseID int64
+	}{
+		{ // put failure for non-existent key
+			func() error {
+				preq := putReq
+				preq.IgnoreValue = true
+				_, err := kvc.Put(context.TODO(), &preq)
+				return err
+			},
+			rpctypes.ErrGRPCKeyNotFound,
+			0,
+		},
+		{ // txn failure for non-existent key
+			func() error {
+				preq := putReq
+				preq.Value = nil
+				preq.IgnoreValue = true
+				txn := &pb.TxnRequest{}
+				txn.Success = append(txn.Success, &pb.RequestOp{
+					Request: &pb.RequestOp_RequestPut{RequestPut: &preq}})
+				_, err := kvc.Txn(context.TODO(), txn)
+				return err
+			},
+			rpctypes.ErrGRPCKeyNotFound,
+			0,
+		},
+		{ // put success
+			func() error {
+				_, err := kvc.Put(context.TODO(), &putReq)
+				return err
+			},
+			nil,
+			0,
+		},
+		{ // txn success, attach lease
+			func() error {
+				preq := putReq
+				preq.Value = nil
+				preq.Lease = lresp.ID
+				preq.IgnoreValue = true
+				txn := &pb.TxnRequest{}
+				txn.Success = append(txn.Success, &pb.RequestOp{
+					Request: &pb.RequestOp_RequestPut{RequestPut: &preq}})
+				_, err := kvc.Txn(context.TODO(), txn)
+				return err
+			},
+			nil,
+			lresp.ID,
+		},
+		{ // non-empty value with ignore_value should error
+			func() error {
+				preq := putReq
+				preq.IgnoreValue = true
+				_, err := kvc.Put(context.TODO(), &preq)
+				return err
+			},
+			rpctypes.ErrGRPCValueProvided,
+			0,
+		},
+		{ // overwrite with previous value, ensure no prev-kv is returned and lease is detached
+			func() error {
+				preq := putReq
+				preq.Value = nil
+				preq.IgnoreValue = true
+				presp, err := kvc.Put(context.TODO(), &preq)
+				if err != nil {
+					return err
+				}
+				if presp.PrevKv != nil && len(presp.PrevKv.Key) != 0 {
+					return fmt.Errorf("unexexpected previous key-value %v", presp.PrevKv)
+				}
+				return nil
+			},
+			nil,
+			0,
+		},
+		{ // revoke lease, ensure detached key doesn't get deleted
+			func() error {
+				_, err := lc.LeaseRevoke(context.TODO(), &pb.LeaseRevokeRequest{ID: lresp.ID})
+				return err
+			},
+			nil,
+			0,
+		},
+	}
+
+	for i, tt := range tests {
+		if err := tt.putFunc(); !eqErrGRPC(err, tt.putErr) {
+			t.Fatalf("#%d: err expected %v, got %v", i, tt.putErr, err)
+		}
+		if tt.putErr != nil {
+			continue
+		}
+		rr, err := kvc.Range(context.TODO(), &pb.RangeRequest{Key: key})
+		if err != nil {
+			t.Fatalf("#%d: %v", i, err)
+		}
+		if len(rr.Kvs) != 1 {
+			t.Fatalf("#%d: len(rr.KVs) expected 1, got %d", i, len(rr.Kvs))
+		}
+		if !bytes.Equal(rr.Kvs[0].Value, val) {
+			t.Fatalf("#%d: value expected %q, got %q", i, val, rr.Kvs[0].Value)
+		}
+		if rr.Kvs[0].Lease != tt.wleaseID {
+			t.Fatalf("#%d: lease ID expected %d, got %d", i, tt.wleaseID, rr.Kvs[0].Lease)
+		}
+	}
+}
+
+// TestV3PutIgnoreLease ensures that writes with ignore_lease uses previous lease for the key overwrites.
+func TestV3PutIgnoreLease(t *testing.T) {
+	defer testutil.AfterTest(t)
+
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	kvc := toGRPC(clus.RandClient()).KV
+
+	// create lease
+	lc := toGRPC(clus.RandClient()).Lease
+	lresp, err := lc.LeaseGrant(context.TODO(), &pb.LeaseGrantRequest{TTL: 30})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lresp.Error != "" {
+		t.Fatal(lresp.Error)
+	}
+
+	key, val, val1 := []byte("zoo"), []byte("bar"), []byte("bar1")
+	putReq := pb.PutRequest{Key: key, Value: val}
+
+	tests := []struct {
+		putFunc  func() error
+		putErr   error
+		wleaseID int64
+		wvalue   []byte
+	}{
+		{ // put failure for non-existent key
+			func() error {
+				preq := putReq
+				preq.IgnoreLease = true
+				_, err := kvc.Put(context.TODO(), &preq)
+				return err
+			},
+			rpctypes.ErrGRPCKeyNotFound,
+			0,
+			nil,
+		},
+		{ // txn failure for non-existent key
+			func() error {
+				preq := putReq
+				preq.IgnoreLease = true
+				txn := &pb.TxnRequest{}
+				txn.Success = append(txn.Success, &pb.RequestOp{
+					Request: &pb.RequestOp_RequestPut{RequestPut: &preq}})
+				_, err := kvc.Txn(context.TODO(), txn)
+				return err
+			},
+			rpctypes.ErrGRPCKeyNotFound,
+			0,
+			nil,
+		},
+		{ // put success
+			func() error {
+				preq := putReq
+				preq.Lease = lresp.ID
+				_, err := kvc.Put(context.TODO(), &preq)
+				return err
+			},
+			nil,
+			lresp.ID,
+			val,
+		},
+		{ // txn success, modify value using 'ignore_lease' and ensure lease is not detached
+			func() error {
+				preq := putReq
+				preq.Value = val1
+				preq.IgnoreLease = true
+				txn := &pb.TxnRequest{}
+				txn.Success = append(txn.Success, &pb.RequestOp{
+					Request: &pb.RequestOp_RequestPut{RequestPut: &preq}})
+				_, err := kvc.Txn(context.TODO(), txn)
+				return err
+			},
+			nil,
+			lresp.ID,
+			val1,
+		},
+		{ // non-empty lease with ignore_lease should error
+			func() error {
+				preq := putReq
+				preq.Lease = lresp.ID
+				preq.IgnoreLease = true
+				_, err := kvc.Put(context.TODO(), &preq)
+				return err
+			},
+			rpctypes.ErrGRPCLeaseProvided,
+			0,
+			nil,
+		},
+		{ // overwrite with previous value, ensure no prev-kv is returned and lease is detached
+			func() error {
+				presp, err := kvc.Put(context.TODO(), &putReq)
+				if err != nil {
+					return err
+				}
+				if presp.PrevKv != nil && len(presp.PrevKv.Key) != 0 {
+					return fmt.Errorf("unexexpected previous key-value %v", presp.PrevKv)
+				}
+				return nil
+			},
+			nil,
+			0,
+			val,
+		},
+		{ // revoke lease, ensure detached key doesn't get deleted
+			func() error {
+				_, err := lc.LeaseRevoke(context.TODO(), &pb.LeaseRevokeRequest{ID: lresp.ID})
+				return err
+			},
+			nil,
+			0,
+			val,
+		},
+	}
+
+	for i, tt := range tests {
+		if err := tt.putFunc(); !eqErrGRPC(err, tt.putErr) {
+			t.Fatalf("#%d: err expected %v, got %v", i, tt.putErr, err)
+		}
+		if tt.putErr != nil {
+			continue
+		}
+		rr, err := kvc.Range(context.TODO(), &pb.RangeRequest{Key: key})
+		if err != nil {
+			t.Fatalf("#%d: %v", i, err)
+		}
+		if len(rr.Kvs) != 1 {
+			t.Fatalf("#%d: len(rr.KVs) expected 1, got %d", i, len(rr.Kvs))
+		}
+		if !bytes.Equal(rr.Kvs[0].Value, tt.wvalue) {
+			t.Fatalf("#%d: value expected %q, got %q", i, val, rr.Kvs[0].Value)
+		}
+		if rr.Kvs[0].Lease != tt.wleaseID {
+			t.Fatalf("#%d: lease ID expected %d, got %d", i, tt.wleaseID, rr.Kvs[0].Lease)
+		}
 	}
 }
 
@@ -1089,6 +1431,164 @@ func TestTLSGRPCAcceptSecureAll(t *testing.T) {
 	if _, err := toGRPC(client).KV.Put(context.TODO(), reqput); err != nil {
 		t.Fatalf("unexpected error on put over tls (%v)", err)
 	}
+}
+
+// TestTLSReloadAtomicReplace ensures server reloads expired/valid certs
+// when all certs are atomically replaced by directory renaming.
+// And expects server to reject client requests, and vice versa.
+func TestTLSReloadAtomicReplace(t *testing.T) {
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "fixtures-tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir)
+
+	certsDir, err := ioutil.TempDir(os.TempDir(), "fixtures-to-load")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(certsDir)
+
+	certsDirExp, err := ioutil.TempDir(os.TempDir(), "fixtures-expired")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(certsDirExp)
+
+	cloneFunc := func() transport.TLSInfo {
+		tlsInfo, terr := copyTLSFiles(testTLSInfo, certsDir)
+		if terr != nil {
+			t.Fatal(terr)
+		}
+		if _, err = copyTLSFiles(testTLSInfoExpired, certsDirExp); err != nil {
+			t.Fatal(err)
+		}
+		return tlsInfo
+	}
+	replaceFunc := func() {
+		if err = os.Rename(certsDir, tmpDir); err != nil {
+			t.Fatal(err)
+		}
+		if err = os.Rename(certsDirExp, certsDir); err != nil {
+			t.Fatal(err)
+		}
+		// after rename,
+		// 'certsDir' contains expired certs
+		// 'tmpDir' contains valid certs
+		// 'certsDirExp' does not exist
+	}
+	revertFunc := func() {
+		if err = os.Rename(tmpDir, certsDirExp); err != nil {
+			t.Fatal(err)
+		}
+		if err = os.Rename(certsDir, tmpDir); err != nil {
+			t.Fatal(err)
+		}
+		if err = os.Rename(certsDirExp, certsDir); err != nil {
+			t.Fatal(err)
+		}
+	}
+	testTLSReload(t, cloneFunc, replaceFunc, revertFunc)
+}
+
+// TestTLSReloadCopy ensures server reloads expired/valid certs
+// when new certs are copied over, one by one. And expects server
+// to reject client requests, and vice versa.
+func TestTLSReloadCopy(t *testing.T) {
+	certsDir, err := ioutil.TempDir(os.TempDir(), "fixtures-to-load")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(certsDir)
+
+	cloneFunc := func() transport.TLSInfo {
+		tlsInfo, terr := copyTLSFiles(testTLSInfo, certsDir)
+		if terr != nil {
+			t.Fatal(terr)
+		}
+		return tlsInfo
+	}
+	replaceFunc := func() {
+		if _, err = copyTLSFiles(testTLSInfoExpired, certsDir); err != nil {
+			t.Fatal(err)
+		}
+	}
+	revertFunc := func() {
+		if _, err = copyTLSFiles(testTLSInfo, certsDir); err != nil {
+			t.Fatal(err)
+		}
+	}
+	testTLSReload(t, cloneFunc, replaceFunc, revertFunc)
+}
+
+func testTLSReload(t *testing.T, cloneFunc func() transport.TLSInfo, replaceFunc func(), revertFunc func()) {
+	defer testutil.AfterTest(t)
+
+	// 1. separate copies for TLS assets modification
+	tlsInfo := cloneFunc()
+
+	// 2. start cluster with valid certs
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1, PeerTLS: &tlsInfo, ClientTLS: &tlsInfo})
+	defer clus.Terminate(t)
+
+	// 3. concurrent client dialing while certs become expired
+	errc := make(chan error, 1)
+	go func() {
+		for {
+			cc, err := tlsInfo.ClientConfig()
+			if err != nil {
+				// errors in 'go/src/crypto/tls/tls.go'
+				// tls: private key does not match public key
+				// tls: failed to find any PEM data in key input
+				// tls: failed to find any PEM data in certificate input
+				// Or 'does not exist', 'not found', etc
+				t.Log(err)
+				continue
+			}
+			cli, cerr := clientv3.New(clientv3.Config{
+				Endpoints:   []string{clus.Members[0].GRPCAddr()},
+				DialTimeout: time.Second,
+				TLS:         cc,
+			})
+			if cerr != nil {
+				errc <- cerr
+				return
+			}
+			cli.Close()
+		}
+	}()
+
+	// 4. replace certs with expired ones
+	replaceFunc()
+
+	// 5. expect dial time-out when loading expired certs
+	select {
+	case gerr := <-errc:
+		if gerr != grpc.ErrClientConnTimeout {
+			t.Fatalf("expected %v, got %v", grpc.ErrClientConnTimeout, gerr)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("failed to receive dial timeout error")
+	}
+
+	// 6. replace expired certs back with valid ones
+	revertFunc()
+
+	// 7. new requests should trigger listener to reload valid certs
+	tls, terr := tlsInfo.ClientConfig()
+	if terr != nil {
+		t.Fatal(terr)
+	}
+	cl, cerr := clientv3.New(clientv3.Config{
+		Endpoints:   []string{clus.Members[0].GRPCAddr()},
+		DialTimeout: time.Second,
+		TLS:         tls,
+	})
+	if cerr != nil {
+		t.Fatalf("expected no error, got %v", cerr)
+	}
+	cl.Close()
 }
 
 func TestGRPCRequireLeader(t *testing.T) {
