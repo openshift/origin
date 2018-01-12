@@ -170,7 +170,7 @@ func TestEgressIP(t *testing.T) {
 
 	// Assign HostSubnet.EgressIP first, then NetNamespace.EgressIP, with a local EgressIP
 	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102", "172.17.0.103"})
-	err = assertNetlinkChange(eip, "claim 172.17.0.103")
+	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -184,7 +184,7 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	eip.updateNamespaceEgress(45, "172.17.0.103")
-	err = assertNoNetlinkChanges(eip)
+	err = assertNetlinkChange(eip, "claim 172.17.0.103")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -205,7 +205,7 @@ func TestEgressIP(t *testing.T) {
 
 	// Drop namespace EgressIP
 	eip.deleteNamespaceEgress(44)
-	err = assertNoNetlinkChanges(eip)
+	err = assertNetlinkChange(eip, "release 172.17.0.102")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

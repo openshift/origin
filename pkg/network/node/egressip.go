@@ -20,15 +20,19 @@ import (
 )
 
 type nodeEgress struct {
-	nodeIP    string
-	egressIPs sets.String
+	nodeIP string
+
+	// requestedIPs are the EgressIPs listed on the node's HostSubnet
+	requestedIPs sets.String
+	// assignedIPs are the IPs actually in use on the node
+	assignedIPs sets.String
 }
 
 type namespaceEgress struct {
 	vnid uint32
 
-	// claimedIP is the egress IP it wants (NetNamespace.EgressIP[0]), or "" for none
-	claimedIP string
+	// requestedIP is the egress IP it wants (NetNamespace.EgressIPs[0])
+	requestedIP string
 	// assignedIP is an egress IP actually in use on nodeIP
 	assignedIP string
 	nodeIP     string
@@ -122,65 +126,102 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 		if len(nodeEgressIPs) == 0 {
 			return
 		}
-		node = &nodeEgress{nodeIP: nodeIP, egressIPs: sets.NewString()}
+		node = &nodeEgress{
+			nodeIP:       nodeIP,
+			requestedIPs: sets.NewString(),
+			assignedIPs:  sets.NewString(),
+		}
 		eip.nodesByNodeIP[nodeIP] = node
 	} else if len(nodeEgressIPs) == 0 {
 		delete(eip.nodesByNodeIP, nodeIP)
 	}
-	oldEgressIPs := node.egressIPs
-	node.egressIPs = sets.NewString(nodeEgressIPs...)
+	oldRequestedIPs := node.requestedIPs
+	node.requestedIPs = sets.NewString(nodeEgressIPs...)
 
 	// Process new EgressIPs
-	for _, ip := range node.egressIPs.Difference(oldEgressIPs).UnsortedList() {
+	for _, ip := range node.requestedIPs.Difference(oldRequestedIPs).UnsortedList() {
 		if oldNode := eip.nodesByEgressIP[ip]; oldNode != nil {
 			utilruntime.HandleError(fmt.Errorf("Multiple nodes claiming EgressIP %q (nodes %q, %q)", ip, node.nodeIP, oldNode.nodeIP))
 			continue
 		}
 
 		eip.nodesByEgressIP[ip] = node
-		hex := ipToHex(ip)
-		claimedNodeIP := nodeIP
+		eip.maybeAddEgressIP(ip)
+	}
 
-		if nodeIP == eip.localIP {
-			if err := eip.claimEgressIP(ip, hex); err != nil {
-				utilruntime.HandleError(fmt.Errorf("Error claiming Egress IP %q: %v", ip, err))
-				claimedNodeIP = ""
-			}
+	// Process removed EgressIPs
+	for _, ip := range oldRequestedIPs.Difference(node.requestedIPs).UnsortedList() {
+		if oldNode := eip.nodesByEgressIP[ip]; oldNode != node {
+			// User removed a duplicate EgressIP
+			continue
 		}
 
-		if ns, exists := eip.namespacesByEgressIP[ip]; exists {
-			if ns.assignedIP == "" {
-				ns.assignedIP = ip
-				ns.nodeIP = claimedNodeIP
-				err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, claimedNodeIP, hex)
-				if err != nil {
-					utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
-				}
+		eip.deleteEgressIP(ip)
+		delete(eip.nodesByEgressIP, ip)
+	}
+}
+
+func (eip *egressIPWatcher) maybeAddEgressIP(egressIP string) {
+	node := eip.nodesByEgressIP[egressIP]
+	ns := eip.namespacesByEgressIP[egressIP]
+	if ns == nil {
+		return
+	}
+
+	hex := ipToHex(egressIP)
+	nodeIP := ""
+
+	if node != nil && !node.assignedIPs.Has(egressIP) {
+		node.assignedIPs.Insert(egressIP)
+		nodeIP = node.nodeIP
+		if node.nodeIP == eip.localIP {
+			if err := eip.assignEgressIP(egressIP, hex); err != nil {
+				utilruntime.HandleError(fmt.Errorf("Error assigning Egress IP %q: %v", egressIP, err))
+				nodeIP = ""
 			}
 		}
 	}
 
-	// Process removed EgressIPs
-	for _, ip := range oldEgressIPs.Difference(node.egressIPs).UnsortedList() {
-		delete(eip.nodesByEgressIP, ip)
-		hex := ipToHex(ip)
+	if ns.assignedIP != egressIP || ns.nodeIP != nodeIP {
+		ns.assignedIP = egressIP
+		ns.nodeIP = nodeIP
 
-		if nodeIP == eip.localIP {
-			if err := eip.releaseEgressIP(ip, hex); err != nil {
-				utilruntime.HandleError(fmt.Errorf("Error releasing Egress IP %q: %v", ip, err))
-			}
+		err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, ns.nodeIP, hex)
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
 		}
+	}
+}
 
-		if ns, exists := eip.namespacesByEgressIP[ip]; exists {
-			if ns.assignedIP == ip {
-				ns.assignedIP = ""
-				ns.nodeIP = ""
-				err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", hex)
-				if err != nil {
-					utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
-				}
-			}
+func (eip *egressIPWatcher) deleteEgressIP(egressIP string) {
+	node := eip.nodesByEgressIP[egressIP]
+	ns := eip.namespacesByEgressIP[egressIP]
+	if node == nil || ns == nil {
+		return
+	}
+
+	hex := ipToHex(egressIP)
+	if node.nodeIP == eip.localIP {
+		if err := eip.releaseEgressIP(egressIP, hex); err != nil {
+			utilruntime.HandleError(fmt.Errorf("Error releasing Egress IP %q: %v", egressIP, err))
 		}
+	}
+
+	if ns.assignedIP == egressIP {
+		ns.assignedIP = ""
+		ns.nodeIP = ""
+	}
+
+	var err error
+	if ns.requestedIP == "" {
+		// Namespace no longer wants EgressIP
+		err = eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", "")
+	} else {
+		// Namespace still wants EgressIP but no node provides it
+		err = eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", hex)
+	}
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
 	}
 }
 
@@ -217,7 +258,7 @@ func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) 
 		ns = &namespaceEgress{vnid: vnid}
 		eip.namespacesByVNID[vnid] = ns
 	}
-	if ns.claimedIP == egressIP {
+	if ns.requestedIP == egressIP {
 		return
 	}
 	if oldNS := eip.namespacesByEgressIP[egressIP]; oldNS != nil {
@@ -225,22 +266,15 @@ func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) 
 		return
 	}
 
-	if ns.claimedIP != "" {
-		delete(eip.namespacesByEgressIP, ns.claimedIP)
+	if ns.assignedIP != "" {
+		eip.deleteEgressIP(egressIP)
+		delete(eip.namespacesByEgressIP, egressIP)
 		ns.assignedIP = ""
 		ns.nodeIP = ""
 	}
-	ns.claimedIP = egressIP
+	ns.requestedIP = egressIP
 	eip.namespacesByEgressIP[egressIP] = ns
-	if node := eip.nodesByEgressIP[egressIP]; node != nil {
-		ns.assignedIP = egressIP
-		ns.nodeIP = node.nodeIP
-	}
-
-	err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, ns.nodeIP, ipToHex(egressIP))
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
-	}
+	eip.maybeAddEgressIP(egressIP)
 }
 
 func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
@@ -252,18 +286,15 @@ func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
 		return
 	}
 
-	if ns.claimedIP != "" {
-		delete(eip.namespacesByEgressIP, ns.claimedIP)
+	if ns.assignedIP != "" {
+		ns.requestedIP = ""
+		eip.deleteEgressIP(ns.assignedIP)
+		delete(eip.namespacesByEgressIP, ns.assignedIP)
 	}
 	delete(eip.namespacesByVNID, vnid)
-
-	err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", "")
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
-	}
 }
 
-func (eip *egressIPWatcher) claimEgressIP(egressIP, egressHex string) error {
+func (eip *egressIPWatcher) assignEgressIP(egressIP, egressHex string) error {
 	if egressIP == eip.localIP {
 		return fmt.Errorf("desired egress IP %q is the node IP", egressIP)
 	}
