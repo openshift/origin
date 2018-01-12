@@ -1,0 +1,9 @@
+[centos-paas7-common]
+name = CentOS OpenShift Origin Common - Dependencies only
+baseurl = http://cbs.centos.org/kojifiles/repos/paas7-common-el7-build/latest/$basearch
+sslverify = 0
+skip_if_unavailable = 1
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-PaaS
+includepkgs = haproxy18*
