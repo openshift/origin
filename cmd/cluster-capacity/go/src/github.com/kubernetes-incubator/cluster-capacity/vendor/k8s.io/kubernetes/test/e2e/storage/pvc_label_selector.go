@@ -21,9 +21,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	vsphere "k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere"
+	"k8s.io/api/core/v1"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -44,7 +43,7 @@ import (
    9. delete pvc_vvol
 
 */
-var _ = framework.KubeDescribe("PersistentVolumes [Feature:LabelSelector]", func() {
+var _ = SIGDescribe("PersistentVolumes [Feature:LabelSelector]", func() {
 	f := framework.NewDefaultFramework("pvclabelselector")
 	var (
 		c          clientset.Interface
@@ -69,7 +68,7 @@ var _ = framework.KubeDescribe("PersistentVolumes [Feature:LabelSelector]", func
 
 	})
 
-	framework.KubeDescribe("Selector-Label Volume Binding:vsphere", func() {
+	SIGDescribe("Selector-Label Volume Binding:vsphere", func() {
 		AfterEach(func() {
 			By("Running clean up actions")
 			if framework.ProviderIs("vsphere") {
@@ -104,7 +103,7 @@ var _ = framework.KubeDescribe("PersistentVolumes [Feature:LabelSelector]", func
 func testSetupVSpherePVClabelselector(c clientset.Interface, ns string, ssdlabels map[string]string, vvollabels map[string]string) (volumePath string, pv_ssd *v1.PersistentVolume, pvc_ssd *v1.PersistentVolumeClaim, pvc_vvol *v1.PersistentVolumeClaim, err error) {
 	volumePath = ""
 	By("creating vmdk")
-	vsp, err := vsphere.GetVSphere()
+	vsp, err := getVSphere(c)
 	Expect(err).NotTo(HaveOccurred())
 	volumePath, err = createVSphereVolume(vsp, nil)
 	if err != nil {
@@ -134,7 +133,7 @@ func testSetupVSpherePVClabelselector(c clientset.Interface, ns string, ssdlabel
 func testCleanupVSpherePVClabelselector(c clientset.Interface, ns string, volumePath string, pv_ssd *v1.PersistentVolume, pvc_ssd *v1.PersistentVolumeClaim, pvc_vvol *v1.PersistentVolumeClaim) {
 	By("running testCleanupVSpherePVClabelselector")
 	if len(volumePath) > 0 {
-		vsp, err := vsphere.GetVSphere()
+		vsp, err := getVSphere(c)
 		Expect(err).NotTo(HaveOccurred())
 		vsp.DeleteVolume(volumePath)
 	}

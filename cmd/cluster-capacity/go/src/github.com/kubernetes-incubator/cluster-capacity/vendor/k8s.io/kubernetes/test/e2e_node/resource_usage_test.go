@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	clientset "k8s.io/client-go/kubernetes"
 	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -31,7 +31,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = framework.KubeDescribe("Resource-usage [Serial] [Slow]", func() {
+var _ = SIGDescribe("Resource-usage [Serial] [Slow]", func() {
 	const (
 		// Interval to poll /stats/container on a node
 		containerStatsPollingPeriod = 10 * time.Second

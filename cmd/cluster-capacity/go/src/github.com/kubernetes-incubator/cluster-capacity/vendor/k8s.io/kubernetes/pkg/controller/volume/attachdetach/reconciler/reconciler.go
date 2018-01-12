@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/cache"
 	"k8s.io/kubernetes/pkg/controller/volume/attachdetach/statusupdater"
 	kevents "k8s.io/kubernetes/pkg/kubelet/events"
@@ -35,7 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/volume/util/operationexecutor"
 )
 
-// Reconciler runs a periodic loop to reconcile the desired state of the with
+// Reconciler runs a periodic loop to reconcile the desired state of the world with
 // the actual state of the world by triggering attach detach operations.
 // Note: This is distinct from the Reconciler implemented by the kubelet volume
 // manager. This reconciles state for the attach/detach controller. That
@@ -148,6 +148,11 @@ func (rc *reconciler) isMultiAttachForbidden(volumeSpec *volume.Spec) bool {
 	// Only if this volume is a persistent volume, we have reliable information on wether it's allowed or not to
 	// multi-attach. We trust in the individual volume implementations to not allow unsupported access modes
 	if volumeSpec.PersistentVolume != nil {
+		// Check for persistent volume types which do not fail when trying to multi-attach
+		if volumeSpec.PersistentVolume.Spec.VsphereVolume != nil {
+			return false
+		}
+
 		if len(volumeSpec.PersistentVolume.Spec.AccessModes) == 0 {
 			// No access mode specified so we don't know for sure. Let the attacher fail if needed
 			return false
@@ -236,52 +241,56 @@ func (rc *reconciler) reconcile() {
 		}
 	}
 
-	// Ensure volumes that should be attached are attached.
-	for _, volumeToAttach := range rc.desiredStateOfWorld.GetVolumesToAttach() {
-		if rc.actualStateOfWorld.VolumeNodeExists(
-			volumeToAttach.VolumeName, volumeToAttach.NodeName) {
-			// Volume/Node exists, touch it to reset detachRequestedTime
-			glog.V(5).Infof(volumeToAttach.GenerateMsgDetailed("Volume attached--touching", ""))
-			rc.actualStateOfWorld.ResetDetachRequestTime(volumeToAttach.VolumeName, volumeToAttach.NodeName)
-		} else {
-			// Don't even try to start an operation if there is already one running
-			if rc.attacherDetacher.IsOperationPending(volumeToAttach.VolumeName, "") {
-				glog.V(10).Infof("Operation for volume %q is already running. Can't start attach for %q", volumeToAttach.VolumeName, volumeToAttach.NodeName)
-				continue
-			}
-
-			if rc.isMultiAttachForbidden(volumeToAttach.VolumeSpec) {
-				nodes := rc.actualStateOfWorld.GetNodesForVolume(volumeToAttach.VolumeName)
-				if len(nodes) > 0 {
-					if !volumeToAttach.MultiAttachErrorReported {
-						simpleMsg, detailedMsg := volumeToAttach.GenerateMsg("Multi-Attach error", "Volume is already exclusively attached to one node and can't be attached to another")
-						for _, pod := range volumeToAttach.ScheduledPods {
-							rc.recorder.Eventf(pod, v1.EventTypeWarning, kevents.FailedAttachVolume, simpleMsg)
-						}
-						volumeToAttach.MultiAttachErrorReported = true
-						glog.Warningf(detailedMsg)
-					}
-					continue
-				}
-			}
-
-			// Volume/Node doesn't exist, spawn a goroutine to attach it
-			glog.V(5).Infof(volumeToAttach.GenerateMsgDetailed("Starting attacherDetacher.AttachVolume", ""))
-			err := rc.attacherDetacher.AttachVolume(volumeToAttach.VolumeToAttach, rc.actualStateOfWorld)
-			if err == nil {
-				glog.Infof(volumeToAttach.GenerateMsgDetailed("attacherDetacher.AttachVolume started", ""))
-			}
-			if err != nil && !exponentialbackoff.IsExponentialBackoff(err) {
-				// Ignore exponentialbackoff.IsExponentialBackoff errors, they are expected.
-				// Log all other errors.
-				glog.Errorf(volumeToAttach.GenerateErrorDetailed("attacherDetacher.AttachVolume failed to start", err).Error())
-			}
-		}
-	}
+	rc.attachDesiredVolumes()
 
 	// Update Node Status
 	err := rc.nodeStatusUpdater.UpdateNodeStatuses()
 	if err != nil {
 		glog.Warningf("UpdateNodeStatuses failed with: %v", err)
 	}
+}
+
+func (rc *reconciler) attachDesiredVolumes() {
+	// Ensure volumes that should be attached are attached.
+	for _, volumeToAttach := range rc.desiredStateOfWorld.GetVolumesToAttach() {
+		if rc.actualStateOfWorld.VolumeNodeExists(volumeToAttach.VolumeName, volumeToAttach.NodeName) {
+			// Volume/Node exists, touch it to reset detachRequestedTime
+			glog.V(5).Infof(volumeToAttach.GenerateMsgDetailed("Volume attached--touching", ""))
+			rc.actualStateOfWorld.ResetDetachRequestTime(volumeToAttach.VolumeName, volumeToAttach.NodeName)
+			continue
+		}
+		// Don't even try to start an operation if there is already one running
+		if rc.attacherDetacher.IsOperationPending(volumeToAttach.VolumeName, "") {
+			glog.V(10).Infof("Operation for volume %q is already running. Can't start attach for %q", volumeToAttach.VolumeName, volumeToAttach.NodeName)
+			continue
+		}
+
+		if rc.isMultiAttachForbidden(volumeToAttach.VolumeSpec) {
+			nodes := rc.actualStateOfWorld.GetNodesForVolume(volumeToAttach.VolumeName)
+			if len(nodes) > 0 {
+				if !volumeToAttach.MultiAttachErrorReported {
+					simpleMsg, detailedMsg := volumeToAttach.GenerateMsg("Multi-Attach error", "Volume is already exclusively attached to one node and can't be attached to another")
+					for _, pod := range volumeToAttach.ScheduledPods {
+						rc.recorder.Eventf(pod, v1.EventTypeWarning, kevents.FailedAttachVolume, simpleMsg)
+					}
+					rc.desiredStateOfWorld.SetMultiAttachError(volumeToAttach.VolumeName, volumeToAttach.NodeName)
+					glog.Warningf(detailedMsg)
+				}
+				continue
+			}
+		}
+
+		// Volume/Node doesn't exist, spawn a goroutine to attach it
+		glog.V(5).Infof(volumeToAttach.GenerateMsgDetailed("Starting attacherDetacher.AttachVolume", ""))
+		err := rc.attacherDetacher.AttachVolume(volumeToAttach.VolumeToAttach, rc.actualStateOfWorld)
+		if err == nil {
+			glog.Infof(volumeToAttach.GenerateMsgDetailed("attacherDetacher.AttachVolume started", ""))
+		}
+		if err != nil && !exponentialbackoff.IsExponentialBackoff(err) {
+			// Ignore exponentialbackoff.IsExponentialBackoff errors, they are expected.
+			// Log all other errors.
+			glog.Errorf(volumeToAttach.GenerateErrorDetailed("attacherDetacher.AttachVolume failed to start", err).Error())
+		}
+	}
+
 }

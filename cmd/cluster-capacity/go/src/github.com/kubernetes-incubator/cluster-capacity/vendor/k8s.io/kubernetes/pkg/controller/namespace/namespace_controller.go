@@ -20,17 +20,17 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	clientset "k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	coreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
-	corelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/namespace/deletion"
 	"k8s.io/kubernetes/pkg/util/metrics"
@@ -72,11 +72,11 @@ func NewNamespaceController(
 	// create the controller so we can inject the enqueue function
 	namespaceController := &NamespaceController{
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespace"),
-		namespacedResourcesDeleter: deletion.NewNamespacedResourcesDeleter(kubeClient.Core().Namespaces(), clientPool, kubeClient.Core(), discoverResourcesFn, finalizerToken, true),
+		namespacedResourcesDeleter: deletion.NewNamespacedResourcesDeleter(kubeClient.CoreV1().Namespaces(), clientPool, kubeClient.CoreV1(), discoverResourcesFn, finalizerToken, true),
 	}
 
-	if kubeClient != nil && kubeClient.Core().RESTClient().GetRateLimiter() != nil {
-		metrics.RegisterMetricAndTrackRateLimiterUsage("namespace_controller", kubeClient.Core().RESTClient().GetRateLimiter())
+	if kubeClient != nil && kubeClient.CoreV1().RESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("namespace_controller", kubeClient.CoreV1().RESTClient().GetRateLimiter())
 	}
 
 	// configure the namespace informer event handlers
@@ -183,14 +183,16 @@ func (nm *NamespaceController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer nm.queue.ShutDown()
 
+	glog.Infof("Starting namespace controller")
+	defer glog.Infof("Shutting down namespace controller")
+
 	if !controller.WaitForCacheSync("namespace", stopCh, nm.listerSynced) {
 		return
 	}
 
-	glog.V(5).Info("Starting workers")
+	glog.V(5).Info("Starting workers of namespace controller")
 	for i := 0; i < workers; i++ {
 		go wait.Until(nm.worker, time.Second, stopCh)
 	}
 	<-stopCh
-	glog.V(1).Infof("Shutting down")
 }

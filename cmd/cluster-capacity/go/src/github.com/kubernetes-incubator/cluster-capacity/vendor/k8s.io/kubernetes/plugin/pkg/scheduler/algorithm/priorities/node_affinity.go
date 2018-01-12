@@ -19,10 +19,9 @@ package priorities
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/api/v1"
-	v1helper "k8s.io/kubernetes/pkg/api/v1/helper"
+	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
@@ -43,7 +42,7 @@ func CalculateNodeAffinityPriorityMap(pod *v1.Pod, meta interface{}, nodeInfo *s
 		affinity = priorityMeta.affinity
 	} else {
 		// We couldn't parse metadata - fallback to the podspec.
-		affinity = schedulercache.ReconcileAffinity(pod)
+		affinity = pod.Spec.Affinity
 	}
 
 	var count int32
@@ -75,28 +74,4 @@ func CalculateNodeAffinityPriorityMap(pod *v1.Pod, meta interface{}, nodeInfo *s
 	}, nil
 }
 
-func CalculateNodeAffinityPriorityReduce(pod *v1.Pod, meta interface{}, nodeNameToInfo map[string]*schedulercache.NodeInfo, result schedulerapi.HostPriorityList) error {
-	var maxCount int
-	for i := range result {
-		if result[i].Score > maxCount {
-			maxCount = result[i].Score
-		}
-	}
-	maxCountFloat := float64(maxCount)
-
-	var fScore float64
-	for i := range result {
-		if maxCount > 0 {
-			fScore = 10 * (float64(result[i].Score) / maxCountFloat)
-		} else {
-			fScore = 0
-		}
-		if glog.V(10) {
-			// We explicitly don't do glog.V(10).Infof() to avoid computing all the parameters if this is
-			// not logged. There is visible performance gain from it.
-			glog.Infof("%v -> %v: NodeAffinityPriority, Score: (%d)", pod.Name, result[i].Host, int(fScore))
-		}
-		result[i].Score = int(fScore)
-	}
-	return nil
-}
+var CalculateNodeAffinityPriorityReduce = NormalizeReduce(schedulerapi.MaxPriority, false)

@@ -16,14 +16,14 @@ limitations under the License.
 
 // Package types just provides input types to the set generator. It also
 // contains a "go generate" block.
-// (You must first `go install k8s.io/kubernetes/cmd/libs/go2idl/set-gen`)
+// (You must first `go install k8s.io/code-generator/cmd/set-gen`)
 package types
 
 //go:generate set-gen -i k8s.io/kubernetes/pkg/util/sets/types
 
 type ReferenceSetTypes struct {
 	// These types all cause files to be generated.
-	// These types should be reflected in the ouput of
+	// These types should be reflected in the output of
 	// the "//pkg/util/sets:set-gen" genrule.
 	a int64
 	b int

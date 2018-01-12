@@ -20,11 +20,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/v1"
-	v1helper "k8s.io/kubernetes/pkg/api/v1/helper"
+	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
@@ -38,11 +39,6 @@ const (
 	// 100000 is equivalent to 100ms
 	quotaPeriod    = 100 * minQuotaPeriod
 	minQuotaPeriod = 1000
-)
-
-var (
-	// The default dns opt strings
-	defaultDNSOptions = []string{"ndots:5"}
 )
 
 type podsByID []*kubecontainer.Pod
@@ -254,4 +250,31 @@ func getSysctlsFromAnnotations(annotations map[string]string) (map[string]string
 	}
 
 	return sysctls, nil
+}
+
+// getSeccompProfileFromAnnotations gets seccomp profile from annotations.
+// It gets pod's profile if containerName is empty.
+func (m *kubeGenericRuntimeManager) getSeccompProfileFromAnnotations(annotations map[string]string, containerName string) string {
+	// try the pod profile.
+	profile, profileOK := annotations[v1.SeccompPodAnnotationKey]
+	if containerName != "" {
+		// try the container profile.
+		cProfile, cProfileOK := annotations[v1.SeccompContainerAnnotationKeyPrefix+containerName]
+		if cProfileOK {
+			profile = cProfile
+			profileOK = cProfileOK
+		}
+	}
+
+	if !profileOK {
+		return ""
+	}
+
+	if strings.HasPrefix(profile, "localhost/") {
+		name := strings.TrimPrefix(profile, "localhost/")
+		fname := filepath.Join(m.seccompProfileRoot, filepath.FromSlash(name))
+		return "localhost/" + fname
+	}
+
+	return profile
 }

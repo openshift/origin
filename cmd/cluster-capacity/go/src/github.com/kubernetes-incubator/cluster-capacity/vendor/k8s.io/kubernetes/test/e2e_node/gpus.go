@@ -21,21 +21,19 @@ import (
 	"os/exec"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/features"
+	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-const acceleratorsFeatureGate = "Accelerators=true"
-
 func getGPUsAvailable(f *framework.Framework) int64 {
-	nodeList, err := f.ClientSet.Core().Nodes().List(metav1.ListOptions{})
+	nodeList, err := f.ClientSet.CoreV1().Nodes().List(metav1.ListOptions{})
 	framework.ExpectNoError(err, "getting node list")
 	var gpusAvailable int64
 	for _, node := range nodeList.Items {
@@ -45,7 +43,7 @@ func getGPUsAvailable(f *framework.Framework) int64 {
 }
 
 func gpusExistOnAllNodes(f *framework.Framework) bool {
-	nodeList, err := f.ClientSet.Core().Nodes().List(metav1.ListOptions{})
+	nodeList, err := f.ClientSet.CoreV1().Nodes().List(metav1.ListOptions{})
 	framework.ExpectNoError(err, "getting node list")
 	for _, node := range nodeList.Items {
 		if node.Name == "kubernetes-master" {
@@ -85,23 +83,18 @@ var _ = framework.KubeDescribe("GPU [Serial]", func() {
 			}
 
 			By("enabling support for GPUs")
-			var oldCfg *componentconfig.KubeletConfiguration
+			var oldCfg *kubeletconfig.KubeletConfiguration
 			defer func() {
 				if oldCfg != nil {
 					framework.ExpectNoError(setKubeletConfiguration(f, oldCfg))
 				}
 			}()
 
+			// Enable Accelerators
 			oldCfg, err = getCurrentKubeletConfig()
 			framework.ExpectNoError(err)
-			clone, err := api.Scheme.DeepCopy(oldCfg)
-			framework.ExpectNoError(err)
-			newCfg := clone.(*componentconfig.KubeletConfiguration)
-			if newCfg.FeatureGates != "" {
-				newCfg.FeatureGates = fmt.Sprintf("%s,%s", acceleratorsFeatureGate, newCfg.FeatureGates)
-			} else {
-				newCfg.FeatureGates = acceleratorsFeatureGate
-			}
+			newCfg := oldCfg.DeepCopy()
+			newCfg.FeatureGates[string(features.Accelerators)] = true
 			framework.ExpectNoError(setKubeletConfiguration(f, newCfg))
 
 			By("Waiting for GPUs to become available on the local node")
@@ -114,7 +107,7 @@ var _ = framework.KubeDescribe("GPU [Serial]", func() {
 			By("Checking the containers in the pod had restarted at-least twice successfully thereby ensuring GPUs are reused")
 			const minContainerRestartCount = 2
 			Eventually(func() bool {
-				p, err := f.ClientSet.Core().Pods(f.Namespace.Name).Get(podSuccess.Name, metav1.GetOptions{})
+				p, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(podSuccess.Name, metav1.GetOptions{})
 				if err != nil {
 					framework.Logf("failed to get pod status: %v", err)
 					return false
@@ -170,7 +163,7 @@ func makePod(gpus int64, name string) *v1.Pod {
 			RestartPolicy: v1.RestartPolicyAlways,
 			Containers: []v1.Container{
 				{
-					Image:     "gcr.io/google_containers/busybox:1.24",
+					Image:     busyboxImage,
 					Name:      name,
 					Command:   []string{"sh", "-c", gpuverificationCmd},
 					Resources: resources,

@@ -1,7 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_binary",
@@ -10,14 +8,14 @@ load(
 
 go_binary(
     name = "no-snat-test",
+    importpath = "k8s.io/kubernetes/test/images/no-snat-test",
     library = ":go_default_library",
-    tags = ["automanaged"],
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["main.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/test/images/no-snat-test",
     deps = [
         "//vendor/github.com/spf13/pflag:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/util/flag:go_default_library",

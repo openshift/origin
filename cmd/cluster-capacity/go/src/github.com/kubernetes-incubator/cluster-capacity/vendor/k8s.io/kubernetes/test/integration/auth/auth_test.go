@@ -34,6 +34,7 @@ import (
 	"testing"
 	"time"
 
+	authenticationv1beta1 "k8s.io/api/authentication/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
@@ -45,10 +46,9 @@ import (
 	"k8s.io/apiserver/plugin/pkg/authenticator/token/tokentest"
 	"k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	"k8s.io/client-go/tools/clientcmd/api/v1"
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	authenticationv1beta1 "k8s.io/kubernetes/pkg/apis/authentication/v1beta1"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/authorizer/abac"
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
@@ -108,7 +108,7 @@ func timeoutPath(resource, namespace, name string) string {
 var aPod string = `
 {
   "kind": "Pod",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "metadata": {
     "name": "a",
     "creationTimestamp": null%s
@@ -126,7 +126,7 @@ var aPod string = `
 var aRC string = `
 {
   "kind": "ReplicationController",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "metadata": {
     "name": "a",
     "labels": {
@@ -159,7 +159,7 @@ var aRC string = `
 var aService string = `
 {
   "kind": "Service",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "metadata": {
     "name": "a",
     "labels": {
@@ -183,7 +183,7 @@ var aService string = `
 var aNode string = `
 {
   "kind": "Node",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "metadata": {
     "name": "a"%s
   },
@@ -197,7 +197,7 @@ func aEvent(namespace string) string {
 	return `
 {
   "kind": "Event",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "metadata": {
     "name": "a"%s
   },
@@ -214,7 +214,7 @@ func aEvent(namespace string) string {
 var aBinding string = `
 {
   "kind": "Binding",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "metadata": {
     "name": "a"%s
   },
@@ -237,7 +237,7 @@ var emptyEndpoints string = `
 var aEndpoints string = `
 {
   "kind": "Endpoints",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "metadata": {
     "name": "a"%s
   },
@@ -262,7 +262,7 @@ var aEndpoints string = `
 var deleteNow string = `
 {
   "kind": "DeleteOptions",
-  "apiVersion": "` + api.Registry.GroupOrDie(api.GroupName).GroupVersion.String() + `",
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
   "gracePeriodSeconds": 0%s
 }
 `
@@ -535,11 +535,11 @@ func TestAuthModeAlwaysDeny(t *testing.T) {
 // TODO(etune): remove this test once a more comprehensive built-in authorizer is implemented.
 type allowAliceAuthorizer struct{}
 
-func (allowAliceAuthorizer) Authorize(a authorizer.Attributes) (bool, string, error) {
+func (allowAliceAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
 	if a.GetUser() != nil && a.GetUser().GetName() == "alice" {
-		return true, "", nil
+		return authorizer.DecisionAllow, "", nil
 	}
-	return false, "I can't allow that.  Go ask alice.", nil
+	return authorizer.DecisionNoOpinion, "I can't allow that.  Go ask alice.", nil
 }
 
 // TestAliceNotForbiddenOrUnauthorized tests a user who is known to
@@ -702,24 +702,24 @@ func TestUnknownUserIsUnauthorized(t *testing.T) {
 type impersonateAuthorizer struct{}
 
 // alice can't act as anyone and bob can't do anything but act-as someone
-func (impersonateAuthorizer) Authorize(a authorizer.Attributes) (bool, string, error) {
+func (impersonateAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
 	// alice can impersonate service accounts and do other actions
 	if a.GetUser() != nil && a.GetUser().GetName() == "alice" && a.GetVerb() == "impersonate" && a.GetResource() == "serviceaccounts" {
-		return true, "", nil
+		return authorizer.DecisionAllow, "", nil
 	}
 	if a.GetUser() != nil && a.GetUser().GetName() == "alice" && a.GetVerb() != "impersonate" {
-		return true, "", nil
+		return authorizer.DecisionAllow, "", nil
 	}
 	// bob can impersonate anyone, but that it
 	if a.GetUser() != nil && a.GetUser().GetName() == "bob" && a.GetVerb() == "impersonate" {
-		return true, "", nil
+		return authorizer.DecisionAllow, "", nil
 	}
 	// service accounts can do everything
 	if a.GetUser() != nil && strings.HasPrefix(a.GetUser().GetName(), serviceaccount.ServiceAccountUsernamePrefix) {
-		return true, "", nil
+		return authorizer.DecisionAllow, "", nil
 	}
 
-	return false, "I can't allow that.  Go ask alice.", nil
+	return authorizer.DecisionNoOpinion, "I can't allow that.  Go ask alice.", nil
 }
 
 func TestImpersonateIsForbidden(t *testing.T) {
@@ -861,9 +861,9 @@ type trackingAuthorizer struct {
 	requestAttributes []authorizer.Attributes
 }
 
-func (a *trackingAuthorizer) Authorize(attributes authorizer.Attributes) (bool, string, error) {
+func (a *trackingAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
 	a.requestAttributes = append(a.requestAttributes, attributes)
-	return true, "", nil
+	return authorizer.DecisionAllow, "", nil
 }
 
 // TestAuthorizationAttributeDetermination tests that authorization attributes are built correctly

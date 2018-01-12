@@ -1,7 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_binary",
@@ -17,24 +15,24 @@ go_binary(
         "-extldflags",
         "-static",
     ],
+    importpath = "k8s.io/kubernetes/cmd/kube-controller-manager",
     library = ":go_default_library",
-    tags = ["automanaged"],
     x_defs = version_x_defs(),
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["controller-manager.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/cmd/kube-controller-manager",
     deps = [
         "//cmd/kube-controller-manager/app:go_default_library",
         "//cmd/kube-controller-manager/app/options:go_default_library",
         "//pkg/client/metrics/prometheus:go_default_library",
+        "//pkg/util/reflector/prometheus:go_default_library",
         "//pkg/util/workqueue/prometheus:go_default_library",
         "//pkg/version/prometheus:go_default_library",
         "//pkg/version/verflag:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
-        "//vendor/k8s.io/apiserver/pkg/server/healthz:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/util/flag:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/util/logs:go_default_library",
     ],

@@ -30,6 +30,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/jsonpath"
@@ -227,9 +228,11 @@ func newCmdTokenSource(cmd string, args []string, tokenKey, expiryKey, timeFmt s
 func (c *commandTokenSource) Token() (*oauth2.Token, error) {
 	fullCmd := strings.Join(append([]string{c.cmd}, c.args...), " ")
 	cmd := execCommand(c.cmd, c.args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("error executing access token command %q: err=%v output=%s", fullCmd, err, output)
+		return nil, fmt.Errorf("error executing access token command %q: err=%v output=%s stderr=%s", fullCmd, err, output, string(stderr.Bytes()))
 	}
 	token, err := c.parseTokenCmdOutput(output)
 	if err != nil {
@@ -287,6 +290,8 @@ type conditionalTransport struct {
 	persister      restclient.AuthProviderConfigPersister
 }
 
+var _ net.RoundTripperWrapper = &conditionalTransport{}
+
 func (t *conditionalTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if len(req.Header.Get("Authorization")) != 0 {
 		return t.oauthTransport.Base.RoundTrip(req)
@@ -306,3 +311,5 @@ func (t *conditionalTransport) RoundTrip(req *http.Request) (*http.Response, err
 
 	return res, nil
 }
+
+func (t *conditionalTransport) WrappedRoundTripper() http.RoundTripper { return t.oauthTransport.Base }

@@ -19,13 +19,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	extensions_v1beta1 "k8s.io/api/extensions/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	internalinterfaces "k8s.io/client-go/informers/internalinterfaces"
 	kubernetes "k8s.io/client-go/kubernetes"
 	v1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
-	extensions_v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	cache "k8s.io/client-go/tools/cache"
 	time "time"
 )
@@ -38,29 +38,49 @@ type IngressInformer interface {
 }
 
 type ingressInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
-func newIngressInformer(client kubernetes.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewIngressInformer constructs a new informer for Ingress type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewIngressInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredIngressInformer(client, namespace, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredIngressInformer constructs a new informer for Ingress type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredIngressInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.ExtensionsV1beta1().Ingresses(v1.NamespaceAll).List(options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.ExtensionsV1beta1().Ingresses(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.ExtensionsV1beta1().Ingresses(v1.NamespaceAll).Watch(options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.ExtensionsV1beta1().Ingresses(namespace).Watch(options)
 			},
 		},
 		&extensions_v1beta1.Ingress{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func (f *ingressInformer) defaultInformer(client kubernetes.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredIngressInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *ingressInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&extensions_v1beta1.Ingress{}, newIngressInformer)
+	return f.factory.InformerFor(&extensions_v1beta1.Ingress{}, f.defaultInformer)
 }
 
 func (f *ingressInformer) Lister() v1beta1.IngressLister {

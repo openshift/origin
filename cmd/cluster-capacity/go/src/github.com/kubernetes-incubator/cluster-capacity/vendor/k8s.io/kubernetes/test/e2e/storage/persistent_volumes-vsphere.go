@@ -21,17 +21,17 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	clientset "k8s.io/client-go/kubernetes"
 	vsphere "k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // Testing configurations of single a PV/PVC pair attached to a vSphere Disk
-var _ = framework.KubeDescribe("PersistentVolumes:vsphere", func() {
+var _ = SIGDescribe("PersistentVolumes:vsphere", func() {
 	var (
 		c          clientset.Interface
 		ns         string
@@ -70,7 +70,7 @@ var _ = framework.KubeDescribe("PersistentVolumes:vsphere", func() {
 		selector = metav1.SetAsLabelSelector(volLabel)
 
 		if vsp == nil {
-			vsp, err = vsphere.GetVSphere()
+			vsp, err = getVSphere(c)
 			Expect(err).NotTo(HaveOccurred())
 		}
 		if volumePath == "" {
@@ -102,10 +102,10 @@ var _ = framework.KubeDescribe("PersistentVolumes:vsphere", func() {
 		By("Creating the Client Pod")
 		clientPod, err = framework.CreateClientPod(c, ns, pvc)
 		Expect(err).NotTo(HaveOccurred())
-		node := types.NodeName(clientPod.Spec.NodeName)
+		node = types.NodeName(clientPod.Spec.NodeName)
 
 		By("Verify disk should be attached to the node")
-		isAttached, err := verifyVSphereDiskAttached(vsp, volumePath, node)
+		isAttached, err := verifyVSphereDiskAttached(c, vsp, volumePath, node)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(isAttached).To(BeTrue(), "disk is not attached with the node")
 	})
@@ -131,8 +131,13 @@ var _ = framework.KubeDescribe("PersistentVolumes:vsphere", func() {
 		3. Delete Volume (vmdk)
 	*/
 	framework.AddCleanupAction(func() {
-		if len(volumePath) > 0 {
-			framework.ExpectNoError(waitForVSphereDiskToDetach(vsp, volumePath, node))
+		// Cleanup actions will be called even when the tests are skipped and leaves namespace unset.
+		if len(ns) > 0 && len(volumePath) > 0 {
+			client, err := framework.LoadClientset()
+			if err != nil {
+				return
+			}
+			framework.ExpectNoError(waitForVSphereDiskToDetach(client, vsp, volumePath, node))
 			vsp.DeleteVolume(volumePath)
 		}
 	})
@@ -212,6 +217,6 @@ var _ = framework.KubeDescribe("PersistentVolumes:vsphere", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verifying Persistent Disk detaches")
-		waitForVSphereDiskToDetach(vsp, volumePath, node)
+		waitForVSphereDiskToDetach(c, vsp, volumePath, node)
 	})
 })

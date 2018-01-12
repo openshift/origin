@@ -20,13 +20,13 @@ import (
 	"testing"
 	"time"
 
+	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
-	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 )
@@ -399,7 +399,10 @@ func TestDeploymentController_cleanupDeployment(t *testing.T) {
 
 		fake := &fake.Clientset{}
 		informers := informers.NewSharedInformerFactory(fake, controller.NoResyncPeriodFunc())
-		controller := NewDeploymentController(informers.Extensions().V1beta1().Deployments(), informers.Extensions().V1beta1().ReplicaSets(), informers.Core().V1().Pods(), fake)
+		controller, err := NewDeploymentController(informers.Extensions().V1beta1().Deployments(), informers.Extensions().V1beta1().ReplicaSets(), informers.Core().V1().Pods(), fake)
+		if err != nil {
+			t.Fatalf("error creating Deployment controller: %v", err)
+		}
 
 		controller.eventRecorder = &record.FakeRecorder{}
 		controller.dListerSynced = alwaysReady

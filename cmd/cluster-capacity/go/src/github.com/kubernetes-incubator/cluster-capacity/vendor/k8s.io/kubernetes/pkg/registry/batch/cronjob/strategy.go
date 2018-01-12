@@ -17,18 +17,13 @@ limitations under the License.
 package cronjob
 
 import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/api/pod"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/batch/validation"
 )
@@ -40,11 +35,11 @@ type cronJobStrategy struct {
 }
 
 // Strategy is the default logic that applies when creating and updating CronJob objects.
-var Strategy = cronJobStrategy{api.Scheme, names.SimpleNameGenerator}
+var Strategy = cronJobStrategy{legacyscheme.Scheme, names.SimpleNameGenerator}
 
 // DefaultGarbageCollectionPolicy returns Orphan because that was the default
 // behavior before the server-side garbage collection was implemented.
-func (cronJobStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+func (cronJobStrategy) DefaultGarbageCollectionPolicy(ctx genericapirequest.Context) rest.GarbageCollectionPolicy {
 	return rest.OrphanDependents
 }
 
@@ -57,6 +52,8 @@ func (cronJobStrategy) NamespaceScoped() bool {
 func (cronJobStrategy) PrepareForCreate(ctx genericapirequest.Context, obj runtime.Object) {
 	cronJob := obj.(*batch.CronJob)
 	cronJob.Status = batch.CronJobStatus{}
+
+	pod.DropDisabledAlphaFields(&cronJob.Spec.JobTemplate.Spec.Template.Spec)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
@@ -64,6 +61,9 @@ func (cronJobStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj, old 
 	newCronJob := obj.(*batch.CronJob)
 	oldCronJob := old.(*batch.CronJob)
 	newCronJob.Status = oldCronJob.Status
+
+	pod.DropDisabledAlphaFields(&newCronJob.Spec.JobTemplate.Spec.Template.Spec)
+	pod.DropDisabledAlphaFields(&oldCronJob.Spec.JobTemplate.Spec.Template.Spec)
 }
 
 // Validate validates a new scheduled job.
@@ -87,7 +87,7 @@ func (cronJobStrategy) AllowCreateOnUpdate() bool {
 
 // ValidateUpdate is the default update validation for an end user.
 func (cronJobStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateCronJob(obj.(*batch.CronJob))
+	return validation.ValidateCronJobUpdate(obj.(*batch.CronJob), old.(*batch.CronJob))
 }
 
 type cronJobStatusStrategy struct {
@@ -104,29 +104,4 @@ func (cronJobStatusStrategy) PrepareForUpdate(ctx genericapirequest.Context, obj
 
 func (cronJobStatusStrategy) ValidateUpdate(ctx genericapirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return field.ErrorList{}
-}
-
-// CronJobToSelectableFields returns a field set that represents the object for matching purposes.
-func CronJobToSelectableFields(cronJob *batch.CronJob) fields.Set {
-	return generic.ObjectMetaFieldsSet(&cronJob.ObjectMeta, true)
-}
-
-// GetAttrs returns labels and fields of a given object for filtering purposes.
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	cronJob, ok := obj.(*batch.CronJob)
-	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a scheduled job.")
-	}
-	return labels.Set(cronJob.ObjectMeta.Labels), CronJobToSelectableFields(cronJob), cronJob.Initializers != nil, nil
-}
-
-// MatchCronJob is the filter used by the generic etcd backend to route
-// watch events from etcd to clients of the apiserver only interested in specific
-// labels/fields.
-func MatchCronJob(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-	return storage.SelectionPredicate{
-		Label:    label,
-		Field:    field,
-		GetAttrs: GetAttrs,
-	}
 }

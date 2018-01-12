@@ -23,11 +23,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -46,7 +47,7 @@ const (
 	kRestart         kubeletOpt = "restart"
 )
 
-var _ = framework.KubeDescribe("PersistentVolumes [Volume][Disruptive][Flaky]", func() {
+var _ = SIGDescribe("PersistentVolumes[Disruptive][Flaky]", func() {
 
 	f := framework.NewDefaultFramework("disruptive-pv")
 	var (
@@ -60,6 +61,7 @@ var _ = framework.KubeDescribe("PersistentVolumes [Volume][Disruptive][Flaky]", 
 		volLabel                  labels.Set
 		selector                  *metav1.LabelSelector
 	)
+
 	BeforeEach(func() {
 		// To protect the NFS volume pod from the kubelet restart, we isolate it on its own node.
 		framework.SkipUnlessNodeCountIsAtLeast(MinNodes)
@@ -69,14 +71,8 @@ var _ = framework.KubeDescribe("PersistentVolumes [Volume][Disruptive][Flaky]", 
 		ns = f.Namespace.Name
 		volLabel = labels.Set{framework.VolumeSelectorKey: ns}
 		selector = metav1.SetAsLabelSelector(volLabel)
-
 		// Start the NFS server pod.
-		framework.Logf("[BeforeEach] Creating NFS Server Pod")
-		nfsServerPod = initNFSserverPod(c, ns)
-		framework.Logf("NFS server Pod %q created on Node %q", nfsServerPod.Name, nfsServerPod.Spec.NodeName)
-		framework.Logf("[BeforeEach] Configuring PersistentVolume")
-		nfsServerIP = nfsServerPod.Status.PodIP
-		Expect(nfsServerIP).NotTo(BeEmpty())
+		_, nfsServerPod, nfsServerIP = framework.NewNFSServer(c, ns, []string{"-G", "777", "/exports"})
 		nfsPVconfig = framework.PersistentVolumeConfig{
 			NamePrefix: "nfs-",
 			Labels:     volLabel,
@@ -108,25 +104,119 @@ var _ = framework.KubeDescribe("PersistentVolumes [Volume][Disruptive][Flaky]", 
 			Expect(clientNodeIP).NotTo(BeEmpty())
 		}
 	})
+
 	AfterEach(func() {
 		framework.DeletePodWithWait(f, c, nfsServerPod)
 	})
-	Context("when kubelet restarts", func() {
 
+	Context("when kube-controller-manager restarts", func() {
+		var (
+			diskName1, diskName2 string
+			err                  error
+			pvConfig1, pvConfig2 framework.PersistentVolumeConfig
+			pv1, pv2             *v1.PersistentVolume
+			pvSource1, pvSource2 *v1.PersistentVolumeSource
+			pvc1, pvc2           *v1.PersistentVolumeClaim
+			clientPod            *v1.Pod
+		)
+
+		BeforeEach(func() {
+			framework.SkipUnlessProviderIs("gce")
+			framework.SkipUnlessSSHKeyPresent()
+
+			By("Initializing first PD with PVPVC binding")
+			pvSource1, diskName1 = framework.CreateGCEVolume()
+			Expect(err).NotTo(HaveOccurred())
+			pvConfig1 = framework.PersistentVolumeConfig{
+				NamePrefix: "gce-",
+				Labels:     volLabel,
+				PVSource:   *pvSource1,
+				Prebind:    nil,
+			}
+			pv1, pvc1, err = framework.CreatePVPVC(c, pvConfig1, pvcConfig, ns, false)
+			Expect(err).NotTo(HaveOccurred())
+			framework.ExpectNoError(framework.WaitOnPVandPVC(c, ns, pv1, pvc1))
+
+			By("Initializing second PD with PVPVC binding")
+			pvSource2, diskName2 = framework.CreateGCEVolume()
+			Expect(err).NotTo(HaveOccurred())
+			pvConfig2 = framework.PersistentVolumeConfig{
+				NamePrefix: "gce-",
+				Labels:     volLabel,
+				PVSource:   *pvSource2,
+				Prebind:    nil,
+			}
+			pv2, pvc2, err = framework.CreatePVPVC(c, pvConfig2, pvcConfig, ns, false)
+			Expect(err).NotTo(HaveOccurred())
+			framework.ExpectNoError(framework.WaitOnPVandPVC(c, ns, pv2, pvc2))
+
+			By("Attaching both PVC's to a single pod")
+			clientPod, err = framework.CreatePod(c, ns, nil, []*v1.PersistentVolumeClaim{pvc1, pvc2}, true, "")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			// Delete client/user pod first
+			framework.ExpectNoError(framework.DeletePodWithWait(f, c, clientPod))
+
+			// Delete PV and PVCs
+			if errs := framework.PVPVCCleanup(c, ns, pv1, pvc1); len(errs) > 0 {
+				framework.Failf("AfterEach: Failed to delete PVC and/or PV. Errors: %v", utilerrors.NewAggregate(errs))
+			}
+			pv1, pvc1 = nil, nil
+			if errs := framework.PVPVCCleanup(c, ns, pv2, pvc2); len(errs) > 0 {
+				framework.Failf("AfterEach: Failed to delete PVC and/or PV. Errors: %v", utilerrors.NewAggregate(errs))
+			}
+			pv2, pvc2 = nil, nil
+
+			// Delete the actual disks
+			if diskName1 != "" {
+				framework.ExpectNoError(framework.DeletePDWithRetry(diskName1))
+			}
+			if diskName2 != "" {
+				framework.ExpectNoError(framework.DeletePDWithRetry(diskName2))
+			}
+		})
+
+		It("should delete a bound PVC from a clientPod, restart the kube-control-manager, and ensure the kube-controller-manager does not crash", func() {
+			By("Deleting PVC for volume 2")
+			err = framework.DeletePersistentVolumeClaim(c, pvc2.Name, ns)
+			Expect(err).NotTo(HaveOccurred())
+			pvc2 = nil
+
+			By("Restarting the kube-controller-manager")
+			err = framework.RestartControllerManager()
+			Expect(err).NotTo(HaveOccurred())
+			err = framework.WaitForControllerManagerUp()
+			Expect(err).NotTo(HaveOccurred())
+			framework.Logf("kube-controller-manager restarted")
+
+			By("Observing the kube-controller-manager healthy for at least 2 minutes")
+			// Continue checking for 2 minutes to make sure kube-controller-manager is healthy
+			err = framework.CheckForControllerManagerHealthy(2 * time.Minute)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+	})
+
+	Context("when kubelet restarts", func() {
 		var (
 			clientPod *v1.Pod
 			pv        *v1.PersistentVolume
 			pvc       *v1.PersistentVolumeClaim
 		)
+
 		BeforeEach(func() {
 			framework.Logf("Initializing test spec")
 			clientPod, pv, pvc = initTestCase(f, c, nfsPVconfig, pvcConfig, ns, clientNode.Name)
 		})
+
 		AfterEach(func() {
 			framework.Logf("Tearing down test spec")
 			tearDownTestCase(c, f, ns, clientPod, pvc, pv)
 			pv, pvc, clientPod = nil, nil, nil
 		})
+
 		// Test table housing the It() title string and test spec.  runTest is type testBody, defined at
 		// the start of this file.  To add tests, define a function mirroring the testBody signature and assign
 		// to runTest.
@@ -140,6 +230,7 @@ var _ = framework.KubeDescribe("PersistentVolumes [Volume][Disruptive][Flaky]", 
 				runTest:    testVolumeUnmountsFromDeletedPod,
 			},
 		}
+
 		// Test loop executes each disruptiveTest iteratively.
 		for _, test := range disruptiveTestTable {
 			func(t disruptiveTest) {
@@ -190,7 +281,7 @@ func testVolumeUnmountsFromDeletedPod(c clientset.Interface, f *framework.Framew
 		}
 	}()
 	By(fmt.Sprintf("Deleting Pod %q", clientPod.Name))
-	err = c.Core().Pods(clientPod.Namespace).Delete(clientPod.Name, &metav1.DeleteOptions{})
+	err = c.CoreV1().Pods(clientPod.Namespace).Delete(clientPod.Name, &metav1.DeleteOptions{})
 	Expect(err).NotTo(HaveOccurred())
 	By("Starting the kubelet and waiting for pod to delete.")
 	kubeletCommand(kStart, c, clientPod)
@@ -218,7 +309,7 @@ func initTestCase(f *framework.Framework, c clientset.Interface, pvConfig framew
 		}
 	}()
 	Expect(err).NotTo(HaveOccurred())
-	pod := framework.MakePod(ns, []*v1.PersistentVolumeClaim{pvc}, true, "")
+	pod := framework.MakePod(ns, nil, []*v1.PersistentVolumeClaim{pvc}, true, "")
 	pod.Spec.NodeName = nodeName
 	framework.Logf("Creating NFS client pod.")
 	pod, err = c.CoreV1().Pods(ns).Create(pod)
@@ -256,34 +347,90 @@ func tearDownTestCase(c clientset.Interface, f *framework.Framework, ns string, 
 // - If `service` also returns stderr "command not found", the test is aborted.
 // Allowed kubeletOps are `kStart`, `kStop`, and `kRestart`
 func kubeletCommand(kOp kubeletOpt, c clientset.Interface, pod *v1.Pod) {
+	command := ""
+	sudoPresent := false
+	systemctlPresent := false
+	kubeletPid := ""
+
 	nodeIP, err := framework.GetHostExternalAddress(c, pod)
 	Expect(err).NotTo(HaveOccurred())
 	nodeIP = nodeIP + ":22"
-	systemctlCmd := fmt.Sprintf("sudo systemctl %s kubelet", string(kOp))
-	framework.Logf("Attempting `%s`", systemctlCmd)
-	sshResult, err := framework.SSH(systemctlCmd, nodeIP, framework.TestContext.Provider)
+
+	framework.Logf("Checking if sudo command is present")
+	sshResult, err := framework.SSH("sudo --version", nodeIP, framework.TestContext.Provider)
+	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("SSH to Node %q errored.", pod.Spec.NodeName))
+	if !strings.Contains(sshResult.Stderr, "command not found") {
+		sudoPresent = true
+	}
+
+	framework.Logf("Checking if systemctl command is present")
+	sshResult, err = framework.SSH("systemctl --version", nodeIP, framework.TestContext.Provider)
+	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("SSH to Node %q errored.", pod.Spec.NodeName))
+	if !strings.Contains(sshResult.Stderr, "command not found") {
+		command = fmt.Sprintf("systemctl %s kubelet", string(kOp))
+		systemctlPresent = true
+	} else {
+		command = fmt.Sprintf("service kubelet %s", string(kOp))
+	}
+	if sudoPresent {
+		command = fmt.Sprintf("sudo %s", command)
+	}
+
+	if kOp == kRestart {
+		kubeletPid = getKubeletMainPid(nodeIP, sudoPresent, systemctlPresent)
+	}
+
+	framework.Logf("Attempting `%s`", command)
+	sshResult, err = framework.SSH(command, nodeIP, framework.TestContext.Provider)
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("SSH to Node %q errored.", pod.Spec.NodeName))
 	framework.LogSSHResult(sshResult)
-	if strings.Contains(sshResult.Stderr, "command not found") {
-		serviceCmd := fmt.Sprintf("sudo service kubelet %s", string(kOp))
-		framework.Logf("Attempting `%s`", serviceCmd)
-		sshResult, err = framework.SSH(serviceCmd, nodeIP, framework.TestContext.Provider)
-		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("SSH to Node %q errored.", pod.Spec.NodeName))
-		framework.LogSSHResult(sshResult)
-	}
 	Expect(sshResult.Code).To(BeZero(), "Failed to [%s] kubelet:\n%#v", string(kOp), sshResult)
-	// On restart, waiting for node NotReady prevents a race condition where the node takes a few moments to leave the
-	// Ready state which in turn short circuits WaitForNodeToBeReady()
-	if kOp == kStop || kOp == kRestart {
+
+	if kOp == kStop {
 		if ok := framework.WaitForNodeToBeNotReady(c, pod.Spec.NodeName, NodeStateTimeout); !ok {
 			framework.Failf("Node %s failed to enter NotReady state", pod.Spec.NodeName)
 		}
 	}
+	if kOp == kRestart {
+		// Wait for a minute to check if kubelet Pid is getting changed
+		isPidChanged := false
+		for start := time.Now(); time.Since(start) < 1*time.Minute; time.Sleep(2 * time.Second) {
+			kubeletPidAfterRestart := getKubeletMainPid(nodeIP, sudoPresent, systemctlPresent)
+			if kubeletPid != kubeletPidAfterRestart {
+				isPidChanged = true
+				break
+			}
+		}
+		Expect(isPidChanged).To(BeTrue(), "Kubelet PID remained unchanged after restarting Kubelet")
+		framework.Logf("Noticed that kubelet PID is changed. Waiting for 30 Seconds for Kubelet to come back")
+		time.Sleep(30 * time.Second)
+	}
 	if kOp == kStart || kOp == kRestart {
+		// For kubelet start and restart operations, Wait until Node becomes Ready
 		if ok := framework.WaitForNodeToBeReady(c, pod.Spec.NodeName, NodeStateTimeout); !ok {
 			framework.Failf("Node %s failed to enter Ready state", pod.Spec.NodeName)
 		}
 	}
+}
+
+// return the Main PID of the Kubelet Process
+func getKubeletMainPid(nodeIP string, sudoPresent bool, systemctlPresent bool) string {
+	command := ""
+	if systemctlPresent {
+		command = "systemctl status kubelet | grep 'Main PID'"
+	} else {
+		command = "service kubelet status | grep 'Main PID'"
+	}
+	if sudoPresent {
+		command = fmt.Sprintf("sudo %s", command)
+	}
+	framework.Logf("Attempting `%s`", command)
+	sshResult, err := framework.SSH(command, nodeIP, framework.TestContext.Provider)
+	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("SSH to Node %q errored.", nodeIP))
+	framework.LogSSHResult(sshResult)
+	Expect(sshResult.Code).To(BeZero(), "Failed to get kubelet PID")
+	Expect(sshResult.Stdout).NotTo(BeEmpty(), "Kubelet Main PID should not be Empty")
+	return sshResult.Stdout
 }
 
 // podExec wraps RunKubectl to execute a bash cmd in target pod

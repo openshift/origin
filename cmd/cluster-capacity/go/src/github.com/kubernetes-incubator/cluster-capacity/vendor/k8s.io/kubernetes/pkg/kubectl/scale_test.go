@@ -23,8 +23,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testcore "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/batch"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	batchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
@@ -257,7 +257,7 @@ func TestValidateReplicationController(t *testing.T) {
 			t.Errorf("unexpected error: %v (%s)", err, test.test)
 		}
 		if err == nil && test.expectError {
-			t.Errorf("unexpected non-error: %v (%s)", err, test.test)
+			t.Errorf("expected an error: %v (%s)", err, test.test)
 		}
 	}
 }
@@ -520,7 +520,7 @@ func TestValidateJob(t *testing.T) {
 			t.Errorf("unexpected error: %v (%s)", err, test.test)
 		}
 		if err == nil && test.expectError {
-			t.Errorf("unexpected non-error: %v (%s)", err, test.test)
+			t.Errorf("expected an error: %v (%s)", err, test.test)
 		}
 	}
 }
@@ -781,7 +781,7 @@ func TestValidateDeployment(t *testing.T) {
 			t.Errorf("unexpected error: %v (%s)", err, test.test)
 		}
 		if err == nil && test.expectError {
-			t.Errorf("unexpected non-error: %v (%s)", err, test.test)
+			t.Errorf("expected an error: %v (%s)", err, test.test)
 		}
 	}
 }

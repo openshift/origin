@@ -26,13 +26,13 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 const (
@@ -62,7 +62,7 @@ type ClusterID struct {
 func (gce *GCECloud) watchClusterID() {
 	gce.ClusterID = ClusterID{
 		cfgMapKey: fmt.Sprintf("%v/%v", UIDNamespace, UIDConfigMapName),
-		client:    gce.clientBuilder.ClientOrDie("cloud-provider"),
+		client:    gce.client,
 	}
 
 	mapEventHandler := cache.ResourceEventHandlerFuncs{
@@ -101,7 +101,7 @@ func (gce *GCECloud) watchClusterID() {
 		},
 	}
 
-	listerWatcher := cache.NewListWatchFromClient(gce.ClusterID.client.Core().RESTClient(), "configmaps", UIDNamespace, fields.Everything())
+	listerWatcher := cache.NewListWatchFromClient(gce.ClusterID.client.CoreV1().RESTClient(), "configmaps", UIDNamespace, fields.Everything())
 	var controller cache.Controller
 	gce.ClusterID.store, controller = cache.NewInformer(newSingleObjectListerWatcher(listerWatcher, UIDConfigMapName), &v1.ConfigMap{}, updateFuncFrequency, mapEventHandler)
 
@@ -189,7 +189,7 @@ func (ci *ClusterID) getOrInitialize() error {
 		UIDProvider: newId,
 	}
 
-	if _, err := ci.client.Core().ConfigMaps(UIDNamespace).Create(cfg); err != nil {
+	if _, err := ci.client.CoreV1().ConfigMaps(UIDNamespace).Create(cfg); err != nil {
 		glog.Errorf("GCE cloud provider failed to create %v config map to store cluster id: %v", ci.cfgMapKey, err)
 		return err
 	}
