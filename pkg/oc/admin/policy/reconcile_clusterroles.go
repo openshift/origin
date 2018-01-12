@@ -100,6 +100,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 				kcmdutil.CheckErr(err)
 			}
 		},
+		Deprecated: fmt.Sprintf("use 'oc auth reconcile'"),
 	}
 
 	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster roles should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")

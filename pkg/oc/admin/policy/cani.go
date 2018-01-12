@@ -71,6 +71,7 @@ func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 				os.Exit(2)
 			}
 		},
+		Deprecated: "use 'oc auth can-i'",
 	}
 
 	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "If true, check the specified action in all namespaces.")

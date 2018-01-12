@@ -80,6 +80,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 				printSuccessForCommand(options.RoleName, true, "group", options.Targets, true, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit rolebinding"),
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
@@ -113,6 +114,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 				printSuccessForCommand(options.RoleName, true, "user", options.Targets, true, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit rolebinding"),
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
@@ -145,6 +147,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 				printSuccessForCommand(options.RoleName, false, "group", options.Targets, true, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit rolebinding"),
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
@@ -176,6 +179,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 				printSuccessForCommand(options.RoleName, false, "user", options.Targets, true, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit rolebinding"),
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
@@ -207,6 +211,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 				printSuccessForCommand(options.RoleName, true, "group", options.Targets, false, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit clusterrolebinding"),
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
@@ -237,6 +242,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 				printSuccessForCommand(options.RoleName, true, "user", options.Targets, false, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit clusterrolebinding"),
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
@@ -268,6 +274,7 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 				printSuccessForCommand(options.RoleName, false, "group", options.Targets, false, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit clusterrolebinding"),
 	}
 
 	kcmdutil.AddDryRunFlag(cmd)
@@ -297,6 +304,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 				printSuccessForCommand(options.RoleName, false, "user", options.Targets, false, options.DryRun, out)
 			}
 		},
+		Deprecated: fmt.Sprintf("Use oc edit clusterrolebinding"),
 	}
 
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
