@@ -122,6 +122,12 @@ func Run(s *options.CMServer) error {
 		return err
 	}
 
+	cleanupFn, err := ShimForOpenShift(s, kubeconfig)
+	if err != nil {
+		return err
+	}
+	defer cleanupFn()
+
 	if s.Port >= 0 {
 		go startHTTP(s)
 	}
@@ -429,10 +435,10 @@ func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (ma
 func CreateControllerContext(s *options.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) {
 	versionedClient := rootClientBuilder.ClientOrDie("shared-informers")
 	var sharedInformers informers.SharedInformerFactory
-	if InformerFactoryOverride == nil{
+	if InformerFactoryOverride == nil {
 		sharedInformers = informers.NewSharedInformerFactory(versionedClient, ResyncPeriod(s)())
-	} else{
-		sharedInformers  = InformerFactoryOverride
+	} else {
+		sharedInformers = InformerFactoryOverride
 	}
 
 	availableResources, err := GetAvailableResources(rootClientBuilder)
