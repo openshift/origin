@@ -23,9 +23,9 @@ import (
 	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 
+	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 
 	"github.com/kubernetes-incubator/cluster-capacity/cmd/cluster-capacity/app/options"
@@ -81,18 +81,21 @@ func Validate(opt *options.ClusterCapacityOptions) error {
 
 func Run(opt *options.ClusterCapacityOptions) error {
 	conf := options.NewClusterCapacityConfig(opt)
-	err := conf.ParseAPISpec()
-	if err != nil {
-		return fmt.Errorf("Failed to parse pod spec file: %v ", err)
-	}
 
-	err = conf.SetDefaultScheduler()
+	err := conf.SetDefaultScheduler()
 	if err != nil {
 		return fmt.Errorf("Failed to set default scheduler config: %v ", err)
 	}
-	err = conf.ParseAdditionalSchedulerConfigs()
+
+	// TODO (avesh): Enable when support for multiple schedulers is implemented.
+	/*err = conf.ParseAdditionalSchedulerConfigs()
 	if err != nil {
 		return fmt.Errorf("Failed to parse config file: %v ", err)
+	}*/
+
+	err = conf.ParseAPISpec()
+	if err != nil {
+		return fmt.Errorf("Failed to parse pod spec file: %v ", err)
 	}
 
 	var cfg *restclient.Config
@@ -136,11 +139,12 @@ func runSimulator(s *options.ClusterCapacityConfig, syncWithClient bool) (*frame
 		return nil, err
 	}
 
-	for i := 0; i < len(s.Schedulers); i++ {
+	// TODO (avesh): Enable when support for multiple schedulers is implemented.
+	/*for i := 0; i < len(s.Schedulers); i++ {
 		if err = cc.AddScheduler(s.Schedulers[i]); err != nil {
 			return nil, err
 		}
-	}
+	}*/
 
 	if syncWithClient {
 		err = cc.SyncWithClient(s.KubeClient)
