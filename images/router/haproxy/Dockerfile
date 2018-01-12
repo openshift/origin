@@ -6,9 +6,7 @@
 FROM openshift/origin
 
 RUN INSTALL_PKGS="haproxy18" && \
-    yum install yum-utils && \
-    yum-config-manager --add http://cbs.centos.org/repos/paas7-openshift-origin38-testing/x86_64/os/ && \
-    yum install --nogpgcheck -y $INSTALL_PKGS && \
+    yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
     mkdir -p /var/lib/haproxy/router/{certs,cacerts} && \

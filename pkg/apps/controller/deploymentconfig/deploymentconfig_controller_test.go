@@ -452,6 +452,9 @@ func newInt32(i int32) *int32 {
 
 func newDC(version, replicas, maxUnavailable int, cond appsapi.DeploymentCondition) *appsapi.DeploymentConfig {
 	return &appsapi.DeploymentConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Generation: 1,
+		},
 		Spec: appsapi.DeploymentConfigSpec{
 			Replicas: int32(replicas),
 			Strategy: appsapi.DeploymentStrategy{
@@ -502,8 +505,9 @@ func TestCalculateStatus(t *testing.T) {
 	tests := []struct {
 		name string
 
-		dc  *appsapi.DeploymentConfig
-		rcs []*v1.ReplicationController
+		dc                       *appsapi.DeploymentConfig
+		rcs                      []*v1.ReplicationController
+		updateObservedGeneration bool
 
 		expected appsapi.DeploymentConfigStatus
 	}{
@@ -523,6 +527,29 @@ func TestCalculateStatus(t *testing.T) {
 				ReadyReplicas:     int32(2),
 				AvailableReplicas: int32(2),
 				UpdatedReplicas:   int32(2),
+				Conditions: []appsapi.DeploymentCondition{
+					availableCond,
+				},
+			},
+		},
+		{
+			name: "available deployment with updating observedGeneration",
+
+			dc: newDC(3, 3, 1, availableCond),
+			rcs: []*v1.ReplicationController{
+				newRC(3, 2, 2, 1, 1),
+				newRC(2, 0, 0, 0, 0),
+				newRC(1, 0, 1, 1, 1),
+			},
+			updateObservedGeneration: true,
+
+			expected: appsapi.DeploymentConfigStatus{
+				LatestVersion:      int64(3),
+				ObservedGeneration: int64(1),
+				Replicas:           int32(3),
+				ReadyReplicas:      int32(2),
+				AvailableReplicas:  int32(2),
+				UpdatedReplicas:    int32(2),
 				Conditions: []appsapi.DeploymentCondition{
 					availableCond,
 				},
@@ -552,7 +579,7 @@ func TestCalculateStatus(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		status := calculateStatus(test.dc, test.rcs)
+		status := calculateStatus(test.dc, test.rcs, test.updateObservedGeneration)
 		if !reflect.DeepEqual(status, test.expected) {
 			t.Errorf("%s: expected status:\n%+v\ngot status:\n%+v", test.name, test.expected, status)
 		}
