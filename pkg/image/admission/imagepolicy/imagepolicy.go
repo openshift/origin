@@ -3,6 +3,7 @@ package imagepolicy
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"time"
 
@@ -12,7 +13,9 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -50,6 +53,9 @@ func Register(plugins *admission.Plugins) {
 			return newImagePolicyPlugin(config)
 		})
 }
+
+var _ admission.MutationInterface = &imagePolicyPlugin{}
+var _ admission.ValidationInterface = &imagePolicyPlugin{}
 
 type imagePolicyPlugin struct {
 	*admission.Handler
@@ -165,6 +171,15 @@ func mutateAttributesToLegacyResources(attr admission.Attributes) admission.Attr
 
 // Admit attempts to apply the image policy to the incoming resource.
 func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
+	return a.admit(attr, true)
+}
+
+// Validate attempts to apply the image policy to the incoming resource.
+func (a *imagePolicyPlugin) Validate(attr admission.Attributes) error {
+	return a.admit(attr, false)
+}
+
+func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed bool) error {
 	switch attr.GetOperation() {
 	case admission.Create, admission.Update:
 		if len(attr.GetSubresource()) > 0 {
@@ -194,6 +209,10 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
 	}
 
+	if !mutationAllowed {
+		m = &mutationPreventer{m}
+	}
+
 	annotations, _ := meta.GetAnnotationAccessor(attr.GetObject())
 
 	// load exclusion rules from the namespace cache
@@ -211,6 +230,24 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 	}
 
 	return nil
+}
+
+type mutationPreventer struct {
+	m meta.ImageReferenceMutator
+}
+
+func (m *mutationPreventer) Mutate(fn meta.ImageReferenceMutateFunc) field.ErrorList {
+	return m.m.Mutate(func(ref *kapi.ObjectReference) error {
+		original := ref.DeepCopy()
+		if err := fn(ref); err != nil {
+			return fmt.Errorf("error in image policy validation: %v", err)
+		}
+		if !reflect.DeepEqual(ref, original) {
+			glog.V(2).Infof("disallowed mutation in image policy validation: %s", diff.ObjectGoPrintSideBySide(original, ref))
+			return fmt.Errorf("this image is prohibited by policy (changed after admission)")
+		}
+		return nil
+	})
 }
 
 type imageResolutionCache struct {
