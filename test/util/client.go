@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pkg/errors"
+
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -65,7 +67,7 @@ func GetClusterAdminClientConfigOrDie(adminKubeConfigFile string) *restclient.Co
 func GetClientForUser(clientConfig *restclient.Config, username string) (kclientset.Interface, *restclient.Config, error) {
 	token, err := tokencmd.RequestToken(clientConfig, nil, username, "password")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(err, "failed to request token")
 	}
 
 	userClientConfig := restclient.AnonymousClientConfig(clientConfig)
@@ -73,7 +75,7 @@ func GetClientForUser(clientConfig *restclient.Config, username string) (kclient
 
 	kubeClientset, err := kclientset.NewForConfig(userClientConfig)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrapf(err, "failed to create new kube clientset config")
 	}
 
 	return kubeClientset, userClientConfig, nil

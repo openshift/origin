@@ -289,7 +289,7 @@ func TestRequestToken(t *testing.T) {
 				{initialRequest, negotiateChallenge1},
 				{negotiateRequest1, success},
 			},
-			ExpectedError: "client requires final negotiate token, none provided",
+			ExpectedError: "failed to complete challenge: client requires final negotiate token, none provided",
 		},
 
 		// Unloadable negotiate handler
@@ -328,7 +328,7 @@ func TestRequestToken(t *testing.T) {
 			Requests: []requestResponse{
 				{initialRequest, negotiateChallenge1},
 			},
-			ExpectedError: "InitSecContext failed",
+			ExpectedError: "failed to handle challenge: InitSecContext failed",
 		},
 		"failing negotiate handler, basic challenge, failure": {
 			Handler: &NegotiateChallengeHandler{negotiater: &failingNegotiator{}},
@@ -394,7 +394,7 @@ func TestRequestToken(t *testing.T) {
 				{negotiateRequest1, negotiateChallenge2},
 				{negotiateRequest2, doubleChallenge},
 			},
-			ExpectedError: "InitSecContext: expected 2 calls, saw 3",
+			ExpectedError: "failed to handle challenge: InitSecContext: expected 2 calls, saw 3",
 		},
 	}
 
