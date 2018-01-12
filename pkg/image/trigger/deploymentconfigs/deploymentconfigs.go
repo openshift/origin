@@ -128,12 +128,18 @@ func (i deploymentConfigTriggerIndexer) Index(obj, old interface{}) (string, *tr
 	default:
 		// updated
 		dc = obj.(*appsapi.DeploymentConfig)
+		oldDC := old.(*appsapi.DeploymentConfig)
 		triggers = calculateDeploymentConfigTriggers(dc)
-		oldTriggers := calculateDeploymentConfigTriggers(old.(*appsapi.DeploymentConfig))
+		oldTriggers := calculateDeploymentConfigTriggers(oldDC)
 		switch {
 		case len(oldTriggers) == 0:
 			change = cache.Added
 		case !reflect.DeepEqual(oldTriggers, triggers):
+			change = cache.Updated
+		// We need to react on image changes as well. Image names could change,
+		// images could be set to different value or resetted to "" e.g. by oc apply
+		// and we need to make sure those changes get reconciled by re-resolving images
+		case !reflect.DeepEqual(dc.Spec.Template.Spec.Containers, oldDC.Spec.Template.Spec.Containers):
 			change = cache.Updated
 		}
 	}
@@ -186,9 +192,6 @@ func UpdateDeploymentConfigImages(dc *appsapi.DeploymentConfig, tagRetriever tri
 		if !ok && len(p.LastTriggeredImage) == 0 {
 			glog.V(4).Infof("trigger %#v in deployment %s is not resolveable", p, dc.Name)
 			return nil, false, nil
-		}
-		if ref == p.LastTriggeredImage {
-			continue
 		}
 
 		if len(ref) == 0 {
