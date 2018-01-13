@@ -1,5 +1,5 @@
-kind: AssetConfig
-apiVersion: v1
+kind: WebConsoleConfiguration
+apiVersion: webconsole.config.openshift.io/v1
 extensionDevelopment: false
 extensionProperties: null
 extensionScripts: null
