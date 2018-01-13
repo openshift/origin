@@ -1,5 +1,3 @@
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_library",
@@ -8,7 +6,8 @@ load(
 go_library(
     name = "go_default_library",
     srcs = ["jsonmerge.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/pkg/kubectl/cmd/util/jsonmerge",
+    visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/evanphx/json-patch:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",

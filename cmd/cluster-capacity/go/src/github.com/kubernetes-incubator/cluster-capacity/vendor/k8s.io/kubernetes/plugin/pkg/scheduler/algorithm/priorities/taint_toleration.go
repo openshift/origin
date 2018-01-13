@@ -19,9 +19,8 @@ package priorities
 import (
 	"fmt"
 
-	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/v1"
-	v1helper "k8s.io/kubernetes/pkg/api/v1/helper"
+	"k8s.io/api/core/v1"
+	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
@@ -74,29 +73,4 @@ func ComputeTaintTolerationPriorityMap(pod *v1.Pod, meta interface{}, nodeInfo *
 }
 
 // ComputeTaintTolerationPriorityReduce calculates the source of each node based on the number of intolerable taints on the node
-func ComputeTaintTolerationPriorityReduce(pod *v1.Pod, meta interface{}, nodeNameToInfo map[string]*schedulercache.NodeInfo, result schedulerapi.HostPriorityList) error {
-	var maxCount int
-	for i := range result {
-		if result[i].Score > maxCount {
-			maxCount = result[i].Score
-		}
-	}
-	maxCountFloat := float64(maxCount)
-
-	// The maximum priority value to give to a node
-	// Priority values range from 0 - maxPriority
-	const maxPriority = float64(10)
-	for i := range result {
-		fScore := maxPriority
-		if maxCountFloat > 0 {
-			fScore = (1.0 - float64(result[i].Score)/maxCountFloat) * 10
-		}
-		if glog.V(10) {
-			// We explicitly don't do glog.V(10).Infof() to avoid computing all the parameters if this is
-			// not logged. There is visible performance gain from it.
-			glog.Infof("%v -> %v: Taint Toleration Priority, Score: (%d)", pod.Name, result[i].Host, int(fScore))
-		}
-		result[i].Score = int(fScore)
-	}
-	return nil
-}
+var ComputeTaintTolerationPriorityReduce = NormalizeReduce(schedulerapi.MaxPriority, true)

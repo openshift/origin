@@ -24,13 +24,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	"k8s.io/kubernetes/pkg/kubelet/cm"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/images"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
+)
+
+const (
+	fakeSeccompProfileRoot = "/fakeSeccompProfileRoot"
 )
 
 type fakeHTTP struct {
@@ -43,17 +47,26 @@ func (f *fakeHTTP) Get(url string) (*http.Response, error) {
 	return nil, f.err
 }
 
-type fakePodGetter struct {
-	pods map[types.UID]*v1.Pod
+type fakePodStateProvider struct {
+	existingPods map[types.UID]struct{}
+	runningPods  map[types.UID]struct{}
 }
 
-func newFakePodGetter() *fakePodGetter {
-	return &fakePodGetter{make(map[types.UID]*v1.Pod)}
+func newFakePodStateProvider() *fakePodStateProvider {
+	return &fakePodStateProvider{
+		existingPods: make(map[types.UID]struct{}),
+		runningPods:  make(map[types.UID]struct{}),
+	}
 }
 
-func (f *fakePodGetter) GetPodByUID(uid types.UID) (*v1.Pod, bool) {
-	pod, found := f.pods[uid]
-	return pod, found
+func (f *fakePodStateProvider) IsPodDeleted(uid types.UID) bool {
+	_, found := f.existingPods[uid]
+	return !found
+}
+
+func (f *fakePodStateProvider) IsPodTerminated(uid types.UID) bool {
+	_, found := f.runningPods[uid]
+	return !found
 }
 
 func NewFakeKubeRuntimeManager(runtimeService internalapi.RuntimeService, imageService internalapi.ImageManagerService, machineInfo *cadvisorapi.MachineInfo, osInterface kubecontainer.OSInterface, runtimeHelper kubecontainer.RuntimeHelper, keyring credentialprovider.DockerKeyring) (*kubeGenericRuntimeManager, error) {
@@ -69,6 +82,8 @@ func NewFakeKubeRuntimeManager(runtimeService internalapi.RuntimeService, imageS
 		runtimeService:      runtimeService,
 		imageService:        imageService,
 		keyring:             keyring,
+		seccompProfileRoot:  fakeSeccompProfileRoot,
+		internalLifecycle:   cm.NewFakeInternalContainerLifecycle(),
 	}
 
 	typedVersion, err := runtimeService.Version(kubeRuntimeAPIVersion)
@@ -76,7 +91,7 @@ func NewFakeKubeRuntimeManager(runtimeService internalapi.RuntimeService, imageS
 		return nil, err
 	}
 
-	kubeRuntimeManager.containerGC = NewContainerGC(runtimeService, newFakePodGetter(), kubeRuntimeManager)
+	kubeRuntimeManager.containerGC = NewContainerGC(runtimeService, newFakePodStateProvider(), kubeRuntimeManager)
 	kubeRuntimeManager.runtimeName = typedVersion.RuntimeName
 	kubeRuntimeManager.imagePuller = images.NewImageManager(
 		kubecontainer.FilterEventRecorder(recorder),

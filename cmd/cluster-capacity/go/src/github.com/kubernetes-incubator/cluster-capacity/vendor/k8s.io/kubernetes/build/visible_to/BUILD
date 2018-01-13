@@ -30,25 +30,20 @@ package_group(
     packages = [
         "//cmd/gendocs",
         "//cmd/genman",
-        "//cmd/genslateyaml",
         "//cmd/genyaml",
-    ],
-)
-
-package_group(
-    name = "COMMON_release",
-    packages = [
-        "//build",
-        "//build/debs",
-        "//build/rpms",
     ],
 )
 
 package_group(
     name = "COMMON_testing",
     packages = [
+        "//hack",
+        "//hack/lib",
+        "//hack/make-rules",
         "//test/e2e",
         "//test/e2e/framework",
+        "//test/e2e/kubectl",
+        "//test/e2e/workload",
         "//test/integration/etcd",
         "//test/integration/framework",
         "//test/integration/kubectl",
@@ -56,22 +51,16 @@ package_group(
 )
 
 package_group(
-    name = "FEDERATION_BAD",
+    name = "cluster",
     packages = [
-        "//federation/cmd/kubefed/app",
-        "//federation/pkg/kubefed",
-        "//federation/pkg/kubefed/init",
-        "//federation/pkg/kubefed/testing",
-        "//federation/pkg/kubefed/util",
+        "//cluster/...",
     ],
 )
 
 package_group(
     name = "KUBEADM_BAD",
     packages = [
-        "//cmd/kubeadm/app",
         "//cmd/kubeadm/app/cmd",
-        "//cmd/kubeadm/app/master",
     ],
 )
 
@@ -92,7 +81,6 @@ package_group(
 package_group(
     name = "pkg_kubectl_CONSUMERS_BAD",
     includes = [
-        ":FEDERATION_BAD",
         ":KUBEADM_BAD",
     ],
     packages = [
@@ -124,9 +112,6 @@ package_group(
 
 package_group(
     name = "pkg_kubectl_cmd_CONSUMERS_BAD",
-    includes = [
-        ":FEDERATION_BAD",
-    ],
     packages = [
         "//cmd/clicheck",
         "//cmd/hyperkube",
@@ -178,18 +163,10 @@ package_group(
 )
 
 package_group(
-    name = "pkg_kubectl_cmd_templates_CONSUMERS_BAD",
-    packages = [
-        "//federation/pkg/kubefed/init",
-    ],
-)
-
-package_group(
     name = "pkg_kubectl_cmd_templates_CONSUMERS",
     includes = [
         ":COMMON_generators",
         ":COMMON_testing",
-        ":FEDERATION_BAD",
     ],
     packages = [
         "//cmd/kubectl",
@@ -197,6 +174,7 @@ package_group(
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
         "//pkg/kubectl/cmd/config",
+        "//pkg/kubectl/cmd/resource",
         "//pkg/kubectl/cmd/rollout",
         "//pkg/kubectl/cmd/set",
         "//pkg/kubectl/cmd/templates",
@@ -213,35 +191,26 @@ package_group(
 )
 
 package_group(
-    name = "pkg_kubectl_cmd_testing_CONSUMERS_BAD",
-    packages = [
-        "//federation/pkg/kubefed",
-        "//federation/pkg/kubefed/init",
-    ],
-)
-
-package_group(
     name = "pkg_kubectl_cmd_testing_CONSUMERS",
-    includes = [
-        ":pkg_kubectl_cmd_testing_CONSUMERS_BAD",
-    ],
     packages = [
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
+        "//pkg/kubectl/cmd/resource",
         "//pkg/kubectl/cmd/set",
+        "//pkg/kubectl/explain",
     ],
 )
 
 package_group(
     name = "pkg_kubectl_cmd_util_CONSUMERS_BAD",
     includes = [
-        ":FEDERATION_BAD",
         ":KUBEADM_BAD",
     ],
     packages = [
         "//cmd/clicheck",
         "//cmd/hyperkube",
         "//cmd/kube-proxy/app",
+        "//plugin/cmd/kube-scheduler/app",
     ],
 )
 
@@ -258,6 +227,7 @@ package_group(
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
         "//pkg/kubectl/cmd/config",
+        "//pkg/kubectl/cmd/resource",
         "//pkg/kubectl/cmd/rollout",
         "//pkg/kubectl/cmd/set",
         "//pkg/kubectl/cmd/testing",
@@ -292,9 +262,6 @@ package_group(
 
 package_group(
     name = "pkg_kubectl_metricsutil_CONSUMERS_BAD",
-    includes = [
-        ":FEDERATION_BAD",
-    ],
     packages = [
         "//cmd/clicheck",
         "//cmd/hyperkube",
@@ -316,18 +283,10 @@ package_group(
 )
 
 package_group(
-    name = "pkg_kubectl_resource_CONSUMERS_BAD",
-    packages = [
-        "//federation/pkg/kubefed",
-    ],
-)
-
-package_group(
     name = "pkg_kubectl_resource_CONSUMERS",
     includes = [
         ":COMMON_generators",
         ":COMMON_testing",
-        ":pkg_kubectl_resource_CONSUMERS_BAD",
     ],
     packages = [
         "//cmd/kubectl",
@@ -336,6 +295,7 @@ package_group(
         "//pkg/kubectl/cmd",
         "//pkg/kubectl/cmd/auth",
         "//pkg/kubectl/cmd/config",
+        "//pkg/kubectl/cmd/resource",
         "//pkg/kubectl/cmd/rollout",
         "//pkg/kubectl/cmd/set",
         "//pkg/kubectl/cmd/testing",
@@ -357,6 +317,17 @@ package_group(
     packages = [
         "//pkg/kubectl",
         "//pkg/kubectl/cmd",
+        "//pkg/kubectl/proxy",
+    ],
+)
+
+package_group(
+    name = "pkg_kubectl_validation_CONSUMERS",
+    packages = [
+        "//pkg/kubectl",
+        "//pkg/kubectl/cmd/testing",
+        "//pkg/kubectl/cmd/util",
+        "//pkg/kubectl/resource",
     ],
 )
 
@@ -374,5 +345,5 @@ filegroup(
     name = "all-srcs",
     srcs = [":package-srcs"],
     tags = ["automanaged"],
-    visibility = ["//build/visible_to:COMMON_release"],
+    visibility = ["//visibility:public"],
 )

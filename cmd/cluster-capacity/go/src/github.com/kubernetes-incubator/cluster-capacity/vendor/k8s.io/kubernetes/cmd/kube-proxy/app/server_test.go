@@ -28,10 +28,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
-	"k8s.io/kubernetes/pkg/util"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	"k8s.io/kubernetes/pkg/util/configz"
 	"k8s.io/kubernetes/pkg/util/iptables"
+	utilpointer "k8s.io/kubernetes/pkg/util/pointer"
 )
 
 type fakeNodeInterface struct {
@@ -48,6 +49,15 @@ type fakeIPTablesVersioner struct {
 }
 
 func (fake *fakeIPTablesVersioner) GetVersion() (string, error) {
+	return fake.version, fake.err
+}
+
+type fakeIPSetVersioner struct {
+	version string // what to return
+	err     error  // what to return
+}
+
+func (fake *fakeIPSetVersioner) GetVersion() (string, error) {
 	return fake.version, fake.err
 }
 
@@ -71,8 +81,10 @@ func Test_getProxyMode(t *testing.T) {
 		annotationKey   string
 		annotationVal   string
 		iptablesVersion string
+		ipsetVersion    string
 		kernelCompat    bool
 		iptablesError   error
+		ipsetError      error
 		expected        string
 	}{
 		{ // flag says userspace
@@ -127,30 +139,39 @@ func Test_getProxyMode(t *testing.T) {
 	for i, c := range cases {
 		versioner := &fakeIPTablesVersioner{c.iptablesVersion, c.iptablesError}
 		kcompater := &fakeKernelCompatTester{c.kernelCompat}
-		r := getProxyMode(c.flag, versioner, kcompater)
+		ipsetver := &fakeIPSetVersioner{c.ipsetVersion, c.ipsetError}
+		r := getProxyMode(c.flag, versioner, ipsetver, kcompater)
 		if r != c.expected {
 			t.Errorf("Case[%d] Expected %q, got %q", i, c.expected, r)
 		}
 	}
 }
 
-// This test verifies that Proxy Server does not crash when CleanupAndExit is true.
+// This test verifies that NewProxyServer does not crash when CleanupAndExit is true.
 func TestProxyServerWithCleanupAndExit(t *testing.T) {
-	options, err := NewOptions()
-	if err != nil {
-		t.Fatal(err)
+	// Each bind address below is a separate test case
+	bindAddresses := []string{
+		"0.0.0.0",
+		"::",
 	}
+	for _, addr := range bindAddresses {
+		options := NewOptions()
 
-	options.config = &componentconfig.KubeProxyConfiguration{
-		BindAddress: "0.0.0.0",
+		options.config = &kubeproxyconfig.KubeProxyConfiguration{
+			BindAddress: addr,
+		}
+		options.CleanupAndExit = true
+
+		proxyserver, err := NewProxyServer(options)
+
+		assert.Nil(t, err, "unexpected error in NewProxyServer, addr: %s", addr)
+		assert.NotNil(t, proxyserver, "nil proxy server obj, addr: %s", addr)
+		assert.NotNil(t, proxyserver.IptInterface, "nil iptables intf, addr: %s", addr)
+		assert.True(t, proxyserver.CleanupAndExit, "false CleanupAndExit, addr: %s", addr)
+
+		// Clean up config for next test case
+		configz.Delete(kubeproxyconfig.GroupName)
 	}
-	options.CleanupAndExit = true
-
-	proxyserver, err := NewProxyServer(options.config, options.CleanupAndExit, options.scheme, options.master)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, proxyserver)
-	assert.NotNil(t, proxyserver.IptInterface)
 }
 
 func TestGetConntrackMax(t *testing.T) {
@@ -193,10 +214,10 @@ func TestGetConntrackMax(t *testing.T) {
 	}
 
 	for i, tc := range testCases {
-		cfg := componentconfig.KubeProxyConntrackConfiguration{
-			Min:        tc.min,
-			Max:        tc.max,
-			MaxPerCore: tc.maxPerCore,
+		cfg := kubeproxyconfig.KubeProxyConntrackConfiguration{
+			Min:        utilpointer.Int32Ptr(tc.min),
+			Max:        utilpointer.Int32Ptr(tc.max),
+			MaxPerCore: utilpointer.Int32Ptr(tc.maxPerCore),
 		}
 		x, e := getConntrackMax(cfg)
 		if e != nil {
@@ -211,16 +232,18 @@ func TestGetConntrackMax(t *testing.T) {
 	}
 }
 
+// TestLoadConfig tests proper operation of loadConfig()
 func TestLoadConfig(t *testing.T) {
-	yaml := `apiVersion: componentconfig/v1alpha1
-bindAddress: 9.8.7.6
+
+	yamlTemplate := `apiVersion: kubeproxy.config.k8s.io/v1alpha1
+bindAddress: %s
 clientConnection:
   acceptContentTypes: "abc"
   burst: 100
   contentType: content-type
   kubeconfig: "/path/to/kubeconfig"
   qps: 7
-clusterCIDR: "1.2.3.0/24"
+clusterCIDR: "%s"
 configSyncPeriod: 15s
 conntrack:
   max: 4
@@ -229,63 +252,180 @@ conntrack:
   tcpCloseWaitTimeout: 10s
   tcpEstablishedTimeout: 20s
 featureGates: "all"
-healthzBindAddress: 1.2.3.4:12345
+healthzBindAddress: "%s"
 hostnameOverride: "foo"
 iptables:
   masqueradeAll: true
   masqueradeBit: 17
   minSyncPeriod: 10s
   syncPeriod: 60s
+ipvs:
+  minSyncPeriod: 10s
+  syncPeriod: 60s
 kind: KubeProxyConfiguration
-metricsBindAddress: 2.3.4.5:23456
-mode: "iptables"
+metricsBindAddress: "%s"
+mode: "%s"
 oomScoreAdj: 17
 portRange: "2-7"
 resourceContainer: /foo
 udpTimeoutMilliseconds: 123ms
 `
 
-	expected := &componentconfig.KubeProxyConfiguration{
-		BindAddress: "9.8.7.6",
-		ClientConnection: componentconfig.ClientConnectionConfiguration{
-			AcceptContentTypes: "abc",
-			Burst:              100,
-			ContentType:        "content-type",
-			KubeConfigFile:     "/path/to/kubeconfig",
-			QPS:                7,
+	testCases := []struct {
+		name               string
+		mode               string
+		bindAddress        string
+		clusterCIDR        string
+		healthzBindAddress string
+		metricsBindAddress string
+	}{
+		{
+			name:               "iptables mode, IPv4 all-zeros bind address",
+			mode:               "iptables",
+			bindAddress:        "0.0.0.0",
+			clusterCIDR:        "1.2.3.0/24",
+			healthzBindAddress: "1.2.3.4:12345",
+			metricsBindAddress: "2.3.4.5:23456",
 		},
-		ClusterCIDR:      "1.2.3.0/24",
-		ConfigSyncPeriod: metav1.Duration{Duration: 15 * time.Second},
-		Conntrack: componentconfig.KubeProxyConntrackConfiguration{
-			Max:                   4,
-			MaxPerCore:            2,
-			Min:                   1,
-			TCPCloseWaitTimeout:   metav1.Duration{Duration: 10 * time.Second},
-			TCPEstablishedTimeout: metav1.Duration{Duration: 20 * time.Second},
+		{
+			name:               "iptables mode, non-zeros IPv4 config",
+			mode:               "iptables",
+			bindAddress:        "9.8.7.6",
+			clusterCIDR:        "1.2.3.0/24",
+			healthzBindAddress: "1.2.3.4:12345",
+			metricsBindAddress: "2.3.4.5:23456",
 		},
-		FeatureGates:       "all",
-		HealthzBindAddress: "1.2.3.4:12345",
-		HostnameOverride:   "foo",
-		IPTables: componentconfig.KubeProxyIPTablesConfiguration{
-			MasqueradeAll: true,
-			MasqueradeBit: util.Int32Ptr(17),
-			MinSyncPeriod: metav1.Duration{Duration: 10 * time.Second},
-			SyncPeriod:    metav1.Duration{Duration: 60 * time.Second},
+		{
+			// Test for 'bindAddress: "::"' (IPv6 all-zeros) in kube-proxy
+			// config file. The user will need to put quotes around '::' since
+			// 'bindAddress: ::' is invalid yaml syntax.
+			name:               "iptables mode, IPv6 \"::\" bind address",
+			mode:               "iptables",
+			bindAddress:        "\"::\"",
+			clusterCIDR:        "fd00:1::0/64",
+			healthzBindAddress: "[fd00:1::5]:12345",
+			metricsBindAddress: "[fd00:2::5]:23456",
 		},
-		MetricsBindAddress: "2.3.4.5:23456",
-		Mode:               "iptables",
-		OOMScoreAdj:        util.Int32Ptr(17),
-		PortRange:          "2-7",
-		ResourceContainer:  "/foo",
-		UDPIdleTimeout:     metav1.Duration{Duration: 123 * time.Millisecond},
+		{
+			// Test for 'bindAddress: "[::]"' (IPv6 all-zeros in brackets)
+			// in kube-proxy config file. The user will need to use
+			// surrounding quotes here since 'bindAddress: [::]' is invalid
+			// yaml syntax.
+			name:               "iptables mode, IPv6 \"[::]\" bind address",
+			mode:               "iptables",
+			bindAddress:        "\"[::]\"",
+			clusterCIDR:        "fd00:1::0/64",
+			healthzBindAddress: "[fd00:1::5]:12345",
+			metricsBindAddress: "[fd00:2::5]:23456",
+		},
+		{
+			// Test for 'bindAddress: ::0' (another form of IPv6 all-zeros).
+			// No surrounding quotes are required around '::0'.
+			name:               "iptables mode, IPv6 ::0 bind address",
+			mode:               "iptables",
+			bindAddress:        "::0",
+			clusterCIDR:        "fd00:1::0/64",
+			healthzBindAddress: "[fd00:1::5]:12345",
+			metricsBindAddress: "[fd00:2::5]:23456",
+		},
+		{
+			name:               "ipvs mode, IPv6 config",
+			mode:               "ipvs",
+			bindAddress:        "2001:db8::1",
+			clusterCIDR:        "fd00:1::0/64",
+			healthzBindAddress: "[fd00:1::5]:12345",
+			metricsBindAddress: "[fd00:2::5]:23456",
+		},
 	}
 
-	options, err := NewOptions()
-	assert.NoError(t, err)
+	for _, tc := range testCases {
+		expBindAddr := tc.bindAddress
+		if tc.bindAddress[0] == '"' {
+			// Surrounding double quotes will get stripped by the yaml parser.
+			expBindAddr = expBindAddr[1 : len(tc.bindAddress)-1]
+		}
+		expected := &kubeproxyconfig.KubeProxyConfiguration{
+			BindAddress: expBindAddr,
+			ClientConnection: kubeproxyconfig.ClientConnectionConfiguration{
+				AcceptContentTypes: "abc",
+				Burst:              100,
+				ContentType:        "content-type",
+				KubeConfigFile:     "/path/to/kubeconfig",
+				QPS:                7,
+			},
+			ClusterCIDR:      tc.clusterCIDR,
+			ConfigSyncPeriod: metav1.Duration{Duration: 15 * time.Second},
+			Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
+				Max:                   utilpointer.Int32Ptr(4),
+				MaxPerCore:            utilpointer.Int32Ptr(2),
+				Min:                   utilpointer.Int32Ptr(1),
+				TCPCloseWaitTimeout:   &metav1.Duration{Duration: 10 * time.Second},
+				TCPEstablishedTimeout: &metav1.Duration{Duration: 20 * time.Second},
+			},
+			FeatureGates:       "all",
+			HealthzBindAddress: tc.healthzBindAddress,
+			HostnameOverride:   "foo",
+			IPTables: kubeproxyconfig.KubeProxyIPTablesConfiguration{
+				MasqueradeAll: true,
+				MasqueradeBit: utilpointer.Int32Ptr(17),
+				MinSyncPeriod: metav1.Duration{Duration: 10 * time.Second},
+				SyncPeriod:    metav1.Duration{Duration: 60 * time.Second},
+			},
+			IPVS: kubeproxyconfig.KubeProxyIPVSConfiguration{
+				MinSyncPeriod: metav1.Duration{Duration: 10 * time.Second},
+				SyncPeriod:    metav1.Duration{Duration: 60 * time.Second},
+			},
+			MetricsBindAddress: tc.metricsBindAddress,
+			Mode:               kubeproxyconfig.ProxyMode(tc.mode),
+			OOMScoreAdj:        utilpointer.Int32Ptr(17),
+			PortRange:          "2-7",
+			ResourceContainer:  "/foo",
+			UDPIdleTimeout:     metav1.Duration{Duration: 123 * time.Millisecond},
+		}
 
-	config, err := options.loadConfig([]byte(yaml))
-	assert.NoError(t, err)
-	if !reflect.DeepEqual(expected, config) {
-		t.Fatalf("unexpected config, diff = %s", diff.ObjectDiff(config, expected))
+		options := NewOptions()
+
+		yaml := fmt.Sprintf(
+			yamlTemplate, tc.bindAddress, tc.clusterCIDR,
+			tc.healthzBindAddress, tc.metricsBindAddress, tc.mode)
+		config, err := options.loadConfig([]byte(yaml))
+		assert.NoError(t, err, "unexpected error for %s: %v", tc.name, err)
+		if !reflect.DeepEqual(expected, config) {
+			t.Fatalf("unexpected config for %s, diff = %s", tc.name, diff.ObjectDiff(config, expected))
+		}
+	}
+}
+
+// TestLoadConfigFailures tests failure modes for loadConfig()
+func TestLoadConfigFailures(t *testing.T) {
+	testCases := []struct {
+		name   string
+		config string
+		expErr string
+	}{
+		{
+			name:   "Decode error test",
+			config: "Twas bryllyg, and ye slythy toves",
+			expErr: "could not find expected ':'",
+		},
+		{
+			name:   "Bad config type test",
+			config: "kind: KubeSchedulerConfiguration",
+			expErr: "no kind",
+		},
+		{
+			name:   "Missing quotes around :: bindAddress",
+			config: "bindAddress: ::",
+			expErr: "mapping values are not allowed in this context",
+		},
+	}
+	version := "apiVersion: kubeproxy.config.k8s.io/v1alpha1"
+	for _, tc := range testCases {
+		options := NewOptions()
+		config := fmt.Sprintf("%s\n%s", version, tc.config)
+		_, err := options.loadConfig([]byte(config))
+		if assert.Error(t, err, tc.name) {
+			assert.Contains(t, err.Error(), tc.expErr, tc.name)
+		}
 	}
 }

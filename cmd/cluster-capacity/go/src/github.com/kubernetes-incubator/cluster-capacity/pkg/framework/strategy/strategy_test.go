@@ -22,10 +22,10 @@ import (
 	goruntime "runtime"
 	"testing"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/version"
 
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/framework/store"

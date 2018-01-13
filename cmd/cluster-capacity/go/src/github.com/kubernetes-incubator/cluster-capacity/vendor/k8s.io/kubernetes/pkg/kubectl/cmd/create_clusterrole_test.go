@@ -22,10 +22,10 @@ import (
 	"reflect"
 	"testing"
 
+	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest/fake"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 )
 
@@ -375,6 +375,46 @@ func TestClusterRoleValidate(t *testing.T) {
 			},
 			expectErr: false,
 		},
+		"test-invalid-empty-non-resource-url": {
+			clusterRoleOptions: &CreateClusterRoleOptions{
+				CreateRoleOptions: &CreateRoleOptions{
+					Name:  "my-clusterrole",
+					Verbs: []string{"create"},
+				},
+				NonResourceURLs: []string{""},
+			},
+			expectErr: true,
+		},
+		"test-invalid-non-resource-url": {
+			clusterRoleOptions: &CreateClusterRoleOptions{
+				CreateRoleOptions: &CreateRoleOptions{
+					Name:  "my-clusterrole",
+					Verbs: []string{"create"},
+				},
+				NonResourceURLs: []string{"logs"},
+			},
+			expectErr: true,
+		},
+		"test-invalid-non-resource-url-with-*": {
+			clusterRoleOptions: &CreateClusterRoleOptions{
+				CreateRoleOptions: &CreateRoleOptions{
+					Name:  "my-clusterrole",
+					Verbs: []string{"create"},
+				},
+				NonResourceURLs: []string{"/logs/*/"},
+			},
+			expectErr: true,
+		},
+		"test-invalid-non-resource-url-with-multiple-*": {
+			clusterRoleOptions: &CreateClusterRoleOptions{
+				CreateRoleOptions: &CreateRoleOptions{
+					Name:  "my-clusterrole",
+					Verbs: []string{"create"},
+				},
+				NonResourceURLs: []string{"/logs*/*"},
+			},
+			expectErr: true,
+		},
 		"test-invalid-verb-for-non-resource-url": {
 			clusterRoleOptions: &CreateClusterRoleOptions{
 				CreateRoleOptions: &CreateRoleOptions{
@@ -397,20 +437,22 @@ func TestClusterRoleValidate(t *testing.T) {
 						},
 					},
 				},
-				NonResourceURLs: []string{"/logs/"},
+				NonResourceURLs: []string{"/logs/", "/logs/*"},
 			},
 			expectErr: false,
 		},
 	}
 
 	for name, test := range tests {
-		test.clusterRoleOptions.Mapper, _ = f.Object()
-		err := test.clusterRoleOptions.Validate()
-		if test.expectErr && err == nil {
-			t.Errorf("%s: expect error happens, but validate passes.", name)
-		}
-		if !test.expectErr && err != nil {
-			t.Errorf("%s: unexpected error: %v", name, err)
-		}
+		t.Run(name, func(t *testing.T) {
+			test.clusterRoleOptions.Mapper, _ = f.Object()
+			err := test.clusterRoleOptions.Validate()
+			if test.expectErr && err == nil {
+				t.Errorf("%s: expect error happens, but validate passes.", name)
+			}
+			if !test.expectErr && err != nil {
+				t.Errorf("%s: unexpected error: %v", name, err)
+			}
+		})
 	}
 }

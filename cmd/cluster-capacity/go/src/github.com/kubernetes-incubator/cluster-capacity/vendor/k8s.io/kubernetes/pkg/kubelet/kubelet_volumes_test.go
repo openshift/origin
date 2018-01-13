@@ -21,11 +21,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
@@ -36,7 +36,7 @@ func TestListVolumesForPod(t *testing.T) {
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
 
-	pod := podWithUidNameNsSpec("12345678", "foo", "test", v1.PodSpec{
+	pod := podWithUIDNameNsSpec("12345678", "foo", "test", v1.PodSpec{
 		Volumes: []v1.Volume{
 			{
 				Name: "vol1",
@@ -58,9 +58,7 @@ func TestListVolumesForPod(t *testing.T) {
 	})
 
 	stopCh := runVolumeManager(kubelet)
-	defer func() {
-		close(stopCh)
-	}()
+	defer close(stopCh)
 
 	kubelet.podManager.SetPods([]*v1.Pod{pod})
 	err := kubelet.volumeManager.WaitForAttachAndMount(pod)
@@ -142,9 +140,7 @@ func TestPodVolumesExist(t *testing.T) {
 	}
 
 	stopCh := runVolumeManager(kubelet)
-	defer func() {
-		close(stopCh)
-	}()
+	defer close(stopCh)
 
 	kubelet.podManager.SetPods(pods)
 	for _, pod := range pods {
@@ -163,7 +159,7 @@ func TestVolumeAttachAndMountControllerDisabled(t *testing.T) {
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
 
-	pod := podWithUidNameNsSpec("12345678", "foo", "test", v1.PodSpec{
+	pod := podWithUIDNameNsSpec("12345678", "foo", "test", v1.PodSpec{
 		Volumes: []v1.Volume{
 			{
 				Name: "vol1",
@@ -177,9 +173,7 @@ func TestVolumeAttachAndMountControllerDisabled(t *testing.T) {
 	})
 
 	stopCh := runVolumeManager(kubelet)
-	defer func() {
-		close(stopCh)
-	}()
+	defer close(stopCh)
 
 	kubelet.podManager.SetPods([]*v1.Pod{pod})
 	err := kubelet.volumeManager.WaitForAttachAndMount(pod)
@@ -209,7 +203,7 @@ func TestVolumeUnmountAndDetachControllerDisabled(t *testing.T) {
 	defer testKubelet.Cleanup()
 	kubelet := testKubelet.kubelet
 
-	pod := podWithUidNameNsSpec("12345678", "foo", "test", v1.PodSpec{
+	pod := podWithUIDNameNsSpec("12345678", "foo", "test", v1.PodSpec{
 		Volumes: []v1.Volume{
 			{
 				Name: "vol1",
@@ -223,9 +217,7 @@ func TestVolumeUnmountAndDetachControllerDisabled(t *testing.T) {
 	})
 
 	stopCh := runVolumeManager(kubelet)
-	defer func() {
-		close(stopCh)
-	}()
+	defer close(stopCh)
 
 	// Add pod
 	kubelet.podManager.SetPods([]*v1.Pod{pod})
@@ -298,7 +290,7 @@ func TestVolumeAttachAndMountControllerEnabled(t *testing.T) {
 		return true, nil, fmt.Errorf("no reaction implemented for %s", action)
 	})
 
-	pod := podWithUidNameNsSpec("12345678", "foo", "test", v1.PodSpec{
+	pod := podWithUIDNameNsSpec("12345678", "foo", "test", v1.PodSpec{
 		Volumes: []v1.Volume{
 			{
 				Name: "vol1",
@@ -312,9 +304,7 @@ func TestVolumeAttachAndMountControllerEnabled(t *testing.T) {
 	})
 
 	stopCh := runVolumeManager(kubelet)
-	defer func() {
-		close(stopCh)
-	}()
+	defer close(stopCh)
 
 	kubelet.podManager.SetPods([]*v1.Pod{pod})
 
@@ -367,7 +357,7 @@ func TestVolumeUnmountAndDetachControllerEnabled(t *testing.T) {
 		return true, nil, fmt.Errorf("no reaction implemented for %s", action)
 	})
 
-	pod := podWithUidNameNsSpec("12345678", "foo", "test", v1.PodSpec{
+	pod := podWithUIDNameNsSpec("12345678", "foo", "test", v1.PodSpec{
 		Volumes: []v1.Volume{
 			{
 				Name: "vol1",
@@ -381,9 +371,7 @@ func TestVolumeUnmountAndDetachControllerEnabled(t *testing.T) {
 	})
 
 	stopCh := runVolumeManager(kubelet)
-	defer func() {
-		close(stopCh)
-	}()
+	defer close(stopCh)
 
 	// Add pod
 	kubelet.podManager.SetPods([]*v1.Pod{pod})
@@ -458,5 +446,25 @@ func (f *stubVolume) SetUp(fsGroup *int64) error {
 }
 
 func (f *stubVolume) SetUpAt(dir string, fsGroup *int64) error {
+	return nil
+}
+
+type stubBlockVolume struct {
+	dirPath string
+	volName string
+}
+
+func (f *stubBlockVolume) GetGlobalMapPath(spec *volume.Spec) (string, error) {
+	return "", nil
+}
+
+func (f *stubBlockVolume) GetPodDeviceMapPath() (string, string) {
+	return f.dirPath, f.volName
+}
+
+func (f *stubBlockVolume) SetUpDevice() (string, error) {
+	return "", nil
+}
+func (f *stubBlockVolume) TearDownDevice(mapPath string, devicePath string) error {
 	return nil
 }

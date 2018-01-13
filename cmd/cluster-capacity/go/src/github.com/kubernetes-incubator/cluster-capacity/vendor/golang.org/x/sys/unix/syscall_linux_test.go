@@ -15,32 +15,45 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func TestPoll(t *testing.T) {
-	f, cleanup := mktmpfifo(t)
-	defer cleanup()
+func TestFchmodat(t *testing.T) {
+	defer chtmpdir(t)()
 
-	const timeout = 100
+	touch(t, "file1")
+	os.Symlink("file1", "symlink1")
 
-	ok := make(chan bool, 1)
-	go func() {
-		select {
-		case <-time.After(10 * timeout * time.Millisecond):
-			t.Errorf("Poll: failed to timeout after %d milliseconds", 10*timeout)
-		case <-ok:
-		}
-	}()
-
-	fds := []unix.PollFd{{Fd: int32(f.Fd()), Events: unix.POLLIN}}
-	n, err := unix.Poll(fds, timeout)
-	ok <- true
+	err := unix.Fchmodat(unix.AT_FDCWD, "symlink1", 0444, 0)
 	if err != nil {
-		t.Errorf("Poll: unexpected error: %v", err)
-		return
+		t.Fatalf("Fchmodat: unexpected error: %v", err)
 	}
-	if n != 0 {
-		t.Errorf("Poll: wrong number of events: got %v, expected %v", n, 0)
-		return
+
+	fi, err := os.Stat("file1")
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	if fi.Mode() != 0444 {
+		t.Errorf("Fchmodat: failed to change mode: expected %v, got %v", 0444, fi.Mode())
+	}
+
+	err = unix.Fchmodat(unix.AT_FDCWD, "symlink1", 0444, unix.AT_SYMLINK_NOFOLLOW)
+	if err != unix.EOPNOTSUPP {
+		t.Fatalf("Fchmodat: unexpected error: %v, expected EOPNOTSUPP", err)
+	}
+}
+
+func TestIoctlGetInt(t *testing.T) {
+	f, err := os.Open("/dev/random")
+	if err != nil {
+		t.Fatalf("failed to open device: %v", err)
+	}
+	defer f.Close()
+
+	v, err := unix.IoctlGetInt(int(f.Fd()), unix.RNDGETENTCNT)
+	if err != nil {
+		t.Fatalf("failed to perform ioctl: %v", err)
+	}
+
+	t.Logf("%d bits of entropy available", v)
 }
 
 func TestPpoll(t *testing.T) {
@@ -69,25 +82,6 @@ func TestPpoll(t *testing.T) {
 	if n != 0 {
 		t.Errorf("Ppoll: wrong number of events: got %v, expected %v", n, 0)
 		return
-	}
-}
-
-// mktmpfifo creates a temporary FIFO and provides a cleanup function.
-func mktmpfifo(t *testing.T) (*os.File, func()) {
-	err := unix.Mkfifo("fifo", 0666)
-	if err != nil {
-		t.Fatalf("mktmpfifo: failed to create FIFO: %v", err)
-	}
-
-	f, err := os.OpenFile("fifo", os.O_RDWR, 0666)
-	if err != nil {
-		os.Remove("fifo")
-		t.Fatalf("mktmpfifo: failed to open FIFO: %v", err)
-	}
-
-	return f, func() {
-		f.Close()
-		os.Remove("fifo")
 	}
 }
 
@@ -143,12 +137,62 @@ func TestUtime(t *testing.T) {
 	}
 }
 
+func TestUtimesNanoAt(t *testing.T) {
+	defer chtmpdir(t)()
+
+	symlink := "symlink1"
+	os.Remove(symlink)
+	err := os.Symlink("nonexisting", symlink)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ts := []unix.Timespec{
+		{Sec: 1111, Nsec: 2222},
+		{Sec: 3333, Nsec: 4444},
+	}
+	err = unix.UtimesNanoAt(unix.AT_FDCWD, symlink, ts, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		t.Fatalf("UtimesNanoAt: %v", err)
+	}
+
+	var st unix.Stat_t
+	err = unix.Lstat(symlink, &st)
+	if err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+	if st.Atim != ts[0] {
+		t.Errorf("UtimesNanoAt: wrong atime: %v", st.Atim)
+	}
+	if st.Mtim != ts[1] {
+		t.Errorf("UtimesNanoAt: wrong mtime: %v", st.Mtim)
+	}
+}
+
 func TestGetrlimit(t *testing.T) {
 	var rlim unix.Rlimit
 	err := unix.Getrlimit(unix.RLIMIT_AS, &rlim)
 	if err != nil {
 		t.Fatalf("Getrlimit: %v", err)
 	}
+}
+
+func TestSelect(t *testing.T) {
+	_, err := unix.Select(0, nil, nil, nil, &unix.Timeval{0, 0})
+	if err != nil {
+		t.Fatalf("Select: %v", err)
+	}
+}
+
+func TestUname(t *testing.T) {
+	var utsname unix.Utsname
+	err := unix.Uname(&utsname)
+	if err != nil {
+		t.Fatalf("Uname: %v", err)
+	}
+
+	// conversion from []byte to string, golang.org/issue/20753
+	t.Logf("OS: %s/%s %s", string(utsname.Sysname[:]), string(utsname.Machine[:]), string(utsname.Release[:]))
 }
 
 // utilities taken from os/os_test.go

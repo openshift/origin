@@ -1,7 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_library",
@@ -10,7 +8,7 @@ load(
 go_library(
     name = "go_default_library",
     srcs = ["wrapper.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/test/e2e/framework/ginkgowrapper",
     deps = ["//vendor/github.com/onsi/ginkgo:go_default_library"],
 )
 

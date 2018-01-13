@@ -18,6 +18,8 @@ package v1beta1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // APIServiceList is a list of APIService objects.
 type APIServiceList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -53,7 +55,7 @@ type APIServiceSpec struct {
 	// CABundle is a PEM encoded CA bundle which will be used to validate an API server's serving certificate.
 	CABundle []byte `json:"caBundle" protobuf:"bytes,5,opt,name=caBundle"`
 
-	// GroupPriorityMininum is the priority this group should have at least. Higher priority means that the group is prefered by clients over lower priority ones.
+	// GroupPriorityMininum is the priority this group should have at least. Higher priority means that the group is preferred by clients over lower priority ones.
 	// Note that other versions of this group might specify even higher GroupPriorityMininum values such that the whole group gets a higher priority.
 	// The primary sort is based on GroupPriorityMinimum, ordered highest number to lowest (20 before 10).
 	// The secondary sort is based on the alphabetical comparison of the name of the object.  (v1.bar before v1.foo)
@@ -117,8 +119,9 @@ type APIServiceStatus struct {
 	Conditions []APIServiceCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // APIService represents a server for a particular GroupVersion.
 // Name must be "version.group".

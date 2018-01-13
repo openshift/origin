@@ -20,104 +20,189 @@ import (
 	"fmt"
 	"path"
 
+	. "github.com/onsi/ginkgo"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/test/e2e/framework"
-
-	. "github.com/onsi/ginkgo"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
 const (
-	testImageRootUid    = "gcr.io/google_containers/mounttest:0.8"
-	testImageNonRootUid = "gcr.io/google_containers/mounttest-user:0.5"
-	volumePath          = "/test-volume"
+	volumePath = "/test-volume"
 )
 
-var _ = framework.KubeDescribe("EmptyDir volumes", func() {
+var (
+	testImageRootUid    = imageutils.GetE2EImage(imageutils.Mounttest)
+	testImageNonRootUid = imageutils.GetE2EImage(imageutils.MounttestUser)
+)
 
+var _ = Describe("[sig-storage] EmptyDir volumes", func() {
 	f := framework.NewDefaultFramework("emptydir")
 
 	Context("when FSGroup is specified [Feature:FSGroup]", func() {
-		It("new files should be created with FSGroup ownership when container is root [Volume]", func() {
+		It("new files should be created with FSGroup ownership when container is root", func() {
 			doTestSetgidFSGroup(f, testImageRootUid, v1.StorageMediumMemory)
 		})
 
-		It("new files should be created with FSGroup ownership when container is non-root [Volume]", func() {
+		It("new files should be created with FSGroup ownership when container is non-root", func() {
 			doTestSetgidFSGroup(f, testImageNonRootUid, v1.StorageMediumMemory)
 		})
 
-		It("nonexistent volume subPath should have the correct mode and owner using FSGroup [Volume]", func() {
+		It("nonexistent volume subPath should have the correct mode and owner using FSGroup", func() {
 			doTestSubPathFSGroup(f, testImageNonRootUid, v1.StorageMediumMemory)
 		})
 
-		It("files with FSGroup ownership should support (root,0644,tmpfs) [Volume]", func() {
+		It("files with FSGroup ownership should support (root,0644,tmpfs)", func() {
 			doTest0644FSGroup(f, testImageRootUid, v1.StorageMediumMemory)
 		})
 
-		It("volume on default medium should have the correct mode using FSGroup [Volume]", func() {
+		It("volume on default medium should have the correct mode using FSGroup", func() {
 			doTestVolumeModeFSGroup(f, testImageRootUid, v1.StorageMediumDefault)
 		})
 
-		It("volume on tmpfs should have the correct mode using FSGroup [Volume]", func() {
+		It("volume on tmpfs should have the correct mode using FSGroup", func() {
 			doTestVolumeModeFSGroup(f, testImageRootUid, v1.StorageMediumMemory)
 		})
 	})
 
-	It("volume on tmpfs should have the correct mode [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-mode-tmpfs
+		    Description: For a Pod created with an 'emptyDir' Volume with 'medium'
+			of 'Memory', ensure the volume has 0777 unix file permissions and tmpfs
+			mount type.
+	*/
+	framework.ConformanceIt("volume on tmpfs should have the correct mode", func() {
 		doTestVolumeMode(f, testImageRootUid, v1.StorageMediumMemory)
 	})
 
-	It("should support (root,0644,tmpfs) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-root-0644-tmpfs
+		    Description: For a Pod created with an 'emptyDir' Volume with 'medium'
+			of 'Memory', ensure a root owned file with 0644 unix file permissions
+			is created correctly, has tmpfs mount type, and enforces the permissions.
+	*/
+	framework.ConformanceIt("should support (root,0644,tmpfs)", func() {
 		doTest0644(f, testImageRootUid, v1.StorageMediumMemory)
 	})
 
-	It("should support (root,0666,tmpfs) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-root-0666-tmpfs
+		    Description: For a Pod created with an 'emptyDir' Volume with 'medium'
+			of 'Memory', ensure a root owned file with 0666 unix file permissions
+			is created correctly, has tmpfs mount type, and enforces the permissions.
+	*/
+	framework.ConformanceIt("should support (root,0666,tmpfs)", func() {
 		doTest0666(f, testImageRootUid, v1.StorageMediumMemory)
 	})
 
-	It("should support (root,0777,tmpfs) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-root-0777-tmpfs
+		    Description: For a Pod created with an 'emptyDir' Volume with 'medium'
+			of 'Memory', ensure a root owned file with 0777 unix file permissions
+			is created correctly, has tmpfs mount type, and enforces the permissions.
+	*/
+	framework.ConformanceIt("should support (root,0777,tmpfs)", func() {
 		doTest0777(f, testImageRootUid, v1.StorageMediumMemory)
 	})
 
-	It("should support (non-root,0644,tmpfs) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-user-0644-tmpfs
+		    Description: For a Pod created with an 'emptyDir' Volume with 'medium'
+			of 'Memory', ensure a user owned file with 0644 unix file permissions
+			is created correctly, has tmpfs mount type, and enforces the permissions.
+	*/
+	framework.ConformanceIt("should support (non-root,0644,tmpfs)", func() {
 		doTest0644(f, testImageNonRootUid, v1.StorageMediumMemory)
 	})
 
-	It("should support (non-root,0666,tmpfs) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-user-0666-tmpfs
+		    Description: For a Pod created with an 'emptyDir' Volume with 'medium'
+			of 'Memory', ensure a user owned file with 0666 unix file permissions
+			is created correctly, has tmpfs mount type, and enforces the permissions.
+	*/
+	framework.ConformanceIt("should support (non-root,0666,tmpfs)", func() {
 		doTest0666(f, testImageNonRootUid, v1.StorageMediumMemory)
 	})
 
-	It("should support (non-root,0777,tmpfs) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-user-0777-tmpfs
+		    Description: For a Pod created with an 'emptyDir' Volume with 'medium'
+			of 'Memory', ensure a user owned file with 0777 unix file permissions
+			is created correctly, has tmpfs mount type, and enforces the permissions.
+	*/
+	framework.ConformanceIt("should support (non-root,0777,tmpfs)", func() {
 		doTest0777(f, testImageNonRootUid, v1.StorageMediumMemory)
 	})
 
-	It("volume on default medium should have the correct mode [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-mode
+		    Description: For a Pod created with an 'emptyDir' Volume, ensure the
+			volume has 0777 unix file permissions.
+	*/
+	framework.ConformanceIt("volume on default medium should have the correct mode", func() {
 		doTestVolumeMode(f, testImageRootUid, v1.StorageMediumDefault)
 	})
 
-	It("should support (root,0644,default) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-root-0644
+		    Description: For a Pod created with an 'emptyDir' Volume, ensure a
+			root owned file with 0644 unix file permissions is created and enforced
+			correctly.
+	*/
+	framework.ConformanceIt("should support (root,0644,default)", func() {
 		doTest0644(f, testImageRootUid, v1.StorageMediumDefault)
 	})
 
-	It("should support (root,0666,default) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-root-0666
+		    Description: For a Pod created with an 'emptyDir' Volume, ensure a
+			root owned file with 0666 unix file permissions is created and enforced
+			correctly.
+	*/
+	framework.ConformanceIt("should support (root,0666,default)", func() {
 		doTest0666(f, testImageRootUid, v1.StorageMediumDefault)
 	})
 
-	It("should support (root,0777,default) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-root-0777
+		    Description: For a Pod created with an 'emptyDir' Volume, ensure a
+			root owned file with 0777 unix file permissions is created and enforced
+			correctly.
+	*/
+	framework.ConformanceIt("should support (root,0777,default)", func() {
 		doTest0777(f, testImageRootUid, v1.StorageMediumDefault)
 	})
 
-	It("should support (non-root,0644,default) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-user-0644
+		    Description: For a Pod created with an 'emptyDir' Volume, ensure a
+			user owned file with 0644 unix file permissions is created and enforced
+			correctly.
+	*/
+	framework.ConformanceIt("should support (non-root,0644,default)", func() {
 		doTest0644(f, testImageNonRootUid, v1.StorageMediumDefault)
 	})
 
-	It("should support (non-root,0666,default) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-user-0666
+		    Description: For a Pod created with an 'emptyDir' Volume, ensure a
+			user owned file with 0666 unix file permissions is created and enforced
+			correctly.
+	*/
+	framework.ConformanceIt("should support (non-root,0666,default)", func() {
 		doTest0666(f, testImageNonRootUid, v1.StorageMediumDefault)
 	})
 
-	It("should support (non-root,0777,default) [Conformance] [Volume]", func() {
+	/*
+		    Testname: volume-emptydir-user-0777
+		    Description: For a Pod created with an 'emptyDir' Volume, ensure a
+			user owned file with 0777 unix file permissions is created and enforced
+			correctly.
+	*/
+	framework.ConformanceIt("should support (non-root,0777,default)", func() {
 		doTest0777(f, testImageNonRootUid, v1.StorageMediumDefault)
 	})
 })
@@ -343,7 +428,7 @@ func testPodWithVolume(image, path string, source *v1.EmptyDirVolumeSource) *v1.
 	return &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: api.Registry.GroupOrDie(v1.GroupName).GroupVersion.String(),
+			APIVersion: testapi.Groups[v1.GroupName].GroupVersion().String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,

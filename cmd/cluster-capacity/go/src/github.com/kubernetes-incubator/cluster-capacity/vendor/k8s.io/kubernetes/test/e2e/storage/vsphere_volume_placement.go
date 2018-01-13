@@ -24,15 +24,16 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	clientset "k8s.io/client-go/kubernetes"
 	vsphere "k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere/vclib"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = framework.KubeDescribe("Volume Placement [Volume]", func() {
+var _ = SIGDescribe("Volume Placement", func() {
 	f := framework.NewDefaultFramework("volume-placement")
 	var (
 		c                  clientset.Interface
@@ -56,7 +57,7 @@ var _ = framework.KubeDescribe("Volume Placement [Volume]", func() {
 			isNodeLabeled = true
 		}
 		By("creating vmdk")
-		vsp, err = vsphere.GetVSphere()
+		vsp, err = getVSphere(c)
 		Expect(err).NotTo(HaveOccurred())
 		volumePath, err := createVSphereVolume(vsp, nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -76,11 +77,14 @@ var _ = framework.KubeDescribe("Volume Placement [Volume]", func() {
 		2. Delete VMDK volume
 	*/
 	framework.AddCleanupAction(func() {
-		if len(node1KeyValueLabel) > 0 {
-			framework.RemoveLabelOffNode(c, node1Name, "vsphere_e2e_label")
-		}
-		if len(node2KeyValueLabel) > 0 {
-			framework.RemoveLabelOffNode(c, node2Name, "vsphere_e2e_label")
+		// Cleanup actions will be called even when the tests are skipped and leaves namespace unset.
+		if len(ns) > 0 {
+			if len(node1KeyValueLabel) > 0 {
+				framework.RemoveLabelOffNode(c, node1Name, "vsphere_e2e_label")
+			}
+			if len(node2KeyValueLabel) > 0 {
+				framework.RemoveLabelOffNode(c, node2Name, "vsphere_e2e_label")
+			}
 		}
 	})
 	/*
@@ -216,8 +220,8 @@ var _ = framework.KubeDescribe("Volume Placement [Volume]", func() {
 	*/
 	It("should create and delete pod with multiple volumes from different datastore", func() {
 		By("creating another vmdk on non default shared datastore")
-		var volumeOptions *vsphere.VolumeOptions
-		volumeOptions = new(vsphere.VolumeOptions)
+		var volumeOptions *vclib.VolumeOptions
+		volumeOptions = new(vclib.VolumeOptions)
 		volumeOptions.CapacityKB = 2097152
 		volumeOptions.Name = "e2e-vmdk-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 		volumeOptions.Datastore = os.Getenv("VSPHERE_SECOND_SHARED_DATASTORE")
@@ -281,7 +285,7 @@ var _ = framework.KubeDescribe("Volume Placement [Volume]", func() {
 			framework.ExpectNoError(framework.DeletePodWithWait(f, c, podB), "defer: Failed to delete pod ", podB.Name)
 			By(fmt.Sprintf("wait for volumes to be detached from the node: %v", node1Name))
 			for _, volumePath := range volumePaths {
-				framework.ExpectNoError(waitForVSphereDiskToDetach(vsp, volumePath, types.NodeName(node1Name)))
+				framework.ExpectNoError(waitForVSphereDiskToDetach(c, vsp, volumePath, types.NodeName(node1Name)))
 			}
 		}()
 
@@ -358,7 +362,7 @@ func createPodWithVolumeAndNodeSelector(client clientset.Interface, namespace st
 
 	By(fmt.Sprintf("Verify volume is attached to the node:%v", nodeName))
 	for _, volumePath := range volumePaths {
-		isAttached, err := verifyVSphereDiskAttached(vsp, volumePath, types.NodeName(nodeName))
+		isAttached, err := verifyVSphereDiskAttached(client, vsp, volumePath, types.NodeName(nodeName))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(isAttached).To(BeTrue(), "disk:"+volumePath+" is not attached with the node")
 	}
@@ -381,6 +385,6 @@ func deletePodAndWaitForVolumeToDetach(f *framework.Framework, c clientset.Inter
 
 	By("Waiting for volume to be detached from the node")
 	for _, volumePath := range volumePaths {
-		framework.ExpectNoError(waitForVSphereDiskToDetach(vsp, volumePath, types.NodeName(nodeName)))
+		framework.ExpectNoError(waitForVSphereDiskToDetach(c, vsp, volumePath, types.NodeName(nodeName)))
 	}
 }

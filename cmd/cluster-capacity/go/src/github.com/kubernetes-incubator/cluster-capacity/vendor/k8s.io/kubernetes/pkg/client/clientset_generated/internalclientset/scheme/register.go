@@ -23,7 +23,6 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	core "k8s.io/kubernetes/pkg/api/install"
 	admissionregistration "k8s.io/kubernetes/pkg/apis/admissionregistration/install"
 	apps "k8s.io/kubernetes/pkg/apis/apps/install"
 	authentication "k8s.io/kubernetes/pkg/apis/authentication/install"
@@ -31,10 +30,13 @@ import (
 	autoscaling "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	batch "k8s.io/kubernetes/pkg/apis/batch/install"
 	certificates "k8s.io/kubernetes/pkg/apis/certificates/install"
+	core "k8s.io/kubernetes/pkg/apis/core/install"
+	events "k8s.io/kubernetes/pkg/apis/events/install"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions/install"
 	networking "k8s.io/kubernetes/pkg/apis/networking/install"
 	policy "k8s.io/kubernetes/pkg/apis/policy/install"
 	rbac "k8s.io/kubernetes/pkg/apis/rbac/install"
+	scheduling "k8s.io/kubernetes/pkg/apis/scheduling/install"
 	settings "k8s.io/kubernetes/pkg/apis/settings/install"
 	storage "k8s.io/kubernetes/pkg/apis/storage/install"
 	os "os"
@@ -62,10 +64,12 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 	autoscaling.Install(groupFactoryRegistry, registry, scheme)
 	batch.Install(groupFactoryRegistry, registry, scheme)
 	certificates.Install(groupFactoryRegistry, registry, scheme)
+	events.Install(groupFactoryRegistry, registry, scheme)
 	extensions.Install(groupFactoryRegistry, registry, scheme)
 	networking.Install(groupFactoryRegistry, registry, scheme)
 	policy.Install(groupFactoryRegistry, registry, scheme)
 	rbac.Install(groupFactoryRegistry, registry, scheme)
+	scheduling.Install(groupFactoryRegistry, registry, scheme)
 	settings.Install(groupFactoryRegistry, registry, scheme)
 	storage.Install(groupFactoryRegistry, registry, scheme)
 

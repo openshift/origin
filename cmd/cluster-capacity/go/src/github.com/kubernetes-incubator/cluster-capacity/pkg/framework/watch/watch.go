@@ -24,10 +24,10 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	ccapi "github.com/kubernetes-incubator/cluster-capacity/pkg/api"
 )
@@ -94,13 +94,13 @@ func (c *WatchBuffer) EmitWatchEvent(eType watch.EventType, object runtime.Objec
 	//	Object: object,
 	//}
 
-	info, ok := runtime.SerializerInfoForMediaType(api.Codecs.SupportedMediaTypes(), runtime.ContentTypeJSON)
+	info, ok := runtime.SerializerInfoForMediaType(legacyscheme.Codecs.SupportedMediaTypes(), runtime.ContentTypeJSON)
 	if !ok {
 		return fmt.Errorf("serializer for %s not registered", runtime.ContentTypeJSON)
 	}
 
 	gv := v1.SchemeGroupVersion
-	encoder := api.Codecs.EncoderForVersion(info.Serializer, gv)
+	encoder := legacyscheme.Codecs.EncoderForVersion(info.Serializer, gv)
 
 	obj_str := runtime.EncodeOrDie(encoder, object)
 	obj_str = strings.Replace(obj_str, "\n", "", -1)

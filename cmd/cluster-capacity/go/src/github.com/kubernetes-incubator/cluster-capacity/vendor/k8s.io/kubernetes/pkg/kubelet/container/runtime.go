@@ -25,10 +25,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/api/v1"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/volume"
 )
@@ -127,9 +127,8 @@ type Runtime interface {
 // DirectStreamingRuntime is the interface implemented by runtimes for which the streaming calls
 // (exec/attach/port-forward) should be served directly by the Kubelet.
 type DirectStreamingRuntime interface {
-	// Runs the command in the container of the specified pod using nsenter.
-	// Attaches the processes stdin, stdout, and stderr. Optionally uses a
-	// tty.
+	// Runs the command in the container of the specified pod. Attaches
+	// the processes stdin, stdout, and stderr. Optionally uses a tty.
 	ExecInContainer(containerID ContainerID, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize, timeout time.Duration) error
 	// Forward the specified port from the specified pod to the stream.
 	PortForward(pod *Pod, port int32, stream io.ReadWriteCloser) error
@@ -389,6 +388,8 @@ type Mount struct {
 	ReadOnly bool
 	// Whether the mount needs SELinux relabeling
 	SELinuxRelabel bool
+	// Requested propagation mode
+	Propagation runtimeapi.MountPropagation
 }
 
 type PortMapping struct {
@@ -427,10 +428,6 @@ type RunContainerOptions struct {
 	// this directory will be used to create and mount the log file to
 	// container.TerminationMessagePath
 	PodContainerDir string
-	// The list of DNS servers for the container to use.
-	DNS []string
-	// The list of DNS search domains.
-	DNSSearch []string
 	// The parent cgroup to pass to Docker
 	CgroupParent string
 	// The type of container rootfs
@@ -449,9 +446,14 @@ type RunContainerOptions struct {
 type VolumeInfo struct {
 	// Mounter is the volume's mounter
 	Mounter volume.Mounter
+	// BlockVolumeMapper is the Block volume's mapper
+	BlockVolumeMapper volume.BlockVolumeMapper
 	// SELinuxLabeled indicates whether this volume has had the
 	// pod's SELinux label applied to it or not
 	SELinuxLabeled bool
+	// Whether the volume permission is set to read-only or not
+	// This value is passed from volume.spec
+	ReadOnly bool
 }
 
 type VolumeMap map[string]VolumeInfo

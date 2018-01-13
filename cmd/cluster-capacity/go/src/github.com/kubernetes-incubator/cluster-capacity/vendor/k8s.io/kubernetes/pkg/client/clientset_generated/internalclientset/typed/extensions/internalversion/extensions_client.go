@@ -26,11 +26,8 @@ type ExtensionsInterface interface {
 	DaemonSetsGetter
 	DeploymentsGetter
 	IngressesGetter
-	NetworkPoliciesGetter
 	PodSecurityPoliciesGetter
 	ReplicaSetsGetter
-	ScalesGetter
-	ThirdPartyResourcesGetter
 }
 
 // ExtensionsClient is used to interact with features provided by the extensions group.
@@ -50,24 +47,12 @@ func (c *ExtensionsClient) Ingresses(namespace string) IngressInterface {
 	return newIngresses(c, namespace)
 }
 
-func (c *ExtensionsClient) NetworkPolicies(namespace string) NetworkPolicyInterface {
-	return newNetworkPolicies(c, namespace)
-}
-
 func (c *ExtensionsClient) PodSecurityPolicies() PodSecurityPolicyInterface {
 	return newPodSecurityPolicies(c)
 }
 
 func (c *ExtensionsClient) ReplicaSets(namespace string) ReplicaSetInterface {
 	return newReplicaSets(c, namespace)
-}
-
-func (c *ExtensionsClient) Scales(namespace string) ScaleInterface {
-	return newScales(c, namespace)
-}
-
-func (c *ExtensionsClient) ThirdPartyResources() ThirdPartyResourceInterface {
-	return newThirdPartyResources(c)
 }
 
 // NewForConfig creates a new ExtensionsClient for the given config.
