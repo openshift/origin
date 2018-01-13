@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"github.com/golang/glog"
 	"github.com/gonum/graph"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,7 +93,12 @@ func AddAllDeploymentEdges(g osgraph.MutableUniqueGraph) {
 }
 
 func AddVolumeClaimEdges(g osgraph.Graph, dcNode *appsgraph.DeploymentConfigNode) {
-	for _, volume := range dcNode.DeploymentConfig.Spec.Template.Spec.Volumes {
+	podTemplate := dcNode.DeploymentConfig.Spec.Template
+	if podTemplate == nil {
+		glog.Warningf("DeploymentConfig %s/%s template should not be empty", dcNode.DeploymentConfig.Namespace, dcNode.DeploymentConfig.Name)
+		return
+	}
+	for _, volume := range podTemplate.Spec.Volumes {
 		source := volume.VolumeSource
 		if source.PersistentVolumeClaim == nil {
 			continue
@@ -113,7 +119,7 @@ func AddVolumeClaimEdges(g osgraph.Graph, dcNode *appsgraph.DeploymentConfigNode
 
 func AddAllVolumeClaimEdges(g osgraph.Graph) {
 	for _, node := range g.Nodes() {
-		if dcNode, ok := node.(*appsgraph.DeploymentConfigNode); ok {
+		if dcNode, ok := node.(*appsgraph.DeploymentConfigNode); ok && dcNode.IsFound {
 			AddVolumeClaimEdges(g, dcNode)
 		}
 	}
