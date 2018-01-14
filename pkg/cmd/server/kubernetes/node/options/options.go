@@ -6,8 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kubeutilnet "k8s.io/apimachinery/pkg/util/net"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/features"
@@ -20,6 +23,7 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/network"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 // Build creates the core Kubernetes component configs for a given NodeConfig, or returns
@@ -55,7 +59,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 	server.KubeConfig.Default(options.MasterKubeConfig)
 	server.PodManifestPath = path
 	server.RootDirectory = options.VolumeDirectory
-	server.NodeIP = options.NodeIP
 	server.HostnameOverride = options.NodeName
 	server.AllowPrivileged = true
 	server.RegisterNode = true
@@ -145,6 +148,15 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 		server.CNIConfDir = kubeletcni.DefaultNetDir
 		server.CNIBinDir = kubeletcni.DefaultCNIDir
 		server.HairpinMode = kubeletconfig.HairpinNone
+
+		// For openshift SDN plugin, always set valid node IP.
+		// This ensures same node IP is used by both kubelet and SDN.
+		nodeIP, err := GetPodTrafficNodeIP(options)
+		if err != nil {
+			return nil, err
+		}
+		glog.Infof("Resolved kubelet node IP to %q", nodeIP)
+		server.NodeIP = nodeIP
 	}
 
 	return server, nil
@@ -153,4 +165,50 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 func ToFlags(config *kubeletoptions.KubeletServer) []string {
 	server, _ := kubeletoptions.NewKubeletServer()
 	return cmdflags.AsArgs(config.AddFlags, server.AddFlags)
+}
+
+func GetPodTrafficNodeIP(options configapi.NodeConfig) (string, error) {
+	podTrafficNodeIP, err := GetIPFromIface(options.NetworkConfig.PodTrafficNodeIP, options.NetworkConfig.PodTrafficNodeInterface)
+	if err != nil {
+		return "", err
+	}
+
+	if len(podTrafficNodeIP) == 0 {
+		if options.KubeletArguments != nil {
+			if ips, ok := options.KubeletArguments["node-ip"]; ok {
+				podTrafficNodeIP = ips[0]
+			}
+		}
+
+		if len(podTrafficNodeIP) == 0 {
+			var err error
+			podTrafficNodeIP, err = netutils.GetNodeIP(options.NodeName)
+			if err != nil {
+				glog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", options.NodeName, err)
+
+				var defaultIP net.IP
+				defaultIP, err = kubeutilnet.ChooseHostInterface()
+				if err != nil {
+					return "", err
+				}
+				podTrafficNodeIP = defaultIP.String()
+			}
+		}
+	}
+
+	return podTrafficNodeIP, nil
+}
+
+func GetIPFromIface(nodeIP, nodeIface string) (string, error) {
+	if len(nodeIP) == 0 {
+		if len(nodeIface) > 0 {
+			ips, err := netutils.GetIPAddrsFromNetworkInterface(nodeIface)
+			if err != nil {
+				return "", err
+			}
+			nodeIP = ips[0].String()
+		}
+	}
+
+	return nodeIP, nil
 }

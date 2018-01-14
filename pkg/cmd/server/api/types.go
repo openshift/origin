@@ -174,9 +174,9 @@ type NodeConfig struct {
 	// If you're describing a set of static nodes to the master, this value must match one of the values in the list
 	NodeName string
 
-	// Node may have multiple IPs, specify the IP to use for pod traffic routing
-	// If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used
-	NodeIP string
+	// Deprecated in favor of 'node-ip' under kubeletArguments section
+	// Node may have multiple IPs, specify the IP to used by kubelet
+	DeprecatedNodeIP string
 
 	// ServingInfo describes how to start serving
 	ServingInfo ServingInfo
@@ -282,8 +282,22 @@ type LocalQuota struct {
 type NodeNetworkConfig struct {
 	// NetworkPluginName is a string specifying the networking plugin
 	NetworkPluginName string
+
 	// Maximum transmission unit for the network packets
 	MTU uint32
+
+	// PodTrafficNodeInterface is the network interface to be used for pod traffic
+	PodTrafficNodeInterface string
+
+	// PodTrafficNodeIP is the node IP to use for pod traffic routing
+	// If PodTrafficNodeIP is not set and PodTrafficNodeInterface is set, then first non-loopback IPv4 addr from PodTrafficNodeInterface is used.
+	PodTrafficNodeIP string
+
+	// MasterTrafficNodeInterface is the network interface to be used for master traffic
+	MasterTrafficNodeInterface string
+
+	// If MasterTrafficNodeIP is not set and MasterTrafficNodeInterface is set, then first non-loopback IPv4 addr from MasterTrafficNodeInterface is used.
+	MasterTrafficNodeIP string
 }
 
 // NodeAuthConfig holds authn/authz configuration options

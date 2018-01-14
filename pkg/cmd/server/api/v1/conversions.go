@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -157,6 +159,18 @@ func SetDefaults_NodeConfig(obj *NodeConfig) {
 		}
 	}
 	SetDefaults_ClientConnectionOverrides(obj.MasterClientConnectionOverrides)
+
+	if len(obj.DeprecatedNodeIP) != 0 {
+		if obj.KubeletArguments == nil {
+			obj.KubeletArguments = ExtendedArguments{}
+		}
+
+		if _, ok := obj.KubeletArguments["node-ip"]; ok {
+			glog.Warning("nodeIP config is ignored in favor of kubeletArguments[\"node-ip\"]")
+		} else {
+			obj.KubeletArguments["node-ip"] = []string{obj.DeprecatedNodeIP}
+		}
+	}
 
 	// Defaults/migrations for NetworkConfig
 	if len(obj.NetworkConfig.NetworkPluginName) == 0 {

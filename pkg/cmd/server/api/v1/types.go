@@ -18,9 +18,9 @@ type NodeConfig struct {
 	// If you're describing a set of static nodes to the master, this value must match one of the values in the list
 	NodeName string `json:"nodeName"`
 
-	// Node may have multiple IPs, specify the IP to use for pod traffic routing
-	// If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used
-	NodeIP string `json:"nodeIP"`
+	// Deprecated in favor of 'node-ip' under kubeletArguments section
+	// Node may have multiple IPs, specify the IP to used by kubelet
+	DeprecatedNodeIP string `json:"nodeIP,omitempty"`
 
 	// ServingInfo describes how to start serving
 	ServingInfo ServingInfo `json:"servingInfo"`
@@ -146,8 +146,22 @@ type NodeAuthConfig struct {
 type NodeNetworkConfig struct {
 	// NetworkPluginName is a string specifying the networking plugin
 	NetworkPluginName string `json:"networkPluginName"`
+
 	// Maximum transmission unit for the network packets
 	MTU uint32 `json:"mtu"`
+
+	// PodTrafficNodeInterface is the network interface to be used for pod traffic
+	PodTrafficNodeInterface string `json:"podTrafficNodeInterface,omitempty"`
+
+	// PodTrafficNodeIP is the node IP to use for pod traffic routing
+	// If PodTrafficNodeIP is not set and PodTrafficNodeInterface is set, then first non-loopback IPv4 addr from PodTrafficNodeInterface is used.
+	PodTrafficNodeIP string `json:"podTrafficNodeIP"`
+
+	// MasterTrafficNodeInterface is the network interface to be used for master traffic
+	MasterTrafficNodeInterface string `json:"masterTrafficNodeInterface,omitempty"`
+
+	// If MasterTrafficNodeIP is not set and MasterTrafficNodeInterface is set, then first non-loopback IPv4 addr from MasterTrafficNodeInterface is used.
+	MasterTrafficNodeIP string `json:"masterTrafficNodeIP"`
 }
 
 // DockerConfig holds Docker related configuration options.

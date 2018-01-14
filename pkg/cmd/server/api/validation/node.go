@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationResults {
@@ -26,9 +28,6 @@ func ValidateInClusterNodeConfig(config *api.NodeConfig, fldPath *field.Path) Va
 
 	if len(config.NodeName) == 0 {
 		validationResults.AddErrors(field.Required(fldPath.Child("nodeName"), ""))
-	}
-	if len(config.NodeIP) > 0 {
-		validationResults.AddErrors(ValidateSpecifiedIP(config.NodeIP, fldPath.Child("nodeIP"))...)
 	}
 
 	servingInfoPath := fldPath.Child("servingInfo")
@@ -109,6 +108,15 @@ func ValidateNetworkConfig(config api.NodeNetworkConfig, fldPath *field.Path) fi
 	if config.MTU == 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("mtu"), config.MTU, fmt.Sprintf("must be greater than zero")))
 	}
+
+	if len(config.PodTrafficNodeInterface) > 0 || len(config.PodTrafficNodeIP) > 0 {
+		allErrs = append(allErrs, ValidatePodTrafficParams(config.PodTrafficNodeInterface, config.PodTrafficNodeIP, fldPath)...)
+	}
+
+	if len(config.MasterTrafficNodeInterface) > 0 || len(config.MasterTrafficNodeIP) > 0 {
+		allErrs = append(allErrs, ValidateMasterTrafficParams(config.MasterTrafficNodeInterface, config.MasterTrafficNodeIP, fldPath)...)
+	}
+
 	return allErrs
 }
 
@@ -138,5 +146,51 @@ func ValidateVolumeConfig(config api.NodeVolumeConfig, fldPath *field.Path) fiel
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("localQuota", "perFSGroup"), config.LocalQuota.PerFSGroup,
 			"must be a positive integer"))
 	}
+	return allErrs
+}
+
+func ValidatePodTrafficParams(nodeIface, nodeIP string, fldPath *field.Path) field.ErrorList {
+	return validateNetworkInterfaceAndIP(nodeIface, nodeIP, fldPath.Child("podTrafficNodeInterface"), fldPath.Child("podTrafficNodeIP"))
+}
+
+func ValidateMasterTrafficParams(nodeIface, nodeIP string, fldPath *field.Path) field.ErrorList {
+	return validateNetworkInterfaceAndIP(nodeIface, nodeIP, fldPath.Child("masterTrafficNodeInterface"), fldPath.Child("masterTrafficNodeIP"))
+}
+
+func validateNetworkInterfaceAndIP(iface, ip string, ifaceFieldPath, ipFieldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	var ipv4Addrs []net.IP
+	if len(iface) > 0 {
+		var err error
+		if ipv4Addrs, err = netutils.GetIPAddrsFromNetworkInterface(iface); err != nil {
+			allErrs = append(allErrs, field.Invalid(ifaceFieldPath, iface, err.Error()))
+		}
+	}
+
+	if len(ip) > 0 {
+		ipObj := net.ParseIP(ip)
+		if ipObj == nil {
+			allErrs = append(allErrs, field.Invalid(ipFieldPath, ip, "must be a valid IP"))
+		} else if ipObj.IsUnspecified() {
+			allErrs = append(allErrs, field.Invalid(ipFieldPath, ip, "cannot be an unspecified IP"))
+		} else if ipObj.To4() == nil {
+			allErrs = append(allErrs, field.Invalid(ipFieldPath, ip, "must be IPv4 address"))
+		}
+
+		if len(iface) > 0 {
+			found := false
+			for _, addr := range ipv4Addrs {
+				if addr.Equal(ipObj) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				allErrs = append(allErrs, field.Invalid(ipFieldPath, ip, fmt.Sprintf("IP %q not found in network interface %q", ip, iface)))
+			}
+		}
+	}
+
 	return allErrs
 }

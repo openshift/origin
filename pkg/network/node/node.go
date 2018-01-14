@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	kubeutilnet "k8s.io/apimachinery/pkg/util/net"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/record"
@@ -70,6 +69,7 @@ type OsdnNodeConfig struct {
 	PluginName      string
 	Hostname        string
 	SelfIP          string
+	MasterTrafficIP string
 	RuntimeEndpoint string
 	MTU             uint32
 	EnableHostports bool
@@ -94,6 +94,7 @@ type OsdnNode struct {
 	podManager         *podManager
 	localSubnetCIDR    string
 	localIP            string
+	masterTrafficIP    string
 	hostName           string
 	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
@@ -149,8 +150,13 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 	// we're ready yet
 	os.Remove(filepath.Join(cniDirPath, openshiftCNIFile))
 
-	if err := c.setNodeIP(); err != nil {
-		return nil, err
+	if _, _, err := GetLinkDetails(c.SelfIP); err != nil {
+		if err == ErrorNetworkInterfaceNotFound {
+			err = fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
+		}
+		// TODO: We should eventually return an error here
+		// Currently we are ignoring the error so that it won't block the merge queue and QE can fix their test cases.
+		glog.Errorf("Unable to find network interface for node IP; some features will not work! (%v)", err)
 	}
 
 	ovsif, err := ovs.New(kexec.New(), Br0, minOvsVersion)
@@ -167,6 +173,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		oc:                 oc,
 		podManager:         newPodManager(c.KClient, policy, c.MTU, oc, c.EnableHostports),
 		localIP:            c.SelfIP,
+		masterTrafficIP:    c.MasterTrafficIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
 		iptablesSyncPeriod: c.IPTablesSyncPeriod,
@@ -186,42 +193,6 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 	RegisterMetrics()
 
 	return plugin, nil
-}
-
-// Set node IP if required
-func (c *OsdnNodeConfig) setNodeIP() error {
-	if len(c.Hostname) == 0 {
-		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
-		if err != nil {
-			return err
-		}
-		c.Hostname = strings.TrimSpace(string(output))
-		glog.Infof("Resolved hostname to %q", c.Hostname)
-	}
-
-	if len(c.SelfIP) == 0 {
-		var err error
-		c.SelfIP, err = netutils.GetNodeIP(c.Hostname)
-		if err != nil {
-			glog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
-			var defaultIP net.IP
-			defaultIP, err = kubeutilnet.ChooseHostInterface()
-			if err != nil {
-				return err
-			}
-			c.SelfIP = defaultIP.String()
-			glog.Infof("Resolved IP address to %q", c.SelfIP)
-		}
-	}
-
-	if _, _, err := GetLinkDetails(c.SelfIP); err != nil {
-		if err == ErrorNetworkInterfaceNotFound {
-			err = fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
-		}
-		glog.Errorf("Unable to find network interface for node IP; some features will not work! (%v)", err)
-	}
-
-	return nil
 }
 
 var (
@@ -298,6 +269,10 @@ func (node *OsdnNode) Start() error {
 	if err := node.networkInfo.CheckHostNetworks(hostIPNets); err != nil {
 		// checkHostNetworks() errors *should* be fatal, but we didn't used to check this, and we can't break (mostly-)working nodes on upgrade.
 		glog.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err)
+	}
+
+	if err := node.AnnotateMasterTrafficNodeIP(); err != nil {
+		return err
 	}
 
 	node.localSubnetCIDR, err = node.getLocalSubnet()

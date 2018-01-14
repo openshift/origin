@@ -17,9 +17,12 @@ limitations under the License.
 package client
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -159,10 +162,18 @@ func (k *NodeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*
 		return nil, err
 	}
 
-	// Find a kubelet-reported address, using preferred address type
-	host, err := nodeutil.GetPreferredNodeAddress(node, k.preferredAddressTypes)
-	if err != nil {
-		return nil, err
+	var host string
+
+	host, err = getMasterTrafficNodeIPAnnotation(node)
+	if err == nil {
+		glog.Infof("Kubelet using node IP %q from node annotation for node %q", host, node.Name)
+	} else {
+		// Find a kubelet-reported address, using preferred address type
+		host, err = nodeutil.GetPreferredNodeAddress(node, k.preferredAddressTypes)
+		if err != nil {
+			return nil, err
+		}
+		glog.Infof("Kubelet using node IP %q from node status for node %q", host, node.Name)
 	}
 
 	// Use the kubelet-reported port, if present
@@ -177,4 +188,18 @@ func (k *NodeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*
 		Port:      strconv.Itoa(port),
 		Transport: k.transport,
 	}, nil
+}
+
+const (
+	// Node annotations
+	MasterTrafficNodeIPAnnotation = "network.openshift.io/master-traffic-node-ip"
+)
+
+func getMasterTrafficNodeIPAnnotation(node *v1.Node) (string, error) {
+	if len(node.Annotations) > 0 {
+		if nodeIP, ok := node.Annotations[MasterTrafficNodeIPAnnotation]; ok {
+			return nodeIP, nil
+		}
+	}
+	return "", fmt.Errorf("master traffic node IP not found for node %q", node.Name)
 }

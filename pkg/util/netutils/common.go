@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/golang/glog"
+	"github.com/vishvananda/netlink"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 )
@@ -147,4 +148,30 @@ func IsPrivateAddress(addr string) bool {
 		}
 	}
 	return false
+}
+
+// GetIPAddrsFromNetworkInterface returns the non-loopback IPv4 addrs for the given network interface
+func GetIPAddrsFromNetworkInterface(iface string) ([]net.IP, error) {
+	link, err := netlink.LinkByName(iface)
+	if err != nil {
+		return nil, err
+	}
+	ipv4Addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
+	if err != nil {
+		return nil, err
+	}
+
+	var addrs []net.IP
+	for _, addr := range ipv4Addrs {
+		if addr.IP.IsLoopback() {
+			continue
+		}
+		addrs = append(addrs, addr.IP)
+	}
+
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("IPv4 addresses not found in network interface %q", iface)
+	}
+
+	return addrs, nil
 }
