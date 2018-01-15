@@ -88,7 +88,6 @@ func TestDefaultPolicy(t *testing.T) {
 		DockerImageReference: "integrated.registry/badns/badimage:bad",
 	}
 
-	notFoundTag := kerrors.NewNotFound(imageapi.Resource("imagestreamtags"), "")
 	goodTag := &imageapi.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Name: "mysql:goodtag", Namespace: "repo"},
 		Image:      *goodImage,
@@ -99,29 +98,27 @@ func TestDefaultPolicy(t *testing.T) {
 	}
 
 	client := &imageclient.Clientset{}
-	imageResp := 0
-	// respond to images in this order: goodImage, badImage
 	client.AddReactor("get", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		image := goodImage
-		if imageResp%2 == 1 {
-			image = badImage
+		name := action.(clientgotesting.GetAction).GetName()
+		switch name {
+		case goodImage.Name:
+			return true, goodImage, nil
+		case badImage.Name:
+			return true, badImage, nil
+		default:
+			return true, nil, kerrors.NewNotFound(imageapi.Resource("images"), name)
 		}
-		imageResp += 1
-		return true, image, nil
 	})
-	tagResp := 0
-	// respond to imagestreamtags in this order: notFoundTag, goodTag, badTag
 	client.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		if tagResp%3 == 0 {
-			tagResp += 1
-			return true, nil, notFoundTag
+		name := action.(clientgotesting.GetAction).GetName()
+		switch name {
+		case goodTag.Name:
+			return true, goodTag, nil
+		case badTag.Name:
+			return true, badTag, nil
+		default:
+			return true, nil, kerrors.NewNotFound(imageapi.Resource("imagestreamtags"), name)
 		}
-		tag := goodTag
-		if tagResp%3 == 2 {
-			tag = badTag
-		}
-		tagResp += 1
-		return true, tag, nil
 	})
 
 	store := setDefaultCache(plugin)
@@ -147,6 +144,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err != nil {
+		t.Fatal(err)
+	}
 
 	// should resolve the non-integrated image and allow it
 	attrs = admission.NewAttributesRecord(
@@ -156,6 +156,9 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
+		t.Fatal(err)
+	}
+	if err := plugin.Validate(attrs); err != nil {
 		t.Fatal(err)
 	}
 
@@ -169,6 +172,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err != nil {
+		t.Fatal(err)
+	}
 
 	// should attempt resolve the integrated image by tag and fail because tag not found
 	attrs = admission.NewAttributesRecord(
@@ -180,6 +186,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err != nil {
+		t.Fatal(err)
+	}
 
 	// should attempt resolve the integrated image by tag and allow it
 	attrs = admission.NewAttributesRecord(
@@ -189,6 +198,9 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
+		t.Fatal(err)
+	}
+	if err := plugin.Validate(attrs); err != nil {
 		t.Fatal(err)
 	}
 
@@ -203,6 +215,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
 
 	// should reject the non-integrated image due to the annotation
 	attrs = admission.NewAttributesRecord(
@@ -214,6 +229,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
 
 	// should reject the non-integrated image due to the annotation on an init container
 	attrs = admission.NewAttributesRecord(
@@ -223,6 +241,9 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -238,6 +259,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
 	attrs = admission.NewAttributesRecord(
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{
 			From: &kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
@@ -247,6 +271,9 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 	attrs = admission.NewAttributesRecord(
@@ -260,6 +287,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
 	attrs = admission.NewAttributesRecord(
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{
 			From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
@@ -269,6 +299,9 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -285,6 +318,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err != nil {
+		t.Fatal(err)
+	}
 
 	// should hit the cache on the previously good image and continue to allow it (the copy in cache was previously safe)
 	goodImage.Annotations = map[string]string{"images.openshift.io/deny-execution": "true"}
@@ -297,6 +333,9 @@ func TestDefaultPolicy(t *testing.T) {
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
 	}
+	if err := plugin.Validate(attrs); err != nil {
+		t.Fatal(err)
+	}
 
 	// moving 2 minutes in the future should bypass the cache and deny the image
 	now = func() time.Time { return time.Unix(1, 0).Add(2 * time.Minute) }
@@ -307,6 +346,9 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+		t.Fatal(err)
+	}
+	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -327,6 +369,9 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
+		t.Fatal(err)
+	}
+	if err := plugin.Validate(attrs); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -350,6 +395,9 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 	if err := p.Admit(attrs); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
 		t.Fatal(err)
 	}
+	if err := p.Validate(attrs); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
+		t.Fatal(err)
+	}
 }
 
 func TestAdmissionResolution(t *testing.T) {
@@ -366,16 +414,15 @@ func TestAdmissionResolution(t *testing.T) {
 	})
 	setDefaultCache(p)
 
-	resolveCalled := 0
 	p.resolver = resolveFunc(func(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes, error) {
-		resolveCalled++
 		switch ref.Name {
 		case "index.docker.io/mysql:latest":
 			return &rules.ImagePolicyAttributes{
 				Name:  imageapi.DockerImageReference{Registry: "index.docker.io", Name: "mysql", Tag: "latest"},
 				Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "1"}},
 			}, nil
-		case "myregistry.com/mysql/mysql:latest":
+		case "myregistry.com/mysql/mysql:latest",
+			"myregistry.com/mysql/mysql@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4":
 			return &rules.ImagePolicyAttributes{
 				Name:  imageapi.DockerImageReference{Registry: "myregistry.com", Namespace: "mysql", Name: "mysql", ID: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"},
 				Image: &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "2"}},
@@ -406,6 +453,9 @@ func TestAdmissionResolution(t *testing.T) {
 	if err := p.Admit(failingAttrs); err == nil {
 		t.Fatal(err)
 	}
+	if err := p.Validate(failingAttrs); err == nil {
+		t.Fatal(err)
+	}
 
 	pod := &kapi.Pod{
 		Spec: kapi.PodSpec{
@@ -429,12 +479,28 @@ func TestAdmissionResolution(t *testing.T) {
 		pod.Spec.Containers[1].Image != "myregistry.com/mysql/mysql@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4" {
 		t.Errorf("unexpected image: %#v", pod)
 	}
+	if err := p.Validate(attrs); err != nil {
+		t.Logf("object: %#v", attrs.GetObject())
+		t.Fatal(err)
+	}
+	if pod.Spec.Containers[0].Image != "myregistry.com/mysql/mysql@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4" ||
+		pod.Spec.Containers[1].Image != "myregistry.com/mysql/mysql@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4" {
+		t.Errorf("unexpected image: %#v", pod)
+	}
+
+	// Simulate a later admission plugin modifying the pod spec back to something that requires resolution
+	pod.Spec.Containers[0].Image = "myregistry.com/mysql/mysql:latest"
+	if err := p.Validate(attrs); err == nil {
+		t.Fatal("expected validate error on mutation, got none")
+	} else if !strings.Contains(err.Error(), "changed after admission") {
+		t.Fatalf("expected mutation-related error, got %v", err)
+	}
 }
 
 func TestAdmissionResolveImages(t *testing.T) {
 	image1 := &imageapi.Image{
 		ObjectMeta:           metav1.ObjectMeta{Name: "sha256:0000000000000000000000000000000000000000000000000000000000000001"},
-		DockerImageReference: "integrated.registry/image1/image1:latest",
+		DockerImageReference: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001",
 	}
 
 	obj, err := configlatest.ReadYAML(bytes.NewBufferString(`{"kind":"ImagePolicyConfig","apiVersion":"v1"}`))
@@ -871,7 +937,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					CommonSpec: buildapi.CommonSpec{
 						Strategy: buildapi.BuildStrategy{
 							DockerStrategy: &buildapi.DockerBuildStrategy{
-								From: &kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/image1/image1:latest"},
+								From: &kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 							},
 						},
 					},
@@ -1250,7 +1316,14 @@ func TestAdmissionResolveImages(t *testing.T) {
 				t.Errorf("%d: should not admit", i)
 				return
 			}
+			if !reflect.DeepEqual(test.expect, test.attrs.GetObject()) {
+				t.Errorf("%d: unequal: %s", i, diff.ObjectReflectDiff(test.expect, test.attrs.GetObject()))
+			}
 
+			if err := p.Validate(test.attrs); err != nil {
+				t.Errorf("%d: should validate: %v", i, err)
+				return
+			}
 			if !reflect.DeepEqual(test.expect, test.attrs.GetObject()) {
 				t.Errorf("%d: unequal: %s", i, diff.ObjectReflectDiff(test.expect, test.attrs.GetObject()))
 			}
