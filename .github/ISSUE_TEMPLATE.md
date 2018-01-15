@@ -1,3 +1,11 @@
+<!--
+Note that this is the issue tracker for OpenShift Origin.
+
+OpenShift Installer issues should be reported at https://github.com/openshift/openshift-ansible/issues
+Management Console issues are collected at https://github.com/openshift/origin-web-console/issues
+Documentation issues are better reported at https://github.com/openshift/openshift-docs/issues
+-->
+
 [provide a description of the issue]
 
 ##### Version
