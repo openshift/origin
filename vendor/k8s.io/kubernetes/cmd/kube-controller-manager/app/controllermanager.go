@@ -64,6 +64,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 const (
@@ -172,6 +173,8 @@ func Run(s *options.CMServer) error {
 	if err != nil {
 		return err
 	}
+	// add a uniquifier so that two processes on the same host don't accidentally both become active
+	id = id + " " + string(uuid.NewUUID())
 
 	rl, err := resourcelock.New(s.LeaderElection.ResourceLock,
 		"kube-system",
