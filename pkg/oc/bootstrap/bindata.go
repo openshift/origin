@@ -14894,8 +14894,37 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
-var _installOriginWebConsoleConsoleConfigYaml = []byte(`kind: WebConsoleConfiguration
-apiVersion: webconsole.config.openshift.io/v1
+var _installOriginWebConsoleConsoleConfigYaml = []byte(`apiVersion: webconsole.config.openshift.io/v1
+kind: WebConsoleConfiguration
+clusterInfo:
+  consolePublicURL: https://127.0.0.1:8443/console/
+  loggingPublicURL: ""
+  logoutPublicURL: ""
+  masterPublicURL: https://127.0.0.1:8443
+  metricsPublicURL: ""
+# TODO: The new extensions properties cannot be set until
+# origin-web-console-server has been updated with the API changes since
+# `+"`"+`extensions`+"`"+` in the old asset config was an array.
+#extensions:
+#  scriptURLs: []
+#  stylesheetURLs: []
+#  properties: null
+features:
+  inactivityTimeoutMinutes: 0
+servingInfo:
+  bindAddress: 0.0.0.0:8443
+  bindNetwork: tcp4
+  certFile: /var/serving-cert/tls.crt
+  clientCA: ""
+  keyFile: /var/serving-cert/tls.key
+  maxRequestsInFlight: 0
+  namedCertificates: null
+  requestTimeoutSeconds: 0
+
+# START deprecated properties
+# These properties have been renamed and will be removed from the install
+# in a future pull. Keep both the old and new properties for now so that
+# the install is not broken while the origin-web-console image is updated.
 extensionDevelopment: false
 extensionProperties: null
 extensionScripts: null
@@ -14906,15 +14935,7 @@ logoutURL: ""
 masterPublicURL: https://127.0.0.1:8443
 metricsPublicURL: ""
 publicURL: https://127.0.0.1:8443/console/
-servingInfo:
-  bindAddress: 0.0.0.0:8443
-  bindNetwork: tcp4
-  certFile: /var/serving-cert/tls.crt
-  clientCA: ""
-  keyFile: /var/serving-cert/tls.key
-  maxRequestsInFlight: 0
-  namedCertificates: null
-  requestTimeoutSeconds: 0
+# END deprecated properties
 `)
 
 func installOriginWebConsoleConsoleConfigYamlBytes() ([]byte, error) {
