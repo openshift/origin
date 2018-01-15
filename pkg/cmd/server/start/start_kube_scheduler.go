@@ -23,6 +23,9 @@ func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[
 	if len(cmdLineArgs["policy-config-file"]) == 0 {
 		cmdLineArgs["policy-config-file"] = []string{schedulerConfigFile}
 	}
+	if _, ok := cmdLineArgs["leader-elect"]; !ok {
+		cmdLineArgs["leader-elect"] = []string{"true"}
+	}
 	if len(cmdLineArgs["leader-elect-resource-lock"]) == 0 {
 		cmdLineArgs["leader-elect-resource-lock"] = []string{"configmaps"}
 	}
@@ -53,18 +56,14 @@ func newScheduler(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[
 }
 
 func runEmbeddedScheduler(kubeconfigFile, schedulerConfigFile string, cmdLineArgs map[string][]string) {
-	for {
-		// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
-		schedulerOptions, err := newScheduler(kubeconfigFile, schedulerConfigFile, cmdLineArgs)
-		if err != nil {
-			glog.Error(err)
-			continue
-		}
-		// this does a second leader election, but doing the second leader election will allow us to move out process in
-		// 3.8 if we so choose.
-		if err := schedulerOptions.Run(); err != nil {
-			glog.Error(err)
-			continue
-		}
+	// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
+	schedulerOptions, err := newScheduler(kubeconfigFile, schedulerConfigFile, cmdLineArgs)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	// this does a second leader election, but doing the second leader election will allow us to move out process in
+	// 3.8 if we so choose.
+	if err := schedulerOptions.Run(); err != nil {
+		glog.Fatal(err)
 	}
 }
