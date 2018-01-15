@@ -23,7 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/storage"
 	storageutil "k8s.io/kubernetes/pkg/apis/storage/util"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -191,11 +191,7 @@ func TestAdmission(t *testing.T) {
 		glog.V(4).Infof("starting test %q", test.name)
 
 		// clone the claim, it's going to be modified
-		clone, err := api.Scheme.DeepCopy(test.claim)
-		if err != nil {
-			t.Fatalf("Cannot clone claim: %v", err)
-		}
-		claim := clone.(*api.PersistentVolumeClaim)
+		claim := test.claim.DeepCopy()
 
 		ctrl := newPlugin()
 		informerFactory := informers.NewSharedInformerFactory(nil, controller.NoResyncPeriodFunc())
@@ -214,7 +210,7 @@ func TestAdmission(t *testing.T) {
 			admission.Create,
 			nil, // userInfo
 		)
-		err = ctrl.Admit(attrs)
+		err := ctrl.Admit(attrs)
 		glog.Infof("Got %v", err)
 		if err != nil && !test.expectError {
 			t.Errorf("Test %q: unexpected error received: %v", test.name, err)

@@ -30,15 +30,14 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
 	storeerr "k8s.io/apiserver/pkg/storage/errors"
-	"k8s.io/kubernetes/pkg/api"
 	podutil "k8s.io/kubernetes/pkg/api/pod"
-	"k8s.io/kubernetes/pkg/api/validation"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 	policyclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/policy/internalversion"
 	"k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/printers"
 	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 	podrest "k8s.io/kubernetes/pkg/registry/core/pod/rest"
 )
@@ -66,12 +65,10 @@ type REST struct {
 func NewStorage(optsGetter generic.RESTOptionsGetter, k client.ConnectionInfoGetter, proxyTransport http.RoundTripper, podDisruptionBudgetClient policyclient.PodDisruptionBudgetsGetter) PodStorage {
 
 	store := &genericregistry.Store{
-		Copier:            api.Scheme,
-		NewFunc:           func() runtime.Object { return &api.Pod{} },
-		NewListFunc:       func() runtime.Object { return &api.PodList{} },
-		PredicateFunc:     pod.MatchPod,
-		QualifiedResource: api.Resource("pods"),
-		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("pods"),
+		NewFunc:                  func() runtime.Object { return &api.Pod{} },
+		NewListFunc:              func() runtime.Object { return &api.PodList{} },
+		PredicateFunc:            pod.MatchPod,
+		DefaultQualifiedResource: api.Resource("pods"),
 
 		CreateStrategy:      pod.Strategy,
 		UpdateStrategy:      pod.Strategy,
@@ -138,7 +135,7 @@ func (r *BindingREST) New() runtime.Object {
 var _ = rest.Creater(&BindingREST{})
 
 // Create ensures a pod is bound to a specific host.
-func (r *BindingREST) Create(ctx genericapirequest.Context, obj runtime.Object, includeUninitialized bool) (out runtime.Object, err error) {
+func (r *BindingREST) Create(ctx genericapirequest.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (out runtime.Object, err error) {
 	binding := obj.(*api.Binding)
 
 	// TODO: move me to a binding strategy
@@ -215,6 +212,6 @@ func (r *StatusREST) Get(ctx genericapirequest.Context, name string, options *me
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+func (r *StatusREST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }

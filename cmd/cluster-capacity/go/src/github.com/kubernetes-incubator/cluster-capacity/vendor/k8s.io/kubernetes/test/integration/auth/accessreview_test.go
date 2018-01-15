@@ -27,8 +27,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/testapi"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 	"k8s.io/kubernetes/test/integration/framework"
@@ -38,12 +39,12 @@ import (
 // TODO(etune): remove this test once a more comprehensive built-in authorizer is implemented.
 type sarAuthorizer struct{}
 
-func (sarAuthorizer) Authorize(a authorizer.Attributes) (bool, string, error) {
+func (sarAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
 	if a.GetUser().GetName() == "dave" {
-		return false, "no", errors.New("I'm sorry, Dave")
+		return authorizer.DecisionNoOpinion, "no", errors.New("I'm sorry, Dave")
 	}
 
-	return true, "you're not dave", nil
+	return authorizer.DecisionAllow, "you're not dave", nil
 }
 
 func alwaysAlice(req *http.Request) (user.Info, bool, error) {
@@ -60,7 +61,7 @@ func TestSubjectAccessReview(t *testing.T) {
 	_, s, closeFn := framework.RunAMaster(masterConfig)
 	defer closeFn()
 
-	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(api.GroupName).GroupVersion}})
+	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Groups[api.GroupName].GroupVersion()}})
 
 	tests := []struct {
 		name           string
@@ -154,7 +155,7 @@ func TestSelfSubjectAccessReview(t *testing.T) {
 	_, s, closeFn := framework.RunAMaster(masterConfig)
 	defer closeFn()
 
-	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(api.GroupName).GroupVersion}})
+	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Groups[api.GroupName].GroupVersion()}})
 
 	tests := []struct {
 		name           string
@@ -234,7 +235,7 @@ func TestLocalSubjectAccessReview(t *testing.T) {
 	_, s, closeFn := framework.RunAMaster(masterConfig)
 	defer closeFn()
 
-	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(api.GroupName).GroupVersion}})
+	clientset := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: testapi.Groups[api.GroupName].GroupVersion()}})
 
 	tests := []struct {
 		name           string

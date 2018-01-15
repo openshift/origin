@@ -21,8 +21,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 
 	ccapi "github.com/kubernetes-incubator/cluster-capacity/pkg/api"
 )
@@ -202,7 +202,7 @@ func NewResourceReflectors(client clientset.Interface, stopCh <-chan struct{}) *
 	rs := NewResourceStore()
 	for _, resource := range rs.Resources() {
 		listWatcher := cache.NewListWatchFromClient(client.Core().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
-		cache.NewReflector(listWatcher, resource.ObjectType(), rs.resourceToCache[resource], 0).RunUntil(stopCh)
+		cache.NewReflector(listWatcher, resource.ObjectType(), rs.resourceToCache[resource], 0).Run(stopCh)
 	}
 	return rs
 }

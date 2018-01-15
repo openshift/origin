@@ -23,17 +23,3 @@ import (
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
 }
-
-func SetDefaults_Initializer(obj *Initializer) {
-	if obj.FailurePolicy == nil {
-		policy := Ignore
-		obj.FailurePolicy = &policy
-	}
-}
-
-func SetDefaults_ExternalAdmissionHook(obj *ExternalAdmissionHook) {
-	if obj.FailurePolicy == nil {
-		policy := Ignore
-		obj.FailurePolicy = &policy
-	}
-}

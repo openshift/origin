@@ -29,6 +29,7 @@ import (
 
 	"github.com/evanphx/json-patch"
 	"github.com/golang/glog"
+	"github.com/spf13/cobra"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -40,12 +41,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/util/crlf"
 	"k8s.io/kubernetes/pkg/printers"
-	"k8s.io/kubernetes/pkg/util/crlf"
 )
 
 // EditOptions contains all the options for running edit cli command.
@@ -53,6 +55,7 @@ type EditOptions struct {
 	resource.FilenameOptions
 
 	Output             string
+	OutputPatch        bool
 	WindowsLineEndings bool
 
 	cmdutil.ValidateOptions
@@ -85,7 +88,7 @@ type editPrinterOptions struct {
 }
 
 // Complete completes all the required options
-func (o *EditOptions) Complete(f cmdutil.Factory, out, errOut io.Writer, args []string) error {
+func (o *EditOptions) Complete(f cmdutil.Factory, out, errOut io.Writer, args []string, cmd *cobra.Command) error {
 	if o.EditMode != NormalEditMode && o.EditMode != EditBeforeCreateMode && o.EditMode != ApplyEditMode {
 		return fmt.Errorf("unsupported edit mode %q", o.EditMode)
 	}
@@ -96,25 +99,25 @@ func (o *EditOptions) Complete(f cmdutil.Factory, out, errOut io.Writer, args []
 	}
 	o.editPrinterOptions = getPrinter(o.Output)
 
+	if o.OutputPatch && o.EditMode != NormalEditMode {
+		return fmt.Errorf("the edit mode doesn't support output the patch")
+	}
+
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
-	mapper, typer, err := f.UnstructuredObject()
-	if err != nil {
-		return err
-	}
-
-	b, err := f.NewUnstructuredBuilder(true)
-	if err != nil {
-		return err
-	}
+	mapper, _ := f.Object()
+	b := f.NewBuilder().
+		Unstructured()
 	if o.EditMode == NormalEditMode || o.EditMode == ApplyEditMode {
 		// when do normal edit or apply edit we need to always retrieve the latest resource from server
 		b = b.ResourceTypeOrNameArgs(true, args...).Latest()
 	}
+	includeUninitialized := cmdutil.ShouldIncludeUninitialized(cmd, false)
 	r := b.NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.FilenameOptions).
+		IncludeUninitialized(includeUninitialized).
 		ContinueOnError().
 		Flatten().
 		Do()
@@ -126,8 +129,10 @@ func (o *EditOptions) Complete(f cmdutil.Factory, out, errOut io.Writer, args []
 
 	o.updatedResultGetter = func(data []byte) *resource.Result {
 		// resource builder to read objects from edited data
-		return resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.UnstructuredClientForMapping), unstructured.UnstructuredJSONScheme).
+		return f.NewBuilder().
+			Unstructured().
 			Stream(bytes.NewReader(data), "edited-file").
+			IncludeUninitialized(includeUninitialized).
 			ContinueOnError().
 			Flatten().
 			Do()
@@ -224,7 +229,7 @@ func (o *EditOptions) Run() error {
 			glog.V(4).Infof("User edited:\n%s", string(edited))
 
 			// Apply validation
-			schema, err := o.f.Validator(o.EnableValidation, o.SchemaCacheDir)
+			schema, err := o.f.Validator(o.EnableValidation)
 			if err != nil {
 				return preservedFile(err, file, o.ErrOut)
 			}
@@ -331,6 +336,9 @@ func (o *EditOptions) Run() error {
 		if err != nil {
 			return err
 		}
+		if len(infos) == 0 {
+			return errors.New("edit cancelled, no objects found.")
+		}
 		return editFn(infos)
 	case ApplyEditMode:
 		infos, err := o.OriginalResult.Infos()
@@ -400,14 +408,14 @@ func (o *EditOptions) visitToApplyEditPatch(originalInfos []*resource.Info, patc
 		}
 
 		if reflect.DeepEqual(originalJS, editedJS) {
-			cmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "skipped")
+			o.f.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "skipped")
 			return nil
 		} else {
 			err := o.annotationPatch(info)
 			if err != nil {
 				return err
 			}
-			cmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "edited")
+			o.f.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "edited")
 			return nil
 		}
 	})
@@ -437,10 +445,7 @@ func GetApplyPatch(obj runtime.Object, codec runtime.Encoder) ([]byte, []byte, t
 	if err != nil {
 		return nil, []byte(""), types.MergePatchType, err
 	}
-	objCopy, err := api.Scheme.Copy(obj)
-	if err != nil {
-		return nil, beforeJSON, types.MergePatchType, err
-	}
+	objCopy := obj.DeepCopyObject()
 	accessor := meta.NewAccessor()
 	annotations, err := accessor.Annotations(objCopy)
 	if err != nil {
@@ -495,11 +500,7 @@ func getPrinter(format string) *editPrinterOptions {
 	}
 }
 
-func (o *EditOptions) visitToPatch(
-	originalInfos []*resource.Info,
-	patchVisitor resource.Visitor,
-	results *editResults,
-) error {
+func (o *EditOptions) visitToPatch(originalInfos []*resource.Info, patchVisitor resource.Visitor, results *editResults) error {
 	err := patchVisitor.Visit(func(info *resource.Info, incomingErr error) error {
 		editObjUID, err := meta.NewAccessor().UID(info.Object)
 		if err != nil {
@@ -533,7 +534,7 @@ func (o *EditOptions) visitToPatch(
 
 		if reflect.DeepEqual(originalJS, editedJS) {
 			// no edit, so just skip it.
-			cmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "skipped")
+			o.f.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "skipped")
 			return nil
 		}
 
@@ -545,7 +546,7 @@ func (o *EditOptions) visitToPatch(
 
 		// Create the versioned struct from the type defined in the mapping
 		// (which is the API version we'll be submitting the patch to)
-		versionedObject, err := api.Scheme.New(info.Mapping.GroupVersionKind)
+		versionedObject, err := scheme.Scheme.New(info.Mapping.GroupVersionKind)
 		var patchType types.PatchType
 		var patch []byte
 		switch {
@@ -577,13 +578,17 @@ func (o *EditOptions) visitToPatch(
 			}
 		}
 
+		if o.OutputPatch {
+			fmt.Fprintf(o.Out, "Patch: %s\n", string(patch))
+		}
+
 		patched, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, patchType, patch)
 		if err != nil {
 			fmt.Fprintln(o.ErrOut, results.addError(err, info))
 			return nil
 		}
 		info.Refresh(patched, true)
-		cmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "edited")
+		o.f.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "edited")
 		return nil
 	})
 	return err
@@ -594,7 +599,7 @@ func (o *EditOptions) visitToCreate(createVisitor resource.Visitor) error {
 		if err := resource.CreateAndRefresh(info); err != nil {
 			return err
 		}
-		cmdutil.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "created")
+		o.f.PrintSuccess(o.Mapper, false, o.Out, info.Mapping.Resource, info.Name, false, "created")
 		return nil
 	})
 	return err

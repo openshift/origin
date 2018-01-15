@@ -25,9 +25,9 @@ import (
 	"os"
 	"time"
 
-	capi "k8s.io/kubernetes/pkg/apis/certificates/v1beta1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	certificatesinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/certificates/v1beta1"
+	capi "k8s.io/api/certificates/v1beta1"
+	certificatesinformers "k8s.io/client-go/informers/certificates/v1beta1"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/controller/certificates"
 
 	"github.com/cloudflare/cfssl/config"
@@ -50,7 +50,7 @@ func NewCSRSigningController(
 		client,
 		csrInformer,
 		signer.handle,
-	)
+	), nil
 }
 
 type cfsslSigner struct {
@@ -103,7 +103,7 @@ func (s *cfsslSigner) handle(csr *capi.CertificateSigningRequest) error {
 	if err != nil {
 		return fmt.Errorf("error auto signing csr: %v", err)
 	}
-	_, err = s.client.Certificates().CertificateSigningRequests().UpdateStatus(csr)
+	_, err = s.client.CertificatesV1beta1().CertificateSigningRequests().UpdateStatus(csr)
 	if err != nil {
 		return fmt.Errorf("error updating signature for csr: %v", err)
 	}

@@ -38,29 +38,49 @@ type PodPresetInformer interface {
 }
 
 type podPresetInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
-func newPodPresetInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewPodPresetInformer constructs a new informer for PodPreset type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewPodPresetInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredPodPresetInformer(client, namespace, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredPodPresetInformer constructs a new informer for PodPreset type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredPodPresetInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.Settings().PodPresets(v1.NamespaceAll).List(options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.Settings().PodPresets(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.Settings().PodPresets(v1.NamespaceAll).Watch(options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.Settings().PodPresets(namespace).Watch(options)
 			},
 		},
 		&settings.PodPreset{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func (f *podPresetInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredPodPresetInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *podPresetInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&settings.PodPreset{}, newPodPresetInformer)
+	return f.factory.InformerFor(&settings.PodPreset{}, f.defaultInformer)
 }
 
 func (f *podPresetInformer) Lister() internalversion.PodPresetLister {

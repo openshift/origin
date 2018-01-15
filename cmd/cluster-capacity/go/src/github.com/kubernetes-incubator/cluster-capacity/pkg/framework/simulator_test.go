@@ -21,15 +21,13 @@ import (
 	goruntime "runtime"
 	"testing"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/kubernetes/pkg/version"
-	soptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
-	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
+	sapps "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/framework/store"
 )
@@ -192,16 +190,11 @@ func TestPrediction(t *testing.T) {
 
 	// 2. create predictor
 	// - create simple configuration file for scheduler (use the default values or from systemd env file if reasonable)
-	cc, err := New(&soptions.SchedulerServer{
-		KubeSchedulerConfiguration: componentconfig.KubeSchedulerConfiguration{
-			SchedulerName:                  v1.DefaultSchedulerName,
-			HardPodAffinitySymmetricWeight: v1.DefaultHardPodAffinitySymmetricWeight,
-			FailureDomains:                 kubeletapis.DefaultFailureDomains,
-			AlgorithmProvider:              factory.DefaultProvider,
-		},
-		Master:     "http://localhost:8080",
-		Kubeconfig: "/etc/kubernetes/kubeconfig",
-	},
+	soptions, _ := sapps.NewOptions()
+	ksConfig := new(componentconfig.KubeSchedulerConfiguration)
+	ksConfig, _ = soptions.ApplyDefaults(ksConfig)
+	schedServer, _ := sapps.NewSchedulerServer(ksConfig, "http://localhost:8080")
+	cc, err := New(schedServer,
 		simulatedPod,
 		6,
 	)

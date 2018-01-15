@@ -17,10 +17,10 @@ limitations under the License.
 package test
 
 import (
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 func NodeExample(name string) v1.Node {
@@ -73,7 +73,7 @@ func PersistentVolumeExample(name string) v1.PersistentVolume {
 				v1.ResourceName(v1.ResourceStorage): resource.MustParse("10G"),
 			},
 			PersistentVolumeSource: v1.PersistentVolumeSource{
-				HostPath: &v1.HostPathVolumeSource{Path: "/foo"},
+			//HostPath: &v1.HostPathVolumeSource{Path: "/foo"},
 			},
 			PersistentVolumeReclaimPolicy: "Retain",
 		},

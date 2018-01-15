@@ -23,8 +23,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/printers"
+	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
+	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 	"k8s.io/kubernetes/pkg/registry/core/service"
 )
 
@@ -35,19 +37,18 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against services.
 func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 	store := &genericregistry.Store{
-		Copier:            api.Scheme,
-		NewFunc:           func() runtime.Object { return &api.Service{} },
-		NewListFunc:       func() runtime.Object { return &api.ServiceList{} },
-		PredicateFunc:     service.MatchServices,
-		QualifiedResource: api.Resource("services"),
-		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("services"),
+		NewFunc:                  func() runtime.Object { return &api.Service{} },
+		NewListFunc:              func() runtime.Object { return &api.ServiceList{} },
+		DefaultQualifiedResource: api.Resource("services"),
 
 		CreateStrategy: service.Strategy,
 		UpdateStrategy: service.Strategy,
 		DeleteStrategy: service.Strategy,
 		ExportStrategy: service.Strategy,
+
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: service.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}
@@ -88,6 +89,6 @@ func (r *StatusREST) Get(ctx genericapirequest.Context, name string, options *me
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo)
+func (r *StatusREST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }

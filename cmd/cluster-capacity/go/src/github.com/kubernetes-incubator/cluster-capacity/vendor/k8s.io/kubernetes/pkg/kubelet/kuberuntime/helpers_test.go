@@ -17,11 +17,14 @@ limitations under the License.
 package kuberuntime
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api/v1"
 	runtimetesting "k8s.io/kubernetes/pkg/kubelet/apis/cri/testing"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -194,8 +197,8 @@ func TestGetImageUser(t *testing.T) {
 		i.Images[test.originalImage.name].Username = test.originalImage.username
 		i.Images[test.originalImage.name].Uid = test.originalImage.uid
 
-		uid, username, error := m.getImageUser(test.originalImage.name)
-		assert.NoError(t, error, "TestCase[%d]", j)
+		uid, username, err := m.getImageUser(test.originalImage.name)
+		assert.NoError(t, err, "TestCase[%d]", j)
 
 		if test.expectedImageUserValues.uid == (*int64)(nil) {
 			assert.Equal(t, test.expectedImageUserValues.uid, uid, "TestCase[%d]", j)
@@ -203,5 +206,102 @@ func TestGetImageUser(t *testing.T) {
 			assert.Equal(t, test.expectedImageUserValues.uid, *uid, "TestCase[%d]", j)
 		}
 		assert.Equal(t, test.expectedImageUserValues.username, username, "TestCase[%d]", j)
+	}
+}
+
+func TestGetSeccompProfileFromAnnotations(t *testing.T) {
+	_, _, m, err := createTestRuntimeManager()
+	require.NoError(t, err)
+
+	tests := []struct {
+		description     string
+		annotation      map[string]string
+		containerName   string
+		expectedProfile string
+	}{
+		{
+			description:     "no seccomp should return empty string",
+			expectedProfile: "",
+		},
+		{
+			description:     "no seccomp with containerName should return exmpty string",
+			containerName:   "container1",
+			expectedProfile: "",
+		},
+		{
+			description: "pod docker/default seccomp profile should return docker/default",
+			annotation: map[string]string{
+				v1.SeccompPodAnnotationKey: "docker/default",
+			},
+			expectedProfile: "docker/default",
+		},
+		{
+			description: "pod docker/default seccomp profile with containerName should return docker/default",
+			annotation: map[string]string{
+				v1.SeccompPodAnnotationKey: "docker/default",
+			},
+			containerName:   "container1",
+			expectedProfile: "docker/default",
+		},
+		{
+			description: "pod unconfined seccomp profile should return unconfined",
+			annotation: map[string]string{
+				v1.SeccompPodAnnotationKey: "unconfined",
+			},
+			expectedProfile: "unconfined",
+		},
+		{
+			description: "pod unconfined seccomp profile with containerName should return unconfined",
+			annotation: map[string]string{
+				v1.SeccompPodAnnotationKey: "unconfined",
+			},
+			containerName:   "container1",
+			expectedProfile: "unconfined",
+		},
+		{
+			description: "pod localhost seccomp profile should return local profile path",
+			annotation: map[string]string{
+				v1.SeccompPodAnnotationKey: "localhost/chmod.json",
+			},
+			expectedProfile: "localhost/" + filepath.Join(fakeSeccompProfileRoot, "chmod.json"),
+		},
+		{
+			description: "pod localhost seccomp profile with containerName should return local profile path",
+			annotation: map[string]string{
+				v1.SeccompPodAnnotationKey: "localhost/chmod.json",
+			},
+			containerName:   "container1",
+			expectedProfile: "localhost/" + filepath.Join(fakeSeccompProfileRoot, "chmod.json"),
+		},
+		{
+			description: "container localhost seccomp profile with containerName should return local profile path",
+			annotation: map[string]string{
+				v1.SeccompContainerAnnotationKeyPrefix + "container1": "localhost/chmod.json",
+			},
+			containerName:   "container1",
+			expectedProfile: "localhost/" + filepath.Join(fakeSeccompProfileRoot, "chmod.json"),
+		},
+		{
+			description: "container localhost seccomp profile should override pod profile",
+			annotation: map[string]string{
+				v1.SeccompPodAnnotationKey:                            "unconfined",
+				v1.SeccompContainerAnnotationKeyPrefix + "container1": "localhost/chmod.json",
+			},
+			containerName:   "container1",
+			expectedProfile: "localhost/" + filepath.Join(fakeSeccompProfileRoot, "chmod.json"),
+		},
+		{
+			description: "container localhost seccomp profile with unmatched containerName should return empty string",
+			annotation: map[string]string{
+				v1.SeccompContainerAnnotationKeyPrefix + "container1": "localhost/chmod.json",
+			},
+			containerName:   "container2",
+			expectedProfile: "",
+		},
+	}
+
+	for i, test := range tests {
+		seccompProfile := m.getSeccompProfileFromAnnotations(test.annotation, test.containerName)
+		assert.Equal(t, test.expectedProfile, seccompProfile, "TestCase[%d]", i)
 	}
 }

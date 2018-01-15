@@ -20,29 +20,29 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	"k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/kubernetes/federation/apis/federation"
-	fedfake "k8s.io/kubernetes/federation/client/clientset_generated/federation_internalclientset/fake"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
+	versionedfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	"k8s.io/kubernetes/pkg/apis/networking"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/apis/storage"
-	versionedfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/printers"
-	"k8s.io/kubernetes/pkg/util"
+	utilpointer "k8s.io/kubernetes/pkg/util/pointer"
 )
 
 type describeClient struct {
@@ -126,6 +126,31 @@ func TestDescribePodTolerations(t *testing.T) {
 	}
 }
 
+func TestDescribeSecret(t *testing.T) {
+	fake := fake.NewSimpleClientset(&api.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+		},
+		Data: map[string][]byte{
+			"username": []byte("YWRtaW4="),
+			"password": []byte("MWYyZDFlMmU2N2Rm"),
+		},
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
+	d := SecretDescriber{c}
+	out, err := d.Describe("foo", "bar", printers.DescriberSettings{})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "bar") || !strings.Contains(out, "foo") || !strings.Contains(out, "username") || !strings.Contains(out, "8 bytes") || !strings.Contains(out, "password") || !strings.Contains(out, "16 bytes") {
+		t.Errorf("unexpected out: %s", out)
+	}
+	if strings.Contains(out, "YWRtaW4=") || strings.Contains(out, "MWYyZDFlMmU2N2Rm") {
+		t.Errorf("sensitive data should not be shown, unexpected out: %s", out)
+	}
+}
+
 func TestDescribeNamespace(t *testing.T) {
 	fake := fake.NewSimpleClientset(&api.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -139,6 +164,28 @@ func TestDescribeNamespace(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if !strings.Contains(out, "myns") {
+		t.Errorf("unexpected out: %s", out)
+	}
+}
+
+func TestDescribePodPriority(t *testing.T) {
+	priority := int32(1000)
+	fake := fake.NewSimpleClientset(&api.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "bar",
+		},
+		Spec: api.PodSpec{
+			PriorityClassName: "high-priority",
+			Priority:          &priority,
+		},
+	})
+	c := &describeClient{T: t, Namespace: "", Interface: fake}
+	d := PodDescriber{c}
+	out, err := d.Describe("", "bar", printers.DescriberSettings{ShowEvents: true})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "high-priority") || !strings.Contains(out, "1000") {
 		t.Errorf("unexpected out: %s", out)
 	}
 }
@@ -165,21 +212,163 @@ func TestDescribeConfigMap(t *testing.T) {
 	}
 }
 
-func TestDescribeService(t *testing.T) {
-	fake := fake.NewSimpleClientset(&api.Service{
+func TestDescribeLimitRange(t *testing.T) {
+	fake := fake.NewSimpleClientset(&api.LimitRange{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bar",
+			Name:      "mylr",
 			Namespace: "foo",
+		},
+		Spec: api.LimitRangeSpec{
+			Limits: []api.LimitRangeItem{
+				{
+					Type:                 api.LimitTypePod,
+					Max:                  getResourceList("100m", "10000Mi"),
+					Min:                  getResourceList("5m", "100Mi"),
+					MaxLimitRequestRatio: getResourceList("10", ""),
+				},
+				{
+					Type:                 api.LimitTypeContainer,
+					Max:                  getResourceList("100m", "10000Mi"),
+					Min:                  getResourceList("5m", "100Mi"),
+					Default:              getResourceList("50m", "500Mi"),
+					DefaultRequest:       getResourceList("10m", "200Mi"),
+					MaxLimitRequestRatio: getResourceList("10", ""),
+				},
+				{
+					Type: api.LimitTypePersistentVolumeClaim,
+					Max:  getStorageResourceList("10Gi"),
+					Min:  getStorageResourceList("5Gi"),
+				},
+			},
 		},
 	})
 	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
-	d := ServiceDescriber{c}
-	out, err := d.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: true})
+	d := LimitRangeDescriber{c}
+	out, err := d.Describe("foo", "mylr", printers.DescriberSettings{ShowEvents: true})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if !strings.Contains(out, "Labels:") || !strings.Contains(out, "bar") {
-		t.Errorf("unexpected out: %s", out)
+
+	checks := []string{"foo", "mylr", "Pod", "cpu", "5m", "100m", "memory", "100Mi", "10000Mi", "10", "Container", "cpu", "10m", "50m", "200Mi", "500Mi", "PersistentVolumeClaim", "storage", "5Gi", "10Gi"}
+	for _, check := range checks {
+		if !strings.Contains(out, check) {
+			t.Errorf("unexpected out: %s", out)
+		}
+	}
+}
+
+func getStorageResourceList(storage string) api.ResourceList {
+	res := api.ResourceList{}
+	if storage != "" {
+		res[api.ResourceStorage] = resource.MustParse(storage)
+	}
+	return res
+}
+
+func getResourceList(cpu, memory string) api.ResourceList {
+	res := api.ResourceList{}
+	if cpu != "" {
+		res[api.ResourceCPU] = resource.MustParse(cpu)
+	}
+	if memory != "" {
+		res[api.ResourceMemory] = resource.MustParse(memory)
+	}
+	return res
+}
+
+func TestDescribeService(t *testing.T) {
+	testCases := []struct {
+		service *api.Service
+		expect  []string
+	}{
+		{
+			service: &api.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bar",
+					Namespace: "foo",
+				},
+				Spec: api.ServiceSpec{
+					Type: api.ServiceTypeLoadBalancer,
+					Ports: []api.ServicePort{{
+						Name:       "port-tcp",
+						Port:       8080,
+						Protocol:   api.ProtocolTCP,
+						TargetPort: intstr.FromInt(9527),
+						NodePort:   31111,
+					}},
+					Selector:              map[string]string{"blah": "heh"},
+					ClusterIP:             "1.2.3.4",
+					LoadBalancerIP:        "5.6.7.8",
+					SessionAffinity:       "None",
+					ExternalTrafficPolicy: "Local",
+					HealthCheckNodePort:   32222,
+				},
+			},
+			expect: []string{
+				"Name", "bar",
+				"Namespace", "foo",
+				"Selector", "blah=heh",
+				"Type", "LoadBalancer",
+				"IP", "1.2.3.4",
+				"Port", "port-tcp", "8080/TCP",
+				"TargetPort", "9527/TCP",
+				"NodePort", "port-tcp", "31111/TCP",
+				"Session Affinity", "None",
+				"External Traffic Policy", "Local",
+				"HealthCheck NodePort", "32222",
+			},
+		},
+		{
+			service: &api.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bar",
+					Namespace: "foo",
+				},
+				Spec: api.ServiceSpec{
+					Type: api.ServiceTypeLoadBalancer,
+					Ports: []api.ServicePort{{
+						Name:       "port-tcp",
+						Port:       8080,
+						Protocol:   api.ProtocolTCP,
+						TargetPort: intstr.FromString("targetPort"),
+						NodePort:   31111,
+					}},
+					Selector:              map[string]string{"blah": "heh"},
+					ClusterIP:             "1.2.3.4",
+					LoadBalancerIP:        "5.6.7.8",
+					SessionAffinity:       "None",
+					ExternalTrafficPolicy: "Local",
+					HealthCheckNodePort:   32222,
+				},
+			},
+			expect: []string{
+				"Name", "bar",
+				"Namespace", "foo",
+				"Selector", "blah=heh",
+				"Type", "LoadBalancer",
+				"IP", "1.2.3.4",
+				"Port", "port-tcp", "8080/TCP",
+				"TargetPort", "targetPort/TCP",
+				"NodePort", "port-tcp", "31111/TCP",
+				"Session Affinity", "None",
+				"External Traffic Policy", "Local",
+				"HealthCheck NodePort", "32222",
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		fake := fake.NewSimpleClientset(testCase.service)
+		c := &describeClient{T: t, Namespace: "foo", Interface: fake}
+		d := ServiceDescriber{c}
+		out, err := d.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: true})
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		for _, expected := range testCase.expect {
+			if !strings.Contains(out, expected) {
+				t.Errorf("expected to find %q in output: %q", expected, out)
+			}
+		}
 	}
 }
 
@@ -445,6 +634,50 @@ func TestDescribeContainers(t *testing.T) {
 			},
 			expectedElements: []string{"cpu", "1k", "memory", "4G", "storage", "20G"},
 		},
+		// volumeMounts read/write
+		{
+			container: api.Container{
+				Name:  "test",
+				Image: "image",
+				VolumeMounts: []api.VolumeMount{
+					{
+						Name:      "mounted-volume",
+						MountPath: "/opt/",
+					},
+				},
+			},
+			expectedElements: []string{"mounted-volume", "/opt/", "(rw)"},
+		},
+		// volumeMounts readonly
+		{
+			container: api.Container{
+				Name:  "test",
+				Image: "image",
+				VolumeMounts: []api.VolumeMount{
+					{
+						Name:      "mounted-volume",
+						MountPath: "/opt/",
+						ReadOnly:  true,
+					},
+				},
+			},
+			expectedElements: []string{"Mounts", "mounted-volume", "/opt/", "(ro)"},
+		},
+
+		// volumeDevices
+		{
+			container: api.Container{
+				Name:  "test",
+				Image: "image",
+				VolumeDevices: []api.VolumeDevice{
+					{
+						Name:       "volume-device",
+						DevicePath: "/dev/xvda",
+					},
+				},
+			},
+			expectedElements: []string{"Devices", "volume-device", "/dev/xvda"},
+		},
 	}
 
 	for i, testCase := range testCases {
@@ -493,7 +726,7 @@ func TestDescribers(t *testing.T) {
 		t.Errorf("unexpected result: %s %v", out, err)
 	} else {
 		if noDescriber, ok := err.(printers.ErrNoDescriber); ok {
-			if !reflect.DeepEqual(noDescriber.Types, []string{"*api.Event", "*api.Pod", "*api.Pod"}) {
+			if !reflect.DeepEqual(noDescriber.Types, []string{"*core.Event", "*core.Pod", "*core.Pod"}) {
 				t.Errorf("unexpected describer: %v", err)
 			}
 		} else {
@@ -626,91 +859,237 @@ func TestGetPodsTotalRequests(t *testing.T) {
 }
 
 func TestPersistentVolumeDescriber(t *testing.T) {
-	tests := map[string]*api.PersistentVolume{
-
-		"hostpath": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					HostPath: &api.HostPathVolumeSource{},
+	block := api.PersistentVolumeBlock
+	file := api.PersistentVolumeFilesystem
+	testCases := []struct {
+		plugin             string
+		pv                 *api.PersistentVolume
+		expectedElements   []string
+		unexpectedElements []string
+	}{
+		{
+			plugin: "hostpath",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						HostPath: &api.HostPathVolumeSource{Type: new(api.HostPathType)},
+					},
 				},
 			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
 		},
-		"gce": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{},
+		{
+			plugin: "gce",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{},
+					},
+					VolumeMode: &file,
 				},
 			},
+			expectedElements: []string{"VolumeMode", "Filesystem"},
 		},
-		"ebs": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{},
+		{
+			plugin: "ebs",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{},
+					},
 				},
 			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
 		},
-		"nfs": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					NFS: &api.NFSVolumeSource{},
+		{
+			plugin: "nfs",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						NFS: &api.NFSVolumeSource{},
+					},
 				},
 			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
 		},
-		"iscsi": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					ISCSI: &api.ISCSIVolumeSource{},
+		{
+			plugin: "iscsi",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						ISCSI: &api.ISCSIPersistentVolumeSource{},
+					},
+					VolumeMode: &block,
 				},
 			},
+			expectedElements: []string{"VolumeMode", "Block"},
 		},
-		"gluster": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					Glusterfs: &api.GlusterfsVolumeSource{},
+		{
+			plugin: "gluster",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						Glusterfs: &api.GlusterfsVolumeSource{},
+					},
 				},
 			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
 		},
-		"rbd": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					RBD: &api.RBDVolumeSource{},
+		{
+			plugin: "rbd",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						RBD: &api.RBDPersistentVolumeSource{},
+					},
 				},
 			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
 		},
-		"quobyte": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					Quobyte: &api.QuobyteVolumeSource{},
+		{
+			plugin: "quobyte",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						Quobyte: &api.QuobyteVolumeSource{},
+					},
 				},
 			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
 		},
-		"cinder": {
-			ObjectMeta: metav1.ObjectMeta{Name: "bar"},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					Cinder: &api.CinderVolumeSource{},
+		{
+			plugin: "cinder",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						Cinder: &api.CinderVolumeSource{},
+					},
 				},
 			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
+		},
+		{
+			plugin: "fc",
+			pv: &api.PersistentVolume{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"},
+				Spec: api.PersistentVolumeSpec{
+					PersistentVolumeSource: api.PersistentVolumeSource{
+						FC: &api.FCVolumeSource{},
+					},
+					VolumeMode: &block,
+				},
+			},
+			expectedElements: []string{"VolumeMode", "Block"},
 		},
 	}
 
-	for name, pv := range tests {
-		fake := fake.NewSimpleClientset(pv)
+	for _, test := range testCases {
+		fake := fake.NewSimpleClientset(test.pv)
 		c := PersistentVolumeDescriber{fake}
 		str, err := c.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: true})
 		if err != nil {
-			t.Errorf("Unexpected error for test %s: %v", name, err)
+			t.Errorf("Unexpected error for test %s: %v", test.plugin, err)
 		}
 		if str == "" {
-			t.Errorf("Unexpected empty string for test %s.  Expected PV Describer output", name)
+			t.Errorf("Unexpected empty string for test %s.  Expected PV Describer output", test.plugin)
+		}
+		for _, expected := range test.expectedElements {
+			if !strings.Contains(str, expected) {
+				t.Errorf("expected to find %q in output: %q", expected, str)
+			}
+		}
+		for _, unexpected := range test.unexpectedElements {
+			if strings.Contains(str, unexpected) {
+				t.Errorf("unexpected to find %q in output: %q", unexpected, str)
+			}
+		}
+	}
+}
+
+func TestPersistentVolumeClaimDescriber(t *testing.T) {
+	block := api.PersistentVolumeBlock
+	file := api.PersistentVolumeFilesystem
+	goldClassName := "gold"
+	testCases := []struct {
+		name               string
+		pvc                *api.PersistentVolumeClaim
+		expectedElements   []string
+		unexpectedElements []string
+	}{
+		{
+			name: "default",
+			pvc: &api.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "foo", Name: "bar"},
+				Spec: api.PersistentVolumeClaimSpec{
+					VolumeName:       "volume1",
+					StorageClassName: &goldClassName,
+				},
+				Status: api.PersistentVolumeClaimStatus{
+					Phase: api.ClaimBound,
+				},
+			},
+			unexpectedElements: []string{"VolumeMode", "Filesystem"},
+		},
+		{
+			name: "filesystem",
+			pvc: &api.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "foo", Name: "bar"},
+				Spec: api.PersistentVolumeClaimSpec{
+					VolumeName:       "volume2",
+					StorageClassName: &goldClassName,
+					VolumeMode:       &file,
+				},
+				Status: api.PersistentVolumeClaimStatus{
+					Phase: api.ClaimBound,
+				},
+			},
+			expectedElements: []string{"VolumeMode", "Filesystem"},
+		},
+		{
+			name: "block",
+			pvc: &api.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "foo", Name: "bar"},
+				Spec: api.PersistentVolumeClaimSpec{
+					VolumeName:       "volume3",
+					StorageClassName: &goldClassName,
+					VolumeMode:       &block,
+				},
+				Status: api.PersistentVolumeClaimStatus{
+					Phase: api.ClaimBound,
+				},
+			},
+			expectedElements: []string{"VolumeMode", "Block"},
+		},
+	}
+
+	for _, test := range testCases {
+		fake := fake.NewSimpleClientset(test.pvc)
+		c := PersistentVolumeClaimDescriber{fake}
+		str, err := c.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: true})
+		if err != nil {
+			t.Errorf("Unexpected error for test %s: %v", test.name, err)
+		}
+		if str == "" {
+			t.Errorf("Unexpected empty string for test %s.  Expected PVC Describer output", test.name)
+		}
+		for _, expected := range test.expectedElements {
+			if !strings.Contains(str, expected) {
+				t.Errorf("expected to find %q in output: %q", expected, str)
+			}
+		}
+		for _, unexpected := range test.unexpectedElements {
+			if strings.Contains(str, unexpected) {
+				t.Errorf("unexpected to find %q in output: %q", unexpected, str)
+			}
 		}
 	}
 }
@@ -723,7 +1102,7 @@ func TestDescribeDeployment(t *testing.T) {
 			Namespace: "foo",
 		},
 		Spec: v1beta1.DeploymentSpec{
-			Replicas: util.Int32Ptr(1),
+			Replicas: utilpointer.Int32Ptr(1),
 			Selector: &metav1.LabelSelector{},
 			Template: v1.PodTemplateSpec{
 				Spec: v1.PodSpec{
@@ -734,7 +1113,7 @@ func TestDescribeDeployment(t *testing.T) {
 			},
 		},
 	})
-	d := DeploymentDescriber{fake, versionedFake}
+	d := DeploymentDescriber{fake, versionedFake.ExtensionsV1beta1()}
 	out, err := d.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: true})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -744,41 +1123,9 @@ func TestDescribeDeployment(t *testing.T) {
 	}
 }
 
-func TestDescribeCluster(t *testing.T) {
-	cluster := federation.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "foo",
-			ResourceVersion: "4",
-			Labels: map[string]string{
-				"name": "foo",
-			},
-		},
-		Spec: federation.ClusterSpec{
-			ServerAddressByClientCIDRs: []federation.ServerAddressByClientCIDR{
-				{
-					ClientCIDR:    "0.0.0.0/0",
-					ServerAddress: "localhost:8888",
-				},
-			},
-		},
-		Status: federation.ClusterStatus{
-			Conditions: []federation.ClusterCondition{
-				{Type: federation.ClusterReady, Status: api.ConditionTrue},
-			},
-		},
-	}
-	fake := fedfake.NewSimpleClientset(&cluster)
-	d := ClusterDescriber{Interface: fake}
-	out, err := d.Describe("any", "foo", printers.DescriberSettings{ShowEvents: true})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !strings.Contains(out, "foo") {
-		t.Errorf("unexpected out: %s", out)
-	}
-}
-
 func TestDescribeStorageClass(t *testing.T) {
+	reclaimPolicy := api.PersistentVolumeReclaimRetain
+	bindingMode := storage.VolumeBindingMode("bindingmode")
 	f := fake.NewSimpleClientset(&storage.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "foo",
@@ -792,13 +1139,22 @@ func TestDescribeStorageClass(t *testing.T) {
 			"param1": "value1",
 			"param2": "value2",
 		},
+		ReclaimPolicy:     &reclaimPolicy,
+		VolumeBindingMode: &bindingMode,
 	})
 	s := StorageClassDescriber{f}
 	out, err := s.Describe("", "foo", printers.DescriberSettings{ShowEvents: true})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if !strings.Contains(out, "foo") {
+	if !strings.Contains(out, "foo") ||
+		!strings.Contains(out, "my-provisioner") ||
+		!strings.Contains(out, "param1") ||
+		!strings.Contains(out, "param2") ||
+		!strings.Contains(out, "value1") ||
+		!strings.Contains(out, "value2") ||
+		!strings.Contains(out, "Retain") ||
+		!strings.Contains(out, "bindingmode") {
 		t.Errorf("unexpected out: %s", out)
 	}
 }
@@ -823,7 +1179,10 @@ func TestDescribePodDisruptionBudget(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if !strings.Contains(out, "pdb1") {
+	if !strings.Contains(out, "pdb1") ||
+		!strings.Contains(out, "ns1") ||
+		!strings.Contains(out, "22") ||
+		!strings.Contains(out, "5") {
 		t.Errorf("unexpected out: %s", out)
 	}
 }
@@ -1221,10 +1580,10 @@ func TestDescribeEvents(t *testing.T) {
 					Namespace: "foo",
 				},
 				Spec: v1beta1.DeploymentSpec{
-					Replicas: util.Int32Ptr(1),
+					Replicas: utilpointer.Int32Ptr(1),
 					Selector: &metav1.LabelSelector{},
 				},
-			}),
+			}).ExtensionsV1beta1(),
 		},
 		"EndpointsDescriber": &EndpointsDescriber{
 			fake.NewSimpleClientset(&api.Endpoints{
@@ -1454,6 +1813,63 @@ URL:	http://localhost
 	}
 }
 
+func TestDescribePodSecurityPolicy(t *testing.T) {
+	expected := []string{
+		"Name:\\s*mypsp",
+		"Allow Privileged:\\s*false",
+		"Default Add Capabilities:\\s*<none>",
+		"Required Drop Capabilities:\\s*<none>",
+		"Allowed Capabilities:\\s*<none>",
+		"Allowed Volume Types:\\s*<none>",
+		"Allow Host Network:\\s*false",
+		"Allow Host Ports:\\s*<none>",
+		"Allow Host PID:\\s*false",
+		"Allow Host IPC:\\s*false",
+		"Read Only Root Filesystem:\\s*false",
+		"SELinux Context Strategy: RunAsAny",
+		"User:\\s*<none>",
+		"Role:\\s*<none>",
+		"Type:\\s*<none>",
+		"Level:\\s*<none>",
+		"Run As User Strategy: RunAsAny",
+		"FSGroup Strategy: RunAsAny",
+		"Supplemental Groups Strategy: RunAsAny",
+	}
+
+	fake := fake.NewSimpleClientset(&extensions.PodSecurityPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mypsp",
+		},
+		Spec: extensions.PodSecurityPolicySpec{
+			SELinux: extensions.SELinuxStrategyOptions{
+				Rule: extensions.SELinuxStrategyRunAsAny,
+			},
+			RunAsUser: extensions.RunAsUserStrategyOptions{
+				Rule: extensions.RunAsUserStrategyRunAsAny,
+			},
+			FSGroup: extensions.FSGroupStrategyOptions{
+				Rule: extensions.FSGroupStrategyRunAsAny,
+			},
+			SupplementalGroups: extensions.SupplementalGroupsStrategyOptions{
+				Rule: extensions.SupplementalGroupsStrategyRunAsAny,
+			},
+		},
+	})
+
+	c := &describeClient{T: t, Namespace: "", Interface: fake}
+	d := PodSecurityPolicyDescriber{c}
+	out, err := d.Describe("", "mypsp", printers.DescriberSettings{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, item := range expected {
+		if matched, _ := regexp.MatchString(item, out); !matched {
+			t.Errorf("Expected to find %q in: %q", item, out)
+		}
+	}
+}
+
 func TestDescribeResourceQuota(t *testing.T) {
 	fake := fake.NewSimpleClientset(&api.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1490,5 +1906,298 @@ func TestDescribeResourceQuota(t *testing.T) {
 		if !strings.Contains(out, expected) {
 			t.Errorf("expected to find %q in output: %q", expected, out)
 		}
+	}
+}
+
+func TestDescribeNetworkPolicies(t *testing.T) {
+	expectedTime, err := time.Parse("2006-01-02 15:04:05 Z0700 MST", "2017-06-04 21:45:56 -0700 PDT")
+	if err != nil {
+		t.Errorf("unable to parse time %q error: %s", "2017-06-04 21:45:56 -0700 PDT", err)
+	}
+	expectedOut := `Name:         network-policy-1
+Namespace:    default
+Created on:   2017-06-04 21:45:56 -0700 PDT
+Labels:       <none>
+Annotations:  <none>
+Spec:
+  PodSelector:     foo in (bar1,bar2),foo2 notin (bar1,bar2),id1=app1,id2=app2
+  Allowing ingress traffic:
+    To Port: 80/TCP
+    To Port: 82/TCP
+    From PodSelector: id=app2,id2=app3
+    From NamespaceSelector: id=app2,id2=app3
+    From NamespaceSelector: foo in (bar1,bar2),id=app2,id2=app3
+    From IPBlock:
+        CIDR: 192.168.0.0/16
+        Except: 192.168.3.0/24, 192.168.4.0/24
+    ----------
+    To Port: <any> (traffic allowed to all ports)
+    From: <any> (traffic not restricted by source)
+  Allowing egress traffic:
+    To Port: 80/TCP
+    To Port: 82/TCP
+    To PodSelector: id=app2,id2=app3
+    To NamespaceSelector: id=app2,id2=app3
+    To NamespaceSelector: foo in (bar1,bar2),id=app2,id2=app3
+    To IPBlock:
+        CIDR: 192.168.0.0/16
+        Except: 192.168.3.0/24, 192.168.4.0/24
+    ----------
+    To Port: <any> (traffic allowed to all ports)
+    To: <any> (traffic not restricted by source)
+  Policy Types: Ingress, Egress
+`
+
+	port80 := intstr.FromInt(80)
+	port82 := intstr.FromInt(82)
+	protoTCP := api.ProtocolTCP
+
+	versionedFake := fake.NewSimpleClientset(&networking.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "network-policy-1",
+			Namespace:         "default",
+			CreationTimestamp: metav1.NewTime(expectedTime),
+		},
+		Spec: networking.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"id1": "app1",
+					"id2": "app2",
+				},
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{Key: "foo", Operator: "In", Values: []string{"bar1", "bar2"}},
+					{Key: "foo2", Operator: "NotIn", Values: []string{"bar1", "bar2"}},
+				},
+			},
+			Ingress: []networking.NetworkPolicyIngressRule{
+				{
+					Ports: []networking.NetworkPolicyPort{
+						{Port: &port80},
+						{Port: &port82, Protocol: &protoTCP},
+					},
+					From: []networking.NetworkPolicyPeer{
+						{
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"id":  "app2",
+									"id2": "app3",
+								},
+							},
+						},
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"id":  "app2",
+									"id2": "app3",
+								},
+							},
+						},
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"id":  "app2",
+									"id2": "app3",
+								},
+								MatchExpressions: []metav1.LabelSelectorRequirement{
+									{Key: "foo", Operator: "In", Values: []string{"bar1", "bar2"}},
+								},
+							},
+						},
+						{
+							IPBlock: &networking.IPBlock{
+								CIDR:   "192.168.0.0/16",
+								Except: []string{"192.168.3.0/24", "192.168.4.0/24"},
+							},
+						},
+					},
+				},
+				{},
+			},
+			Egress: []networking.NetworkPolicyEgressRule{
+				{
+					Ports: []networking.NetworkPolicyPort{
+						{Port: &port80},
+						{Port: &port82, Protocol: &protoTCP},
+					},
+					To: []networking.NetworkPolicyPeer{
+						{
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"id":  "app2",
+									"id2": "app3",
+								},
+							},
+						},
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"id":  "app2",
+									"id2": "app3",
+								},
+							},
+						},
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"id":  "app2",
+									"id2": "app3",
+								},
+								MatchExpressions: []metav1.LabelSelectorRequirement{
+									{Key: "foo", Operator: "In", Values: []string{"bar1", "bar2"}},
+								},
+							},
+						},
+						{
+							IPBlock: &networking.IPBlock{
+								CIDR:   "192.168.0.0/16",
+								Except: []string{"192.168.3.0/24", "192.168.4.0/24"},
+							},
+						},
+					},
+				},
+				{},
+			},
+			PolicyTypes: []networking.PolicyType{networking.PolicyTypeIngress, networking.PolicyTypeEgress},
+		},
+	})
+	d := NetworkPolicyDescriber{versionedFake}
+	out, err := d.Describe("", "network-policy-1", printers.DescriberSettings{})
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if out != expectedOut {
+		t.Errorf("want:\n%s\ngot:\n%s", expectedOut, out)
+	}
+}
+
+func TestDescribeServiceAccount(t *testing.T) {
+	fake := fake.NewSimpleClientset(&api.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+		},
+		Secrets: []api.ObjectReference{
+			{
+				Name: "test-objectref",
+			},
+		},
+		ImagePullSecrets: []api.LocalObjectReference{
+			{
+				Name: "test-local-ref",
+			},
+		},
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
+	d := ServiceAccountDescriber{c}
+	out, err := d.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: true})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	expectedOut := `Name:                bar
+Namespace:           foo
+Labels:              <none>
+Annotations:         <none>
+Image pull secrets:  test-local-ref (not found)
+Mountable secrets:   test-objectref (not found)
+Tokens:              <none>
+Events:              <none>` + "\n"
+	if out != expectedOut {
+		t.Errorf("expected : %q\n but got output:\n %q", expectedOut, out)
+	}
+
+}
+
+// boolPtr returns a pointer to a bool
+func boolPtr(b bool) *bool {
+	o := b
+	return &o
+}
+
+func TestControllerRef(t *testing.T) {
+	f := fake.NewSimpleClientset(
+		&api.ReplicationController{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bar",
+				Namespace: "foo",
+				UID:       "123456",
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind: "ReplicationController",
+			},
+			Spec: api.ReplicationControllerSpec{
+				Replicas: 1,
+				Selector: map[string]string{"abc": "xyz"},
+				Template: &api.PodTemplateSpec{
+					Spec: api.PodSpec{
+						Containers: []api.Container{
+							{Image: "mytest-image:latest"},
+						},
+					},
+				},
+			},
+		},
+		&api.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "barpod",
+				Namespace:       "foo",
+				Labels:          map[string]string{"abc": "xyz"},
+				OwnerReferences: []metav1.OwnerReference{{Name: "bar", UID: "123456", Controller: boolPtr(true)}},
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Pod",
+			},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					{Image: "mytest-image:latest"},
+				},
+			},
+			Status: api.PodStatus{
+				Phase: api.PodRunning,
+			},
+		},
+		&api.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "orphan",
+				Namespace: "foo",
+				Labels:    map[string]string{"abc": "xyz"},
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Pod",
+			},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					{Image: "mytest-image:latest"},
+				},
+			},
+			Status: api.PodStatus{
+				Phase: api.PodRunning,
+			},
+		},
+		&api.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "buzpod",
+				Namespace:       "foo",
+				Labels:          map[string]string{"abc": "xyz"},
+				OwnerReferences: []metav1.OwnerReference{{Name: "buz", UID: "654321", Controller: boolPtr(true)}},
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Pod",
+			},
+			Spec: api.PodSpec{
+				Containers: []api.Container{
+					{Image: "mytest-image:latest"},
+				},
+			},
+			Status: api.PodStatus{
+				Phase: api.PodRunning,
+			},
+		})
+	d := ReplicationControllerDescriber{f}
+	out, err := d.Describe("foo", "bar", printers.DescriberSettings{ShowEvents: false})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "1 Running") {
+		t.Errorf("unexpected out: %s", out)
 	}
 }

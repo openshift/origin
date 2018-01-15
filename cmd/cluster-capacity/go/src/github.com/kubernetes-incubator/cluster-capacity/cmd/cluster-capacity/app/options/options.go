@@ -26,42 +26,42 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/validation"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	schedopt "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
+	clientset "k8s.io/client-go/kubernetes"
+	api "k8s.io/kubernetes/pkg/apis/core"
+	apiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
+	schedapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/framework/store"
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/utils"
 )
 
 type ClusterCapacityConfig struct {
-	Schedulers       []*schedopt.SchedulerServer
+	//Schedulers       []*schedapp.SchedulerServer
 	Pod              *v1.Pod
 	KubeClient       clientset.Interface
 	Options          *ClusterCapacityOptions
-	DefaultScheduler *schedopt.SchedulerServer
+	DefaultScheduler *schedapp.SchedulerServer
 	ResourceStore    store.ResourceStore
 }
 
 type ClusterCapacityOptions struct {
-	Kubeconfig                 string
-	SchedulerConfigFile        []string
+	Kubeconfig string
+	//SchedulerConfigFile        []string
 	DefaultSchedulerConfigFile string
 	MaxLimit                   int
 	Verbose                    bool
 	PodSpecFile                string
 	OutputFormat               string
-	ResourceSpaceMode          string
+	//ResourceSpaceMode          string
 }
 
 func NewClusterCapacityConfig(opt *ClusterCapacityOptions) *ClusterCapacityConfig {
 	return &ClusterCapacityConfig{
-		Schedulers:       make([]*schedopt.SchedulerServer, 0),
-		Options:          opt,
-		DefaultScheduler: schedopt.NewSchedulerServer(),
+		Options: opt,
 	}
 }
 
@@ -83,8 +83,27 @@ func (s *ClusterCapacityOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&s.OutputFormat, "output", "o", s.OutputFormat, "Output format. One of: json|yaml (Note: output is not versioned or guaranteed to be stable across releases).")
 }
 
-func parseSchedulerConfig(path string) (*schedopt.SchedulerServer, error) {
-	newScheduler := schedopt.NewSchedulerServer()
+func (s *ClusterCapacityConfig) parseSchedulerConfig(path string) (*schedapp.SchedulerServer, error) {
+	soptions, err := schedapp.NewOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	err = soptions.ReallyApplyDefaults()
+	if err != nil {
+		return nil, err
+	}
+
+	soptions.ConfigFile = path
+
+	err = soptions.Complete()
+	if err != nil {
+		return nil, err
+	}
+
+	ksConfig := soptions.GetConfig()
+	ksConfig.ClientConnection.KubeConfigFile = s.Options.Kubeconfig
+
 	if len(path) > 0 {
 		filename, _ := filepath.Abs(path)
 		config, err := os.Open(filename)
@@ -93,29 +112,42 @@ func parseSchedulerConfig(path string) (*schedopt.SchedulerServer, error) {
 		}
 
 		decoder := yaml.NewYAMLOrJSONDecoder(config, 4096)
-		decoder.Decode(&(newScheduler.KubeSchedulerConfiguration))
+		decoder.Decode(ksConfig)
 	}
+
+	var master string
+	master, err = utils.GetMasterFromKubeConfig(s.Options.Kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(avesh): need to check if this works correctly
+	algorithmprovider.ApplyFeatureGates()
+
+	var newScheduler *schedapp.SchedulerServer
+	newScheduler, err = schedapp.NewSchedulerServer(ksConfig, master)
+	if err != nil {
+		return nil, err
+	}
+
+	newScheduler.SchedulerName = "cluster-capacity"
 	return newScheduler, nil
 }
 
-func (s *ClusterCapacityConfig) ParseAdditionalSchedulerConfigs() error {
+// TODO (avesh): disable until support for multiple schedulers is implemented.
+/*func (s *ClusterCapacityConfig) ParseAdditionalSchedulerConfigs() error {
 	for _, config := range s.Options.SchedulerConfigFile {
 		if config == "default-scheduler.yaml" {
 			continue
 		}
-		newScheduler, err := parseSchedulerConfig(config)
+		newScheduler, err := s.parseSchedulerConfig(config)
 		if err != nil {
 			return err
 		}
-		newScheduler.Master, err = utils.GetMasterFromKubeConfig(s.Options.Kubeconfig)
-		if err != nil {
-			return err
-		}
-		newScheduler.Kubeconfig = s.Options.Kubeconfig
 		s.Schedulers = append(s.Schedulers, newScheduler)
 	}
 	return nil
-}
+}*/
 
 func (s *ClusterCapacityConfig) ParseAPISpec() error {
 	var spec io.Reader
@@ -149,6 +181,11 @@ func (s *ClusterCapacityConfig) ParseAPISpec() error {
 		versionedPod.ObjectMeta.Namespace = "default"
 	}
 
+	// set pod's scheduler name to cluster-capacity
+	if versionedPod.Spec.SchedulerName == "" {
+		versionedPod.Spec.SchedulerName = s.DefaultScheduler.SchedulerName
+	}
+
 	// hardcoded from kube api defaults and validation
 	// TODO: rewrite when object validation gets more available for non kubectl approaches in kube
 	if versionedPod.Spec.DNSPolicy == "" {
@@ -166,7 +203,7 @@ func (s *ClusterCapacityConfig) ParseAPISpec() error {
 
 	// TODO: client side validation seems like a long term problem for this command.
 	internalPod := &api.Pod{}
-	if err := v1.Convert_v1_Pod_To_api_Pod(versionedPod, internalPod, nil); err != nil {
+	if err := apiv1.Convert_v1_Pod_To_core_Pod(versionedPod, internalPod, nil); err != nil {
 		return fmt.Errorf("unable to convert to internal version: %#v", err)
 
 	}
@@ -184,7 +221,7 @@ func (s *ClusterCapacityConfig) ParseAPISpec() error {
 
 func (s *ClusterCapacityConfig) SetDefaultScheduler() error {
 	var err error
-	s.DefaultScheduler, err = parseSchedulerConfig(s.Options.DefaultSchedulerConfigFile)
+	s.DefaultScheduler, err = s.parseSchedulerConfig(s.Options.DefaultSchedulerConfigFile)
 	if err != nil {
 		return fmt.Errorf("Error in opening default scheduler config file: %v", err)
 	}

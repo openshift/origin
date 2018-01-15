@@ -30,7 +30,7 @@ function ovn-kubernetes-node() {
 
   cat >"/etc/openvswitch/ovn_k8s.conf" <<EOF
 [default]
-k8s_ca_certificate=${config_dir}/ca.crt
+k8s-ca-certificate=${config_dir}/ca.crt
 EOF
 
   local host

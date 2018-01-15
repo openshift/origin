@@ -1,7 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_library",
@@ -16,7 +14,7 @@ go_library(
         "plugins.go",
         "runner.go",
     ],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/pkg/kubectl/plugins",
     deps = [
         "//vendor/github.com/ghodss/yaml:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
@@ -46,7 +44,7 @@ go_test(
         "plugins_test.go",
         "runner_test.go",
     ],
+    importpath = "k8s.io/kubernetes/pkg/kubectl/plugins",
     library = ":go_default_library",
-    tags = ["automanaged"],
     deps = ["//vendor/github.com/spf13/pflag:go_default_library"],
 )

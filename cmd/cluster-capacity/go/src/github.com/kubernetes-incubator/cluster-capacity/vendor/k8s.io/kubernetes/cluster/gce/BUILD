@@ -9,7 +9,7 @@ pkg_tar(
         "container-linux/configure-helper.sh",
         "gci/configure-helper.sh",
         "gci/health-monitor.sh",
-        "gci/mounter/mounter",
+        "//cluster/gce/gci/mounter",
     ],
     mode = "0755",
     strip_prefix = ".",
@@ -32,7 +32,11 @@ filegroup(
 
 filegroup(
     name = "all-srcs",
-    srcs = [":package-srcs"],
+    srcs = [
+        ":package-srcs",
+        "//cluster/gce/addons:all-srcs",
+        "//cluster/gce/gci/mounter:all-srcs",
+    ],
     tags = ["automanaged"],
 )
 

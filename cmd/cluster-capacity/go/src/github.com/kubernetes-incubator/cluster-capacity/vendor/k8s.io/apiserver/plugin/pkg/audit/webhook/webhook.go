@@ -18,24 +18,24 @@ limitations under the License.
 package webhook
 
 import (
+	"errors"
 	"fmt"
-	"reflect"
 	"strings"
+	"sync"
 	"time"
-
-	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/apimachinery/announced"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	auditinternal "k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/apiserver/pkg/apis/audit/install"
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
+	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/apiserver/pkg/util/webhook"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 const (
@@ -57,26 +57,63 @@ var AllowedModes = []string{
 
 const (
 	// Default configuration values for ModeBatch.
-	//
-	// TODO(ericchiang): Make these value configurable. Maybe through a
-	// kubeconfig extension?
-	defaultBatchBufferSize = 1000        // Buffer up to 1000 events before blocking.
-	defaultBatchMaxSize    = 100         // Only send 100 events at a time.
-	defaultBatchMaxWait    = time.Minute // Send events at least once a minute.
+	defaultBatchBufferSize = 10000            // Buffer up to 10000 events before starting discarding.
+	defaultBatchMaxSize    = 400              // Only send up to 400 events at a time.
+	defaultBatchMaxWait    = 30 * time.Second // Send events at least twice a minute.
+	defaultInitialBackoff  = 10 * time.Second // Wait at least 10 seconds before retrying.
+
+	defaultBatchThrottleQPS   = 10 // Limit the send rate by 10 QPS.
+	defaultBatchThrottleBurst = 15 // Allow up to 15 QPS burst.
 )
 
 // The plugin name reported in error metrics.
 const pluginName = "webhook"
 
+// BatchBackendConfig represents batching webhook audit backend configuration.
+type BatchBackendConfig struct {
+	// BufferSize defines a size of the buffering queue.
+	BufferSize int
+	// MaxBatchSize defines maximum size of a batch.
+	MaxBatchSize int
+	// MaxBatchWait defines maximum amount of time to wait for MaxBatchSize
+	// events to be accumulated in the buffer before forcibly sending what's
+	// being accumulated.
+	MaxBatchWait time.Duration
+
+	// ThrottleQPS defines the allowed rate of batches per second sent to the webhook.
+	ThrottleQPS float32
+	// ThrottleBurst defines the maximum rate of batches per second sent to the webhook in case
+	// the capacity defined by ThrottleQPS was not utilized.
+	ThrottleBurst int
+
+	// InitialBackoff defines the amount of time to wait before retrying the requests
+	// to the webhook for the first time.
+	InitialBackoff time.Duration
+}
+
+// NewDefaultBatchBackendConfig returns new BatchBackendConfig objects populated by default values.
+func NewDefaultBatchBackendConfig() BatchBackendConfig {
+	return BatchBackendConfig{
+		BufferSize:   defaultBatchBufferSize,
+		MaxBatchSize: defaultBatchMaxSize,
+		MaxBatchWait: defaultBatchMaxWait,
+
+		ThrottleQPS:   defaultBatchThrottleQPS,
+		ThrottleBurst: defaultBatchThrottleBurst,
+
+		InitialBackoff: defaultInitialBackoff,
+	}
+}
+
 // NewBackend returns an audit backend that sends events over HTTP to an external service.
 // The mode indicates the caching behavior of the webhook. Either blocking (ModeBlocking)
 // or buffered with batch POSTs (ModeBatch).
-func NewBackend(kubeConfigFile string, mode string) (audit.Backend, error) {
+func NewBackend(kubeConfigFile string, mode string, groupVersion schema.GroupVersion, config BatchBackendConfig) (audit.Backend, error) {
 	switch mode {
 	case ModeBatch:
-		return newBatchWebhook(kubeConfigFile)
+		return newBatchWebhook(kubeConfigFile, groupVersion, config)
 	case ModeBlocking:
-		return newBlockingWebhook(kubeConfigFile)
+		return newBlockingWebhook(kubeConfigFile, groupVersion)
 	default:
 		return nil, fmt.Errorf("webhook mode %q is not in list of known modes (%s)",
 			mode, strings.Join(AllowedModes, ","))
@@ -88,24 +125,26 @@ var (
 	//
 	// Can we make these passable to NewGenericWebhook?
 	groupFactoryRegistry = make(announced.APIGroupFactoryRegistry)
-	groupVersions        = []schema.GroupVersion{auditv1alpha1.SchemeGroupVersion}
-	registry             = registered.NewOrDie("")
+	// TODO(audit): figure out a general way to let the client choose their preferred version
+	registry = registered.NewOrDie("")
 )
 
 func init() {
-	registry.RegisterVersions(groupVersions)
-	if err := registry.EnableVersions(groupVersions...); err != nil {
-		panic(fmt.Sprintf("failed to enable version %v", groupVersions))
+	allGVs := []schema.GroupVersion{auditv1alpha1.SchemeGroupVersion, auditv1beta1.SchemeGroupVersion}
+	registry.RegisterVersions(allGVs)
+	if err := registry.EnableVersions(allGVs...); err != nil {
+		panic(fmt.Sprintf("failed to enable version %v", allGVs))
 	}
 	install.Install(groupFactoryRegistry, registry, audit.Scheme)
 }
 
-func loadWebhook(configFile string) (*webhook.GenericWebhook, error) {
-	return webhook.NewGenericWebhook(registry, audit.Codecs, configFile, groupVersions, 0)
+func loadWebhook(configFile string, groupVersion schema.GroupVersion, initialBackoff time.Duration) (*webhook.GenericWebhook, error) {
+	return webhook.NewGenericWebhook(registry, audit.Codecs, configFile,
+		[]schema.GroupVersion{groupVersion}, initialBackoff)
 }
 
-func newBlockingWebhook(configFile string) (*blockingBackend, error) {
-	w, err := loadWebhook(configFile)
+func newBlockingWebhook(configFile string, groupVersion schema.GroupVersion) (*blockingBackend, error) {
+	w, err := loadWebhook(configFile, groupVersion, defaultInitialBackoff)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +157,10 @@ type blockingBackend struct {
 
 func (b *blockingBackend) Run(stopCh <-chan struct{}) error {
 	return nil
+}
+
+func (b *blockingBackend) Shutdown() {
+	// nothing to do here
 }
 
 func (b *blockingBackend) ProcessEvents(ev ...*auditinternal.Event) {
@@ -136,53 +179,24 @@ func (b *blockingBackend) processEvents(ev ...*auditinternal.Event) error {
 	return b.w.RestClient.Post().Body(&list).Do().Error()
 }
 
-// Copied from generated code in k8s.io/apiserver/pkg/apis/audit.
-//
-// TODO(ericchiang): Have the generated code expose these methods like metav1.GetGeneratedDeepCopyFuncs().
-var auditDeepCopyFuncs = []conversion.GeneratedDeepCopyFunc{
-	{Fn: auditinternal.DeepCopy_audit_Event, InType: reflect.TypeOf(&auditinternal.Event{})},
-	{Fn: auditinternal.DeepCopy_audit_EventList, InType: reflect.TypeOf(&auditinternal.EventList{})},
-	{Fn: auditinternal.DeepCopy_audit_GroupResources, InType: reflect.TypeOf(&auditinternal.GroupResources{})},
-	{Fn: auditinternal.DeepCopy_audit_ObjectReference, InType: reflect.TypeOf(&auditinternal.ObjectReference{})},
-	{Fn: auditinternal.DeepCopy_audit_Policy, InType: reflect.TypeOf(&auditinternal.Policy{})},
-	{Fn: auditinternal.DeepCopy_audit_PolicyList, InType: reflect.TypeOf(&auditinternal.PolicyList{})},
-	{Fn: auditinternal.DeepCopy_audit_PolicyRule, InType: reflect.TypeOf(&auditinternal.PolicyRule{})},
-	{Fn: auditinternal.DeepCopy_audit_UserInfo, InType: reflect.TypeOf(&auditinternal.UserInfo{})},
-}
-
-func newBatchWebhook(configFile string) (*batchBackend, error) {
-	w, err := loadWebhook(configFile)
+func newBatchWebhook(configFile string, groupVersion schema.GroupVersion, config BatchBackendConfig) (*batchBackend, error) {
+	w, err := loadWebhook(configFile, groupVersion, config.InitialBackoff)
 	if err != nil {
 		return nil, err
 	}
 
-	c := conversion.NewCloner()
-	for _, f := range metav1.GetGeneratedDeepCopyFuncs() {
-		if err := c.RegisterGeneratedDeepCopyFunc(f); err != nil {
-			return nil, fmt.Errorf("registering meta deep copy method: %v", err)
-		}
-	}
-
-	for _, f := range auditDeepCopyFuncs {
-		if err := c.RegisterGeneratedDeepCopyFunc(f); err != nil {
-			return nil, fmt.Errorf("registering audit deep copy method: %v", err)
-		}
-	}
-
 	return &batchBackend{
 		w:            w,
-		buffer:       make(chan *auditinternal.Event, defaultBatchBufferSize),
-		maxBatchSize: defaultBatchMaxSize,
-		maxBatchWait: defaultBatchMaxWait,
-		cloner:       c,
+		buffer:       make(chan *auditinternal.Event, config.BufferSize),
+		maxBatchSize: config.MaxBatchSize,
+		maxBatchWait: config.MaxBatchWait,
+		shutdownCh:   make(chan struct{}),
+		throttle:     flowcontrol.NewTokenBucketRateLimiter(config.ThrottleQPS, config.ThrottleBurst),
 	}, nil
 }
 
 type batchBackend struct {
 	w *webhook.GenericWebhook
-
-	// Cloner is used to deep copy events as they are buffered.
-	cloner *conversion.Cloner
 
 	// Channel to buffer events in memory before sending them on the webhook.
 	buffer chan *auditinternal.Event
@@ -193,50 +207,108 @@ type batchBackend struct {
 	// Receiving maxBatchSize events will always trigger a send, regardless of
 	// if this amount of time has been reached.
 	maxBatchWait time.Duration
+
+	// Channel to signal that the sending routine has stopped and therefore
+	// it's safe to assume that no new requests will be initiated.
+	shutdownCh chan struct{}
+
+	// The sending routine locks reqMutex for reading before initiating a new
+	// goroutine to send a request. This goroutine then unlocks reqMutex for
+	// reading when completed. The Shutdown method locks reqMutex for writing
+	// after the sending routine has exited. When reqMutex is locked for writing,
+	// all requests have been completed and no new will be spawned, since the
+	// sending routine is not running anymore.
+	reqMutex sync.RWMutex
+
+	// Limits the number of requests sent to the backend per second.
+	throttle flowcontrol.RateLimiter
 }
 
 func (b *batchBackend) Run(stopCh <-chan struct{}) error {
-	f := func() {
-		// Recover from any panics caused by this method so a panic in the
-		// goroutine can't bring down the main routine.
-		defer runtime.HandleCrash()
-
-		t := time.NewTimer(b.maxBatchWait)
-		defer t.Stop() // Release ticker resources
-
-		b.sendBatchEvents(stopCh, t.C)
-	}
-
 	go func() {
-		for {
-			f()
+		// Signal that the sending routine has exited.
+		defer close(b.shutdownCh)
 
-			select {
-			case <-stopCh:
-				return
-			default:
+		b.runSendingRoutine(stopCh)
+
+		// Handle the events that were received after the last buffer
+		// scraping and before this line. Since the buffer is closed, no new
+		// events will come through.
+		for {
+			if last := func() bool {
+				// Recover from any panic in order to try to send all remaining events.
+				// Note, that in case of a panic, the return value will be false and
+				// the loop execution will continue.
+				defer runtime.HandleCrash()
+
+				events := b.collectLastEvents()
+				b.sendBatchEvents(events)
+				return len(events) == 0
+			}(); last {
+				break
 			}
 		}
 	}()
 	return nil
 }
 
-// sendBatchEvents attempts to batch some number of events to the backend. It POSTs events
-// in a goroutine and logging any error encountered during the POST.
+func (b *batchBackend) Shutdown() {
+	<-b.shutdownCh
+
+	// Write locking reqMutex will guarantee that all requests will be completed
+	// by the time the goroutine continues the execution. Since this line is
+	// executed after shutdownCh was closed, no new requests will follow this
+	// lock, because read lock is called in the same goroutine that closes
+	// shutdownCh before exiting.
+	b.reqMutex.Lock()
+	b.reqMutex.Unlock()
+}
+
+// runSendingRoutine runs a loop that collects events from the buffer. When
+// stopCh is closed, runSendingRoutine stops and closes the buffer.
+func (b *batchBackend) runSendingRoutine(stopCh <-chan struct{}) {
+	defer close(b.buffer)
+
+	for {
+		func() {
+			// Recover from any panics caused by this function so a panic in the
+			// goroutine can't bring down the main routine.
+			defer runtime.HandleCrash()
+
+			t := time.NewTimer(b.maxBatchWait)
+			defer t.Stop() // Release ticker resources
+
+			b.sendBatchEvents(b.collectEvents(stopCh, t.C))
+		}()
+
+		select {
+		case <-stopCh:
+			return
+		default:
+		}
+	}
+}
+
+// collectEvents attempts to collect some number of events in a batch.
 //
-// The following things can cause sendBatchEvents to exit:
+// The following things can cause collectEvents to stop and return the list
+// of events:
 //
 //   * Some maximum number of events are received.
 //   * Timer has passed, all queued events are sent.
 //   * StopCh is closed, all queued events are sent.
 //
-func (b *batchBackend) sendBatchEvents(stopCh <-chan struct{}, timer <-chan time.Time) {
+func (b *batchBackend) collectEvents(stopCh <-chan struct{}, timer <-chan time.Time) []auditinternal.Event {
 	var events []auditinternal.Event
 
 L:
 	for i := 0; i < b.maxBatchSize; i++ {
 		select {
-		case ev := <-b.buffer:
+		case ev, ok := <-b.buffer:
+			// Buffer channel was closed and no new events will follow.
+			if !ok {
+				break L
+			}
 			events = append(events, *ev)
 		case <-timer:
 			// Timer has expired. Send whatever events are in the queue.
@@ -247,20 +319,52 @@ L:
 		}
 	}
 
+	return events
+}
+
+// collectLastEvents assumes that the buffer was closed. It collects the first
+// maxBatchSize events from the closed buffer into a batch and returns them.
+func (b *batchBackend) collectLastEvents() []auditinternal.Event {
+	var events []auditinternal.Event
+
+	for i := 0; i < b.maxBatchSize; i++ {
+		ev, ok := <-b.buffer
+		if !ok {
+			break
+		}
+		events = append(events, *ev)
+	}
+
+	return events
+}
+
+// sendBatchEvents sends a POST requests with the event list in a goroutine
+// and logs any error encountered.
+func (b *batchBackend) sendBatchEvents(events []auditinternal.Event) {
 	if len(events) == 0 {
 		return
 	}
 
 	list := auditinternal.EventList{Items: events}
+
+	if b.throttle != nil {
+		b.throttle.Accept()
+	}
+
+	// Locking reqMutex for read will guarantee that the shutdown process will
+	// block until the goroutine started below is finished. At the same time, it
+	// will not prevent other batches from being proceed further this point.
+	b.reqMutex.RLock()
 	go func() {
 		// Execute the webhook POST in a goroutine to keep it from blocking.
 		// This lets the webhook continue to drain the queue immediatly.
 
+		defer b.reqMutex.RUnlock()
 		defer runtime.HandleCrash()
 
-		err := webhook.WithExponentialBackoff(0, func() error {
-			return b.w.RestClient.Post().Body(&list).Do().Error()
-		})
+		err := b.w.WithExponentialBackoff(func() rest.Result {
+			return b.w.RestClient.Post().Body(&list).Do()
+		}).Error()
 		if err != nil {
 			impacted := make([]*auditinternal.Event, len(events))
 			for i := range events {
@@ -276,16 +380,29 @@ func (b *batchBackend) ProcessEvents(ev ...*auditinternal.Event) {
 	for i, e := range ev {
 		// Per the audit.Backend interface these events are reused after being
 		// sent to the Sink. Deep copy and send the copy to the queue.
-		event := new(auditinternal.Event)
-		if err := auditinternal.DeepCopy_audit_Event(e, event, b.cloner); err != nil {
-			glog.Errorf("failed to clone audit event: %v: %#v", err, e)
-			return
-		}
+		event := e.DeepCopy()
 
-		select {
-		case b.buffer <- event:
-		default:
-			audit.HandlePluginError(pluginName, fmt.Errorf("audit webhook queue blocked"), ev[i:]...)
+		// The following mechanism is in place to support the situation when audit
+		// events are still coming after the backend was shut down.
+		var sendErr error
+		func() {
+			// If the backend was shut down and the buffer channel was closed, an
+			// attempt to add an event to it will result in panic that we should
+			// recover from.
+			defer func() {
+				if err := recover(); err != nil {
+					sendErr = errors.New("audit webhook shut down")
+				}
+			}()
+
+			select {
+			case b.buffer <- event:
+			default:
+				sendErr = errors.New("audit webhook queue blocked")
+			}
+		}()
+		if sendErr != nil {
+			audit.HandlePluginError(pluginName, sendErr, ev[i:]...)
 			return
 		}
 	}

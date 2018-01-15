@@ -1,7 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_library",
@@ -12,11 +10,12 @@ go_library(
     srcs = [
         "admissionregistration_client.go",
         "doc.go",
-        "externaladmissionhookconfiguration.go",
         "generated_expansion.go",
         "initializerconfiguration.go",
+        "mutatingwebhookconfiguration.go",
+        "validatingwebhookconfiguration.go",
     ],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/admissionregistration/internalversion",
     deps = [
         "//pkg/apis/admissionregistration:go_default_library",
         "//pkg/client/clientset_generated/internalclientset/scheme:go_default_library",

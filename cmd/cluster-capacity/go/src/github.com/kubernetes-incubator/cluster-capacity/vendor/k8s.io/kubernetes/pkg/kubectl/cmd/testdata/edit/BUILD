@@ -1,5 +1,3 @@
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_binary",
@@ -8,14 +6,16 @@ load(
 
 go_binary(
     name = "edit",
+    importpath = "k8s.io/kubernetes/pkg/kubectl/cmd/testdata/edit",
     library = ":go_default_library",
-    tags = ["automanaged"],
+    visibility = ["//visibility:public"],
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["record.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/pkg/kubectl/cmd/testdata/edit",
+    visibility = ["//visibility:private"],
     deps = ["//vendor/gopkg.in/yaml.v2:go_default_library"],
 )
 

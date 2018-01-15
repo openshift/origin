@@ -17,9 +17,9 @@ limitations under the License.
 package priorities
 
 import (
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
@@ -30,29 +30,29 @@ func makeNode(node string, milliCPU, memory int64) *v1.Node {
 		ObjectMeta: metav1.ObjectMeta{Name: node},
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
-				"cpu":    *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
-				"memory": *resource.NewQuantity(memory, resource.BinarySI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(memory, resource.BinarySI),
 			},
 			Allocatable: v1.ResourceList{
-				"cpu":    *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
-				"memory": *resource.NewQuantity(memory, resource.BinarySI),
+				v1.ResourceCPU:    *resource.NewMilliQuantity(milliCPU, resource.DecimalSI),
+				v1.ResourceMemory: *resource.NewQuantity(memory, resource.BinarySI),
 			},
 		},
 	}
 }
 
-func priorityFunction(mapFn algorithm.PriorityMapFunction, reduceFn algorithm.PriorityReduceFunction) algorithm.PriorityFunction {
+func priorityFunction(mapFn algorithm.PriorityMapFunction, reduceFn algorithm.PriorityReduceFunction, mataData interface{}) algorithm.PriorityFunction {
 	return func(pod *v1.Pod, nodeNameToInfo map[string]*schedulercache.NodeInfo, nodes []*v1.Node) (schedulerapi.HostPriorityList, error) {
 		result := make(schedulerapi.HostPriorityList, 0, len(nodes))
 		for i := range nodes {
-			hostResult, err := mapFn(pod, nil, nodeNameToInfo[nodes[i].Name])
+			hostResult, err := mapFn(pod, mataData, nodeNameToInfo[nodes[i].Name])
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, hostResult)
 		}
 		if reduceFn != nil {
-			if err := reduceFn(pod, nil, nodeNameToInfo, result); err != nil {
+			if err := reduceFn(pod, mataData, nodeNameToInfo, result); err != nil {
 				return nil, err
 			}
 		}

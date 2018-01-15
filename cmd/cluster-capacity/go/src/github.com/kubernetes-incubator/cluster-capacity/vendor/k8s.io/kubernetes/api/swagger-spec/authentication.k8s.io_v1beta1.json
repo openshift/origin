@@ -40,6 +40,16 @@
         "code": 200,
         "message": "OK",
         "responseModel": "v1beta1.TokenReview"
+       },
+       {
+        "code": 201,
+        "message": "Created",
+        "responseModel": "v1beta1.TokenReview"
+       },
+       {
+        "code": 202,
+        "message": "Accepted",
+        "responseModel": "v1beta1.TokenReview"
        }
       ],
       "produces": [
@@ -145,7 +155,7 @@
      },
      "deletionTimestamp": {
       "type": "string",
-      "description": "DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource is expected to be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field. Once set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. After that 30 seconds, the Kubelet will send a hard termination signal (SIGKILL) to the container and after cleanup, remove the pod from the API. In the presence of network partitions, this object may still exist after this timestamp, until an administrator or automated process can determine the resource is fully terminated. If not set, graceful deletion of the object has not been requested.\n\nPopulated by the system when a graceful deletion is requested. Read-only. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+      "description": "DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource is expected to be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field, once the finalizers list is empty. As long as the finalizers list contains items, deletion is blocked. Once the deletionTimestamp is set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. After that 30 seconds, the Kubelet will send a hard termination signal (SIGKILL) to the container and after cleanup, remove the pod from the API. In the presence of network partitions, this object may still exist after this timestamp, until an administrator or automated process can determine the resource is fully terminated. If not set, graceful deletion of the object has not been requested.\n\nPopulated by the system when a graceful deletion is requested. Read-only. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
      },
      "deletionGracePeriodSeconds": {
       "type": "integer",
@@ -298,11 +308,15 @@
     "properties": {
      "selfLink": {
       "type": "string",
-      "description": "SelfLink is a URL representing this object. Populated by the system. Read-only."
+      "description": "selfLink is a URL representing this object. Populated by the system. Read-only."
      },
      "resourceVersion": {
       "type": "string",
       "description": "String that identifies the server's internal version of this object that can be used by clients to determine when objects have changed. Value must be treated as opaque by clients and passed unmodified back to the server. Populated by the system. Read-only. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency"
+     },
+     "continue": {
+      "type": "string",
+      "description": "continue may be set if the user set a limit on the number of items returned, and indicates that the server has more data available. The value is opaque and may be used to issue another request to the endpoint that served this list to retrieve the next set of available objects. Continuing a list may not be possible if the server configuration has changed or more than a few minutes have passed. The resourceVersion field returned when using this continue value will be identical to the value in the first response."
      }
     }
    },
@@ -336,7 +350,7 @@
      "retryAfterSeconds": {
       "type": "integer",
       "format": "int32",
-      "description": "If specified, the time in seconds before the operation should be retried."
+      "description": "If specified, the time in seconds before the operation should be retried. Some errors may indicate the client must take an alternate action - for those errors this field may indicate how long to wait before taking the alternate action."
      }
     }
    },
@@ -462,6 +476,14 @@
      "namespaced": {
       "type": "boolean",
       "description": "namespaced indicates if a resource is namespaced or not."
+     },
+     "group": {
+      "type": "string",
+      "description": "group is the preferred group of the resource.  Empty implies the group of the containing resource list. For subresources, this may have a different value, for example: Scale\"."
+     },
+     "version": {
+      "type": "string",
+      "description": "version is the preferred version of the resource.  Empty implies the version of the containing resource list For subresources, this may have a different value, for example: v1 (while inside a v1beta1 version of the core resource's group)\"."
      },
      "kind": {
       "type": "string",

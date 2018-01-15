@@ -20,30 +20,32 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/api/v1"
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 	priorityutil "k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/priorities/util"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
+
+	"github.com/golang/glog"
 )
 
 type InterPodAffinity struct {
 	info                  predicates.NodeInfo
 	nodeLister            algorithm.NodeLister
 	podLister             algorithm.PodLister
-	hardPodAffinityWeight int
+	hardPodAffinityWeight int32
 }
 
 func NewInterPodAffinityPriority(
 	info predicates.NodeInfo,
 	nodeLister algorithm.NodeLister,
 	podLister algorithm.PodLister,
-	hardPodAffinityWeight int) algorithm.PriorityFunction {
+	hardPodAffinityWeight int32) algorithm.PriorityFunction {
 	interPodAffinity := &InterPodAffinity{
 		info:                  info,
 		nodeLister:            nodeLister,
@@ -111,13 +113,13 @@ func (p *podAffinityPriorityMap) processTerms(terms []v1.WeightedPodAffinityTerm
 	}
 }
 
-// compute a sum by iterating through the elements of weightedPodAffinityTerm and adding
+// CalculateInterPodAffinityPriority compute a sum by iterating through the elements of weightedPodAffinityTerm and adding
 // "weight" to the sum if the corresponding PodAffinityTerm is satisfied for
 // that node; the node(s) with the highest sum are the most preferred.
 // Symmetry need to be considered for preferredDuringSchedulingIgnoredDuringExecution from podAffinity & podAntiAffinity,
 // symmetry need to be considered for hard requirements from podAffinity
 func (ipa *InterPodAffinity) CalculateInterPodAffinityPriority(pod *v1.Pod, nodeNameToInfo map[string]*schedulercache.NodeInfo, nodes []*v1.Node) (schedulerapi.HostPriorityList, error) {
-	affinity := schedulercache.ReconcileAffinity(pod)
+	affinity := pod.Spec.Affinity
 	hasAffinityConstraints := affinity != nil && affinity.PodAffinity != nil
 	hasAntiAffinityConstraints := affinity != nil && affinity.PodAntiAffinity != nil
 
@@ -136,9 +138,13 @@ func (ipa *InterPodAffinity) CalculateInterPodAffinityPriority(pod *v1.Pod, node
 	processPod := func(existingPod *v1.Pod) error {
 		existingPodNode, err := ipa.info.GetNodeInfo(existingPod.Spec.NodeName)
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				glog.Errorf("Node not found, %v", existingPod.Spec.NodeName)
+				return nil
+			}
 			return err
 		}
-		existingPodAffinity := schedulercache.ReconcileAffinity(existingPod)
+		existingPodAffinity := existingPod.Spec.Affinity
 		existingHasAffinityConstraints := existingPodAffinity != nil && existingPodAffinity.PodAffinity != nil
 		existingHasAntiAffinityConstraints := existingPodAffinity != nil && existingPodAffinity.PodAntiAffinity != nil
 
@@ -188,19 +194,21 @@ func (ipa *InterPodAffinity) CalculateInterPodAffinityPriority(pod *v1.Pod, node
 	}
 	processNode := func(i int) {
 		nodeInfo := nodeNameToInfo[allNodeNames[i]]
-		if hasAffinityConstraints || hasAntiAffinityConstraints {
-			// We need to process all the nodes.
-			for _, existingPod := range nodeInfo.Pods() {
-				if err := processPod(existingPod); err != nil {
-					pm.setError(err)
+		if nodeInfo.Node() != nil {
+			if hasAffinityConstraints || hasAntiAffinityConstraints {
+				// We need to process all the nodes.
+				for _, existingPod := range nodeInfo.Pods() {
+					if err := processPod(existingPod); err != nil {
+						pm.setError(err)
+					}
 				}
-			}
-		} else {
-			// The pod doesn't have any constraints - we need to check only existing
-			// ones that have some.
-			for _, existingPod := range nodeInfo.PodsWithAffinity() {
-				if err := processPod(existingPod); err != nil {
-					pm.setError(err)
+			} else {
+				// The pod doesn't have any constraints - we need to check only existing
+				// ones that have some.
+				for _, existingPod := range nodeInfo.PodsWithAffinity() {
+					if err := processPod(existingPod); err != nil {
+						pm.setError(err)
+					}
 				}
 			}
 		}
@@ -224,7 +232,7 @@ func (ipa *InterPodAffinity) CalculateInterPodAffinityPriority(pod *v1.Pod, node
 	for _, node := range nodes {
 		fScore := float64(0)
 		if (maxCount - minCount) > 0 {
-			fScore = 10 * ((pm.counts[node.Name] - minCount) / (maxCount - minCount))
+			fScore = float64(schedulerapi.MaxPriority) * ((pm.counts[node.Name] - minCount) / (maxCount - minCount))
 		}
 		result = append(result, schedulerapi.HostPriority{Host: node.Name, Score: int(fScore)})
 		if glog.V(10) {

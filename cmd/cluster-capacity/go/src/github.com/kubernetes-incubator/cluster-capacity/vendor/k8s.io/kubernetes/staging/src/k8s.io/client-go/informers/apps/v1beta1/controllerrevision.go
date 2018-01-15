@@ -19,13 +19,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	internalinterfaces "k8s.io/client-go/informers/internalinterfaces"
 	kubernetes "k8s.io/client-go/kubernetes"
 	v1beta1 "k8s.io/client-go/listers/apps/v1beta1"
-	apps_v1beta1 "k8s.io/client-go/pkg/apis/apps/v1beta1"
 	cache "k8s.io/client-go/tools/cache"
 	time "time"
 )
@@ -38,29 +38,49 @@ type ControllerRevisionInformer interface {
 }
 
 type controllerRevisionInformer struct {
-	factory internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
-func newControllerRevisionInformer(client kubernetes.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewControllerRevisionInformer constructs a new informer for ControllerRevision type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewControllerRevisionInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredControllerRevisionInformer(client, namespace, resyncPeriod, indexers, nil)
+}
+
+// NewFilteredControllerRevisionInformer constructs a new informer for ControllerRevision type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewFilteredControllerRevisionInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.AppsV1beta1().ControllerRevisions(v1.NamespaceAll).List(options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.AppsV1beta1().ControllerRevisions(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.AppsV1beta1().ControllerRevisions(v1.NamespaceAll).Watch(options)
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.AppsV1beta1().ControllerRevisions(namespace).Watch(options)
 			},
 		},
 		&apps_v1beta1.ControllerRevision{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func (f *controllerRevisionInformer) defaultInformer(client kubernetes.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredControllerRevisionInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *controllerRevisionInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apps_v1beta1.ControllerRevision{}, newControllerRevisionInformer)
+	return f.factory.InformerFor(&apps_v1beta1.ControllerRevision{}, f.defaultInformer)
 }
 
 func (f *controllerRevisionInformer) Lister() v1beta1.ControllerRevisionLister {

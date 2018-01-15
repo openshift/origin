@@ -22,7 +22,8 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/api/core/v1"
+	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util/types"
 )
@@ -126,4 +127,33 @@ func SplitUniqueName(uniqueName v1.UniqueVolumeName) (string, string, error) {
 	}
 	pluginName := fmt.Sprintf("%s/%s", components[0], components[1])
 	return pluginName, components[2], nil
+}
+
+// NewSafeFormatAndMountFromHost creates a new SafeFormatAndMount with Mounter
+// and Exec taken from given VolumeHost.
+func NewSafeFormatAndMountFromHost(pluginName string, host volume.VolumeHost) *mount.SafeFormatAndMount {
+	mounter := host.GetMounter(pluginName)
+	exec := host.GetExec(pluginName)
+	return &mount.SafeFormatAndMount{Interface: mounter, Exec: exec}
+}
+
+// GetVolumeMode retrieves VolumeMode from pv.
+// If the volume doesn't have PersistentVolume, it's an inline volume,
+// should return volumeMode as filesystem to keep existing behavior.
+func GetVolumeMode(volumeSpec *volume.Spec) (v1.PersistentVolumeMode, error) {
+	if volumeSpec == nil || volumeSpec.PersistentVolume == nil {
+		return v1.PersistentVolumeFilesystem, nil
+	}
+	if volumeSpec.PersistentVolume.Spec.VolumeMode != nil {
+		return *volumeSpec.PersistentVolume.Spec.VolumeMode, nil
+	}
+	return "", fmt.Errorf("cannot get volumeMode for volume: %v", volumeSpec.Name())
+}
+
+// GetPersistentVolumeClaimVolumeMode retrieves VolumeMode from pvc.
+func GetPersistentVolumeClaimVolumeMode(claim *v1.PersistentVolumeClaim) (v1.PersistentVolumeMode, error) {
+	if claim.Spec.VolumeMode != nil {
+		return *claim.Spec.VolumeMode, nil
+	}
+	return "", fmt.Errorf("cannot get volumeMode from pvc: %v", claim.Name)
 }

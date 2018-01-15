@@ -26,12 +26,12 @@ import (
 
 	"reflect"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/endpoints/handlers"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/test/integration/framework"
 )
 
@@ -44,14 +44,14 @@ func TestPatchConflicts(t *testing.T) {
 	defer framework.DeleteTestingNamespace(ns, s, t)
 
 	// Create the object we're going to conflict on
-	clientSet.Core().Secrets(ns.Name).Create(&v1.Secret{
+	clientSet.CoreV1().Secrets(ns.Name).Create(&v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 			// Populate annotations so the strategic patch descends, compares, and notices the $patch directive
 			Annotations: map[string]string{"initial": "value"},
 		},
 	})
-	client := clientSet.Core().RESTClient()
+	client := clientSet.CoreV1().RESTClient()
 
 	successes := int32(0)
 

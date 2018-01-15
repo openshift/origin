@@ -192,7 +192,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					},
 				},
 				{
-					by:              "checking adminuser can't create an object that requires admin",
+					by:              "checking adminuser can create an object that requires admin",
 					user:            adminuser,
 					namespace:       cli.Namespace(),
 					objects:         []runtime.Object{dummyrolebinding},

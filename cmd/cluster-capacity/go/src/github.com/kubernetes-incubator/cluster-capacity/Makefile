@@ -26,7 +26,7 @@ integration-tests:
 	./integration-tests.sh
 
 image:
-	docker build -t docker.io/gofed/cluster-capacity .
+	docker build -t cluster-capacity .
 
 clean:
 	rm -f cluster-capacity genpod hypercc
