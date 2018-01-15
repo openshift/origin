@@ -24,7 +24,15 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "DEPRECATED: The 'oadm' command is deprecated, please use '%s adm' instead.\n", baseCommand)
 
-	if err := syscall.Exec(path, append([]string{"adm"}, os.Args[1:]...), os.Environ()); err != nil {
+	admCmd := ""
+
+	// there is no `oc adm version` command.
+	// special-case it here.
+	if os.Args[1] != "version" {
+		admCmd = "adm"
+	}
+
+	if err := syscall.Exec(path, append([]string{baseCommand, admCmd}, os.Args[1:]...), os.Environ()); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
