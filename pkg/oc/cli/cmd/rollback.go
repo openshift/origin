@@ -56,7 +56,10 @@ var (
 	  %[1]s rollback frontend-2
 
 	  # Perform the rollback manually by piping the JSON of the new config back to %[1]s
-	  %[1]s rollback frontend -o json | %[1]s replace dc/frontend -f -`)
+	  %[1]s rollback frontend -o json | %[1]s replace dc/frontend -f -
+
+	  # Print the updated deployment configuration in JSON format instead of performing the rollback
+	  %[1]s rollback frontend -o json`)
 )
 
 // NewCmdRollback creates a CLI rollback command.
@@ -86,9 +89,9 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.Flags().BoolVar(&opts.IncludeStrategy, "change-strategy", false, "If true, include the previous deployment's strategy in the rollback")
 	cmd.Flags().BoolVar(&opts.IncludeScalingSettings, "change-scaling-settings", false, "If true, include the previous deployment's replicationController replica count and selector in the rollback")
 	cmd.Flags().BoolVarP(&opts.DryRun, "dry-run", "d", false, "Instead of performing the rollback, describe what the rollback will look like in human-readable form")
-	cmd.Flags().StringVarP(&opts.Format, "output", "o", "", "Instead of performing the rollback, print the updated deployment configuration in the specified format (json|yaml|name|template|templatefile)")
-	cmd.Flags().StringVarP(&opts.Template, "template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.")
 	cmd.MarkFlagFilename("template")
+
+	kcmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Int64Var(&opts.DesiredVersion, "to-version", 0, "A config version to rollback to. Specifying version 0 is the same as omitting a version (the version will be auto-detected). This option is ignored when specifying a deployment.")
 
 	return cmd
@@ -150,6 +153,8 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	o.kc = kClient
 
 	o.out = out
+
+	o.Format = kcmdutil.GetFlagString(cmd, "output")
 
 	if len(o.Format) > 0 {
 		o.printer, err = f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
