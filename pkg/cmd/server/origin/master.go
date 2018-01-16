@@ -159,7 +159,12 @@ func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (h
 		return http.NotFoundHandler(), nil
 	}
 
-	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig)
+	clusterResourceOverrideConfig, err := GetResourceOverrideConfig(c.Options)
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := assetapiserver.NewAssetServerConfig(*c.Options.AssetConfig, clusterResourceOverrideConfig)
 	if err != nil {
 		return nil, err
 	}
