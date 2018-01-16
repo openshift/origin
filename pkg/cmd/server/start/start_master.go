@@ -398,19 +398,12 @@ func (m *Master) Start() error {
 			return err
 		}
 
-		imageTemplate := variable.NewDefaultImageTemplate()
-		imageTemplate.Format = m.config.ImageConfig.Format
-		imageTemplate.Latest = m.config.ImageConfig.Latest
-		recyclerImage := imageTemplate.ExpandOrDie("recycler")
-
 		// you can't double run healthz, so only do this next bit if we aren't starting the API
 		if !m.api {
-
 			glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 			if len(m.config.DisabledFeatures) > 0 {
 				glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
 			}
-			glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
 			if err := origincontrollers.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
 				return err
@@ -465,19 +458,32 @@ func (m *Master) Start() error {
 
 		go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
 
-		kubeControllerInformers, err := NewInformers(*m.config)
-		if err != nil {
-			return err
-		}
-		go runEmbeddedKubeControllerManager(
-			m.config.MasterClients.OpenShiftLoopbackKubeConfig,
-			m.config.ServiceAccountConfig.PrivateKeyFile,
-			m.config.ServiceAccountConfig.MasterCA,
-			m.config.KubernetesMasterConfig.PodEvictionTimeout,
-			m.config.VolumeConfig.DynamicProvisioningEnabled,
-			m.config.KubernetesMasterConfig.ControllerArguments,
-			recyclerImage,
-			kubeControllerInformers)
+		go func() {
+			kubeControllerConfigBytes, err := configapilatest.WriteYAML(m.config)
+			if err != nil {
+				glog.Fatal(err)
+			}
+			// this creates using 0600
+			kubeControllerConfigFile, err := ioutil.TempFile("", "openshift-kube-controler-manager-config.yaml")
+			if err != nil {
+				glog.Fatal(err)
+			}
+			defer func() {
+				os.Remove(kubeControllerConfigFile.Name())
+			}()
+			if err := ioutil.WriteFile(kubeControllerConfigFile.Name(), kubeControllerConfigBytes, 0644); err != nil {
+				glog.Fatal(err)
+			}
+
+			runEmbeddedKubeControllerManager(
+				m.config.MasterClients.OpenShiftLoopbackKubeConfig,
+				m.config.ServiceAccountConfig.PrivateKeyFile,
+				m.config.ServiceAccountConfig.MasterCA,
+				m.config.KubernetesMasterConfig.PodEvictionTimeout,
+				kubeControllerConfigFile.Name(),
+				m.config.VolumeConfig.DynamicProvisioningEnabled,
+			)
+		}()
 
 		go func() {
 			controllerPlug.WaitForStart()
