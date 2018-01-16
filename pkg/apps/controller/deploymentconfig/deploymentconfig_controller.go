@@ -177,14 +177,6 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 		return c.reconcileDeployments(existingDeployments, config, cm)
 	}
 
-	// Never deploy with invalid or unresolved images
-	for i, container := range config.Spec.Template.Spec.Containers {
-		if len(strings.TrimSpace(container.Image)) == 0 {
-			glog.V(4).Infof("Postponing rollout #%d for DeploymentConfig %s/%s because of invalid or unresolved image for container #%d (name=%s)", config.Status.LatestVersion, config.Namespace, config.Name, i, container.Name)
-			return c.updateStatus(config, existingDeployments, true)
-		}
-	}
-
 	// No deployments are running and the latest deployment doesn't exist, so
 	// create the new deployment.
 	deployment, err := appsutil.MakeDeploymentV1(config, c.codec)
