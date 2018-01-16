@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 )
@@ -16,6 +17,7 @@ type legacyDiscoveryClient struct {
 }
 
 // ServerResourcesForGroupVersion returns the supported resources for a group and version.
+// This can return an error *and* a partial result
 func (d *legacyDiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (resources *metav1.APIResourceList, err error) {
 	parentList, err := d.DiscoveryClient.ServerResourcesForGroupVersion(groupVersion)
 	if err != nil {
@@ -37,7 +39,7 @@ func (d *legacyDiscoveryClient) ServerResourcesForGroupVersion(groupVersion stri
 		if groupVersion == "v1" && (errors.IsNotFound(err) || errors.IsForbidden(err)) {
 			return parentList, nil
 		}
-		return nil, err
+		return parentList, err
 	}
 
 	parentList.APIResources = append(parentList.APIResources, originResources.APIResources...)
@@ -45,21 +47,34 @@ func (d *legacyDiscoveryClient) ServerResourcesForGroupVersion(groupVersion stri
 }
 
 // ServerResources returns the supported resources for all groups and versions.
+// This can return an error *and* a partial result
 func (d *legacyDiscoveryClient) ServerResources() ([]*metav1.APIResourceList, error) {
 	apiGroups, err := d.ServerGroups()
 	if err != nil {
 		return nil, err
 	}
-	groupVersions := metav1.ExtractGroupVersions(apiGroups)
+
 	result := []*metav1.APIResourceList{}
-	for _, groupVersion := range groupVersions {
-		resources, err := d.ServerResourcesForGroupVersion(groupVersion)
-		if err != nil {
-			return nil, err
+	failedGroups := make(map[schema.GroupVersion]error)
+
+	for _, apiGroup := range apiGroups.Groups {
+		for _, version := range apiGroup.Versions {
+			gv := schema.GroupVersion{Group: apiGroup.Name, Version: version.Version}
+			resources, err := d.ServerResourcesForGroupVersion(version.GroupVersion)
+			if err != nil {
+				failedGroups[gv] = err
+				continue
+			}
+
+			result = append(result, resources)
 		}
-		result = append(result, resources)
 	}
-	return result, nil
+
+	if len(failedGroups) == 0 {
+		return result, nil
+	}
+
+	return result, &discovery.ErrGroupDiscoveryFailed{Groups: failedGroups}
 }
 
 // newLegacyDiscoveryClient creates a new DiscoveryClient for the given RESTClient.
