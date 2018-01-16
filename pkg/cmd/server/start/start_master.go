@@ -16,13 +16,18 @@ import (
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	clientgoclientset "k8s.io/client-go/kubernetes"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -43,7 +48,6 @@ import (
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
@@ -378,10 +382,6 @@ func (m *Master) Start() error {
 	// TODO: make scheme threadsafe and do this as part of aggregator config building
 	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 
-	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured
-	// as a separate API server which can be chained as a delegate
-	var controllerPlug plug.Plug
-
 	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
 	if controllersEnabled {
 		openshiftControllerInformers, err := NewInformers(*m.config)
@@ -410,23 +410,7 @@ func (m *Master) Start() error {
 			}
 		}
 
-		openshiftLeaderElectionArgs, err := getLeaderElectionOptions(m.config.KubernetesMasterConfig.ControllerArguments)
-		if err != nil {
-			return err
-		}
 		kubeExternal, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-		if err != nil {
-			return err
-		}
-
-		// run controllers asynchronously (not required to be "ready")
-		var controllerPlugStart func()
-		controllerPlug, controllerPlugStart, err = origin.NewLeaderElection(
-			*m.config,
-			openshiftLeaderElectionArgs,
-			kubeExternal,
-			clientGoKubeExternal.Core().Events(""),
-		)
 		if err != nil {
 			return err
 		}
@@ -444,17 +428,6 @@ func (m *Master) Start() error {
 			ExternalKubeInformers:      openshiftControllerInformers.GetExternalKubeInformers(),
 			KubeExternalClient:         kubeExternal,
 		}
-
-		go func() {
-			controllerPlugStart()
-			// when a manual shutdown (DELETE /controllers) or lease lost occurs, the process should exit
-			// this ensures no code is still running as a controller, and allows a process manager to reset
-			// the controller to come back into a candidate state and compete for the lease
-			if err := controllerPlug.WaitForStop(); err != nil {
-				glog.Fatalf("Controller shutdown due to lease being lost: %v", err)
-			}
-			glog.Fatalf("Controller graceful shutdown requested")
-		}()
 
 		go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
 
@@ -485,8 +458,7 @@ func (m *Master) Start() error {
 			)
 		}()
 
-		go func() {
-			controllerPlug.WaitForStart()
+		originControllerManager := func(stopCh <-chan struct{}) {
 			if err := waitForHealthyAPIServer(kubeExternal.Discovery().RESTClient()); err != nil {
 				glog.Fatal(err)
 			}
@@ -496,7 +468,6 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
-			stopCh := utilwait.NeverStop
 			informersStarted := make(chan struct{})
 			controllerContext := newControllerContext(openshiftControllerOptions, m.config.ControllerConfig.Controllers, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
@@ -505,7 +476,43 @@ func (m *Master) Start() error {
 
 			openshiftControllerInformers.Start(stopCh)
 			close(informersStarted)
-		}()
+		}
+
+		eventBroadcaster := record.NewBroadcaster()
+		eventBroadcaster.StartLogging(glog.Infof)
+		eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeExternal.CoreV1().RESTClient()).Events("")})
+		eventRecorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "openshift-controller-manager"})
+		id, err := os.Hostname()
+		if err != nil {
+			return err
+		}
+		openshiftLeaderElectionArgs, err := getLeaderElectionOptions(m.config.KubernetesMasterConfig.ControllerArguments)
+		if err != nil {
+			return err
+		}
+		rl, err := resourcelock.New(openshiftLeaderElectionArgs.ResourceLock,
+			"kube-system",
+			"openshift-master-controllers", // this matches what ansible used to set
+			kubeExternal.CoreV1(),
+			resourcelock.ResourceLockConfig{
+				Identity:      id,
+				EventRecorder: eventRecorder,
+			})
+		if err != nil {
+			return err
+		}
+		go leaderelection.RunOrDie(leaderelection.LeaderElectionConfig{
+			Lock:          rl,
+			LeaseDuration: openshiftLeaderElectionArgs.LeaseDuration.Duration,
+			RenewDeadline: openshiftLeaderElectionArgs.RenewDeadline.Duration,
+			RetryPeriod:   openshiftLeaderElectionArgs.RetryPeriod.Duration,
+			Callbacks: leaderelection.LeaderCallbacks{
+				OnStartedLeading: originControllerManager,
+				OnStoppedLeading: func() {
+					glog.Fatalf("leaderelection lost")
+				},
+			},
+		})
 	}
 
 	if m.api {
@@ -539,7 +546,7 @@ func (m *Master) Start() error {
 		imageTemplate.Latest = m.config.ImageConfig.Latest
 		glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-		if err := StartAPI(openshiftConfig, controllerPlug); err != nil {
+		if err := StartAPI(openshiftConfig); err != nil {
 			return err
 		}
 	}
@@ -551,7 +558,7 @@ func (m *Master) Start() error {
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
-func StartAPI(oc *origin.MasterConfig, controllerPlug plug.Plug) error {
+func StartAPI(oc *origin.MasterConfig) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
 		etcdserver.RunEtcd(oc.Options.EtcdConfig)
@@ -568,7 +575,7 @@ func StartAPI(oc *origin.MasterConfig, controllerPlug plug.Plug) error {
 		oc.RunDNSServer()
 	}
 
-	if err := oc.Run(controllerPlug, utilwait.NeverStop); err != nil {
+	if err := oc.Run(utilwait.NeverStop); err != nil {
 		return err
 	}
 
