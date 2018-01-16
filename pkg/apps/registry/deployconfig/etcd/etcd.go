@@ -178,3 +178,12 @@ func (r *StatusREST) Get(ctx apirequest.Context, name string, options *metav1.Ge
 func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation)
 }
+
+// LegacyREST allows us to wrap and alter some behavior
+type LegacyREST struct {
+	*REST
+}
+
+func (r *LegacyREST) Categories() []string {
+	return []string{}
+}
