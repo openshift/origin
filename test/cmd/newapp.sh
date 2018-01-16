@@ -102,9 +102,9 @@ os::cmd::expect_success 'oc new-app -f test/testdata/template-with-namespaces.js
 os::cmd::expect_success 'oc delete all -l app=ruby-helloworld-sample'
 
 # ensure non-duplicate invalid label errors show up
-os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'error: ImageStream "nginx" is invalid'
-os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'DeploymentConfig "nginx" is invalid'
-os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'Service "nginx" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'error: ImageStream "wordpress" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'DeploymentConfig "wordpress" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app docker.io/library/wordpress -l qwer1345%$$#=self' 'Service "wordpress" is invalid'
 
 # check if we can create from a stored template
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-stibuild.json'
@@ -259,17 +259,27 @@ os::cmd::expect_failure 'oc new-app -S --template=nodejs'
 os::cmd::expect_failure 'oc new-app -S --template=perl'
 # check search - filtered, exact matches
 # make sure the imagestreams are imported first.
+os::cmd::try_until_success 'oc get imagestreamtags mariadb:latest'
+os::cmd::try_until_success 'oc get imagestreamtags mariadb:10.1'
+os::cmd::try_until_success 'oc get imagestreamtags mariadb:10.2'
 os::cmd::try_until_success 'oc get imagestreamtags mongodb:latest'
 os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.4'
 os::cmd::try_until_success 'oc get imagestreamtags mongodb:2.6'
 os::cmd::try_until_success 'oc get imagestreamtags mongodb:3.2'
+os::cmd::try_until_success 'oc get imagestreamtags mongodb:3.4'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.6'
 os::cmd::try_until_success 'oc get imagestreamtags mysql:5.7'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:latest'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:1.8'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:1.10'
+os::cmd::try_until_success 'oc get imagestreamtags nginx:1.12'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:0.10'
 os::cmd::try_until_success 'oc get imagestreamtags nodejs:4'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:6'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:8'
 os::cmd::try_until_success 'oc get imagestreamtags perl:latest'
 os::cmd::try_until_success 'oc get imagestreamtags perl:5.16'
 os::cmd::try_until_success 'oc get imagestreamtags perl:5.20'
@@ -277,10 +287,13 @@ os::cmd::try_until_success 'oc get imagestreamtags perl:5.24'
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.6'
+os::cmd::try_until_success 'oc get imagestreamtags php:7.0'
+os::cmd::try_until_success 'oc get imagestreamtags php:7.1'
 os::cmd::try_until_success 'oc get imagestreamtags postgresql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.2'
 os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.4'
 os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.5'
+os::cmd::try_until_success 'oc get imagestreamtags postgresql:9.6'
 os::cmd::try_until_success 'oc get imagestreamtags python:latest'
 os::cmd::try_until_success 'oc get imagestreamtags python:2.7'
 os::cmd::try_until_success 'oc get imagestreamtags python:3.3'
@@ -291,18 +304,21 @@ os::cmd::try_until_success 'oc get imagestreamtags ruby:latest'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.0'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.4'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.1'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:9.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:8.1'
 
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.6, 3.2, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mariadb' "Tags:\s+10.1, 10.2, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mongodb' "Tags:\s+2.6, 3.2, 3.4, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=mysql' "Tags:\s+5.6, 5.7, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+4, 6, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nginx' "Tags:\s+1.10, 1.12, 1.8, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=nodejs' "Tags:\s+4, 6, 8, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=perl' "Tags:\s+5.20, 5.24, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+5.6, 7.0, latest"
-os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.4, 9.5, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:\s+5.6, 7.0, 7.1, latest"
+os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.4, 9.5, 9.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.4, 3.5, 3.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.2, 2.3, 2.4, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 8.1, 9.0, latest"
