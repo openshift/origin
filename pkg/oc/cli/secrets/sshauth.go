@@ -59,10 +59,11 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f kcmdutil.Factory, out io
 	}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SECRET --ssh-privatekey=FILENAME [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
-		Short:   "Create a new secret for SSH authentication",
-		Long:    createSSHAuthSecretLong,
-		Example: fmt.Sprintf(createSSHAuthSecretExample, fullName, newSecretFullName, ocEditFullName),
+		Use:        fmt.Sprintf("%s SECRET --ssh-privatekey=FILENAME [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
+		Short:      "Create a new secret for SSH authentication",
+		Long:       createSSHAuthSecretLong,
+		Example:    fmt.Sprintf(createSSHAuthSecretExample, fullName, newSecretFullName, ocEditFullName),
+		Deprecated: "use oc create secret",
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))

@@ -34,7 +34,7 @@ var (
     Docker registries.`)
 )
 
-func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, reader io.Reader, out, errOut io.Writer, ocEditFullName string) *cobra.Command {
+func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:     name,
@@ -44,11 +44,6 @@ func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, reader io.Reader
 		Run:     cmdutil.DefaultSubCommandRun(errOut),
 	}
 
-	newSecretFullName := fullName + " " + NewSecretRecommendedCommandName
-	cmds.AddCommand(NewCmdCreateSecret(NewSecretRecommendedCommandName, newSecretFullName, f, out))
-	cmds.AddCommand(NewCmdCreateDockerConfigSecret(CreateDockerConfigSecretRecommendedName, fullName+" "+CreateDockerConfigSecretRecommendedName, f, out, newSecretFullName, ocEditFullName))
-	cmds.AddCommand(NewCmdCreateBasicAuthSecret(CreateBasicAuthSecretRecommendedCommandName, fullName+" "+CreateBasicAuthSecretRecommendedCommandName, f, reader, out, newSecretFullName, ocEditFullName))
-	cmds.AddCommand(NewCmdCreateSSHAuthSecret(CreateSSHAuthSecretRecommendedCommandName, fullName+" "+CreateSSHAuthSecretRecommendedCommandName, f, out, newSecretFullName, ocEditFullName))
 	cmds.AddCommand(NewCmdLinkSecret(LinkSecretRecommendedName, fullName+" "+LinkSecretRecommendedName, f, out))
 	cmds.AddCommand(NewCmdUnlinkSecret(UnlinkSecretRecommendedName, fullName+" "+UnlinkSecretRecommendedName, f, out))
 
