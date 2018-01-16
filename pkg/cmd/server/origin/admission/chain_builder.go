@@ -147,7 +147,7 @@ func NewAdmissionChains(
 	} else {
 		pluginConfig := map[string]configapi.AdmissionPluginConfig{}
 		for pluginName, config := range options.AdmissionConfig.PluginConfig {
-			pluginConfig[pluginName] = config
+			pluginConfig[pluginName] = *config
 		}
 		upstreamAdmissionConfig, err := configapilatest.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
 		if err != nil {

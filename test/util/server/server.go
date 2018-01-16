@@ -194,7 +194,7 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 	}
 
 	if masterConfig.AdmissionConfig.PluginConfig == nil {
-		masterConfig.AdmissionConfig.PluginConfig = make(map[string]configapi.AdmissionPluginConfig)
+		masterConfig.AdmissionConfig.PluginConfig = make(map[string]*configapi.AdmissionPluginConfig)
 	}
 
 	if masterConfig.EtcdConfig != nil {

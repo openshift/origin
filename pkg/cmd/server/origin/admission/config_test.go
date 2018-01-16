@@ -168,7 +168,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 			options: configapi.MasterConfig{
 				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
 				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 						"foo": {
 							Location: "bar",
 						},

@@ -11,7 +11,7 @@ import (
 )
 
 // ReadPluginConfig will read a plugin configuration object from a reader stream
-func ReadPluginConfig(pluginConfig map[string]configapi.AdmissionPluginConfig, name string, config runtime.Object) error {
+func ReadPluginConfig(pluginConfig map[string]*configapi.AdmissionPluginConfig, name string, config runtime.Object) error {
 
 	configFilePath, err := pluginconfig.GetPluginConfigFile(pluginConfig, name, "")
 	if err != nil || len(configFilePath) == 0 {

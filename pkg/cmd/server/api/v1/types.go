@@ -1443,7 +1443,7 @@ type AdmissionPluginConfig struct {
 // AdmissionConfig holds the necessary configuration options for admission
 type AdmissionConfig struct {
 	// PluginConfig allows specifying a configuration file per admission control plugin
-	PluginConfig map[string]AdmissionPluginConfig `json:"pluginConfig"`
+	PluginConfig map[string]*AdmissionPluginConfig `json:"pluginConfig"`
 
 	// PluginOrderOverride is a list of admission control plugin names that will be installed
 	// on the master. Order is significant. If empty, a default list of plugins is used.
