@@ -10,7 +10,6 @@ After=dnsmasq.service
 [Service]
 Type=notify
 EnvironmentFile=/etc/sysconfig/$NAME
-EnvironmentFile=/etc/sysconfig/$NAME-dep
 
 ExecStartPre=/bin/bash -c 'export -p > /run/$NAME-env'
 ExecStart=$EXEC_START

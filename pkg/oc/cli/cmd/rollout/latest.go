@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -32,8 +33,11 @@ var (
 		your image change triggers.`)
 
 	rolloutLatestExample = templates.Examples(`
-		# Start a new rollout based on the latest images defined in the image change triggers.
-  	%[1]s rollout latest dc/nginx`)
+	# Start a new rollout based on the latest images defined in the image change triggers.
+	%[1]s rollout latest dc/nginx
+
+	# Print the rolled out deployment config
+	%[1]s rollout latest dc/nginx -o json`)
 )
 
 // RolloutLatestOptions holds all the options for the `rollout latest` command.
@@ -50,6 +54,8 @@ type RolloutLatestOptions struct {
 	appsClient      appsclientinternal.DeploymentConfigsGetter
 	kc              kclientset.Interface
 	baseCommandName string
+
+	printer kprinters.ResourcePrinter
 }
 
 // NewCmdRolloutLatest implements the oc rollout latest subcommand.
@@ -122,6 +128,13 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.again = kcmdutil.GetFlagBool(cmd, "again")
 
+	if o.output != "revision" {
+		o.printer, err = f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -185,6 +198,8 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 	if o.output == "revision" {
 		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
 		return nil
+	} else if len(o.output) > 0 {
+		return o.printer.PrintObj(dc, o.out)
 	}
 
 	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, o.DryRun, "rolled out")

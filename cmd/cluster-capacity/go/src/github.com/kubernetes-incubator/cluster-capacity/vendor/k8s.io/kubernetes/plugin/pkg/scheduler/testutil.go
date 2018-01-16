@@ -19,13 +19,13 @@ package scheduler
 import (
 	"fmt"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	corelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
+	clientset "k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/core"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/util"
 )
 
@@ -45,7 +45,7 @@ func (fc *FakeConfigurator) GetPriorityMetadataProducer() (algorithm.MetadataPro
 }
 
 // GetPredicateMetadataProducer is not implemented yet.
-func (fc *FakeConfigurator) GetPredicateMetadataProducer() (algorithm.MetadataProducer, error) {
+func (fc *FakeConfigurator) GetPredicateMetadataProducer() (algorithm.PredicateMetadataProducer, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -55,7 +55,7 @@ func (fc *FakeConfigurator) GetPredicates(predicateKeys sets.String) (map[string
 }
 
 // GetHardPodAffinitySymmetricWeight is not implemented yet.
-func (fc *FakeConfigurator) GetHardPodAffinitySymmetricWeight() int {
+func (fc *FakeConfigurator) GetHardPodAffinitySymmetricWeight() int32 {
 	panic("not implemented")
 }
 
@@ -65,7 +65,7 @@ func (fc *FakeConfigurator) GetSchedulerName() string {
 }
 
 // MakeDefaultErrorFunc is not implemented yet.
-func (fc *FakeConfigurator) MakeDefaultErrorFunc(backoff *util.PodBackoff, podQueue *cache.FIFO) func(pod *v1.Pod, err error) {
+func (fc *FakeConfigurator) MakeDefaultErrorFunc(backoff *util.PodBackoff, podQueue core.SchedulingQueue) func(pod *v1.Pod, err error) {
 	return nil
 }
 

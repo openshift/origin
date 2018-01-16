@@ -109,7 +109,7 @@ func TestUnexistentDirectoryPluginLoader(t *testing.T) {
 	}
 }
 
-func TestPluginsEnvVarPluginLoader(t *testing.T) {
+func TestKubectlPluginsPathPluginLoader(t *testing.T) {
 	tmp, err := setupValidPlugins(1, 0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -120,7 +120,7 @@ func TestPluginsEnvVarPluginLoader(t *testing.T) {
 	os.Setenv(env, tmp)
 	defer os.Unsetenv(env)
 
-	loader := PluginsEnvVarPluginLoader()
+	loader := KubectlPluginsPathPluginLoader()
 
 	plugins, err := loader.Load()
 	if err != nil {
@@ -232,7 +232,10 @@ func setupValidPlugins(nPlugins, nChildren int) (string, error) {
 		descriptor := fmt.Sprintf(`
 name: %[1]s
 shortDesc: The %[1]s test plugin
-command: echo %[1]s`, name)
+command: echo %[1]s
+flags:
+  - name: %[1]s-flag
+    desc: A flag for %[1]s`, name)
 
 		if nChildren > 0 {
 			descriptor += `

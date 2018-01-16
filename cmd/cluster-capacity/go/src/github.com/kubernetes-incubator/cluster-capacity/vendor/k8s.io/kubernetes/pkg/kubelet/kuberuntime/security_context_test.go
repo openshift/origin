@@ -17,8 +17,8 @@ limitations under the License.
 package kuberuntime
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -105,7 +105,8 @@ func TestVerifyRunAsNonRoot(t *testing.T) {
 		},
 	} {
 		pod.Spec.Containers[0].SecurityContext = test.sc
-		err := verifyRunAsNonRoot(pod, &pod.Spec.Containers[0], int64(0))
+		uid := int64(0)
+		err := verifyRunAsNonRoot(pod, &pod.Spec.Containers[0], &uid, "")
 		if test.fail {
 			assert.Error(t, err, test.desc)
 		} else {

@@ -25,8 +25,8 @@ import (
 	"fmt"
 	"sync"
 
+	"k8s.io/api/core/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util/operationexecutor"
 	"k8s.io/kubernetes/pkg/volume/util/types"
@@ -101,6 +101,10 @@ type DesiredStateOfWorld interface {
 	// GetKeepTerminatedPodVolumesForNode determines if node wants volumes to be
 	// mounted and attached for terminated pods
 	GetKeepTerminatedPodVolumesForNode(k8stypes.NodeName) bool
+
+	// Mark multiattach error as reported to prevent spamming multiple
+	// events for same error
+	SetMultiAttachError(v1.UniqueVolumeName, k8stypes.NodeName)
 }
 
 // VolumeToAttach represents a volume that should be attached to a node.
@@ -327,6 +331,21 @@ func (dsw *desiredStateOfWorld) VolumeExists(
 	}
 
 	return false
+}
+
+func (dsw *desiredStateOfWorld) SetMultiAttachError(
+	volumeName v1.UniqueVolumeName,
+	nodeName k8stypes.NodeName) {
+	dsw.Lock()
+	defer dsw.Unlock()
+
+	nodeObj, nodeExists := dsw.nodesManaged[nodeName]
+	if nodeExists {
+		if volumeObj, volumeExists := nodeObj.volumesToAttach[volumeName]; volumeExists {
+			volumeObj.multiAttachErrorReported = true
+			dsw.nodesManaged[nodeName].volumesToAttach[volumeName] = volumeObj
+		}
+	}
 }
 
 // GetKeepTerminatedPodVolumesForNode determines if node wants volumes to be

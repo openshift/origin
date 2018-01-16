@@ -17,8 +17,8 @@ limitations under the License.
 package qos
 
 import (
-	"k8s.io/kubernetes/pkg/api/v1"
-	v1qos "k8s.io/kubernetes/pkg/api/v1/helper/qos"
+	"k8s.io/api/core/v1"
+	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 )
 
 const (

@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestResourceHelpers(t *testing.T) {
@@ -30,9 +30,8 @@ func TestResourceHelpers(t *testing.T) {
 	memoryLimit := resource.MustParse("10G")
 	resourceSpec := api.ResourceRequirements{
 		Limits: api.ResourceList{
-			"cpu":             cpuLimit,
-			"memory":          memoryLimit,
-			"kube.io/storage": memoryLimit,
+			api.ResourceCPU:    cpuLimit,
+			api.ResourceMemory: memoryLimit,
 		},
 	}
 	if res := resourceSpec.Limits.Cpu(); res.Cmp(cpuLimit) != 0 {
@@ -43,8 +42,7 @@ func TestResourceHelpers(t *testing.T) {
 	}
 	resourceSpec = api.ResourceRequirements{
 		Limits: api.ResourceList{
-			"memory":          memoryLimit,
-			"kube.io/storage": memoryLimit,
+			api.ResourceMemory: memoryLimit,
 		},
 	}
 	if res := resourceSpec.Limits.Cpu(); res.Value() != 0 {

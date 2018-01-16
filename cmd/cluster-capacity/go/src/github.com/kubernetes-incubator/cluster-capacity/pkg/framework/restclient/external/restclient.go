@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,8 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	ccapi "github.com/kubernetes-incubator/cluster-capacity/pkg/api"
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/framework/store"
@@ -66,6 +66,7 @@ func (o *ObjectFieldsAccessor) Get(field string) (value string) {
 	// transform fields .spec.nodeName, .status.phase
 	// TODO(jchaloup): very hacky, find a way to actually access fields by its json alias equivalent
 	field = strings.Replace(field, "spec", "Spec", -1)
+	field = strings.Replace(field, "schedulerName", "SchedulerName", -1)
 	field = strings.Replace(field, "status", "Status", -1)
 	field = strings.Replace(field, "nodeName", "NodeName", -1)
 	field = strings.Replace(field, "phase", "Phase", -1)
@@ -314,7 +315,7 @@ func (c *RESTClient) createReadCloser(resource ccapi.ResourceType, obj runtime.O
 	}
 
 	gv := v1.SchemeGroupVersion
-	encoder := api.Codecs.EncoderForVersion(info.Serializer, gv)
+	encoder := legacyscheme.Codecs.EncoderForVersion(info.Serializer, gv)
 	nopCloser := ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(encoder, obj))))
 	return &nopCloser, nil
 }
@@ -545,7 +546,7 @@ func (c *RESTClient) Do(req *http.Request) (*http.Response, error) {
 
 func NewRESTClient(resourceStore store.ResourceStore, name string) *RESTClient {
 	client := &RESTClient{
-		NegotiatedSerializer: api.Codecs,
+		NegotiatedSerializer: legacyscheme.Codecs,
 		resourceStore:        resourceStore,
 		watcherReadGetters:   make(map[ccapi.ResourceType]map[string][]*ewatch.WatchBuffer),
 		name:                 name,

@@ -16,7 +16,6 @@ import (
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/volume"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 
@@ -24,26 +23,6 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 )
-
-// newKubeControllerContext provides a function which overrides the default and plugs a different set of informers in
-func newKubeControllerContext(informers *informers) func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
-	oldContextFunc := controllerapp.CreateControllerContext
-	return func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
-		ret, err := oldContextFunc(s, rootClientBuilder, clientBuilder, stop)
-		if err != nil {
-			return controllerapp.ControllerContext{}, err
-		}
-
-		// Overwrite the informers, because we have our custom generic informers for quota.
-		// TODO update quota to create its own informer like garbage collection or if we split this out, actually add our external types to the kube generic informer
-		ret.InformerFactory = externalKubeInformersWithExtraGenerics{
-			SharedInformerFactory:   informers.GetExternalKubeInformers(),
-			genericResourceInformer: informers.ToGenericInformer(),
-		}
-
-		return ret, nil
-	}
-}
 
 func kubeControllerManagerAddFlags(cmserver *controlleroptions.CMServer) func(flags *pflag.FlagSet) {
 	return func(flags *pflag.FlagSet) {
@@ -225,7 +204,13 @@ func createRecylerTemplate(recyclerImage string) (string, error) {
 
 func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string,
 	recyclerImage string, informers *informers) {
-	controllerapp.CreateControllerContext = newKubeControllerContext(informers)
+
+	// Overwrite the informers, because we have our custom generic informers for quota.
+	// TODO update quota to create its own informer like garbage collection or if we split this out, actually add our external types to the kube generic informer
+	controllerapp.InformerFactoryOverride = externalKubeInformersWithExtraGenerics{
+		SharedInformerFactory:   informers.GetExternalKubeInformers(),
+		genericResourceInformer: informers.ToGenericInformer(),
+	}
 
 	// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
 	controllerManager, cleanupFunctions, err := newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, recyclerImage, dynamicProvisioningEnabled, cmdLineArgs)

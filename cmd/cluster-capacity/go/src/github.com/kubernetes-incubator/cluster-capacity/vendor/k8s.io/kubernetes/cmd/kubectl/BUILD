@@ -1,5 +1,3 @@
-licenses(["notice"])
-
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_binary",
@@ -9,24 +7,28 @@ load("//pkg/version:def.bzl", "version_x_defs")
 
 go_binary(
     name = "kubectl",
-    gc_linkopts = [
-        "-linkmode",
-        "external",
-        "-extldflags",
-        "-static",
-    ],
+    gc_linkopts = select({
+        # Mac OS X doesn't support static binaries:
+        # https://developer.apple.com/library/content/qa/qa1118/_index.html
+        "@io_bazel_rules_go//go/platform:darwin_amd64": [],
+        "//conditions:default": [
+            "-linkmode",
+            "external",
+            "-extldflags",
+            "-static",
+        ],
+    }),
+    importpath = "k8s.io/kubernetes/cmd/kubectl",
     library = ":go_default_library",
-    tags = ["automanaged"],
-    visibility = [
-        "//build/visible_to:COMMON_release",
-    ],
+    visibility = ["//visibility:public"],
     x_defs = version_x_defs(),
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["kubectl.go"],
-    tags = ["automanaged"],
+    importpath = "k8s.io/kubernetes/cmd/kubectl",
+    visibility = ["//visibility:private"],
     deps = ["//cmd/kubectl/app:go_default_library"],
 )
 

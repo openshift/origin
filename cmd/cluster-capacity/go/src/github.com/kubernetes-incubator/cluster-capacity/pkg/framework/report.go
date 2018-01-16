@@ -24,12 +24,11 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/v1/helper"
+	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
 )
 
 type ClusterCapacityReview struct {
@@ -79,8 +78,8 @@ type FailReasonSummary struct {
 }
 
 type Resources struct {
-	PrimaryResources   v1.ResourceList
-	OpaqueIntResources map[v1.ResourceName]int64
+	PrimaryResources v1.ResourceList
+	ScalarResources  map[v1.ResourceName]int64
 }
 
 type Requirements struct {
@@ -127,12 +126,12 @@ func getResourceRequest(pod *v1.Pod) *Resources {
 				rQuantity.Add(*(result.PrimaryResources.NvidiaGPU()))
 				result.PrimaryResources[v1.ResourceNvidiaGPU] = rQuantity
 			default:
-				if helper.IsOpaqueIntResourceName(rName) {
+				if helper.IsScalarResourceName(rName) {
 					// Lazily allocate this map only if required.
-					if result.OpaqueIntResources == nil {
-						result.OpaqueIntResources = map[v1.ResourceName]int64{}
+					if result.ScalarResources == nil {
+						result.ScalarResources = map[v1.ResourceName]int64{}
 					}
-					result.OpaqueIntResources[rName] += rQuantity.Value()
+					result.ScalarResources[rName] += rQuantity.Value()
 				}
 			}
 		}
@@ -173,20 +172,6 @@ func parsePodsReview(templatePods []*v1.Pod, status Status) []*ClusterCapacityRe
 		return result
 	}
 
-	/*slicedMessage = strings.Split(slicedMessage[1][31:], `, `)
-	allReasons := make([]FailReasonSummary, 0)
-	for _, nodeReason := range slicedMessage {
-		leftParenthesis := strings.LastIndex(nodeReason, `(`)
-
-		reason := nodeReason[:leftParenthesis-1]
-		replicas, _ := strconv.Atoi(nodeReason[leftParenthesis+1 : len(nodeReason)-1])
-		allReasons = append(allReasons, FailReasonSummary{
-			Reason: reason,
-			Count:  replicas,
-		})
-	}
-
-	result[(len(status.Pods)-1)%templatesCount].FailSummary = allReasons*/
 	return result
 }
 
@@ -204,9 +189,8 @@ func getPodsRequirements(pods []*v1.Pod) []*Requirements {
 }
 
 func deepCopyPods(in []*v1.Pod, out []v1.Pod) {
-	cloner := conversion.NewCloner()
 	for i, pod := range in {
-		v1.DeepCopy_v1_Pod(pod, &out[i], cloner)
+		out[i] = *pod.DeepCopy()
 	}
 }
 
@@ -253,8 +237,8 @@ func clusterCapacityReviewPrettyPrint(r *ClusterCapacityReview, verbose bool) {
 			if !req.Resources.PrimaryResources.NvidiaGPU().IsZero() {
 				fmt.Printf("\t- NvidiaGPU: %v\n", req.Resources.PrimaryResources.NvidiaGPU().String())
 			}
-			if req.Resources.OpaqueIntResources != nil {
-				fmt.Printf("\t- OpaqueIntResources: %v\n", req.Resources.OpaqueIntResources)
+			if req.Resources.ScalarResources != nil {
+				fmt.Printf("\t- ScalarResources: %v\n", req.Resources.ScalarResources)
 			}
 
 			if req.NodeSelectors != nil {

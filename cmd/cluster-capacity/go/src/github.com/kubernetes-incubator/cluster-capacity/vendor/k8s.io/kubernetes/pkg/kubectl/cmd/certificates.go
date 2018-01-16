@@ -25,7 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/i18n"
+	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 
 	"github.com/spf13/cobra"
 )
@@ -59,7 +59,7 @@ func (options *CertificateOptions) Complete(cmd *cobra.Command, args []string) e
 }
 
 func (options *CertificateOptions) Validate() error {
-	if len(options.csrNames) < 1 && cmdutil.IsFilenameEmpty(options.Filenames) {
+	if len(options.csrNames) < 1 && cmdutil.IsFilenameSliceEmpty(options.Filenames) {
 		return fmt.Errorf("one or more CSRs must be specified as <name> or -f <filename>")
 	}
 	return nil
@@ -167,7 +167,8 @@ func (options *CertificateOptions) modifyCertificateCondition(f cmdutil.Factory,
 	if err != nil {
 		return err
 	}
-	r := f.NewBuilder(true).
+	r := f.NewBuilder().
+		Internal().
 		ContinueOnError().
 		FilenameParam(false, &options.FilenameOptions).
 		ResourceNames("certificatesigningrequest", options.csrNames...).
@@ -188,7 +189,7 @@ func (options *CertificateOptions) modifyCertificateCondition(f cmdutil.Factory,
 			return err
 		}
 		found++
-		cmdutil.PrintSuccess(mapper, options.outputStyle == "name", out, info.Mapping.Resource, info.Name, false, verb)
+		f.PrintSuccess(mapper, options.outputStyle == "name", out, info.Mapping.Resource, info.Name, false, verb)
 		return nil
 	})
 	if found == 0 {

@@ -19,11 +19,11 @@ package utils
 import (
 	"fmt"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 )
 
@@ -38,12 +38,12 @@ func PrintPod(pod *v1.Pod, format string) error {
 		contentType = "application/yaml"
 	}
 
-	info, ok := runtime.SerializerInfoForMediaType(api.Codecs.SupportedMediaTypes(), contentType)
+	info, ok := runtime.SerializerInfoForMediaType(legacyscheme.Codecs.SupportedMediaTypes(), contentType)
 	if !ok {
 		return fmt.Errorf("serializer for %s not registered", contentType)
 	}
 	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
-	encoder := api.Codecs.EncoderForVersion(info.Serializer, gvr.GroupVersion())
+	encoder := legacyscheme.Codecs.EncoderForVersion(info.Serializer, gvr.GroupVersion())
 	stream, err := runtime.Encode(encoder, pod)
 
 	if err != nil {

@@ -18,24 +18,32 @@ package framework
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/client-go/informers"
+	storageinformers "k8s.io/client-go/informers/storage/v1"
+	externalclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api/v1"
-	externalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	einformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	//"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/features"
 	sapps "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
-	soptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
+	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
+	latestschedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api/latest"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/core"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
 
 	// register algorithm providers
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
@@ -58,18 +66,14 @@ type ClusterCapacity struct {
 	// emulation strategy
 	strategy strategy.Strategy
 
-	// fake kube client
 	externalkubeclient *externalclientset.Clientset
 
-	informerFactory einformers.SharedInformerFactory
-
-	// fake rest clients
-	coreRestClient *external.RESTClient
+	informerFactory informers.SharedInformerFactory
 
 	// schedulers
-	schedulers       map[string]*scheduler.Scheduler
-	schedulerConfigs map[string]*scheduler.Config
-	defaultScheduler string
+	schedulers           map[string]*scheduler.Scheduler
+	schedulerConfigs     map[string]*scheduler.Config
+	defaultSchedulerName string
 
 	// pod to schedule
 	simulatedPod     *v1.Pod
@@ -202,7 +206,6 @@ func (c *ClusterCapacity) Close() {
 		close(name.StopEverything)
 	}
 
-	c.coreRestClient.Close()
 	close(c.informerStopCh)
 	c.closed = true
 }
@@ -225,12 +228,8 @@ func (c *ClusterCapacity) Update(pod *v1.Pod, podCondition *v1.PodCondition, sch
 }
 
 func (c *ClusterCapacity) nextPod() error {
-	cloner := conversion.NewCloner()
 	pod := v1.Pod{}
-	if err := v1.DeepCopy_v1_Pod(c.simulatedPod, &pod, cloner); err != nil {
-		return err
-	}
-
+	pod = *c.simulatedPod.DeepCopy()
 	// reset any node designation set
 	pod.Spec.NodeName = ""
 	// use simulated pod name with an index to construct the name
@@ -242,7 +241,7 @@ func (c *ClusterCapacity) nextPod() error {
 	}
 
 	// Stores the scheduler name
-	pod.ObjectMeta.Annotations[podProvisioner] = c.defaultScheduler
+	pod.ObjectMeta.Annotations[podProvisioner] = c.defaultSchedulerName
 
 	c.simulated++
 	c.lastSimulatedPod = &pod
@@ -251,7 +250,10 @@ func (c *ClusterCapacity) nextPod() error {
 }
 
 func (c *ClusterCapacity) Run() error {
+	// Start all informers.
 	c.informerFactory.Start(c.informerStopCh)
+	c.informerFactory.WaitForCacheSync(c.informerStopCh)
+
 	// TODO(jchaloup): remove all pods that are not scheduled yet
 	for _, scheduler := range c.schedulers {
 		scheduler.Run()
@@ -285,31 +287,15 @@ func (b *localBinderPodConditionUpdater) Update(pod *v1.Pod, podCondition *v1.Po
 	return b.C.Update(pod, podCondition, b.SchedulerName)
 }
 
-func (c *ClusterCapacity) createScheduler(s *soptions.SchedulerServer) (*scheduler.Scheduler, error) {
-	// TODO improve this
-	if c.informerFactory == nil {
-		c.informerFactory = einformers.NewSharedInformerFactory(c.externalkubeclient, 0)
-	}
+func (c *ClusterCapacity) createScheduler(s *sapps.SchedulerServer) (*scheduler.Scheduler, error) {
+	c.informerFactory = s.InformerFactory
+	s.Recorder = record.NewRecorder(10)
 
-	fakeClient := fake.NewSimpleClientset()
-	fakeInformerFactory := einformers.NewSharedInformerFactory(fakeClient, 0)
-
-	scheduler, err := sapps.CreateScheduler(s,
-		c.externalkubeclient,
-		c.informerFactory.Core().V1().Nodes(),
-		c.informerFactory.Core().V1().Pods(),
-		c.informerFactory.Core().V1().PersistentVolumes(),
-		c.informerFactory.Core().V1().PersistentVolumeClaims(),
-		fakeInformerFactory.Core().V1().ReplicationControllers(),
-		fakeInformerFactory.Extensions().V1beta1().ReplicaSets(),
-		fakeInformerFactory.Apps().V1beta1().StatefulSets(),
-		c.informerFactory.Core().V1().Services(),
-		record.NewRecorder(10))
-
+	schedulerConfig, err := SchedulerConfigLocal(s)
 	if err != nil {
-		return nil, fmt.Errorf("error creating scheduler: %v", err)
+		return nil, err
 	}
-	schedulerConfig := scheduler.Config()
+
 	// Replace the binder with simulator pod counter
 	lbpcu := &localBinderPodConditionUpdater{
 		SchedulerName: s.SchedulerName,
@@ -326,10 +312,14 @@ func (c *ClusterCapacity) createScheduler(s *soptions.SchedulerServer) (*schedul
 		}
 	}
 	schedulerConfig.Error = wrappedErrorFn
+	// Create the scheduler.
+	scheduler := scheduler.NewFromConfig(schedulerConfig)
+
 	return scheduler, nil
 }
 
-func (c *ClusterCapacity) AddScheduler(s *soptions.SchedulerServer) error {
+// TODO(avesh): enable when support for multiple schedulers is added.
+/*func (c *ClusterCapacity) AddScheduler(s *sapps.SchedulerServer) error {
 	scheduler, err := c.createScheduler(s)
 	if err != nil {
 		return err
@@ -338,12 +328,12 @@ func (c *ClusterCapacity) AddScheduler(s *soptions.SchedulerServer) error {
 	c.schedulers[s.SchedulerName] = scheduler
 	c.schedulerConfigs[s.SchedulerName] = scheduler.Config()
 	return nil
-}
+}*/
 
 // Create new cluster capacity analysis
 // The analysis is completely independent of apiserver so no need
 // for kubeconfig nor for apiserver url
-func New(s *soptions.SchedulerServer, simulatedPod *v1.Pod, maxPods int) (*ClusterCapacity, error) {
+func New(schedServer *sapps.SchedulerServer, simulatedPod *v1.Pod, maxPods int) (*ClusterCapacity, error) {
 	resourceStore := store.NewResourceStore()
 	restClient := external.NewRESTClient(resourceStore, "core")
 
@@ -354,7 +344,6 @@ func New(s *soptions.SchedulerServer, simulatedPod *v1.Pod, maxPods int) (*Clust
 		simulatedPod:       simulatedPod,
 		simulated:          0,
 		maxSimulated:       maxPods,
-		coreRestClient:     restClient,
 	}
 
 	for _, resource := range resourceStore.Resources() {
@@ -375,18 +364,108 @@ func New(s *soptions.SchedulerServer, simulatedPod *v1.Pod, maxPods int) (*Clust
 		})
 	}
 
+	// Replace InformerFactory
+	schedServer.InformerFactory = informers.NewSharedInformerFactory(cc.externalkubeclient, 0)
+	schedServer.Client = cc.externalkubeclient
+
 	cc.schedulers = make(map[string]*scheduler.Scheduler)
 	cc.schedulerConfigs = make(map[string]*scheduler.Config)
 
-	scheduler, err := cc.createScheduler(s)
+	scheduler, err := cc.createScheduler(schedServer)
 	if err != nil {
 		return nil, err
 	}
 
-	cc.schedulers[s.SchedulerName] = scheduler
-	cc.schedulerConfigs[s.SchedulerName] = scheduler.Config()
-	cc.defaultScheduler = s.SchedulerName
+	cc.schedulers[schedServer.SchedulerName] = scheduler
+	cc.schedulerConfigs[schedServer.SchedulerName] = scheduler.Config()
+	cc.defaultSchedulerName = schedServer.SchedulerName
 	cc.stop = make(chan struct{})
 	cc.informerStopCh = make(chan struct{})
 	return cc, nil
+}
+
+// SchedulerConfig creates the scheduler configuration.
+func SchedulerConfigLocal(s *sapps.SchedulerServer) (*scheduler.Config, error) {
+	var storageClassInformer storageinformers.StorageClassInformer
+	if utilfeature.DefaultFeatureGate.Enabled(features.VolumeScheduling) {
+		storageClassInformer = s.InformerFactory.Storage().V1().StorageClasses()
+	}
+
+	fakeClient := fake.NewSimpleClientset()
+	fakeInformerFactory := informers.NewSharedInformerFactory(fakeClient, 0)
+
+	// Set up the configurator which can create schedulers from configs.
+	configurator := factory.NewConfigFactory(
+		s.SchedulerName,
+		s.Client,
+		s.InformerFactory.Core().V1().Nodes(),
+		s.InformerFactory.Core().V1().Pods(),
+		s.InformerFactory.Core().V1().PersistentVolumes(),
+		s.InformerFactory.Core().V1().PersistentVolumeClaims(),
+		fakeInformerFactory.Core().V1().ReplicationControllers(),
+		fakeInformerFactory.Extensions().V1beta1().ReplicaSets(),
+		fakeInformerFactory.Apps().V1beta1().StatefulSets(),
+		s.InformerFactory.Core().V1().Services(),
+		fakeInformerFactory.Policy().V1beta1().PodDisruptionBudgets(),
+		storageClassInformer,
+		s.HardPodAffinitySymmetricWeight,
+		utilfeature.DefaultFeatureGate.Enabled(features.EnableEquivalenceClassCache),
+	)
+
+	source := s.AlgorithmSource
+	var config *scheduler.Config
+	switch {
+	case source.Provider != nil:
+		// Create the config from a named algorithm provider.
+		sc, err := configurator.CreateFromProvider(*source.Provider)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create scheduler using provider %q: %v", *source.Provider, err)
+		}
+		config = sc
+	case source.Policy != nil:
+		// Create the config from a user specified policy source.
+		policy := &schedulerapi.Policy{}
+		switch {
+		case source.Policy.File != nil:
+			// Use a policy serialized in a file.
+			policyFile := source.Policy.File.Path
+			_, err := os.Stat(policyFile)
+			if err != nil {
+				return nil, fmt.Errorf("missing policy config file %s", policyFile)
+			}
+			data, err := ioutil.ReadFile(policyFile)
+			if err != nil {
+				return nil, fmt.Errorf("couldn't read policy config: %v", err)
+			}
+			err = runtime.DecodeInto(latestschedulerapi.Codec, []byte(data), policy)
+			if err != nil {
+				return nil, fmt.Errorf("invalid policy: %v", err)
+			}
+		case source.Policy.ConfigMap != nil:
+			// Use a policy serialized in a config map value.
+			policyRef := source.Policy.ConfigMap
+			policyConfigMap, err := s.Client.CoreV1().ConfigMaps(policyRef.Namespace).Get(policyRef.Name, metav1.GetOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("couldn't get policy config map %s/%s: %v", policyRef.Namespace, policyRef.Name, err)
+			}
+			data, found := policyConfigMap.Data[componentconfig.SchedulerPolicyConfigMapKey]
+			if !found {
+				return nil, fmt.Errorf("missing policy config map value at key %q", componentconfig.SchedulerPolicyConfigMapKey)
+			}
+			err = runtime.DecodeInto(latestschedulerapi.Codec, []byte(data), policy)
+			if err != nil {
+				return nil, fmt.Errorf("invalid policy: %v", err)
+			}
+		}
+		sc, err := configurator.CreateFromConfig(*policy)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't create scheduler from policy: %v", err)
+		}
+		config = sc
+	default:
+		return nil, fmt.Errorf("unsupported algorithm source: %v", source)
+	}
+	// Additional tweaks to the config produced by the configurator.
+	config.Recorder = s.Recorder
+	return config, nil
 }

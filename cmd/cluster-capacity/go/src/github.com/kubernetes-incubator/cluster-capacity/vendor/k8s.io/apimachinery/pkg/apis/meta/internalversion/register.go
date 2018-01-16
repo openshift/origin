@@ -30,8 +30,13 @@ const GroupName = "meta.k8s.io"
 // Scheme is the registry for any type that adheres to the meta API spec.
 var scheme = runtime.NewScheme()
 
-// Copier exposes copying on this scheme.
-var Copier runtime.ObjectCopier = scheme
+var (
+	// TODO: move SchemeBuilder with zz_generated.deepcopy.go to k8s.io/api.
+	// localSchemeBuilder and AddToScheme will stay in k8s.io/kubernetes.
+	SchemeBuilder      runtime.SchemeBuilder
+	localSchemeBuilder = &SchemeBuilder
+	AddToScheme        = localSchemeBuilder.AddToScheme
+)
 
 // Codecs provides access to encoding and decoding for the scheme.
 var Codecs = serializer.NewCodecFactory(scheme)

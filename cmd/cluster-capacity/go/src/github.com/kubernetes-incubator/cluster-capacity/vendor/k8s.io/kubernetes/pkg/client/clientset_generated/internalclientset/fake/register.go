@@ -21,7 +21,6 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	coreinternalversion "k8s.io/kubernetes/pkg/api"
 	admissionregistrationinternalversion "k8s.io/kubernetes/pkg/apis/admissionregistration"
 	appsinternalversion "k8s.io/kubernetes/pkg/apis/apps"
 	authenticationinternalversion "k8s.io/kubernetes/pkg/apis/authentication"
@@ -29,10 +28,13 @@ import (
 	autoscalinginternalversion "k8s.io/kubernetes/pkg/apis/autoscaling"
 	batchinternalversion "k8s.io/kubernetes/pkg/apis/batch"
 	certificatesinternalversion "k8s.io/kubernetes/pkg/apis/certificates"
+	coreinternalversion "k8s.io/kubernetes/pkg/apis/core"
+	eventsinternalversion "k8s.io/kubernetes/pkg/apis/events"
 	extensionsinternalversion "k8s.io/kubernetes/pkg/apis/extensions"
 	networkinginternalversion "k8s.io/kubernetes/pkg/apis/networking"
 	policyinternalversion "k8s.io/kubernetes/pkg/apis/policy"
 	rbacinternalversion "k8s.io/kubernetes/pkg/apis/rbac"
+	schedulinginternalversion "k8s.io/kubernetes/pkg/apis/scheduling"
 	settingsinternalversion "k8s.io/kubernetes/pkg/apis/settings"
 	storageinternalversion "k8s.io/kubernetes/pkg/apis/storage"
 )
@@ -69,10 +71,12 @@ func AddToScheme(scheme *runtime.Scheme) {
 	autoscalinginternalversion.AddToScheme(scheme)
 	batchinternalversion.AddToScheme(scheme)
 	certificatesinternalversion.AddToScheme(scheme)
+	eventsinternalversion.AddToScheme(scheme)
 	extensionsinternalversion.AddToScheme(scheme)
 	networkinginternalversion.AddToScheme(scheme)
 	policyinternalversion.AddToScheme(scheme)
 	rbacinternalversion.AddToScheme(scheme)
+	schedulinginternalversion.AddToScheme(scheme)
 	settingsinternalversion.AddToScheme(scheme)
 	storageinternalversion.AddToScheme(scheme)
 

@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/server/httplog"
 	"k8s.io/apiserver/pkg/util/wsstream"
-	"k8s.io/kubernetes/pkg/api"
+	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -158,7 +158,6 @@ type websocketStreamPair struct {
 // request over a websocket connection
 type websocketStreamHandler struct {
 	conn        *wsstream.Conn
-	ports       []int32
 	streamPairs []*websocketStreamPair
 	pod         string
 	uid         types.UID
