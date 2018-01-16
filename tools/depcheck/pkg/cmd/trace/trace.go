@@ -151,7 +151,7 @@ func (o *TraceImportsOpts) Run() error {
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			}
 
-			list.FilteredAdd(pkg, o.Exclude)
+			list.Add(pkg)
 		}
 	}(pkgs)
 
@@ -159,7 +159,7 @@ func (o *TraceImportsOpts) Run() error {
 		return err
 	}
 
-	g, err := BuildGraph(pkgs)
+	g, err := BuildGraph(pkgs, o.Exclude)
 	if err != nil {
 		return err
 	}
