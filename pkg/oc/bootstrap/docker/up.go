@@ -203,16 +203,18 @@ func conditionalTask(name string, fn taskFunc, condition conditionFunc) task {
 }
 
 type CommonStartConfig struct {
-	ImageVersion                string
-	Image                       string
-	ImageStreams                string
-	DockerMachine               string
-	ShouldCreateDockerMachine   bool
-	SkipRegistryCheck           bool
-	ShouldInstallMetrics        bool
-	ShouldInstallLogging        bool
-	ShouldInstallServiceCatalog bool
-	PortForwarding              bool
+	ImageVersion                     string
+	Image                            string
+	ImageStreams                     string
+	DockerMachine                    string
+	ShouldCreateDockerMachine        bool
+	SkipRegistryCheck                bool
+	ShouldInstallMetrics             bool
+	ShouldInstallLogging             bool
+	ShouldInstallServiceCatalog      bool
+	ServiceCatalogApiserverLoglevel  int
+	ServiceCatalogControllerLoglevel int
+	PortForwarding                   bool
 
 	Out   io.Writer
 	Tasks []task
@@ -282,6 +284,8 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
 	flags.BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
 	flags.BoolVar(&config.ShouldInstallServiceCatalog, "service-catalog", false, "Install service catalog (experimental).")
+	flags.IntVar(&config.ServiceCatalogApiserverLoglevel, "catalog-apiserver-loglevel", 3, "Log level for Service Catalog apiserver")
+	flags.IntVar(&config.ServiceCatalogControllerLoglevel, "catalog-controller-loglevel", 4, "Log level for Service Catalog controller")
 	flags.StringVar(&config.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&config.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
@@ -1155,7 +1159,14 @@ func (c *ClientStartConfig) InstallServiceCatalog(out io.Writer) error {
 	if len(publicMaster) == 0 {
 		publicMaster = c.ServerIP
 	}
-	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP), c.imageFormat())
+	return c.OpenShiftHelper().InstallServiceCatalog(
+		f,
+		c.LocalConfigDir,
+		publicMaster,
+		openshift.CatalogHost(c.RoutingSuffix, c.ServerIP),
+		c.imageFormat(),
+		c.ServiceCatalogApiserverLoglevel,
+		c.ServiceCatalogControllerLoglevel)
 }
 
 // InstallTemplateServiceBroker will start the installation of template service broker
