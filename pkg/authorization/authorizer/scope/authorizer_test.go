@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
@@ -14,13 +13,11 @@ import (
 
 func TestAuthorize(t *testing.T) {
 	testCases := []struct {
-		name                string
-		attributes          kauthorizer.AttributesRecord
-		delegateAuthAllowed bool
-		expectedCalled      bool
-		expectedAllowed     kauthorizer.Decision
-		expectedErr         string
-		expectedMsg         string
+		name            string
+		attributes      kauthorizer.AttributesRecord
+		expectedAllowed kauthorizer.Decision
+		expectedErr     string
+		expectedMsg     string
 	}{
 		{
 			name: "no user",
@@ -38,7 +35,6 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedCalled:  true,
 			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
@@ -48,7 +44,6 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedCalled:  true,
 			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
@@ -58,7 +53,6 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 			},
-			expectedCalled:  true,
 			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
@@ -100,7 +94,6 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 				Verb:            "get", Resource: "users", Name: "~"},
-			expectedCalled:  true,
 			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
@@ -110,7 +103,6 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: false,
 				Namespace:       "ns",
 				Verb:            "get", Path: "/api"},
-			expectedCalled:  true,
 			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
@@ -120,7 +112,6 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: true,
 				Namespace:       "ns",
 				Verb:            "update", Resource: "users", Name: "harold"},
-			expectedCalled:  true,
 			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 		{
@@ -130,15 +121,13 @@ func TestAuthorize(t *testing.T) {
 				ResourceRequest: false,
 				Namespace:       "ns",
 				Verb:            "post", Path: "/foo/bar/baz"},
-			expectedCalled:  true,
 			expectedAllowed: kauthorizer.DecisionNoOpinion,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			delegate := &fakeAuthorizer{allowed: tc.delegateAuthAllowed}
-			authorizer := NewAuthorizer(delegate, nil, defaultauthorizer.NewForbiddenMessageResolver(""))
+			authorizer := NewAuthorizer(nil, defaultauthorizer.NewForbiddenMessageResolver(""))
 
 			actualAllowed, actualMsg, actualErr := authorizer.Authorize(tc.attributes)
 			switch {
@@ -158,26 +147,6 @@ func TestAuthorize(t *testing.T) {
 			if tc.expectedAllowed != actualAllowed {
 				t.Errorf("expected %v, got %v", tc.expectedAllowed, actualAllowed)
 			}
-			if tc.expectedCalled != delegate.called {
-				t.Errorf("expected %v, got %v", tc.expectedCalled, delegate.called)
-			}
 		})
 	}
-}
-
-type fakeAuthorizer struct {
-	allowed bool
-	called  bool
-}
-
-func (a *fakeAuthorizer) Authorize(passedAttributes kauthorizer.Attributes) (kauthorizer.Decision, string, error) {
-	a.called = true
-	if a.allowed {
-		return kauthorizer.DecisionAllow, "", nil
-	}
-	return kauthorizer.DecisionNoOpinion, "", nil
-}
-
-func (a *fakeAuthorizer) GetAllowedSubjects(attributes kauthorizer.Attributes) (sets.String, sets.String, error) {
-	return nil, nil, nil
 }
