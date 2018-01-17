@@ -64,6 +64,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 const (
@@ -121,6 +122,12 @@ func Run(s *options.CMServer) error {
 		return err
 	}
 
+	cleanupFn, err := ShimForOpenShift(s, kubeconfig)
+	if err != nil {
+		return err
+	}
+	defer cleanupFn()
+
 	if s.Port >= 0 {
 		go startHTTP(s)
 	}
@@ -172,6 +179,8 @@ func Run(s *options.CMServer) error {
 	if err != nil {
 		return err
 	}
+	// add a uniquifier so that two processes on the same host don't accidentally both become active
+	id = id + " " + string(uuid.NewUUID())
 
 	rl, err := resourcelock.New(s.LeaderElection.ResourceLock,
 		"kube-system",
@@ -426,10 +435,10 @@ func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (ma
 func CreateControllerContext(s *options.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) {
 	versionedClient := rootClientBuilder.ClientOrDie("shared-informers")
 	var sharedInformers informers.SharedInformerFactory
-	if InformerFactoryOverride == nil{
+	if InformerFactoryOverride == nil {
 		sharedInformers = informers.NewSharedInformerFactory(versionedClient, ResyncPeriod(s)())
-	} else{
-		sharedInformers  = InformerFactoryOverride
+	} else {
+		sharedInformers = InformerFactoryOverride
 	}
 
 	availableResources, err := GetAvailableResources(rootClientBuilder)
