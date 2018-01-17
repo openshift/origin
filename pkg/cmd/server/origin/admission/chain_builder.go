@@ -13,6 +13,7 @@ import (
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
@@ -63,6 +64,7 @@ var (
 		noderestriction.PluginName,
 		sccadmission.PluginName,
 		storageclassdefaultadmission.PluginName,
+		expandpvcadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
@@ -109,6 +111,7 @@ var (
 		noderestriction.PluginName,
 		sccadmission.PluginName,
 		storageclassdefaultadmission.PluginName,
+		expandpvcadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",

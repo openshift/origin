@@ -29,6 +29,7 @@ import (
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
@@ -117,6 +118,7 @@ var (
 		"PodTolerationRestriction",
 		"ExtendedResourceToleration",
 		"PVCProtection",
+		expandpvcadmission.PluginName,
 	)
 )
 
