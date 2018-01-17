@@ -24,8 +24,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	"github.com/openshift/origin/pkg/api"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
@@ -47,7 +45,7 @@ var (
 
 	idleExample = templates.Examples(`
 		# Idle the scalable controllers associated with the services listed in to-idle.txt
-	  $ %[1]s idle --resource-names-file to-idle.txt`)
+		$ %[1]s idle --resource-names-file to-idle.txt`)
 )
 
 // NewCmdIdle implements the OpenShift cli idle command
@@ -214,9 +212,9 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		return pod, nil
 	}
 
-	controllersLoaded := make(map[kapi.ObjectReference]runtime.Object)
+	controllersLoaded := make(map[metav1.OwnerReference]metav1.Object)
 	helpers := make(map[schema.GroupKind]*resource.Helper)
-	getController := func(ref kapi.ObjectReference) (runtime.Object, error) {
+	getController := func(namespace string, ref metav1.OwnerReference) (metav1.Object, error) {
 		if controller, ok := controllersLoaded[ref]; ok {
 			return controller, nil
 		}
@@ -243,20 +241,24 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		}
 
 		var controller runtime.Object
-		controller, err = helper.Get(ref.Namespace, ref.Name, false)
+		controller, err = helper.Get(namespace, ref.Name, false)
 		if err != nil {
 			return nil, err
 		}
 
-		controllersLoaded[ref] = controller
+		controllerMeta, err := meta.Accessor(controller)
+		if err != nil {
+			return nil, err
+		}
 
-		return controller, nil
+		controllersLoaded[ref] = controllerMeta
+
+		return controllerMeta, nil
 	}
 
 	targetScaleRefs := make(map[unidlingapi.CrossGroupObjectReference]types.NamespacedName)
 	endpointsInfo := make(map[types.NamespacedName]idleUpdateInfo)
 
-	decoder := f.Decoder(true)
 	err = o.svcBuilder.Do().Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
@@ -271,7 +273,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 			Namespace: endpoints.Namespace,
 			Name:      endpoints.Name,
 		}
-		scaleRefs, err := findScalableResourcesForEndpoints(endpoints, decoder, getPod, getController)
+		scaleRefs, err := findScalableResourcesForEndpoints(endpoints, getPod, getController)
 		if err != nil {
 			return fmt.Errorf("unable to calculate scalable resources for service %s/%s: %v", endpoints.Namespace, endpoints.Name, err)
 		}
@@ -293,41 +295,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 	return endpointsInfo, targetScaleRefs, err
 }
 
-// getControllerRef returns a subresource reference to the owning controller of the given object.
-// It will use both the CreatedByAnnotation from Kubernetes, as well as the DeploymentConfigAnnotation
-// from Origin to look this up.  If neither are found, it will return nil.
-func getControllerRef(obj runtime.Object, decoder runtime.Decoder) (*kapi.ObjectReference, error) {
-	objMeta, err := meta.Accessor(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	annotations := objMeta.GetAnnotations()
-
-	creatorRefRaw, creatorListed := annotations[api.DeprecatedKubeCreatedByAnnotation]
-	if !creatorListed {
-		// if we don't have a creator listed, try the openshift-specific Deployment annotation
-		dcName, dcNameListed := annotations[appsapi.DeploymentConfigAnnotation]
-		if !dcNameListed {
-			return nil, nil
-		}
-
-		return &kapi.ObjectReference{
-			Name:      dcName,
-			Namespace: objMeta.GetNamespace(),
-			Kind:      "DeploymentConfig",
-		}, nil
-	}
-
-	serializedRef := &kapi.SerializedReference{}
-	if err := runtime.DecodeInto(decoder, []byte(creatorRefRaw), serializedRef); err != nil {
-		return nil, fmt.Errorf("could not decoded pod's creator reference: %v", err)
-	}
-
-	return &serializedRef.Reference, nil
-}
-
-func makeCrossGroupObjRef(ref *kapi.ObjectReference) (unidlingapi.CrossGroupObjectReference, error) {
+func makeCrossGroupObjRef(ref *metav1.OwnerReference) (unidlingapi.CrossGroupObjectReference, error) {
 	gv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return unidlingapi.CrossGroupObjectReference{}, err
@@ -344,7 +312,7 @@ func makeCrossGroupObjRef(ref *kapi.ObjectReference) (unidlingapi.CrossGroupObje
 // scalable objects by checking each address in each subset to see if it has a pod
 // reference, and the following that pod reference to find the owning controller,
 // and returning the unique set of controllers found this way.
-func findScalableResourcesForEndpoints(endpoints *kapi.Endpoints, decoder runtime.Decoder, getPod func(kapi.ObjectReference) (*kapi.Pod, error), getController func(kapi.ObjectReference) (runtime.Object, error)) (map[unidlingapi.CrossGroupObjectReference]struct{}, error) {
+func findScalableResourcesForEndpoints(endpoints *kapi.Endpoints, getPod func(kapi.ObjectReference) (*kapi.Pod, error), getController func(string, metav1.OwnerReference) (metav1.Object, error)) (map[unidlingapi.CrossGroupObjectReference]struct{}, error) {
 	// To find all RCs and DCs for an endpoint, we first figure out which pods are pointed to by that endpoint...
 	podRefs := map[kapi.ObjectReference]*kapi.Pod{}
 	for _, subset := range endpoints.Subsets {
@@ -363,33 +331,26 @@ func findScalableResourcesForEndpoints(endpoints *kapi.Endpoints, decoder runtim
 	}
 
 	// ... then, for each pod, we check the controller, and find the set of unique controllers...
-	immediateControllerRefs := make(map[kapi.ObjectReference]struct{})
+	immediateControllerRefs := make(map[metav1.OwnerReference]struct{})
 	for _, pod := range podRefs {
-		controllerRef, err := getControllerRef(pod, decoder)
-		if err != nil {
-			return nil, fmt.Errorf("unable to find controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
-		} else if controllerRef == nil {
+		controllerRef := metav1.GetControllerOf(pod)
+		if controllerRef == nil {
 			return nil, fmt.Errorf("unable to find controller for pod %s/%s: no creator reference listed", pod.Namespace, pod.Name)
 		}
-
 		immediateControllerRefs[*controllerRef] = struct{}{}
 	}
 
 	// ... finally, for each controller, we load it, and see if there is a corresponding owner (to cover cases like DCs, Deployments, etc)
 	controllerRefs := make(map[unidlingapi.CrossGroupObjectReference]struct{})
 	for controllerRef := range immediateControllerRefs {
-		controller, err := getController(controllerRef)
+		controller, err := getController(endpoints.Namespace, controllerRef)
 		if utilerrors.TolerateNotFoundError(err) != nil {
 			return nil, fmt.Errorf("unable to load %s %q: %v", controllerRef.Kind, controllerRef.Name, err)
 		}
 
 		if controller != nil {
-			var parentControllerRef *kapi.ObjectReference
-			parentControllerRef, err = getControllerRef(controller, decoder)
-			if err != nil {
-				return nil, fmt.Errorf("unable to load the creator of %s %q: %v", controllerRef.Kind, controllerRef.Name, err)
-			}
-
+			var parentControllerRef *metav1.OwnerReference
+			parentControllerRef = metav1.GetControllerOf(controller)
 			var crossGroupObjRef unidlingapi.CrossGroupObjectReference
 			if parentControllerRef == nil {
 				// if this is just a plain RC, use it
