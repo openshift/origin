@@ -1,0 +1,12 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: application-liveness
+  annotations:
+    prometheus.io/scrape: "true"
+spec:
+  selector:
+    app: application-liveness
+  ports:
+  - port: 80
+    targetPort: 8080
