@@ -2,8 +2,9 @@ package auth
 
 import (
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
 
 // Review is a list of users and groups that can access a resource
@@ -38,10 +39,10 @@ type Reviewer interface {
 }
 
 type authorizerReviewer struct {
-	policyChecker authorizer.SubjectLocator
+	policyChecker rbac.SubjectLocator
 }
 
-func NewAuthorizerReviewer(policyChecker authorizer.SubjectLocator) Reviewer {
+func NewAuthorizerReviewer(policyChecker rbac.SubjectLocator) Reviewer {
 	return &authorizerReviewer{policyChecker: policyChecker}
 }
 
@@ -54,11 +55,9 @@ func (r *authorizerReviewer) Review(namespaceName string) (Review, error) {
 		ResourceRequest: true,
 	}
 
-	users, groups, err := r.policyChecker.GetAllowedSubjects(attributes)
-	review := &defaultReview{
-		users:  users.List(),
-		groups: groups.List(),
-	}
+	subjects, err := r.policyChecker.AllowedSubjects(attributes)
+	review := &defaultReview{}
+	review.users, review.groups = authorizationutil.RBACSubjectsToUsersAndGroups(subjects, attributes.GetNamespace())
 	if err != nil {
 		review.evaluationError = err.Error()
 	}
