@@ -3,6 +3,12 @@
 This template creates a custom Grafana instance preconfigured to gather Prometheus openshift metrics.
 It is uses OAuth token to login openshift Prometheus.
 
+# Examples Dashboards
+#### Use node export with Grafana:
+```
+curl -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/dashboards/db" -X POST -d "@./node-exporter-full-dashboard.json"
+```
+
 
 ## To deploy grafana
 Note: make sure to have openshift prometheus deployed.
