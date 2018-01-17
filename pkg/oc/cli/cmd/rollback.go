@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -119,8 +120,8 @@ type RollbackOptions struct {
 	// resource.Builder is stateful and isn't safe to reuse (e.g. across
 	// resource types).
 	getBuilder func() *resource.Builder
-	// printer is used for output
-	printer kprinters.ResourcePrinter
+	// print an object using a printer for a given mapping
+	printObj func(runtime.Object, *meta.RESTMapping, io.Writer) error
 }
 
 // Complete turns a partially defined RollbackActions into a solvent structure
@@ -156,11 +157,13 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.Format = kcmdutil.GetFlagString(cmd, "output")
 
-	if len(o.Format) > 0 {
-		o.printer, err = f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
+	o.printObj = func(obj runtime.Object, mapping *meta.RESTMapping, out io.Writer) error {
+		printer, err := f.PrinterForMapping(kcmdutil.ExtractCmdPrintOptions(cmd, false), mapping)
 		if err != nil {
 			return err
 		}
+
+		return printer.PrintObj(obj, out)
 	}
 
 	return nil
@@ -192,16 +195,13 @@ func (o *RollbackOptions) Validate() error {
 			return fmt.Errorf("getBuilder must return a resource.Builder")
 		}
 	}
-	if len(o.Format) > 0 && o.printer == nil {
-		return fmt.Errorf("printer must not be nil when output is set")
-	}
 	return nil
 }
 
 // Run performs a rollback.
 func (o *RollbackOptions) Run() error {
 	// Get the resource referenced in the command args.
-	obj, err := o.findResource(o.TargetName)
+	obj, mapping, err := o.findResource(o.TargetName)
 	if err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func (o *RollbackOptions) Run() error {
 
 	// If an output format is specified, print and exit.
 	if len(o.Format) > 0 {
-		o.printer.PrintObj(newConfig, o.out)
+		o.printObj(newConfig, mapping, o.out)
 		return nil
 	}
 
@@ -304,7 +304,7 @@ func (o *RollbackOptions) Run() error {
 // findResource tries to find a deployment or deploymentconfig named
 // targetName using a resource.Builder. For compatibility, if the resource
 // name is unprefixed, treat it as an rc first and a dc second.
-func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error) {
+func (o *RollbackOptions) findResource(targetName string) (runtime.Object, *meta.RESTMapping, error) {
 	candidates := []string{}
 	if strings.Index(targetName, "/") == -1 {
 		candidates = append(candidates, "rc/"+targetName)
@@ -313,6 +313,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 		candidates = append(candidates, targetName)
 	}
 	var obj runtime.Object
+	var m *meta.RESTMapping
 	for _, name := range candidates {
 		r := o.getBuilder().
 			Internal().
@@ -321,23 +322,30 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 			SingleResourceType().
 			Do()
 		if r.Err() != nil {
-			return nil, r.Err()
+			return nil, nil, r.Err()
 		}
+
 		resultObj, err := r.Object()
 		if err != nil {
 			// If the resource wasn't found, try another candidate.
 			if kerrors.IsNotFound(err) {
 				continue
 			}
-			return nil, err
+			return nil, nil, err
 		}
 		obj = resultObj
+		mapping, err := r.ResourceMapping()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		m = mapping
 		break
 	}
 	if obj == nil {
-		return nil, fmt.Errorf("%s is not a valid deployment or deployment config", targetName)
+		return nil, nil, fmt.Errorf("%s is not a valid deployment or deployment config", targetName)
 	}
-	return obj, nil
+	return obj, m, nil
 }
 
 // findTargetDeployment finds the deployment which is the rollback target by
