@@ -33,8 +33,8 @@ func (p *PackageList) Add(pkg Package) {
 // BuildGraph receives a list of Go packages and constructs a dependency graph from it.
 // Any core library dependencies (fmt, strings, etc.) are not added to the graph.
 // Any packages whose import path is contained within a list of "excludes" are not added to the graph.
-// Returns a directed acyclic graph, or an error.
-func BuildGraph(packages *PackageList, excludes []string) (graph.Directed, error) {
+// Returns a directed acyclic graph and a map of package import paths to node ids, or an error.
+func BuildGraph(packages *PackageList, excludes []string) (depgraph.MutableDirectedGraph, map[string]int, error) {
 	g := concrete.NewDirectedGraph()
 	nodeIdsByName := map[string]int{}
 
@@ -60,12 +60,12 @@ func BuildGraph(packages *PackageList, excludes []string) (graph.Directed, error
 	for _, pkg := range filteredPackages {
 		nid, exists := nodeIdsByName[pkg.ImportPath]
 		if !exists {
-			return nil, fmt.Errorf("expected package %q was not found", pkg.ImportPath)
+			return nil, nil, fmt.Errorf("expected package %q was not found", pkg.ImportPath)
 		}
 
 		from := g.Node(nid)
 		if from == nil {
-			return nil, fmt.Errorf("expected node with id %v for package %q was not found in graph", nid, pkg.ImportPath)
+			return nil, nil, fmt.Errorf("expected node with id %v for package %q was not found in graph", nid, pkg.ImportPath)
 		}
 
 		for _, dependency := range append(pkg.Imports, pkg.TestImports...) {
@@ -78,12 +78,12 @@ func BuildGraph(packages *PackageList, excludes []string) (graph.Directed, error
 
 			nid, exists := nodeIdsByName[dependency]
 			if !exists {
-				return nil, fmt.Errorf("expected dependency %q for package %q was not found", dependency, pkg.ImportPath)
+				return nil, nil, fmt.Errorf("expected dependency %q for package %q was not found", dependency, pkg.ImportPath)
 			}
 
 			to := g.Node(nid)
 			if to == nil {
-				return nil, fmt.Errorf("expected child node %q with id %v was not found in graph", dependency, nid)
+				return nil, nil, fmt.Errorf("expected child node %q with id %v was not found in graph", dependency, nid)
 			}
 
 			g.SetEdge(concrete.Edge{
@@ -93,12 +93,12 @@ func BuildGraph(packages *PackageList, excludes []string) (graph.Directed, error
 		}
 	}
 
-	return g, nil
+	return g, nodeIdsByName, nil
 }
 
 func isExcludedPath(path string, excludes []string) bool {
 	for _, exclude := range excludes {
-		if path == exclude {
+		if strings.HasPrefix(path, exclude) {
 			return true
 		}
 	}
@@ -106,6 +106,8 @@ func isExcludedPath(path string, excludes []string) bool {
 	return false
 }
 
+// labelNameForNode trims vendored paths of their
+// full /vendor/ path
 func labelNameForNode(importPath string) string {
 	segs := strings.Split(importPath, "/vendor/")
 	if len(segs) > 1 {

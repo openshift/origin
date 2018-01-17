@@ -27,6 +27,9 @@ type TraceImportsOpts struct {
 	Roots   []string
 	Exclude []string
 
+	// special operations
+	UniqueB []string
+
 	OutputFormat string
 
 	Out    io.Writer
@@ -36,12 +39,14 @@ type TraceImportsOpts struct {
 type TraceImportsFlags struct {
 	OutputFormat string
 	Roots        []string
+	UniqueB      []string
 	Exclude      []string
 }
 
 func (o *TraceImportsFlags) ToOptions(out, errout io.Writer) (*TraceImportsOpts, error) {
 	return &TraceImportsOpts{
 		Roots:   o.Roots,
+		UniqueB: o.UniqueB,
 		Exclude: o.Exclude,
 
 		OutputFormat: o.OutputFormat,
@@ -80,8 +85,9 @@ func NewCmdTraceImports(parent string, out, errout io.Writer) *cobra.Command {
 	}
 
 	cmd.Flags().StringSliceVar(&flags.Roots, "root", flags.Roots, "set of entrypoints for dependency trees used to generate a depedency graph.")
-	cmd.Flags().StringSliceVar(&flags.Exclude, "exclude", flags.Roots, "set of paths to exclude when traversing the set of given entrypoints specified through --root.")
+	cmd.Flags().StringSliceVar(&flags.Exclude, "exclude", flags.Exclude, "set of paths to recursively exclude when traversing the set of given entrypoints specified through --root.")
 	cmd.Flags().StringVarP(&flags.OutputFormat, "output", "o", "", "output generated dependency graph in specified format. One of: dot.")
+	cmd.Flags().StringSliceVar(&flags.UniqueB, "unique-b", flags.UniqueB, "root packages of sub-trees contained within trees initially specified via --root. A set of transitive dependencies unique to these trees relative to the rest of the dependency graph is returned.")
 	return cmd
 }
 
@@ -159,9 +165,35 @@ func (o *TraceImportsOpts) Run() error {
 		return err
 	}
 
-	g, err := BuildGraph(pkgs, o.Exclude)
+	g, nodes, err := BuildGraph(pkgs, o.Exclude)
 	if err != nil {
 		return err
+	}
+
+	if len(o.UniqueB) > 0 {
+		// determine roots
+		knownRoots := map[graph.Node]bool{}
+		for _, n := range g.Nodes() {
+			if len(g.To(n)) > 0 {
+				continue
+			}
+
+			knownRoots[n] = true
+		}
+
+		for _, rootName := range o.UniqueB {
+			root := nodeByName(g, nodes, rootName)
+			if root == nil {
+				return fmt.Errorf("--shared root path %q not found in dependency graph", rootName)
+			}
+
+			g.RemoveNode(root)
+		}
+
+		// find orphaned nodes
+		//orphaned := findOrphans(g, knownRoots)
+		// TODO: build graph - highlight orphaned nodes
+
 	}
 
 	if len(o.OutputFormat) > 0 {
@@ -183,4 +215,36 @@ func (o *TraceImportsOpts) outputGraph(g graph.Directed) error {
 
 	fmt.Fprintf(o.Out, "%v\n", string(data))
 	return nil
+}
+
+func nodeByName(g graph.Directed, nodes map[string]int, nodeName string) graph.Node {
+	nid, exists := nodes[nodeName]
+	if !exists {
+		return nil
+	}
+
+	for _, n := range g.Nodes() {
+		if n.ID() == nid {
+			return n
+		}
+	}
+
+	return nil
+}
+
+func findOrphans(g graph.Directed, knownRoots map[graph.Node]bool) []graph.Node {
+	orphans := []graph.Node{}
+
+	for _, node := range g.Nodes() {
+		if len(g.To(node)) > 0 {
+			continue
+		}
+		if _, exists := knownRoots[node]; exists {
+			continue
+		}
+
+		orphans = append(orphans, node)
+	}
+
+	return orphans
 }
