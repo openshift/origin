@@ -514,7 +514,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		return err
 	}
 
-	externalKubeExtensionClient := kextensionsclient.New(kclient.Core().RESTClient())
+	externalKubeExtensionClient := kextensionsclient.New(kclient.Extensions().RESTClient())
 	delegScaleGetter := appsmanualclient.NewDelegatingScaleNamespacer(appsV1Client, externalKubeExtensionClient)
 	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), kclient.Core(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
