@@ -534,6 +534,7 @@ fi
 %{_bindir}/oc
 %{_bindir}/kubectl
 %{_bindir}/oadm
+%{_bindir}/openshift-diagnostics
 %{_sysconfdir}/bash_completion.d/oc
 %{_mandir}/man1/oc*
 
