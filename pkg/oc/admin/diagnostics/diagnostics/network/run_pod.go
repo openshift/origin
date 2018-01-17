@@ -27,12 +27,13 @@ import (
 )
 
 const (
-	NetworkDiagnosticName          = "NetworkCheck"
-	FlagNetworkDiagLogDir          = "logdir"
-	FlagNetworkDiagPodImage        = "pod-image"
-	FlagNetworkDiagTestPodImage    = "test-pod-image"
-	FlagNetworkDiagTestPodProtocol = "test-pod-protocol"
-	FlagNetworkDiagTestPodPort     = "test-pod-port"
+	InPodNetworkCheckRecommendedName = "inpod-networkcheck"
+	NetworkDiagnosticName            = "NetworkCheck"
+	FlagNetworkDiagLogDir            = "logdir"
+	FlagNetworkDiagPodImage          = "pod-image"
+	FlagNetworkDiagTestPodImage      = "test-pod-image"
+	FlagNetworkDiagTestPodProtocol   = "test-pod-protocol"
+	FlagNetworkDiagTestPodPort       = "test-pod-port"
 )
 
 // NetworkDiagnostic is a diagnostic that runs a network diagnostic pod and relays the results.
@@ -181,7 +182,7 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 	// In Collection phase, results from each node are moved to the user machine where the CLI cmd is executed.
 
 	// TEST Phase: Run network diagnostic pod on all valid nodes in parallel
-	command := fmt.Sprintf("openshift-diagnostics network-diagnostic-pod -l %d", loglevel)
+	command := fmt.Sprintf("oc adm diagnostics %s -l %d", InPodNetworkCheckRecommendedName, loglevel)
 	if err := d.runNetworkPod(command); err != nil {
 		d.res.Error("DNet2006", err, err.Error())
 		return

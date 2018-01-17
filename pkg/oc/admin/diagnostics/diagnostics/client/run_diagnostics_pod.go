@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	DiagnosticPodName  = "DiagnosticPod"
-	ImageTemplateParam = "images"
-	LatestImageParam   = "latest-images"
+	InPodDiagnosticRecommendedName = "inpod-poddiagnostic"
+	DiagnosticPodName              = "DiagnosticPod"
+	ImageTemplateParam             = "images"
+	LatestImageParam               = "latest-images"
 )
 
 // DiagnosticPod is a diagnostic that runs a diagnostic pod and relays the results.
@@ -87,7 +88,7 @@ func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 				{
 					Name:    "pod-diagnostics",
 					Image:   imageName,
-					Command: []string{"openshift-diagnostics", "diagnostic-pod", "-l", strconv.Itoa(loglevel)},
+					Command: []string{"oc", "adm", "diagnostics", InPodDiagnosticRecommendedName, "-l", strconv.Itoa(loglevel)},
 				},
 			},
 		},

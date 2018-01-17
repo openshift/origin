@@ -49,10 +49,11 @@ func NewCommandNetworkPodDiagnostics(name string, out io.Writer) *cobra.Command 
 	}
 
 	cmd := &cobra.Command{
-		Use:   name,
-		Short: "Within a privileged pod, run network diagnostics",
-		Long:  fmt.Sprintf(longNetworkPodDiagDescription),
-		Run:   commandRunFunc(o),
+		Use:    name,
+		Short:  "Within a privileged pod, run network diagnostics",
+		Long:   fmt.Sprintf(longNetworkPodDiagDescription),
+		Run:    commandRunFunc(o),
+		Hidden: true,
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 
