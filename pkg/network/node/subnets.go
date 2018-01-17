@@ -41,7 +41,13 @@ func (node *OsdnNode) getLocalSubnet() (string, error) {
 		var err error
 		subnet, err = node.networkClient.Network().HostSubnets().Get(node.hostName, metav1.GetOptions{})
 		if err == nil {
-			return true, nil
+			if subnet.HostIP == node.localIP {
+				return true, nil
+			} else {
+				glog.Warningf("HostIP %q for local subnet does not match with nodeIP %q, "+
+					"Waiting for master to update subnet for node %q ...", subnet.HostIP, node.localIP, node.hostName)
+				return false, nil
+			}
 		} else if kapierrors.IsNotFound(err) {
 			glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", node.hostName)
 			return false, nil
