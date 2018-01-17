@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -78,7 +79,8 @@ type OsdnNodeConfig struct {
 	KClient       kclientset.Interface
 	Recorder      record.EventRecorder
 
-	KubeInformers kinternalinformers.SharedInformerFactory
+	KubeInformers    kinternalinformers.SharedInformerFactory
+	NetworkInformers networkinformers.SharedInformerFactory
 
 	IPTablesSyncPeriod time.Duration
 	ProxyMode          kubeproxyconfig.ProxyMode
@@ -107,7 +109,10 @@ type OsdnNode struct {
 	host             knetwork.Host
 	kubeletCniPlugin knetwork.NetworkPlugin
 
-	kubeInformers kinternalinformers.SharedInformerFactory
+	hostSubnetMap map[string]*networkapi.HostSubnet
+
+	kubeInformers    kinternalinformers.SharedInformerFactory
+	networkInformers networkinformers.SharedInformerFactory
 
 	// Holds runtime endpoint shim to make SDN <-> runtime communication
 	runtimeEndpoint       string
@@ -173,7 +178,9 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		mtu:                c.MTU,
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
 		egressDNS:          common.NewEgressDNS(),
+		hostSubnetMap:      make(map[string]*networkapi.HostSubnet),
 		kubeInformers:      c.KubeInformers,
+		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(c.SelfIP, oc),
 
 		runtimeEndpoint: c.RuntimeEndpoint,
@@ -320,10 +327,8 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("node SDN setup failed: %v", err)
 	}
 
-	err = node.SubnetStartNode()
-	if err != nil {
-		return err
-	}
+	node.SubnetStartNode()
+
 	if err = node.policy.Start(node); err != nil {
 		return err
 	}
@@ -331,7 +336,7 @@ func (node *OsdnNode) Start() error {
 		if err := node.SetupEgressNetworkPolicy(); err != nil {
 			return err
 		}
-		if err = node.egressIP.Start(node.networkClient, nodeIPTables); err != nil {
+		if err := node.egressIP.Start(node.networkInformers, nodeIPTables); err != nil {
 			return err
 		}
 	}
@@ -457,8 +462,8 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 }
 
 func (node *OsdnNode) watchServices() {
-	common.RegisterSharedInformerEventHandlers(node.kubeInformers,
-		node.handleAddOrUpdateService, node.handleDeleteService, common.Services)
+	funcs := common.InformerFuncs(&kapi.Service{}, node.handleAddOrUpdateService, node.handleDeleteService)
+	node.kubeInformers.Core().InternalVersion().Services().Informer().AddEventHandler(funcs)
 }
 
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {

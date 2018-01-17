@@ -19,6 +19,7 @@ import (
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	osapivalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -33,23 +34,24 @@ type OsdnMaster struct {
 	networkInfo         *common.NetworkInfo
 	subnetAllocatorList []*netutils.SubnetAllocator
 	vnids               *masterVNIDMap
-	informers           kinternalinformers.SharedInformerFactory
+
+	kubeInformers    kinternalinformers.SharedInformerFactory
+	networkInformers networkinformers.SharedInformerFactory
 
 	// Holds Node IP used in creating host subnet for a node
 	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkclient.Interface, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
-	if !network.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
-		return nil
-	}
-
+func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkclient.Interface,
+	kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory,
+	networkInformers networkinformers.SharedInformerFactory) error {
 	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
 		kClient:           kClient,
 		networkClient:     networkClient,
-		informers:         informers,
+		kubeInformers:     kubeInformers,
+		networkInformers:  networkInformers,
 		hostSubnetNodeIPs: map[ktypes.UID]string{},
 	}
 
