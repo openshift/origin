@@ -312,6 +312,8 @@ func CommandFor(basename string) *cobra.Command {
 	switch basename {
 	case "kubectl":
 		cmd = kubecmd.NewKubectlCommand(kcmdutil.NewFactory(nil), in, out, errout)
+	case diagnostics.DiagnosticsInPodRecommendedName:
+		cmd = diagnostics.NewCmdDiagnosticsInPod(basename, basename, out)
 	default:
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
 	}
