@@ -215,34 +215,34 @@ func TestValidateAdmissionPluginConfig(t *testing.T) {
 	bothEmpty := configapi.AdmissionPluginConfig{}
 
 	tests := []struct {
-		config        map[string]configapi.AdmissionPluginConfig
+		config        map[string]*configapi.AdmissionPluginConfig
 		expectError   bool
 		warningFields []string
 	}{
 		{
-			config: map[string]configapi.AdmissionPluginConfig{
-				"one": locationOnly,
-				"two": configOnly,
+			config: map[string]*configapi.AdmissionPluginConfig{
+				"one": &locationOnly,
+				"two": &configOnly,
 			},
 		},
 		{
-			config: map[string]configapi.AdmissionPluginConfig{
-				"one": locationOnly,
-				"two": locationAndConfig,
-			},
-			expectError: true,
-		},
-		{
-			config: map[string]configapi.AdmissionPluginConfig{
-				"one": configOnly,
-				"two": bothEmpty,
+			config: map[string]*configapi.AdmissionPluginConfig{
+				"one": &locationOnly,
+				"two": &locationAndConfig,
 			},
 			expectError: true,
 		},
 		{
-			config: map[string]configapi.AdmissionPluginConfig{
-				"openshift.io/OriginResourceQuota": configOnly,
-				"two": configOnly,
+			config: map[string]*configapi.AdmissionPluginConfig{
+				"one": &configOnly,
+				"two": &bothEmpty,
+			},
+			expectError: true,
+		},
+		{
+			config: map[string]*configapi.AdmissionPluginConfig{
+				"openshift.io/OriginResourceQuota": &configOnly,
+				"two": &configOnly,
 			},
 			warningFields: []string{"[openshift.io/OriginResourceQuota]"},
 			expectError:   false,
@@ -325,7 +325,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 			name: "specified, non-conflicting plugin configs 01",
 			options: configapi.MasterConfig{
 				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 						"foo": {
 							Location: "bar",
 						},
@@ -338,7 +338,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 			options: configapi.MasterConfig{
 				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
 					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]configapi.AdmissionPluginConfig{
+						PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 							"foo": {
 								Location: "bar",
 							},
@@ -349,7 +349,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 					},
 				},
 				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 						"foo": {
 							Location: "bar",
 						},
@@ -362,7 +362,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 			options: configapi.MasterConfig{
 				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
 					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]configapi.AdmissionPluginConfig{
+						PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 							"foo": {
 								Location: "bar",
 							},
@@ -379,7 +379,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 			options: configapi.MasterConfig{
 				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
 					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]configapi.AdmissionPluginConfig{
+						PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 							"foo": {
 								Location: "different",
 							},
@@ -387,7 +387,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 					},
 				},
 				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 						"foo": {
 							Location: "bar",
 						},

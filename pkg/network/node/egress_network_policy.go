@@ -12,7 +12,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
@@ -40,40 +40,55 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 	}
 
 	go utilwait.Forever(plugin.syncEgressDNSPolicyRules, 0)
-	go utilwait.Forever(plugin.watchEgressNetworkPolicies, 0)
+	plugin.watchEgressNetworkPolicies()
 	return nil
 }
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	common.RunEventQueue(plugin.networkClient.Network().RESTClient(), common.EgressNetworkPolicies, func(delta cache.Delta) error {
-		policy := delta.Object.(*networkapi.EgressNetworkPolicy)
+	funcs := common.InformerFuncs(&networkapi.EgressNetworkPolicy{}, plugin.handleAddOrUpdateEgressNetworkPolicy, plugin.handleDeleteEgressNetworkPolicy)
+	plugin.networkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
+}
 
-		vnid, err := plugin.policy.GetVNID(policy.Namespace)
-		if err != nil {
-			return fmt.Errorf("could not find netid for namespace %q: %v", policy.Namespace, err)
+func (plugin *OsdnNode) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
+	policy := obj.(*networkapi.EgressNetworkPolicy)
+	glog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", eventType, policy.Namespace, policy.Name)
+
+	plugin.handleEgressNetworkPolicy(policy, eventType)
+}
+
+func (plugin *OsdnNode) handleDeleteEgressNetworkPolicy(obj interface{}) {
+	policy := obj.(*networkapi.EgressNetworkPolicy)
+	glog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", watch.Deleted, policy.Namespace, policy.Name)
+
+	plugin.handleEgressNetworkPolicy(policy, watch.Deleted)
+}
+
+func (plugin *OsdnNode) handleEgressNetworkPolicy(policy *networkapi.EgressNetworkPolicy, eventType watch.EventType) {
+	vnid, err := plugin.policy.GetVNID(policy.Namespace)
+	if err != nil {
+		glog.Errorf("Could not find netid for namespace %q: %v", policy.Namespace, err)
+		return
+	}
+
+	plugin.egressPoliciesLock.Lock()
+	defer plugin.egressPoliciesLock.Unlock()
+
+	policies := plugin.egressPolicies[vnid]
+	for i, oldPolicy := range policies {
+		if oldPolicy.UID == policy.UID {
+			policies = append(policies[:i], policies[i+1:]...)
+			break
 		}
+	}
+	plugin.egressDNS.Delete(*policy)
 
-		plugin.egressPoliciesLock.Lock()
-		defer plugin.egressPoliciesLock.Unlock()
+	if eventType != watch.Deleted && len(policy.Spec.Egress) > 0 {
+		policies = append(policies, *policy)
+		plugin.egressDNS.Add(*policy)
+	}
+	plugin.egressPolicies[vnid] = policies
 
-		policies := plugin.egressPolicies[vnid]
-		for i, oldPolicy := range policies {
-			if oldPolicy.UID == policy.UID {
-				policies = append(policies[:i], policies[i+1:]...)
-				break
-			}
-		}
-		plugin.egressDNS.Delete(*policy)
-
-		if delta.Type != cache.Deleted && len(policy.Spec.Egress) > 0 {
-			policies = append(policies, *policy)
-			plugin.egressDNS.Add(*policy)
-		}
-		plugin.egressPolicies[vnid] = policies
-
-		plugin.updateEgressNetworkPolicyRules(vnid)
-		return nil
-	})
+	plugin.updateEgressNetworkPolicyRules(vnid)
 }
 
 func (plugin *OsdnNode) UpdateEgressNetworkPolicyVNID(namespace string, oldVnid, newVnid uint32) {

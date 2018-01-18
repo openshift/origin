@@ -65,10 +65,11 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f kcmdutil.Factory, o
 	o := &CreateDockerConfigOptions{Out: out}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL", name),
-		Short:   "Create a new dockercfg secret",
-		Long:    createDockercfgLong,
-		Example: fmt.Sprintf(createDockercfgExample, fullName, newSecretFullName, ocEditFullName),
+		Use:        fmt.Sprintf("%s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL", name),
+		Short:      "Create a new dockercfg secret",
+		Long:       createDockercfgLong,
+		Example:    fmt.Sprintf(createDockercfgExample, fullName, newSecretFullName, ocEditFullName),
+		Deprecated: "use oc create secret",
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))

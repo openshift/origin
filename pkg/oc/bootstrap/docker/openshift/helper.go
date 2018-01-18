@@ -703,9 +703,9 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 
 	// turn on admission webhooks by default.  They are no-ops until someone explicitly tries to configure one
 	if cfg.AdmissionConfig.PluginConfig == nil {
-		cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
+		cfg.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}
 	}
-	cfg.AdmissionConfig.PluginConfig["GenericAdmissionWebhook"] = configapi.AdmissionPluginConfig{
+	cfg.AdmissionConfig.PluginConfig["GenericAdmissionWebhook"] = &configapi.AdmissionPluginConfig{
 		Configuration: &configapi.DefaultAdmissionConfig{},
 	}
 
@@ -733,7 +733,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		var buildDefaults *defaultsapi.BuildDefaultsConfig
 		buildDefaultsConfig, ok := cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin]
 		if !ok {
-			buildDefaultsConfig = configapi.AdmissionPluginConfig{}
+			buildDefaultsConfig = &configapi.AdmissionPluginConfig{}
 		}
 		if buildDefaultsConfig.Configuration != nil {
 			buildDefaults = buildDefaultsConfig.Configuration.(*defaultsapi.BuildDefaultsConfig)
@@ -837,10 +837,10 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/settings.k8s.io/v1alpha1=true")
 
 		if cfg.AdmissionConfig.PluginConfig == nil {
-			cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
+			cfg.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}
 		}
 
-		cfg.AdmissionConfig.PluginConfig["PodPreset"] = configapi.AdmissionPluginConfig{
+		cfg.AdmissionConfig.PluginConfig["PodPreset"] = &configapi.AdmissionPluginConfig{
 			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
 		}
 

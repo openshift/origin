@@ -619,161 +619,16 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
-      openshift.io/description: A user that has edit rights within the project and
-        can change the project's membership.
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
-    name: admin
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    name: system:openshift:aggregate-to-admin
   rules:
   - apiGroups:
     - ""
-    resources:
-    - pods
-    - pods/attach
-    - pods/exec
-    - pods/portforward
-    - pods/proxy
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - configmaps
-    - endpoints
-    - persistentvolumeclaims
-    - replicationcontrollers
-    - replicationcontrollers/scale
-    - secrets
-    - serviceaccounts
-    - services
-    - services/proxy
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - bindings
-    - events
-    - limitranges
-    - namespaces
-    - namespaces/status
-    - pods/log
-    - pods/status
-    - replicationcontrollers/status
-    - resourcequotas
-    - resourcequotas/status
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - serviceaccounts
-    verbs:
-    - impersonate
-  - apiGroups:
-    - autoscaling
-    resources:
-    - horizontalpodautoscalers
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - batch
-    resources:
-    - cronjobs
-    - jobs
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - apps
-    - extensions
-    resources:
-    - deployments
-    - deployments/rollback
-    - deployments/scale
-    - replicasets
-    - replicasets/scale
-    - replicationcontrollers/scale
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - apps
-    - extensions
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    resources:
-    - deployments
-    - deployments/scale
-    - deployments/status
-    - statefulsets
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
     - authorization.openshift.io
-    resources:
-    - rolebindings
-    - roles
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - rbac.authorization.k8s.io
     resources:
     - rolebindings
     - roles
@@ -802,12 +657,6 @@ items:
     - podsecuritypolicyreviews
     - podsecuritypolicyselfsubjectreviews
     - podsecuritypolicysubjectreviews
-    verbs:
-    - create
-  - apiGroups:
-    - authorization.k8s.io
-    resources:
-    - localsubjectaccessreviews
     verbs:
     - create
   - apiGroups:
@@ -1018,7 +867,6 @@ items:
     - update
     - watch
   - apiGroups:
-    - extensions
     - networking.k8s.io
     resources:
     - networkpolicies
@@ -1065,144 +913,13 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
-      openshift.io/description: A user that can create and edit most objects in a
-        project, but can not update the project's membership.
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
-    name: edit
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    name: system:openshift:aggregate-to-edit
   rules:
-  - apiGroups:
-    - ""
-    resources:
-    - pods
-    - pods/attach
-    - pods/exec
-    - pods/portforward
-    - pods/proxy
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - configmaps
-    - endpoints
-    - persistentvolumeclaims
-    - replicationcontrollers
-    - replicationcontrollers/scale
-    - secrets
-    - serviceaccounts
-    - services
-    - services/proxy
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - bindings
-    - events
-    - limitranges
-    - namespaces
-    - namespaces/status
-    - pods/log
-    - pods/status
-    - replicationcontrollers/status
-    - resourcequotas
-    - resourcequotas/status
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - serviceaccounts
-    verbs:
-    - impersonate
-  - apiGroups:
-    - autoscaling
-    resources:
-    - horizontalpodautoscalers
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - batch
-    resources:
-    - cronjobs
-    - jobs
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - apps
-    - extensions
-    resources:
-    - deployments
-    - deployments/rollback
-    - deployments/scale
-    - replicasets
-    - replicasets/scale
-    - replicationcontrollers/scale
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - apps
-    - extensions
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    resources:
-    - deployments
-    - deployments/scale
-    - deployments/status
-    - statefulsets
-    verbs:
-    - create
-    - delete
-    - deletecollection
-    - get
-    - list
-    - patch
-    - update
-    - watch
   - apiGroups:
     - ""
     - build.openshift.io
@@ -1391,7 +1108,6 @@ items:
     - update
     - watch
   - apiGroups:
-    - extensions
     - networking.k8s.io
     resources:
     - networkpolicies
@@ -1430,91 +1146,13 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
-      openshift.io/description: A user who can view but not edit any resources within
-        the project. They can not view secrets or membership.
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
-    name: view
+    labels:
+      rbac.authorization.k8s.io/aggregate-to-view: "true"
+    name: system:openshift:aggregate-to-view
   rules:
-  - apiGroups:
-    - ""
-    resources:
-    - configmaps
-    - endpoints
-    - persistentvolumeclaims
-    - pods
-    - replicationcontrollers
-    - serviceaccounts
-    - services
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    resources:
-    - bindings
-    - events
-    - limitranges
-    - namespaces
-    - namespaces/status
-    - pods/log
-    - pods/status
-    - replicationcontrollers/status
-    - resourcequotas
-    - resourcequotas/status
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - autoscaling
-    resources:
-    - horizontalpodautoscalers
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - batch
-    resources:
-    - cronjobs
-    - jobs
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    - extensions
-    resources:
-    - deployments
-    - deployments/scale
-    - replicasets
-    - replicasets/scale
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    - extensions
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - apps
-    resources:
-    - deployments
-    - deployments/scale
-    - statefulsets
-    verbs:
-    - get
-    - list
-    - watch
   - apiGroups:
     - ""
     - build.openshift.io
@@ -5040,6 +4678,54 @@ items:
     - selfsubjectrulesreviews
     verbs:
     - create
+- aggregationRule:
+    clusterRoleSelectors:
+    - matchLabels:
+        rbac.authorization.k8s.io/aggregate-to-admin: "true"
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      openshift.io/description: A user that has edit rights within the project and
+        can change the project's membership.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: admin
+  rules: null
+- aggregationRule:
+    clusterRoleSelectors:
+    - matchLabels:
+        rbac.authorization.k8s.io/aggregate-to-edit: "true"
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      openshift.io/description: A user that can create and edit most objects in a
+        project, but can not update the project's membership.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: edit
+  rules: null
+- aggregationRule:
+    clusterRoleSelectors:
+    - matchLabels:
+        rbac.authorization.k8s.io/aggregate-to-view: "true"
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      openshift.io/description: A user who can view but not edit any resources within
+        the project. They can not view secrets or membership.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: view
+  rules: null
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:

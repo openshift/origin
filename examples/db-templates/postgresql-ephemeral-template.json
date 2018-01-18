@@ -5,7 +5,7 @@
     "name": "postgresql-ephemeral",
     "annotations": {
       "openshift.io/display-name": "PostgreSQL (Ephemeral)",
-      "description": "PostgreSQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "PostgreSQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
       "iconClass": "icon-postgresql",
       "tags": "database,postgresql",
       "openshift.io/long-description": "This template provides a standalone PostgreSQL server with a database created.  The database is not stored on persistent storage, so any restart of the service will result in all data being lost.  The database name, username, and password are chosen via parameters when provisioning this service.",
@@ -14,7 +14,7 @@
       "openshift.io/support-url": "https://access.redhat.com"
     }
   },
-  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: postgresql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.",
+  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Username: ${POSTGRESQL_USER}\n       Password: ${POSTGRESQL_PASSWORD}\n  Database Name: ${POSTGRESQL_DATABASE}\n Connection URL: postgresql://${DATABASE_SERVICE_NAME}:5432/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/.",
   "labels": {
     "template": "postgresql-ephemeral-template"
   },
@@ -127,11 +127,11 @@
                   }
                 },
                 "livenessProbe": {
+                  "exec": {
+                    "command": [ "/bin/sh", "-i", "-c", "pg_isready -h 127.0.0.1 -p 5432" ]
+                  },
                   "timeoutSeconds": 1,
-                  "initialDelaySeconds": 30,
-                  "tcpSocket": {
-                    "port": 5432
-                  }
+                  "initialDelaySeconds": 30
                 },
                 "env": [
                   {
@@ -245,8 +245,8 @@
     {
       "name": "POSTGRESQL_VERSION",
       "displayName": "Version of PostgreSQL Image",
-      "description": "Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).",
-      "value": "9.5",
+      "description": "Version of PostgreSQL image to be used (9.4, 9.5, 9.6 or latest).",
+      "value": "9.6",
       "required": true
     }
   ]

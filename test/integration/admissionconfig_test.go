@@ -208,7 +208,7 @@ func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	kubeClient, _, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
-		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+		config.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 			"plugin1": {
 				Location: configFile,
 			},
@@ -226,7 +226,7 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	kubeClient, _, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
-		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+		config.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 			"plugin1": {
 				Configuration: &testtypes.TestPluginConfig{
 					Data: "embeddedvalue1",
@@ -263,7 +263,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	_, clusterAdminConfig, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
-		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+		config.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 			"plugin2": {
 				Location: configFile,
 			},
@@ -281,7 +281,7 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	_, clusterAdminConfig, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
-		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+		config.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 			"plugin2": {
 				Configuration: &testtypes.TestPluginConfig{
 					Data: "embeddedvalue2",
@@ -302,7 +302,7 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 		"AlwaysPullImages": {
 			Configuration: &configapi.DefaultAdmissionConfig{},
 		},

@@ -60,6 +60,9 @@ var rolesToHide = sets.NewString(
 	"system:aggregate-to-edit",
 	"system:aggregate-to-view",
 	"system:aws-cloud-provider",
+	"system:openshift:aggregate-to-admin",
+	"system:openshift:aggregate-to-edit",
+	"system:openshift:aggregate-to-view",
 )
 
 func TestSystemOnlyRoles(t *testing.T) {

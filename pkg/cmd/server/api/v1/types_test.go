@@ -1,6 +1,8 @@
 package v1_test
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/ghodss/yaml"
@@ -19,493 +21,6 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
-const (
-	// This constant lists all possible options for the node config file in v1
-	// Before modifying this constant, ensure any changes have corresponding issues filed for:
-	// - documentation: https://github.com/openshift/openshift-docs/
-	// - install: https://github.com/openshift/openshift-ansible/
-	expectedSerializedNodeConfig = `allowDisabledDocker: false
-apiVersion: v1
-authConfig:
-  authenticationCacheSize: 0
-  authenticationCacheTTL: ""
-  authorizationCacheSize: 0
-  authorizationCacheTTL: ""
-dnsBindAddress: ""
-dnsDomain: ""
-dnsIP: ""
-dnsNameservers: null
-dnsRecursiveResolvConf: ""
-dockerConfig:
-  dockerShimRootDirectory: ""
-  dockerShimSocket: ""
-  execHandlerName: ""
-enableUnidling: false
-imageConfig:
-  format: ""
-  latest: false
-iptablesSyncPeriod: ""
-kind: NodeConfig
-masterClientConnectionOverrides: null
-masterKubeConfig: ""
-networkConfig:
-  mtu: 0
-  networkPluginName: ""
-nodeIP: ""
-nodeName: ""
-podManifestConfig:
-  fileCheckIntervalSeconds: 0
-  path: ""
-servingInfo:
-  bindAddress: ""
-  bindNetwork: ""
-  certFile: ""
-  clientCA: ""
-  keyFile: ""
-  namedCertificates: null
-volumeConfig:
-  localQuota:
-    perFSGroup: null
-volumeDirectory: ""
-`
-
-	// This constant lists all possible options for the master config file in v1.
-	// It also includes the fields for all the identity provider types.
-	// Before modifying this constant, ensure any changes have corresponding issues filed for:
-	// - documentation: https://github.com/openshift/openshift-docs/
-	// - install: https://github.com/openshift/openshift-ansible/
-	expectedSerializedMasterConfig = `admissionConfig:
-  pluginConfig:
-    plugin:
-      configuration:
-        apiVersion: v1
-        data: ""
-        kind: AdmissionPluginTestConfig
-      location: ""
-  pluginOrderOverride:
-  - plugin
-aggregatorConfig:
-  proxyClientInfo:
-    certFile: ""
-    keyFile: ""
-apiLevels: null
-apiVersion: v1
-assetConfig:
-  extensionDevelopment: false
-  extensionProperties: null
-  extensionScripts: null
-  extensionStylesheets: null
-  extensions:
-  - html5Mode: false
-    name: ""
-    sourceDirectory: ""
-  loggingPublicURL: ""
-  logoutURL: ""
-  masterPublicURL: ""
-  metricsPublicURL: ""
-  publicURL: ""
-  servingInfo:
-    bindAddress: ""
-    bindNetwork: ""
-    certFile: ""
-    clientCA: ""
-    keyFile: ""
-    maxRequestsInFlight: 0
-    namedCertificates: null
-    requestTimeoutSeconds: 0
-auditConfig:
-  auditFilePath: ""
-  enabled: false
-  logFormat: ""
-  maximumFileRetentionDays: 0
-  maximumFileSizeMegabytes: 0
-  maximumRetainedFiles: 0
-  policyConfiguration: null
-  policyFile: ""
-  webHookKubeConfig: ""
-  webHookMode: ""
-authConfig:
-  requestHeader: null
-controllerConfig:
-  controllers: null
-  election: null
-  serviceServingCert:
-    signer: null
-controllerLeaseTTL: 0
-controllers: ""
-corsAllowedOrigins: null
-disabledFeatures: null
-dnsConfig:
-  allowRecursiveQueries: false
-  bindAddress: ""
-  bindNetwork: ""
-etcdClientInfo:
-  ca: ""
-  certFile: ""
-  keyFile: ""
-  urls: null
-etcdConfig:
-  address: ""
-  peerAddress: ""
-  peerServingInfo:
-    bindAddress: ""
-    bindNetwork: ""
-    certFile: ""
-    clientCA: ""
-    keyFile: ""
-    namedCertificates: null
-  servingInfo:
-    bindAddress: ""
-    bindNetwork: ""
-    certFile: ""
-    clientCA: ""
-    keyFile: ""
-    namedCertificates: null
-  storageDirectory: ""
-etcdStorageConfig:
-  kubernetesStoragePrefix: ""
-  kubernetesStorageVersion: ""
-  openShiftStoragePrefix: ""
-  openShiftStorageVersion: ""
-imageConfig:
-  format: ""
-  latest: false
-imagePolicyConfig:
-  disableScheduledImport: false
-  maxImagesBulkImportedPerRepository: 0
-  maxScheduledImageImportsPerMinute: 0
-  scheduledImageImportMinimumIntervalSeconds: 0
-jenkinsPipelineConfig:
-  autoProvisionEnabled: null
-  parameters: null
-  serviceName: ""
-  templateName: ""
-  templateNamespace: ""
-kind: MasterConfig
-kubeletClientInfo:
-  ca: ""
-  certFile: ""
-  keyFile: ""
-  port: 0
-kubernetesMasterConfig:
-  admissionConfig:
-    pluginConfig:
-      plugin:
-        configuration:
-          apiVersion: v1
-          data: ""
-          kind: AdmissionPluginTestConfig
-        location: ""
-    pluginOrderOverride:
-    - plugin
-  apiLevels: null
-  apiServerArguments: null
-  controllerArguments: null
-  disabledAPIGroupVersions: null
-  masterCount: 0
-  masterEndpointReconcileTTL: 0
-  masterIP: ""
-  podEvictionTimeout: ""
-  proxyClientInfo:
-    certFile: ""
-    keyFile: ""
-  schedulerArguments: null
-  schedulerConfigFile: ""
-  servicesNodePortRange: ""
-  servicesSubnet: ""
-  staticNodeNames: null
-masterClients:
-  externalKubernetesClientConnectionOverrides: null
-  externalKubernetesKubeConfig: ""
-  openshiftLoopbackClientConnectionOverrides: null
-  openshiftLoopbackKubeConfig: ""
-masterPublicURL: ""
-networkConfig:
-  clusterNetworks: null
-  externalIPNetworkCIDRs: null
-  ingressIPNetworkCIDR: ""
-  networkPluginName: ""
-  serviceNetworkCIDR: ""
-oauthConfig:
-  alwaysShowProviderSelection: false
-  assetPublicURL: ""
-  grantConfig:
-    method: ""
-    serviceAccountMethod: ""
-  identityProviders:
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      ca: ""
-      certFile: ""
-      keyFile: ""
-      kind: BasicAuthPasswordIdentityProvider
-      url: ""
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      kind: AllowAllPasswordIdentityProvider
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      kind: DenyAllPasswordIdentityProvider
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      file: ""
-      kind: HTPasswdPasswordIdentityProvider
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      attributes:
-        email: null
-        id: null
-        name: null
-        preferredUsername: null
-      bindDN: ""
-      bindPassword: ""
-      ca: ""
-      insecure: false
-      kind: LDAPPasswordIdentityProvider
-      url: ""
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      attributes:
-        email: null
-        id: null
-        name: null
-        preferredUsername: null
-      bindDN: ""
-      bindPassword:
-        env: ""
-        file: filename
-        keyFile: ""
-        value: ""
-      ca: ""
-      insecure: false
-      kind: LDAPPasswordIdentityProvider
-      url: ""
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      challengeURL: ""
-      clientCA: ""
-      clientCommonNames: null
-      emailHeaders: null
-      headers: null
-      kind: RequestHeaderIdentityProvider
-      loginURL: ""
-      nameHeaders: null
-      preferredUsernameHeaders: null
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      ca: ""
-      certFile: ""
-      domainName: ""
-      keyFile: ""
-      kind: KeystonePasswordIdentityProvider
-      url: ""
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      clientID: ""
-      clientSecret: ""
-      kind: GitHubIdentityProvider
-      organizations: null
-      teams: null
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      clientID: ""
-      clientSecret:
-        env: ""
-        file: filename
-        keyFile: ""
-        value: ""
-      kind: GitHubIdentityProvider
-      organizations: null
-      teams: null
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      ca: ""
-      clientID: ""
-      clientSecret: ""
-      kind: GitLabIdentityProvider
-      url: ""
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      ca: ""
-      clientID: ""
-      clientSecret:
-        env: ""
-        file: filename
-        keyFile: ""
-        value: ""
-      kind: GitLabIdentityProvider
-      url: ""
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      clientID: ""
-      clientSecret: ""
-      hostedDomain: ""
-      kind: GoogleIdentityProvider
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      clientID: ""
-      clientSecret:
-        env: ""
-        file: filename
-        keyFile: ""
-        value: ""
-      hostedDomain: ""
-      kind: GoogleIdentityProvider
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      ca: ""
-      claims:
-        email: null
-        id: null
-        name: null
-        preferredUsername: null
-      clientID: ""
-      clientSecret: ""
-      extraAuthorizeParameters: null
-      extraScopes: null
-      kind: OpenIDIdentityProvider
-      urls:
-        authorize: ""
-        token: ""
-        userInfo: ""
-  - challenge: false
-    login: false
-    mappingMethod: ""
-    name: ""
-    provider:
-      apiVersion: v1
-      ca: ""
-      claims:
-        email: null
-        id: null
-        name: null
-        preferredUsername: null
-      clientID: ""
-      clientSecret:
-        env: ""
-        file: filename
-        keyFile: ""
-        value: ""
-      extraAuthorizeParameters: null
-      extraScopes: null
-      kind: OpenIDIdentityProvider
-      urls:
-        authorize: ""
-        token: ""
-        userInfo: ""
-  masterCA: null
-  masterPublicURL: ""
-  masterURL: ""
-  sessionConfig:
-    sessionMaxAgeSeconds: 0
-    sessionName: ""
-    sessionSecretsFile: ""
-  templates:
-    error: ""
-    login: ""
-    providerSelection: ""
-  tokenConfig:
-    accessTokenMaxAgeSeconds: 0
-    authorizeTokenMaxAgeSeconds: 0
-pauseControllers: false
-policyConfig:
-  bootstrapPolicyFile: ""
-  openshiftInfrastructureNamespace: ""
-  openshiftSharedResourcesNamespace: ""
-  userAgentMatchingConfig:
-    defaultRejectionMessage: ""
-    deniedClients: null
-    requiredClients: null
-projectConfig:
-  defaultNodeSelector: ""
-  projectRequestMessage: ""
-  projectRequestTemplate: ""
-  securityAllocator: null
-routingConfig:
-  subdomain: ""
-serviceAccountConfig:
-  limitSecretReferences: false
-  managedNames: null
-  masterCA: ""
-  privateKeyFile: ""
-  publicKeyFiles: null
-servingInfo:
-  bindAddress: ""
-  bindNetwork: ""
-  certFile: ""
-  clientCA: ""
-  keyFile: ""
-  maxRequestsInFlight: 0
-  namedCertificates:
-  - certFile: ""
-    keyFile: ""
-    names: null
-  requestTimeoutSeconds: 0
-volumeConfig:
-  dynamicProvisioningEnabled: false
-`
-)
-
 func TestSerializeNodeConfig(t *testing.T) {
 	config := &internal.NodeConfig{
 		PodManifestConfig: &internal.PodManifestConfig{},
@@ -514,8 +29,30 @@ func TestSerializeNodeConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(serializedConfig) != expectedSerializedNodeConfig {
-		t.Errorf("Diff:\n-------------\n%s", diff.StringDiff(string(serializedConfig), expectedSerializedNodeConfig))
+
+	filename := "testdata/node-config.yaml"
+	expectedSerializedNodeConfig, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(serializedConfig) != string(expectedSerializedNodeConfig) {
+		const updateEnvVar = "UPDATE_NODE_CONFIG_FIXTURE_DATA"
+		if os.Getenv(updateEnvVar) == "true" {
+			if err := ioutil.WriteFile(filename, []byte(serializedConfig), os.FileMode(0755)); err == nil {
+				t.Logf("Updated data in %s", filename)
+				t.Logf("Verify the diff, commit changes, and rerun the tests")
+			} else {
+				t.Logf("Could not update data in %s: %v", filename, err)
+			}
+		} else {
+			t.Logf("Diff between serialized config and fixture data in %s:\n-------------\n%s", filename, diff.StringDiff(string(serializedConfig), string(expectedSerializedNodeConfig)))
+			t.Logf("If the change is expected, re-run with %s=true to update the fixtures", updateEnvVar)
+			t.Logf("Be sure to open corresponding issues:")
+			t.Logf("- documentation: https://github.com/openshift/openshift-docs/")
+			t.Logf("- install: https://github.com/openshift/openshift-ansible/")
+			t.Logf("If the new field(s) reference files, be sure to add them to GetNodeFileReferences()")
+			t.Error("Mismatched config")
+		}
 	}
 }
 
@@ -656,7 +193,7 @@ func TestMasterConfig(t *testing.T) {
 		},
 		KubernetesMasterConfig: &internal.KubernetesMasterConfig{
 			AdmissionConfig: internal.AdmissionConfig{
-				PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
+				PluginConfig: map[string]*internal.AdmissionPluginConfig{ // test config as an embedded object
 					"plugin": {
 						Configuration: &testtypes.AdmissionPluginTestConfig{},
 					},
@@ -692,7 +229,7 @@ func TestMasterConfig(t *testing.T) {
 		},
 		DNSConfig: &internal.DNSConfig{},
 		AdmissionConfig: internal.AdmissionConfig{
-			PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
+			PluginConfig: map[string]*internal.AdmissionPluginConfig{ // test config as an embedded object
 				"plugin": {
 					Configuration: &testtypes.AdmissionPluginTestConfig{},
 				},
@@ -707,15 +244,46 @@ func TestMasterConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(serializedConfig) != expectedSerializedMasterConfig {
-		t.Errorf("Diff:\n-------------\n%s", diff.StringDiff(string(serializedConfig), expectedSerializedMasterConfig))
-	}
 
+	filename := "testdata/master-config.yaml"
+	expectedSerializedMasterConfig, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(serializedConfig) != string(expectedSerializedMasterConfig) {
+		const updateEnvVar = "UPDATE_MASTER_CONFIG_FIXTURE_DATA"
+		if os.Getenv(updateEnvVar) == "true" {
+			if err := ioutil.WriteFile(filename, []byte(serializedConfig), os.FileMode(0755)); err == nil {
+				t.Logf("Updated data in %s", filename)
+				t.Logf("Verify the diff, commit changes, and rerun the tests")
+			} else {
+				t.Logf("Could not update data in %s: %v", filename, err)
+			}
+		} else {
+			t.Logf("Diff between serialized config and fixture data in %s:\n-------------\n%s", filename, diff.StringDiff(string(serializedConfig), string(expectedSerializedMasterConfig)))
+			t.Logf("If the change is expected, re-run with %s=true to update the fixtures", updateEnvVar)
+			t.Logf("Be sure to open corresponding issues:")
+			t.Logf("- documentation: https://github.com/openshift/openshift-docs/")
+			t.Logf("- install: https://github.com/openshift/openshift-ansible/")
+			t.Logf("If the new field(s) reference files, be sure to add them to GetMasterFileReferences()")
+			t.Error("Mismatched config")
+		}
+	}
 }
 
 func writeYAML(obj runtime.Object) ([]byte, error) {
+	// Round-trip to pick up defaults
+	externalObj, err := internal.Scheme.ConvertToVersion(obj, v1.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	internal.Scheme.Default(externalObj)
+	internalObj, err := internal.Scheme.ConvertToVersion(externalObj, internal.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
 
-	json, err := runtime.Encode(serializer.NewCodecFactory(internal.Scheme).LegacyCodec(v1.SchemeGroupVersion), obj)
+	json, err := runtime.Encode(serializer.NewCodecFactory(internal.Scheme).LegacyCodec(v1.SchemeGroupVersion), internalObj)
 	if err != nil {
 		return nil, err
 	}

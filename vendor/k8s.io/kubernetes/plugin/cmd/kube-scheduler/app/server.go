@@ -68,6 +68,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
 
 	"github.com/golang/glog"
+	"github.com/pborman/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -441,13 +442,15 @@ func makeLeaderElectionConfig(config componentconfig.KubeSchedulerLeaderElection
 	if err != nil {
 		return nil, fmt.Errorf("unable to get hostname: %v", err)
 	}
+	// add a uniquifier so that two processes on the same host don't accidentally both become active
+	id := hostname + " " + string(uuid.NewUUID())
 
 	rl, err := resourcelock.New(config.ResourceLock,
 		config.LockObjectNamespace,
 		config.LockObjectName,
 		client.CoreV1(),
 		resourcelock.ResourceLockConfig{
-			Identity:      hostname,
+			Identity:      id,
 			EventRecorder: recorder,
 		})
 	if err != nil {

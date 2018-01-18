@@ -21,7 +21,7 @@ type BuildOverrides struct {
 }
 
 // NewBuildOverrides creates a new BuildOverrides that will apply the overrides specified in the plugin config
-func NewBuildOverrides(pluginConfig map[string]configapi.AdmissionPluginConfig) (BuildOverrides, error) {
+func NewBuildOverrides(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildOverrides, error) {
 	config := &overridesapi.BuildOverridesConfig{}
 	err := buildadmission.ReadPluginConfig(pluginConfig, overridesapi.BuildOverridesPlugin, config)
 	if err != nil {

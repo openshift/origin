@@ -19,7 +19,7 @@ type BuildDefaults struct {
 }
 
 // NewBuildDefaults creates a new BuildDefaults that will apply the defaults specified in the plugin config
-func NewBuildDefaults(pluginConfig map[string]configapi.AdmissionPluginConfig) (BuildDefaults, error) {
+func NewBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildDefaults, error) {
 	config := &defaultsapi.BuildDefaultsConfig{}
 	err := buildadmission.ReadPluginConfig(pluginConfig, defaultsapi.BuildDefaultsPlugin, config)
 	if err != nil {

@@ -1,0 +1,439 @@
+admissionConfig:
+  pluginConfig:
+    plugin:
+      configuration:
+        apiVersion: v1
+        data: ""
+        kind: AdmissionPluginTestConfig
+      location: ""
+  pluginOrderOverride:
+  - plugin
+aggregatorConfig:
+  proxyClientInfo:
+    certFile: ""
+    keyFile: ""
+apiLevels:
+- v1
+apiVersion: v1
+assetConfig:
+  extensionDevelopment: false
+  extensionProperties: null
+  extensionScripts: null
+  extensionStylesheets: null
+  extensions:
+  - html5Mode: false
+    name: ""
+    sourceDirectory: ""
+  loggingPublicURL: ""
+  logoutURL: ""
+  masterPublicURL: ""
+  metricsPublicURL: ""
+  publicURL: ""
+  servingInfo:
+    bindAddress: ""
+    bindNetwork: tcp4
+    certFile: ""
+    clientCA: ""
+    keyFile: ""
+    maxRequestsInFlight: 0
+    namedCertificates: null
+    requestTimeoutSeconds: 0
+auditConfig:
+  auditFilePath: ""
+  enabled: false
+  logFormat: ""
+  maximumFileRetentionDays: 0
+  maximumFileSizeMegabytes: 0
+  maximumRetainedFiles: 0
+  policyConfiguration: null
+  policyFile: ""
+  webHookKubeConfig: ""
+  webHookMode: ""
+authConfig:
+  requestHeader: null
+controllerConfig:
+  controllers:
+  - '*'
+  election: null
+  serviceServingCert:
+    signer: null
+controllerLeaseTTL: 0
+controllers: '*'
+corsAllowedOrigins: null
+disabledFeatures: null
+dnsConfig:
+  allowRecursiveQueries: false
+  bindAddress: ""
+  bindNetwork: tcp4
+etcdClientInfo:
+  ca: ""
+  certFile: ""
+  keyFile: ""
+  urls: null
+etcdConfig:
+  address: ""
+  peerAddress: ""
+  peerServingInfo:
+    bindAddress: ""
+    bindNetwork: tcp4
+    certFile: ""
+    clientCA: ""
+    keyFile: ""
+    namedCertificates: null
+  servingInfo:
+    bindAddress: ""
+    bindNetwork: tcp4
+    certFile: ""
+    clientCA: ""
+    keyFile: ""
+    namedCertificates: null
+  storageDirectory: ""
+etcdStorageConfig:
+  kubernetesStoragePrefix: kubernetes.io
+  kubernetesStorageVersion: v1
+  openShiftStoragePrefix: openshift.io
+  openShiftStorageVersion: v1
+imageConfig:
+  format: ""
+  latest: false
+imagePolicyConfig:
+  disableScheduledImport: false
+  maxImagesBulkImportedPerRepository: 5
+  maxScheduledImageImportsPerMinute: 60
+  scheduledImageImportMinimumIntervalSeconds: 900
+jenkinsPipelineConfig:
+  autoProvisionEnabled: true
+  parameters: null
+  serviceName: jenkins
+  templateName: jenkins-ephemeral
+  templateNamespace: openshift
+kind: MasterConfig
+kubeletClientInfo:
+  ca: ""
+  certFile: ""
+  keyFile: ""
+  port: 0
+kubernetesMasterConfig:
+  admissionConfig:
+    pluginConfig:
+      plugin:
+        configuration:
+          apiVersion: v1
+          data: ""
+          kind: AdmissionPluginTestConfig
+        location: ""
+    pluginOrderOverride:
+    - plugin
+  apiLevels: null
+  apiServerArguments: null
+  controllerArguments: null
+  disabledAPIGroupVersions: {}
+  masterCount: 1
+  masterEndpointReconcileTTL: 15
+  masterIP: ""
+  podEvictionTimeout: 5m
+  proxyClientInfo:
+    certFile: ""
+    keyFile: ""
+  schedulerArguments: null
+  schedulerConfigFile: ""
+  servicesNodePortRange: 30000-32767
+  servicesSubnet: ""
+  staticNodeNames: null
+masterClients:
+  externalKubernetesClientConnectionOverrides:
+    acceptContentTypes: application/json
+    burst: 200
+    contentType: application/json
+    qps: 100
+  externalKubernetesKubeConfig: ""
+  openshiftLoopbackClientConnectionOverrides:
+    acceptContentTypes: application/json
+    burst: 300
+    contentType: application/json
+    qps: 150
+  openshiftLoopbackKubeConfig: ""
+masterPublicURL: ""
+networkConfig:
+  clusterNetworks: null
+  externalIPNetworkCIDRs: null
+  ingressIPNetworkCIDR: 172.29.0.0/16
+  networkPluginName: ""
+  serviceNetworkCIDR: 10.0.0.0/24
+oauthConfig:
+  alwaysShowProviderSelection: false
+  assetPublicURL: ""
+  grantConfig:
+    method: ""
+    serviceAccountMethod: prompt
+  identityProviders:
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      certFile: ""
+      keyFile: ""
+      kind: BasicAuthPasswordIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      kind: AllowAllPasswordIdentityProvider
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      kind: DenyAllPasswordIdentityProvider
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      file: ""
+      kind: HTPasswdPasswordIdentityProvider
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      attributes:
+        email: null
+        id: null
+        name: null
+        preferredUsername: null
+      bindDN: ""
+      bindPassword: ""
+      ca: ""
+      insecure: false
+      kind: LDAPPasswordIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      attributes:
+        email: null
+        id: null
+        name: null
+        preferredUsername: null
+      bindDN: ""
+      bindPassword:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      ca: ""
+      insecure: false
+      kind: LDAPPasswordIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      challengeURL: ""
+      clientCA: ""
+      clientCommonNames: null
+      emailHeaders: null
+      headers: null
+      kind: RequestHeaderIdentityProvider
+      loginURL: ""
+      nameHeaders: null
+      preferredUsernameHeaders: null
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      certFile: ""
+      domainName: ""
+      keyFile: ""
+      kind: KeystonePasswordIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      clientID: ""
+      clientSecret: ""
+      kind: GitHubIdentityProvider
+      organizations: null
+      teams: null
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      kind: GitHubIdentityProvider
+      organizations: null
+      teams: null
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      clientID: ""
+      clientSecret: ""
+      kind: GitLabIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      kind: GitLabIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      clientID: ""
+      clientSecret: ""
+      hostedDomain: ""
+      kind: GoogleIdentityProvider
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      hostedDomain: ""
+      kind: GoogleIdentityProvider
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      claims:
+        email: null
+        id: null
+        name: null
+        preferredUsername: null
+      clientID: ""
+      clientSecret: ""
+      extraAuthorizeParameters: null
+      extraScopes: null
+      kind: OpenIDIdentityProvider
+      urls:
+        authorize: ""
+        token: ""
+        userInfo: ""
+  - challenge: false
+    login: false
+    mappingMethod: claim
+    name: ""
+    provider:
+      apiVersion: v1
+      ca: ""
+      claims:
+        email: null
+        id: null
+        name: null
+        preferredUsername: null
+      clientID: ""
+      clientSecret:
+        env: ""
+        file: filename
+        keyFile: ""
+        value: ""
+      extraAuthorizeParameters: null
+      extraScopes: null
+      kind: OpenIDIdentityProvider
+      urls:
+        authorize: ""
+        token: ""
+        userInfo: ""
+  masterCA: ""
+  masterPublicURL: ""
+  masterURL: ""
+  sessionConfig:
+    sessionMaxAgeSeconds: 0
+    sessionName: ""
+    sessionSecretsFile: ""
+  templates:
+    error: ""
+    login: ""
+    providerSelection: ""
+  tokenConfig:
+    accessTokenMaxAgeSeconds: 0
+    authorizeTokenMaxAgeSeconds: 0
+pauseControllers: false
+policyConfig:
+  bootstrapPolicyFile: ""
+  openshiftInfrastructureNamespace: openshift-infra
+  openshiftSharedResourcesNamespace: ""
+  userAgentMatchingConfig:
+    defaultRejectionMessage: ""
+    deniedClients: null
+    requiredClients: null
+projectConfig:
+  defaultNodeSelector: ""
+  projectRequestMessage: ""
+  projectRequestTemplate: ""
+  securityAllocator: null
+routingConfig:
+  subdomain: router.default.svc.cluster.local
+serviceAccountConfig:
+  limitSecretReferences: false
+  managedNames: null
+  masterCA: ""
+  privateKeyFile: ""
+  publicKeyFiles: null
+servingInfo:
+  bindAddress: ""
+  bindNetwork: tcp4
+  certFile: ""
+  clientCA: ""
+  keyFile: ""
+  maxRequestsInFlight: 1200
+  namedCertificates:
+  - certFile: ""
+    keyFile: ""
+    names: null
+  requestTimeoutSeconds: 3600
+volumeConfig:
+  dynamicProvisioningEnabled: false

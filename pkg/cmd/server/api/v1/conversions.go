@@ -129,6 +129,13 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 		// The final value of OAuthConfig.MasterCA should never be nil
 		obj.OAuthConfig.MasterCA = &s
 	}
+
+	// Ensure no nil plugin config stanzas
+	for pluginName := range obj.AdmissionConfig.PluginConfig {
+		if obj.AdmissionConfig.PluginConfig[pluginName] == nil {
+			obj.AdmissionConfig.PluginConfig[pluginName] = &AdmissionPluginConfig{}
+		}
+	}
 }
 
 func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {
@@ -146,6 +153,12 @@ func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {
 	}
 	if len(obj.PodEvictionTimeout) == 0 {
 		obj.PodEvictionTimeout = "5m"
+	}
+	// Ensure no nil plugin config stanzas
+	for pluginName := range obj.AdmissionConfig.PluginConfig {
+		if obj.AdmissionConfig.PluginConfig[pluginName] == nil {
+			obj.AdmissionConfig.PluginConfig[pluginName] = &AdmissionPluginConfig{}
+		}
 	}
 }
 func SetDefaults_NodeConfig(obj *NodeConfig) {

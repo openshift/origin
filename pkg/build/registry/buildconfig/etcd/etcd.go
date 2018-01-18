@@ -48,3 +48,12 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 	return &REST{store}, nil
 }
+
+// LegacyREST allows us to wrap and alter some behavior
+type LegacyREST struct {
+	*REST
+}
+
+func (r *LegacyREST) Categories() []string {
+	return []string{}
+}
