@@ -381,9 +381,7 @@ func NewSchedulerServer(config *componentconfig.KubeSchedulerConfiguration, mast
 		if c, err := configz.New("componentconfig"); err == nil {
 			c.Set(config)
 		} else {
-			// don't fail on this error.  somethign else is registering this (dear lord what?!).
-			// drop once we're in a separate process
-			utilruntime.HandleError(fmt.Errorf("unable to register configz: %s", err))
+			return nil, fmt.Errorf("unable to register configz: %s", err)
 		}
 	}
 
