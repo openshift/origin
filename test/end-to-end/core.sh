@@ -7,6 +7,9 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 os::util::environment::setup_time_vars
 trap os::test::junit::reconcile_output EXIT
 
+echo "Disk Types"
+df -T
+
 export VERBOSE=true
 
 function wait_for_app() {
