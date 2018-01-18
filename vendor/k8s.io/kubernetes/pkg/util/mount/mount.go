@@ -20,6 +20,7 @@ package mount
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -213,6 +214,12 @@ func IsNotMountPoint(mounter Interface, file string) (bool, error) {
 	// IsLikelyNotMountPoint provides a quick check
 	// to determine whether file IS A mountpoint
 	notMnt, notMntErr := mounter.IsLikelyNotMountPoint(file)
+	if notMntErr != nil && os.IsPermission(notMntErr) {
+		// We were not allowed to do the simple stat() check, e.g. on NFS with
+		// root_squash. Fall back to /proc/mounts check below.
+		notMnt = true
+		notMntErr = nil
+	}
 	if notMntErr != nil {
 		return notMnt, notMntErr
 	}
