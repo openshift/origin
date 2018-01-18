@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/informers"
@@ -49,7 +50,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/configz"
 
 	"github.com/golang/glog"
-	"github.com/pborman/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -160,7 +160,7 @@ func Run(s *options.CloudControllerManagerServer) error {
 		return err
 	}
 	// add a uniquifier so that two processes on the same host don't accidentally both become active
-	id = id + " " + string(uuid.NewUUID())
+	id = id + "_" + string(uuid.NewUUID())
 
 	// Lock required for leader election
 	rl, err := resourcelock.New(s.LeaderElection.ResourceLock,

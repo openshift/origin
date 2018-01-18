@@ -180,7 +180,7 @@ func Run(s *options.CMServer) error {
 		return err
 	}
 	// add a uniquifier so that two processes on the same host don't accidentally both become active
-	id = id + " " + string(uuid.NewUUID())
+	id = id + "_" + string(uuid.NewUUID())
 
 	rl, err := resourcelock.New(s.LeaderElection.ResourceLock,
 		"kube-system",
