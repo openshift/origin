@@ -10,6 +10,4 @@ FROM openshift/origin
 
 LABEL io.k8s.display-name="OpenShift Observer" \
       io.k8s.description="This image runs the oc observe command to watch and react to changes on your cluster."
-# The observer doesn't require a root user.
-USER 1001
 ENTRYPOINT ["/usr/bin/oc", "observe"]
