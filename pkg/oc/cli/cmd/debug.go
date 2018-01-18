@@ -263,6 +263,17 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	o.AsNonRoot = !o.AsRoot && cmd.Flag("as-root").Changed
 
 	if len(o.Attach.ContainerName) == 0 && len(pod.Spec.Containers) > 0 {
+		fullCmdName := ""
+		cmdParent := cmd.Parent()
+		if cmdParent != nil {
+			fullCmdName = cmdParent.CommandPath()
+		}
+
+		if len(fullCmdName) > 0 && kcmdutil.IsSiblingCommandExists(cmd, "describe") {
+			fmt.Fprintf(o.Attach.Err, "Defaulting container name to %s.\n", pod.Spec.Containers[0].Name)
+			fmt.Fprintf(o.Attach.Err, "Use '%s describe pod/%s -n %s' to see all of the containers in this pod.\n", fullCmdName, pod.Name, pod.Namespace)
+		}
+
 		glog.V(4).Infof("Defaulting container name to %s", pod.Spec.Containers[0].Name)
 		o.Attach.ContainerName = pod.Spec.Containers[0].Name
 	}

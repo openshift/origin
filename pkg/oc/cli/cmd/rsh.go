@@ -147,6 +147,15 @@ func (o *RshOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	o.PodClient = client.Core()
 
 	o.PodName, err = f.PodForResource(resource, time.Duration(o.Timeout)*time.Second)
+
+	fullCmdName := ""
+	cmdParent := cmd.Parent()
+	if cmdParent != nil {
+		fullCmdName = cmdParent.CommandPath()
+	}
+	if len(fullCmdName) > 0 && kcmdutil.IsSiblingCommandExists(cmd, "describe") {
+		o.ExecOptions.SuggestedCmdUsage = fmt.Sprintf("Use '%s describe pod/%s -n %s' to see all of the containers in this pod.", fullCmdName, o.PodName, o.Namespace)
+	}
 	return err
 }
 
