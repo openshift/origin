@@ -279,6 +279,8 @@ func (o *TriggersOptions) Validate() error {
 		return fmt.Errorf("you must specify at most one of --auto or --manual")
 	case o.Remove && o.RemoveAll:
 		return fmt.Errorf("you must specify either --remove or --remove-all")
+	case o.Remove:
+		return fmt.Errorf("you must specify either --remove")
 	case o.RemoveAll && (count != 0 || o.Auto || o.Manual):
 		return fmt.Errorf("--remove-all may not be used with any other flag")
 	case o.Remove && count < 1:
@@ -411,15 +413,7 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 		if o.FromConfig {
 			triggers.ConfigChange = false
 		}
-		if len(o.FromImage) > 0 {
-			var newTriggers []ImageChangeTrigger
-			for _, trigger := range triggers.ImageChange {
-				if trigger.From != o.FromImage {
-					newTriggers = append(newTriggers, trigger)
-				}
-			}
-			triggers.ImageChange = newTriggers
-		}
+
 		if o.FromWebHook != nil && *o.FromWebHook {
 			triggers.GenericWebHooks = nil
 		}
@@ -435,7 +429,25 @@ func (o *TriggersOptions) updateTriggers(triggers *TriggerDefinition) {
 		if o.FromBitbucket != nil && *o.FromBitbucket {
 			triggers.BitbucketWebHooks = nil
 		}
-		return
+	}
+
+	if len(o.FromImage) > 0 {
+		var updatedTriggers []ImageChangeTrigger
+		targetContainerNames := strings.Split(o.ContainerNames, ",")
+		for _, trigger := range triggers.ImageChange {
+			// If containers names specified matches the target container names
+			// then reset the trigger for this container
+			if sets.NewString(trigger.Names...).HasAny(targetContainerNames...) {
+				continue
+			}
+			if trigger.From != o.FromImage {
+				updatedTriggers = append(updatedTriggers, trigger)
+			}
+		}
+		triggers.ImageChange = updatedTriggers
+		if o.Remove {
+			return
+		}
 	}
 
 	// change the automated status

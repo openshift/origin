@@ -116,6 +116,8 @@ os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --auto' 'u
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-image=ruby-hello-world:latest -c ruby-hello-world' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-image=ruby-hello-world:stage -c ruby-hello-world' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:stage \(ruby-hello-world\).*true'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/triggers/annotations"
