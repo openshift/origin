@@ -5,6 +5,9 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::util::environment::setup_time_vars
 
+echo "Disk Types"
+df -T
+
 function cleanup() {
   return_code=$?
   os::test::junit::generate_report
