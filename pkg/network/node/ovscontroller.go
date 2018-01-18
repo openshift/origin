@@ -384,20 +384,26 @@ func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
 
 func (oc *ovsController) TearDownPod(hostVeth, podIP, sandboxID string) error {
 	if podIP == "" {
-		_, ip, _, _, err := oc.getPodDetailsBySandboxID(sandboxID)
+		var err error
+		_, podIP, _, _, err = oc.getPodDetailsBySandboxID(sandboxID)
 		if err != nil {
 			// OVS flows related to sandboxID not found
 			// Nothing needs to be done in that case
 			return nil
 		}
-		podIP = ip
 	}
 
-	if err := oc.cleanupPodFlows(podIP); err != nil {
+	err := oc.cleanupPodFlows(podIP)
+	if err != nil {
 		return err
 	}
-	_ = oc.SetPodBandwidth(hostVeth, -1, -1)
-	return oc.ovs.DeletePort(hostVeth)
+
+	// veth may have already been destroyed if the container was deleted out-of-band
+	if hostVeth != "" {
+		_ = oc.SetPodBandwidth(hostVeth, -1, -1)
+		err = oc.ovs.DeletePort(hostVeth)
+	}
+	return err
 }
 
 func policyNames(policies []networkapi.EgressNetworkPolicy) string {
