@@ -3,6 +3,7 @@ package node
 import (
 	"fmt"
 	"net"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -147,10 +148,23 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 		server.HairpinMode = kubeletconfig.HairpinNone
 	}
 
+	server.RootDirectory, err = filepath.Abs(server.RootDirectory)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set absolute path for Kubelet root directory: %v", err)
+	}
+
 	return server, nil
 }
 
 func ToFlags(config *kubeletoptions.KubeletServer) []string {
 	server, _ := kubeletoptions.NewKubeletServer()
-	return cmdflags.AsArgs(config.AddFlags, server.AddFlags)
+	args := cmdflags.AsArgs(config.AddFlags, server.AddFlags)
+
+	// there is a special case.  If you set `--cgroups-per-qos=false` and `--enforce-node-allocatable` is
+	// an empty string, `--enforce-node-allocatable=""` needs to be explicitly set
+	if !config.CgroupsPerQOS && len(config.EnforceNodeAllocatable) == 0 {
+		args = append(args, `--enforce-node-allocatable=`)
+	}
+
+	return args
 }

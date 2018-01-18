@@ -18,7 +18,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
+	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
@@ -376,7 +376,7 @@ func (o NodeOptions) IsRunFromConfig() bool {
 // the environment variable OPENSHIFT_ALLOW_UNSUPPORTED_KUBELET is unset, the method
 // will return an error. The returned boolean indicates whether fallback to in-process
 // is allowed.
-func execKubelet(server *kubeletoptions.KubeletServer) (bool, error) {
+func execKubelet(kubeletArgs []string) (bool, error) {
 	// verify the Kubelet binary to use
 	path := "kubelet"
 	requireSameBinary := true
@@ -407,14 +407,8 @@ func execKubelet(server *kubeletoptions.KubeletServer) (bool, error) {
 		glog.Warningf("UNSUPPORTED: Executing a different Kubelet than the current binary is not supported: %s", kubeletPath)
 	}
 
-	server.RootDirectory, err = filepath.Abs(server.RootDirectory)
-	if err != nil {
-		return false, fmt.Errorf("unable to set absolute path for Kubelet root directory: %v", err)
-	}
-
 	// convert current settings to flags
-	args := nodeoptions.ToFlags(server)
-	args = append([]string{kubeletPath}, args...)
+	args := append([]string{kubeletPath}, kubeletArgs...)
 	for i := glog.Level(10); i > 0; i-- {
 		if glog.V(i) {
 			args = append(args, fmt.Sprintf("--v=%d", i))
@@ -438,16 +432,22 @@ func execKubelet(server *kubeletoptions.KubeletServer) (bool, error) {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
+	externalKubeClient, _, err := configapi.GetExternalKubeClient(nodeConfig.MasterKubeConfig, nodeConfig.MasterClientConnectionOverrides)
+	if err != nil {
+		return err
+	}
 	server, err := nodeoptions.Build(nodeConfig)
 	if err != nil {
 		glog.V(4).Infof("Unable to build node options: %v", err)
 		return err
 	}
+	kubeletArgs := nodeoptions.ToFlags(server)
+	server.ClusterDNS = node.GetClusterDNS(externalKubeClient, server.ClusterDNS)
 
 	// as a step towards decomposing OpenShift into Kubernetes components, perform an execve
 	// to launch the Kubelet instead of loading in-process
 	if components.Calculated().Equal(sets.NewString(ComponentKubelet)) {
-		ok, err := execKubelet(server)
+		ok, err := execKubelet(kubeletArgs)
 		if !ok {
 			return err
 		}
@@ -479,7 +479,10 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		config.EnsureVolumeDir()
 		config.EnsureDocker(docker.NewHelper())
 		config.EnsureLocalQuota(nodeConfig) // must be performed after EnsureVolumeDir
-		config.RunKubelet()
+		go func() {
+			glog.Fatal(runKubeletInProcess(kubeletArgs))
+		}()
+
 	} else {
 		glog.Infof("Starting node networking %s (%s)", nodeConfig.NodeName, version.Get().String())
 	}
@@ -499,5 +502,16 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		networkConfig.InternalNetworkInformers.Start(wait.NeverStop)
 	}
 
+	return nil
+}
+
+// runKubeletInProcess runs the kubelet command using the provide args
+func runKubeletInProcess(kubeletArgs []string) error {
+	cmd := kubeletapp.NewKubeletCommand()
+	if err := cmd.ParseFlags(kubeletArgs); err != nil {
+		return err
+	}
+	glog.Infof("kubelet %v", kubeletArgs)
+	cmd.Run(nil, nil)
 	return nil
 }
