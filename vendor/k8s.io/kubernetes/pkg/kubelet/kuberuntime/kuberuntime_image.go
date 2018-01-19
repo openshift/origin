@@ -78,7 +78,7 @@ func (m *kubeGenericRuntimeManager) PullImage(image kubecontainer.ImageSpec, pul
 	return "", utilerrors.NewAggregate(pullErrs)
 }
 
-// GetImageRef gets the reference (digest or ID) of the image which has already been in
+// GetImageRef gets the ID of the image which has already been in
 // the local storage. It returns ("", nil) if the image isn't in the local storage.
 func (m *kubeGenericRuntimeManager) GetImageRef(image kubecontainer.ImageSpec) (string, error) {
 	status, err := m.imageService.ImageStatus(&runtimeapi.ImageSpec{Image: image.Image})
@@ -89,12 +89,7 @@ func (m *kubeGenericRuntimeManager) GetImageRef(image kubecontainer.ImageSpec) (
 	if status == nil {
 		return "", nil
 	}
-
-	imageRef := status.Id
-	if len(status.RepoDigests) > 0 {
-		imageRef = status.RepoDigests[0]
-	}
-	return imageRef, nil
+	return status.Id, nil
 }
 
 // ListImages gets all images currently on the machine.
