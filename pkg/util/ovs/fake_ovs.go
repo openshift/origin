@@ -113,6 +113,10 @@ func (fake *ovsFake) Set(table, record string, values ...string) error {
 	return nil
 }
 
+func (fake *ovsFake) Find(table, column, condition string) ([]string, error) {
+	return make([]string, 0), nil
+}
+
 func (fake *ovsFake) Clear(table, record string, columns ...string) error {
 	return nil
 }

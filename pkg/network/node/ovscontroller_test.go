@@ -303,7 +303,7 @@ func TestOVSPod(t *testing.T) {
 	}
 
 	// Delete
-	err = oc.TearDownPod("veth1", "10.128.0.2", sandboxID)
+	err = oc.TearDownPod("10.128.0.2", sandboxID)
 	if err != nil {
 		t.Fatalf("Unexpected error deleting pod rules: %v", err)
 	}
