@@ -56,7 +56,7 @@ func PrintPod(pod *v1.Pod, format string) error {
 func GetMasterFromKubeConfig(filename string) (string, error) {
 	config, err := clientcmd.LoadFromFile(filename)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("can not load kubeconfig file: %v", err)
 	}
 
 	context, ok := config.Contexts[config.CurrentContext]
