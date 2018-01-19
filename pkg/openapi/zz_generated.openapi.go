@@ -36757,6 +36757,27 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"tlsCipherSuites": {
+							SchemaProps: spec.SchemaProps{
+								Description: "TLSCipherSuites is the list of allowed cipher suites for the server. Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"tlsMinVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "TLSMinVersion is the minimum TLS version supported. Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 						"authentication": {
 							SchemaProps: spec.SchemaProps{
 								Description: "authentication specifies how requests to the Kubelet's server are authenticated",
@@ -37260,7 +37281,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							},
 						},
 					},
-					Required: []string{"configTrialDuration", "podManifestPath", "syncFrequency", "fileCheckFrequency", "httpCheckFrequency", "manifestURL", "manifestURLHeader", "enableServer", "address", "port", "readOnlyPort", "tlsCertFile", "tlsPrivateKeyFile", "authentication", "authorization", "allowPrivileged", "hostNetworkSources", "hostPIDSources", "hostIPCSources", "registryPullQPS", "registryBurst", "eventRecordQPS", "eventBurst", "enableDebuggingHandlers", "enableContentionProfiling", "cAdvisorPort", "healthzPort", "healthzBindAddress", "oomScoreAdj", "clusterDomain", "clusterDNS", "streamingConnectionIdleTimeout", "nodeStatusUpdateFrequency", "imageMinimumGCAge", "imageGCHighThresholdPercent", "imageGCLowThresholdPercent", "volumeStatsAggPeriod", "kubeletCgroups", "systemCgroups", "cgroupRoot", "cpuManagerPolicy", "cpuManagerReconcilePeriod", "runtimeRequestTimeout", "hairpinMode", "maxPods", "podCIDR", "resolvConf", "cpuCFSQuota", "maxOpenFiles", "contentType", "kubeAPIQPS", "kubeAPIBurst", "serializeImagePulls", "evictionPressureTransitionPeriod", "evictionMaxPodGracePeriod", "podsPerCore", "enableControllerAttachDetach", "protectKernelDefaults", "makeIPTablesUtilChains", "iptablesMasqueradeBit", "iptablesDropBit", "systemReserved", "kubeReserved", "enforceNodeAllocatable"},
+					Required: []string{"configTrialDuration", "podManifestPath", "syncFrequency", "fileCheckFrequency", "httpCheckFrequency", "manifestURL", "manifestURLHeader", "enableServer", "address", "port", "readOnlyPort", "tlsCertFile", "tlsPrivateKeyFile", "tlsCipherSuites", "tlsMinVersion", "authentication", "authorization", "allowPrivileged", "hostNetworkSources", "hostPIDSources", "hostIPCSources", "registryPullQPS", "registryBurst", "eventRecordQPS", "eventBurst", "enableDebuggingHandlers", "enableContentionProfiling", "cAdvisorPort", "healthzPort", "healthzBindAddress", "oomScoreAdj", "clusterDomain", "clusterDNS", "streamingConnectionIdleTimeout", "nodeStatusUpdateFrequency", "imageMinimumGCAge", "imageGCHighThresholdPercent", "imageGCLowThresholdPercent", "volumeStatsAggPeriod", "kubeletCgroups", "systemCgroups", "cgroupRoot", "cpuManagerPolicy", "cpuManagerReconcilePeriod", "runtimeRequestTimeout", "hairpinMode", "maxPods", "podCIDR", "resolvConf", "cpuCFSQuota", "maxOpenFiles", "contentType", "kubeAPIQPS", "kubeAPIBurst", "serializeImagePulls", "evictionPressureTransitionPeriod", "evictionMaxPodGracePeriod", "podsPerCore", "enableControllerAttachDetach", "protectKernelDefaults", "makeIPTablesUtilChains", "iptablesMasqueradeBit", "iptablesDropBit", "systemReserved", "kubeReserved", "enforceNodeAllocatable"},
 				},
 			},
 			Dependencies: []string{
