@@ -31,6 +31,8 @@ func main() {
 		"github.com/openshift/origin/pkg/cmd/util/pluginconfig/testing",
 		"github.com/openshift/origin/pkg/image/admission/imagepolicy/api",
 		"github.com/openshift/origin/pkg/image/admission/imagepolicy/api/v1",
+		"github.com/openshift/origin/pkg/image/admission/imagequalify/api",
+		"github.com/openshift/origin/pkg/image/admission/imagequalify/api/v1",
 		"github.com/openshift/origin/pkg/ingress/admission/api",
 		"github.com/openshift/origin/pkg/ingress/admission/api/v1",
 		"github.com/openshift/origin/pkg/project/admission/lifecycle/testing",
