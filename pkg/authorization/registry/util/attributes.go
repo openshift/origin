@@ -22,7 +22,7 @@ func ToDefaultAuthorizationAttributes(user user.Info, namespace string, in autho
 		resource = tokens[0]
 	}
 
-	return authorizer.AttributesRecord{
+	return &authorizer.AttributesRecord{
 		User:            user,
 		Verb:            in.Verb,
 		Namespace:       namespace,
