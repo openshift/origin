@@ -210,18 +210,8 @@ func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *
 	if err != nil {
 		return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), err)}
 	}
-	if !res.Status.Allowed {
-		if hostChanged {
-			return kvalidation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))
-		}
-		if route.Spec.TLS == nil || older.Spec.TLS == nil {
-			return kvalidation.ValidateImmutableField(route.Spec.TLS, older.Spec.TLS, field.NewPath("spec", "tls"))
-		}
-		errs := kvalidation.ValidateImmutableField(route.Spec.TLS.CACertificate, older.Spec.TLS.CACertificate, field.NewPath("spec", "tls", "caCertificate"))
-		errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.Certificate, older.Spec.TLS.Certificate, field.NewPath("spec", "tls", "certificate"))...)
-		errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.DestinationCACertificate, older.Spec.TLS.DestinationCACertificate, field.NewPath("spec", "tls", "destinationCACertificate"))...)
-		errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.Key, older.Spec.TLS.Key, field.NewPath("spec", "tls", "key"))...)
-		return errs
+	if !res.Status.Allowed && hostChanged {
+		return kvalidation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))
 	}
 	return nil
 }
