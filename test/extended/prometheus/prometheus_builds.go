@@ -65,20 +65,6 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 
 			br := startOpenShiftBuild(oc, appTemplate)
 
-			g.By("verifying a service account token is able to query active build metrics from the Prometheus API")
-			// NOTE - activeBuildCountQuery is dependent on prometheus querying while the build is running;
-			// timing has been a bit tricky when attempting to query after the build is complete based on the
-			// default prometheus scrapping window, so we do the active query while the build is running
-			activeTests := map[string][]metricTest{
-				activeBuildQuery: {
-					metricTest{
-						labels:           map[string]string{"name": "frontend-1"},
-						greaterThanEqual: true,
-					},
-				},
-			}
-			runQueries(activeTests, oc)
-
 			g.By("verifying build completed successfully")
 			err = exutil.WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), br)
 			o.Expect(err).NotTo(o.HaveOccurred())
