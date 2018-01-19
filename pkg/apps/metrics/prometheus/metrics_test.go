@@ -124,7 +124,7 @@ func TestCollect(t *testing.T) {
 		},
 		{
 			name:          "single failed deployment within successful deployments",
-			count:         4,
+			count:         3,
 			available:     2,
 			failed:        1,
 			cancelled:     0,
