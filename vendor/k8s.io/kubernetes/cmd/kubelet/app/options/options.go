@@ -417,6 +417,9 @@ func AddKubeletConfigFlags(fs *pflag.FlagSet, c *kubeletconfig.KubeletConfigurat
 		"Comma-separated list of cipher suites for the server. "+
 			"Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants). "+
 			"If omitted, the default Go cipher suites will be used")
+	fs.StringVar(&c.TLSMinVersion, "tls-min-version", c.TLSMinVersion,
+		"Minimum TLS version supported. "+
+			"Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants.")
 
 	fs.BoolVar(&c.AllowPrivileged, "allow-privileged", c.AllowPrivileged, "If true, allow containers to request privileged mode.")
 	fs.StringSliceVar(&c.HostNetworkSources, "host-network-sources", c.HostNetworkSources, "Comma-separated list of sources from which the Kubelet allows pods to use of host network.")

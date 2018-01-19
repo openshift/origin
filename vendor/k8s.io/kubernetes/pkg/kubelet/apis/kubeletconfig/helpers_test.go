@@ -180,6 +180,7 @@ var (
 		"HostNetworkSources[*]",
 		"HostPIDSources[*]",
 		"TLSCipherSuites[*]",
+		"TLSMinVersion",
 		"IPTablesDropBit",
 		"IPTablesMasqueradeBit",
 		"ImageGCHighThresholdPercent",
