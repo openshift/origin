@@ -4,54 +4,34 @@ import (
 	"encoding/json"
 	"testing"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
+	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-
-	oapi "github.com/openshift/origin/pkg/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )
 
-func makePod(name, rcName string, t *testing.T) kapi.Pod {
-	// this snippet is from kube's code to set the created-by annotation
-	// (which itself does not do quite what we want here)
-
-	codec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
-
-	createdByRefJson, err := kruntime.Encode(codec, &kapi.SerializedReference{
-		Reference: kapi.ObjectReference{
-			Kind:      "ReplicationController",
-			Name:      rcName,
-			Namespace: "somens",
-		},
-	})
-
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	return kapi.Pod{
+func makePod(name string, rc metav1.Object, t *testing.T) kapi.Pod {
+	pod := kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "somens",
-			Annotations: map[string]string{
-				oapi.DeprecatedKubeCreatedByAnnotation: string(createdByRefJson),
-			},
 		},
 	}
+	pod.OwnerReferences = append(pod.OwnerReferences,
+		*metav1.NewControllerRef(rc, kapi.SchemeGroupVersion.WithKind("ReplicationController")))
+
+	return pod
 }
 
-func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.ReplicationController {
+func makeRC(name string, dc metav1.Object, t *testing.T) *kapi.ReplicationController {
 	rc := kapi.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -60,25 +40,9 @@ func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.Replicatio
 		},
 	}
 
-	if createdByDCName != "" {
-		codec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
-		createdByRefJson, err := kruntime.Encode(codec, &kapi.SerializedReference{
-			Reference: kapi.ObjectReference{
-				Kind:      "DeploymentConfig",
-				Name:      createdByDCName,
-				Namespace: "somens",
-			},
-		})
-
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		rc.Annotations[oapi.DeprecatedKubeCreatedByAnnotation] = string(createdByRefJson)
-	}
-
-	if dcName != "" {
-		rc.Annotations[appsapi.DeploymentConfigAnnotation] = dcName
+	if dc != nil {
+		rc.OwnerReferences = append(rc.OwnerReferences, *metav1.NewControllerRef(dc,
+			oappsapi.SchemeGroupVersion.WithKind("DeploymentConfig")))
 	}
 
 	return &rc
@@ -92,12 +56,9 @@ func makePodRef(name string) *kapi.ObjectReference {
 	}
 }
 
-func makeRCRef(name string) *kapi.ObjectReference {
-	return &kapi.ObjectReference{
-		Kind:      "ReplicationController",
-		Name:      name,
-		Namespace: "somens",
-	}
+func makeRCRef(name string) *metav1.OwnerReference {
+	return metav1.NewControllerRef(&metav1.ObjectMeta{Name: name},
+		kapi.SchemeGroupVersion.WithKind("ReplicationController"))
 }
 
 func TestFindIdlablesForEndpoints(t *testing.T) {
@@ -140,12 +101,19 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 		},
 	}
 
+	controllers := map[string]metav1.Object{
+		"somerc1": makeRC("somerc1", &metav1.ObjectMeta{Name: "somedc1"}, t),
+		"somerc2": makeRC("somerc2", nil, t),
+		"somerc3": makeRC("somerc3", &metav1.ObjectMeta{Name: "somedc2"}, t),
+		"somerc4": makeRC("somerc4", &metav1.ObjectMeta{Name: "somedc2"}, t),
+	}
+
 	pods := map[kapi.ObjectReference]kapi.Pod{
-		*makePodRef("somepod1"): makePod("somepod1", "somerc1", t),
-		*makePodRef("somepod2"): makePod("somepod2", "somerc2", t),
-		*makePodRef("somepod3"): makePod("somepod3", "somerc1", t),
-		*makePodRef("somepod4"): makePod("somepod4", "somerc3", t),
-		*makePodRef("somepod5"): makePod("somepod5", "somerc4", t),
+		*makePodRef("somepod1"): makePod("somepod1", controllers["somerc1"], t),
+		*makePodRef("somepod2"): makePod("somepod2", controllers["somerc2"], t),
+		*makePodRef("somepod3"): makePod("somepod3", controllers["somerc1"], t),
+		*makePodRef("somepod4"): makePod("somepod4", controllers["somerc3"], t),
+		*makePodRef("somepod5"): makePod("somepod5", controllers["somerc4"], t),
 	}
 
 	getPod := func(ref kapi.ObjectReference) (*kapi.Pod, error) {
@@ -155,16 +123,8 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 		return nil, kerrors.NewNotFound(schema.GroupResource{Group: kapi.GroupName, Resource: "Pod"}, ref.Name)
 	}
 
-	controllers := map[kapi.ObjectReference]kruntime.Object{
-		// prefer CreatedByAnnotation to DeploymentConfigAnnotation
-		*makeRCRef("somerc1"): makeRC("somerc1", "nonsense-value", "somedc1", t),
-		*makeRCRef("somerc2"): makeRC("somerc2", "", "", t),
-		*makeRCRef("somerc3"): makeRC("somerc3", "somedc2", "", t),
-		*makeRCRef("somerc4"): makeRC("somerc4", "", "somedc2", t),
-	}
-
-	getController := func(ref kapi.ObjectReference) (kruntime.Object, error) {
-		if controller, ok := controllers[ref]; ok {
+	getController := func(namespace string, ref metav1.OwnerReference) (metav1.Object, error) {
+		if controller, ok := controllers[ref.Name]; ok {
 			return controller, nil
 		}
 
@@ -174,8 +134,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 
 	}
 
-	codec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: kapi.GroupName, Version: "v1"})
-	refSet, err := findScalableResourcesForEndpoints(endpoints, codec, getPod, getController)
+	refSet, err := findScalableResourcesForEndpoints(endpoints, getPod, getController)
 
 	if err != nil {
 		t.Fatalf("Unexpected error while finding idlables: %v", err)
@@ -183,16 +142,19 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 
 	expectedRefs := []unidlingapi.CrossGroupObjectReference{
 		{
-			Kind: "DeploymentConfig",
-			Name: "somedc1",
+			Kind:  "DeploymentConfig",
+			Name:  "somedc1",
+			Group: oappsapi.GroupName,
 		},
 		{
-			Kind: "DeploymentConfig",
-			Name: "somedc2",
+			Kind:  "DeploymentConfig",
+			Name:  "somedc2",
+			Group: oappsapi.GroupName,
 		},
 		{
-			Kind: "ReplicationController",
-			Name: "somerc2",
+			Kind:  "ReplicationController",
+			Name:  "somerc2",
+			Group: kapi.GroupName,
 		},
 	}
 
@@ -202,7 +164,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 
 	for _, ref := range expectedRefs {
 		if _, ok := refSet[ref]; !ok {
-			t.Errorf("expected ReplicationController %q to be present, but was not", ref.Name)
+			t.Errorf("expected ReplicationController %q to be present, but was not in %v", ref.Name, refSet)
 		}
 	}
 }
