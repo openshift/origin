@@ -442,6 +442,9 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		return err
 	}
 	kubeletArgs := nodeoptions.ToFlags(server)
+	if err := nodeoptions.CheckFlags(kubeletArgs); err != nil {
+		return err
+	}
 	server.ClusterDNS = node.GetClusterDNS(externalKubeClient, server.ClusterDNS)
 
 	// as a step towards decomposing OpenShift into Kubernetes components, perform an execve

@@ -5,10 +5,13 @@ import (
 	"net"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/features"
@@ -85,6 +88,9 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 	// prevents kube from generating certs
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
+	// roundtrip to get a default value
+	server.TLSCipherSuites = crypto.CipherSuitesToNamesOrDie(crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites))
+	server.TLSMinVersion = crypto.TLSVersionToNameOrDie(crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion))
 
 	containerized := cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"
 	server.Containerized = containerized
@@ -167,4 +173,37 @@ func ToFlags(config *kubeletoptions.KubeletServer) []string {
 	}
 
 	return args
+}
+
+// Some flags are *required* to be set when running from openshift start node.  This ensures they are set.
+// If they are not set, we fail.  This is compensating for some lost integration tests.
+func CheckFlags(args []string) error {
+	if needle := "--authentication-token-webhook=true"; !hasArg(needle, args) {
+		return fmt.Errorf("missing %v: %v", needle, args)
+	}
+	if needle := "--authorization-mode=Webhook"; !hasArg(needle, args) {
+		return fmt.Errorf("missing %v: %v", needle, args)
+	}
+	if needle := "--tls-min-version="; !hasArgPrefix(needle, args) {
+		return fmt.Errorf("missing %v: %v", needle, args)
+	}
+	if needle := "--tls-cipher-suites="; !hasArgPrefix(needle, args) {
+		return fmt.Errorf("missing %v: %v", needle, args)
+	}
+
+	return nil
+}
+
+func hasArg(needle string, haystack []string) bool {
+	return sets.NewString(haystack...).Has(needle)
+}
+
+func hasArgPrefix(needle string, haystack []string) bool {
+	for _, haystackToken := range haystack {
+		if strings.HasPrefix(haystackToken, needle) {
+			return true
+		}
+	}
+
+	return false
 }
