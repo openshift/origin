@@ -36,6 +36,10 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 		var oc = exutil.NewCLI(c.repoName+"-repo-test", exutil.KubeConfigPath())
 
 		g.Context("", func() {
+			g.BeforeEach(func() {
+				exutil.DumpDockerInfo()
+			})
+
 			g.JustBeforeEach(func() {
 				g.By("Waiting for builder service account")
 				err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))

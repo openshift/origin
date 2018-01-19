@@ -21,6 +21,10 @@ var _ = g.Describe("[Feature:Builds] build with empty source", func() {
 
 	g.Context("", func() {
 
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

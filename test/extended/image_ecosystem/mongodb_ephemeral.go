@@ -19,6 +19,10 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 	oc := exutil.NewCLI("mongodb-create", exutil.KubeConfigPath()).Verbose()
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
