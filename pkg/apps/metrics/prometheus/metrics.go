@@ -94,6 +94,7 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 		latestVersion := util.DeploymentVersionFor(d)
+		key := d.Namespace + "/" + dcName
 
 		if util.IsTerminatedDeployment(d) {
 			if util.IsDeploymentCancelled(d) {
@@ -103,16 +104,23 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 			if util.IsFailedDeployment(d) {
 				failed++
 				// Track the latest failed rollout per deployment config
-				if r, exists := latestFailedRollouts[d.Namespace+"/"+dcName]; exists && latestVersion <= r.latestVersion {
+				// continue only when this is the latest version (add if below)
+				if r, exists := latestFailedRollouts[key]; exists && latestVersion <= r.latestVersion {
 					continue
 				}
-				latestFailedRollouts[d.Namespace+"/"+dcName] = failedRollout{
+				latestFailedRollouts[key] = failedRollout{
 					timestamp:     float64(d.CreationTimestamp.Unix()),
 					latestVersion: latestVersion,
 				}
 				continue
 			}
 			if util.IsCompleteDeployment(d) {
+				// If a completed rollout is found AFTER we recorded a failed rollout,
+				// do not record the lastFailedRollout as the latest rollout is not
+				// failed.
+				if r, hasFailedRollout := latestFailedRollouts[key]; hasFailedRollout && r.latestVersion < latestVersion {
+					delete(latestFailedRollouts, key)
+				}
 				available++
 				continue
 			}

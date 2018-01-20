@@ -6,27 +6,29 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	authorizer     kauthorizer.Authorizer
-	subjectLocator authorizer.SubjectLocator
+	subjectLocator rbac.SubjectLocator
 }
 
 var _ rest.Creater = &REST{}
 
 // NewREST creates a new REST for policies.
-func NewREST(authorizer kauthorizer.Authorizer, subjectLocator authorizer.SubjectLocator) *REST {
+func NewREST(authorizer kauthorizer.Authorizer, subjectLocator rbac.SubjectLocator) *REST {
 	return &REST{authorizer, subjectLocator}
 }
 
@@ -63,12 +65,13 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.Validat
 	}
 
 	attributes := util.ToDefaultAuthorizationAttributes(nil, resourceAccessReview.Action.Namespace, resourceAccessReview.Action)
-	users, groups, err := r.subjectLocator.GetAllowedSubjects(attributes)
+	subjects, err := r.subjectLocator.AllowedSubjects(attributes)
+	users, groups := authorizationutil.RBACSubjectsToUsersAndGroups(subjects, attributes.GetNamespace())
 
 	response := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: resourceAccessReview.Action.Namespace,
-		Users:     users,
-		Groups:    groups,
+		Users:     sets.NewString(users...),
+		Groups:    sets.NewString(groups...),
 	}
 	if err != nil {
 		response.EvaluationError = err.Error()

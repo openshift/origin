@@ -26,4 +26,5 @@ var Codec = serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(
 	schema.GroupVersion{Group: "", Version: "v1"},
 	schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
 	schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+	schema.GroupVersion{Group: "admission.config.openshift.io", Version: "v1"},
 )

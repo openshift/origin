@@ -5,3 +5,16 @@
 # To enable in a new clone, run $ git config merge.ours.driver true
 pkg/assets/bindata.go merge=ours
 pkg/assets/java/bindata.go merge=ours
+
+**/zz_generated.*.go linguist-generated=true
+**/types.generated.go linguist-generated=true
+**/generated.pb.go linguist-generated=true
+**/generated.proto linguist-generated=true
+**/types_swagger_doc_generated.go linguist-generated=true
+api/openapi-spec/*.json linguist-generated=true
+api/protobuf-spec/*.proto linguist-generated=true
+api/swagger-spec/*.json linguist-generated=true
+contrib/completions/bash/** linguist-generated=true
+contrib/completions/zsh/** linguist-generated=true
+docs/man/man1/** linguist-generated=true
+pkg/**/swagger_doc.go linguist-generated=true

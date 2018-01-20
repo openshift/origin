@@ -8,16 +8,11 @@ import (
 
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 
-	"github.com/openshift/origin/pkg/cmd/util/plug"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
 type NonAPIExtraConfig struct {
-	// these are only needed for the controller endpoint which should be moved out and made an optional
-	// add-on in the chain (as the final delegate) when running an all-in-one
-	ControllerPlug plug.Plug
-
 	MasterPublicURL string
 	EnableOAuth     bool
 }
@@ -61,9 +56,6 @@ func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.De
 	s := &OpenshiftNonAPIServer{
 		GenericAPIServer: genericServer,
 	}
-
-	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
-	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.ExtraConfig.ControllerPlug)
 
 	// TODO move this up to the spot where we wire the oauth endpoint
 	// Set up OAuth metadata only if we are configured to use OAuth

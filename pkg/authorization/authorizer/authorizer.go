@@ -3,11 +3,7 @@ package authorizer
 import (
 	"errors"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 )
 
 type openshiftAuthorizer struct {
@@ -15,16 +11,8 @@ type openshiftAuthorizer struct {
 	forbiddenMessageMaker ForbiddenMessageMaker
 }
 
-type openshiftSubjectLocator struct {
-	delegate authorizerrbac.SubjectLocator
-}
-
 func NewAuthorizer(delegate authorizer.Authorizer, forbiddenMessageMaker ForbiddenMessageMaker) authorizer.Authorizer {
 	return &openshiftAuthorizer{delegate: delegate, forbiddenMessageMaker: forbiddenMessageMaker}
-}
-
-func NewSubjectLocator(delegate authorizerrbac.SubjectLocator) SubjectLocator {
-	return &openshiftSubjectLocator{delegate: delegate}
 }
 
 func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
@@ -49,41 +37,6 @@ func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (autho
 	}
 
 	return authorizationDecision, denyReason, nil
-}
-
-// GetAllowedSubjects returns the subjects it knows can perform the action.
-// If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
-// This is done because policy rules are purely additive and policy determinations
-// can be made on the basis of those rules that are found.
-func (a *openshiftSubjectLocator) GetAllowedSubjects(attributes authorizer.Attributes) (sets.String, sets.String, error) {
-	users := sets.String{}
-	groups := sets.String{}
-	namespace := attributes.GetNamespace()
-	subjects, err := a.delegate.AllowedSubjects(attributes)
-	for _, subject := range subjects {
-		switch subject.Kind {
-		case rbac.UserKind:
-			users.Insert(subject.Name)
-		case rbac.GroupKind:
-			groups.Insert(subject.Name)
-		case rbac.ServiceAccountKind:
-			// default the namespace to namespace we're working in if
-			// it's available. This allows rolebindings that reference
-			// SAs in the local namespace to avoid having to qualify
-			// them.
-			ns := namespace
-			if len(subject.Namespace) > 0 {
-				ns = subject.Namespace
-			}
-			if len(ns) >= 0 {
-				name := serviceaccount.MakeUsername(ns, subject.Name)
-				users.Insert(name)
-			}
-		default:
-			continue // TODO, should this add errs?
-		}
-	}
-	return users, groups, err
 }
 
 func reason(attributes authorizer.Attributes) string {

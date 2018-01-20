@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"fmt"
 	"math/rand"
 	"net"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/informers"
@@ -47,12 +49,11 @@ import (
 	routecontroller "k8s.io/kubernetes/pkg/controller/route"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	"k8s.io/kubernetes/pkg/util/configz"
+	"k8s.io/kubernetes/pkg/version/verflag"
 
 	"github.com/golang/glog"
-	"github.com/pborman/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 const (
@@ -63,14 +64,23 @@ const (
 // NewCloudControllerManagerCommand creates a *cobra.Command object with default parameters
 func NewCloudControllerManagerCommand() *cobra.Command {
 	s := options.NewCloudControllerManagerServer()
-	s.AddFlags(pflag.CommandLine)
+
 	cmd := &cobra.Command{
 		Use: "cloud-controller-manager",
 		Long: `The Cloud controller manager is a daemon that embeds
 the cloud specific control loops shipped with Kubernetes.`,
 		Run: func(cmd *cobra.Command, args []string) {
+			verflag.PrintAndExitIfRequested()
+
+			if err := Run(s); err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+
 		},
 	}
+
+	s.AddFlags(cmd.Flags())
 
 	return cmd
 }
@@ -160,7 +170,7 @@ func Run(s *options.CloudControllerManagerServer) error {
 		return err
 	}
 	// add a uniquifier so that two processes on the same host don't accidentally both become active
-	id = id + " " + string(uuid.NewUUID())
+	id = id + "_" + string(uuid.NewUUID())
 
 	// Lock required for leader election
 	rl, err := resourcelock.New(s.LeaderElection.ResourceLock,
