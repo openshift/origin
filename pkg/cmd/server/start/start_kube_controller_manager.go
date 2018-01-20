@@ -1,26 +1,16 @@
 package start
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/golang/glog"
-	"github.com/spf13/pflag"
 
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
-	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
-
-	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
-func kubeControllerManagerAddFlags(cmserver *controlleroptions.CMServer) func(flags *pflag.FlagSet) {
-	return func(flags *pflag.FlagSet) {
-		cmserver.AddFlags(flags, controllerapp.KnownControllers(), controllerapp.ControllersDisabledByDefault.List())
-	}
-}
-
-func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool) (*controlleroptions.CMServer, error) {
+func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool) []string {
 	cmdLineArgs := map[string][]string{}
 	if _, ok := cmdLineArgs["controllers"]; !ok {
 		cmdLineArgs["controllers"] = []string{
@@ -77,22 +67,22 @@ func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, po
 	}
 	cmdLineArgs["openshift-config"] = []string{openshiftConfigFile}
 
-	// resolve arguments
-	controllerManager := controlleroptions.NewCMServer()
-	if err := cmdflags.Resolve(cmdLineArgs, kubeControllerManagerAddFlags(controllerManager)); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
+	args := []string{}
+	for key, value := range cmdLineArgs {
+		for _, token := range value {
+			args = append(args, fmt.Sprintf("--%s=%v", key, token))
+		}
 	}
-
-	return controllerManager, nil
+	return args
 }
 
 func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool) {
-	// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
-	controllerManager, err := newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile, dynamicProvisioningEnabled)
-	if err != nil {
+	cmd := controllerapp.NewControllerManagerCommand()
+	args := computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile, dynamicProvisioningEnabled)
+	if err := cmd.ParseFlags(args); err != nil {
 		glog.Fatal(err)
 	}
-	if err := controllerapp.Run(controllerManager); err != nil {
-		glog.Fatal(err)
-	}
+	glog.Infof("`kube-controller-manager %v`", args)
+	cmd.Run(nil, nil)
+	panic(fmt.Sprintf("`kube-controller-manager %v` exited", args))
 }
