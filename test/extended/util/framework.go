@@ -271,19 +271,24 @@ func ExamineDiskUsage() {
 	// disabling this for now, easier to do it here than everywhere that's calling it.
 	return
 	/*
-		out, err := exec.Command("/bin/df", "-m").Output()
-		if err == nil {
-			e2e.Logf("\n\n df -m output: %s\n\n", string(out))
-		} else {
-			e2e.Logf("\n\n got error on df %v\n\n", err)
-		}
-		out, err = exec.Command("/bin/docker", "info").Output()
-		if err == nil {
-			e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
-		} else {
-			e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
-		}
+				out, err := exec.Command("/bin/df", "-m").Output()
+				if err == nil {
+					e2e.Logf("\n\n df -m output: %s\n\n", string(out))
+				} else {
+					e2e.Logf("\n\n got error on df %v\n\n", err)
+				}
+		                DumpDockerInfo()
 	*/
+}
+
+// DumpDockerInfo runs `docker info` and logs it to the job output
+func DumpDockerInfo() {
+	out, err := exec.Command("/bin/docker", "info").Output()
+	if err == nil {
+		e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
+	} else {
+		e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
+	}
 }
 
 // ExaminePodDiskUsage will dump df/du output on registry pod; leveraging this as part of diagnosing

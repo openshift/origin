@@ -152,6 +152,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		})
 
 		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
 			testNamespace := oc.Namespace()
 
 			jenkinsNamespace := oc.Namespace() + "-jenkins"

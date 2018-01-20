@@ -66,6 +66,7 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
 
 			g.By("granting system:build-strategy-custom")
 			binding := fmt.Sprintf("custombuildaccess-%s", oc.Username())

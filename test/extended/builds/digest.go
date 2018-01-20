@@ -22,6 +22,7 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 	g.Context("", func() {
 
 		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
 			o.Expect(err).NotTo(o.HaveOccurred())

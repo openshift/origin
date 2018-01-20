@@ -18,6 +18,10 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql image", func(
 	)
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

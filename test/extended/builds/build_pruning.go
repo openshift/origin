@@ -34,6 +34,10 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 	g.Context("", func() {
 
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

@@ -37,6 +37,10 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 
 	g.Context("", func() {
 
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("waiting for the builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))
