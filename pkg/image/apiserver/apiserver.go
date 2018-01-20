@@ -20,6 +20,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
@@ -148,16 +149,29 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
+
+	var whitelister whitelist.RegistryWhitelister
+	if c.ExtraConfig.AllowedRegistriesForImport != nil {
+		whitelister, err = whitelist.NewRegistryWhitelister(
+			*c.ExtraConfig.AllowedRegistriesForImport,
+			c.ExtraConfig.RegistryHostnameRetriever)
+		if err != nil {
+			return nil, fmt.Errorf("error building registry whitelister: %v", err)
+		}
+	} else {
+		whitelister = whitelist.WhitelistAllRegistries()
+	}
+
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(imageClient.Image())
 	imageStreamSecretsStorage := imagesecret.NewREST(coreClient)
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.ExtraConfig.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.ExtraConfig.LimitVerifier)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.ExtraConfig.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.ExtraConfig.LimitVerifier, whitelister)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, c.ExtraConfig.RegistryHostnameRetriever)
-	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
+	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry, whitelister)
 	importerCache, err := imageimporter.NewImageStreamLayerCache(imageimporter.DefaultImageStreamLayerCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -177,8 +191,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		importTransport,
 		insecureImportTransport,
 		importerDockerClientFn,
-		c.ExtraConfig.AllowedRegistriesForImport,
-		c.ExtraConfig.RegistryHostnameRetriever,
+		whitelister,
 		authorizationClient.SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 
