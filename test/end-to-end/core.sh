@@ -3,6 +3,7 @@
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+os::util::ensure_tmpfs "${ETCD_DATA_DIR}"
 
 os::util::environment::setup_time_vars
 trap os::test::junit::reconcile_output EXIT
@@ -379,7 +380,7 @@ os::cmd::expect_success 'oc project test'
 os::cmd::expect_success 'oc whoami'
 
 # FIXME: Disabled because in Jenkins it seems like the --attach does not print the required output or the output is stripped which is causing
-#        this test case to flake massively. 
+#        this test case to flake massively.
 #
 #os::log::info "Running a CLI command in a container using the service account"
 #os::cmd::expect_success 'oc policy add-role-to-user view -z default'
