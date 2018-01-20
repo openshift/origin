@@ -12,6 +12,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/util"
@@ -22,11 +23,16 @@ import (
 type REST struct {
 	imageRegistry       image.Registry
 	imageStreamRegistry imagestream.Registry
+	strategy            Strategy
 }
 
 // NewREST returns a new REST.
-func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry) *REST {
-	return &REST{imageRegistry: imageRegistry, imageStreamRegistry: imageStreamRegistry}
+func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, registryWhitelister whitelist.RegistryWhitelister) *REST {
+	return &REST{
+		imageRegistry:       imageRegistry,
+		imageStreamRegistry: imageStreamRegistry,
+		strategy:            NewStrategy(registryWhitelister),
+	}
 }
 
 var _ rest.Getter = &REST{}
@@ -117,7 +123,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))
 	}
-	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+	if err := rest.BeforeCreate(r.strategy, ctx, obj); err != nil {
 		return nil, err
 	}
 	if err := createValidation(obj.DeepCopyObject()); err != nil {
@@ -237,14 +243,14 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 	}
 
 	if create {
-		if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+		if err := rest.BeforeCreate(r.strategy, ctx, obj); err != nil {
 			return nil, false, err
 		}
 		if err := createValidation(obj.DeepCopyObject()); err != nil {
 			return nil, false, err
 		}
 	} else {
-		if err := rest.BeforeUpdate(Strategy, ctx, obj, old); err != nil {
+		if err := rest.BeforeUpdate(r.strategy, ctx, obj, old); err != nil {
 			return nil, false, err
 		}
 		if err := updateValidation(obj.DeepCopyObject(), old.DeepCopyObject()); err != nil {

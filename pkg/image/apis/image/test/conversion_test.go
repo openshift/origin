@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	"github.com/openshift/api/image/v1"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/v1"
 
 	_ "github.com/openshift/origin/pkg/image/apis/image/install"
 )

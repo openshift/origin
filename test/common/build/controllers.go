@@ -356,11 +356,16 @@ func waitForWatch(t testingT, name string, w watchapi.Interface) *watchapi.Event
 }
 
 func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedclient.BuildInterface, clusterAdminImageClient imagetypedclient.ImageInterface) {
-	tag := "latest"
-	streamName := "test-image-trigger-repo"
+	const (
+		tag              = "latest"
+		streamName       = "test-image-trigger-repo"
+		registryHostname = "registry:8080"
+	)
 
-	imageStream := mockImageStream2(tag)
-	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
+	testutil.SetAdditionalAllowedRegistries(registryHostname)
+
+	imageStream := mockImageStream2(registryHostname, tag)
+	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, registryHostname+"/openshift/test-image-trigger:"+tag)
 
 	config := imageChangeBuildConfig("sti-imagestreamtag", stiStrategy("ImageStreamTag", streamName+":"+tag))
 	_, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
@@ -400,10 +405,10 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildtypedcli
 	}
 	newBuild := event.Object.(*buildapi.Build)
 	strategy := newBuild.Spec.Strategy
-	if strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
 		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 		bc, _ := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 	}
 	// Wait for an update on the specific build that was added
 	watch3, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
@@ -440,7 +445,7 @@ WaitLoop:
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
 	// the first tag did not have an image id, so the last trigger field is the pull spec
-	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != "registry:8080/openshift/test-image-trigger:"+tag {
+	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != registryHostname+"/openshift/test-image-trigger:"+tag {
 		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
 	}
 
@@ -468,7 +473,7 @@ WaitLoop2:
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ref-2-random",
 			},
-			DockerImageReference: "registry:8080/openshift/test-image-trigger:ref-2-random",
+			DockerImageReference: registryHostname + "/openshift/test-image-trigger:ref-2-random",
 		},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -479,10 +484,10 @@ WaitLoop2:
 	}
 	newBuild = event.Object.(*buildapi.Build)
 	strategy = newBuild.Spec.Strategy
-	if strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
 		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
 		bc, _ := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
-		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 	}
 
 	// Listen to events on specific  build
@@ -513,7 +518,7 @@ WaitLoop3:
 		}
 	}
 	updatedConfig = event.Object.(*buildapi.BuildConfig)
-	if e, a := "registry:8080/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+	if e, a := registryHostname+"/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
@@ -789,17 +794,17 @@ func configChangeBuildConfig() *buildapi.BuildConfig {
 	return bc
 }
 
-func mockImageStream2(tag string) *imageapi.ImageStream {
+func mockImageStream2(registryHostname, tag string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-image-trigger-repo"},
 
 		Spec: imageapi.ImageStreamSpec{
-			DockerImageRepository: "registry:8080/openshift/test-image-trigger",
+			DockerImageRepository: registryHostname + "/openshift/test-image-trigger",
 			Tags: map[string]imageapi.TagReference{
 				tag: {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "registry:8080/openshift/test-image-trigger:" + tag,
+						Name: registryHostname + "/openshift/test-image-trigger:" + tag,
 					},
 				},
 			},

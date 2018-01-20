@@ -219,6 +219,9 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 		*configapi.DefaultAllowedRegistriesForImport,
 		configapi.RegistryLocation{DomainName: "127.0.0.1:*"},
 	)
+	for r := range util.GetAdditionalAllowedRegistries() {
+		allowedRegistries = append(allowedRegistries, configapi.RegistryLocation{DomainName: r})
+	}
 	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.

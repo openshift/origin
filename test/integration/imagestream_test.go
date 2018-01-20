@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -522,5 +523,135 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 	if tag, ok := stream.Spec.Tags["test"]; !ok || tag.From == nil || tag.From.Name != "someimage:other" {
 		t.Fatalf("unexpected object: %#v", tag)
+	}
+}
+
+func TestRegistryWhitelistingValidation(t *testing.T) {
+	testutil.AddAdditionalAllowedRegistries("my.insecure.registry:80")
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	stream := mockImageStream()
+	stream.Spec = imageapi.ImageStreamSpec{
+		Tags: map[string]imageapi.TagReference{
+			"latest": {
+				Name: "latest",
+				From: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "my.test.registry/repo/sitory:latest",
+				},
+			},
+		},
+	}
+
+	_, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(stream)
+	if err == nil || !errors.IsInvalid(err) {
+		t.Fatalf("expected invalid error, got: %T %v", err, err)
+	}
+	if e, a := `spec.tags[latest].from.name: Forbidden: registry "my.test.registry" not allowed by whitelist`, err.Error(); !strings.Contains(a, e) {
+		t.Fatalf("expected string %q not contained in error: %s", e, a)
+	}
+
+	stream.Spec.Tags["latest"].From.Name = "docker.io/busybox"
+	stream, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(stream)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	stream.Spec.Tags["fail"] = imageapi.TagReference{
+		Name: "fail",
+		From: &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: "this.will.fail/repo:tag",
+		},
+	}
+	_, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Update(stream)
+	if err == nil || !errors.IsInvalid(err) {
+		t.Fatalf("expected invalid error, got: %T %v", err, err)
+	}
+	if e, a := `spec.tags[fail].from.name: Forbidden: registry "this.will.fail" not allowed by whitelist`, err.Error(); !strings.Contains(a, e) {
+		t.Fatalf("expected string %q not contained in error: %s", e, a)
+	}
+
+	stream.Annotations = map[string]string{imageapi.InsecureRepositoryAnnotation: "true"}
+	delete(stream.Spec.Tags, "fail")
+	stream.Spec.Tags["pass"] = imageapi.TagReference{
+		Name: "pass",
+		From: &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: "127.0.0.1:5000/repo:tag",
+		},
+	}
+	_, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Update(stream)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	istag := &imageapi.ImageStreamTag{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: stream.Name + ":new",
+		},
+		Tag: &imageapi.TagReference{
+			Name: "new",
+			From: &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: "my.insecure.registry/repo:new",
+			},
+		},
+	}
+
+	_, err = clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Create(istag)
+	if err == nil || !errors.IsInvalid(err) {
+		t.Fatalf("expected invalid error, got: %T %v", err, err)
+	}
+	if e, a := `tag.from.name: Forbidden: registry "my.insecure.registry" not allowed by whitelist`, err.Error(); !strings.Contains(a, e) {
+		t.Fatalf("expected string %q not contained in error: %s", e, a)
+	}
+
+	istag.Annotations = map[string]string{imageapi.InsecureRepositoryAnnotation: "true"}
+	istag, err = clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Create(istag)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if istag.Annotations[imageapi.InsecureRepositoryAnnotation] != "true" {
+		t.Fatalf("missing %q annotation to image stream tag", imageapi.InsecureRepositoryAnnotation)
+	}
+
+	istag.Tag.From = &kapi.ObjectReference{
+		Kind: "DockerImage",
+		Name: "example.com/repo:tag",
+	}
+	istag.ObjectMeta = metav1.ObjectMeta{
+		Name:            istag.Name,
+		ResourceVersion: istag.ResourceVersion,
+	}
+	_, err = clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Update(istag)
+	if err == nil || !errors.IsInvalid(err) {
+		t.Fatalf("expected invalid error, got: %T %v", err, err)
+	}
+	if e, a := `tag.from.name: Forbidden: registry "example.com" not allowed by whitelist`, err.Error(); !strings.Contains(a, e) {
+		t.Fatalf("expected string %q not contained in error: %s", e, a)
+	}
+
+	istag.Tag.From = &kapi.ObjectReference{
+		Kind: "DockerImage",
+		Name: "myupstream/repo:latest",
+	}
+	_, err = clusterAdminImageClient.ImageStreamTags(testutil.Namespace()).Update(istag)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

@@ -15,8 +15,9 @@ import (
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/image/admission/testutil"
+	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
@@ -52,7 +53,12 @@ func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizat
 func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, latest.Version.Group)
 	registry := imageapi.DefaultRegistryHostnameRetriever(noDefaultRegistry, "", "")
-	imageStorage, statusStorage, internalStorage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), registry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
+	imageStorage, statusStorage, internalStorage, err := NewREST(
+		restoptions.NewSimpleGetter(etcdStorage),
+		registry,
+		&fakeSubjectAccessReviewRegistry{},
+		&admfake.ImageStreamLimitVerifier{},
+		&fake.RegistryWhitelister{})
 	if err != nil {
 		t.Fatal(err)
 	}

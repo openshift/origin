@@ -22,8 +22,10 @@ import (
 
 	oauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/image/admission"
+	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	"github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 )
 
 type fakeUser struct {
@@ -107,7 +109,7 @@ func TestPublicDockerImageRepository(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, test.publicRegistry, ""), &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{}, nil)
+		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, test.publicRegistry, ""), &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, nil, nil)
 		value := strategy.publicDockerImageRepository(test.stream)
 		if e, a := test.expected, value; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
@@ -178,7 +180,7 @@ func TestDockerImageRepository(t *testing.T) {
 
 	for testName, test := range tests {
 		fakeRegistry := &fakeDefaultRegistry{test.defaultRegistry}
-		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""), &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{}, nil)
+		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""), &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, nil, nil)
 		value := strategy.dockerImageRepository(test.stream)
 		if e, a := test.expected, value; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
@@ -568,9 +570,10 @@ func TestLimitVerifier(t *testing.T) {
 		fakeRegistry := &fakeDefaultRegistry{}
 		s := &Strategy{
 			tagVerifier: tagVerifier,
-			limitVerifier: &testutil.FakeImageStreamLimitVerifier{
+			limitVerifier: &admfake.ImageStreamLimitVerifier{
 				ImageStreamEvaluator: tc.isEvaluator,
 			},
+			registryWhitelister:       &fake.RegistryWhitelister{},
 			registryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""),
 		}
 
