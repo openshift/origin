@@ -59,6 +59,10 @@ RUN dnf -y update && dnf -y install\
  openssh-clients\
  openssh-server
 
+# Install network utils for debugging
+# iproute2 tools are already installed.
+RUN dnf -y install tcpdump
+
 ## Configure docker
 
 RUN systemctl enable docker.service
