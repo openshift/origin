@@ -26,6 +26,7 @@ type TraceImportsOpts struct {
 	BaseDir string
 	Roots   []string
 	Exclude []string
+	Shared  bool
 
 	// special operations
 	UniqueB []string
@@ -41,6 +42,7 @@ type TraceImportsFlags struct {
 	Roots        []string
 	UniqueB      []string
 	Exclude      []string
+	Shared       bool
 }
 
 func (o *TraceImportsFlags) ToOptions(out, errout io.Writer) (*TraceImportsOpts, error) {
@@ -48,6 +50,7 @@ func (o *TraceImportsFlags) ToOptions(out, errout io.Writer) (*TraceImportsOpts,
 		Roots:   o.Roots,
 		UniqueB: o.UniqueB,
 		Exclude: o.Exclude,
+		Shared:  o.Shared,
 
 		OutputFormat: o.OutputFormat,
 
@@ -87,7 +90,8 @@ func NewCmdTraceImports(parent string, out, errout io.Writer) *cobra.Command {
 	cmd.Flags().StringSliceVar(&flags.Roots, "root", flags.Roots, "set of entrypoints for dependency trees used to generate a depedency graph.")
 	cmd.Flags().StringSliceVar(&flags.Exclude, "exclude", flags.Exclude, "set of paths to recursively exclude when traversing the set of given entrypoints specified through --root.")
 	cmd.Flags().StringVarP(&flags.OutputFormat, "output", "o", "", "output generated dependency graph in specified format. One of: dot.")
-	cmd.Flags().StringSliceVar(&flags.UniqueB, "unique-b", flags.UniqueB, "root packages of sub-trees contained within trees initially specified via --root. A set of transitive dependencies unique to these trees relative to the rest of the dependency graph is returned.")
+	cmd.Flags().StringSliceVar(&flags.UniqueB, "subroot", flags.UniqueB, "root packages of sub-trees contained within trees initially specified via --root. A set of transitive dependencies unique to these trees relative to the rest of the dependency graph is returned.")
+	cmd.Flags().BoolVar(&flags.Shared, "shared", flags.Shared, "indicates whether to include union of dependencies between --subroot trees and the rest of the graph in the final analysis.")
 	return cmd
 }
 
@@ -170,37 +174,136 @@ func (o *TraceImportsOpts) Run() error {
 		return err
 	}
 
-	if len(o.UniqueB) > 0 {
-		// determine roots
-		knownRoots := map[graph.Node]bool{}
-		for _, n := range g.Nodes() {
-			if len(g.To(n)) > 0 {
-				continue
-			}
-
-			knownRoots[n] = true
-		}
-
-		for _, rootName := range o.UniqueB {
-			root := nodeByName(g, nodes, rootName)
-			if root == nil {
-				return fmt.Errorf("--shared root path %q not found in dependency graph", rootName)
-			}
-
-			g.RemoveNode(root)
-		}
-
-		// find orphaned nodes
-		//orphaned := findOrphans(g, knownRoots)
-		// TODO: build graph - highlight orphaned nodes
-
-	}
-
 	if len(o.OutputFormat) > 0 {
 		return o.outputGraph(g)
 	}
 
+	if len(o.UniqueB) == 0 {
+		return fmt.Errorf("at least one sub-tree root must be specified in order to perform a dependency analysis")
+	}
+
+	// determine roots
+	knownRoots := map[graph.Node]bool{}
+	for _, n := range g.Nodes() {
+		if len(g.To(n)) > 0 {
+			continue
+		}
+
+		knownRoots[n] = true
+	}
+
+	// determine unique set of A
+	for root := range knownRoots {
+		g.RemoveNode(root)
+	}
+
+	// roots of the provided subtrees within the dep graph
+	subsetRoots := map[graph.Node]bool{}
+	for _, rootName := range o.UniqueB {
+		root := nodeByName(g, nodes, rootName)
+		if root == nil {
+			continue
+		}
+
+		subsetRoots[root] = true
+	}
+
+	// find unique set of nodes - not reachable from any known root
+	unique := findUniqueSet(g, subsetRoots)
+	fmt.Printf("Packages unique to me (%v):\n", knownRootsByName(knownRoots, nodes))
+	for _, o := range unique {
+		fmt.Printf("  - %v\n", nodeNameById(nodes, o.ID()))
+	}
+	fmt.Println()
+
+	// determine unique set of B
+	g2, _, err := BuildGraph(pkgs, o.Exclude)
+	if err != nil {
+		return err
+	}
+
+	for _, rootName := range o.UniqueB {
+		root := nodeByName(g2, nodes, rootName)
+		if root == nil {
+			return fmt.Errorf("--shared root path %q not found in dependency graph", rootName)
+		}
+
+		g2.RemoveNode(root)
+	}
+
+	// find unique set of nodes - not reachable from any known root
+	uniqueB := findUniqueSet(g2, knownRoots)
+	fmt.Printf("Packages unique to you (%v):\n", o.UniqueB)
+	for _, n := range uniqueB {
+		fmt.Printf("  - %v\n", nodeNameById(nodes, n.ID()))
+	}
+
+	if !o.Shared {
+		return nil
+	}
+
+	fmt.Println()
+
+	uniqueSet := unionSetById(unique, uniqueB)
+	// add roots to uniqueSet
+	for n := range knownRoots {
+		uniqueSet[n.ID()] = n
+	}
+	for n := range subsetRoots {
+		uniqueSet[n.ID()] = n
+	}
+
+	// print out disjoint set
+	sharedSet := map[graph.Node]bool{}
+	fmt.Printf("Packages shared by %v and %v\n", knownRootsByName(knownRoots, nodes), o.UniqueB)
+	for nodeName, n := range nodes {
+		_, exists := uniqueSet[n]
+		if exists {
+			continue
+		}
+
+		node := nodeByName(g, nodes, nodeName)
+		if node == nil {
+			continue
+		}
+
+		sharedSet[node] = true
+		fmt.Printf("  - %v\n", nodeNameById(nodes, n))
+	}
+
+	// TODO: print $depth-level packages responsible for bringing in packages in the sharedSet
 	return nil
+}
+
+func knownRootsByName(nodeMap map[graph.Node]bool, nodes map[string]int) []string {
+	names := []string{}
+	for n := range nodeMap {
+		names = append(names, nodeNameById(nodes, n.ID()))
+	}
+
+	return names
+}
+
+func unionSetById(A []graph.Node, B []graph.Node) map[int]graph.Node {
+	union := map[int]graph.Node{}
+	for _, n := range A {
+		union[n.ID()] = n
+	}
+	for _, n := range B {
+		union[n.ID()] = n
+	}
+
+	return union
+}
+
+func nodeNameById(nodes map[string]int, nodeId int) string {
+	for k, v := range nodes {
+		if v == nodeId {
+			return k
+		}
+	}
+
+	return ""
 }
 
 func (o *TraceImportsOpts) outputGraph(g graph.Directed) error {
@@ -232,19 +335,46 @@ func nodeByName(g graph.Directed, nodes map[string]int, nodeName string) graph.N
 	return nil
 }
 
-func findOrphans(g graph.Directed, knownRoots map[graph.Node]bool) []graph.Node {
-	orphans := []graph.Node{}
+func findUniqueSet(g graph.Directed, knownRoots map[graph.Node]bool) []graph.Node {
+	unique := []graph.Node{}
 
 	for _, node := range g.Nodes() {
-		if len(g.To(node)) > 0 {
-			continue
-		}
-		if _, exists := knownRoots[node]; exists {
-			continue
-		}
+		for root := range knownRoots {
+			if closureExists(g, root, node) {
+				continue
+			}
 
-		orphans = append(orphans, node)
+			unique = append(unique, node)
+		}
 	}
 
-	return orphans
+	return unique
+}
+
+// closureExists recursively determines whether or not a
+// transitive closure exists from a given node A to a given node B.
+// Returns a boolean true if B can be reached from A.
+func closureExists(g graph.Directed, A graph.Node, B graph.Node) bool {
+	if A.ID() == B.ID() {
+		return true
+	}
+
+	toNodes := g.To(B)
+	if len(toNodes) == 0 {
+		return false
+	}
+
+	for _, n := range toNodes {
+		if A.ID() == n.ID() {
+			return true
+		}
+	}
+
+	for _, n := range toNodes {
+		if closureExists(g, A, n) {
+			return true
+		}
+	}
+
+	return false
 }
