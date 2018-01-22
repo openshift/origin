@@ -97,6 +97,12 @@ func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enabl
 	return rc
 }
 
+// TODO: refactor this type - we shouldn't be storing the informers on the actual factory, we should
+// be passing them in to the controller at best.
+func (f *RouterControllerFactory) InformerFor(obj interface{}) kcache.SharedIndexInformer {
+	return f.informers[reflect.TypeOf(obj)]
+}
+
 func (f *RouterControllerFactory) initInformers(rc *routercontroller.RouterController) {
 	if f.NamespaceLabels != nil {
 		f.createNamespacesSharedInformer(rc)
