@@ -51,16 +51,20 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/stats"
 )
 
 // http2Client implements the ClientTransport interface with HTTP2.
 type http2Client struct {
-	target    string // server name/addr
-	userAgent string
-	md        interface{}
-	conn      net.Conn             // underlying communication channel
-	authInfo  credentials.AuthInfo // auth info about the connection
-	nextID    uint32               // the next stream ID to be used
+	ctx        context.Context
+	target     string // server name/addr
+	userAgent  string
+	md         interface{}
+	conn       net.Conn // underlying communication channel
+	remoteAddr net.Addr
+	localAddr  net.Addr
+	authInfo   credentials.AuthInfo // auth info about the connection
+	nextID     uint32               // the next stream ID to be used
 
 	// writableChan synchronizes write access to the transport.
 	// A writer acquires the write lock by sending a value on writableChan
@@ -150,6 +154,9 @@ func newHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions) (
 	scheme := "http"
 	conn, err := dial(ctx, opts.Dialer, addr.Addr)
 	if err != nil {
+		if opts.FailOnNonTempDialError {
+			return nil, connectionErrorf(isTemporary(err), err, "transport: %v", err)
+		}
 		return nil, connectionErrorf(true, err, "transport: %v", err)
 	}
 	// Any further errors will close the underlying connection
@@ -175,11 +182,14 @@ func newHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions) (
 	}
 	var buf bytes.Buffer
 	t := &http2Client{
-		target:    addr.Addr,
-		userAgent: ua,
-		md:        addr.Metadata,
-		conn:      conn,
-		authInfo:  authInfo,
+		ctx:        ctx,
+		target:     addr.Addr,
+		userAgent:  ua,
+		md:         addr.Metadata,
+		conn:       conn,
+		remoteAddr: conn.RemoteAddr(),
+		localAddr:  conn.LocalAddr(),
+		authInfo:   authInfo,
 		// The client initiated stream id is odd starting from 1.
 		nextID:          1,
 		writableChan:    make(chan int, 1),
@@ -234,6 +244,16 @@ func newHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions) (
 	}
 	go t.controller()
 	t.writableChan <- 0
+	if stats.On() {
+		t.ctx = stats.TagConn(t.ctx, &stats.ConnTagInfo{
+			RemoteAddr: t.remoteAddr,
+			LocalAddr:  t.localAddr,
+		})
+		connBegin := &stats.ConnBegin{
+			Client: true,
+		}
+		stats.HandleConn(t.ctx, connBegin)
+	}
 	return t, nil
 }
 
@@ -270,12 +290,13 @@ func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *Stream {
 // streams.
 func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Stream, err error) {
 	pr := &peer.Peer{
-		Addr: t.conn.RemoteAddr(),
+		Addr: t.remoteAddr,
 	}
 	// Attach Auth info if there is any.
 	if t.authInfo != nil {
 		pr.AuthInfo = t.authInfo
 	}
+	userCtx := ctx
 	ctx = peer.NewContext(ctx, pr)
 	authData := make(map[string]string)
 	for _, c := range t.creds {
@@ -347,6 +368,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 		return nil, ErrConnClosing
 	}
 	s := t.newStream(ctx, callHdr)
+	s.clientStatsCtx = userCtx
 	t.activeStreams[s.id] = s
 
 	// This stream is not counted when applySetings(...) initialize t.streamsQuota.
@@ -357,7 +379,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 	}
 	t.mu.Unlock()
 	if reset {
-		t.streamsQuota.reset(-1)
+		t.streamsQuota.add(-1)
 	}
 
 	// HPACK encodes various headers. Note that once WriteField(...) is
@@ -413,6 +435,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 		}
 	}
 	first := true
+	bufLen := t.hBuf.Len()
 	// Sends the headers in a single batch even when they span multiple frames.
 	for !endHeaders {
 		size := t.hBuf.Len()
@@ -446,6 +469,17 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 			t.notifyError(err)
 			return nil, connectionErrorf(true, err, "transport: %v", err)
 		}
+	}
+	if stats.On() {
+		outHeader := &stats.OutHeader{
+			Client:      true,
+			WireLength:  bufLen,
+			FullMethod:  callHdr.Method,
+			RemoteAddr:  t.remoteAddr,
+			LocalAddr:   t.localAddr,
+			Compression: callHdr.SendCompress,
+		}
+		stats.HandleRPC(s.clientStatsCtx, outHeader)
 	}
 	t.writableChan <- 0
 	return s, nil
@@ -525,6 +559,12 @@ func (t *http2Client) Close() (err error) {
 		s.mu.Unlock()
 		s.write(recvMsg{err: ErrConnClosing})
 	}
+	if stats.On() {
+		connEnd := &stats.ConnEnd{
+			Client: true,
+		}
+		stats.HandleConn(t.ctx, connEnd)
+	}
 	return
 }
 
@@ -582,19 +622,14 @@ func (t *http2Client) Write(s *Stream, data []byte, opts *Options) error {
 		var p []byte
 		if r.Len() > 0 {
 			size := http2MaxFrameLen
-			s.sendQuotaPool.add(0)
 			// Wait until the stream has some quota to send the data.
 			sq, err := wait(s.ctx, s.done, s.goAway, t.shutdownChan, s.sendQuotaPool.acquire())
 			if err != nil {
 				return err
 			}
-			t.sendQuotaPool.add(0)
 			// Wait until the transport has some quota to send the data.
 			tq, err := wait(s.ctx, s.done, s.goAway, t.shutdownChan, t.sendQuotaPool.acquire())
 			if err != nil {
-				if _, ok := err.(StreamError); ok || err == io.EOF {
-					t.sendQuotaPool.cancel()
-				}
 				return err
 			}
 			if sq < size {
@@ -874,6 +909,24 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 	}
 
 	endStream := frame.StreamEnded()
+	var isHeader bool
+	defer func() {
+		if stats.On() {
+			if isHeader {
+				inHeader := &stats.InHeader{
+					Client:     true,
+					WireLength: int(frame.Header().Length),
+				}
+				stats.HandleRPC(s.clientStatsCtx, inHeader)
+			} else {
+				inTrailer := &stats.InTrailer{
+					Client:     true,
+					WireLength: int(frame.Header().Length),
+				}
+				stats.HandleRPC(s.clientStatsCtx, inTrailer)
+			}
+		}
+	}()
 
 	s.mu.Lock()
 	if !endStream {
@@ -885,6 +938,7 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 		}
 		close(s.headerChan)
 		s.headerDone = true
+		isHeader = true
 	}
 	if !endStream || s.state == streamDone {
 		s.mu.Unlock()
@@ -994,13 +1048,13 @@ func (t *http2Client) applySettings(ss []http2.Setting) {
 			t.maxStreams = int(s.Val)
 			t.mu.Unlock()
 			if reset {
-				t.streamsQuota.reset(int(s.Val) - ms)
+				t.streamsQuota.add(int(s.Val) - ms)
 			}
 		case http2.SettingInitialWindowSize:
 			t.mu.Lock()
 			for _, stream := range t.activeStreams {
 				// Adjust the sending quota for each stream.
-				stream.sendQuotaPool.reset(int(s.Val - t.streamSendQuota))
+				stream.sendQuotaPool.add(int(s.Val - t.streamSendQuota))
 			}
 			t.streamSendQuota = s.Val
 			t.mu.Unlock()
