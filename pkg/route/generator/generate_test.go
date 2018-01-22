@@ -78,6 +78,74 @@ func TestGenerateRoute(t *testing.T) {
 				},
 			},
 		},
+		{
+			params: map[string]interface{}{
+				"labels":       "foo=bar",
+				"name":         "test",
+				"default-name": "someservice",
+				"path":         "/sub",
+				"port":         "web",
+				"ports":        "80,443",
+				"hostname":     "www.example.com",
+			},
+			expected: routeapi.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec: routeapi.RouteSpec{
+					Host: "www.example.com",
+					Port: &routeapi.RoutePort{
+						TargetPort: intstr.IntOrString{
+							Type:   intstr.String,
+							StrVal: "web",
+						},
+					},
+					Path: "/sub",
+					To: routeapi.RouteTargetReference{
+						Name: "someservice",
+					},
+				},
+			},
+		},
+		{
+			params: map[string]interface{}{
+				"labels":       "foo=bar",
+				"name":         "test",
+				"default-name": "someservice",
+				"path":         "/[^/]+/sub",
+				"path-regexp":  "true",
+				"port":         "web",
+				"ports":        "80,443",
+				"hostname":     "www.example.com",
+			},
+			expected: routeapi.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+					Annotations: map[string]string{
+						routeapi.RoutePathRegexpAnnotation: "true",
+					},
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec: routeapi.RouteSpec{
+					Host: "www.example.com",
+					Port: &routeapi.RoutePort{
+						TargetPort: intstr.IntOrString{
+							Type:   intstr.String,
+							StrVal: "web",
+						},
+					},
+					Path: "/[^/]+/sub",
+					To: routeapi.RouteTargetReference{
+						Name: "someservice",
+					},
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		obj, err := generator.Generate(test.params)

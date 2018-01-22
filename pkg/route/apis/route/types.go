@@ -6,6 +6,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
+const (
+	// RoutePathRegexpAnnotation is an annotation indicating that a route's path is a regular expression
+	RoutePathRegexpAnnotation = "haproxy.router.openshift.io/path-regexp"
+)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

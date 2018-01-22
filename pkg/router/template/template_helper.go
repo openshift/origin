@@ -96,8 +96,16 @@ func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
 	return fmt.Sprintf(`^[^\.]*%s(|/.*)$`, expr)
 }
 
+// generateRouteRegexp is now legacy and around for backward
+// compatibility with old templates.
 // Generate a regular expression to match route hosts (and paths if any).
 func generateRouteRegexp(hostname, path string, wildcard bool) string {
+	return generateRouteRegexp2(hostname, path, false, wildcard)
+}
+
+// Generate a regular expression to match route hosts and paths, if any.
+// Paths may themselves be regular expressions.
+func generateRouteRegexp2(hostname, path string, pathRegexp bool, wildcard bool) string {
 	hostRE := regexp.QuoteMeta(hostname)
 	if wildcard {
 		subdomain := routeapi.GetDomainForHost(hostname)
@@ -124,6 +132,10 @@ func generateRouteRegexp(hostname, path string, wildcard bool) string {
 	default:
 		pathRE = regexp.QuoteMeta(path)
 		subpathRE = "(/.*)?"
+	}
+
+	if pathRegexp && pathRE != "" {
+		pathRE = path
 	}
 
 	return "^" + hostRE + portRE + pathRE + subpathRE + "$"
@@ -180,6 +192,7 @@ var helperFunctions = template.FuncMap{
 
 	"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 	"generateRouteRegexp":        generateRouteRegexp,        //generates a regular expression matching the route hosts (and paths)
+	"generateRouteRegexp2":       generateRouteRegexp2,       //generates a regular expression matching the route hosts (and paths, optionally as regexps)
 	"genCertificateHostName":     genCertificateHostName,     //generates host name to use for serving/matching certificates
 
 	"isTrue":     isTrue,     //determines if a given variable is a true value

@@ -76,19 +76,21 @@ func TestFirstMatch(t *testing.T) {
 
 func TestGenerateRouteRegexp(t *testing.T) {
 	tests := []struct {
-		name     string
-		hostname string
-		path     string
-		wildcard bool
+		name       string
+		hostname   string
+		path       string
+		pathRegexp bool
+		wildcard   bool
 
 		match   []string
 		nomatch []string
 	}{
 		{
-			name:     "no path",
-			hostname: "example.com",
-			path:     "",
-			wildcard: false,
+			name:       "no path",
+			hostname:   "example.com",
+			path:       "",
+			pathRegexp: false,
+			wildcard:   false,
 			match: []string{
 				"example.com",
 				"example.com:80",
@@ -99,10 +101,11 @@ func TestGenerateRouteRegexp(t *testing.T) {
 			nomatch: []string{"other.com"},
 		},
 		{
-			name:     "root path with trailing slash",
-			hostname: "example.com",
-			path:     "/",
-			wildcard: false,
+			name:       "root path with trailing slash",
+			hostname:   "example.com",
+			path:       "/",
+			pathRegexp: false,
+			wildcard:   false,
 			match: []string{
 				"example.com",
 				"example.com:80",
@@ -113,10 +116,11 @@ func TestGenerateRouteRegexp(t *testing.T) {
 			nomatch: []string{"other.com"},
 		},
 		{
-			name:     "subpath with trailing slash",
-			hostname: "example.com",
-			path:     "/sub/",
-			wildcard: false,
+			name:       "subpath with trailing slash",
+			hostname:   "example.com",
+			path:       "/sub/",
+			pathRegexp: false,
+			wildcard:   false,
 			match: []string{
 				"example.com/sub/",
 				"example.com/sub/subsub",
@@ -131,10 +135,33 @@ func TestGenerateRouteRegexp(t *testing.T) {
 			},
 		},
 		{
-			name:     "subpath without trailing slash",
-			hostname: "example.com",
-			path:     "/sub",
-			wildcard: false,
+			name:       "regexp subpath with trailing slash",
+			hostname:   "example.com",
+			path:       "/[^/]+/sub/",
+			pathRegexp: true,
+			wildcard:   false,
+			match: []string{
+				"example.com/1/sub/",
+				"example.com/2/sub/",
+				"example.com/1/sub/subsub",
+				"example.com/2/sub/subsub",
+			},
+			nomatch: []string{
+				"other.com",
+				"example.com",
+				"example.com:80",
+				"example.com/",
+				"example.com/sub/",     // path with regexp component doesn't match URL without
+				"example.com/1/sub",    // path with trailing slash doesn't match URL without
+				"example.com/1/subpar", // path segment boundary match required
+			},
+		},
+		{
+			name:       "subpath without trailing slash",
+			hostname:   "example.com",
+			path:       "/sub",
+			pathRegexp: false,
+			wildcard:   false,
 			match: []string{
 				"example.com/sub",
 				"example.com/sub/",
@@ -149,10 +176,35 @@ func TestGenerateRouteRegexp(t *testing.T) {
 			},
 		},
 		{
-			name:     "wildcard",
-			hostname: "www.example.com",
-			path:     "/",
-			wildcard: true,
+			name:       "regexp subpath without trailing slash",
+			hostname:   "example.com",
+			path:       "/[^/]+/sub",
+			pathRegexp: true,
+			wildcard:   false,
+			match: []string{
+				"example.com/1/sub",
+				"example.com/2/sub",
+				"example.com/1/sub/",
+				"example.com/2/sub/",
+				"example.com/1/sub/subsub",
+				"example.com/2/sub/subsub",
+			},
+			nomatch: []string{
+				"other.com",
+				"example.com",
+				"example.com:80",
+				"example.com/",
+				"example.com/sub",        // path with regexp component doesn't match URLs without
+				"example.com/sub/subpar", // same as previous
+				"example.com/1/subpar",   // path segment boundary match required
+			},
+		},
+		{
+			name:       "wildcard",
+			hostname:   "www.example.com",
+			path:       "/",
+			pathRegexp: false,
+			wildcard:   true,
 			match: []string{
 				"www.example.com",
 				"www.example.com/",
@@ -173,10 +225,11 @@ func TestGenerateRouteRegexp(t *testing.T) {
 			},
 		},
 		{
-			name:     "non-wildcard",
-			hostname: "www.example.com",
-			path:     "/",
-			wildcard: false,
+			name:       "non-wildcard",
+			hostname:   "www.example.com",
+			path:       "/",
+			pathRegexp: false,
+			wildcard:   false,
 			match: []string{
 				"www.example.com",
 				"www.example.com/",
@@ -199,15 +252,23 @@ func TestGenerateRouteRegexp(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		r := regexp.MustCompile(generateRouteRegexp(tt.hostname, tt.path, tt.wildcard))
+		rs := []*regexp.Regexp{regexp.MustCompile(generateRouteRegexp2(tt.hostname, tt.path, tt.pathRegexp, tt.wildcard))}
+		if !tt.pathRegexp {
+			// ensure legacy function still works
+			rs = append(rs, regexp.MustCompile(generateRouteRegexp(tt.hostname, tt.path, tt.wildcard)))
+		}
 		for _, s := range tt.match {
-			if !r.Match([]byte(s)) {
-				t.Errorf("%s: expected %s to match %s, but didn't", tt.name, r, s)
+			for _, r := range rs {
+				if !r.Match([]byte(s)) {
+					t.Errorf("%s: expected %s to match %s, but didn't", tt.name, r, s)
+				}
 			}
 		}
 		for _, s := range tt.nomatch {
-			if r.Match([]byte(s)) {
-				t.Errorf("%s: expected %s not to match %s, but did", tt.name, r, s)
+			for _, r := range rs {
+				if r.Match([]byte(s)) {
+					t.Errorf("%s: expected %s not to match %s, but did", tt.name, r, s)
+				}
 			}
 		}
 	}

@@ -27,6 +27,7 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 		{Name: "name", Required: false},
 		{Name: "hostname", Required: false},
 		{Name: "path", Required: false},
+		{Name: "path-regexp", Required: false},
 		{Name: "wildcard-policy", Required: false},
 	}
 }
@@ -34,10 +35,12 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 // Generate accepts a set of parameters and maps them into a new route
 func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Object, error) {
 	var (
-		labels map[string]string
-		err    error
+		annotations map[string]string
+		labels      map[string]string
+		err         error
 	)
 
+	annotations = map[string]string{}
 	params := map[string]string{}
 	for key, value := range genericParams {
 		strVal, isString := value.(string)
@@ -63,10 +66,18 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		}
 	}
 
+	pathRegexp, found := params["path-regexp"]
+	if found {
+		if v, _ := strconv.ParseBool(pathRegexp); v {
+			annotations[routeapi.RoutePathRegexpAnnotation] = pathRegexp
+		}
+	}
+
 	route := &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name:        name,
+			Annotations: annotations,
+			Labels:      labels,
 		},
 		Spec: routeapi.RouteSpec{
 			Host:           params["hostname"],
