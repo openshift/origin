@@ -49,7 +49,11 @@ var (
 
 	// kubeAdmissionPlugins gives the in-order default admission chain for kube resources.
 	kubeAdmissionPlugins = []string{
+		"AlwaysAdmit",
+		"NamespaceAutoProvision",
+		"NamespaceExists",
 		lifecycle.PluginName,
+		"EventRateLimit",
 		"RunOnceDuration",
 		"PodNodeConstraints",
 		"OriginPodNodeEnvironment",
@@ -61,10 +65,15 @@ var (
 		imagequalify.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
+		"InitialResources",
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
+		"SecurityContextDeny",
 		sccadmission.PluginName,
+		"PodSecurityPolicy",
+		"DenyEscalatingExec",
+		"DenyExecOnPrivileged",
 		storageclassdefaultadmission.PluginName,
 		expandpvcadmission.PluginName,
 		"AlwaysPullImages",
@@ -73,6 +82,7 @@ var (
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
+		"Priority",
 		"ExtendedResourceToleration",
 		"DefaultTolerationSeconds",
 		"PVCProtection",
@@ -80,6 +90,7 @@ var (
 		"MutatingAdmissionWebhook",
 		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
+		"AlwaysDeny",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		"ResourceQuota",
@@ -90,7 +101,11 @@ var (
 	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
 	// the order specified in the openshift and kube chains must match the order here.
 	combinedAdmissionControlPlugins = []string{
+		"AlwaysAdmit",
+		"NamespaceAutoProvision",
+		"NamespaceExists",
 		lifecycle.PluginName,
+		"EventRateLimit",
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"openshift.io/RestrictSubjectBindings",
@@ -109,10 +124,15 @@ var (
 		imagequalify.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
+		"InitialResources",
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
+		"SecurityContextDeny",
 		sccadmission.PluginName,
+		"PodSecurityPolicy",
+		"DenyEscalatingExec",
+		"DenyExecOnPrivileged",
 		storageclassdefaultadmission.PluginName,
 		expandpvcadmission.PluginName,
 		"AlwaysPullImages",
@@ -121,6 +141,7 @@ var (
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
+		"Priority",
 		"ExtendedResourceToleration",
 		"DefaultTolerationSeconds",
 		"PVCProtection",
@@ -128,6 +149,7 @@ var (
 		"MutatingAdmissionWebhook",
 		"ValidatingAdmissionWebhook",
 		"PodTolerationRestriction",
+		"AlwaysDeny",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		"ResourceQuota",
