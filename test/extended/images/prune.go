@@ -22,7 +22,7 @@ import (
 
 const (
 	testImageSize     = 1024
-	mirrorBlobTimeout = time.Second * 10
+	mirrorBlobTimeout = time.Second * 30
 	// this image has a high number of relatively small blobs
 	externalImageReference = "docker.io/openshift/origin-release:golang-1.4"
 )
