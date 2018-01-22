@@ -234,7 +234,7 @@ os::cmd::try_until_success 'oc get istag/mysql:5.5'
 # default behavior is to copy the current image, but since this is an external image we preserve the dockerImageReference
 os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^openshift/mysql-55-centos7@sha256:'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^docker.io/openshift/mysql-55-centos7@sha256:'
 # when copying a tag that points to the internal registry, update the docker image reference
 os::cmd::expect_success "oc tag test:new newrepo:direct"
 os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' "/$project/newrepo@sha256:"
@@ -246,7 +246,7 @@ os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec
 os::cmd::expect_success 'oc new-project test-cmd-images-2'
 os::cmd::expect_success "oc tag $project/mysql:5.5 newrepo:latest"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'openshift/mysql-55-centos7@sha256:'
+os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'docker.io/openshift/mysql-55-centos7@sha256:'
 # tag across projects without specifying the source's project
 os::cmd::expect_success_and_text "oc tag newrepo:latest '${project}/mysql:tag1'" "mysql:tag1 set to"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).name}}'" "latest"
