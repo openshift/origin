@@ -48,8 +48,14 @@ global
   tune.maxrewrite 8192
   tune.bufsize 32768
 
-  # Prevent vulnerability to POODLE attacks
+# SSLv3 disabled to prevent vulnerability to POODLE attacks
+{{- if eq (env "ROUTER_MINIMUM_TLS_VERSION" "") "1.2" }}
+  ssl-default-bind-options no-tlsv10 no-tlsv11 no-sslv3
+{{- else if eq (env "ROUTER_MINIMUM_TLS_VERSION" "") "1.1" }}
+  ssl-default-bind-options no-tlsv10 no-sslv3
+{{- else }}
   ssl-default-bind-options no-sslv3
+{{- end }}
 
 # The default cipher suite can be selected from the three sets recommended by https://wiki.mozilla.org/Security/Server_Side_TLS,
 # or the user can provide one using the ROUTER_CIPHERS environment variable.

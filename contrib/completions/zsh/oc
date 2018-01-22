@@ -6827,6 +6827,8 @@ _oc_adm_router()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--min-tls-version")
+    local_nonpersistent_flags+=("--min-tls-version")
     flags+=("--ciphers=")
     local_nonpersistent_flags+=("--ciphers=")
     flags+=("--create")

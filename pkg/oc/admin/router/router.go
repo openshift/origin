@@ -235,6 +235,11 @@ type RouterConfig struct {
 	StrictSNI bool
 
 	Local bool
+	// MinimumTLSVersion is the list of TLS protocols which should
+	// be rejected by the router.
+	// SSLv3 protocol not configurable and disabled by default due
+	// to poodle vulnerability.
+	MinimumTLSVersion string
 }
 
 const (
@@ -317,6 +322,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.Ciphers, "ciphers", cfg.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.StrictSNI, "strict-sni", cfg.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
+	cmd.Flags().StringVar(&cfg.MinimumTLSVersion, "min-tls-version", cfg.MinimumTLSVersion, "Specifies a minimum version of the TLS protocol to support. E.g.'1.1', '1.2'")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -666,6 +672,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		"ROUTER_EXTERNAL_HOST_INTERNAL_ADDRESS": cfg.ExternalHostInternalIP,
 		"ROUTER_EXTERNAL_HOST_VXLAN_GW_CIDR":    cfg.ExternalHostVxLANGateway,
 		"ROUTER_CIPHERS":                        cfg.Ciphers,
+		"ROUTER_MINIMUM_TLS_VERSION":            cfg.MinimumTLSVersion,
 		"STATS_PORT":                            strconv.Itoa(cfg.StatsPort),
 		"STATS_USERNAME":                        cfg.StatsUsername,
 		"STATS_PASSWORD":                        cfg.StatsPassword,

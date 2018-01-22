@@ -46,6 +46,8 @@ os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false -
 os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --ciphers=modern -o yaml' 'modern'
 # strict-sni
 os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --strict-sni -o yaml' 'ROUTER_STRICT_SNI'
+# min-tls-version
+os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --min-tls-version=1.2 -o yaml' '1.2'
 
 # mount tls crt as secret
 os::cmd::expect_success_and_not_text 'oc adm router --dry-run --host-network=false --host-ports=false -o yaml' 'value: /etc/pki/tls/private/tls.crt'

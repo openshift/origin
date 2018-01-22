@@ -86,6 +86,7 @@ type TemplateRouter struct {
 	MaxConnections           string
 	Ciphers                  string
 	StrictSNI                bool
+	MinimumTLSVersion        string
 	MetricsType              string
 }
 
@@ -122,7 +123,8 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", isTrue(util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "")), "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
 	flag.StringVar(&o.Ciphers, "ciphers", util.Env("ROUTER_CIPHERS", ""), "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list.")
-	flag.BoolVar(&o.StrictSNI, "strict-sni", isTrue(util.Env("ROUTER_STRICT_SNI", "")), "Use strict-sni bind processing (do not use default cert).")
+	flag.BoolVar(&o.StrictSNI, "strict-sni", util.Env("ROUTER_STRICT_SNI", "") == "true", "Use strict-sni bind processing (do not use default cert).")
+	flag.StringVar(&o.MinimumTLSVersion, "min-tls-version", util.Env("ROUTER_MINIMUM_TLS_VERSION", ""), "Specifies a minimum version of the TLS protocol to support. E.g.'1.1', '1.2'")
 	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
 }
 
@@ -400,6 +402,7 @@ func (o *TemplateRouterOptions) Run() error {
 		MaxConnections:           o.MaxConnections,
 		Ciphers:                  o.Ciphers,
 		StrictSNI:                o.StrictSNI,
+		MinimumTLSVersion:        o.MinimumTLSVersion,
 	}
 
 	kc, err := o.Config.Clients()

@@ -61,6 +61,7 @@ type TemplatePluginConfig struct {
 	MaxConnections           string
 	Ciphers                  string
 	StrictSNI                bool
+	MinimumTLSVersion        string
 }
 
 // routerInterface controls the interaction of the plugin with the underlying router implementation
