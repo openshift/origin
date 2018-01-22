@@ -38,6 +38,24 @@ var versions = map[string]uint16{
 	"VersionTLS12": tls.VersionTLS12,
 }
 
+// TLSVersionToNameOrDie given a tls version as an int, return its readable name
+func TLSVersionToNameOrDie(intVal uint16) string {
+	matches := []string{}
+	for key, version := range versions {
+		if version == intVal {
+			matches = append(matches, key)
+		}
+	}
+
+	if len(matches) == 0 {
+		panic(fmt.Sprintf("no name found for %d", intVal))
+	}
+	if len(matches) > 1 {
+		panic(fmt.Sprintf("multiple names found for %d: %v", intVal, matches))
+	}
+	return matches[0]
+}
+
 func TLSVersion(versionName string) (uint16, error) {
 	if len(versionName) == 0 {
 		return DefaultTLSVersion(), nil
@@ -92,6 +110,34 @@ var ciphers = map[string]uint16{
 	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305":    tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305":  tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+}
+
+// CipherSuitesToNamesOrDie given a list of cipher suites as ints, return their readable names
+func CipherSuitesToNamesOrDie(intVals []uint16) []string {
+	ret := []string{}
+	for _, intVal := range intVals {
+		ret = append(ret, CipherSuiteToNameOrDie(intVal))
+	}
+
+	return ret
+}
+
+// CipherSuiteToNameOrDie given a cipher suite as an int, return its readable name
+func CipherSuiteToNameOrDie(intVal uint16) string {
+	matches := []string{}
+	for key, version := range ciphers {
+		if version == intVal {
+			matches = append(matches, key)
+		}
+	}
+
+	if len(matches) == 0 {
+		panic(fmt.Sprintf("no name found for %d", intVal))
+	}
+	if len(matches) > 1 {
+		panic(fmt.Sprintf("multiple names found for %d: %v", intVal, matches))
+	}
+	return matches[0]
 }
 
 func CipherSuite(cipherName string) (uint16, error) {

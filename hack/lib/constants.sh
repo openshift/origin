@@ -59,6 +59,7 @@ readonly OS_GOVET_BLACKLIST=(
 	"pkg/build/vendor/github.com/docker/engine-api/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"cmd/cluster-capacity/.*"
 	"pkg/build/builder/vendor/.*"
+	"pkg/cmd/server/start/.*"
 )
 
 #If you update this list, be sure to get the images/origin/Dockerfile

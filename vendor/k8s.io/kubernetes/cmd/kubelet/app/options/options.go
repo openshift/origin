@@ -371,8 +371,8 @@ func (f *KubeletFlags) AddFlags(fs *pflag.FlagSet) {
 
 // AddKubeletConfigFlags adds flags for a specific kubeletconfig.KubeletConfiguration to the specified FlagSet
 func AddKubeletConfigFlags(fs *pflag.FlagSet, c *kubeletconfig.KubeletConfiguration) {
-	fs.BoolVar(&c.FailSwapOn, "fail-swap-on", true, "Makes the Kubelet fail to start if swap is enabled on the node. ")
-	fs.BoolVar(&c.FailSwapOn, "experimental-fail-swap-on", true, "DEPRECATED: please use --fail-swap-on instead.")
+	fs.BoolVar(&c.FailSwapOn, "fail-swap-on", c.FailSwapOn, "Makes the Kubelet fail to start if swap is enabled on the node. ")
+	fs.BoolVar(&c.FailSwapOn, "experimental-fail-swap-on", c.FailSwapOn, "DEPRECATED: please use --fail-swap-on instead.")
 	fs.MarkDeprecated("experimental-fail-swap-on", "This flag is deprecated and will be removed in future releases. please use --fail-swap-on instead.")
 
 	fs.StringVar(&c.PodManifestPath, "pod-manifest-path", c.PodManifestPath, "Path to the directory containing pod manifest files to run, or the path to a single pod manifest file. Files starting with dots will be ignored.")
@@ -413,6 +413,13 @@ func AddKubeletConfigFlags(fs *pflag.FlagSet, c *kubeletconfig.KubeletConfigurat
 		"If --tls-cert-file and --tls-private-key-file are not provided, a self-signed certificate and key "+
 		"are generated for the public address and saved to the directory passed to --cert-dir.")
 	fs.StringVar(&c.TLSPrivateKeyFile, "tls-private-key-file", c.TLSPrivateKeyFile, "File containing x509 private key matching --tls-cert-file.")
+	fs.StringSliceVar(&c.TLSCipherSuites, "tls-cipher-suites", c.TLSCipherSuites,
+		"Comma-separated list of cipher suites for the server. "+
+			"Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants). "+
+			"If omitted, the default Go cipher suites will be used")
+	fs.StringVar(&c.TLSMinVersion, "tls-min-version", c.TLSMinVersion,
+		"Minimum TLS version supported. "+
+			"Value must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants.")
 
 	fs.BoolVar(&c.AllowPrivileged, "allow-privileged", c.AllowPrivileged, "If true, allow containers to request privileged mode.")
 	fs.StringSliceVar(&c.HostNetworkSources, "host-network-sources", c.HostNetworkSources, "Comma-separated list of sources from which the Kubelet allows pods to use of host network.")
