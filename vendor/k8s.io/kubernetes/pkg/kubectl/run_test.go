@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -1182,6 +1182,23 @@ func TestParseEnv(t *testing.T) {
 			expected:  []v1.EnvVar{},
 			expectErr: true,
 			test:      "test case 4",
+		},
+		{
+				envArray: []string{
+						"MYENV1=v1,MYENV2=v2",
+				},
+				expected: []v1.EnvVar{ 
+								{
+								    Name: "MYENV1",
+								    Value: "v1",
+								},
+								{
+								    Name: "MYENV2",
+								    Value: "v2",
+								},
+				},
+				expectErr: false,
+				test:      "test case 5",
 		},
 	}
 
