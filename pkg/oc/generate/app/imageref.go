@@ -350,11 +350,12 @@ func (r *ImageRef) ImageStreamTag() (*imageapi.ImageStreamTag, error) {
 }
 
 // DeployableContainer sets up a container for the image ready for deployment
-func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []appsapi.DeploymentTriggerPolicy, err error) {
+func (r *ImageRef) DeployableContainer(isDeployment bool) (container *kapi.Container, triggers []appsapi.DeploymentTriggerPolicy, err error) {
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.Reference.String())
 	}
+	image := r.PullSpec()
 	if r.AsImageStream {
 		triggers = []appsapi.DeploymentTriggerPolicy{
 			{
@@ -366,11 +367,17 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 				},
 			},
 		}
+		// If the image is coming from an image stream, don't use the image stream name as an image.
+		// This will allow upstream deployment controller to pause the deployment until triggers supply
+		// the resolved image.
+		if isDeployment {
+			image = " "
+		}
 	}
 
 	container = &kapi.Container{
 		Name:  name,
-		Image: r.PullSpec(),
+		Image: image,
 		Env:   r.Env.List(),
 	}
 
@@ -427,7 +434,7 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 		Name: fmt.Sprintf("%s-install", name),
 	}
 
-	container, _, err := r.DeployableContainer()
+	container, _, err := r.DeployableContainer(false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't generate an installable container: %v", err)
 	}

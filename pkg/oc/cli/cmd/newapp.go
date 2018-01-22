@@ -210,6 +210,7 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.Deploy = true
+	config.DeployConfig = true
 	o := &NewAppOptions{&ObjectGeneratorOptions{Config: config}}
 
 	cmd := &cobra.Command{
@@ -229,6 +230,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 	}
 
 	cmd.Flags().BoolVar(&config.AsTestDeployment, "as-test", config.AsTestDeployment, "If true create this application as a test deployment, which validates that the deployment succeeds and then scales down.")
+	cmd.Flags().BoolVar(&config.DeployConfig, "as-deployment-config", config.DeployConfig, "If true create this application as a deployment config, which allows for hooks and custom strategies.")
 	cmd.Flags().StringSliceVar(&config.SourceRepositories, "code", config.SourceRepositories, "Source code to use to build this application.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
 	cmd.Flags().StringSliceVarP(&config.ImageStreams, "image", "", config.ImageStreams, "Name of an image stream to use in the app. (deprecated)")
