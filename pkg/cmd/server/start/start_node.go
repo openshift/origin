@@ -475,6 +475,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		}
 		glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
+		config.EnsureCloudProviderName(nodeConfig)
 		config.EnsureKubeletAccess()
 		config.EnsureVolumeDir()
 		config.EnsureDocker(docker.NewHelper())

@@ -227,6 +227,28 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 	}
 }
 
+// EnsureCloudProviderName checks cloud provider perceived node name matches with
+// OpenShift configured node name.
+func (c *NodeConfig) EnsureCloudProviderName(nodeConfig configapi.NodeConfig) {
+	if c.KubeletDeps.Cloud == nil {
+		return
+	}
+
+	instances, ok := c.KubeletDeps.Cloud.Instances()
+	if !ok {
+		glog.Fatalf("Could not get instances from cloud provider")
+	}
+
+	nodeName, err := instances.CurrentNodeName(nodeConfig.NodeName)
+	if err != nil {
+		glog.Fatalf("Unable to fetch node name from cloud provider: %v", err)
+	}
+
+	if nodeConfig.NodeName != string(nodeName) {
+		glog.Fatalf("Configured node name %q does not match with cloud provider node name: %q", nodeConfig.NodeName, string(nodeName))
+	}
+}
+
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
