@@ -6,6 +6,7 @@
         "ORIGIN_DATA_DIR": "/var/lib/origin",
         "MASTER_SERVICE": "atomic-openshift-master.service",
         "DOCKER_SERVICE": "docker.service",
-        "OPENVSWITCH_SERVICE": "openvswitch.service"
+        "OPENVSWITCH_SERVICE": "openvswitch.service",
+        "ADDTL_MOUNTS": ""
     }
 }
