@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -38,7 +39,7 @@ type OverwriteBootstrapPolicyOptions struct {
 	CreateBootstrapPolicyCommand string
 }
 
-func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, createBootstrapPolicyCommand string, out io.Writer) *cobra.Command {
+func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, createBootstrapPolicyCommand string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &OverwriteBootstrapPolicyOptions{Out: out}
 	options.CreateBootstrapPolicyCommand = createBootstrapPolicyCommand
 
@@ -46,13 +47,11 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 		Use:   commandName,
 		Short: "Reset the policy to the default values",
 		Run: func(cmd *cobra.Command, args []string) {
+			kcmdutil.CheckErr(options.Complete(f))
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
-
-			if err := options.OverwriteBootstrapPolicy(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(options.OverwriteBootstrapPolicy())
 		},
 	}
 
@@ -81,6 +80,15 @@ func (o OverwriteBootstrapPolicyOptions) Validate(args []string) error {
 	}
 
 	return nil
+}
+
+func (o OverwriteBootstrapPolicyOptions) Complete(f *clientcmd.Factory) error {
+	discovery, err := f.DiscoveryClient()
+	if err != nil {
+		return err
+	}
+
+	return clientcmd.LegacyPolicyResourceGate(discovery)
 }
 
 func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {

@@ -71,10 +71,19 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	}
 	o.BindingNamespace = namespace
 
+	discovery, err := f.DiscoveryClient()
+	if err != nil {
+		return err
+	}
+
+	if err := clientcmd.LegacyPolicyResourceGate(discovery); err != nil {
+		return err
+	}
 	client, _, err := f.Clients()
 	if err != nil {
 		return err
 	}
+
 	o.BindingClient = client
 
 	o.Mapper, _ = f.Object()

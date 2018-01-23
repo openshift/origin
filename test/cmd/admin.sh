@@ -173,6 +173,10 @@ os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group
 echo "admin-scc: ok"
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/admin/overwrite-policy"
+os::cmd::expect_failure_and_not_text 'oc adm overwrite-policy --filename file_does_not_exist' 'error: the server does not support legacy policy resources'
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/admin/reconcile-cluster-roles"
 os::cmd::expect_success 'oc delete clusterrole/cluster-status --cascade=false'
 os::cmd::expect_failure 'oc get clusterrole/cluster-status'
