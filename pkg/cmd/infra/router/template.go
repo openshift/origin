@@ -259,6 +259,8 @@ func (o *TemplateRouterOptions) Validate() error {
 func (o *TemplateRouterOptions) Run() error {
 	glog.Infof("Starting template router (%s)", version.Get())
 
+	var reloadCallbacks []func()
+
 	statsPort := o.StatsPort
 	switch {
 	case o.MetricsType == "haproxy" && statsPort != 0:
@@ -301,7 +303,7 @@ func (o *TemplateRouterOptions) Run() error {
 			}
 		}
 
-		_, err := haproxy.NewPrometheusCollector(haproxy.PrometheusOptions{
+		collector, err := haproxy.NewPrometheusCollector(haproxy.PrometheusOptions{
 			// Only template router customizers who alter the image should need this
 			ScrapeURI: util.Env("ROUTER_METRICS_HAPROXY_SCRAPE_URI", ""),
 			// Only template router customizers who alter the image should need this
@@ -379,6 +381,9 @@ func (o *TemplateRouterOptions) Run() error {
 			})
 		}
 		l.Listen()
+
+		// on reload, invoke the collector to preserve whatever metrics we can
+		reloadCallbacks = append(reloadCallbacks, collector.CollectNow)
 	}
 
 	pluginCfg := templateplugin.TemplatePluginConfig{
@@ -386,6 +391,7 @@ func (o *TemplateRouterOptions) Run() error {
 		TemplatePath:             o.TemplateFile,
 		ReloadScriptPath:         o.ReloadScript,
 		ReloadInterval:           o.ReloadInterval,
+		ReloadCallbacks:          reloadCallbacks,
 		DefaultCertificate:       o.DefaultCertificate,
 		DefaultCertificatePath:   o.DefaultCertificatePath,
 		DefaultCertificateDir:    o.DefaultCertificateDir,

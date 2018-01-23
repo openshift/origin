@@ -114,13 +114,13 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			serverLabels := labels{"namespace": ns, "route": "weightedroute"}
 			var metrics map[string]*dto.MetricFamily
 			times := 10
+			p := expfmt.TextParser{}
 			var results string
 			defer func() { e2e.Logf("received metrics:\n%s", results) }()
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				p := expfmt.TextParser{}
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
 				//e2e.Logf("Metrics:\n%s", results)
@@ -181,6 +181,27 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			// router metrics
 			o.Expect(findMetricsWithLabels(metrics["template_router_reload_seconds"], nil)[0].Summary.GetSampleSum()).To(o.BeNumerically(">", 0))
 			o.Expect(findMetricsWithLabels(metrics["template_router_write_config_seconds"], nil)[0].Summary.GetSampleSum()).To(o.BeNumerically(">", 0))
+
+			// TODO: uncomment after this merges in a follow on (once the router image supports reload)
+			// verify that across a reload metrics are preserved
+			// g.By("forcing a router restart after a pod deletion")
+
+			// // delete the pod
+			// err = oc.AdminKubeClient().CoreV1().Pods(ns).Delete("endpoint-2", nil)
+			// o.Expect(err).NotTo(o.HaveOccurred())
+
+			// g.By("waiting for the router to reload")
+			// time.Sleep(15 * time.Second)
+
+			// g.By("checking that some metrics are not reset to 0 after router restart")
+			// defer func() { e2e.Logf("received metrics:\n%s", results) }()
+			// results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
+			// o.Expect(err).NotTo(o.HaveOccurred())
+
+			// updatedMetrics, err := p.TextToMetricFamilies(bytes.NewBufferString(results))
+			// o.Expect(err).NotTo(o.HaveOccurred())
+			// o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_backend_connections_total"], routeLabels)[0]).To(o.BeNumerically(">=", findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0]))
+			// o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_bytes_in_total"], serverLabels)[0]).To(o.BeNumerically(">=", findGaugesWithLabels(metrics["haproxy_server_bytes_in_total"], serverLabels)[0]))
 		})
 
 		g.It("should expose the profiling endpoints", func() {
