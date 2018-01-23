@@ -133,6 +133,7 @@ Requires:       docker >= %{docker_version}
 Requires:       util-linux
 Requires:       socat
 Requires:       nfs-utils
+Requires:       cifs-utils
 Requires:       ethtool
 Requires:       device-mapper-persistent-data >= 0.6.2
 Requires:       conntrack-tools
@@ -605,6 +606,9 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Jan 23 2018 Huamin Chen <hchen@redhat.com> 0.2-11
+- Add cifs-utils BZ#1536362.
+
 * Wed Jul 12 2017 Steve Milner <smilner@redhat.com> 0.2-10
 - Master config files moved to /etc/origin/master/ BZ#1469034.
 
