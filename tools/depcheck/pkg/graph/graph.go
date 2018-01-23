@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gonum/graph"
+	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
 )
 
@@ -31,11 +32,25 @@ func (n Node) DOTAttributes() []dot.Attribute {
 	}
 }
 
-type MutableDirectedGraph interface {
-	graph.Directed
+func NewMutableDirectedGraph(g *concrete.DirectedGraph) *MutableDirectedGraph {
+	return &MutableDirectedGraph{
+		DirectedGraph: concrete.NewDirectedGraph(),
+		nodesByName:   make(map[string]graph.Node),
+	}
+}
 
-	AddNode(graph.Node)
+type MutableDirectedGraph struct {
+	*concrete.DirectedGraph
 
-	RemoveEdge(graph.Edge)
-	RemoveNode(graph.Node)
+	nodesByName map[string]graph.Node
+}
+
+func (g *MutableDirectedGraph) AddNode(n *Node) {
+	g.nodesByName[n.UniqueName] = n
+	g.DirectedGraph.AddNode(n)
+}
+
+func (g *MutableDirectedGraph) NodeByName(name string) (graph.Node, bool) {
+	n, exists := g.nodesByName[name]
+	return n, exists && g.DirectedGraph.Has(n)
 }
