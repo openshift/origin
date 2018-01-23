@@ -261,7 +261,7 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 
 # Verifies that clusterup handle different scenarios with persistent volumes setup
 function os::test::extended::clusterup::persistentvolumes () {
-    os::test::extended::clusterup::skip_persistent_volumes
+    os::test::extended::clusterup::skip_persistent_volumes "$@"
     rm -rf /tmp/pv
 }
 
@@ -297,7 +297,8 @@ readonly extra_args=(
     # "--loglevel=5 --image=docker.io/openshift/origin --version=v3.7.0"
 
     # Test the current published release
-    "--loglevel=5"  # can't be empty, so pass something benign
+    # disabling this based on irc with clayton.  This is more strict than openshift-ansible.
+    #"--loglevel=5"  # can't be empty, so pass something benign
 
     # Test the code being delivered
     "--loglevel=5 --version=${ORIGIN_COMMIT}"
@@ -323,23 +324,13 @@ docker tag openshift/origin-web-console:latest openshift/origin-web-console:${OR
 # Ensure that KUBECONFIG is not set
 unset KUBECONFIG
 for test in "${tests[@]}"; do
-    # Special case the console tests, which only run in the current release.
-    # N-1 tests for the console should be enabled next release.
-    if [ "$test" == "console" ]; then
+    for extra_arg in "${extra_args[@]}"; do
         cleanup_func=$("os::test::extended::clusterup::cleanup_func" "${test}")
         # trap "${cleanup_func}; os::test::extended::clusterup::junit_cleanup" EXIT
-        os::test::extended::clusterup::run_test "${test}" "--loglevel=2 --version=${ORIGIN_COMMIT}"
+        os::test::extended::clusterup::run_test "${test}" "${extra_arg}"
         # trap - EXIT
         ${cleanup_func}
-    else
-        for extra_arg in "${extra_args[@]}"; do
-            cleanup_func=$("os::test::extended::clusterup::cleanup_func" "${test}")
-            # trap "${cleanup_func}; os::test::extended::clusterup::junit_cleanup" EXIT
-            os::test::extended::clusterup::run_test "${test}" "${extra_arg}"
-            # trap - EXIT
-            ${cleanup_func}
-        done
-    fi
+    done
 done
 
 # os::test::extended::clusterup::junit_cleanup

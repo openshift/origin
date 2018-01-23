@@ -148,7 +148,6 @@ func DefaultClusterAdminClientCertInfo(certDir string) ClientCertInfo {
 func DefaultServerCerts(certDir string) []configapi.CertInfo {
 	return []configapi.CertInfo{
 		DefaultMasterServingCertInfo(certDir),
-		DefaultAssetServingCertInfo(certDir),
 		DefaultEtcdServingCertInfo(certDir),
 	}
 }
@@ -158,11 +157,6 @@ func DefaultMasterServingCertInfo(certDir string) configapi.CertInfo {
 		CertFile: path.Join(certDir, MasterFilePrefix+".server.crt"),
 		KeyFile:  path.Join(certDir, MasterFilePrefix+".server.key"),
 	}
-}
-
-func DefaultAssetServingCertInfo(certDir string) configapi.CertInfo {
-	// Use master certs for assets also
-	return DefaultMasterServingCertInfo(certDir)
 }
 
 func DefaultEtcdServingCertInfo(certDir string) configapi.CertInfo {
