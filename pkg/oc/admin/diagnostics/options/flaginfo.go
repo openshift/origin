@@ -50,13 +50,5 @@ const (
 	FlagClusterContextName      = "cluster-context"
 	FlagLevelName               = "diaglevel"
 	FlagIsHostName              = "host"
-	FlagImageTemplateName       = "images"
-	FlagLatestImageName         = "latest-images"
 	FlagPreventModificationName = "prevent-modification"
-
-	FlagNetworkDiagLogDir          = "network-logdir"
-	FlagNetworkDiagPodImage        = "network-pod-image"
-	FlagNetworkDiagTestPodImage    = "network-test-pod-image"
-	FlagNetworkDiagTestPodProtocol = "network-test-pod-protocol"
-	FlagNetworkDiagTestPodPort     = "network-test-pod-port"
 )

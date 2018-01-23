@@ -9,7 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	master "github.com/openshift/origin/pkg/cmd/server/api"
 	hostdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/host"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/service/admission"
 )
@@ -19,6 +21,7 @@ import (
 // Background: https://github.com/openshift/origin/issues/7808
 type ServiceExternalIPs struct {
 	MasterConfigFile string
+	masterConfig     *master.MasterConfig
 	KclusterClient   kclientset.Interface
 }
 
@@ -32,8 +35,23 @@ func (d *ServiceExternalIPs) Description() string {
 	return "Check for existing services with ExternalIPs that are disallowed by master config"
 }
 
+func (d *ServiceExternalIPs) Requirements() (client bool, host bool) {
+	return true, true
+}
+
+func (d *ServiceExternalIPs) Complete(logger *log.Logger) error {
+	if len(d.MasterConfigFile) > 0 {
+		masterConfig, err := hostdiag.GetMasterConfig(d.MasterConfigFile, logger)
+		if err != nil {
+			return err
+		}
+		d.masterConfig = masterConfig
+	}
+	return nil
+}
+
 func (d *ServiceExternalIPs) CanRun() (bool, error) {
-	if len(d.MasterConfigFile) == 0 {
+	if len(d.MasterConfigFile) == 0 || d.masterConfig == nil {
 		return false, errors.New("No master config file was detected")
 	}
 	if d.KclusterClient == nil {
@@ -45,14 +63,10 @@ func (d *ServiceExternalIPs) CanRun() (bool, error) {
 
 func (d *ServiceExternalIPs) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(ServiceExternalIPsName)
-	masterConfig, err := hostdiag.GetMasterConfig(r, d.MasterConfigFile)
-	if err != nil {
-		r.Info("DH2004", "Unreadable master config; skipping this diagnostic.")
-		return r
-	}
 
 	admit, reject := []*net.IPNet{}, []*net.IPNet{}
-	if cidrs := masterConfig.NetworkConfig.ExternalIPNetworkCIDRs; cidrs != nil {
+	var err error
+	if cidrs := d.masterConfig.NetworkConfig.ExternalIPNetworkCIDRs; cidrs != nil {
 		reject, admit, err = admission.ParseRejectAdmitCIDRRules(cidrs)
 		if err != nil {
 			r.Error("DH2007", err, fmt.Sprintf("Could not parse master config NetworkConfig.ExternalIPNetworkCIDRs: (%[1]T) %[1]v", err))

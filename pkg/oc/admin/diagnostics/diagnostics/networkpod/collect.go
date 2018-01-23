@@ -30,6 +30,10 @@ func (d CollectNetworkInfo) Description() string {
 	return "Collect network information in the cluster."
 }
 
+func (d CollectNetworkInfo) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d CollectNetworkInfo) CanRun() (bool, error) {
 	if d.KubeClient == nil {

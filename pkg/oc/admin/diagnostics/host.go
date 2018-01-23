@@ -11,17 +11,30 @@ import (
 )
 
 var (
-	// availableHostDiagnostics contains the names of host diagnostics that can be executed
-	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableHostDiagnostics = sets.NewString(systemddiags.AnalyzeLogsName, systemddiags.UnitStatusName, hostdiags.MasterConfigCheckName, hostdiags.NodeConfigCheckName)
+	// defaultSkipHostDiagnostics is a list of diagnostics to skip by default
+	defaultSkipHostDiagnostics = sets.NewString(
+		hostdiags.EtcdWriteName,
+	)
 )
 
+// availableHostDiagnostics contains the names of host diagnostics that can be executed
+// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
+func availableHostDiagnostics() types.DiagnosticList {
+	return types.DiagnosticList{
+		&systemddiags.AnalyzeLogs{},
+		&systemddiags.UnitStatus{},
+		&hostdiags.MasterConfigCheck{},
+		&hostdiags.NodeConfigCheck{},
+		&hostdiags.EtcdWriteVolume{},
+	}
+}
+
 // buildHostDiagnostics builds host Diagnostic objects based on the host environment.
-// Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
-func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, error) {
-	requestedDiagnostics := availableHostDiagnostics.Intersection(sets.NewString(o.RequestedDiagnostics...)).List()
+// Returns the Diagnostics built, and an error if any was encountered during the building of diagnostics.) {
+func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, error) {
+	requestedDiagnostics := availableHostDiagnostics().Names().Intersection(sets.NewString(o.RequestedDiagnostics.List()...)).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
-		return nil, true, nil // don't waste time on discovery
+		return nil, nil // don't waste time on discovery
 	}
 	isHost := o.IsHost
 	if len(o.MasterConfigLocation) > 0 || len(o.NodeConfigLocation) > 0 {
@@ -30,7 +43,7 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, er
 
 	// If we're not looking at a host, don't try the diagnostics
 	if !isHost {
-		return nil, true, nil
+		return nil, nil
 	}
 
 	diagnostics := []types.Diagnostic{}
@@ -39,18 +52,22 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, er
 		var d types.Diagnostic
 		switch diagnosticName {
 		case systemddiags.AnalyzeLogsName:
-			d = systemddiags.AnalyzeLogs{SystemdUnits: systemdUnits}
+			d = &systemddiags.AnalyzeLogs{SystemdUnits: systemdUnits}
 		case systemddiags.UnitStatusName:
-			d = systemddiags.UnitStatus{SystemdUnits: systemdUnits}
+			d = &systemddiags.UnitStatus{SystemdUnits: systemdUnits}
 		case hostdiags.MasterConfigCheckName:
-			d = hostdiags.MasterConfigCheck{MasterConfigFile: o.MasterConfigLocation}
+			d = &hostdiags.MasterConfigCheck{MasterConfigFile: o.MasterConfigLocation}
 		case hostdiags.NodeConfigCheckName:
-			d = hostdiags.NodeConfigCheck{NodeConfigFile: o.NodeConfigLocation}
+			d = &hostdiags.NodeConfigCheck{NodeConfigFile: o.NodeConfigLocation}
+		case hostdiags.EtcdWriteName:
+			etcd := o.ParameterizedDiagnostics[hostdiags.EtcdWriteName].(*hostdiags.EtcdWriteVolume)
+			etcd.MasterConfigLocation = o.MasterConfigLocation
+			d = etcd
 		default:
-			return diagnostics, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
+			return diagnostics, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
 		diagnostics = append(diagnostics, d)
 	}
 
-	return diagnostics, true, nil
+	return diagnostics, nil
 }

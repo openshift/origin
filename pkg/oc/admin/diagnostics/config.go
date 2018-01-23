@@ -11,14 +11,17 @@ import (
 )
 
 // determine if we even have a client config
-func (o DiagnosticsOptions) detectClientConfig() (bool, []types.DiagnosticError, []types.DiagnosticError) {
+func (o DiagnosticsOptions) detectClientConfig() (bool, bool, []types.DiagnosticError, []types.DiagnosticError) {
+	if o.ClientFlags == nil {
+		return false, false, []types.DiagnosticError{}, []types.DiagnosticError{}
+	}
 	diagnostic := &clientdiagnostics.ConfigLoading{ConfFlagName: config.OpenShiftConfigFlagName, ClientFlags: o.ClientFlags}
 	o.Logger.Notice("CED2011", "Determining if client configuration exists for client/cluster diagnostics")
 	result := diagnostic.Check()
 	for _, entry := range result.Logs() {
 		o.Logger.LogEntry(entry)
 	}
-	return diagnostic.SuccessfulLoad(), result.Warnings(), result.Errors()
+	return true, diagnostic.SuccessfulLoad(), result.Warnings(), result.Errors()
 }
 
 // use the base factory to return a raw config (not specific to a context)
