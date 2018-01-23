@@ -500,11 +500,23 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildapi.Build, 
 	if err != nil {
 		return nil, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", build.Namespace, serviceAccount, err)
 	}
-	pushSecret := buildutil.FindDockerSecretAsReference(builderSecrets, imagename)
-	if pushSecret == nil {
+	secret := buildutil.FindDockerSecretAsReference(builderSecrets, imagename)
+	if secret == nil {
+		dockerSecretExists := false
+		for _, builderSecret := range builderSecrets {
+			if builderSecret.Type == kapi.SecretTypeDockercfg || builderSecret.Type == kapi.SecretTypeDockerConfigJson {
+				dockerSecretExists = true
+				break
+			}
+		}
+		// If there are no docker secrets associated w/ the service account, return an error so the build
+		// will be retried.  The secrets will be created shortly.
+		if !dockerSecretExists {
+			return nil, fmt.Errorf("No docker secrets associated with build service account %s", serviceAccount)
+		}
 		glog.V(4).Infof("No secrets found for pushing or pulling image named %s for build %s/%s", imagename, build.Namespace, build.Name)
 	}
-	return pushSecret, nil
+	return secret, nil
 }
 
 // resourceName creates a string that can be used to uniquely key the provided resource.

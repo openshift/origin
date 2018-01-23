@@ -456,7 +456,7 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	bc := newFakeBuildController(nil, imageClient, nil, nil)
 	defer bc.stop()
-	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef, PushSecret: &kapi.LocalObjectReference{}}))
 	podName := buildapi.GetBuildPodName(build)
 
 	update, err := bc.createBuildPod(build)
@@ -479,7 +479,7 @@ func TestCreateBuildPodWithOutputImageStreamMissing(t *testing.T) {
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	bc := newFakeBuildController(nil, nil, nil, nil)
 	defer bc.stop()
-	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef, PushSecret: &kapi.LocalObjectReference{}}))
 
 	update, err := bc.createBuildPod(build)
 
@@ -499,7 +499,7 @@ func TestCreateBuildPodWithImageStreamMissing(t *testing.T) {
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Kind: "DockerImage"}
 	bc := newFakeBuildController(nil, nil, nil, nil)
 	defer bc.stop()
-	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef, PushSecret: &kapi.LocalObjectReference{}}))
 	build.Spec.Strategy.DockerStrategy.From = &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "isname:latest"}
 
 	update, err := bc.createBuildPod(build)
@@ -524,7 +524,7 @@ func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	bc := newFakeBuildController(nil, imageClient, nil, nil)
 	defer bc.stop()
-	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef, PushSecret: &kapi.LocalObjectReference{}}))
 
 	update, err := bc.createBuildPod(build)
 
