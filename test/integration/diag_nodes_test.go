@@ -16,6 +16,8 @@ import (
 )
 
 func TestDiagNodeConditions(t *testing.T) {
+	t.Skip("can't run containerized")
+
 	masterConfig, nodeConfig, clientFile, err := testserver.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

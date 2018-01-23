@@ -130,6 +130,9 @@ func IsBareRoot(path string) (bool, error) {
 
 // PotentialPRRetryAsFetch is used on checkout errors after a clone where the possibility
 // that a fetch or a PR ref is needed between the clone and checkout operations
+// Cases include: 1) GitHub PRs (example ref forms: (refs/)?pull/[1-9][0-9]*/head);
+// 2) Refs which the RHEL7 git version appears to be too old to handle correctly
+// (example ref form: foo-bar-1), but which newer git versions seem to manage OK.
 func (r *repository) PotentialPRRetryAsFetch(dir, remote, ref string, err error) error {
 	glog.V(4).Infof("Checkout after clone failed for ref %s with error: %v, attempting fetch", ref, err)
 	err = r.Fetch(dir, remote, ref)
@@ -141,7 +144,7 @@ func (r *repository) PotentialPRRetryAsFetch(dir, remote, ref string, err error)
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Fetch  / checkout for %s successful", ref)
+	glog.V(4).Infof("Fetch / checkout for %s successful", ref)
 	return nil
 }
 

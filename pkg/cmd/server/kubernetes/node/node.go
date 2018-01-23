@@ -11,15 +11,12 @@ import (
 
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim"
-	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
-	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
-	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
-	"k8s.io/kubernetes/pkg/kubelet/cm"
+	kclientsetexternal "k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim"
+	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 
@@ -227,11 +224,10 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 	}
 }
 
-// RunKubelet starts the Kubelet.
-func (c *NodeConfig) RunKubelet() {
+func GetClusterDNS(dnsClient kclientsetexternal.Interface, currClusterDNS []string) []string {
 	var clusterDNS net.IP
-	if len(c.KubeletServer.ClusterDNS) == 0 {
-		if service, err := c.DNSClient.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
+	if len(currClusterDNS) == 0 {
+		if service, err := dnsClient.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
 				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
@@ -239,7 +235,7 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS == nil {
-		if endpoint, err := c.DNSClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
+		if endpoint, err := dnsClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
 				// Use first endpoint if endpoint includes "dns" port 53.
 				clusterDNS = net.ParseIP(endpointIP)
@@ -252,40 +248,10 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS != nil && !clusterDNS.IsUnspecified() {
-		c.KubeletServer.ClusterDNS = []string{clusterDNS.String()}
+		return []string{clusterDNS.String()}
 	}
 
-	// only set when ContainerRuntime == "docker"
-	c.KubeletDeps.DockerClientConfig = c.DockerClientConfig
-	// updated by NodeConfig.EnsureVolumeDir
-	c.KubeletServer.RootDirectory = c.VolumeDir
-
-	// hook for overriding the cadvisor interface for integration tests
-	c.KubeletDeps.CAdvisorInterface = defaultCadvisorInterface
-	// hook for overriding the container manager interface for integration tests
-	c.KubeletDeps.ContainerManager = defaultContainerManagerInterface
-
-	go func() {
-		glog.Fatal(kubeletapp.Run(c.KubeletServer, c.KubeletDeps))
-	}()
-}
-
-// defaultCadvisorInterface holds the overridden default interface
-// exists only to allow stubbing integration tests, should always be nil in production
-var defaultCadvisorInterface cadvisor.Interface = nil
-
-// SetFakeCadvisorInterfaceForIntegrationTest sets a fake cadvisor implementation to allow the node to run in integration tests
-func SetFakeCadvisorInterfaceForIntegrationTest() {
-	defaultCadvisorInterface = &cadvisortesting.Fake{}
-}
-
-// defaultContainerManagerInterface holds the overridden default interface
-// exists only to allow stubbing integration tests, should always be nil in production
-var defaultContainerManagerInterface cm.ContainerManager = nil
-
-// SetFakeContainerManagerInterfaceForIntegrationTest sets a fake container manager implementation to allow the node to run in integration tests
-func SetFakeContainerManagerInterfaceForIntegrationTest() {
-	defaultContainerManagerInterface = cm.NewStubContainerManager()
+	return currClusterDNS
 }
 
 // TODO: more generic location

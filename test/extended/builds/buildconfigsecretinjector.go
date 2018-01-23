@@ -16,6 +16,10 @@ var _ = g.Describe("[Feature:Builds] buildconfig secret injector", func() {
 	)
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("creating buildconfigs")
 			err := oc.Run("create").Args("-f", itemsPath).Execute()

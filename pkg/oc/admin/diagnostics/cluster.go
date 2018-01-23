@@ -25,27 +25,27 @@ import (
 	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
-var (
-	// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
-	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClusterDiagnostics = sets.NewString(
-		agldiags.AggregatedLoggingName,
-		clustdiags.ClusterRegistryName,
-		clustdiags.ClusterRouterName,
-		clustdiags.ClusterRolesName,
-		clustdiags.ClusterRoleBindingsName,
-		clustdiags.MasterNodeName,
-		clustdiags.MetricsApiProxyName,
-		clustdiags.NodeDefinitionsName,
-		clustdiags.RouteCertificateValidationName,
-		clustdiags.ServiceExternalIPsName,
-	)
-)
+// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
+// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
+func availableClusterDiagnostics() types.DiagnosticList {
+	return types.DiagnosticList{
+		&agldiags.AggregatedLogging{},
+		&clustdiags.ClusterRegistry{},
+		&clustdiags.ClusterRouter{},
+		&clustdiags.ClusterRoles{},
+		&clustdiags.ClusterRoleBindings{},
+		&clustdiags.MasterNode{},
+		&clustdiags.MetricsApiProxy{},
+		&clustdiags.NodeDefinitions{},
+		&clustdiags.RouteCertificateValidation{},
+		&clustdiags.ServiceExternalIPs{},
+	}
+}
 
 // buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
 // Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
 func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
-	requestedDiagnostics := availableClusterDiagnostics.Intersection(sets.NewString(o.RequestedDiagnostics...)).List()
+	requestedDiagnostics := availableClusterDiagnostics().Names().Intersection(sets.NewString(o.RequestedDiagnostics.List()...)).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}

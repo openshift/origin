@@ -21,26 +21,28 @@ func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) a
 	messageMaker := openshiftauthorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
 	rbacInformers := informers.GetInternalKubeInformers().Rbac().InternalVersion()
 
+	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister(), messageMaker)
+
 	kubeAuthorizer := rbacauthorizer.New(
 		&rbacauthorizer.RoleGetter{Lister: rbacInformers.Roles().Lister()},
 		&rbacauthorizer.RoleBindingLister{Lister: rbacInformers.RoleBindings().Lister()},
 		&rbacauthorizer.ClusterRoleGetter{Lister: rbacInformers.ClusterRoles().Lister()},
 		&rbacauthorizer.ClusterRoleBindingLister{Lister: rbacInformers.ClusterRoleBindings().Lister()},
 	)
-	prettyMessageKubeAuthorizer := openshiftauthorizer.NewAuthorizer(kubeAuthorizer, messageMaker)
-
-	scopeLimitedAuthorizer := scope.NewAuthorizer(prettyMessageKubeAuthorizer, rbacInformers.ClusterRoles().Lister(), messageMaker)
-	// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-	browserSafeAuthorizer := browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated)
 
 	graph := node.NewGraph()
 	node.AddGraphEventHandlers(graph, informers.GetInternalKubeInformers().Core().InternalVersion().Pods(), informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes())
 	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
 
 	openshiftAuthorizer := authorizerunion.New(
-		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup), // authorizes system:masters to do anything, just like upstream
+		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately.
+		// Scopes are first because they will authoritatively deny and can logically be attached to anyone.
+		browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated),
+		// authorizes system:masters to do anything, just like upstream
+		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup),
 		nodeAuthorizer,
-		browserSafeAuthorizer,
+		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+		browsersafe.NewBrowserSafeAuthorizer(openshiftauthorizer.NewAuthorizer(kubeAuthorizer, messageMaker), user.AllAuthenticated),
 	)
 
 	return openshiftAuthorizer

@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
@@ -55,7 +54,8 @@ type RolloutLatestOptions struct {
 	kc              kclientset.Interface
 	baseCommandName string
 
-	printer kprinters.ResourcePrinter
+	// print an object using a printer for a given mapping
+	printObj func(runtime.Object, *meta.RESTMapping, io.Writer) error
 }
 
 // NewCmdRolloutLatest implements the oc rollout latest subcommand.
@@ -129,9 +129,13 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	o.again = kcmdutil.GetFlagBool(cmd, "again")
 
 	if o.output != "revision" {
-		o.printer, err = f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(cmd, false))
-		if err != nil {
-			return err
+		o.printObj = func(obj runtime.Object, mapping *meta.RESTMapping, out io.Writer) error {
+			printer, err := f.PrinterForMapping(kcmdutil.ExtractCmdPrintOptions(cmd, false), mapping)
+			if err != nil {
+				return err
+			}
+
+			return printer.PrintObj(obj, out)
 		}
 	}
 
@@ -199,7 +203,7 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
 		return nil
 	} else if len(o.output) > 0 {
-		return o.printer.PrintObj(dc, o.out)
+		return o.printObj(dc, info.Mapping, o.out)
 	}
 
 	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, o.DryRun, "rolled out")

@@ -13,14 +13,13 @@ import (
 )
 
 type scopeAuthorizer struct {
-	delegate          authorizer.Authorizer
 	clusterRoleGetter rbaclisters.ClusterRoleLister
 
 	forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker
 }
 
-func NewAuthorizer(delegate authorizer.Authorizer, clusterRoleGetter rbaclisters.ClusterRoleLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
-	return &scopeAuthorizer{delegate: delegate, clusterRoleGetter: clusterRoleGetter, forbiddenMessageMaker: forbiddenMessageMaker}
+func NewAuthorizer(clusterRoleGetter rbaclisters.ClusterRoleLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
+	return &scopeAuthorizer{clusterRoleGetter: clusterRoleGetter, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 
 func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorizer.Decision, string, error) {
@@ -31,7 +30,7 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorize
 
 	scopes := user.GetExtra()[authorizationapi.ScopesKey]
 	if len(scopes) == 0 {
-		return a.delegate.Authorize(attributes)
+		return authorizer.DecisionNoOpinion, "", nil
 	}
 
 	nonFatalErrors := []error{}
@@ -44,7 +43,7 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorize
 
 	// check rules against attributes
 	if authorizerrbac.RulesAllow(attributes, rules...) {
-		return a.delegate.Authorize(attributes)
+		return authorizer.DecisionNoOpinion, "", nil
 	}
 
 	denyReason, err := a.forbiddenMessageMaker.MakeMessage(attributes)

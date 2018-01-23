@@ -54,9 +54,6 @@ func timeStampNow() string {
 	return time.Now().Format("0102 15:04:05.000000")
 }
 
-// NotChanged is a Reporter returned by operations that are guaranteed to be read-only
-var NotChanged = ReporterBool(false)
-
 // ResourceOptions assists in performing migrations on any object that
 // can be retrieved via the API.
 type ResourceOptions struct {
@@ -102,7 +99,12 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 }
 
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
-	o.Output = kcmdutil.GetFlagString(c, "output")
+	// oc adm migrate authorization does not support printing and takes no parameters, so we ignore the error here
+	var flagErr error
+	o.Output, flagErr = c.Flags().GetString("output")
+	if flagErr != nil {
+		glog.V(4).Infof("Error getting output flag: %v", flagErr)
+	}
 	switch {
 	case len(o.Output) > 0:
 		printer, err := f.PrinterForOptions(kcmdutil.ExtractCmdPrintOptions(c, false))
@@ -362,10 +364,13 @@ var ErrUnchanged = fmt.Errorf("migration was not necessary")
 // both status and spec must be changed).
 var ErrRecalculate = fmt.Errorf("recalculate migration")
 
+// MigrateError is an exported alias to error to allow external packages to use ErrRetriable and ErrNotRetriable
+type MigrateError error
+
 // ErrRetriable is a wrapper for an error that a migrator may use to indicate the
 // specific error can be retried.
 type ErrRetriable struct {
-	error
+	MigrateError
 }
 
 func (ErrRetriable) Temporary() bool { return true }
@@ -373,12 +378,14 @@ func (ErrRetriable) Temporary() bool { return true }
 // ErrNotRetriable is a wrapper for an error that a migrator may use to indicate the
 // specific error cannot be retried.
 type ErrNotRetriable struct {
-	error
+	MigrateError
 }
 
 func (ErrNotRetriable) Temporary() bool { return false }
 
-type temporary interface {
+// TemporaryError is a wrapper interface that is used to determine if an error can be retried.
+type TemporaryError interface {
+	error
 	// Temporary should return true if this is a temporary error
 	Temporary() bool
 }
@@ -490,7 +497,7 @@ func (t *migrateTracker) try(info *resource.Info, retries int) (attemptResult, e
 
 // canRetry returns true if the provided error indicates a retry is possible.
 func canRetry(err error) bool {
-	if temp, ok := err.(temporary); ok && temp.Temporary() {
+	if temp, ok := err.(TemporaryError); ok && temp.Temporary() {
 		return true
 	}
 	return err == ErrRecalculate

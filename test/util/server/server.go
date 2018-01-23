@@ -33,7 +33,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -408,8 +407,6 @@ func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
 
 func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
 	guardNode()
-	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
-	kubernetes.SetFakeContainerManagerInterfaceForIntegrationTest()
 
 	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
 	if err != nil {

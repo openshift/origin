@@ -76,6 +76,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		dcLogFollow              *exec.Cmd
 		dcLogStdOut, dcLogStdErr *bytes.Buffer
 		setupJenkins             = func() {
+			exutil.DumpDockerInfo()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
 			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends

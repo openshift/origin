@@ -31,6 +31,10 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 	)
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

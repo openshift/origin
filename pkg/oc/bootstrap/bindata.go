@@ -134,7 +134,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/httpd-24-centos7:latest"
+              "name": "docker.io/centos/httpd-24-centos7:latest"
             }
           }
         ]
@@ -181,7 +181,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/ruby-20-centos7:latest"
+              "name": "docker.io/openshift/ruby-20-centos7:latest"
             }
           },
           {
@@ -198,7 +198,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7:latest"
+              "name": "docker.io/centos/ruby-22-centos7:latest"
             }
           },
           {
@@ -215,7 +215,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-23-centos7:latest"
+              "name": "docker.io/centos/ruby-23-centos7:latest"
             }
           },
           {
@@ -232,7 +232,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-24-centos7:latest"
+              "name": "docker.io/centos/ruby-24-centos7:latest"
             }
           }
         ]
@@ -279,7 +279,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/nodejs-010-centos7:latest"
+              "name": "docker.io/openshift/nodejs-010-centos7:latest"
             }
           },
           {
@@ -296,7 +296,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/nodejs-4-centos7:latest"
+              "name": "docker.io/centos/nodejs-4-centos7:latest"
             }
           },
           {
@@ -313,7 +313,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/nodejs-6-centos7:latest"
+              "name": "docker.io/centos/nodejs-6-centos7:latest"
             }
           },
           {
@@ -329,7 +329,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/nodejs-8-centos7:latest"
+              "name": "docker.io/centos/nodejs-8-centos7:latest"
             }
           }
         ]
@@ -376,7 +376,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/perl-516-centos7:latest"
+              "name": "docker.io/openshift/perl-516-centos7:latest"
             }
           },
           {
@@ -393,7 +393,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/perl-520-centos7:latest"
+              "name": "docker.io/centos/perl-520-centos7:latest"
             }
           },
           {
@@ -410,7 +410,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/perl-524-centos7:latest"
+              "name": "docker.io/centos/perl-524-centos7:latest"
             }
           }
         ]
@@ -457,7 +457,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/php-55-centos7:latest"
+              "name": "docker.io/openshift/php-55-centos7:latest"
             }
           },
           {
@@ -474,7 +474,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/php-56-centos7:latest"
+              "name": "docker.io/centos/php-56-centos7:latest"
             }
           },
           {
@@ -491,7 +491,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/php-70-centos7:latest"
+              "name": "docker.io/centos/php-70-centos7:latest"
             }
           },
           {
@@ -508,7 +508,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/php-71-centos7:latest"
+              "name": "docker.io/centos/php-71-centos7:latest"
             }
           }
         ]
@@ -555,7 +555,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/python-33-centos7:latest"
+              "name": "docker.io/openshift/python-33-centos7:latest"
             }
           },
           {
@@ -572,7 +572,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/python-27-centos7:latest"
+              "name": "docker.io/centos/python-27-centos7:latest"
             }
           },
           {
@@ -589,7 +589,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/python-34-centos7:latest"
+              "name": "docker.io/centos/python-34-centos7:latest"
             }
           },
           {
@@ -606,7 +606,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/python-35-centos7:latest"
+              "name": "docker.io/centos/python-35-centos7:latest"
             }
           },
           {
@@ -623,7 +623,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/python-36-centos7:latest"
+              "name": "docker.io/centos/python-36-centos7:latest"
             }
           }
         ]
@@ -670,7 +670,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/wildfly-81-centos7:latest"
+              "name": "docker.io/openshift/wildfly-81-centos7:latest"
             }
           },
           {
@@ -687,7 +687,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/wildfly-90-centos7:latest"
+              "name": "docker.io/openshift/wildfly-90-centos7:latest"
             }
           },
           {
@@ -704,7 +704,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/wildfly-100-centos7:latest"
+              "name": "docker.io/openshift/wildfly-100-centos7:latest"
             }
           },
           {
@@ -721,7 +721,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/wildfly-101-centos7:latest"
+              "name": "docker.io/openshift/wildfly-101-centos7:latest"
             }
           }
         ]
@@ -764,7 +764,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/mysql-55-centos7:latest"
+              "name": "docker.io/openshift/mysql-55-centos7:latest"
             }
           },
           {
@@ -779,7 +779,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/mysql-56-centos7:latest"
+              "name": "docker.io/centos/mysql-56-centos7:latest"
             }
           },
           {
@@ -794,7 +794,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/mysql-57-centos7:latest"
+              "name": "docker.io/centos/mysql-57-centos7:latest"
             }
           }
         ]
@@ -825,7 +825,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/nginx-18-centos7:latest"
+              "name": "docker.io/centos/nginx-18-centos7:latest"
             }
           },
           {
@@ -842,7 +842,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/nginx-110-centos7:latest"
+              "name": "docker.io/centos/nginx-110-centos7:latest"
             }
           },
           {
@@ -859,7 +859,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/nginx-112-centos7:latest"
+              "name": "docker.io/centos/nginx-112-centos7:latest"
             }
           },
           {
@@ -918,7 +918,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/mariadb-101-centos7:latest"
+              "name": "docker.io/centos/mariadb-101-centos7:latest"
             }
           },
           {
@@ -933,7 +933,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/mariadb-102-centos7:latest"
+              "name": "docker.io/centos/mariadb-102-centos7:latest"
             }
           }
         ]
@@ -976,7 +976,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/postgresql-92-centos7:latest"
+              "name": "docker.io/openshift/postgresql-92-centos7:latest"
             }
           },
           {
@@ -991,7 +991,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/postgresql-94-centos7:latest"
+              "name": "docker.io/centos/postgresql-94-centos7:latest"
             }
           },
           {
@@ -1006,7 +1006,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/postgresql-95-centos7:latest"
+              "name": "docker.io/centos/postgresql-95-centos7:latest"
             }
           },
           {
@@ -1021,7 +1021,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/postgresql-96-centos7:latest"
+              "name": "docker.io/centos/postgresql-96-centos7:latest"
             }
           }
         ]
@@ -1064,7 +1064,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/mongodb-24-centos7:latest"
+              "name": "docker.io/openshift/mongodb-24-centos7:latest"
             }
           },
           {
@@ -1079,7 +1079,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/mongodb-26-centos7:latest"
+              "name": "docker.io/centos/mongodb-26-centos7:latest"
             }
           },
           {
@@ -1094,7 +1094,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/mongodb-32-centos7:latest"
+              "name": "docker.io/centos/mongodb-32-centos7:latest"
             }
           },
           {
@@ -1109,7 +1109,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/mongodb-34-centos7:latest"
+              "name": "docker.io/centos/mongodb-34-centos7:latest"
             }
           }
         ]
@@ -1152,7 +1152,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "centos/redis-32-centos7:latest"
+              "name": "docker.io/centos/redis-32-centos7:latest"
             }
           }
         ]
@@ -1195,7 +1195,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/jenkins-1-centos7:latest"
+              "name": "docker.io/openshift/jenkins-1-centos7:latest"
             }
           },
           {
@@ -1210,7 +1210,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "openshift/jenkins-2-centos7:v3.9"
+              "name": "docker.io/openshift/jenkins-2-centos7:v3.9"
             }
           }
         ]
@@ -14354,6 +14354,15 @@ objects:
         - role: endpoints
 
         relabel_configs:
+        # only scrape infrastructure components
+        - source_labels: [__meta_kubernetes_namespace]
+          action: keep
+          regex: 'default|logging|metrics|kube-.+|openshift|openshift-.+'
+        # drop infrastructure components managed by other scrape targets
+        - source_labels: [__meta_kubernetes_service_name]
+          action: drop
+          regex: 'prometheus-node-exporter'
+        # only those that have requested scraping
         - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
           action: keep
           regex: true
@@ -14370,14 +14379,6 @@ objects:
           target_label: __address__
           regex: (.+)(?::\d+);(\d+)
           replacement: $1:$2
-        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_username]
-          action: replace
-          target_label: __basic_auth_username__
-          regex: (.+)
-        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_password]
-          action: replace
-          target_label: __basic_auth_password__
-          regex: (.+)
         - action: labelmap
           regex: __meta_kubernetes_service_label_(.+)
         - source_labels: [__meta_kubernetes_namespace]
@@ -14387,8 +14388,53 @@ objects:
           action: replace
           target_label: kubernetes_name
 
-      - job_name: 'openshift-template-service-broker'
+      # Scrape config for node-exporter, which is expected to be running on port 9100.
+      - job_name: 'kubernetes-nodes-exporter'
 
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+        kubernetes_sd_configs:
+        - role: node
+
+        metric_relabel_configs:
+        - source_labels: [__name__]
+          action: drop
+          regex: 'node_cpu|node_(disk|scrape_collector)_.+'
+        # preserve a subset of the network, netstat, vmstat, and filesystem series
+        - source_labels: [__name__]
+          action: replace
+          regex: '(node_(netstat_Ip_.+|vmstat_(nr|thp)_.+|filesystem_(free|size|device_error)|network_(transmit|receive)_(drop|errs)))'
+          target_label: __name__
+          replacement: renamed_$1
+        - source_labels: [__name__]
+          action: drop
+          regex: 'node_(netstat|vmstat|filesystem|network)_.+'
+        - source_labels: [__name__]
+          action: replace
+          regex: 'renamed_(.+)'
+          target_label: __name__
+          replacement: $1
+        # drop any partial expensive series
+        - source_labels: [__name__, device]
+          action: drop
+          regex: 'node_network_.+;veth.+'
+        - source_labels: [__name__, mountpoint]
+          action: drop
+          regex: 'node_filesystem_(free|size|device_error);([^/].*|/.+)'
+
+        relabel_configs:
+        - source_labels: [__address__]
+          regex: '(.*):10250'
+          replacement: '${1}:9100'
+          target_label: __address__
+        - source_labels: [__meta_kubernetes_node_label_kubernetes_io_hostname]
+          target_label: __instance__
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
+      # Scrape config for the template service broker
+      - job_name: 'openshift-template-service-broker'
         scheme: https
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt

@@ -26,6 +26,10 @@ func (d CheckExternalNetwork) Description() string {
 	return "Check that external network is accessible within a pod"
 }
 
+func (d CheckExternalNetwork) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d CheckExternalNetwork) CanRun() (bool, error) {
 	return true, nil

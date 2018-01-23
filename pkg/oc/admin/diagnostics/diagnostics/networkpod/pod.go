@@ -41,6 +41,10 @@ func (d CheckPodNetwork) Description() string {
 	return "Check pod to pod communication in the cluster. In case of ovs-subnet network plugin, all pods should be able to communicate with each other and in case of multitenant network plugin, pods in non-global projects should be isolated and pods in global projects should be able to access any pod in the cluster and vice versa."
 }
 
+func (d CheckPodNetwork) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d CheckPodNetwork) CanRun() (bool, error) {
 	if d.KubeClient == nil {

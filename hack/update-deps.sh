@@ -7,6 +7,8 @@ set -o pipefail
 cd "$(dirname "${BASH_SOURCE}")/.."
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+os::golang::verify_glide_version
+
 # fail early if any of the staging dirs is checked out
 for pkg in "$GOPATH/src/k8s.io/kubernetes/staging/src/k8s.io/"*; do
   dir=$(basename $pkg)

@@ -40,6 +40,10 @@ func (d *MetricsApiProxy) Description() string {
 	return "Check the integrated heapster metrics can be reached via the API proxy"
 }
 
+func (d *MetricsApiProxy) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 func (d *MetricsApiProxy) CanRun() (bool, error) {
 	if d.KubeClient == nil {
 		return false, errors.New("must have kube client")
