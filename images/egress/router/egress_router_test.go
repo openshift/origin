@@ -24,6 +24,15 @@ func TestEgressRouter(t *testing.T) {
 `,
 		},
 		{
+			source:  "1.2.3.4/24",
+			gateway: "1.1.1.1",
+			dest:    "10.1.2.3",
+			output: `
+-A PREROUTING -i eth0 -j DNAT --to-destination 10.1.2.3
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
+		{
 			source:  "1.2.3.4",
 			gateway: "1.1.1.1",
 			dest:    "10.1.2.3",

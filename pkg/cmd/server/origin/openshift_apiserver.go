@@ -28,13 +28,13 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
+	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	oappsapiv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -85,7 +85,7 @@ type OpenshiftAPIExtraConfig struct {
 
 	// these are all required to build our storage
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
-	SubjectLocator authorizer.SubjectLocator
+	SubjectLocator rbacauthorizer.SubjectLocator
 
 	// for Images
 	LimitVerifier imageadmission.LimitVerifier

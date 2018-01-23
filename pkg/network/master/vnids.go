@@ -8,9 +8,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/network"
@@ -242,7 +240,10 @@ func (vmap *masterVNIDMap) revokeVNID(networkClient networkclient.Interface, nsN
 	return nil
 }
 
-func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, netns *networkapi.NetNamespace) error {
+func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, origNetns *networkapi.NetNamespace) error {
+	// Informer cache should not be mutated, so get a copy of the object
+	netns := origNetns.DeepCopy()
+
 	action, args, err := network.GetChangePodNetworkAnnotation(netns)
 	if err == network.ErrorPodNetworkAnnotationNotFound {
 		// Nothing to update
@@ -278,13 +279,13 @@ func (master *OsdnMaster) VnidStartMaster() error {
 	}
 
 	master.watchNamespaces()
-	go utilwait.Forever(master.watchNetNamespaces, 0)
+	master.watchNetNamespaces()
 	return nil
 }
 
 func (master *OsdnMaster) watchNamespaces() {
-	common.RegisterSharedInformerEventHandlers(master.informers,
-		master.handleAddOrUpdateNamespace, master.handleDeleteNamespace, common.Namespaces)
+	funcs := common.InformerFuncs(&kapi.Namespace{}, master.handleAddOrUpdateNamespace, master.handleDeleteNamespace)
+	master.kubeInformers.Core().InternalVersion().Namespaces().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
@@ -304,18 +305,16 @@ func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	common.RunEventQueue(master.networkClient.Network().RESTClient(), common.NetNamespaces, func(delta cache.Delta) error {
-		netns := delta.Object.(*networkapi.NetNamespace)
-		name := netns.ObjectMeta.Name
+	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, master.handleAddOrUpdateNetNamespace, nil)
+	master.networkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
+}
 
-		glog.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			err := master.vnids.updateVNID(master.networkClient, netns)
-			if err != nil {
-				return fmt.Errorf("error updating netid: %v", err)
-			}
-		}
-		return nil
-	})
+func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
+	netns := obj.(*networkapi.NetNamespace)
+	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+
+	err := master.vnids.updateVNID(master.networkClient, netns)
+	if err != nil {
+		glog.Errorf("Error updating netid: %v", err)
+	}
 }

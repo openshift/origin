@@ -32,8 +32,11 @@ var (
 		your image change triggers.`)
 
 	rolloutLatestExample = templates.Examples(`
-		# Start a new rollout based on the latest images defined in the image change triggers.
-  	%[1]s rollout latest dc/nginx`)
+	# Start a new rollout based on the latest images defined in the image change triggers.
+	%[1]s rollout latest dc/nginx
+
+	# Print the rolled out deployment config
+	%[1]s rollout latest dc/nginx -o json`)
 )
 
 // RolloutLatestOptions holds all the options for the `rollout latest` command.
@@ -50,6 +53,9 @@ type RolloutLatestOptions struct {
 	appsClient      appsclientinternal.DeploymentConfigsGetter
 	kc              kclientset.Interface
 	baseCommandName string
+
+	// print an object using a printer for a given mapping
+	printObj func(runtime.Object, *meta.RESTMapping, io.Writer) error
 }
 
 // NewCmdRolloutLatest implements the oc rollout latest subcommand.
@@ -122,6 +128,17 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	o.output = kcmdutil.GetFlagString(cmd, "output")
 	o.again = kcmdutil.GetFlagBool(cmd, "again")
 
+	if o.output != "revision" {
+		o.printObj = func(obj runtime.Object, mapping *meta.RESTMapping, out io.Writer) error {
+			printer, err := f.PrinterForMapping(kcmdutil.ExtractCmdPrintOptions(cmd, false), mapping)
+			if err != nil {
+				return err
+			}
+
+			return printer.PrintObj(obj, out)
+		}
+	}
+
 	return nil
 }
 
@@ -185,6 +202,8 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 	if o.output == "revision" {
 		fmt.Fprintf(o.out, fmt.Sprintf("%d", dc.Status.LatestVersion))
 		return nil
+	} else if len(o.output) > 0 {
+		return o.printObj(dc, info.Mapping, o.out)
 	}
 
 	kcmdutil.PrintSuccess(o.mapper, o.output == "name", o.out, info.Mapping.Resource, info.Name, o.DryRun, "rolled out")

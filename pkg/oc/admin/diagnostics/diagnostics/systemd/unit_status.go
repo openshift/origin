@@ -21,12 +21,18 @@ func (d UnitStatus) Name() string {
 func (d UnitStatus) Description() string {
 	return "Check status for related systemd units"
 }
+
+func (d UnitStatus) Requirements() (client bool, host bool) {
+	return false, true
+}
+
 func (d UnitStatus) CanRun() (bool, error) {
 	if HasSystemctl() {
 		return true, nil
 	}
 	return false, errors.New("systemd is not present/functional on this host")
 }
+
 func (d UnitStatus) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(UnitStatusName)
 

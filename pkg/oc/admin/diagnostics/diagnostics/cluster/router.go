@@ -84,11 +84,15 @@ Time: %s`
 )
 
 func (d *ClusterRouter) Name() string {
-	return "ClusterRouterName"
+	return ClusterRouterName
 }
 
 func (d *ClusterRouter) Description() string {
 	return "Check there is a working router"
+}
+
+func (d *ClusterRouter) Requirements() (client bool, host bool) {
+	return true, false
 }
 
 func (d *ClusterRouter) CanRun() (bool, error) {

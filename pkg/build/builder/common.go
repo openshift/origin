@@ -292,6 +292,13 @@ func buildLabels(build *buildapiv1.Build, sourceInfo *git.SourceInfo) []dockerfi
 		sourceInfo.ContextDir = build.Spec.Source.ContextDir
 	}
 	labels = util.GenerateLabelsFromSourceInfo(labels, toS2ISourceInfo(sourceInfo), builderutil.DefaultDockerLabelNamespace)
+	if build != nil && build.Spec.Source.Git != nil && build.Spec.Source.Git.Ref != "" {
+		// override the io.openshift.build.commit.ref label to match what we
+		// were originally told to check out, as well as the
+		// OPENSHIFT_BUILD_REFERENCE environment variable.  This can sometimes
+		// differ from git's view (see PotentialPRRetryAsFetch for details).
+		labels[builderutil.DefaultDockerLabelNamespace+"build.commit.ref"] = build.Spec.Source.Git.Ref
+	}
 	addBuildLabels(labels, build)
 
 	kv := make([]dockerfile.KeyValue, 0, len(labels)+len(build.Spec.Output.ImageLabels))

@@ -76,6 +76,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		dcLogFollow              *exec.Cmd
 		dcLogStdOut, dcLogStdErr *bytes.Buffer
 		setupJenkins             = func() {
+			exutil.DumpDockerInfo()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
 			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
@@ -462,22 +463,25 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			err := oc.Run("create").Args("-f", clientPluginPipelinePath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// start the build
-			g.By("starting the pipeline build and waiting for it to complete")
-			br, err := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
-			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
-			if err != nil || !br.BuildSuccess {
-				exutil.DumpBuilds(oc)
-				exutil.DumpBuildLogs("ruby", oc)
-				exutil.DumpDeploymentLogs("mongodb", 1, oc)
-				exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
-				exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
-			}
-			br.AssertSuccess()
+			// start the build - we run it twice because our sample pipeline exercises different paths of the client
+			// plugin based on whether certain resources already exist or not
+			for i := 0; i < 2; i++ {
+				g.By(fmt.Sprintf("starting the pipeline build and waiting for it to complete, pass: %d", i))
+				br, err := exutil.StartBuildAndWait(oc, "sample-pipeline-openshift-client-plugin")
+				debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
+				if err != nil || !br.BuildSuccess {
+					exutil.DumpBuilds(oc)
+					exutil.DumpBuildLogs("ruby", oc)
+					exutil.DumpDeploymentLogs("mongodb", 1, oc)
+					exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
+					exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
+				}
+				br.AssertSuccess()
 
-			g.By("get build console logs and see if succeeded")
-			_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
-			o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("get build console logs and see if succeeded")
+				_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 		})
 	})
 

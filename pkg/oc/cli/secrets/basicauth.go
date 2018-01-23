@@ -65,10 +65,11 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f kcmdutil.Factory, read
 	}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SECRET --username=USERNAME --password=PASSWORD [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
-		Short:   "Create a new secret for basic authentication",
-		Long:    createBasicAuthSecretLong,
-		Example: fmt.Sprintf(createBasicAuthSecretExample, fullName, newSecretFullName, ocEditFullName),
+		Use:        fmt.Sprintf("%s SECRET --username=USERNAME --password=PASSWORD [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
+		Short:      "Create a new secret for basic authentication",
+		Long:       createBasicAuthSecretLong,
+		Example:    fmt.Sprintf(createBasicAuthSecretExample, fullName, newSecretFullName, ocEditFullName),
+		Deprecated: "use oc create secret",
 		Run: func(c *cobra.Command, args []string) {
 			if err := o.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(c, err.Error()))

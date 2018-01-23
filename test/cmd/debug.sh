@@ -75,9 +75,9 @@ os::cmd::expect_success 'oc scale --replicas=1 dc/test-deployment-config'
 
 os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
-os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image: openshift/wildfly-101-centos7'
+os::cmd::expect_success_and_text "oc debug istag/wildfly:latest -o yaml" 'image: docker.io/openshift/wildfly-101-centos7'
 sha="$( oc get istag/wildfly:latest --template '{{ .image.metadata.name }}' )"
-os::cmd::expect_success_and_text "oc debug isimage/wildfly@${sha} -o yaml" 'image: openshift/wildfly-101-centos7'
+os::cmd::expect_success_and_text "oc debug isimage/wildfly@${sha} -o yaml" 'image: docker.io/openshift/wildfly-101-centos7'
 
 echo "debug: ok"
 os::test::junit::declare_suite_end

@@ -23,6 +23,11 @@ func (d NodeConfigCheck) Name() string {
 func (d NodeConfigCheck) Description() string {
 	return "Check the node config file"
 }
+
+func (d NodeConfigCheck) Requirements() (client bool, host bool) {
+	return false, true
+}
+
 func (d NodeConfigCheck) CanRun() (bool, error) {
 	if len(d.NodeConfigFile) == 0 {
 		return false, errors.New("No node config file was detected")
@@ -30,6 +35,7 @@ func (d NodeConfigCheck) CanRun() (bool, error) {
 
 	return true, nil
 }
+
 func (d NodeConfigCheck) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(NodeConfigCheckName)
 	r.Debug("DH1001", fmt.Sprintf("Looking for node config file at '%s'", d.NodeConfigFile))

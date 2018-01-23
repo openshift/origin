@@ -49,7 +49,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			g.By("checking the unsecured metrics path")
 			success := false
 			var metrics map[string]*dto.MetricFamily
-			for i := 0; i < 30; i++ {
+			for i := 0; i < 120; i++ {
 				results, err := getInsecureURLViaPod(ns, execPodName, fmt.Sprintf("https://%s:%d/metrics", host, statsPort))
 				if err != nil {
 					e2e.Logf("unable to get unsecured metrics: %v", err)
@@ -93,7 +93,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			g.By("verifying a service account token is able to access the Prometheus API")
 			// expect all endpoints within 60 seconds
 			var lastErrs []error
-			for i := 0; i < 60; i++ {
+			for i := 0; i < 120; i++ {
 				contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("https://%s:%d/api/v1/targets", host, statsPort), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -319,17 +319,24 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)
-	secrets, err := oc.AdminKubeClient().Core().Secrets("kube-system").List(metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	for _, secret := range secrets.Items {
-		if secret.Type != v1.SecretTypeServiceAccountToken {
+	for i := 0; i < 30; i++ {
+		secrets, err := oc.AdminKubeClient().Core().Secrets("kube-system").List(metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, secret := range secrets.Items {
+			if secret.Type != v1.SecretTypeServiceAccountToken {
+				continue
+			}
+			if !strings.HasPrefix(secret.Name, "prometheus-") {
+				continue
+			}
+			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
+			break
+		}
+		if len(bearerToken) == 0 {
+			e2e.Logf("Waiting for prometheus service account secret to show up")
+			time.Sleep(time.Second)
 			continue
 		}
-		if !strings.HasPrefix(secret.Name, "prometheus-") {
-			continue
-		}
-		bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-		break
 	}
 	o.Expect(bearerToken).ToNot(o.BeEmpty())
 

@@ -2,73 +2,67 @@ package origin
 
 import (
 	"k8s.io/apiserver/pkg/authentication/user"
-	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
-	coreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
-	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer"
+	openshiftauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/browsersafe"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
-func NewAuthorizer(informers InformerAccess, projectRequestMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator, rbacregistryvalidation.AuthorizationRuleResolver) {
-	kubeAuthorizer, ruleResolver, kubeSubjectLocator := buildKubeAuth(informers.GetInternalKubeInformers().Rbac().InternalVersion())
-	authorizer, subjectLocator := newAuthorizer(
-		kubeAuthorizer,
-		kubeSubjectLocator,
-		informers.GetInternalKubeInformers().Rbac().InternalVersion().ClusterRoles().Lister(),
-		informers.GetInternalKubeInformers().Core().InternalVersion().Pods(),
-		informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes(),
-		projectRequestMessage,
+func NewAuthorizer(informers InformerAccess, projectRequestDenyMessage string) authorizer.Authorizer {
+	messageMaker := openshiftauthorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
+	rbacInformers := informers.GetInternalKubeInformers().Rbac().InternalVersion()
+
+	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister(), messageMaker)
+
+	kubeAuthorizer := rbacauthorizer.New(
+		&rbacauthorizer.RoleGetter{Lister: rbacInformers.Roles().Lister()},
+		&rbacauthorizer.RoleBindingLister{Lister: rbacInformers.RoleBindings().Lister()},
+		&rbacauthorizer.ClusterRoleGetter{Lister: rbacInformers.ClusterRoles().Lister()},
+		&rbacauthorizer.ClusterRoleBindingLister{Lister: rbacInformers.ClusterRoleBindings().Lister()},
 	)
-
-	return authorizer, subjectLocator, ruleResolver
-}
-
-func buildKubeAuth(r rbacinformers.Interface) (kauthorizer.Authorizer, rbacregistryvalidation.AuthorizationRuleResolver, rbacauthorizer.SubjectLocator) {
-	roles := &rbacauthorizer.RoleGetter{Lister: r.Roles().Lister()}
-	roleBindings := &rbacauthorizer.RoleBindingLister{Lister: r.RoleBindings().Lister()}
-	clusterRoles := &rbacauthorizer.ClusterRoleGetter{Lister: r.ClusterRoles().Lister()}
-	clusterRoleBindings := &rbacauthorizer.ClusterRoleBindingLister{Lister: r.ClusterRoleBindings().Lister()}
-	kubeAuthorizer := rbacauthorizer.New(roles, roleBindings, clusterRoles, clusterRoleBindings)
-	ruleResolver := rbacregistryvalidation.NewDefaultRuleResolver(roles, roleBindings, clusterRoles, clusterRoleBindings)
-	kubeSubjectLocator := rbacauthorizer.NewSubjectAccessEvaluator(roles, roleBindings, clusterRoles, clusterRoleBindings, "")
-	return kubeAuthorizer, ruleResolver, kubeSubjectLocator
-}
-
-func newAuthorizer(
-	kubeAuthorizer kauthorizer.Authorizer,
-	kubeSubjectLocator rbacauthorizer.SubjectLocator,
-	clusterRoleGetter rbaclisters.ClusterRoleLister,
-	podInformer coreinformers.PodInformer,
-	pvInformer coreinformers.PersistentVolumeInformer,
-	projectRequestDenyMessage string,
-) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
-	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
-	roleBasedAuthorizer := authorizer.NewAuthorizer(kubeAuthorizer, messageMaker)
-	subjectLocator := authorizer.NewSubjectLocator(kubeSubjectLocator)
-
-	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, clusterRoleGetter, messageMaker)
-	// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-	browserSafeAuthorizer := browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated)
 
 	graph := node.NewGraph()
-	node.AddGraphEventHandlers(graph, podInformer, pvInformer)
+	node.AddGraphEventHandlers(graph, informers.GetInternalKubeInformers().Core().InternalVersion().Pods(), informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes())
 	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
 
-	authorizer := authorizerunion.New(
-		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup), // authorizes system:masters to do anything, just like upstream
+	openshiftAuthorizer := authorizerunion.New(
+		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately.
+		// Scopes are first because they will authoritatively deny and can logically be attached to anyone.
+		browsersafe.NewBrowserSafeAuthorizer(scopeLimitedAuthorizer, user.AllAuthenticated),
+		// authorizes system:masters to do anything, just like upstream
+		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup),
 		nodeAuthorizer,
-		browserSafeAuthorizer,
+		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+		browsersafe.NewBrowserSafeAuthorizer(openshiftauthorizer.NewAuthorizer(kubeAuthorizer, messageMaker), user.AllAuthenticated),
 	)
 
-	return authorizer, subjectLocator
+	return openshiftAuthorizer
+}
+
+func NewRuleResolver(informers rbacinformers.Interface) rbacregistryvalidation.AuthorizationRuleResolver {
+	return rbacregistryvalidation.NewDefaultRuleResolver(
+		&rbacauthorizer.RoleGetter{Lister: informers.Roles().Lister()},
+		&rbacauthorizer.RoleBindingLister{Lister: informers.RoleBindings().Lister()},
+		&rbacauthorizer.ClusterRoleGetter{Lister: informers.ClusterRoles().Lister()},
+		&rbacauthorizer.ClusterRoleBindingLister{Lister: informers.ClusterRoleBindings().Lister()},
+	)
+}
+
+func NewSubjectLocator(informers rbacinformers.Interface) rbacauthorizer.SubjectLocator {
+	return rbacauthorizer.NewSubjectAccessEvaluator(
+		&rbacauthorizer.RoleGetter{Lister: informers.Roles().Lister()},
+		&rbacauthorizer.RoleBindingLister{Lister: informers.RoleBindings().Lister()},
+		&rbacauthorizer.ClusterRoleGetter{Lister: informers.ClusterRoles().Lister()},
+		&rbacauthorizer.ClusterRoleBindingLister{Lister: informers.ClusterRoleBindings().Lister()},
+		"",
+	)
 }

@@ -1,12 +1,51 @@
 package app
 
 import (
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	"k8s.io/kubernetes/pkg/controller"
 )
 
-// This allows overriding from inside the same process.  It's not pretty, but its fairly easy to maintain because conflicts are small.
-var CreateControllerContext func(s *options.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) = createControllerContext
+var InformerFactoryOverride informers.SharedInformerFactory
 
-// StartInformers allows overriding inside of the same process.
-var StartInformers func(stop <-chan struct{}) = nil
+func ShimForOpenShift(controllerManager *options.CMServer, clientConfig *rest.Config) (func(), error) {
+	if len(controllerManager.OpenShiftConfig) == 0 {
+		return func() {}, nil
+	}
+
+	// TODO this gets removed when no longer take flags and no longer build a recycler template
+	openshiftConfig, err := getOpenShiftConfig(controllerManager.OpenShiftConfig)
+	if err != nil {
+		return func() {}, err
+	}
+	// apply the config based controller manager flags.  They will override.
+	// TODO this should be replaced by the installer setting up the flags for us
+	if err := applyOpenShiftConfigFlags(controllerManager, openshiftConfig); err != nil {
+		return func() {}, err
+	}
+	// set up a non-default template
+	// TODO this should be replaced by the installer setting up the recycle template file and flags for us
+	cleanupFn, err := applyOpenShiftDefaultRecycler(controllerManager, openshiftConfig)
+	if err != nil {
+		return func() {}, err
+	}
+
+	// skip GC on some openshift resources
+	// TODO this should be replaced by discovery information in some way
+	if err := applyOpenShiftGCConfig(controllerManager); err != nil {
+		return func() {}, err
+	}
+
+	// Overwrite the informers, because we have our custom generic informers for quota.
+	// TODO update quota to create its own informer like garbage collection
+	combinedInformers, err := NewInformers(clientConfig)
+	if err != nil {
+		return cleanupFn, err
+	}
+	InformerFactoryOverride = externalKubeInformersWithExtraGenerics{
+		SharedInformerFactory:   combinedInformers.GetExternalKubeInformers(),
+		genericResourceInformer: combinedInformers.ToGenericInformer(),
+	}
+
+	return cleanupFn, nil
+}

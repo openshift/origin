@@ -142,9 +142,9 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 // Some roles should always cover others
 func TestCovers(t *testing.T) {
 	allRoles := bootstrappolicy.GetBootstrapClusterRoles()
-	var admin *rbac.ClusterRole
-	var editor *rbac.ClusterRole
-	var viewer *rbac.ClusterRole
+	var admin []rbac.PolicyRule
+	var editor []rbac.PolicyRule
+	var viewer []rbac.PolicyRule
 	var registryAdmin *rbac.ClusterRole
 	var registryEditor *rbac.ClusterRole
 	var registryViewer *rbac.ClusterRole
@@ -158,12 +158,12 @@ func TestCovers(t *testing.T) {
 	for i := range allRoles {
 		role := allRoles[i]
 		switch role.Name {
-		case bootstrappolicy.AdminRoleName:
-			admin = &role
-		case bootstrappolicy.EditRoleName:
-			editor = &role
-		case bootstrappolicy.ViewRoleName:
-			viewer = &role
+		case "system:openshift:aggregate-to-admin", "system:aggregate-to-admin":
+			admin = append(admin, role.Rules...)
+		case "system:openshift:aggregate-to-edit", "system:aggregate-to-edit":
+			editor = append(editor, role.Rules...)
+		case "system:openshift:aggregate-to-view", "system:aggregate-to-view":
+			viewer = append(viewer, role.Rules...)
 		case bootstrappolicy.RegistryAdminRoleName:
 			registryAdmin = &role
 		case bootstrappolicy.RegistryEditorRoleName:
@@ -185,16 +185,16 @@ func TestCovers(t *testing.T) {
 		}
 	}
 
-	if covers, miss := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
+	if covers, miss := rulevalidation.Covers(admin, editor); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, miss := rulevalidation.Covers(admin.Rules, editor.Rules); !covers {
+	if covers, miss := rulevalidation.Covers(admin, editor); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, miss := rulevalidation.Covers(admin.Rules, viewer.Rules); !covers {
+	if covers, miss := rulevalidation.Covers(admin, viewer); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, miss := rulevalidation.Covers(admin.Rules, registryAdmin.Rules); !covers {
+	if covers, miss := rulevalidation.Covers(admin, registryAdmin.Rules); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 	if covers, miss := rulevalidation.Covers(clusterAdmin.Rules, storageAdmin.Rules); !covers {
@@ -208,10 +208,10 @@ func TestCovers(t *testing.T) {
 	}
 
 	// admin and editor should cover imagebuilder
-	if covers, miss := rulevalidation.Covers(admin.Rules, imageBuilder.Rules); !covers {
+	if covers, miss := rulevalidation.Covers(admin, imageBuilder.Rules); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
-	if covers, miss := rulevalidation.Covers(editor.Rules, imageBuilder.Rules); !covers {
+	if covers, miss := rulevalidation.Covers(editor, imageBuilder.Rules); !covers {
 		t.Errorf("failed to cover: %#v", miss)
 	}
 

@@ -75,6 +75,10 @@ import:
 - package: github.com/opencontainers/runc
   repo:    git@github.com:openshift/opencontainers-runc
   version: openshift-3.9
+# cli
+- package: github.com/docker/distribution
+  repo:    git@github.com:openshift/docker-distribution
+  version: release-2.6.0
 
 # ours: shared with kube, but forced by openshift
 # master

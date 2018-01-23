@@ -60,9 +60,13 @@ func (d *NodeDefinitions) Description() string {
 	return "Check node records on master"
 }
 
+func (d *NodeDefinitions) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 func (d *NodeDefinitions) CanRun() (bool, error) {
 	if d.KubeClient == nil {
-		return false, errors.New("must have kube  client")
+		return false, errors.New("must have kube client")
 	}
 	can, err := userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Verb:     "list",

@@ -22,8 +22,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	"github.com/openshift/origin/pkg/image/admission/testutil"
+	admfake "github.com/openshift/origin/pkg/image/admission/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -66,13 +67,19 @@ func (u *fakeUser) GetExtra() map[string][]string {
 func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
 	etcdClient := etcd.NewKV(server.V3Client)
+	rw := &fake.RegistryWhitelister{}
 
 	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
 	if err != nil {
 		t.Fatal(err)
 	}
 	registry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
-	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), registry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
+	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(
+		restoptions.NewSimpleGetter(etcdStorage),
+		registry,
+		&fakeSubjectAccessReviewRegistry{},
+		&admfake.ImageStreamLimitVerifier{},
+		rw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +87,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
-	storage := NewREST(imageRegistry, imageStreamRegistry)
+	storage := NewREST(imageRegistry, imageStreamRegistry, rw)
 
 	return etcdClient, server, storage
 }

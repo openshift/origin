@@ -681,19 +681,21 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 			continue
 		}
 
-		// TODO: this is probably wrong - we should require ":<tag>", but we can't break old clients
-		tagRefName := tagRef.From.Name
-		parts := strings.Split(tagRefName, ":")
 		tag := ""
-		switch len(parts) {
-		case 2:
+		tagRefName := ""
+		if strings.Contains(tagRef.From.Name, ":") {
 			// <stream>:<tag>
-			tagRefName = parts[0]
-			tag = parts[1]
-		default:
+			ok := true
+			tagRefName, tag, ok = SplitImageStreamTag(tagRef.From.Name)
+			if !ok {
+				glog.V(5).Infof("tagRefName %q contains invalid reference - skipping", tagRef.From.Name)
+				continue
+			}
+		} else {
 			// <tag> (this stream)
-			tag = tagRefName
+			// TODO: this is probably wrong - we should require ":<tag>", but we can't break old clients
 			tagRefName = stream.Name
+			tag = tagRef.From.Name
 		}
 
 		glog.V(5).Infof("tagRefName=%q, tag=%q", tagRefName, tag)

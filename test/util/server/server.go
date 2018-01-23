@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kubeclient "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -32,7 +33,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -194,7 +194,7 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 	}
 
 	if masterConfig.AdmissionConfig.PluginConfig == nil {
-		masterConfig.AdmissionConfig.PluginConfig = make(map[string]configapi.AdmissionPluginConfig)
+		masterConfig.AdmissionConfig.PluginConfig = make(map[string]*configapi.AdmissionPluginConfig)
 	}
 
 	if masterConfig.EtcdConfig != nil {
@@ -218,6 +218,9 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 		*configapi.DefaultAllowedRegistriesForImport,
 		configapi.RegistryLocation{DomainName: "127.0.0.1:*"},
 	)
+	for r := range util.GetAdditionalAllowedRegistries() {
+		allowedRegistries = append(allowedRegistries, configapi.RegistryLocation{DomainName: r})
+	}
 	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
@@ -402,18 +405,8 @@ func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
 	}
 }
 
-type TestOptions struct {
-	EnableControllers bool
-}
-
-func DefaultTestOptions() TestOptions {
-	return TestOptions{EnableControllers: true}
-}
-
 func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
 	guardNode()
-	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
-	kubernetes.SetFakeContainerManagerInterfaceForIntegrationTest()
 
 	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
 	if err != nil {
@@ -433,21 +426,25 @@ func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags
 }
 
 func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {
-	return StartConfiguredMasterWithOptions(masterConfig, DefaultTestOptions())
+	return StartConfiguredMasterWithOptions(masterConfig)
 }
 
 func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, error) {
-	options := DefaultTestOptions()
-	options.EnableControllers = false
-	return StartConfiguredMasterWithOptions(masterConfig, options)
+	// we need to unconditionally start this controller for rbac permissions to work
+	if masterConfig.KubernetesMasterConfig.ControllerArguments == nil {
+		masterConfig.KubernetesMasterConfig.ControllerArguments = map[string][]string{}
+	}
+	masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"] = append(masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"], "clusterrole-aggregation")
+
+	return StartConfiguredMasterWithOptions(masterConfig)
 }
 
-func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
+func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig) (string, error) {
 	guardMaster()
 	if masterConfig.EtcdConfig != nil && len(masterConfig.EtcdConfig.StorageDir) > 0 {
 		os.RemoveAll(masterConfig.EtcdConfig.StorageDir)
 	}
-	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
+	if err := start.NewMaster(masterConfig, true /* always needed for cluster role aggregation */, true).Start(); err != nil {
 		return "", err
 	}
 	adminKubeConfigFile := util.KubeConfigPath()
@@ -473,6 +470,47 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 			return false, err
 		}
 		return healthy, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		return "", fmt.Errorf("server did not become healthy: %v", healthzResponse)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	// wait until the cluster roles have been aggregated
+	clusterAdminClientConfig, err := util.GetClusterAdminClientConfig(adminKubeConfigFile)
+	if err != nil {
+		return "", err
+	}
+	err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
+		kubeClient, err := kubeclient.NewForConfig(clusterAdminClientConfig)
+		if err != nil {
+			return false, err
+		}
+		admin, err := kubeClient.RbacV1().ClusterRoles().Get("admin", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if len(admin.Rules) == 0 {
+			return false, nil
+		}
+		edit, err := kubeClient.RbacV1().ClusterRoles().Get("edit", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if len(edit.Rules) == 0 {
+			return false, nil
+		}
+		view, err := kubeClient.RbacV1().ClusterRoles().Get("view", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if len(view.Rules) == 0 {
+			return false, nil
+		}
+
+		return true, nil
 	})
 	if err == wait.ErrWaitTimeout {
 		return "", fmt.Errorf("server did not become healthy: %v", healthzResponse)

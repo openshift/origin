@@ -1012,7 +1012,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 			"apis/storage.k8s.io/v1alpha1=true",
 		},
 	}
-	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = &serverapi.AdmissionPluginConfig{
 		Configuration: &serverapi.DefaultAdmissionConfig{Disable: true},
 	}
 	if etcdServer.V3Client == nil {

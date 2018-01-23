@@ -1,6 +1,7 @@
 package ovs
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -36,6 +37,23 @@ func TestFakePorts(t *testing.T) {
 	if err == nil {
 		t.Fatalf("unexpected lack of error getting non-existent port")
 	}
+}
+
+func checkDump(ovsif Interface, filter string, cmpFlows []string) error {
+	dumpedFlows, err := ovsif.DumpFlows(filter)
+	if err != nil {
+		return fmt.Errorf("unexpected error from DumpFlows: %v", err)
+	}
+
+	if len(dumpedFlows) != len(cmpFlows) {
+		return fmt.Errorf("wrong number of flows returned (expected %d, got %d)", len(cmpFlows), len(dumpedFlows))
+	}
+	for i := range cmpFlows {
+		if dumpedFlows[i] != cmpFlows[i] {
+			return fmt.Errorf("mismatch at %d (expected %q, got %q)", i, cmpFlows[i], dumpedFlows[i])
+		}
+	}
+	return nil
 }
 
 func TestFakeDumpFlows(t *testing.T) {
@@ -96,13 +114,8 @@ func TestFakeDumpFlows(t *testing.T) {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
 
-	dumpedFlows, err := ovsif.DumpFlows()
-	if err != nil {
-		t.Fatalf("unexpected error from DumpFlows: %v", err)
-	}
-
 	// fake DumpFlows sorts first by table, then by priority (decreasing), then by creation time
-	cmpFlows := []string{
+	err = checkDump(ovsif, "", []string{
 		" cookie=0, table=0, priority=250, in_port=2, ip, nw_dst=224.0.0.0/4, actions=drop",
 		" cookie=0, table=0, priority=200, in_port=2, ip, actions=goto_table:30",
 		" cookie=0, table=0, priority=200, in_port=1, ip, nw_src=10.128.0.0/14, nw_dst=10.129.0.0/23, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
@@ -141,15 +154,49 @@ func TestFakeDumpFlows(t *testing.T) {
 		" cookie=0, table=110, priority=0, actions=drop",
 		" cookie=0, table=111, priority=0, actions=drop",
 		" cookie=0, table=120, priority=0, actions=drop",
+	})
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
-	if len(dumpedFlows) != len(cmpFlows) {
-		t.Fatalf("wrong number of flows returned (expected %d, got %d)", len(cmpFlows), len(dumpedFlows))
+	// Filter dump based on table
+	err = checkDump(ovsif, "table=30", []string{
+		" cookie=0, table=30, priority=300, arp, arp_tpa=10.129.0.1, actions=output:2",
+		" cookie=0, table=30, priority=300, ip, nw_dst=10.129.0.1, actions=output:2",
+		" cookie=0, table=30, priority=200, arp, arp_tpa=10.129.0.0/23, actions=goto_table:40",
+		" cookie=0, table=30, priority=200, ip, nw_dst=10.129.0.0/23, actions=goto_table:70",
+		" cookie=0, table=30, priority=100, ip, nw_dst=172.30.0.0/16, actions=goto_table:60",
+		" cookie=0, table=30, priority=100, ip, nw_dst=10.128.0.0/14, actions=goto_table:90",
+		" cookie=0, table=30, priority=100, arp, arp_tpa=10.128.0.0/14, actions=goto_table:50",
+		" cookie=0, table=30, priority=50, in_port=1, ip, nw_dst=224.0.0.0/4, actions=goto_table:120",
+		" cookie=0, table=30, priority=25, ip, nw_dst=224.0.0.0/4, actions=goto_table:110",
+		" cookie=0, table=30, priority=0, arp, actions=drop",
+		" cookie=0, table=30, priority=0, ip, actions=goto_table:100",
+	})
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
-	for i := range cmpFlows {
-		if dumpedFlows[i] != cmpFlows[i] {
-			t.Fatalf("mismatch at %d (expected %q, got %q)", i, cmpFlows[i], dumpedFlows[i])
-		}
+
+	// filter based on attribute
+	err = checkDump(ovsif, "in_port=1", []string{
+		" cookie=0, table=0, priority=200, in_port=1, ip, nw_src=10.128.0.0/14, nw_dst=10.129.0.0/23, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
+		" cookie=0, table=0, priority=200, in_port=1, ip, nw_src=10.128.0.0/14, nw_dst=224.0.0.0/4, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
+		" cookie=0, table=0, priority=200, in_port=1, arp, arp_spa=10.128.0.0/14, arp_tpa=10.129.0.0/23, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
+		" cookie=0, table=0, priority=150, in_port=1, actions=drop",
+		" cookie=0, table=30, priority=50, in_port=1, ip, nw_dst=224.0.0.0/4, actions=goto_table:120",
+	})
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// multiple filters
+	err = checkDump(ovsif, "table=0,arp", []string{
+		" cookie=0, table=0, priority=200, in_port=2, arp, arp_spa=10.129.0.1, arp_tpa=10.128.0.0/14, actions=goto_table:30",
+		" cookie=0, table=0, priority=200, in_port=1, arp, arp_spa=10.128.0.0/14, arp_tpa=10.129.0.0/23, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
+		" cookie=0, table=0, priority=100, arp, actions=goto_table:20",
+	})
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 }
 
@@ -181,7 +228,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("unexpected error from DumpFlows: %v", err)
 	}
@@ -195,7 +242,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("unexpected error from DumpFlows: %v", err)
 	}
@@ -209,7 +256,7 @@ func TestFlowMatchesMasked(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error from AddFlow: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("unexpected error from DumpFlows: %v", err)
 	}

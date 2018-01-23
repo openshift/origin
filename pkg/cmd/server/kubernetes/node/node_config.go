@@ -6,7 +6,6 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim"
 
-	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/cert"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
@@ -31,9 +30,6 @@ type NodeConfig struct {
 	AllowDisabledDocker bool
 	// Containerized is true if we are expected to be running inside of a container
 	Containerized bool
-	// DNSClient is a client that is only used to lookup default DNS IP addresses on
-	// the cluster. It should not be passed into the Kubelet.
-	DNSClient kclientsetexternal.Interface
 
 	// DockerClientConfig is a client config to connect to Docker
 	DockerClientConfig *dockershim.ClientConfig
@@ -49,11 +45,6 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 	}
 
 	clientCAs, err := cert.NewPool(options.ServingInfo.ClientCA)
-	if err != nil {
-		return nil, err
-	}
-
-	externalKubeClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +88,6 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 
 		AllowDisabledDocker: options.AllowDisabledDocker,
 		Containerized:       server.Containerized,
-		DNSClient:           externalKubeClient,
 
 		VolumeDir: options.VolumeDirectory,
 

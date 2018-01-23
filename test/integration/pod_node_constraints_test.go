@@ -57,7 +57,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
-	cfg := map[string]configapi.AdmissionPluginConfig{
+	cfg := map[string]*configapi.AdmissionPluginConfig{
 		"PodNodeConstraints": {
 			Configuration: pluginConfig,
 		},
@@ -95,7 +95,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
-	cfg := map[string]configapi.AdmissionPluginConfig{
+	cfg := map[string]*configapi.AdmissionPluginConfig{
 		"PodNodeConstraints": {
 			Configuration: pluginConfig,
 		},

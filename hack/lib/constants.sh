@@ -7,6 +7,8 @@ readonly OS_GO_PACKAGE=github.com/openshift/origin
 readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.9}"
 readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
 readonly OS_REQUIRED_GO_VERSION="go${OS_BUILD_ENV_GOLANG}"
+readonly OS_GLIDE_MINOR_VERSION="13"
+readonly OS_REQUIRED_GLIDE_VERSION="0.$OS_GLIDE_MINOR_VERSION"
 
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
 readonly OS_GOFLAGS_TAGS_LINUX_AMD64="gssapi"
@@ -59,6 +61,7 @@ readonly OS_GOVET_BLACKLIST=(
 	"pkg/build/vendor/github.com/docker/engine-api/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"cmd/cluster-capacity/.*"
 	"pkg/build/builder/vendor/.*"
+	"pkg/cmd/server/start/.*"
 )
 
 #If you update this list, be sure to get the images/origin/Dockerfile

@@ -13,6 +13,7 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	sccadmission "github.com/openshift/origin/pkg/security/admission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 )
 
 // TestAdmissionPluginChains makes sure that the admission plugin lists are coherent.
@@ -95,6 +96,7 @@ var usedKubeAdmissionPlugins = sets.NewString(
 	"ExtendedResourceToleration",
 	"PVCProtection",
 	"NodeRestriction",
+	expandpvcadmission.PluginName,
 )
 
 // TestAdmissionPluginNames makes sure that openshift admission plugins are prefixed with `openshift.io/`.
@@ -168,7 +170,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 			options: configapi.MasterConfig{
 				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
 				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 						"foo": {
 							Location: "bar",
 						},

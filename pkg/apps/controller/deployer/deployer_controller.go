@@ -286,7 +286,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		if _, err := c.rn.ReplicationControllers(deploymentCopy.Namespace).Update(deploymentCopy); err != nil {
 			return fmt.Errorf("couldn't update rollout status for %q to %s: %v", appsutil.LabelForDeploymentV1(deploymentCopy), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", appsutil.LabelForDeploymentV1(deploymentCopy), currentStatus, nextStatus, deploymentCopy.Spec.Replicas)
+		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", appsutil.LabelForDeploymentV1(deploymentCopy), currentStatus, nextStatus, *deploymentCopy.Spec.Replicas)
 
 		if appsutil.IsDeploymentCancelled(deploymentCopy) && appsutil.IsFailedDeployment(deploymentCopy) {
 			c.emitDeploymentEvent(deploymentCopy, v1.EventTypeNormal, "RolloutCancelled", fmt.Sprintf("Rollout for %q cancelled", appsutil.LabelForDeploymentV1(deploymentCopy)))

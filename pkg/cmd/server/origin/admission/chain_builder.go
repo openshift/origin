@@ -13,6 +13,7 @@ import (
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
+	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
@@ -21,6 +22,7 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	imagequalify "github.com/openshift/origin/pkg/image/admission/imagequalify/api"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	sccadmission "github.com/openshift/origin/pkg/security/admission"
@@ -56,6 +58,7 @@ var (
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
+		imagequalify.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
 		"LimitRanger",
@@ -63,6 +66,7 @@ var (
 		noderestriction.PluginName,
 		sccadmission.PluginName,
 		storageclassdefaultadmission.PluginName,
+		expandpvcadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
@@ -102,6 +106,7 @@ var (
 		serviceadmit.ExternalIPPluginName,
 		serviceadmit.RestrictedEndpointsPluginName,
 		imagepolicy.PluginName,
+		imagequalify.PluginName,
 		"ImagePolicyWebhook",
 		"PodPreset",
 		"LimitRanger",
@@ -109,6 +114,7 @@ var (
 		noderestriction.PluginName,
 		sccadmission.PluginName,
 		storageclassdefaultadmission.PluginName,
+		expandpvcadmission.PluginName,
 		"AlwaysPullImages",
 		"LimitPodHardAntiAffinityTopology",
 		"SCCExecRestrictions",
@@ -147,7 +153,7 @@ func NewAdmissionChains(
 	} else {
 		pluginConfig := map[string]configapi.AdmissionPluginConfig{}
 		for pluginName, config := range options.AdmissionConfig.PluginConfig {
-			pluginConfig[pluginName] = config
+			pluginConfig[pluginName] = *config
 		}
 		upstreamAdmissionConfig, err := configapilatest.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
 		if err != nil {

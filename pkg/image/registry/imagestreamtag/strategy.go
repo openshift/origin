@@ -14,22 +14,29 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 )
 
-// strategy implements behavior for ImageStreamTags.
-type strategy struct {
+// Strategy implements behavior for ImageStreamTags.
+type Strategy struct {
 	runtime.ObjectTyper
+	registryWhitelister whitelist.RegistryWhitelister
 }
 
-var Strategy = &strategy{
-	ObjectTyper: legacyscheme.Scheme,
+// NewStrategy is the default logic that applies when creating and updating
+// ImageStreamTag objects via the REST API.
+func NewStrategy(registryWhitelister whitelist.RegistryWhitelister) Strategy {
+	return Strategy{
+		ObjectTyper:         legacyscheme.Scheme,
+		registryWhitelister: registryWhitelister,
+	}
 }
 
-func (s *strategy) NamespaceScoped() bool {
+func (s Strategy) NamespaceScoped() bool {
 	return true
 }
 
-func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	newIST := obj.(*imageapi.ImageStreamTag)
 	if newIST.Tag != nil && len(newIST.Tag.Name) == 0 {
 		_, tag, _ := imageapi.SplitImageStreamTag(newIST.Name)
@@ -39,29 +46,29 @@ func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) 
 	newIST.Image = imageapi.Image{}
 }
 
-func (s *strategy) GenerateName(base string) string {
+func (s Strategy) GenerateName(base string) string {
 	return base
 }
 
-func (s *strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (s Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	istag := obj.(*imageapi.ImageStreamTag)
 
-	return validation.ValidateImageStreamTag(istag)
+	return validation.ValidateImageStreamTagWithWhitelister(s.registryWhitelister, istag)
 }
 
-func (s *strategy) AllowCreateOnUpdate() bool {
+func (s Strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-func (*strategy) AllowUnconditionalUpdate() bool {
+func (Strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
 // Canonicalize normalizes the object after validation.
-func (strategy) Canonicalize(obj runtime.Object) {
+func (Strategy) Canonicalize(obj runtime.Object) {
 }
 
-func (s *strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (s Strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newIST := obj.(*imageapi.ImageStreamTag)
 	oldIST := old.(*imageapi.ImageStreamTag)
 
@@ -75,11 +82,11 @@ func (s *strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Obj
 	newIST.Image = oldIST.Image
 }
 
-func (s *strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (s Strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	newIST := obj.(*imageapi.ImageStreamTag)
 	oldIST := old.(*imageapi.ImageStreamTag)
 
-	return validation.ValidateImageStreamTagUpdate(newIST, oldIST)
+	return validation.ValidateImageStreamTagUpdateWithWhitelister(s.registryWhitelister, newIST, oldIST)
 }
 
 // MatchImageStreamTag returns a generic matcher for a given label and field selector.

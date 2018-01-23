@@ -189,3 +189,33 @@ function os::util::curl_etcd() {
 		     --cert "${etcd_client_cert}" --key "${etcd_client_key}" "${full_url}"
 	fi
 }
+
+# os::util::ensure_tmpfs ensures that the target dir is mounted on tmpfs
+#
+# Globals:
+#  OS_TMPFS_REQUIRED
+# Arguments:
+#  - 1: target to check
+# Returns:
+#  None
+function os::util::ensure_tmpfs() {
+	local target="$1"
+	if [[ ! -d "${target}" ]]; then
+		os::log::fatal "Target dir ${target} does not exist, cannot perform fstype check."
+	fi
+
+	os::log::debug "Filesystem information:
+$( df -h -T )"
+
+	local fstype
+	fstype="$( df --output=fstype "${target}" | tail -n 1 )"
+	if [[ "${fstype}" != "tmpfs" ]]; then
+		local message="Expected \`${target}\` to be mounted on \`tmpfs\` but found \`${fstype}\` instead."
+		if [[ -n "${OS_TMPFS_REQUIRED:-}" ]]; then
+			os::log::fatal "${message}"
+		else
+			os::log::warning "${message}
+Running in permissive mode, this will be ignored."
+		fi
+	fi
+}

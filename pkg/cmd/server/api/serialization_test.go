@@ -169,7 +169,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 
 			// test an admission plugin nested for round tripping
 			if c.RandBool() {
-				obj.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+				obj.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 					"abc": {
 						Location: "test",
 						Configuration: &configapi.LDAPSyncConfig{
@@ -178,9 +178,24 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					},
 				}
 			}
+
+			// ensure there are no nil plugin config objects
+			for pluginName := range obj.AdmissionConfig.PluginConfig {
+				if obj.AdmissionConfig.PluginConfig[pluginName] == nil {
+					obj.AdmissionConfig.PluginConfig[pluginName] = &configapi.AdmissionPluginConfig{}
+				}
+			}
+			if obj.KubernetesMasterConfig != nil {
+				for pluginName := range obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
+					if obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig[pluginName] == nil {
+						obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig[pluginName] = &configapi.AdmissionPluginConfig{}
+					}
+				}
+			}
+
 			// test a Kubernetes admission plugin nested for round tripping
 			if obj.KubernetesMasterConfig != nil && c.RandBool() {
-				obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+				obj.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
 					"abc": {
 						Location: "test",
 						Configuration: &configapi.LDAPSyncConfig{
@@ -502,7 +517,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 		{
 			in: &configapi.MasterConfig{
 				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
+					PluginConfig: map[string]*configapi.AdmissionPluginConfig{
 						"test1": {Configuration: &configapi.LDAPSyncConfig{BindDN: "first"}},
 						"test2": {Configuration: &runtime.Unknown{Raw: []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","bindDN":"second"}`)}},
 						"test3": {Configuration: &runtime.Unknown{Raw: []byte(`{"kind":"Unknown","apiVersion":"some/version"}`)}},
@@ -514,7 +529,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 			out: &configapiv1.MasterConfig{
 				TypeMeta: metav1.TypeMeta{Kind: "MasterConfig", APIVersion: "v1"},
 				AdmissionConfig: configapiv1.AdmissionConfig{
-					PluginConfig: map[string]configapiv1.AdmissionPluginConfig{
+					PluginConfig: map[string]*configapiv1.AdmissionPluginConfig{
 						"test1": {Configuration: runtime.RawExtension{
 							Object: &configapiv1.LDAPSyncConfig{BindDN: "first"},
 							Raw:    []byte(`{"kind":"LDAPSyncConfig","apiVersion":"v1","url":"","bindDN":"first","bindPassword":"","insecure":false,"ca":"","groupUIDNameMapping":null}`),

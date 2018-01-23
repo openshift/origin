@@ -32,6 +32,10 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 	)
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
@@ -74,8 +78,11 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					err = oc.Run("create").Args("-f", bcWithPRRef).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					g.By("start the build, wait for and confirm successful completion")
-					br, err := exutil.StartBuildAndWait(oc, "bc-with-pr-ref")
+					g.By("start the builds, wait for and confirm successful completion")
+					br, err := exutil.StartBuildAndWait(oc, "bc-with-pr-ref-docker")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					br.AssertSuccess()
+					br, err = exutil.StartBuildAndWait(oc, "bc-with-pr-ref")
 					o.Expect(err).NotTo(o.HaveOccurred())
 					br.AssertSuccess()
 					out, err := br.Logs()
@@ -85,6 +92,16 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					// so simply looking for that string in the mvn output is indicative of being at that level
 					g.By("confirm the correct commit level was retrieved")
 					o.Expect(out).Should(o.ContainSubstring("0.1-SNAPSHOT"))
+
+					istag, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref:latest", metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/1/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/1/head"))
+
+					istag, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("bc-with-pr-ref-docker:latest", metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(istag.Image.DockerImageMetadata.Config.Labels).To(o.HaveKeyWithValue("io.openshift.build.commit.ref", "refs/pull/1/head"))
+					o.Expect(istag.Image.DockerImageMetadata.Config.Env).To(o.ContainElement("OPENSHIFT_BUILD_REFERENCE=refs/pull/1/head"))
 				})
 
 			})

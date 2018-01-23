@@ -18,6 +18,10 @@ var _ = g.Describe("[Feature:Builds][Slow] extremely long build/bc names are not
 
 	g.Context("", func() {
 
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

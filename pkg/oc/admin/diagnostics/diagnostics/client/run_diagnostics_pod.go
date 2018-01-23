@@ -20,7 +20,9 @@ import (
 )
 
 const (
-	DiagnosticPodName = "DiagnosticPod"
+	DiagnosticPodName  = "DiagnosticPod"
+	ImageTemplateParam = "images"
+	LatestImageParam   = "latest-images"
 )
 
 // DiagnosticPod is a diagnostic that runs a diagnostic pod and relays the results.
@@ -33,6 +35,8 @@ type DiagnosticPod struct {
 	ImageTemplate       variable.ImageTemplate
 }
 
+var _ types.ParameterizedDiagnostic = (*DiagnosticPod)(nil)
+
 // Name is part of the Diagnostic interface and just returns name.
 func (d *DiagnosticPod) Name() string {
 	return DiagnosticPodName
@@ -43,10 +47,21 @@ func (d *DiagnosticPod) Description() string {
 	return "Create a pod to run diagnostics from the application standpoint"
 }
 
+func (d *DiagnosticPod) Requirements() (client bool, host bool) {
+	return true, false
+}
+
+func (d *DiagnosticPod) AvailableParameters() []types.Parameter {
+	return []types.Parameter{
+		{ImageTemplateParam, "Image template to use in creating a pod", &d.ImageTemplate.Format, variable.NewDefaultImageTemplate().Format},
+		{LatestImageParam, "If true, when expanding the image template, use latest version, not release version", &d.ImageTemplate.Latest, false},
+	}
+}
+
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d *DiagnosticPod) CanRun() (bool, error) {
 	if d.PreventModification {
-		return false, fmt.Errorf("running the diagnostic pod is an API change, which is prevented as you indicated")
+		return false, fmt.Errorf("running the diagnostic pod is an API change, which is prevented because the --prevent-modification flag was specified")
 	}
 	return true, nil
 }

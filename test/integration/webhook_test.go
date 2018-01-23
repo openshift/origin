@@ -134,6 +134,9 @@ func TestWebhook(t *testing.T) {
 }
 
 func TestWebhookGitHubPushWithImage(t *testing.T) {
+	const registryHostname = "registry:3000"
+	testutil.SetAdditionalAllowedRegistries(registryHostname)
+
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -165,12 +168,12 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
-			DockerImageRepository: "registry:3000/integration/imagestream",
+			DockerImageRepository: registryHostname + "/integration/imagestream",
 			Tags: map[string]imageapi.TagReference{
 				"validtag": {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "registry:3000/integration/imagestream:success",
+						Name: registryHostname + "/integration/imagestream:success",
 					},
 				},
 			},
@@ -187,7 +190,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myimage",
 			},
-			DockerImageReference: "registry:3000/integration/imagestream:success",
+			DockerImageReference: registryHostname + "/integration/imagestream:success",
 		},
 	}
 	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
@@ -244,6 +247,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 }
 
 func TestWebhookGitHubPushWithImageStream(t *testing.T) {
+	const registryHostname = "registry:3000"
+	testutil.SetAdditionalAllowedRegistries(registryHostname)
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -275,12 +280,12 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	imageStream := &imageapi.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
-			DockerImageRepository: "registry:3000/integration/imagestream",
+			DockerImageRepository: registryHostname + "/integration/imagestream",
 			Tags: map[string]imageapi.TagReference{
 				"validtag": {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
-						Name: "registry:3000/integration/imagestream:success",
+						Name: registryHostname + "/integration/imagestream:success",
 					},
 				},
 			},
@@ -297,7 +302,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myimage",
 			},
-			DockerImageReference: "registry:3000/integration/imagestream:success",
+			DockerImageReference: registryHostname + "/integration/imagestream:success",
 		},
 	}
 	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
@@ -339,8 +344,8 @@ Loop:
 			break Loop
 		}
 	}
-	if build.Spec.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imagestream:success" {
-		t.Errorf("Expected %s, got %s", "registry:3000/integration/imagestream:success", build.Spec.Strategy.SourceStrategy.From.Name)
+	if build.Spec.Strategy.SourceStrategy.From.Name != registryHostname+"/integration/imagestream:success" {
+		t.Errorf("Expected %s, got %s", registryHostname+"/integration/imagestream:success", build.Spec.Strategy.SourceStrategy.From.Name)
 	}
 }
 

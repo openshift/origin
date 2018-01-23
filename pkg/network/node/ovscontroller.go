@@ -18,8 +18,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-
-	"github.com/vishvananda/netlink"
 )
 
 type ovsController struct {
@@ -53,17 +51,12 @@ func (oc *ovsController) getVersionNote() string {
 }
 
 func (oc *ovsController) AlreadySetUp() bool {
-	flows, err := oc.ovs.DumpFlows()
-	if err != nil {
+	flows, err := oc.ovs.DumpFlows("table=%d", ruleVersionTable)
+	if err != nil || len(flows) != 1 {
 		return false
 	}
-	expectedVersionNote := oc.getVersionNote()
-	// The "version" flow should be the last one, so scan from the end
-	for i := len(flows) - 1; i >= 0; i-- {
-		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flows[i])
-		if err == nil && parsed.Table == ruleVersionTable {
-			return parsed.NoteHasPrefix(expectedVersionNote)
-		}
+	if parsed, err := ovs.ParseFlow(ovs.ParseForDump, flows[0]); err == nil {
+		return parsed.NoteHasPrefix(oc.getVersionNote())
 	}
 	return false
 }
@@ -86,13 +79,6 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 	_, err = oc.ovs.AddPort(Tun0, 2, "type=internal")
 	if err != nil {
 		return err
-	}
-	if oc.tunMAC == "" {
-		link, err := netlink.LinkByName(Tun0)
-		if err != nil {
-			return err
-		}
-		oc.tunMAC = link.Attrs().HardwareAddr.String()
 	}
 
 	otx := oc.ovs.NewTransaction()
@@ -338,19 +324,23 @@ func (oc *ovsController) SetPodBandwidth(hostVeth string, ingressBPS, egressBPS 
 	return nil
 }
 
-func getPodDetailsBySandboxID(flows []string, sandboxID string) (int, string, string, string, error) {
+func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, string, string, string, error) {
 	note, err := getPodNote(sandboxID)
 	if err != nil {
 		return 0, "", "", "", err
 	}
+	flows, err := oc.ovs.DumpFlows("table=20,arp")
+	if err != nil {
+		return 0, "", "", "", err
+	}
 
-	// Find the table=20 flow with the given note and extract the podIP, ofport, and MAC from them
+	// Find the flow with the given note and extract the podIP, ofport, and MAC from them
 	for _, flow := range flows {
 		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
 		if err != nil {
 			return 0, "", "", "", err
 		}
-		if parsed.Table != 20 || !parsed.NoteHasPrefix(note) {
+		if !parsed.NoteHasPrefix(note) {
 			continue
 		}
 
@@ -381,11 +371,7 @@ func getPodDetailsBySandboxID(flows []string, sandboxID string) (int, string, st
 }
 
 func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
-	flows, err := oc.ovs.DumpFlows()
-	if err != nil {
-		return err
-	}
-	ofport, podIP, podMAC, note, err := getPodDetailsBySandboxID(flows, sandboxID)
+	ofport, podIP, podMAC, note, err := oc.getPodDetailsBySandboxID(sandboxID)
 	if err != nil {
 		return err
 	}
@@ -398,11 +384,7 @@ func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
 
 func (oc *ovsController) TearDownPod(hostVeth, podIP, sandboxID string) error {
 	if podIP == "" {
-		flows, err := oc.ovs.DumpFlows()
-		if err != nil {
-			return err
-		}
-		_, ip, _, _, err := getPodDetailsBySandboxID(flows, sandboxID)
+		_, ip, _, _, err := oc.getPodDetailsBySandboxID(sandboxID)
 		if err != nil {
 			// OVS flows related to sandboxID not found
 			// Nothing needs to be done in that case
@@ -619,7 +601,7 @@ func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
 // pod/service-specific rules before they call policy.EnsureVNIDRules(), then there is no
 // race condition.
 func (oc *ovsController) FindUnusedVNIDs() []int {
-	flows, err := oc.ovs.DumpFlows()
+	flows, err := oc.ovs.DumpFlows("")
 	if err != nil {
 		glog.Errorf("FindUnusedVNIDs: could not DumpFlows: %v", err)
 		return nil
@@ -675,6 +657,21 @@ func (oc *ovsController) FindUnusedVNIDs() []int {
 	return policyVNIDs.Difference(inUseVNIDs).UnsortedList()
 }
 
+func (oc *ovsController) ensureTunMAC() error {
+	if oc.tunMAC != "" {
+		return nil
+	}
+
+	val, err := oc.ovs.Get("Interface", Tun0, "mac_in_use")
+	if err != nil {
+		return fmt.Errorf("could not get %s MAC address: %v", Tun0, err)
+	} else if len(val) != 19 || val[0] != '"' || val[18] != '"' {
+		return fmt.Errorf("bad MAC address for %s: %q", Tun0, val)
+	}
+	oc.tunMAC = val[1:18]
+	return nil
+}
+
 func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, egressHex string) error {
 	otx := oc.ovs.NewTransaction()
 	otx.DeleteFlows("table=100, reg0=%d", vnid)
@@ -686,6 +683,9 @@ func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, egressH
 		otx.AddFlow("table=100, priority=100, reg0=%d, actions=drop", vnid)
 	} else if nodeIP == oc.localIP {
 		// Local Egress IP
+		if err := oc.ensureTunMAC(); err != nil {
+			return err
+		}
 		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->eth_dst,set_field:%s->pkt_mark,goto_table:101", vnid, oc.tunMAC, egressHex)
 	} else {
 		// Remote Egress IP; send via VXLAN

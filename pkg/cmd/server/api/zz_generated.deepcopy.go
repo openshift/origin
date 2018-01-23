@@ -42,11 +42,14 @@ func (in *AdmissionConfig) DeepCopyInto(out *AdmissionConfig) {
 	*out = *in
 	if in.PluginConfig != nil {
 		in, out := &in.PluginConfig, &out.PluginConfig
-		*out = make(map[string]AdmissionPluginConfig, len(*in))
+		*out = make(map[string]*AdmissionPluginConfig, len(*in))
 		for key, val := range *in {
-			newVal := new(AdmissionPluginConfig)
-			val.DeepCopyInto(newVal)
-			(*out)[key] = *newVal
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				(*out)[key] = new(AdmissionPluginConfig)
+				val.DeepCopyInto((*out)[key])
+			}
 		}
 	}
 	if in.PluginOrderOverride != nil {

@@ -24,6 +24,10 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 	)
 	g.Context("", func() {
 
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))

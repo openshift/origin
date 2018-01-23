@@ -127,6 +127,7 @@ var (
 	// the cluster version.
 	internalCurrentTemplateLocations = map[string]string{
 		"web console server template":       "install/origin-web-console/console-template.yaml",
+		"web console server rbac":           "install/origin-web-console/rbac-template.yaml",
 		"template service broker apiserver": "install/templateservicebroker/apiserver-template.yaml",
 	}
 	// internalPreviousTemplateLocations are templates that will be registered in an internal namespace.
@@ -429,12 +430,6 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Import internal templates
 	c.addTask(conditionalTask("Importing internal templates", c.ImportInternalTemplates, c.ShouldInitializeData))
 
-	// Install the web console
-	c.addTask(conditionalTask("Installing web console", c.InstallWebConsole, func() bool {
-		serverVersion, _ := c.OpenShiftHelper().ServerVersion()
-		return clusterVersionIsCurrent(serverVersion) && c.ShouldInitializeData()
-	}))
-
 	// Import logging templates
 	c.addTask(conditionalTask("Importing logging templates", c.ImportLoggingTemplates, func() bool {
 		return c.ShouldInstallLogging && c.ShouldInitializeData()
@@ -459,6 +454,13 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// the TSB registration is not persisted.
 	c.addTask(conditionalTask("Registering template service broker with service catalog", c.RegisterTemplateServiceBroker, func() bool {
 		return c.ShouldInstallServiceCatalog
+	}))
+
+	// Install the web console. Do this after the template service broker is installed so that
+	// the console can discover that the broker is running on startup.
+	c.addTask(conditionalTask("Installing web console", c.InstallWebConsole, func() bool {
+		serverVersion, _ := c.OpenShiftHelper().ServerVersion()
+		return clusterVersionIsCurrent(serverVersion) && c.ShouldInitializeData()
 	}))
 
 	// Login with an initial default user

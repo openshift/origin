@@ -55,6 +55,8 @@ type CMServer struct {
 
 	Master     string
 	Kubeconfig string
+
+	OpenShiftConfig string
 }
 
 // NewCMServer creates a new CMServer with a default config.
@@ -135,6 +137,9 @@ func NewCMServer() *CMServer {
 
 // AddFlags adds flags for a specific CMServer to the specified FlagSet
 func (s *CMServer) AddFlags(fs *pflag.FlagSet, allControllers []string, disabledByDefaultControllers []string) {
+	fs.StringVar(&s.OpenShiftConfig, "openshift-config", s.OpenShiftConfig, "indicates that this process should be compatible with openshift start master")
+	fs.MarkHidden("openshift-config")
+
 	fs.StringSliceVar(&s.Controllers, "controllers", s.Controllers, fmt.Sprintf(""+
 		"A list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller "+
 		"named 'foo', '-foo' disables the controller named 'foo'.\nAll controllers: %s\nDisabled-by-default controllers: %s",

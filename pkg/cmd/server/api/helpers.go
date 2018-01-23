@@ -235,6 +235,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		}
 	}
 
+	for k := range config.AdmissionConfig.PluginConfig {
+		refs = append(refs, &config.AdmissionConfig.PluginConfig[k].Location)
+	}
+
 	if config.KubernetesMasterConfig != nil {
 		refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
 
@@ -244,6 +248,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.APIServerArguments)
 		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.SchedulerArguments)
 		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.ControllerArguments)
+
+		for k := range config.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
+			refs = append(refs, &config.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k].Location)
+		}
 	}
 
 	if config.AuthConfig.RequestHeader != nil {

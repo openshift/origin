@@ -278,7 +278,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 }
 
 func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.BuildDefaultsConfig) (buildclient.Interface, kclientset.Interface, func()) {
-	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
+	return setupBuildPodAdmissionTest(t, map[string]*configapi.AdmissionPluginConfig{
 		"BuildDefaults": {
 			Configuration: defaultsConfig,
 		},
@@ -286,14 +286,14 @@ func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.B
 }
 
 func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesapi.BuildOverridesConfig) (buildclient.Interface, kclientset.Interface, func()) {
-	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
+	return setupBuildPodAdmissionTest(t, map[string]*configapi.AdmissionPluginConfig{
 		"BuildOverrides": {
 			Configuration: overridesConfig,
 		},
 	})
 }
 
-func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (buildclient.Interface, kclientset.Interface, func()) {
+func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]*configapi.AdmissionPluginConfig) (buildclient.Interface, kclientset.Interface, func()) {
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)

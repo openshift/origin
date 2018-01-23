@@ -53,6 +53,7 @@ func TestConcurrentBuildControllersPodSync(t *testing.T) {
 }
 
 func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
+	testutil.SetAdditionalAllowedRegistries("registry:8080")
 	// Start a master with multiple ImageChangeTrigger controllers
 	buildClient, imageClient, _, fn := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
 	defer fn()

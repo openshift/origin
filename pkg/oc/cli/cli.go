@@ -92,7 +92,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	f := clientcmd.New(cmds.PersistentFlags())
 
 	loginCmd := login.NewCmdLogin(fullName, f, in, out, errout)
-	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, errout, fullName+" edit")
+	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, errout)
 
 	groups := ktemplates.CommandGroups{
 		{
@@ -185,6 +185,10 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	}
 	groups.Add(cmds)
 
+	ocEditFullName := fullName + " edit"
+	ocSecretsFullName := fullName + " " + secrets.SecretsRecommendedName
+	ocSecretsNewFullName := ocSecretsFullName + " " + secrets.NewSecretRecommendedCommandName
+
 	filters := []string{
 		"options",
 		"deploy",
@@ -193,6 +197,10 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
 		moved(fullName, "logs", cmds, cmd.NewCmdBuildLogs(fullName, f, out)),
 		moved(fullName, "secrets link", secretcmds, secrets.NewCmdLinkSecret("add", fullName, f, out)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSecret(secrets.NewSecretRecommendedCommandName, fullName, f, out)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateDockerConfigSecret(secrets.CreateDockerConfigSecretRecommendedName, fullName, f, out, ocSecretsNewFullName, ocEditFullName)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateBasicAuthSecret(secrets.CreateBasicAuthSecretRecommendedCommandName, fullName, f, in, out, ocSecretsNewFullName, ocEditFullName)),
+		moved(fullName, "create secret", secretcmds, secrets.NewCmdCreateSSHAuthSecret(secrets.CreateSSHAuthSecretRecommendedCommandName, fullName, f, out, ocSecretsNewFullName, ocEditFullName)),
 	}
 
 	changeSharedFlagDefaults(cmds)

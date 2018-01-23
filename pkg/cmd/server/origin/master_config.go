@@ -23,9 +23,9 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
+	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
@@ -56,7 +56,7 @@ type MasterConfig struct {
 	RESTOptionsGetter restoptions.Getter
 
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
-	SubjectLocator authorizer.SubjectLocator
+	SubjectLocator rbacauthorizer.SubjectLocator
 
 	ProjectAuthorizationCache     *projectauth.AuthorizationCache
 	ProjectCache                  *projectcache.ProjectCache
@@ -140,7 +140,7 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	authorizer, subjectLocator, ruleResolver := NewAuthorizer(informers, options.ProjectConfig.ProjectRequestMessage)
+	authorizer := NewAuthorizer(informers, options.ProjectConfig.ProjectRequestMessage)
 	projectCache, err := newProjectCache(informers, privilegedLoopbackConfig, options.ProjectConfig.DefaultNodeSelector)
 	if err != nil {
 		return nil, err
@@ -166,6 +166,8 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
+	subjectLocator := NewSubjectLocator(informers.GetInternalKubeInformers().Rbac().InternalVersion())
+
 	config := &MasterConfig{
 		Options: options,
 
@@ -180,7 +182,7 @@ func BuildMasterConfig(
 
 		RESTOptionsGetter: restOptsGetter,
 
-		RuleResolver:   ruleResolver,
+		RuleResolver:   NewRuleResolver(informers.GetInternalKubeInformers().Rbac().InternalVersion()),
 		SubjectLocator: subjectLocator,
 
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
@@ -247,7 +249,7 @@ func newProjectCache(informers InformerAccess, privilegedLoopbackConfig *restcli
 		defaultNodeSelector), nil
 }
 
-func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, namespaces cache.SharedIndexInformer, internalRBACInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces cache.SharedIndexInformer, internalRBACInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		namespaces,
 		projectauth.NewAuthorizerReviewer(subjectLocator),

@@ -59,11 +59,12 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/configz"
 	"k8s.io/kubernetes/pkg/version"
+	"k8s.io/kubernetes/pkg/version/verflag"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/uuid"
 )
 
 const (
@@ -74,7 +75,7 @@ const (
 // NewControllerManagerCommand creates a *cobra.Command object with default parameters
 func NewControllerManagerCommand() *cobra.Command {
 	s := options.NewCMServer()
-	s.AddFlags(pflag.CommandLine, KnownControllers(), ControllersDisabledByDefault.List())
+
 	cmd := &cobra.Command{
 		Use: "kube-controller-manager",
 		Long: `The Kubernetes controller manager is a daemon that embeds
@@ -86,8 +87,12 @@ current state towards the desired state. Examples of controllers that ship with
 Kubernetes today are the replication controller, endpoints controller, namespace
 controller, and serviceaccounts controller.`,
 		Run: func(cmd *cobra.Command, args []string) {
+			verflag.PrintAndExitIfRequested()
+			Run(s)
 		},
 	}
+
+	s.AddFlags(cmd.Flags(), KnownControllers(), ControllersDisabledByDefault.List())
 
 	return cmd
 }
@@ -120,6 +125,12 @@ func Run(s *options.CMServer) error {
 	if err != nil {
 		return err
 	}
+
+	cleanupFn, err := ShimForOpenShift(s, kubeconfig)
+	if err != nil {
+		return err
+	}
+	defer cleanupFn()
 
 	if s.Port >= 0 {
 		go startHTTP(s)
@@ -172,6 +183,8 @@ func Run(s *options.CMServer) error {
 	if err != nil {
 		return err
 	}
+	// add a uniquifier so that two processes on the same host don't accidentally both become active
+	id = id + "_" + string(uuid.NewUUID())
 
 	rl, err := resourcelock.New(s.LeaderElection.ResourceLock,
 		"kube-system",
@@ -423,9 +436,14 @@ func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (ma
 // CreateControllerContext creates a context struct containing references to resources needed by the
 // controllers such as the cloud provider and clientBuilder. rootClientBuilder is only used for
 // the shared-informers client and token controller.
-func createControllerContext(s *options.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) {
+func CreateControllerContext(s *options.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) {
 	versionedClient := rootClientBuilder.ClientOrDie("shared-informers")
-	sharedInformers := informers.NewSharedInformerFactory(versionedClient, ResyncPeriod(s)())
+	var sharedInformers informers.SharedInformerFactory
+	if InformerFactoryOverride == nil {
+		sharedInformers = informers.NewSharedInformerFactory(versionedClient, ResyncPeriod(s)())
+	} else {
+		sharedInformers = InformerFactoryOverride
+	}
 
 	availableResources, err := GetAvailableResources(rootClientBuilder)
 	if err != nil {

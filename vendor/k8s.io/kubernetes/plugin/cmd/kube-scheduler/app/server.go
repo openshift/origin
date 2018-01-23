@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/server/healthz"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -64,14 +65,12 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	latestschedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api/latest"
-
 	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
 
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // SchedulerServer has all the context and params needed to run a Scheduler
@@ -195,6 +194,7 @@ func (o *Options) applyDeprecatedHealthzAddressToConfig() {
 func (o *Options) applyDeprecatedHealthzPortToConfig() {
 	if o.healthzPort == -1 {
 		o.config.HealthzBindAddress = ""
+		o.config.MetricsBindAddress = ""
 		return
 	}
 
@@ -377,12 +377,12 @@ func NewSchedulerServer(config *componentconfig.KubeSchedulerConfiguration, mast
 	}
 
 	// Configz registration.
-	if c, err := configz.New("componentconfig"); err == nil {
-		c.Set(config)
-	} else {
-		// don't fail on this error.  somethign else is registering this (dear lord what?!).
-		// drop once we're in a separate process
-		utilruntime.HandleError(fmt.Errorf("unable to register configz: %s", err))
+	if len(config.MetricsBindAddress) > 0 || len(config.HealthzBindAddress) > 0 {
+		if c, err := configz.New("componentconfig"); err == nil {
+			c.Set(config)
+		} else {
+			return nil, fmt.Errorf("unable to register configz: %s", err)
+		}
 	}
 
 	// Prepare some Kube clients.
@@ -407,7 +407,7 @@ func NewSchedulerServer(config *componentconfig.KubeSchedulerConfiguration, mast
 	// Prepare a healthz server. If the metrics bind address is the same as the
 	// healthz bind address, consolidate the servers into one.
 	var healthzServer *http.Server
-	if len(config.HealthzBindAddress) != 0 {
+	if len(config.HealthzBindAddress) > 0 {
 		healthzServer = makeHealthzServer(config)
 	}
 
@@ -441,13 +441,15 @@ func makeLeaderElectionConfig(config componentconfig.KubeSchedulerLeaderElection
 	if err != nil {
 		return nil, fmt.Errorf("unable to get hostname: %v", err)
 	}
+	// add a uniquifier so that two processes on the same host don't accidentally both become active
+	id := hostname + "_" + string(uuid.NewUUID())
 
 	rl, err := resourcelock.New(config.ResourceLock,
 		config.LockObjectNamespace,
 		config.LockObjectName,
 		client.CoreV1(),
 		resourcelock.ResourceLockConfig{
-			Identity:      hostname,
+			Identity:      id,
 			EventRecorder: recorder,
 		})
 	if err != nil {

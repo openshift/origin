@@ -97,7 +97,6 @@ var expectedIndex = []string{
 	"/apis/template.openshift.io/v1",
 	"/apis/user.openshift.io",
 	"/apis/user.openshift.io/v1",
-	"/controllers",
 	"/healthz",
 	"/healthz/autoregister-completion",
 	"/healthz/etcd",

@@ -154,12 +154,19 @@ var (
 
 // Name is part of the Diagnostic interface and just returns name.
 func (d ConfigContext) Name() string {
+	if len(d.ContextName) == 0 {
+		return ConfigContextsName
+	}
 	return fmt.Sprintf("%s[%s]", ConfigContextsName, d.ContextName)
 }
 
 // Description is part of the Diagnostic interface and provides a user-focused description of what the diagnostic does.
 func (d ConfigContext) Description() string {
 	return "Validate client config context is complete and has connectivity"
+}
+
+func (d ConfigContext) Requirements() (client bool, host bool) {
+	return true, false
 }
 
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.

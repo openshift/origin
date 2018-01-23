@@ -42,6 +42,10 @@ func (d PodCheckAuth) Description() string {
 	return "Check that service account credentials authenticate as expected"
 }
 
+func (d PodCheckAuth) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d PodCheckAuth) CanRun() (bool, error) {
 	return true, nil

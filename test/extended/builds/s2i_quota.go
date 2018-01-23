@@ -24,6 +24,10 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 	)
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))

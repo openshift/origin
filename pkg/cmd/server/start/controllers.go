@@ -107,7 +107,10 @@ func getLeaderElectionOptions(args map[string][]string) (componentconfig.LeaderE
 		return componentconfig.LeaderElectionConfiguration{}, kutilerrors.NewAggregate(err)
 	}
 
-	return cmserver.KubeControllerManagerConfiguration.LeaderElection, nil
+	leaderElection := cmserver.KubeControllerManagerConfiguration.LeaderElection
+	leaderElection.LeaderElect = true
+	leaderElection.ResourceLock = "configmaps"
+	return leaderElection, nil
 }
 
 func waitForHealthyAPIServer(client rest.Interface) error {

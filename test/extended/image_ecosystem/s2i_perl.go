@@ -30,6 +30,10 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 	)
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

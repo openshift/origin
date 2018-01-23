@@ -25,8 +25,8 @@ import (
 
 	imageapiv1 "github.com/openshift/api/image/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -66,8 +66,7 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 	images rest.Creater, isClient imageclient.ImageStreamsGetter,
 	transport, insecureTransport http.RoundTripper,
 	clientFn ImporterDockerRegistryFunc,
-	allowedImportRegistries *serverapi.AllowedRegistries,
-	registryFn imageapi.RegistryHostnameRetriever,
+	registryWhitelister whitelist.RegistryWhitelister,
 	sarClient authorizationclient.SubjectAccessReviewInterface,
 ) *REST {
 	return &REST{
@@ -79,7 +78,7 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 		transport:         transport,
 		insecureTransport: insecureTransport,
 		clientFn:          clientFn,
-		strategy:          NewStrategy(allowedImportRegistries, registryFn),
+		strategy:          NewStrategy(registryWhitelister),
 		sarClient:         sarClient,
 	}
 }

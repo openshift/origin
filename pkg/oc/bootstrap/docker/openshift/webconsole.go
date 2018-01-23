@@ -21,8 +21,9 @@ import (
 
 const (
 	consoleNamespace             = "openshift-web-console"
+	consoleRBACTemplateName      = "web-console-server-rbac"
 	consoleAPIServerTemplateName = "openshift-web-console"
-	consoleAssetConfigFile       = "install/origin-web-console/console-config.yaml"
+	consoleConfigFile            = "install/origin-web-console/console-config.yaml"
 )
 
 // InstallWebConsole installs the web console server into the openshift-web-console namespace and waits for it to become ready
@@ -41,32 +42,55 @@ func (h *Helper) InstallWebConsole(f *clientcmd.Factory, imageFormat string, ser
 		return errors.NewError("cannot create web console project").WithCause(err)
 	}
 
-	// read in the asset config YAML file like the installer
-	assetConfigYaml, err := bootstrap.Asset(consoleAssetConfigFile)
+	if err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, consoleRBACTemplateName, consoleNamespace, map[string]string{}, true); err != nil {
+		return errors.NewError("cannot instantiate template service broker permissions").WithCause(err)
+	}
+
+	// read in the config YAML file like the installer
+	consoleConfigYaml, err := bootstrap.Asset(consoleConfigFile)
 	if err != nil {
-		return errors.NewError("cannot read web console asset config file").WithCause(err)
+		return errors.NewError("cannot read web console config file").WithCause(err)
 	}
 
 	// prase the YAML to edit
-	var assetConfig map[string]interface{}
-	if err := yaml.Unmarshal(assetConfigYaml, &assetConfig); err != nil {
-		return errors.NewError("cannot parse web console asset config as YAML").WithCause(err)
+	var consoleConfig map[string]interface{}
+	if err := yaml.Unmarshal(consoleConfigYaml, &consoleConfig); err != nil {
+		return errors.NewError("cannot parse web console config as YAML").WithCause(err)
 	}
 
-	// update asset config values
-	assetConfig["publicURL"] = publicURL
-	assetConfig["masterPublicURL"] = masterURL
+	// update config values
+	clusterInfo, ok := consoleConfig["clusterInfo"].(map[interface{}]interface{})
+	if !ok {
+		return errors.NewError("cannot read clusterInfo in web console config")
+	}
+
+	clusterInfo["consolePublicURL"] = publicURL
+	clusterInfo["masterPublicURL"] = masterURL
 	if len(loggingURL) > 0 {
-		assetConfig["loggingPublicURL"] = loggingURL
+		clusterInfo["loggingPublicURL"] = loggingURL
 	}
 	if len(metricsURL) > 0 {
-		assetConfig["metricsPublicURL"] = metricsURL
+		clusterInfo["metricsPublicURL"] = metricsURL
 	}
 
+	// START deprecated properties
+	// These properties have been renamed and will be removed from cluster up
+	// in a future pull. Keep both the old and new properties for now so that
+	// the cluster up is not broken while the origin-web-console image is updated.
+	consoleConfig["publicURL"] = publicURL
+	consoleConfig["masterPublicURL"] = masterURL
+	if len(loggingURL) > 0 {
+		consoleConfig["loggingPublicURL"] = loggingURL
+	}
+	if len(metricsURL) > 0 {
+		consoleConfig["metricsPublicURL"] = metricsURL
+	}
+	// END deprecated properties
+
 	// serialize it back out as a string to use as a template parameter
-	updatedAssetConfig, err := yaml.Marshal(assetConfig)
+	updatedConfig, err := yaml.Marshal(consoleConfig)
 	if err != nil {
-		return errors.NewError("cannot serialize web console asset config").WithCause(err)
+		return errors.NewError("cannot serialize web console config").WithCause(err)
 	}
 
 	imageTemplate := variable.NewDefaultImageTemplate()
@@ -74,7 +98,7 @@ func (h *Helper) InstallWebConsole(f *clientcmd.Factory, imageFormat string, ser
 	imageTemplate.Latest = false
 
 	params := map[string]string{
-		"API_SERVER_CONFIG": string(updatedAssetConfig),
+		"API_SERVER_CONFIG": string(updatedConfig),
 		"IMAGE":             imageTemplate.ExpandOrDie("web-console"),
 		"LOGLEVEL":          fmt.Sprint(serverLogLevel),
 		"NAMESPACE":         consoleNamespace,

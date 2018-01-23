@@ -22,7 +22,6 @@ import (
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/plug"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
@@ -78,15 +77,14 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	return ret, ret.ExtraConfig.Validate()
 }
 
-func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config, controllerPlug plug.Plug) *OpenshiftNonAPIConfig {
+func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config) *OpenshiftNonAPIConfig {
 	ret := &OpenshiftNonAPIConfig{
 		GenericConfig: &apiserver.RecommendedConfig{
 			Config:                kubeAPIServerConfig,
 			SharedInformerFactory: c.ClientGoKubeInformers,
 		},
 		ExtraConfig: NonAPIExtraConfig{
-			ControllerPlug: controllerPlug,
-			EnableOAuth:    c.Options.OAuthConfig != nil,
+			EnableOAuth: c.Options.OAuthConfig != nil,
 		},
 	}
 	if c.Options.OAuthConfig != nil {
@@ -113,8 +111,8 @@ func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationT
 	return apiExtensionsServer.GenericAPIServer, apiExtensionsServer.Informers, nil
 }
 
-func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, controllerPlug plug.Plug) (apiserver.DelegationTarget, error) {
-	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig, controllerPlug)
+func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
+	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig)
 	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(delegateAPIServer)
 	if err != nil {
 		return nil, err
@@ -205,7 +203,7 @@ func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarg
 
 // Run launches the OpenShift master by creating a kubernetes master, installing
 // OpenShift APIs into it and then running it.
-func (c *MasterConfig) Run(controllerPlug plug.Plug, stopCh <-chan struct{}) error {
+func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var err error
 	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
 	var delegateAPIServer apiserver.DelegationTarget
@@ -221,7 +219,7 @@ func (c *MasterConfig) Run(controllerPlug plug.Plug, stopCh <-chan struct{}) err
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig, controllerPlug)
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}

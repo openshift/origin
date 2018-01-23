@@ -16,7 +16,7 @@ import (
 type BuildControllerConfig struct {
 	DockerImage           string
 	S2IImage              string
-	AdmissionPluginConfig map[string]configapi.AdmissionPluginConfig
+	AdmissionPluginConfig map[string]*configapi.AdmissionPluginConfig
 
 	Codec runtime.Codec
 }

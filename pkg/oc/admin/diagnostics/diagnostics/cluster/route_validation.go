@@ -44,6 +44,10 @@ func (d *RouteCertificateValidation) Description() string {
 	return "Check all route certificates for certificates that might be rejected by extended validation."
 }
 
+func (d *RouteCertificateValidation) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 func (d *RouteCertificateValidation) CanRun() (bool, error) {
 	if d.RESTConfig == nil || d.SARClient == nil {
 		return false, errors.New("must have Kube client configuration")

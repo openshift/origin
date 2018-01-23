@@ -124,6 +124,10 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
 
 	g.Context("", func() {
+		g.BeforeEach(func() {
+			exutil.DumpDockerInfo()
+		})
+
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))

@@ -23,6 +23,7 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
+	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 )
 
 type ResourceGetter interface {
@@ -36,18 +37,26 @@ type Strategy struct {
 	registryHostnameRetriever imageapi.RegistryHostnameRetriever
 	tagVerifier               *TagVerifier
 	limitVerifier             imageadmission.LimitVerifier
+	registryWhitelister       whitelist.RegistryWhitelister
 	imageStreamGetter         ResourceGetter
 }
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
+func NewStrategy(
+	registryHostname imageapi.RegistryHostnameRetriever,
+	subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface,
+	limitVerifier imageadmission.LimitVerifier,
+	registryWhitelister whitelist.RegistryWhitelister,
+	imageStreamGetter ResourceGetter,
+) Strategy {
 	return Strategy{
 		ObjectTyper:               legacyscheme.Scheme,
 		NameGenerator:             names.SimpleNameGenerator,
 		registryHostnameRetriever: registryHostname,
 		tagVerifier:               &TagVerifier{subjectAccessReviewClient},
 		limitVerifier:             limitVerifier,
+		registryWhitelister:       registryWhitelister,
 		imageStreamGetter:         imageStreamGetter,
 	}
 }
@@ -79,7 +88,7 @@ func (s Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Err
 	if err := s.validateTagsAndLimits(ctx, nil, stream); err != nil {
 		errs = append(errs, field.InternalError(field.NewPath(""), err))
 	}
-	errs = append(errs, validation.ValidateImageStream(stream)...)
+	errs = append(errs, validation.ValidateImageStreamWithWhitelister(s.registryWhitelister, stream)...)
 	return errs
 }
 
@@ -531,7 +540,7 @@ func (s Strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object
 	if err := s.validateTagsAndLimits(ctx, oldStream, stream); err != nil {
 		errs = append(errs, field.InternalError(field.NewPath(""), err))
 	}
-	errs = append(errs, validation.ValidateImageStreamUpdate(stream, oldStream)...)
+	errs = append(errs, validation.ValidateImageStreamUpdateWithWhitelister(s.registryWhitelister, stream, oldStream)...)
 	return errs
 }
 
@@ -592,7 +601,7 @@ func (s StatusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.
 	}
 
 	// TODO: merge valid fields after update
-	errs = append(errs, validation.ValidateImageStreamStatusUpdate(newIS, old.(*imageapi.ImageStream))...)
+	errs = append(errs, validation.ValidateImageStreamStatusUpdateWithWhitelister(s.registryWhitelister, newIS, old.(*imageapi.ImageStream))...)
 	return errs
 }
 

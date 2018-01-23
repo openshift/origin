@@ -774,7 +774,7 @@ func deprecatedAdmissionPluginNames() sets.String {
 	return sets.NewString("openshift.io/OriginResourceQuota")
 }
 
-func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig, fieldPath *field.Path) ValidationResults {
+func ValidateAdmissionPluginConfig(pluginConfig map[string]*api.AdmissionPluginConfig, fieldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	deprecatedPlugins := deprecatedAdmissionPluginNames()
