@@ -14001,6 +14001,53 @@ objects:
       serviceaccounts.openshift.io/oauth-redirectreference.prom: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"prometheus"}}'
       serviceaccounts.openshift.io/oauth-redirectreference.alerts: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"alerts"}}'
       serviceaccounts.openshift.io/oauth-redirectreference.alertmanager: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"alertmanager"}}'
+
+# Create a service account for accessing prometheus data
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus-reader
+    namespace: "${NAMESPACE}"
+
+# Create a service account for prometheus to use to scrape other infrastructure components
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus-scraper
+    namespace: "${NAMESPACE}"
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: prometheus-scraper
+    namespace: "${NAMESPACE}"
+    annotations:
+      kubernetes.io/service-account.name: prometheus-scraper
+  type: kubernetes.io/service-account-token
+
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: prometheus-scraper
+  rules:
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routers/metrics
+    verbs:
+    - get
+
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: prometheus-scraper
+  roleRef:
+    name: prometheus-scraper
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus-scraper
+    namespace: "${NAMESPACE}"
+
 - apiVersion: authorization.openshift.io/v1
   kind: ClusterRoleBinding
   metadata:
@@ -14010,6 +14057,18 @@ objects:
   subjects:
   - kind: ServiceAccount
     name: prometheus
+    namespace: "${NAMESPACE}"
+
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    name: prometheus-reader
+    namespace: "${NAMESPACE}"
+  roleRef:
+    name: view
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus-reader
     namespace: "${NAMESPACE}"
 
 # Create a fully end-to-end TLS connection to the prometheus proxy
@@ -14190,6 +14249,8 @@ objects:
             name: prometheus-config
           - mountPath: /prometheus
             name: prometheus-data
+          - mountPath: /var/run/secrets/kubernetes.io/scraper
+            name: prometheus-scraper-secret
 
         # Deploy alertmanager behind prometheus-alert-buffer behind an oauth proxy
         # use http port=4190 and https port=9943 to differ from prom-proxy
@@ -14281,6 +14342,9 @@ objects:
           configMap:
             defaultMode: 420
             name: prometheus
+        - name: prometheus-scraper-secret
+          secret:
+            secretName: prometheus-scraper
         - name: prometheus-proxy-secret
           secret:
             secretName: prometheus-proxy
@@ -14564,21 +14628,39 @@ objects:
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
 
+      # TODO: auto-generate these sections, or add a dynamic infrastructure scraper
       # Scrape config for the template service broker
       - job_name: 'openshift-template-service-broker'
         scheme: https
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
           server_name: apiserver.openshift-template-service-broker.svc
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-
+        bearer_token_file: /var/run/secrets/kubernetes.io/scraper/token
         kubernetes_sd_configs:
         - role: endpoints
-
+          namespaces:
+            names:
+            - openshift-template-service-broker
         relabel_configs:
         - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
           action: keep
           regex: openshift-template-service-broker;apiserver;https
+      # Scrape config for the router
+      - job_name: 'openshift-router'
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          server_name: router.default.svc
+        bearer_token_file: /var/run/secrets/kubernetes.io/scraper/token
+        kubernetes_sd_configs:
+        - role: endpoints
+          namespaces:
+            names:
+            - default
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;router;1936-tcp
 
       alerting:
         alertmanagers:
