@@ -48,6 +48,10 @@ type ServiceAliasConfig struct {
 	// Hash of the route name - used to obscure cookieId
 	RoutingKeyName string
 
+	// A unique internal ID that is stable across router reloads and is mostly stable across restarts.
+	// No other object exposed to the router configuration will have this same value.
+	InternalID uint32
+
 	// IsWildcard indicates this service unit needs wildcarding support.
 	IsWildcard bool
 
@@ -95,6 +99,9 @@ type Endpoint struct {
 	PortName      string
 	IdHash        string
 	NoHealthCheck bool
+	// A unique internal ID that is stable across router reloads and is mostly stable across restarts.
+	// No other object exposed to the router configuration will have this same value.
+	InternalID uint32
 }
 
 // certificateManager provides the ability to write certificates for a ServiceAliasConfig

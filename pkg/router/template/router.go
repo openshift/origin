@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -54,9 +55,14 @@ type templateRouter struct {
 	reloadScriptPath string
 	reloadInterval   time.Duration
 	reloadCallbacks  []func()
-	state            map[string]ServiceAliasConfig
-	serviceUnits     map[string]ServiceUnit
-	certManager      certificateManager
+
+	// these manage the state of the router
+	state        map[string]ServiceAliasConfig
+	serviceUnits map[string]ServiceUnit
+	certManager  certificateManager
+	uniqueIds    map[uint32]struct{}
+	nextId       int
+
 	// defaultCertificate is a concatenated certificate(s), their keys, and their CAs that should be used by the underlying
 	// implementation as the default certificate if no certificate is resolved by the normal matching mechanisms.  This is
 	// usually a wildcard certificate for a cloud domain such as *.mypaas.com to allow applications to create app.mypaas.com
@@ -186,9 +192,6 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		reloadScriptPath:         cfg.reloadScriptPath,
 		reloadInterval:           cfg.reloadInterval,
 		reloadCallbacks:          cfg.reloadCallbacks,
-		state:                    make(map[string]ServiceAliasConfig),
-		serviceUnits:             make(map[string]ServiceUnit),
-		certManager:              certManager,
 		defaultCertificate:       cfg.defaultCertificate,
 		defaultCertificatePath:   cfg.defaultCertificatePath,
 		defaultCertificateDir:    cfg.defaultCertificateDir,
@@ -201,11 +204,18 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		peerEndpoints:            []Endpoint{},
 		bindPortsAfterSync:       cfg.bindPortsAfterSync,
 
+		state:        make(map[string]ServiceAliasConfig),
+		serviceUnits: make(map[string]ServiceUnit),
+		certManager:  certManager,
+		uniqueIds:    make(map[uint32]struct{}),
+		nextId:       1,
+
 		metricReload:      metricsReload,
 		metricWriteConfig: metricWriteConfig,
 
 		rateLimitedCommitFunction: nil,
 	}
+	router.uniqueIds[0] = struct{}{}
 
 	router.EnableRateLimiter(cfg.reloadInterval, router.commitAndReload)
 
@@ -509,20 +519,6 @@ func (r *templateRouter) FindServiceUnit(id string) (ServiceUnit, bool) {
 	return r.findMatchingServiceUnit(id)
 }
 
-// DeleteServiceUnit deletes the service with the given id.
-func (r *templateRouter) DeleteServiceUnit(id string) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	_, ok := r.findMatchingServiceUnit(id)
-	if !ok {
-		return
-	}
-
-	delete(r.serviceUnits, id)
-	r.stateChanged = true
-}
-
 // DeleteEndpoints deletes the endpoints for the service with the given id.
 func (r *templateRouter) DeleteEndpoints(id string) {
 	r.lock.Lock()
@@ -533,8 +529,10 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 		return
 	}
 
+	for _, endpoint := range service.EndpointTable {
+		r.releaseIdInternal(endpoint.InternalID)
+	}
 	service.EndpointTable = []Endpoint{}
-
 	r.serviceUnits[id] = service
 
 	// TODO: this is not safe (assuming that the subset of elements we are watching includes the peer endpoints)
@@ -568,11 +566,11 @@ func getPartsFromRouteKey(key string) (string, string) {
 
 // createServiceAliasConfig creates a ServiceAliasConfig from a route and the router state.
 // The router state is not modified in the process, so referenced ServiceUnits may not exist.
-func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, backendKey string) *ServiceAliasConfig {
+func createServiceAliasConfig(route *routeapi.Route, backendKey string, allowWildcards bool, defaultDestinationCAPath string) *ServiceAliasConfig {
 	wantsWildcardSupport := (route.Spec.WildcardPolicy == routeapi.WildcardPolicySubdomain)
 
 	// The router config trumps what the route asks for/wants.
-	wildcard := r.allowWildcardRoutes && wantsWildcardSupport
+	wildcard := allowWildcards && wantsWildcardSupport
 
 	// Get the service weights from each service in the route. Count the active
 	// ones (with a non-zero weight)
@@ -608,7 +606,7 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, backend
 
 		config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
 
-		if tls.Termination == routeapi.TLSTerminationReencrypt && len(tls.DestinationCACertificate) == 0 && len(r.defaultDestinationCAPath) > 0 {
+		if tls.Termination == routeapi.TLSTerminationReencrypt && len(tls.DestinationCACertificate) == 0 && len(defaultDestinationCAPath) > 0 {
 			config.VerifyServiceHostname = true
 		}
 
@@ -656,7 +654,7 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, backend
 func (r *templateRouter) AddRoute(route *routeapi.Route) {
 	backendKey := routeKey(route)
 
-	newConfig := r.createServiceAliasConfig(route, backendKey)
+	newConfig := createServiceAliasConfig(route, backendKey, r.allowWildcardRoutes, r.defaultDestinationCAPath)
 
 	// We have to call the internal form of functions after this
 	// because we are holding the state lock.
@@ -689,6 +687,7 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 			r.createServiceUnitInternal(key)
 		}
 	}
+	newConfig.InternalID = r.allocateIdInternal(truncateHexToSlice(newConfig.RoutingKeyName, 4))
 
 	r.state[backendKey] = *newConfig
 	r.stateChanged = true
@@ -710,7 +709,7 @@ func (r *templateRouter) removeRouteInternal(route *routeapi.Route) {
 	if !ok {
 		return
 	}
-
+	r.releaseIdInternal(serviceAliasConfig.InternalID)
 	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
 	delete(r.state, backendKey)
 	r.stateChanged = true
@@ -731,19 +730,27 @@ func (r *templateRouter) numberOfEndpoints(id string) int32 {
 func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	frontend, _ := r.findMatchingServiceUnit(id)
+	service, _ := r.findMatchingServiceUnit(id)
 
 	//only make the change if there is a difference
-	if reflect.DeepEqual(frontend.EndpointTable, endpoints) {
+	if reflect.DeepEqual(service.EndpointTable, endpoints) {
 		glog.V(4).Infof("Ignoring change for %s, endpoints are the same", id)
 		return
 	}
 
-	frontend.EndpointTable = endpoints
-	r.serviceUnits[id] = frontend
+	// release old ids, allocate new ids for the new endpoints
+	for _, endpoint := range service.EndpointTable {
+		r.releaseIdInternal(endpoint.InternalID)
+	}
+	for i := range endpoints {
+		endpoints[i].InternalID = r.allocateIdInternal(truncateHexToSlice(endpoints[i].IdHash, 4))
+	}
+
+	service.EndpointTable = endpoints
+	r.serviceUnits[id] = service
 
 	if id == r.peerEndpointsKey {
-		r.peerEndpoints = frontend.EndpointTable
+		r.peerEndpoints = service.EndpointTable
 		glog.V(4).Infof("Peer endpoints updated to: %#v", r.peerEndpoints)
 	}
 
@@ -1002,4 +1009,56 @@ func configsAreEqual(config1, config2 *ServiceAliasConfig) bool {
 		config1.VerifyServiceHostname == config2.VerifyServiceHostname &&
 		reflect.DeepEqual(config1.Annotations, config2.Annotations) &&
 		reflect.DeepEqual(config1.ServiceUnits, config2.ServiceUnits)
+}
+
+// allocateIdInternal finds a unique internal id that is stable to the provided hash, or if
+// a collision exists performs a linear probe. This method must be called while holding `lock`.
+func (r *templateRouter) allocateIdInternal(hash []byte) uint32 {
+	position := truncateHashToInt32(hash, 0x7fffffff)
+	// probe up to 10k items
+	for probe := uint32(0); probe < 10000; probe++ {
+		i := position + probe
+		if _, ok := r.uniqueIds[i]; ok {
+			continue
+		}
+		r.uniqueIds[i] = struct{}{}
+		return i
+	}
+	// very likely we have a serious bug that results in failing to allocate or failing to release,
+	// or someone is not actually passing in a hash (i.e. an empty byte string, or a constant value)
+	panic("router was unable to allocate an internal ID in a reasonable amount of iterations")
+}
+
+// releaseIdInternal must be called while holding `lock`.
+func (r *templateRouter) releaseIdInternal(id uint32) {
+	if _, ok := r.uniqueIds[id]; !ok {
+		panic("router attempted to deallocate an internal ID that was not allocated")
+	}
+	delete(r.uniqueIds, id)
+}
+
+// truncateHashToInt32 takes the provided byte slice and returns a uint32 masked by mask.
+func truncateHashToInt32(src []byte, mask uint32) uint32 {
+	max := len(src)
+	if max > 4 {
+		max = 4
+	}
+	value := uint32(0)
+	for i := 0; i < max; i++ {
+		value |= uint32(src[i]) << (4 * uint(i))
+	}
+	return value & mask
+}
+
+// truncateHexToSlice takes a string containing valid hex bytes and returns it as a byte slice that is
+// no more than maxBytes in length. It panics if the input is not valid hex.
+func truncateHexToSlice(src string, maxBytes int) []byte {
+	if len(src) > maxBytes*2 {
+		src = src[:maxBytes*2]
+	}
+	bytes, err := hex.DecodeString(src)
+	if err != nil {
+		panic(fmt.Sprintf("unexpected hex input: %v", err))
+	}
+	return bytes
 }
