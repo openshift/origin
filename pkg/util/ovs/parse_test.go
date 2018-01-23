@@ -93,7 +93,7 @@ func TestParseFlows(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error from ParseFlow: %v", err)
 		}
-		if !FlowMatches(parsed, &test.match, true) {
+		if !FlowMatches(parsed, &test.match) {
 			t.Fatalf("parsed flow %d (%#v) does not match expected output (%#v)", i, parsed, &test.match)
 		}
 	}
@@ -120,7 +120,7 @@ func TestParseFlowsDefaults(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error from ParseFlow: %v", err)
 		}
-		if !FlowMatches(parsed, &test.match, true) {
+		if !FlowMatches(parsed, &test.match) {
 			t.Fatalf("parsed flow %d (%#v) does not match expected output (%#v)", i, parsed, &test.match)
 		}
 	}
@@ -286,7 +286,7 @@ func TestFlowMatchesBad(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error from ParseFlow: %v", err)
 		}
-		if FlowMatches(parsed, &test.match, false) {
+		if FlowMatches(parsed, &test.match) {
 			t.Fatalf("parsed flow %d (%#v) unexpectedly matches output (%#v)", i, parsed, &test.match)
 		}
 	}

@@ -25,7 +25,7 @@ func setupOVSController(t *testing.T) (ovs.Interface, *ovsController, []string) 
 		t.Fatalf("Unexpected error setting up OVS: %v", err)
 	}
 
-	origFlows, err := ovsif.DumpFlows()
+	origFlows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestOVSHostSubnet(t *testing.T) {
 		t.Fatalf("Unexpected error adding HostSubnet rules: %v", err)
 	}
 
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestOVSHostSubnet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error deleting HostSubnet rules: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestOVSService(t *testing.T) {
 		t.Fatalf("Unexpected error adding service rules: %v", err)
 	}
 
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestOVSService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error deleting service rules: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestOVSPod(t *testing.T) {
 		t.Fatalf("Unexpected error adding pod rules: %v", err)
 	}
 
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestOVSPod(t *testing.T) {
 		t.Fatalf("Unexpected error adding pod rules: %v", err)
 	}
 
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -307,7 +307,7 @@ func TestOVSPod(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error deleting pod rules: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -321,8 +321,6 @@ func TestOVSPod(t *testing.T) {
 func TestGetPodDetails(t *testing.T) {
 	type testcase struct {
 		sandboxID string
-		flows     []string
-		ofport    int
 		ip        string
 		mac       string
 		note      string
@@ -332,71 +330,20 @@ func TestGetPodDetails(t *testing.T) {
 	testcases := []testcase{
 		{
 			sandboxID: sandboxID,
-			flows: []string{
-				"cookie=0x0, duration=12.243s, table=0, n_packets=0, n_bytes=0, priority=250,ip,in_port=2,nw_dst=224.0.0.0/4 actions=drop",
-				"cookie=0x0, duration=12.258s, table=0, n_packets=0, n_bytes=0, priority=200,arp,in_port=1,arp_spa=10.128.0.0/14,arp_tpa=10.130.0.0/23 actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
-				"cookie=0x0, duration=12.255s, table=0, n_packets=0, n_bytes=0, priority=200,ip,in_port=1,nw_src=10.128.0.0/14,nw_dst=10.130.0.0/23 actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
-				"cookie=0x0, duration=12.252s, table=0, n_packets=0, n_bytes=0, priority=200,ip,in_port=1,nw_src=10.128.0.0/14,nw_dst=224.0.0.0/4 actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
-				"cookie=0x0, duration=12.237s, table=0, n_packets=0, n_bytes=0, priority=200,arp,in_port=2,arp_spa=10.130.0.1,arp_tpa=10.128.0.0/14 actions=goto_table:30",
-				"cookie=0x0, duration=12.234s, table=0, n_packets=0, n_bytes=0, priority=200,ip,in_port=2 actions=goto_table:30",
-				"cookie=0x0, duration=12.248s, table=0, n_packets=0, n_bytes=0, priority=150,in_port=1 actions=drop",
-				"cookie=0x0, duration=12.230s, table=0, n_packets=7, n_bytes=586, priority=150,in_port=2 actions=drop",
-				"cookie=0x0, duration=12.222s, table=0, n_packets=0, n_bytes=0, priority=100,arp actions=goto_table:20",
-				"cookie=0x0, duration=12.218s, table=0, n_packets=0, n_bytes=0, priority=100,ip actions=goto_table:20",
-				"cookie=0x0, duration=12.215s, table=0, n_packets=5, n_bytes=426, priority=0 actions=drop",
-				"cookie=0x0, duration=12.063s, table=10, n_packets=0, n_bytes=0, priority=100,tun_src=172.17.0.3 actions=goto_table:30",
-				"cookie=0x0, duration=12.041s, table=10, n_packets=0, n_bytes=0, priority=100,tun_src=172.17.0.4 actions=goto_table:30",
-				"cookie=0x0, duration=12.211s, table=10, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=3.202s, table=20, n_packets=0, n_bytes=0, priority=100,arp,in_port=3,arp_spa=10.130.0.2,arp_sha=4a:77:32:e4:ab:9d actions=load:0->NXM_NX_REG0[],note:bc.b5.d8.d2.87.fc.f9.74.58.c4.8a.d6.43.b1.01.07.9e.3b.c2.65.a9.4e.09.7e.74.07.44.07.16.11.2f.69.00.00.00.00.00.00,goto_table:21",
-				"cookie=0x0, duration=3.197s, table=20, n_packets=0, n_bytes=0, priority=100,ip,in_port=3,nw_src=10.130.0.2 actions=load:0->NXM_NX_REG0[],goto_table:21",
-				"cookie=0x0, duration=12.205s, table=20, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.201s, table=21, n_packets=0, n_bytes=0, priority=0 actions=goto_table:30",
-				"cookie=0x0, duration=12.196s, table=30, n_packets=0, n_bytes=0, priority=300,arp,arp_tpa=10.130.0.1 actions=output:2",
-				"cookie=0x0, duration=12.182s, table=30, n_packets=0, n_bytes=0, priority=300,ip,nw_dst=10.130.0.1 actions=output:2",
-				"cookie=0x0, duration=12.190s, table=30, n_packets=0, n_bytes=0, priority=200,arp,arp_tpa=10.130.0.0/23 actions=goto_table:40",
-				"cookie=0x0, duration=12.173s, table=30, n_packets=0, n_bytes=0, priority=200,ip,nw_dst=10.130.0.0/23 actions=goto_table:70",
-				"cookie=0x0, duration=12.186s, table=30, n_packets=0, n_bytes=0, priority=100,arp,arp_tpa=10.128.0.0/14 actions=goto_table:50",
-				"cookie=0x0, duration=12.169s, table=30, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=10.128.0.0/14 actions=goto_table:90",
-				"cookie=0x0, duration=12.178s, table=30, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=172.30.0.0/16 actions=goto_table:60",
-				"cookie=0x0, duration=12.165s, table=30, n_packets=0, n_bytes=0, priority=50,ip,in_port=1,nw_dst=224.0.0.0/4 actions=goto_table:120",
-				"cookie=0x0, duration=12.160s, table=30, n_packets=0, n_bytes=0, priority=25,ip,nw_dst=224.0.0.0/4 actions=goto_table:110",
-				"cookie=0x0, duration=12.154s, table=30, n_packets=0, n_bytes=0, priority=0,ip actions=goto_table:100",
-				"cookie=0x0, duration=12.150s, table=30, n_packets=0, n_bytes=0, priority=0,arp actions=drop",
-				"cookie=0x0, duration=3.190s, table=40, n_packets=0, n_bytes=0, priority=100,arp,arp_tpa=10.130.0.2 actions=output:3",
-				"cookie=0x0, duration=12.147s, table=40, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.058s, table=50, n_packets=0, n_bytes=0, priority=100,arp,arp_tpa=10.128.0.0/23 actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:172.17.0.3->tun_dst,output:1",
-				"cookie=0x0, duration=12.037s, table=50, n_packets=0, n_bytes=0, priority=100,arp,arp_tpa=10.129.0.0/23 actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:172.17.0.4->tun_dst,output:1",
-				"cookie=0x0, duration=12.143s, table=50, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.139s, table=60, n_packets=0, n_bytes=0, priority=200,reg0=0 actions=output:2",
-				"cookie=0x0, duration=11.938s, table=60, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=172.30.0.1,nw_frag=later actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
-				"cookie=0x0, duration=11.929s, table=60, n_packets=0, n_bytes=0, priority=100,tcp,nw_dst=172.30.0.1,tp_dst=443 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
-				"cookie=0x0, duration=11.926s, table=60, n_packets=0, n_bytes=0, priority=100,udp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
-				"cookie=0x0, duration=11.922s, table=60, n_packets=0, n_bytes=0, priority=100,tcp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
-				"cookie=0x0, duration=12.136s, table=60, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=3.179s, table=70, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=10.130.0.2 actions=load:0->NXM_NX_REG1[],load:0x3->NXM_NX_REG2[],goto_table:80",
-				"cookie=0x0, duration=12.133s, table=70, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.129s, table=80, n_packets=0, n_bytes=0, priority=300,ip,nw_src=10.130.0.1 actions=output:NXM_NX_REG2[]",
-				"cookie=0x0, duration=12.062s, table=80, n_packets=0, n_bytes=0, priority=200,reg0=0 actions=output:NXM_NX_REG2[]",
-				"cookie=0x0, duration=12.055s, table=80, n_packets=0, n_bytes=0, priority=200,reg1=0 actions=output:NXM_NX_REG2[]",
-				"cookie=0x0, duration=12.124s, table=80, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.053s, table=90, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=10.128.0.0/23 actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:172.17.0.3->tun_dst,output:1",
-				"cookie=0x0, duration=12.030s, table=90, n_packets=0, n_bytes=0, priority=100,ip,nw_dst=10.129.0.0/23 actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:172.17.0.4->tun_dst,output:1",
-				"cookie=0x0, duration=12.120s, table=90, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.116s, table=100, n_packets=0, n_bytes=0, priority=0 actions=output:2",
-				"cookie=0x0, duration=12.112s, table=110, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.024s, table=111, n_packets=0, n_bytes=0, priority=100 actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:172.17.0.3->tun_dst,output:1,set_field:172.17.0.4->tun_dst,output:1,goto_table:120",
-				"cookie=0x0, duration=12.105s, table=120, n_packets=0, n_bytes=0, priority=0 actions=drop",
-				"cookie=0x0, duration=12.101s, table=253, n_packets=0, n_bytes=0, actions=note:01.03.00.00.00.00",
-			},
-			ofport: 3,
-			ip:     "10.130.0.2",
-			mac:    "4a:77:32:e4:ab:9d",
-			note:   sandboxNote,
+			ip:        "10.130.0.2",
+			mac:       "4a:77:32:e4:ab:9d",
+			note:      sandboxNote,
 		},
 	}
 
 	for _, tc := range testcases {
-		ofport, ip, mac, note, err := getPodDetailsBySandboxID(tc.flows, tc.sandboxID)
+		_, oc, _ := setupOVSController(t)
+		tcOFPort, err := oc.SetUpPod("veth1", tc.ip, tc.mac, tc.sandboxID, 42)
+		if err != nil {
+			t.Fatalf("Unexpected error adding pod rules: %v", err)
+		}
+
+		ofport, ip, mac, note, err := oc.getPodDetailsBySandboxID(tc.sandboxID)
 		if err != nil {
 			if tc.errStr != "" {
 				if !strings.Contains(err.Error(), tc.errStr) {
@@ -408,8 +355,8 @@ func TestGetPodDetails(t *testing.T) {
 		} else if tc.errStr != "" {
 			t.Fatalf("expected error %q", tc.errStr)
 		}
-		if ofport != tc.ofport {
-			t.Fatalf("unexpected ofport %d (expected %d)", ofport, tc.ofport)
+		if ofport != tcOFPort {
+			t.Fatalf("unexpected ofport %d (expected %d)", ofport, tcOFPort)
 		}
 		if ip != tc.ip {
 			t.Fatalf("unexpected ip %q (expected %q)", ip, tc.ip)
@@ -431,7 +378,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -454,7 +401,7 @@ func TestOVSMulticast(t *testing.T) {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
 	lastFlows := flows
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -467,7 +414,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -481,7 +428,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -504,7 +451,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -528,7 +475,7 @@ func TestOVSMulticast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error adding multicast flows: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -668,7 +615,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err := ovsif.DumpFlows()
+	flows, err := ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -692,7 +639,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -720,7 +667,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -748,7 +695,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -772,7 +719,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -796,7 +743,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -822,7 +769,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -846,7 +793,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -874,7 +821,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Unexpected lack of error updating egress network policy")
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -907,7 +854,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}
@@ -934,7 +881,7 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error updating egress network policy: %v", err)
 	}
-	flows, err = ovsif.DumpFlows()
+	flows, err = ovsif.DumpFlows("")
 	if err != nil {
 		t.Fatalf("Unexpected error dumping flows: %v", err)
 	}

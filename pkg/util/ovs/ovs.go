@@ -63,8 +63,8 @@ type Interface interface {
 	Clear(table, record string, columns ...string) error
 
 	// DumpFlows dumps the flow table for the bridge and returns it as an array of
-	// strings, one per flow.
-	DumpFlows() ([]string, error)
+	// strings, one per flow. If flow is not "" then it describes the flows to dump.
+	DumpFlows(flow string, args ...interface{}) ([]string, error)
 
 	// NewTransaction begins a new OVS transaction. If an error occurs at
 	// any step in the transaction, it will be recorded until
@@ -287,8 +287,11 @@ func (tx *ovsExecTx) EndTransaction() error {
 	return err
 }
 
-func (ovsif *ovsExec) DumpFlows() ([]string, error) {
-	out, err := ovsif.exec(OVS_OFCTL, "dump-flows", ovsif.bridge)
+func (ovsif *ovsExec) DumpFlows(flow string, args ...interface{}) ([]string, error) {
+	if len(args) > 0 {
+		flow = fmt.Sprintf(flow, args...)
+	}
+	out, err := ovsif.exec(OVS_OFCTL, "dump-flows", ovsif.bridge, flow)
 	if err != nil {
 		return nil, err
 	}
