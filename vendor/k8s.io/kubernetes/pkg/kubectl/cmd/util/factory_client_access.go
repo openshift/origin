@@ -38,6 +38,7 @@ import (
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	batchv1 "k8s.io/api/batch/v1"
+	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	batchv2alpha1 "k8s.io/api/batch/v2alpha1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -53,12 +54,12 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/apps"
+	"k8s.io/kubernetes/pkg/apis/batch"
+	"k8s.io/kubernetes/pkg/apis/core"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/printers"
 	printersinternal "k8s.io/kubernetes/pkg/printers/internalversion"
@@ -294,11 +295,17 @@ func (f *ring0Factory) UpdatePodSpecForObject(obj runtime.Object, fn func(*v1.Po
 		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.Template.Spec)
 	case *batchv1.Job:
 		return true, fn(&t.Spec.Template.Spec)
+	// CronJob
+	case *batch.CronJob:
+		return true, ConvertExteralPodSpecToInternal(fn)(&t.Spec.JobTemplate.Spec.Template.Spec)
+	case *batchv1beta1.CronJob:
+		return true, fn(&t.Spec.JobTemplate.Spec.Template.Spec)
+	case *batchv2alpha1.CronJob:
+		return true, fn(&t.Spec.JobTemplate.Spec.Template.Spec)
 	default:
 		return false, fmt.Errorf("the object is not a pod or does not have a pod template")
 	}
 }
-
 
 func ConvertExteralPodSpecToInternal(inFn func(*v1.PodSpec) error) func(*core.PodSpec) error {
 	return func(specToMutate *core.PodSpec) error {
