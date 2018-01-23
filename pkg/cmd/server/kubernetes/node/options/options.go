@@ -3,13 +3,9 @@ package node
 import (
 	"fmt"
 	"net"
-	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -26,27 +22,100 @@ import (
 	"github.com/openshift/origin/pkg/network"
 )
 
-// Build creates the core Kubernetes component configs for a given NodeConfig, or returns
-// an error
-func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) {
+// computeKubeletFlags returns the flags to use when starting the kubelet
+// TODO this needs to return a []string and be passed to cobra, but as an intermediate step, we'll compute the map and run it through the existing paths
+func computeKubeletFlags(startingArgs map[string][]string, options configapi.NodeConfig) (map[string][]string, error) {
+	args := map[string][]string{}
+	for key, slice := range startingArgs {
+		for _, val := range slice {
+			args[key] = append(args[key], val)
+		}
+	}
+
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
-	var path string
+	path := ""
 	var fileCheckInterval int64
 	if options.PodManifestConfig != nil {
 		path = options.PodManifestConfig.Path
 		fileCheckInterval = options.PodManifestConfig.FileCheckIntervalSeconds
 	}
-
 	kubeAddressStr, kubePortStr, err := net.SplitHostPort(options.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse node address: %v", err)
 	}
-	kubePort, err := strconv.Atoi(kubePortStr)
+
+	setIfUnset(args, "address", kubeAddressStr)
+	setIfUnset(args, "port", kubePortStr)
+	setIfUnset(args, "require-kubeconfig", "true")
+	setIfUnset(args, "kubeconfig", options.MasterKubeConfig)
+	setIfUnset(args, "pod-manifest-path", path)
+	setIfUnset(args, "root-dir", options.VolumeDirectory)
+	setIfUnset(args, "node-ip", options.NodeIP)
+	setIfUnset(args, "hostname-override", options.NodeName)
+	setIfUnset(args, "allow-privileged", "true")
+	setIfUnset(args, "register-node", "true")
+	setIfUnset(args, "read-only-port", "0")      // no read only access
+	setIfUnset(args, "cadvisor-port", "0")       // no unsecured cadvisor access
+	setIfUnset(args, "healthz-port", "0")        // no unsecured healthz access
+	setIfUnset(args, "healthz-bind-address", "") // no unsecured healthz access
+	setIfUnset(args, "cluster-dns", options.DNSIP)
+	setIfUnset(args, "cluster-domain", options.DNSDomain)
+	setIfUnset(args, "host-network-sources", kubelettypes.ApiserverSource, kubelettypes.FileSource)
+	setIfUnset(args, "host-pid-sources", kubelettypes.ApiserverSource, kubelettypes.FileSource)
+	setIfUnset(args, "host-ipc-sources", kubelettypes.ApiserverSource, kubelettypes.FileSource)
+	setIfUnset(args, "http-check-frequency", "0s") // no remote HTTP pod creation access
+	setIfUnset(args, "file-check-frequency", fmt.Sprintf("%ds", fileCheckInterval))
+	setIfUnset(args, "pod-infra-container-image", imageTemplate.ExpandOrDie("pod"))
+	setIfUnset(args, "max-pods", "250")
+	setIfUnset(args, "pods-per-core", "10")
+	setIfUnset(args, "cgroup-driver", "systemd")
+	setIfUnset(args, "container-runtime-endpoint", options.DockerConfig.DockerShimSocket)
+	setIfUnset(args, "image-service-endpoint", options.DockerConfig.DockerShimSocket)
+	setIfUnset(args, "experimental-dockershim-root-directory", options.DockerConfig.DockershimRootDirectory)
+	setIfUnset(args, "containerized", fmt.Sprintf("%v", cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"))
+	setIfUnset(args, "authentication-token-webhook", "true")
+	setIfUnset(args, "authentication-token-webhook-cache-ttl", options.AuthConfig.AuthenticationCacheTTL)
+	setIfUnset(args, "anonymous-auth", "true")
+	setIfUnset(args, "client-ca-file", options.ServingInfo.ClientCA)
+	setIfUnset(args, "authorization-mode", "Webhook")
+	setIfUnset(args, "authorization-webhook-cache-authorized-ttl", options.AuthConfig.AuthorizationCacheTTL)
+	setIfUnset(args, "authorization-webhook-cache-unauthorized-ttl", options.AuthConfig.AuthorizationCacheTTL)
+
+	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
+		// SDN plugin pod setup/teardown is implemented as a CNI plugin
+		setIfUnset(args, "network-plugin", kubeletcni.CNIPluginName)
+		setIfUnset(args, "cni-conf-dir", kubeletcni.DefaultNetDir)
+		setIfUnset(args, "cni-bin-dir", kubeletcni.DefaultCNIDir)
+		setIfUnset(args, "hairpin-mode", kubeletconfig.HairpinNone)
+	} else {
+		setIfUnset(args, "network-plugin", options.NetworkConfig.NetworkPluginName)
+	}
+
+	// prevents kube from generating certs
+	setIfUnset(args, "tls-cert-file", options.ServingInfo.ServerCert.CertFile)
+	setIfUnset(args, "tls-private-key-file", options.ServingInfo.ServerCert.KeyFile)
+	// roundtrip to get a default value
+	setIfUnset(args, "tls-cipher-suites", crypto.CipherSuitesToNamesOrDie(crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites))...)
+	setIfUnset(args, "tls-min-version", crypto.TLSVersionToNameOrDie(crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion)))
+
+	return args, nil
+}
+
+func setIfUnset(cmdLineArgs map[string][]string, key string, value ...string) {
+	if _, ok := cmdLineArgs[key]; !ok {
+		cmdLineArgs[key] = value
+	}
+}
+
+// Build creates the core Kubernetes component configs for a given NodeConfig, or returns
+// an error
+func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) {
+	kubeletFlags, err := computeKubeletFlags(options.KubeletArguments, options)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse node port: %v", err)
+		return nil, fmt.Errorf("cannot create kubelet args: %v", err)
 	}
 
 	// Defaults are tested in TestKubeletDefaults
@@ -54,81 +123,7 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 	if err != nil {
 		return nil, fmt.Errorf("cannot create kubelet server: %v", err)
 	}
-	// Adjust defaults
-	server.RequireKubeConfig = true
-	server.KubeConfig.Default(options.MasterKubeConfig)
-	server.PodManifestPath = path
-	server.RootDirectory = options.VolumeDirectory
-	server.NodeIP = options.NodeIP
-	server.HostnameOverride = options.NodeName
-	server.AllowPrivileged = true
-	server.RegisterNode = true
-	server.Address = kubeAddressStr
-	server.Port = int32(kubePort)
-	server.ReadOnlyPort = 0        // no read only access
-	server.CAdvisorPort = 0        // no unsecured cadvisor access
-	server.HealthzPort = 0         // no unsecured healthz access
-	server.HealthzBindAddress = "" // no unsecured healthz access
-	server.ClusterDNS = []string{options.DNSIP}
-	server.ClusterDomain = options.DNSDomain
-	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
-	server.HostNetworkSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
-	server.HostPIDSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
-	server.HostIPCSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
-	server.HTTPCheckFrequency = metav1.Duration{Duration: time.Duration(0)} // no remote HTTP pod creation access
-	server.FileCheckFrequency = metav1.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
-	server.KubeletFlags.ContainerRuntimeOptions.PodSandboxImage = imageTemplate.ExpandOrDie("pod")
-	server.MaxPods = 250
-	server.PodsPerCore = 10
-	server.CgroupDriver = "systemd"
-	server.RemoteRuntimeEndpoint = options.DockerConfig.DockerShimSocket
-	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
-	server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
-
-	// prevents kube from generating certs
-	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
-	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
-	// roundtrip to get a default value
-	server.TLSCipherSuites = crypto.CipherSuitesToNamesOrDie(crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites))
-	server.TLSMinVersion = crypto.TLSVersionToNameOrDie(crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion))
-
-	containerized := cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"
-	server.Containerized = containerized
-
-	// force the authentication and authorization
-	// Setup auth
-	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)
-	if err != nil {
-		return nil, err
-	}
-	server.Authentication = kubeletconfig.KubeletAuthentication{
-		X509: kubeletconfig.KubeletX509Authentication{
-			ClientCAFile: options.ServingInfo.ClientCA,
-		},
-		Webhook: kubeletconfig.KubeletWebhookAuthentication{
-			Enabled:  true,
-			CacheTTL: metav1.Duration{Duration: authnTTL},
-		},
-		Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
-			Enabled: true,
-		},
-	}
-	authzTTL, err := time.ParseDuration(options.AuthConfig.AuthorizationCacheTTL)
-	if err != nil {
-		return nil, err
-	}
-	server.Authorization = kubeletconfig.KubeletAuthorization{
-		Mode: kubeletconfig.KubeletAuthorizationModeWebhook,
-		Webhook: kubeletconfig.KubeletWebhookAuthorization{
-			CacheAuthorizedTTL:   metav1.Duration{Duration: authzTTL},
-			CacheUnauthorizedTTL: metav1.Duration{Duration: authzTTL},
-		},
-	}
-
-	// resolve extended arguments
-	// TODO: this should be done in config validation (along with the above) so we can provide
-	// proper errors
-	if err := cmdflags.Resolve(options.KubeletArguments, server.AddFlags); len(err) > 0 {
+	if err := cmdflags.Resolve(kubeletFlags, server.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 
@@ -144,19 +139,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, error) 
 			server.TLSCertFile = ""
 			server.TLSPrivateKeyFile = ""
 		}
-	}
-
-	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
-		// SDN plugin pod setup/teardown is implemented as a CNI plugin
-		server.NetworkPluginName = kubeletcni.CNIPluginName
-		server.CNIConfDir = kubeletcni.DefaultNetDir
-		server.CNIBinDir = kubeletcni.DefaultCNIDir
-		server.HairpinMode = kubeletconfig.HairpinNone
-	}
-
-	server.RootDirectory, err = filepath.Abs(server.RootDirectory)
-	if err != nil {
-		return nil, fmt.Errorf("unable to set absolute path for Kubelet root directory: %v", err)
 	}
 
 	return server, nil

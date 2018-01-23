@@ -25,8 +25,7 @@ import (
 // EnsureKubeletAccess performs a number of test operations that the Kubelet requires to properly function.
 // All errors here are fatal.
 func EnsureKubeletAccess() {
-	containerized := cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"
-	if containerized {
+	if cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true" {
 		if _, err := os.Stat("/rootfs"); os.IsPermission(err) || os.IsNotExist(err) {
 			glog.Fatal("error: Running in containerized mode, but cannot find the /rootfs directory - be sure to mount the host filesystem at /rootfs (read-only) in the container.")
 		}
