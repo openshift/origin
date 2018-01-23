@@ -20,6 +20,8 @@ var (
 	// The following formats will fail to match an import path:
 	//   - company.com
 	//   - company/missing/tld
+	//   - fmt
+	//   - encoding/json
 	baseRepoRegex = regexp.MustCompile("[a-zA-Z0-9]+\\.([a-z0-9])+\\/.+")
 )
 
@@ -53,6 +55,9 @@ func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDire
 	// add nodes to graph
 	for _, pkg := range packages.Packages {
 		if isExcludedPath(pkg.ImportPath, excludes) {
+			continue
+		}
+		if !isValidPackagePath(pkg.ImportPath) {
 			continue
 		}
 
