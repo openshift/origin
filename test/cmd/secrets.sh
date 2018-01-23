@@ -16,40 +16,40 @@ os::cmd::expect_failure_and_text 'oc secrets new foo --type=blah makefile=Makefi
 os::cmd::expect_success 'oc secrets new foo --type=blah makefile=Makefile --confirm'
 os::cmd::expect_success_and_text 'oc get secrets/foo -o jsonpath={.type}' 'blah'
 
-os::cmd::expect_success 'oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org'
+os::cmd::expect_success 'oc secrets new-dockercfg dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org'
 # can't use a go template here because the output needs to be base64 decoded.  base64 isn't installed by default in all distros
-os::cmd::expect_success "oc get secrets/dockercfg -o jsonpath='{ .data.\.dockercfg }' | base64 -d > ${HOME}/dockerconfig"
-os::cmd::expect_success 'oc secrets new from-file .dockercfg=${HOME}/dockerconfig'
+os::cmd::expect_success "oc get secrets/dockerconfigjson -o jsonpath='{ .data.\.dockerconfigjson }' | base64 -d > ${HOME}/dockerconfigjson"
+os::cmd::expect_success 'oc secrets new from-file .dockerconfigjson=${HOME}/dockerconfigjson'
 # check to make sure the type was correctly auto-detected
-os::cmd::expect_success_and_text 'oc get secret/from-file --template="{{ .type }}"' 'kubernetes.io/dockercfg'
+os::cmd::expect_success_and_text 'oc get secret/from-file --template="{{ .type }}"' 'kubernetes.io/dockerconfigjson'
 # make sure the -o works correctly
-os::cmd::expect_success_and_text 'oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml' 'kubernetes.io/dockercfg'
-os::cmd::expect_success_and_text 'oc secrets new from-file .dockercfg=${HOME}/dockerconfig -o yaml' 'kubernetes.io/dockercfg'
+os::cmd::expect_success_and_text 'oc secrets new-dockercfg dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml' 'kubernetes.io/dockerconfigjson'
+os::cmd::expect_success_and_text 'oc secrets new from-file .dockerconfigjson=${HOME}/dockerconfigjson -o yaml' 'kubernetes.io/dockerconfigjson'
 # check to make sure malformed names fail as expected
-os::cmd::expect_failure_and_text 'oc secrets new bad-name .docker=cfg=${HOME}/dockerconfig' "error: Key names or file paths cannot contain '='."
+os::cmd::expect_failure_and_text 'oc secrets new bad-name .docker=cfg=${HOME}/dockerconfigjson' "error: Key names or file paths cannot contain '='."
 
 workingdir="$( mktemp -d )"
-os::cmd::try_until_success "oc get secret/dockercfg"
-os::cmd::expect_success_and_text "oc extract secret/dockercfg --to '${workingdir}'" '.dockercfg'
-os::cmd::expect_success_and_text "oc extract secret/dockercfg --to=-" 'sample-user'
-os::cmd::expect_success_and_text "oc extract secret/dockercfg --to=-" 'sample-password'
-os::cmd::expect_success_and_text "cat '${workingdir}/.dockercfg'" 'sample-user'
-os::cmd::expect_failure_and_text "oc extract secret/dockercfg --to '${workingdir}'" 'error: .dockercfg: file exists, pass --confirm to overwrite'
-os::cmd::expect_failure_and_text "oc extract secret/dockercfg secret/dockercfg --to '${workingdir}'" 'error: .dockercfg: file exists, pass --confirm to overwrite'
-os::cmd::expect_success_and_text "oc extract secret/dockercfg secret/dockercfg --to '${workingdir}' --confirm" '.dockercfg'
-os::cmd::expect_success_and_text "oc extract secret/dockercfg --to '${workingdir}' --confirm" '.dockercfg'
-os::cmd::expect_success "oc extract secret/dockercfg --to '${workingdir}' --confirm | xargs rm"
-os::cmd::expect_failure_and_text "oc extract secret/dockercfg --to missing-dir" "stat missing-dir: no such file or directory"
+os::cmd::try_until_success "oc get secret/dockerconfigjson"
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to '${workingdir}'" '.dockerconfigjson'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to=-" 'sample-user'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to=-" 'sample-password'
+os::cmd::expect_success_and_text "cat '${workingdir}/.dockerconfigjson'" 'sample-user'
+os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson --to '${workingdir}'" 'error: .dockerconfigjson: file exists, pass --confirm to overwrite'
+os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson secret/dockerconfigjson --to '${workingdir}'" 'error: .dockerconfigjson: file exists, pass --confirm to overwrite'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson secret/dockerconfigjson --to '${workingdir}' --confirm" '.dockerconfigjson'
+os::cmd::expect_success_and_text "oc extract secret/dockerconfigjson --to '${workingdir}' --confirm" '.dockerconfigjson'
+os::cmd::expect_success "oc extract secret/dockerconfigjson --to '${workingdir}' --confirm | xargs rm"
+os::cmd::expect_failure_and_text "oc extract secret/dockerconfigjson --to missing-dir" "stat missing-dir: no such file or directory"
 
 # attach secrets to service account
 # single secret with prefix
-os::cmd::expect_success 'oc secrets add deployer dockercfg'
+os::cmd::expect_success 'oc secrets add deployer dockerconfigjson'
 # don't add the same secret twice
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer dockercfg secrets/from-file'
+os::cmd::expect_success 'oc secrets add serviceaccounts/deployer dockerconfigjson secrets/from-file'
 # make sure we can add as as pull secret
-os::cmd::expect_success 'oc secrets add deployer dockercfg from-file --for=pull'
+os::cmd::expect_success 'oc secrets add deployer dockerconfigjson from-file --for=pull'
 # make sure we can add as as pull secret and mount secret at once
-os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/dockercfg secrets/from-file --for=pull,mount'
+os::cmd::expect_success 'oc secrets add serviceaccounts/deployer secrets/dockerconfigjson secrets/from-file --for=pull,mount'
 
 GIT_CONFIG_PATH="${ARTIFACT_DIR}/.gitconfig"
 touch "${GIT_CONFIG_PATH}"
