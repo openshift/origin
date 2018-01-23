@@ -242,7 +242,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 	var localReferences sets.String
 	var referentialTags map[string]sets.String
 	for k := range stream.Spec.Tags {
-		if target, _, ok, multiple := imageapi.FollowTagReference(stream, k); ok && multiple {
+		if target, _, multiple, err := imageapi.FollowTagReference(stream, k); err == nil && multiple {
 			if referentialTags == nil {
 				referentialTags = make(map[string]sets.String)
 			}

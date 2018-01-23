@@ -285,7 +285,27 @@ func TestCreateImageImport(t *testing.T) {
 				To:   &kapi.LocalObjectReference{Name: "mytag"},
 			}},
 		},
-		"import tag from .spec.tags with Kind != DockerImage": {
+		"use tag aliases": {
+			name: "testis:mytag",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testis",
+					Namespace: "other",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag":  {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"}},
+						"other1": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "testis:mytag"}},
+						"other2": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "mytag"}},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+				To:   &kapi.LocalObjectReference{Name: "mytag"},
+			}},
+		},
+		"import tag from alias of cross-image-stream": {
 			name: "testis:mytag",
 			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
@@ -295,12 +315,46 @@ func TestCreateImageImport(t *testing.T) {
 				Spec: imageapi.ImageStreamSpec{
 					Tags: map[string]imageapi.TagReference{
 						"mytag": {
-							From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "someimage:mytag"},
+							From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "otherimage:mytag"},
 						},
 					},
 				},
 			},
-			err: "tag \"mytag\" points to existing ImageStreamTag \"someimage:mytag\", it cannot be re-imported",
+			err: "tag \"mytag\" points to an imagestreamtag from another ImageStream",
+		},
+		"import tag from alias of circular reference": {
+			name: "testis:mytag",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testis",
+					Namespace: "other",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "mytag"},
+						},
+					},
+				},
+			},
+			err: "tag \"mytag\" on the image stream is a reference to same tag",
+		},
+		"import tag from non existing alias": {
+			name: "testis:mytag",
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testis",
+					Namespace: "other",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "nonexisting"},
+						},
+					},
+				},
+			},
+			err: "the tag \"mytag\" does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag",
 		},
 		"use insecure annotation": {
 			name: "testis",
