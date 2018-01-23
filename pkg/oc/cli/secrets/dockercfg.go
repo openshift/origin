@@ -134,9 +134,9 @@ func (o CreateDockerConfigOptions) NewDockerSecret() (*api.Secret, error) {
 
 	secret := &api.Secret{}
 	secret.Name = o.SecretName
-	secret.Type = api.SecretTypeDockercfg
+	secret.Type = api.SecretTypeDockerConfigJson
 	secret.Data = map[string][]byte{}
-	secret.Data[api.DockerConfigKey] = dockercfgContent
+	secret.Data[api.DockerConfigJsonKey] = dockercfgContent
 
 	return secret, nil
 }
