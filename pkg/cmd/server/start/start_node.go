@@ -33,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/docker"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -471,17 +470,15 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	}
 
 	if components.Enabled(ComponentKubelet) {
-		config, err := node.New(nodeConfig, server)
-		if err != nil {
-			glog.V(4).Infof("Unable to create node configuration: %v", err)
-			return err
-		}
-		glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
+		glog.Infof("Starting node %s (%s)", nodeConfig.NodeName, version.Get().String())
 
-		config.EnsureKubeletAccess()
-		config.EnsureVolumeDir()
-		config.EnsureDocker(docker.NewHelper())
-		config.EnsureLocalQuota(nodeConfig) // must be performed after EnsureVolumeDir
+		// TODO this is a best effort check at the moment that should either move to kubelet or be removed entirely
+		node.EnsureKubeletAccess()
+		// TODO perform this "ensure" in ansible and skip it entirely.
+		node.EnsureVolumeDir(nodeConfig.VolumeDirectory)
+		// TODO accept an --openshift-config in our fork.  This overwrites the volume creation patch for the node.
+		kubeletapp.ProbeVolumePlugins = node.PatchUpstreamVolumePluginsForLocalQuota(nodeConfig)
+
 		go func() {
 			glog.Fatal(runKubeletInProcess(kubeletArgs))
 		}()
