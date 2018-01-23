@@ -28863,6 +28863,7 @@ clusterInfo:
 #  properties: null
 features:
   inactivityTimeoutMinutes: 0
+  clusterResourceOverridesEnabled: false
 servingInfo:
   bindAddress: 0.0.0.0:8443
   bindNetwork: tcp4
