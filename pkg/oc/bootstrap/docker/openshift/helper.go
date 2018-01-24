@@ -36,29 +36,28 @@ import (
 )
 
 const (
-	defaultNodeName             = "localhost"
-	initialStatusCheckWait      = 4 * time.Second
-	serverUpTimeout             = 35
-	serverConfigPath            = "/var/lib/origin/openshift.local.config"
-	serverMasterConfig          = serverConfigPath + "/master/master-config.yaml"
-	serverNodeConfig            = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
-	serviceCatalogExtensionPath = serverConfigPath + "/master/servicecatalog-extension.js"
-	aggregatorKey               = "aggregator-front-proxy.key"
-	aggregatorCert              = "aggregator-front-proxy.crt"
-	aggregatorCACert            = "front-proxy-ca.crt"
-	aggregatorCAKey             = "front-proxy-ca.key"
-	aggregatorCASerial          = "frontend-proxy-ca.serial.txt"
-	aggregatorKeyPath           = serverConfigPath + "/master/" + aggregatorKey
-	aggregatorCertPath          = serverConfigPath + "/master/" + aggregatorCert
-	aggregatorCACertPath        = serverConfigPath + "/master/" + aggregatorCACert
-	aggregatorCAKeyPath         = serverConfigPath + "/master/" + aggregatorCAKey
-	aggregatorCASerialPath      = serverConfigPath + "/master/" + aggregatorCASerial
-	DefaultDNSPort              = 53
-	AlternateDNSPort            = 8053
-	cmdDetermineNodeHost        = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
-	OpenShiftContainer          = "origin"
-	OpenshiftNamespace          = "openshift"
-	OpenshiftInfraNamespace     = "openshift-infra"
+	defaultNodeName         = "localhost"
+	initialStatusCheckWait  = 4 * time.Second
+	serverUpTimeout         = 35
+	serverConfigPath        = "/var/lib/origin/openshift.local.config"
+	serverMasterConfig      = serverConfigPath + "/master/master-config.yaml"
+	serverNodeConfig        = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
+	aggregatorKey           = "aggregator-front-proxy.key"
+	aggregatorCert          = "aggregator-front-proxy.crt"
+	aggregatorCACert        = "front-proxy-ca.crt"
+	aggregatorCAKey         = "front-proxy-ca.key"
+	aggregatorCASerial      = "frontend-proxy-ca.serial.txt"
+	aggregatorKeyPath       = serverConfigPath + "/master/" + aggregatorKey
+	aggregatorCertPath      = serverConfigPath + "/master/" + aggregatorCert
+	aggregatorCACertPath    = serverConfigPath + "/master/" + aggregatorCACert
+	aggregatorCAKeyPath     = serverConfigPath + "/master/" + aggregatorCAKey
+	aggregatorCASerialPath  = serverConfigPath + "/master/" + aggregatorCASerial
+	DefaultDNSPort          = 53
+	AlternateDNSPort        = 8053
+	cmdDetermineNodeHost    = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
+	OpenShiftContainer      = "origin"
+	OpenshiftNamespace      = "openshift"
+	OpenshiftInfraNamespace = "openshift-infra"
 )
 
 var (
@@ -835,19 +834,6 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		cfg.AdmissionConfig.PluginConfig["PodPreset"] = &configapi.AdmissionPluginConfig{
 			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
 		}
-
-		// TODO: remove when we can detect this is enabled in origin-web-console-server
-		extension := "window.OPENSHIFT_CONSTANTS.TEMPLATE_SERVICE_BROKER_ENABLED = true;\n"
-		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
-		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)
-		if err != nil {
-			return err
-		}
-		err = h.hostHelper.UploadFileToContainer(extensionPath, serviceCatalogExtensionPath)
-		if err != nil {
-			return err
-		}
-
 	}
 
 	cfg.JenkinsPipelineConfig.TemplateName = "jenkins-persistent"
