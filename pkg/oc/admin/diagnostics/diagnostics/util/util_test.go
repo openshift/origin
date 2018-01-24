@@ -44,7 +44,7 @@ func TestTrimRegistryPath(t *testing.T) {
 	}
 
 	for name, tc := range testcases {
-		trimmedImage := trimRegistryPath(tc.image)
+		trimmedImage := TrimRegistryPath(tc.image)
 		if trimmedImage != tc.expectedImage {
 			t.Fatalf("[%s] failed: expected %s but got %s", name, tc.expectedImage, trimmedImage)
 		}
