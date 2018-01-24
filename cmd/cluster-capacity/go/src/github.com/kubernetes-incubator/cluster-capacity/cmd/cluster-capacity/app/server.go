@@ -84,7 +84,7 @@ func Run(opt *options.ClusterCapacityOptions) error {
 
 	err := conf.SetDefaultScheduler()
 	if err != nil {
-		return fmt.Errorf("Failed to set default scheduler config: %v ", err)
+		return fmt.Errorf("Failed to create default scheduler server: %v ", err)
 	}
 
 	// TODO (avesh): Enable when support for multiple schedulers is implemented.

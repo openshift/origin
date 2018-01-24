@@ -115,10 +115,14 @@ func (s *ClusterCapacityConfig) parseSchedulerConfig(path string) (*schedapp.Sch
 		decoder.Decode(ksConfig)
 	}
 
+	// In a POD, master is passed as empty string.
 	var master string
-	master, err = utils.GetMasterFromKubeConfig(s.Options.Kubeconfig)
-	if err != nil {
-		return nil, err
+	_, present := os.LookupEnv("CC_INCLUSTER")
+	if !present {
+		master, err = utils.GetMasterFromKubeConfig(s.Options.Kubeconfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// TODO(avesh): need to check if this works correctly
