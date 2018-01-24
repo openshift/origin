@@ -113,7 +113,7 @@ func GetTestPod(testPodImage, testPodProtocol, podName, nodeName string, testPod
 		},
 	}
 
-	if getTrimmedImage(testPodImage) == getTrimmedImage(util.GetNetworkDiagDefaultTestPodImage()) {
+	if getTrimmedImage(testPodImage) == getTrimmedImage(util.GetNetworkDiagDefaultTestPodImage().ExpandOrDie("deployer")) {
 		pod.Spec.Containers[0].Command = []string{
 			"socat", "-T", "1", "-d",
 			fmt.Sprintf("%s-l:%d,reuseaddr,fork,crlf", testPodProtocol, testPodPort),

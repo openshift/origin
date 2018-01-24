@@ -61,7 +61,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 			nd.ClientFlags = o.ClientFlags
 			nd.Level = o.LogOptions.Level
 			nd.Factory = o.Factory
-			nd.PreventModification = o.PreventModification
+			nd.PreventModification = nd.PreventModification || o.PreventModification
 			diagnostics = append(diagnostics, nd)
 		default:
 			return nil, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
