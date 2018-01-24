@@ -3,15 +3,12 @@ package diagnostics
 import (
 	"fmt"
 	"io"
-	"os"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
 
-	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/pod"
@@ -28,7 +25,12 @@ type PodDiagnosticsOptions struct {
 	// LogOptions determine globally what the user wants to see and how.
 	LogOptions *log.LoggerOptions
 	// The Logger is built with the options and should be used for all diagnostic output.
-	Logger *log.Logger
+	logger *log.Logger
+}
+
+// returns the logger built according to options (must be Complete()ed)
+func (o *PodDiagnosticsOptions) Logger() *log.Logger {
+	return o.logger
 }
 
 const (
@@ -53,18 +55,7 @@ func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {
 		Use:   name,
 		Short: "Within a pod, run pod diagnostics",
 		Long:  fmt.Sprintf(longPodDiagDescription),
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(args))
-
-			failed, err, warnCount, errorCount := o.BuildAndRunDiagnostics()
-			o.Logger.Summary(warnCount, errorCount)
-
-			kcmdutil.CheckErr(err)
-			if failed {
-				os.Exit(255)
-			}
-
-		},
+		Run:   commandRunFunc(o),
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 
@@ -74,9 +65,9 @@ func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {
 }
 
 // Complete fills in PodDiagnosticsOptions needed if the command is actually invoked.
-func (o *PodDiagnosticsOptions) Complete(args []string) error {
+func (o *PodDiagnosticsOptions) Complete(c *cobra.Command, args []string) error {
 	var err error
-	o.Logger, err = o.LogOptions.NewLogger()
+	o.logger, err = o.LogOptions.NewLogger()
 	if err != nil {
 		return err
 	}
@@ -89,37 +80,26 @@ func (o *PodDiagnosticsOptions) Complete(args []string) error {
 	return nil
 }
 
-// BuildAndRunDiagnostics builds diagnostics based on the options and executes them, returning a summary.
-func (o PodDiagnosticsOptions) BuildAndRunDiagnostics() (bool, error, int, int) {
-	failed := false
-	errors := []error{}
-	diagnostics := []types.Diagnostic{}
+// RunDiagnostics builds diagnostics based on the options and executes them, returning fatal error(s) only.
+func (o PodDiagnosticsOptions) RunDiagnostics() error {
+	var fatal error
+	var diagnostics []types.Diagnostic
 
 	func() { // don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
 		defer func() {
 			if r := recover(); r != nil {
-				failed = true
-				stack := debug.Stack()
-				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, stack))
+				fatal = fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, debug.Stack())
 			}
 		}() // deferred panic handler
-		podDiags, ok, err := o.buildPodDiagnostics()
-		failed = failed || !ok
-		if ok {
-			diagnostics = append(diagnostics, podDiags...)
-		}
-		if err != nil {
-			errors = append(errors, err...)
-		}
 
+		diagnostics, fatal = o.buildPodDiagnostics()
 	}()
 
-	if failed {
-		return failed, kutilerrors.NewAggregate(errors), 0, len(errors)
+	if fatal != nil {
+		return fatal
 	}
 
-	failed, err, numWarnings, numErrors := util.RunDiagnostics(o.Logger, diagnostics, 0, len(errors))
-	return failed, err, numWarnings, numErrors
+	return util.RunDiagnostics(o.Logger(), diagnostics)
 }
 
 var (
@@ -129,12 +109,12 @@ var (
 )
 
 // buildPodDiagnostics builds host Diagnostic objects based on the host environment.
-// Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.
-func (o PodDiagnosticsOptions) buildPodDiagnostics() ([]types.Diagnostic, bool, []error) {
+// Returns the Diagnostics built, and any fatal error encountered during the building of diagnostics.
+func (o PodDiagnosticsOptions) buildPodDiagnostics() ([]types.Diagnostic, error) {
 	diagnostics := []types.Diagnostic{}
-	err, requestedDiagnostics := util.DetermineRequestedDiagnostics(availablePodDiagnostics.List(), o.RequestedDiagnostics, o.Logger)
+	err, requestedDiagnostics := util.DetermineRequestedDiagnostics(availablePodDiagnostics.List(), o.RequestedDiagnostics, o.Logger())
 	if err != nil {
-		return diagnostics, false, []error{err} // don't waste time on discovery
+		return diagnostics, err // don't waste time on discovery
 	}
 	// TODO: check we're actually in a container
 
@@ -152,9 +132,9 @@ func (o PodDiagnosticsOptions) buildPodDiagnostics() ([]types.Diagnostic, bool, 
 			})
 
 		default:
-			return diagnostics, false, []error{fmt.Errorf("unknown diagnostic: %v", diagnosticName)}
+			return diagnostics, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
 	}
 
-	return diagnostics, true, nil
+	return diagnostics, nil
 }

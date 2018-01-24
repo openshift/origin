@@ -17,7 +17,7 @@ var (
 	)
 )
 
-// availableHostDiagnostics contains the names of host diagnostics that can be executed
+// availableHostDiagnostics returns host diagnostics that can be executed
 // during a single run of diagnostics. Add more diagnostics to the list as they are defined.
 func availableHostDiagnostics() types.DiagnosticList {
 	return types.DiagnosticList{
@@ -30,7 +30,7 @@ func availableHostDiagnostics() types.DiagnosticList {
 }
 
 // buildHostDiagnostics builds host Diagnostic objects based on the host environment.
-// Returns the Diagnostics built, and an error if any was encountered during the building of diagnostics.) {
+// Returns the Diagnostics built, and an error if any was encountered during the building of diagnostics.
 func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, error) {
 	requestedDiagnostics := availableHostDiagnostics().Names().Intersection(sets.NewString(o.RequestedDiagnostics.List()...)).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
@@ -47,7 +47,7 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, error) {
 	}
 
 	diagnostics := []types.Diagnostic{}
-	systemdUnits := systemddiags.GetSystemdUnits(o.Logger)
+	systemdUnits := systemddiags.GetSystemdUnits(o.Logger())
 	for _, diagnosticName := range requestedDiagnostics {
 		var d types.Diagnostic
 		switch diagnosticName {

@@ -31,16 +31,15 @@ func DetermineRequestedDiagnostics(available []string, requested []string, logge
 }
 
 // RunDiagnostics performs the actual execution of diagnostics once they're built.
-func RunDiagnostics(logger *log.Logger, diagnostics []types.Diagnostic, warnCount int, errorCount int) (bool, error, int, int) {
+func RunDiagnostics(logger *log.Logger, diagnostics []types.Diagnostic) error {
+	runCount := 0
 	for _, diagnostic := range diagnostics {
 		func() { // wrap diagnostic panic nicely in case of developer error
 			defer func() {
 				if r := recover(); r != nil {
-					errorCount += 1
-					stack := debug.Stack()
 					logger.Error("CED7001",
 						fmt.Sprintf("While running the %s diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%s\n%s",
-							diagnostic.Name(), fmt.Sprintf("%v", r), stack))
+							diagnostic.Name(), fmt.Sprintf("%v", r), debug.Stack()))
 				}
 			}()
 
@@ -52,16 +51,18 @@ func RunDiagnostics(logger *log.Logger, diagnostics []types.Diagnostic, warnCoun
 				}
 				return
 			}
+			runCount += 1
 
 			logger.Notice("CED7004", fmt.Sprintf("Running diagnostic: %s\nDescription: %s", diagnostic.Name(), diagnostic.Description()))
 			r := diagnostic.Check()
 			for _, entry := range r.Logs() {
 				logger.LogEntry(entry)
 			}
-			warnCount += len(r.Warnings())
-			errorCount += len(r.Errors())
 		}()
 	}
 
-	return errorCount > 0, nil, warnCount, errorCount
+	if runCount == 0 {
+		return fmt.Errorf("Requested diagnostic(s) skipped; nothing to run. See --help and consider setting flags or providing config to enable running.")
+	}
+	return nil
 }

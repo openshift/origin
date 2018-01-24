@@ -93,22 +93,32 @@ var (
 )
 
 // Provide a summary at the end
-func (l *Logger) Summary(warningsSeen int, errorsSeen int) {
+func (l *Logger) Summary() {
 	l.Notice("DL0001", fmt.Sprintf("Summary of diagnostics execution (version %v):\n", version.Get()))
-	if warningsSeen > 0 {
-		l.Notice("DL0002", fmt.Sprintf("Warnings seen: %d", warningsSeen))
+	if l.warningsSeen > 0 {
+		l.Notice("DL0002", fmt.Sprintf("Warnings seen: %d", l.warningsSeen))
 	}
-	if errorsSeen > 0 {
-		l.Notice("DL0003", fmt.Sprintf("Errors seen: %d", errorsSeen))
+	if l.errorsSeen > 0 {
+		l.Notice("DL0003", fmt.Sprintf("Errors seen: %d", l.errorsSeen))
 	}
-	if warningsSeen == 0 && errorsSeen == 0 {
+	if l.warningsSeen == 0 && l.errorsSeen == 0 {
 		l.Notice("DL0004", "Completed with no errors or warnings seen.")
 	}
+}
+
+func (l *Logger) ErrorsSeen() bool {
+	return l.errorsSeen > 0
 }
 
 func (l *Logger) LogEntry(entry Entry) {
 	if l == nil { // if there's no logger, return silently
 		return
+	}
+	if entry.Level == ErrorLevel {
+		l.errorsSeen++
+	}
+	if entry.Level == WarnLevel {
+		l.warningsSeen++
 	}
 	if entry.Level.Level < l.level.Level { // logging level says skip this entry
 		return
