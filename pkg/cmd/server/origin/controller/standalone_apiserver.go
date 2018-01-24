@@ -21,9 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -43,7 +41,7 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal cli
 
 	// TODO: replace me with a service account for controller manager
 	tokenReview := kubeExternal.AuthenticationV1beta1().TokenReviews()
-	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, clientCAs, 5*time.Minute)
+	authn, err := newRemoteAuthenticator(tokenReview, clientCAs, 5*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -59,7 +57,7 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal cli
 	requestContextMapper := apirequest.NewRequestContextMapper()
 
 	// we use direct bypass to allow readiness and health to work regardless of the master health
-	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
+	authz := newBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
 	handler := apifilters.WithAuthorization(mux, requestContextMapper, authz, legacyscheme.Codecs)
 	handler = apifilters.WithAuthentication(handler, requestContextMapper, authn, apifilters.Unauthorized(requestContextMapper, legacyscheme.Codecs, false))
 	handler = apiserverfilters.WithPanicRecovery(handler)
