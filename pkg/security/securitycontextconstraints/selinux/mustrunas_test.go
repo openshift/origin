@@ -85,41 +85,49 @@ func TestMustRunAsValidate(t *testing.T) {
 	seType := newValidOpts()
 	seType.Type = "invalid"
 
+	validOpts := newValidOpts()
+
 	tests := map[string]struct {
 		podSeLinux  *api.SELinuxOptions
+		sccSeLinux  *api.SELinuxOptions
 		expectedMsg string
 	}{
 		"invalid role": {
 			podSeLinux:  role,
+			sccSeLinux:  validOpts,
 			expectedMsg: "role: Invalid value",
 		},
 		"invalid user": {
 			podSeLinux:  user,
+			sccSeLinux:  validOpts,
 			expectedMsg: "user: Invalid value",
 		},
 		"invalid level": {
 			podSeLinux:  level,
+			sccSeLinux:  validOpts,
 			expectedMsg: "level: Invalid value",
 		},
 		"invalid type": {
 			podSeLinux:  seType,
+			sccSeLinux:  validOpts,
 			expectedMsg: "type: Invalid value",
 		},
 		"valid": {
-			podSeLinux:  newValidOpts(),
+			podSeLinux:  validOpts,
+			sccSeLinux:  validOpts,
 			expectedMsg: "",
 		},
 		"valid with different order of categories": {
 			podSeLinux:  newValidOptsWithLevel("s0:c6,c0"),
+			sccSeLinux:  validOpts,
 			expectedMsg: "",
 		},
 	}
 
-	opts := &securityapi.SELinuxContextStrategyOptions{
-		SELinuxOptions: newValidOpts(),
-	}
-
 	for name, tc := range tests {
+		opts := &securityapi.SELinuxContextStrategyOptions{
+			SELinuxOptions: tc.sccSeLinux,
+		}
 		mustRunAs, err := NewMustRunAs(opts)
 		if err != nil {
 			t.Errorf("unexpected error initializing NewMustRunAs for testcase %s: %#v", name, err)
