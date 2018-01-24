@@ -331,6 +331,7 @@ do
 done
 
 ln -s oc %{buildroot}%{_bindir}/kubectl
+ln -s oc %{buildroot}%{_bindir}/openshift-diagnostics
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
@@ -533,6 +534,7 @@ fi
 %license LICENSE
 %{_bindir}/oc
 %{_bindir}/kubectl
+%{_bindir}/openshift-diagnostics
 %{_bindir}/oadm
 %{_sysconfdir}/bash_completion.d/oc
 %{_mandir}/man1/oc*

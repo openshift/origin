@@ -45,7 +45,6 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
   cmd/oadm
-  cmd/openshift-diagnostics
   cmd/template-service-broker
   vendor/k8s.io/kubernetes/cmd/hyperkube
 )
@@ -78,6 +77,7 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
 )
 readonly OC_BINARY_COPY=(
   kubectl
+  openshift-diagnostics
 )
 readonly OS_BINARY_RELEASE_CLIENT_WINDOWS=(
   oc.exe
