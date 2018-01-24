@@ -42,6 +42,7 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpImageStreams(oc)
 			}
 		})
 
