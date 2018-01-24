@@ -334,6 +334,72 @@ func TestIsNotFoundForInfo(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "case-insensitive match due to different kinds but same resource",
+			args: args{
+				info: &resource.Info{
+					Mapping: &meta.RESTMapping{
+						Resource: "KIND2",
+						GroupVersionKind: schema.GroupVersionKind{
+							Group: "group1",
+							Kind:  "kind1",
+						},
+					},
+					Name: "NOTname",
+				},
+				err: errors.NewNotFound(schema.GroupResource{
+					Group:    "GROUP1",
+					Resource: "kind2", // this is the kind
+				},
+					"notNAME",
+				),
+			},
+			want: true,
+		},
+		{
+			name: "case-insensitive match due to different resource but same kinds",
+			args: args{
+				info: &resource.Info{
+					Mapping: &meta.RESTMapping{
+						Resource: "kind1",
+						GroupVersionKind: schema.GroupVersionKind{
+							Group: "group1",
+							Kind:  "KIND2",
+						},
+					},
+					Name: "NOTname",
+				},
+				err: errors.NewNotFound(schema.GroupResource{
+					Group:    "GROUP1",
+					Resource: "kind2", // this is the kind
+				},
+					"notNAME",
+				),
+			},
+			want: true,
+		},
+		{
+			name: "case-insensitive not match due to different resource and different kinds",
+			args: args{
+				info: &resource.Info{
+					Mapping: &meta.RESTMapping{
+						Resource: "kind1",
+						GroupVersionKind: schema.GroupVersionKind{
+							Group: "group1",
+							Kind:  "kind3",
+						},
+					},
+					Name: "NOTname",
+				},
+				err: errors.NewNotFound(schema.GroupResource{
+					Group:    "GROUP1",
+					Resource: "kind2", // this is the kind
+				},
+					"notNAME",
+				),
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
