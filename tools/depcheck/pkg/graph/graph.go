@@ -45,9 +45,14 @@ type MutableDirectedGraph struct {
 	nodesByName map[string]graph.Node
 }
 
-func (g *MutableDirectedGraph) AddNode(n *Node) {
+func (g *MutableDirectedGraph) AddNode(n *Node) error {
+	if _, exists := g.nodesByName[n.UniqueName]; exists {
+		return fmt.Errorf("node .UniqueName collision: %s", n.UniqueName)
+	}
+
 	g.nodesByName[n.UniqueName] = n
 	g.DirectedGraph.AddNode(n)
+	return nil
 }
 
 func (g *MutableDirectedGraph) NodeByName(name string) (graph.Node, bool) {
