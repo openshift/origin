@@ -106,7 +106,7 @@ func TestProjectLifecycle(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	_, etcd3, err := testserver.MasterEtcdClients(masterConfig)
+	etcd3, err := testserver.MasterEtcdClients(masterConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -81,7 +81,7 @@ func TestStorageVersions(t *testing.T) {
 
 	masterConfig, kubeClient := setupStorageTests(t, ns)
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	_, etcdClient, err := testserver.MasterEtcdClients(masterConfig)
+	etcdClient, err := testserver.MasterEtcdClients(masterConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

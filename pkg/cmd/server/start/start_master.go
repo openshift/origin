@@ -34,7 +34,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
-	kutilerrors "k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -583,22 +582,13 @@ func StartAPI(oc *origin.MasterConfig) error {
 }
 
 func testEtcdConnectivity(etcdClientInfo configapi.EtcdConnectionInfo) error {
-	// first try etcd2
-	etcdClient2, etcd2Err := etcd.MakeEtcdClient(etcdClientInfo)
-	if etcd2Err == nil {
-		etcd2Err = etcd.TestEtcdClient(etcdClient2)
-		if etcd2Err == nil {
-			return nil
-		}
-	}
-
 	// try etcd3 otherwise
-	etcdClient3, etcd3Err := etcd.MakeEtcdClientV3(etcdClientInfo)
-	if etcd3Err != nil {
-		return kutilerrors.NewAggregate([]error{etcd2Err, etcd3Err})
+	etcdClient3, err := etcd.MakeEtcdClientV3(etcdClientInfo)
+	if err != nil {
+		return err
 	}
-	if etcd3Err := etcd.TestEtcdClientV3(etcdClient3); etcd3Err != nil {
-		return kutilerrors.NewAggregate([]error{etcd2Err, etcd3Err})
+	if err := etcd.TestEtcdClientV3(etcdClient3); err != nil {
+		return err
 	}
 
 	return nil
