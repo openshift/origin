@@ -30,6 +30,7 @@ const (
 	NetworkDiagnosticName          = "NetworkCheck"
 	FlagNetworkDiagLogDir          = "logdir"
 	FlagNetworkDiagPodImage        = "pod-image"
+	FlagNetworkLatestImageParam    = "latest-images"
 	FlagNetworkDiagTestPodImage    = "test-pod-image"
 	FlagNetworkDiagTestPodProtocol = "test-pod-protocol"
 	FlagNetworkDiagTestPodPort     = "test-pod-port"
@@ -46,6 +47,7 @@ type NetworkDiagnostic struct {
 	PreventModification  bool
 	LogDir               string
 	PodImage             string
+	LatestImages         bool
 	TestPodImage         string
 	TestPodProtocol      string
 	TestPodPort          int
@@ -76,8 +78,9 @@ func (d *NetworkDiagnostic) Requirements() (client bool, host bool) {
 func (d *NetworkDiagnostic) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
 		{FlagNetworkDiagLogDir, "Path to store diagnostic results in case of errors", &d.LogDir, util.NetworkDiagDefaultLogDir},
-		{FlagNetworkDiagPodImage, "Image to use for diagnostic pod", &d.PodImage, util.GetNetworkDiagDefaultPodImage()},
-		{FlagNetworkDiagTestPodImage, "Image to use for diagnostic test pod", &d.TestPodImage, util.GetNetworkDiagDefaultTestPodImage()},
+		{FlagNetworkDiagPodImage, "Image to use for diagnostic pod", &d.PodImage, util.GetNetworkDiagDefaultPodImage().Format},
+		{FlagNetworkLatestImageParam, "When true, expand pod image templates using version \"latest\", not client version", &d.LatestImages, false},
+		{FlagNetworkDiagTestPodImage, "Image to use for diagnostic test pod", &d.TestPodImage, util.GetNetworkDiagDefaultTestPodImage().Format},
 		{FlagNetworkDiagTestPodProtocol, "Protocol used to connect to diagnostic test pod", &d.TestPodProtocol, util.NetworkDiagDefaultTestPodProtocol},
 		{FlagNetworkDiagTestPodPort, "Serving port on the diagnostic test pod", &d.TestPodPort, util.NetworkDiagDefaultTestPodPort},
 	}
@@ -99,6 +102,23 @@ func (d *NetworkDiagnostic) Complete(logger *log.Logger) error {
 	}
 	if kvalidation.IsValidPortNum(d.TestPodPort) != nil {
 		return fmt.Errorf("invalid port for network diagnostic test pod. Must be in the range 1 to 65535.")
+	}
+
+	imageTemplate := util.GetNetworkDiagDefaultPodImage()
+	imageTemplate.Latest = d.LatestImages
+	if len(d.PodImage) > 0 {
+		imageTemplate.Format = d.PodImage
+	}
+	// expand with "deployer" just for consistency even though default has no ${component}
+	if d.PodImage, err = imageTemplate.Expand("deployer"); err != nil {
+		return err
+	}
+	imageTemplate.Format = util.GetNetworkDiagDefaultTestPodImage().Format
+	if len(d.TestPodImage) > 0 {
+		imageTemplate.Format = d.TestPodImage
+	}
+	if d.TestPodImage, err = imageTemplate.Expand("deployer"); err != nil {
+		return err
 	}
 	return nil
 }
