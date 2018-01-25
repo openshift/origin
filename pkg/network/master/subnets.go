@@ -140,14 +140,6 @@ func isValidNodeIP(validAddresses []kapi.NodeAddress, nodeIP string) bool {
 	return false
 }
 
-func getNodeIP(node *kapi.Node) (string, error) {
-	if len(node.Status.Addresses) > 0 && node.Status.Addresses[0].Address != "" {
-		return node.Status.Addresses[0].Address, nil
-	} else {
-		return netutils.GetNodeIP(node.Name)
-	}
-}
-
 // Because openshift-sdn uses an overlay and doesn't need GCE Routes, we need to
 // clear the NetworkUnavailable condition that kubelet adds to initial node
 // status when using GCE.
@@ -210,9 +202,16 @@ func (master *OsdnMaster) watchNodes() {
 
 func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType watch.EventType) {
 	node := obj.(*kapi.Node)
-	nodeIP, err := getNodeIP(node)
-	if err != nil {
-		glog.Errorf("Failed to get node IP for node %s, skipping %s event, node: %v", node.Name, eventType, node)
+
+	var nodeIP string
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == kapi.NodeInternalIP {
+			nodeIP = addr.Address
+			break
+		}
+	}
+	if len(nodeIP) == 0 {
+		glog.Errorf("Node IP is not set for node %s, skipping %s event, node: %v", node.Name, eventType, node)
 		return
 	}
 	master.clearInitialNodeNetworkUnavailableCondition(node)
