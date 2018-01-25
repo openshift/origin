@@ -3,6 +3,7 @@
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+export OS_TMPFS_REQUIRED='true'
 os::util::ensure_tmpfs "${ETCD_DATA_DIR}"
 
 os::util::environment::setup_time_vars

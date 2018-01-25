@@ -44,6 +44,7 @@ export NETWORK_PLUGIN='redhat/openshift-ovs-multitenant'
 
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
+export OS_TMPFS_REQUIRED='true'
 os::util::ensure_tmpfs "${ETCD_DATA_DIR}"
 
 echo "Logging to ${LOG_DIR}..."
