@@ -34,7 +34,7 @@ const (
 	Vxlan0 = "vxlan0"
 
 	// rule versioning; increment each time flow rules change
-	ruleVersion = 5
+	ruleVersion = 6
 
 	ruleVersionTable = 253
 )
@@ -223,8 +223,8 @@ func (oc *ovsController) NewTransaction() ovs.Transaction {
 	return oc.ovs.NewTransaction()
 }
 
-func (oc *ovsController) ensureOvsPort(hostVeth string) (int, error) {
-	return oc.ovs.AddPort(hostVeth, -1)
+func (oc *ovsController) ensureOvsPort(hostVeth, sandboxID string) (int, error) {
+	return oc.ovs.AddPort(hostVeth, -1, "external-ids=sandbox="+sandboxID)
 }
 
 func (oc *ovsController) setupPodFlows(ofport int, podIP, podMAC, note string, vnid uint32) error {
@@ -278,33 +278,54 @@ func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC, sandboxID string, vni
 	if err != nil {
 		return -1, err
 	}
-	ofport, err := oc.ensureOvsPort(hostVeth)
+	ofport, err := oc.ensureOvsPort(hostVeth, sandboxID)
 	if err != nil {
 		return -1, err
 	}
 	return ofport, oc.setupPodFlows(ofport, podIP, podMAC, note, vnid)
 }
 
-func (oc *ovsController) SetPodBandwidth(hostVeth string, ingressBPS, egressBPS int64) error {
-	// note pod ingress == OVS egress and vice versa
+// Returned list can also be used for port names
+func (oc *ovsController) getInterfacesForSandbox(sandboxID string) ([]string, error) {
+	return oc.ovs.Find("interface", "name", "external-ids:sandbox="+sandboxID)
+}
 
-	qos, err := oc.ovs.Get("port", hostVeth, "qos")
+func (oc *ovsController) ClearPodBandwidth(portList []string, sandboxID string) error {
+	// Clear the QoS for any ports of this sandbox
+	for _, port := range portList {
+		if err := oc.ovs.Clear("port", port, "qos"); err != nil {
+			return err
+		}
+	}
+
+	// Now that the QoS is unused remove it
+	qosList, err := oc.ovs.Find("qos", "_uuid", "external-ids:sandbox="+sandboxID)
 	if err != nil {
 		return err
 	}
-	if qos != "[]" {
-		err = oc.ovs.Clear("port", hostVeth, "qos")
-		if err != nil {
-			return err
-		}
-		err = oc.ovs.Destroy("qos", qos)
-		if err != nil {
+	for _, qos := range qosList {
+		if err := oc.ovs.Destroy("qos", qos); err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func (oc *ovsController) SetPodBandwidth(hostVeth, sandboxID string, ingressBPS, egressBPS int64) error {
+	// note pod ingress == OVS egress and vice versa
+
+	ports, err := oc.getInterfacesForSandbox(sandboxID)
+	if err != nil {
+		return err
+	}
+
+	if err := oc.ClearPodBandwidth(ports, sandboxID); err != nil {
+		return err
+	}
+
 	if ingressBPS > 0 {
-		qos, err := oc.ovs.Create("qos", "type=linux-htb", fmt.Sprintf("other-config:max-rate=%d", ingressBPS))
+		qos, err := oc.ovs.Create("qos", "type=linux-htb", fmt.Sprintf("other-config:max-rate=%d", ingressBPS), "external-ids=sandbox="+sandboxID)
 		if err != nil {
 			return err
 		}
@@ -382,22 +403,37 @@ func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
 	return oc.setupPodFlows(ofport, podIP, podMAC, note, vnid)
 }
 
-func (oc *ovsController) TearDownPod(hostVeth, podIP, sandboxID string) error {
+func (oc *ovsController) TearDownPod(podIP, sandboxID string) error {
 	if podIP == "" {
-		_, ip, _, _, err := oc.getPodDetailsBySandboxID(sandboxID)
+		var err error
+		_, podIP, _, _, err = oc.getPodDetailsBySandboxID(sandboxID)
 		if err != nil {
 			// OVS flows related to sandboxID not found
 			// Nothing needs to be done in that case
 			return nil
 		}
-		podIP = ip
 	}
 
 	if err := oc.cleanupPodFlows(podIP); err != nil {
 		return err
 	}
-	_ = oc.SetPodBandwidth(hostVeth, -1, -1)
-	return oc.ovs.DeletePort(hostVeth)
+
+	ports, err := oc.getInterfacesForSandbox(sandboxID)
+	if err != nil {
+		return err
+	}
+
+	if err := oc.ClearPodBandwidth(ports, sandboxID); err != nil {
+		return err
+	}
+
+	for _, port := range ports {
+		if err := oc.ovs.DeletePort(port); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func policyNames(policies []networkapi.EgressNetworkPolicy) string {

@@ -62,6 +62,10 @@ type Interface interface {
 	// the value is already unset
 	Clear(table, record string, columns ...string) error
 
+	// Find finds records in the OVS database that match the given condition.
+	// It returns the value of the given column of matching records.
+	Find(table, column, condition string) ([]string, error)
+
 	// DumpFlows dumps the flow table for the bridge and returns it as an array of
 	// strings, one per flow. If flow is not "" then it describes the flows to dump.
 	DumpFlows(flow string, args ...interface{}) ([]string, error)
@@ -242,6 +246,15 @@ func (ovsif *ovsExec) Set(table, record string, values ...string) error {
 	args := append([]string{"set", table, record}, values...)
 	_, err := ovsif.exec(OVS_VSCTL, args...)
 	return err
+}
+
+// Returns the given column of records that match the condition
+func (ovsif *ovsExec) Find(table, column, condition string) ([]string, error) {
+	output, err := ovsif.exec(OVS_VSCTL, "--no-heading", "--data=bare", "--columns="+column, "find", table, condition)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(output), nil
 }
 
 func (ovsif *ovsExec) Clear(table, record string, columns ...string) error {

@@ -303,7 +303,7 @@ func TestOVSPod(t *testing.T) {
 	}
 
 	// Delete
-	err = oc.TearDownPod("veth1", "10.128.0.2", sandboxID)
+	err = oc.TearDownPod("10.128.0.2", sandboxID)
 	if err != nil {
 		t.Fatalf("Unexpected error deleting pod rules: %v", err)
 	}
@@ -903,12 +903,17 @@ func TestAlreadySetUp(t *testing.T) {
 	}{
 		{
 			// Good note
-			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.05.00.00.00.00",
+			flow:    fmt.Sprintf("cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.%02x.00.00.00.00", ruleVersion),
 			success: true,
 		},
 		{
+			// Wrong version
+			flow:    fmt.Sprintf("cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.%02x.00.00.00.00", ruleVersion-1),
+			success: false,
+		},
+		{
 			// Wrong table
-			flow:    "cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.05.00.00.00.00",
+			flow:    fmt.Sprintf("cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.%02x.00.00.00.00", ruleVersion),
 			success: false,
 		},
 		{

@@ -503,7 +503,7 @@ func (m *podManager) ipamDel(id string) error {
 	return nil
 }
 
-func setupPodBandwidth(ovs *ovsController, pod *kapi.Pod, hostVeth string) error {
+func setupPodBandwidth(ovs *ovsController, pod *kapi.Pod, hostVeth, sandboxID string) error {
 	ingressVal, egressVal, err := kbandwidth.ExtractPodBandwidthResources(pod.Annotations)
 	if err != nil {
 		return fmt.Errorf("failed to parse pod bandwidth: %v", err)
@@ -527,7 +527,7 @@ func setupPodBandwidth(ovs *ovsController, pod *kapi.Pod, hostVeth string) error
 		egressBPS = egressVal.Value()
 	}
 
-	return ovs.SetPodBandwidth(hostVeth, ingressBPS, egressBPS)
+	return ovs.SetPodBandwidth(hostVeth, sandboxID, ingressBPS, egressBPS)
 }
 
 func vnidToString(vnid uint32) string {
@@ -652,7 +652,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
+	if err := setupPodBandwidth(m.ovs, pod, hostVethName, req.SandboxID); err != nil {
 		return nil, nil, err
 	}
 
@@ -678,24 +678,21 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
 	defer PodOperationsLatency.WithLabelValues(PodOperationTeardown).Observe(sinceInMicroseconds(time.Now()))
 
-	netnsValid := true
+	var podIP string
+	errList := []error{}
+
 	if err := ns.IsNSorErr(req.Netns); err != nil {
-		if _, ok := err.(ns.NSPathNotExistErr); ok {
-			glog.V(3).Infof("teardown called on already-destroyed pod %s/%s; only cleaning up IPAM", req.PodNamespace, req.PodName)
-			netnsValid = false
+		if _, ok := err.(ns.NSPathNotExistErr); !ok {
+			// Namespace still exists, get pod IP from the veth
+			_, _, podIP, err = getVethInfo(req.Netns, podInterfaceName)
+			if err != nil {
+				errList = append(errList, err)
+			}
 		}
 	}
 
-	errList := []error{}
-	if netnsValid {
-		hostVethName, _, podIP, err := getVethInfo(req.Netns, podInterfaceName)
-		if err != nil {
-			return err
-		}
-
-		if err := m.ovs.TearDownPod(hostVethName, podIP, req.SandboxID); err != nil {
-			errList = append(errList, err)
-		}
+	if err := m.ovs.TearDownPod(podIP, req.SandboxID); err != nil {
+		errList = append(errList, err)
 	}
 
 	if err := m.ipamDel(req.SandboxID); err != nil {
