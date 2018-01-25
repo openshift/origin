@@ -23,6 +23,8 @@ os::cmd::expect_success 'oc explain bc'
 os::cmd::expect_success 'oc explain image'
 os::cmd::expect_success 'oc explain is'
 
+os::cmd::expect_success 'oc explain cronjob'
+
 echo "explain: ok"
 os::test::junit::declare_suite_end
 
