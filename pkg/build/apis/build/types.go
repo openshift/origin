@@ -544,7 +544,7 @@ const (
 	StatusMessageFailedContainer                 = "The pod for this build has at least one container with a non-zero exit status."
 	StatusMessageGenericBuildFailed              = "Generic Build failure - check logs for details."
 	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
-	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account associated with this build."
+	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account secrets for this build."
 )
 
 // BuildStatusOutput contains the status of the built image.
