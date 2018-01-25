@@ -31,19 +31,8 @@ function os::build::environment::create() {
         os::log::debug "Creating volume ${OS_BUILD_ENV_VOLUME}"
         docker volume create --name "${OS_BUILD_ENV_VOLUME}" > /dev/null
       fi
-
-      if [[ -n "${OS_BUILD_ENV_TMP_VOLUME:-}" ]]; then
-        if docker volume inspect "${OS_BUILD_ENV_TMP_VOLUME}" >/dev/null 2>&1; then
-          os::log::debug "Re-using volume ${OS_BUILD_ENV_TMP_VOLUME}"
-        else
-          # if OS_BUILD_ENV_VOLUME is set and no volume already exists, create a docker volume to
-          # store the working output so successive iterations can reuse shared code.
-          os::log::debug "Creating volume ${OS_BUILD_ENV_TMP_VOLUME}"
-          docker volume create --name "${OS_BUILD_ENV_TMP_VOLUME}" >/dev/null
-        fi
-        additional_context+=" -v ${OS_BUILD_ENV_TMP_VOLUME}:/tmp"
-      fi
       additional_context+=" -v ${OS_BUILD_ENV_VOLUME}:${workingdir}"
+      additional_context+=" -v /tmp/openshift:/tmp/openshift"
     fi
   fi
 
@@ -109,17 +98,12 @@ readonly -f os::build::environment::release::workingdir
 function os::build::environment::cleanup() {
   local container=$1
   local volume=$2
-  local tmp_volume=$3
   os::log::debug "Stopping container ${container}"
   docker stop --time=0 "${container}" > /dev/null || true
   if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
     os::log::debug "Removing container ${container}"
     docker rm "${container}" > /dev/null
 
-    if [[ -z "${OS_BUILD_ENV_REUSE_TMP_VOLUME:-}" ]]; then
-      os::log::debug "Removing tmp build volume"
-      os::build::environment::remove_volume "${tmp_volume}"
-    fi
     if [[ -n "${OS_BUILD_ENV_CLEAN_BUILD_VOLUME:-}" ]]; then
       os::log::debug "Removing build volume"
       os::build::environment::remove_volume "${volume}"
@@ -248,17 +232,13 @@ readonly -f os::build::environment::remove_volume
 function os::build::environment::run() {
   local commit="${OS_GIT_COMMIT:-HEAD}"
   local volume
-  local tmp_volume
 
   volume="$( os::build::environment::volume_name "origin-build" "${commit}" "${OS_BUILD_ENV_REUSE_VOLUME:-}" )"
-  tmp_volume="$( os::build::environment::volume_name "origin-build-tmp" "${commit}" "${OS_BUILD_ENV_REUSE_TMP_VOLUME:-}" )"
 
   export OS_BUILD_ENV_VOLUME="${volume}"
-  export OS_BUILD_ENV_TMP_VOLUME="${tmp_volume}"
 
   if [[ -n "${OS_BUILD_ENV_VOLUME_FORCE_NEW:-}" ]]; then
     os::build::environment::remove_volume "${volume}"
-    os::build::environment::remove_volume "${tmp_volume}"
   fi
 
   if [[ -n "${OS_BUILD_ENV_PULL_IMAGE:-}" ]]; then
@@ -268,11 +248,10 @@ function os::build::environment::run() {
 
   os::log::debug "Using commit ${commit}"
   os::log::debug "Using volume ${volume}"
-  os::log::debug "Using tmp volume ${tmp_volume}"
 
   local container
   container="$( os::build::environment::create "$@" )"
-  trap "os::build::environment::cleanup ${container} ${volume} ${tmp_volume}" EXIT
+  trap "os::build::environment::cleanup ${container} ${volume}" EXIT
 
   os::log::debug "Using container ${container}"
 
