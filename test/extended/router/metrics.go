@@ -58,13 +58,17 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			}
 		}
 
-		epts, err := oc.AdminKubeClient().CoreV1().Endpoints("default").Get("router", metav1.GetOptions{})
+		// wait for the router endpoints to show up
+		err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
+			epts, err := oc.AdminKubeClient().CoreV1().Endpoints("default").Get("router", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if len(epts.Subsets) == 0 || len(epts.Subsets[0].Addresses) == 0 {
+				return false, nil
+			}
+			host = epts.Subsets[0].Addresses[0].IP
+			return true, nil
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		if len(epts.Subsets) == 0 || len(epts.Subsets[0].Addresses) == 0 {
-			e2e.Failf("Unable to run HAProxy router tests, the router reports no endpoints: %#v", epts)
-			return
-		}
-		host = epts.Subsets[0].Addresses[0].IP
 
 		ns = oc.KubeFramework().Namespace.Name
 	})
