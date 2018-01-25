@@ -17,7 +17,9 @@ import (
 
 	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	clientdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
+	networkdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
@@ -131,6 +133,11 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	for _, diag := range available {
 		cmd.AddCommand(NewCmdDiagnosticsIndividual(strings.ToLower(diag.Name()), fullName+" "+strings.ToLower(diag.Name()), out, diag))
 	}
+	// add hidden in-pod subcommands
+	cmd.AddCommand(
+		NewCommandPodDiagnostics(clientdiag.InPodDiagnosticRecommendedName, out),
+		NewCommandNetworkPodDiagnostics(networkdiag.InPodNetworkCheckRecommendedName, out),
+	)
 
 	return cmd
 }

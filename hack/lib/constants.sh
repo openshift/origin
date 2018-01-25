@@ -45,7 +45,6 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
   cmd/oadm
-  cmd/openshift-diagnostics
   cmd/template-service-broker
   vendor/k8s.io/kubernetes/cmd/hyperkube
 )

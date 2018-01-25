@@ -47,6 +47,8 @@ oc-adm-diagnostics-clusterrouter.1
 oc-adm-diagnostics-configcontexts.1
 oc-adm-diagnostics-diagnosticpod.1
 oc-adm-diagnostics-etcdwritevolume.1
+oc-adm-diagnostics-inpod-networkcheck.1
+oc-adm-diagnostics-inpod-poddiagnostic.1
 oc-adm-diagnostics-masterconfigcheck.1
 oc-adm-diagnostics-masternode.1
 oc-adm-diagnostics-metricsapiproxy.1
@@ -200,6 +202,8 @@ oc-ex-diagnostics-clusterrouter.1
 oc-ex-diagnostics-configcontexts.1
 oc-ex-diagnostics-diagnosticpod.1
 oc-ex-diagnostics-etcdwritevolume.1
+oc-ex-diagnostics-inpod-networkcheck.1
+oc-ex-diagnostics-inpod-poddiagnostic.1
 oc-ex-diagnostics-masterconfigcheck.1
 oc-ex-diagnostics-masternode.1
 oc-ex-diagnostics-metricsapiproxy.1
