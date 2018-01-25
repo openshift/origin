@@ -62,9 +62,13 @@ type Interface interface {
 	// the value is already unset
 	Clear(table, record string, columns ...string) error
 
+	// Find finds records in the OVS database that match the given condition.
+	// It returns the value of the given column of matching records.
+	Find(table, column, condition string) ([]string, error)
+
 	// DumpFlows dumps the flow table for the bridge and returns it as an array of
-	// strings, one per flow.
-	DumpFlows() ([]string, error)
+	// strings, one per flow. If flow is not "" then it describes the flows to dump.
+	DumpFlows(flow string, args ...interface{}) ([]string, error)
 
 	// NewTransaction begins a new OVS transaction. If an error occurs at
 	// any step in the transaction, it will be recorded until
@@ -244,6 +248,15 @@ func (ovsif *ovsExec) Set(table, record string, values ...string) error {
 	return err
 }
 
+// Returns the given column of records that match the condition
+func (ovsif *ovsExec) Find(table, column, condition string) ([]string, error) {
+	output, err := ovsif.exec(OVS_VSCTL, "--no-heading", "--data=bare", "--columns="+column, "find", table, condition)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Fields(output), nil
+}
+
 func (ovsif *ovsExec) Clear(table, record string, columns ...string) error {
 	args := append([]string{"--if-exists", "clear", table, record}, columns...)
 	_, err := ovsif.exec(OVS_VSCTL, args...)
@@ -287,8 +300,11 @@ func (tx *ovsExecTx) EndTransaction() error {
 	return err
 }
 
-func (ovsif *ovsExec) DumpFlows() ([]string, error) {
-	out, err := ovsif.exec(OVS_OFCTL, "dump-flows", ovsif.bridge)
+func (ovsif *ovsExec) DumpFlows(flow string, args ...interface{}) ([]string, error) {
+	if len(args) > 0 {
+		flow = fmt.Sprintf(flow, args...)
+	}
+	out, err := ovsif.exec(OVS_OFCTL, "dump-flows", ovsif.bridge, flow)
 	if err != nil {
 		return nil, err
 	}

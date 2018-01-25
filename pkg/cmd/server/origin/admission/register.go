@@ -52,6 +52,10 @@ func init() {
 func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
 	kubeapiserver.RegisterAllAdmissionPlugins(plugins)
 	genericapiserver.RegisterAllAdmissionPlugins(plugins)
+	registerOpenshiftAdmissionPlugins(plugins)
+}
+
+func registerOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	authorizationrestrictusers.Register(plugins)
 	buildjenkinsbootstrapper.Register(plugins)
 	buildsecretinjector.Register(plugins)
@@ -114,8 +118,9 @@ var (
 		"LimitPodHardAntiAffinityTopology",
 		"DefaultTolerationSeconds",
 		"PodPreset", // default to off while PodPreset is alpha
-
-		// these are new, reassess post-rebase
+		"EventRateLimit",
+		"PodSecurityPolicy",
+		"Priority",
 		"Initializers",
 		"ValidatingAdmissionWebhook",
 		"MutatingAdmissionWebhook",
@@ -123,6 +128,16 @@ var (
 		"ExtendedResourceToleration",
 		"PVCProtection",
 		expandpvcadmission.PluginName,
+
+		// these should usually be off.
+		"AlwaysAdmit",
+		"AlwaysDeny",
+		"DenyEscalatingExec",
+		"DenyExecOnPrivileged",
+		"InitialResources",
+		"NamespaceAutoProvision",
+		"NamespaceExists",
+		"SecurityContextDeny",
 	)
 )
 

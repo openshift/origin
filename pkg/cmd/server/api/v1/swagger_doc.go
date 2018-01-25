@@ -53,36 +53,6 @@ func (AllowAllPasswordIdentityProvider) SwaggerDoc() map[string]string {
 	return map_AllowAllPasswordIdentityProvider
 }
 
-var map_AssetConfig = map[string]string{
-	"":                     "AssetConfig holds the necessary configuration options for serving assets",
-	"servingInfo":          "ServingInfo is the HTTP serving information for these assets",
-	"publicURL":            "PublicURL is where you can find the asset server (TODO do we really need this?)",
-	"logoutURL":            "LogoutURL is an optional, absolute URL to redirect web browsers to after logging out of the web console. If not specified, the built-in logout page is shown.",
-	"masterPublicURL":      "MasterPublicURL is how the web console can access the OpenShift v1 server",
-	"loggingPublicURL":     "LoggingPublicURL is the public endpoint for logging (optional)",
-	"metricsPublicURL":     "MetricsPublicURL is the public endpoint for metrics (optional)",
-	"extensionScripts":     "ExtensionScripts are file paths on the asset server files to load as scripts when the Web Console loads",
-	"extensionProperties":  "ExtensionProperties are key(string) and value(string) pairs that will be injected into the console under the global variable OPENSHIFT_EXTENSION_PROPERTIES",
-	"extensionStylesheets": "ExtensionStylesheets are file paths on the asset server files to load as stylesheets when the Web Console loads",
-	"extensions":           "Extensions are files to serve from the asset server filesystem under a subcontext",
-	"extensionDevelopment": "ExtensionDevelopment when true tells the asset server to reload extension scripts and stylesheets for every request rather than only at startup. It lets you develop extensions without having to restart the server for every change.",
-}
-
-func (AssetConfig) SwaggerDoc() map[string]string {
-	return map_AssetConfig
-}
-
-var map_AssetExtensionsConfig = map[string]string{
-	"":                "AssetExtensionsConfig holds the necessary configuration options for asset extensions",
-	"name":            "SubContext is the path under /<context>/extensions/ to serve files from SourceDirectory",
-	"sourceDirectory": "SourceDirectory is a directory on the asset server to serve files under Name in the Web Console. It may have nested folders.",
-	"html5Mode":       "HTML5Mode determines whether to redirect to the root index.html when a file is not found. This is needed for apps that use the HTML5 history API like AngularJS apps with HTML5 mode enabled. If HTML5Mode is true, also rewrite the base element in index.html with the Web Console's context root. Defaults to false.",
-}
-
-func (AssetExtensionsConfig) SwaggerDoc() map[string]string {
-	return map_AssetExtensionsConfig
-}
-
 var map_AuditConfig = map[string]string{
 	"":                         "AuditConfig holds configuration for the audit capabilities",
 	"enabled":                  "If this flag is set, audit log will be printed in the logs. The logs contains, method, user and a requested URL.",

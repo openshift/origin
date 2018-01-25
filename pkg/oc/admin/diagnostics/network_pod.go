@@ -3,16 +3,13 @@ package diagnostics
 import (
 	"fmt"
 	"io"
-	"os"
 	"runtime/debug"
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	networkdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod"
@@ -30,7 +27,7 @@ type NetworkPodDiagnosticsOptions struct {
 	// LogOptions determine globally what the user wants to see and how.
 	LogOptions *log.LoggerOptions
 	// The Logger is built with the options and should be used for all diagnostic output.
-	Logger *log.Logger
+	logger *log.Logger
 }
 
 var longNetworkPodDiagDescription = templates.LongDesc(`
@@ -55,18 +52,7 @@ func NewCommandNetworkPodDiagnostics(name string, out io.Writer) *cobra.Command 
 		Use:   name,
 		Short: "Within a privileged pod, run network diagnostics",
 		Long:  fmt.Sprintf(longNetworkPodDiagDescription),
-		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(args))
-
-			failed, err, warnCount, errorCount := o.BuildAndRunDiagnostics()
-			o.Logger.Summary(warnCount, errorCount)
-
-			kcmdutil.CheckErr(err)
-			if failed {
-				os.Exit(255)
-			}
-
-		},
+		Run:   commandRunFunc(o),
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 
@@ -75,9 +61,14 @@ func NewCommandNetworkPodDiagnostics(name string, out io.Writer) *cobra.Command 
 	return cmd
 }
 
+// Logger returns the logger built according to options (must be Complete()ed)
+func (o *NetworkPodDiagnosticsOptions) Logger() *log.Logger {
+	return o.logger
+}
+
 // Complete fills in NetworkPodDiagnosticsOptions needed if the command is actually invoked.
-func (o *NetworkPodDiagnosticsOptions) Complete(args []string) (err error) {
-	o.Logger, err = o.LogOptions.NewLogger()
+func (o *NetworkPodDiagnosticsOptions) Complete(c *cobra.Command, args []string) (err error) {
+	o.logger, err = o.LogOptions.NewLogger()
 	if err != nil {
 		return err
 	}
@@ -90,45 +81,35 @@ func (o *NetworkPodDiagnosticsOptions) Complete(args []string) (err error) {
 	return nil
 }
 
-// BuildAndRunDiagnostics builds diagnostics based on the options and executes them, returning a summary.
-func (o NetworkPodDiagnosticsOptions) BuildAndRunDiagnostics() (failed bool, err error, numWarnings, numErrors int) {
-	failed = false
-	errors := []error{}
+// RunDiagnostics builds diagnostics based on the options and executes them, returning a summary.
+func (o NetworkPodDiagnosticsOptions) RunDiagnostics() error {
+	var fatal error
 	diagnostics := []types.Diagnostic{}
 
 	func() { // don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
 		defer func() {
 			if r := recover(); r != nil {
-				failed = true
-				stack := debug.Stack()
-				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, stack))
+				fatal = fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, debug.Stack())
 			}
 		}() // deferred panic handler
-		networkPodDiags, ok, err := o.buildNetworkPodDiagnostics()
-		failed = failed || !ok
-		if ok {
-			diagnostics = append(diagnostics, networkPodDiags...)
-		}
-		if err != nil {
-			errors = append(errors, err...)
-		}
+
+		diagnostics, fatal = o.buildNetworkPodDiagnostics()
 	}()
 
-	if failed {
-		return failed, kutilerrors.NewAggregate(errors), 0, len(errors)
+	if fatal != nil {
+		return fatal
 	}
 
-	failed, err, numWarnings, numErrors = util.RunDiagnostics(o.Logger, diagnostics, 0, len(errors))
-	return failed, err, numWarnings, numErrors
+	return util.RunDiagnostics(o.Logger(), diagnostics)
 }
 
 // buildNetworkPodDiagnostics builds network Diagnostic objects based on the host environment.
-// Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.
-func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diagnostic, bool, []error) {
+// Returns the Diagnostics built or any fatal error encountered during the building of diagnostics.
+func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diagnostic, error) {
 	diagnostics := []types.Diagnostic{}
-	err, requestedDiagnostics := util.DetermineRequestedDiagnostics(availableNetworkPodDiagnostics.List(), o.RequestedDiagnostics, o.Logger)
+	err, requestedDiagnostics := util.DetermineRequestedDiagnostics(availableNetworkPodDiagnostics.List(), o.RequestedDiagnostics, o.Logger())
 	if err != nil {
-		return diagnostics, false, []error{err} // don't waste time on discovery
+		return nil, err // don't waste time on discovery
 	}
 
 	clientFlags := flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
@@ -136,11 +117,11 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 
 	kubeClient, clientErr := factory.ClientSet()
 	if clientErr != nil {
-		return diagnostics, false, []error{clientErr}
+		return nil, clientErr
 	}
 	networkClient, err := factory.OpenshiftInternalNetworkClient()
 	if err != nil {
-		return diagnostics, false, []error{err}
+		return nil, err
 	}
 
 	for _, diagnosticName := range requestedDiagnostics {
@@ -174,9 +155,9 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 			})
 
 		default:
-			return diagnostics, false, []error{fmt.Errorf("unknown diagnostic: %v", diagnosticName)}
+			return diagnostics, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
 	}
 
-	return diagnostics, true, nil
+	return diagnostics, nil
 }

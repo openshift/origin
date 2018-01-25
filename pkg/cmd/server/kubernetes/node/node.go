@@ -4,34 +4,29 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"time"
 
-	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/kubelet/dockershim"
-	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
-	"k8s.io/kubernetes/pkg/util/mount"
+	"k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/volume"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/volume/emptydir"
 )
 
-const minimumDockerAPIVersionWithPullByID = "1.22"
-
+// TODO this is a best effort check at the moment that should either move to kubelet or be removed entirely
 // EnsureKubeletAccess performs a number of test operations that the Kubelet requires to properly function.
 // All errors here are fatal.
-func (c *NodeConfig) EnsureKubeletAccess() {
-	if c.Containerized {
+func EnsureKubeletAccess() {
+	containerized := cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"
+	if containerized {
 		if _, err := os.Stat("/rootfs"); os.IsPermission(err) || os.IsNotExist(err) {
 			glog.Fatal("error: Running in containerized mode, but cannot find the /rootfs directory - be sure to mount the host filesystem at /rootfs (read-only) in the container.")
 		}
@@ -71,156 +66,83 @@ func sameFileStat(requireMode bool, src, dst string) bool {
 	return true
 }
 
-// EnsureDocker attempts to connect to the Docker daemon defined by the helper,
-// and if it is unable to it will print a warning.
-func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
-	if c.KubeletServer.ContainerRuntime != "docker" {
-		return
-	}
-	if _, err := os.Stat("/var/lib/docker"); os.IsPermission(err) {
-		glog.Fatal("Unable to view the /var/lib/docker directory - are you running as root?")
-	}
-
-	var endpoint string
-	if len(os.Getenv("DOCKER_HOST")) > 0 {
-		endpoint = os.Getenv("DOCKER_HOST")
-	} else {
-		endpoint = "unix:///var/run/docker.sock"
-	}
-
-	dockerClientConfig := &dockershim.ClientConfig{
-		DockerEndpoint:            endpoint,
-		RuntimeRequestTimeout:     c.KubeletServer.RuntimeRequestTimeout.Duration,
-		ImagePullProgressDeadline: c.KubeletServer.ImagePullProgressDeadline.Duration,
-	}
-	client := dockertools.ConnectToDockerOrDie(endpoint, c.KubeletServer.RuntimeRequestTimeout.Duration, c.KubeletServer.ImagePullProgressDeadline.Duration, false, false)
-	dockerClient := &dockerutil.KubeDocker{Interface: client}
-
-	if url, err := url.Parse(endpoint); err == nil && url.Scheme == "unix" && len(url.Path) > 0 {
-		s, err := os.Stat(url.Path)
-		switch {
-		case os.IsNotExist(err):
-			glog.Fatalf("No Docker socket found at %s. Have you started the Docker daemon?", url.Path)
-			return
-		case os.IsPermission(err):
-			glog.Fatalf("You do not have permission to connect to the Docker daemon (via %s). This process requires running as the root user.", url.Path)
-			return
-		case err == nil && s.IsDir():
-			glog.Fatalf("The Docker socket at %s is a directory instead of a unix socket - check that you have configured your connection to the Docker daemon properly.", url.Path)
-			return
-		}
-	}
-	_, isFakeDocker := client.(*dockertools.FakeDockerClient)
-	if isFakeDocker {
-		// If using the fake docker client, ensure that the CgroupDriver for the kubelet matches
-		// the default cgroup driver, and use a fake mounter
-		c.KubeletServer.CgroupDriver = "cgroupfs"
-		c.KubeletDeps.Mounter = &mount.FakeMounter{}
-	}
-
-	if !isFakeDocker {
-		if err := dockerClient.Ping(); err != nil {
-			glog.Fatalf("Docker could not be reached at %s.  Docker must be installed and running to start containers.\n%v", endpoint, err)
-			return
-		}
-	}
-
-	glog.Infof("Connecting to Docker at %s", endpoint)
-
-	version, err := dockerClient.Version()
-	if err != nil {
-		glog.Fatalf("Unable to check for Docker server version.\n%v", err)
-		return
-	}
-
-	serverVersion, err := dockerclient.NewAPIVersion(version.APIVersion)
-	if err != nil {
-		glog.Fatalf("Unable to determine Docker server version from %q.\n%v", version.APIVersion, err)
-		return
-	}
-
-	minimumPullByIDVersion, err := dockerclient.NewAPIVersion(minimumDockerAPIVersionWithPullByID)
-	if err != nil {
-		glog.Fatalf("Unable to check for Docker server version.\n%v", err)
-		return
-	}
-
-	if serverVersion.LessThan(minimumPullByIDVersion) {
-		glog.Fatalf("Docker 1.6 or later (server API version %s or later) required.", minimumDockerAPIVersionWithPullByID)
-		return
-	}
-
-	c.DockerClientConfig = dockerClientConfig
-}
-
+// TODO we need to stop doing this or get it upstream
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
 // an absolute path and create the directory if it does not exist. Will exit if
 // an error is encountered.
-func (c *NodeConfig) EnsureVolumeDir() {
-	if volumeDir, err := c.initializeVolumeDir(c.VolumeDir); err != nil {
+func EnsureVolumeDir(volumeDirName string) {
+	if err := initializeVolumeDir(volumeDirName); err != nil {
 		glog.Fatal(err)
-	} else {
-		c.VolumeDir = volumeDir
 	}
 }
 
-func (c *NodeConfig) initializeVolumeDir(path string) (string, error) {
-	rootDirectory, err := filepath.Abs(path)
-	if err != nil {
-		return "", fmt.Errorf("Error converting volume directory to an absolute path: %v", err)
+func initializeVolumeDir(rootDirectory string) error {
+	if !filepath.IsAbs(rootDirectory) {
+		return fmt.Errorf("%q is not an absolute path", rootDirectory)
 	}
 
 	if _, err := os.Stat(rootDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(rootDirectory, 0750); err != nil {
-			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
+			return fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
 		}
 	}
-	return rootDirectory, nil
+	return nil
 }
 
-// EnsureLocalQuota checks if the node config specifies a local storage
+// TODO this needs to move into the forked kubelet with a `--openshift-config` flag
+// PatchUpstreamVolumePluginsForLocalQuota checks if the node config specifies a local storage
 // perFSGroup quota, and if so will test that the volumeDirectory is on a
 // filesystem suitable for quota enforcement. If checks pass the k8s emptyDir
 // volume plugin will be replaced with a wrapper version which adds quota
 // functionality.
-func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
-	if nodeConfig.VolumeConfig.LocalQuota.PerFSGroup == nil {
-		return
-	}
-	glog.V(4).Info("Replacing empty-dir volume plugin with quota wrapper")
-	wrappedEmptyDirPlugin := false
+func PatchUpstreamVolumePluginsForLocalQuota(nodeConfig configapi.NodeConfig) func() []volume.VolumePlugin {
+	// This looks a little weird written this way but it allows straight lifting from here to kube at a future time
+	// and will allow us to wrap the exec.
 
-	quotaApplicator, err := emptydir.NewQuotaApplicator(nodeConfig.VolumeDirectory)
-	if err != nil {
-		glog.Fatalf("Could not set up local quota, %s", err)
-	}
-
-	// Create a volume spec with emptyDir we can use to search for the
-	// emptyDir plugin with CanSupport:
-	emptyDirSpec := &volume.Spec{
-		Volume: &kapiv1.Volume{
-			VolumeSource: kapiv1.VolumeSource{
-				EmptyDir: &kapiv1.EmptyDirVolumeSource{},
-			},
-		},
-	}
-
-	for idx, plugin := range c.KubeletDeps.VolumePlugins {
-		// Can't really do type checking or use a constant here as they are not exported:
-		if plugin.CanSupport(emptyDirSpec) {
-			wrapper := emptydir.EmptyDirQuotaPlugin{
-				VolumePlugin:    plugin,
-				Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
-				QuotaApplicator: quotaApplicator,
-			}
-			c.KubeletDeps.VolumePlugins[idx] = &wrapper
-			wrappedEmptyDirPlugin = true
+	existingProbeVolumePlugins := app.ProbeVolumePlugins
+	return func() []volume.VolumePlugin {
+		if nodeConfig.VolumeConfig.LocalQuota.PerFSGroup == nil {
+			return existingProbeVolumePlugins()
 		}
-	}
-	// Because we can't look for the k8s emptyDir plugin by any means that would
-	// survive a refactor, error out if we couldn't find it:
-	if !wrappedEmptyDirPlugin {
-		glog.Fatal(errors.New("No plugin handling EmptyDir was found, unable to apply local quotas"))
+
+		glog.V(4).Info("Replacing empty-dir volume plugin with quota wrapper")
+		wrappedEmptyDirPlugin := false
+
+		quotaApplicator, err := emptydir.NewQuotaApplicator(nodeConfig.VolumeDirectory)
+		if err != nil {
+			glog.Fatalf("Could not set up local quota, %s", err)
+		}
+
+		// Create a volume spec with emptyDir we can use to search for the
+		// emptyDir plugin with CanSupport:
+		emptyDirSpec := &volume.Spec{
+			Volume: &kapiv1.Volume{
+				VolumeSource: kapiv1.VolumeSource{
+					EmptyDir: &kapiv1.EmptyDirVolumeSource{},
+				},
+			},
+		}
+
+		ret := existingProbeVolumePlugins()
+		for idx, plugin := range ret {
+			// Can't really do type checking or use a constant here as they are not exported:
+			if plugin.CanSupport(emptyDirSpec) {
+				wrapper := emptydir.EmptyDirQuotaPlugin{
+					VolumePlugin:    plugin,
+					Quota:           *nodeConfig.VolumeConfig.LocalQuota.PerFSGroup,
+					QuotaApplicator: quotaApplicator,
+				}
+				ret[idx] = &wrapper
+				wrappedEmptyDirPlugin = true
+			}
+		}
+		// Because we can't look for the k8s emptyDir plugin by any means that would
+		// survive a refactor, error out if we couldn't find it:
+		if !wrappedEmptyDirPlugin {
+			glog.Fatal(errors.New("No plugin handling EmptyDir was found, unable to apply local quotas"))
+		}
+
+		return ret
 	}
 }
 

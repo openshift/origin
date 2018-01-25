@@ -15,29 +15,6 @@ aggregatorConfig:
 apiLevels:
 - v1
 apiVersion: v1
-assetConfig:
-  extensionDevelopment: false
-  extensionProperties: null
-  extensionScripts: null
-  extensionStylesheets: null
-  extensions:
-  - html5Mode: false
-    name: ""
-    sourceDirectory: ""
-  loggingPublicURL: ""
-  logoutURL: ""
-  masterPublicURL: ""
-  metricsPublicURL: ""
-  publicURL: ""
-  servingInfo:
-    bindAddress: ""
-    bindNetwork: tcp4
-    certFile: ""
-    clientCA: ""
-    keyFile: ""
-    maxRequestsInFlight: 0
-    namedCertificates: null
-    requestTimeoutSeconds: 0
 auditConfig:
   auditFilePath: ""
   enabled: false

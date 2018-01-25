@@ -46,6 +46,18 @@ var errRegistryURLHostEmpty = errors.New("no host name specified")
 // failed.
 var ErrImageStreamImportUnsupported = errors.New("the server does not support directly importing images - create an image stream with tags or the dockerImageRepository field set")
 
+// ErrCircularReference is an error when reference tag is circular.
+var ErrCircularReference = errors.New("reference tag is circular")
+
+// ErrNotFoundReference is an error when reference tag is not found.
+var ErrNotFoundReference = errors.New("reference tag is not found")
+
+// ErrCircularReference is an error when reference tag points to another imagestream.
+var ErrCrossImageStreamReference = errors.New("reference tag points to another imagestream")
+
+// ErrInvalidReference is an error when reference tag is invalid.
+var ErrInvalidReference = errors.New("reference tag is invalid")
+
 // RegistryHostnameRetriever represents an interface for retrieving the hostname
 // of internal and external registry.
 type RegistryHostnameRetriever interface {
@@ -381,29 +393,44 @@ func DockerImageReferenceForStream(stream *ImageStream) (DockerImageReference, e
 }
 
 // FollowTagReference walks through the defined tags on a stream, following any referential tags in the stream.
-// Will return ok if the tag is valid, multiple if the tag had at least reference, and ref and finalTag will be the last
-// tag seen. If a circular loop is found ok will be false.
-func FollowTagReference(stream *ImageStream, tag string) (finalTag string, ref *TagReference, ok bool, multiple bool) {
+// Will return multiple if the tag had at least reference, and ref and finalTag will be the last tag seen.
+// If an invalid reference is found, err will be returned.
+func FollowTagReference(stream *ImageStream, tag string) (finalTag string, ref *TagReference, multiple bool, err error) {
 	seen := sets.NewString()
 	for {
 		if seen.Has(tag) {
 			// circular reference
-			return tag, nil, false, multiple
+			return tag, nil, multiple, ErrCircularReference
 		}
 		seen.Insert(tag)
 
 		tagRef, ok := stream.Spec.Tags[tag]
 		if !ok {
 			// no tag at the end of the rainbow
-			return tag, nil, false, multiple
+			return tag, nil, multiple, ErrNotFoundReference
 		}
-		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" || strings.Contains(tagRef.From.Name, ":") {
+		if tagRef.From == nil || tagRef.From.Kind != "ImageStreamTag" {
 			// terminating tag
-			return tag, &tagRef, true, multiple
+			return tag, &tagRef, multiple, nil
 		}
 
-		// follow the referenec
-		tag = tagRef.From.Name
+		// The reference needs to be followed with two format patterns:
+		// a) sameis:sometag and b) sometag
+		if strings.Contains(tagRef.From.Name, ":") {
+			name, tagref, ok := SplitImageStreamTag(tagRef.From.Name)
+			if !ok {
+				return tag, nil, multiple, ErrInvalidReference
+			}
+			if name != stream.ObjectMeta.Name {
+				// anotheris:sometag - this should not happen.
+				return tag, nil, multiple, ErrCrossImageStreamReference
+			}
+			// sameis:sometag - follow the reference as sometag
+			tag = tagref
+		} else {
+			// sometag - follow the reference
+			tag = tagRef.From.Name
+		}
 		multiple = true
 	}
 }

@@ -7,13 +7,11 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	sccadmission "github.com/openshift/origin/pkg/security/admission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
-	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 )
 
 // TestAdmissionPluginChains makes sure that the admission plugin lists are coherent.
@@ -73,38 +71,24 @@ var legacyOpenshiftAdmissionPlugins = sets.NewString(
 	"ResourceQuota",
 )
 
-// kubeAdmissionPlugins tracks kube plugins we use.  You may add to this list, but ONLY if they're from upstream kube
-var usedKubeAdmissionPlugins = sets.NewString(
-	lifecycle.PluginName,
-	"PodPreset",
-	"LimitRanger",
-	"ServiceAccount",
-	"DefaultStorageClass",
-	"ImagePolicyWebhook",
-	"AlwaysPullImages",
-	"LimitPodHardAntiAffinityTopology",
-	"SCCExecRestrictions",
-	"PersistentVolumeLabel",
-	"OwnerReferencesPermissionEnforcement",
-	"PodNodeSelector",
-	"DefaultTolerationSeconds",
-	"ResourceQuota",
-	"Initializers",
-	"ValidatingAdmissionWebhook",
-	"MutatingAdmissionWebhook",
-	"PodTolerationRestriction",
-	"ExtendedResourceToleration",
-	"PVCProtection",
-	"NodeRestriction",
-	expandpvcadmission.PluginName,
-)
-
 // TestAdmissionPluginNames makes sure that openshift admission plugins are prefixed with `openshift.io/`.
 func TestAdmissionPluginNames(t *testing.T) {
-	for _, plugin := range combinedAdmissionControlPlugins {
-		if !strings.HasPrefix(plugin, "openshift.io/") && !usedKubeAdmissionPlugins.Has(plugin) && !legacyOpenshiftAdmissionPlugins.Has(plugin) {
+	originAdmissionPlugins := admission.NewPlugins()
+	registerOpenshiftAdmissionPlugins(originAdmissionPlugins)
+
+	for _, plugin := range originAdmissionPlugins.Registered() {
+		if !strings.HasPrefix(plugin, "openshift.io/") && !legacyOpenshiftAdmissionPlugins.Has(plugin) {
 			t.Errorf("openshift admission plugins must be prefixed with openshift.io/ %v", plugin)
 		}
+	}
+}
+
+func TestUnusuedKubeAdmissionPlugins(t *testing.T) {
+	allAdmissionPlugins := sets.NewString(OriginAdmissionPlugins.Registered()...)
+	knownAdmissionPlugins := sets.NewString(combinedAdmissionControlPlugins...)
+
+	if unorderedPlugins := allAdmissionPlugins.Difference(knownAdmissionPlugins); len(unorderedPlugins) != 0 {
+		t.Errorf("%v need to be ordered and enabled/disabled", unorderedPlugins.List())
 	}
 }
 

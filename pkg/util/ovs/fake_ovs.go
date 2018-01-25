@@ -113,6 +113,10 @@ func (fake *ovsFake) Set(table, record string, values ...string) error {
 	return nil
 }
 
+func (fake *ovsFake) Find(table, column, condition string) ([]string, error) {
+	return make([]string, 0), nil
+}
+
 func (fake *ovsFake) Clear(table, record string, columns ...string) error {
 	return nil
 }
@@ -169,7 +173,7 @@ func (tx *ovsFakeTx) AddFlow(flow string, args ...interface{}) {
 
 	// If there is already an exact match for this flow, then the new flow replaces it.
 	for i := range tx.fake.flows {
-		if FlowMatches(&tx.fake.flows[i], parsed, true) {
+		if FlowMatches(&tx.fake.flows[i], parsed) {
 			tx.fake.flows[i] = *parsed
 			return
 		}
@@ -183,7 +187,7 @@ func (tx *ovsFakeTx) DeleteFlows(flow string, args ...interface{}) {
 	if tx.err != nil {
 		return
 	}
-	parsed, err := ParseFlow(ParseForDelete, flow, args...)
+	parsed, err := ParseFlow(ParseForFilter, flow, args...)
 	if err != nil {
 		tx.err = err
 		return
@@ -192,7 +196,7 @@ func (tx *ovsFakeTx) DeleteFlows(flow string, args ...interface{}) {
 
 	newFlows := make([]OvsFlow, 0, len(tx.fake.flows))
 	for _, flow := range tx.fake.flows {
-		if !FlowMatches(&flow, parsed, false) {
+		if !FlowMatches(&flow, parsed) {
 			newFlows = append(newFlows, flow)
 		}
 	}
@@ -205,13 +209,25 @@ func (tx *ovsFakeTx) EndTransaction() error {
 	return err
 }
 
-func (fake *ovsFake) DumpFlows() ([]string, error) {
+func (fake *ovsFake) DumpFlows(flow string, args ...interface{}) ([]string, error) {
 	if err := fake.ensureExists(); err != nil {
 		return nil, err
 	}
 
+	// "ParseForFilter", because "ParseForDump" is for the *results* of DumpFlows,
+	// not the input
+	filter, err := ParseFlow(ParseForFilter, flow, args...)
+	if err != nil {
+		return nil, err
+	}
+	fixFlowFields(filter)
+
 	flows := make([]string, 0, len(fake.flows))
 	for _, flow := range fake.flows {
+		if !FlowMatches(&flow, filter) {
+			continue
+		}
+
 		str := fmt.Sprintf(" cookie=%s, table=%d", flow.Cookie, flow.Table)
 		if flow.Priority != defaultPriority {
 			str += fmt.Sprintf(", priority=%d", flow.Priority)

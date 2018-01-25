@@ -720,14 +720,6 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.nip.io", opt.ServerIP)
 	}
 
-	if len(opt.MetricsHost) > 0 && cfg.AssetConfig != nil {
-		cfg.AssetConfig.MetricsPublicURL = fmt.Sprintf("https://%s/hawkular/metrics", opt.MetricsHost)
-	}
-
-	if len(opt.LoggingHost) > 0 && cfg.AssetConfig != nil {
-		cfg.AssetConfig.LoggingPublicURL = fmt.Sprintf("https://%s", opt.LoggingHost)
-	}
-
 	if len(opt.HTTPProxy) > 0 || len(opt.HTTPSProxy) > 0 || len(opt.NoProxy) > 0 {
 
 		var buildDefaults *defaultsapi.BuildDefaultsConfig
@@ -843,11 +835,6 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		cfg.AdmissionConfig.PluginConfig["PodPreset"] = &configapi.AdmissionPluginConfig{
 			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
 		}
-
-		if cfg.AssetConfig == nil {
-			cfg.AssetConfig = &configapi.AssetConfig{}
-		}
-		cfg.AssetConfig.ExtensionScripts = append(cfg.AssetConfig.ExtensionScripts, serviceCatalogExtensionPath)
 
 		// TODO: remove when we can detect this is enabled in origin-web-console-server
 		extension := "window.OPENSHIFT_CONSTANTS.TEMPLATE_SERVICE_BROKER_ENABLED = true;\n"

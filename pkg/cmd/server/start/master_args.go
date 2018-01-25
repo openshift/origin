@@ -230,16 +230,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		PauseControllers: args.PauseControllers,
 
-		AssetConfig: &configapi.AssetConfig{
-			ServingInfo: configapi.HTTPServingInfo{
-				ServingInfo: listenServingInfo,
-			},
-
-			LogoutURL:       "",
-			MasterPublicURL: masterPublicAddr.String(),
-			PublicURL:       assetPublicAddr.String(),
-		},
-
 		DNSConfig: &configapi.DNSConfig{
 			BindAddress: dnsServingInfo.BindAddress,
 			BindNetwork: dnsServingInfo.BindNetwork,
@@ -314,8 +304,6 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
 	config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
-
-	config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
 
 	if oauthConfig != nil {
 		s := admin.DefaultCABundleFile(args.ConfigDir.Value())

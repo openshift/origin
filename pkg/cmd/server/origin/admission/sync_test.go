@@ -69,8 +69,8 @@ func TestAdmissionOnOffCoverage(t *testing.T) {
 
 	if !configuredAdmissionPlugins.Equal(allCoveredAdmissionPlugins) {
 		t.Errorf("every admission plugin must be default on or default off. differences: %v and %v",
-			configuredAdmissionPlugins.Difference(allCoveredAdmissionPlugins),
-			allCoveredAdmissionPlugins.Difference(configuredAdmissionPlugins))
+			configuredAdmissionPlugins.Difference(allCoveredAdmissionPlugins).List(),
+			allCoveredAdmissionPlugins.Difference(configuredAdmissionPlugins).List())
 	}
 
 	for plugin := range DefaultOnPlugins {

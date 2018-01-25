@@ -110,7 +110,6 @@ var (
 		"django quickstart":           "examples/quickstarts/django-postgresql-persistent.json",
 		"nodejs quickstart":           "examples/quickstarts/nodejs-mongodb-persistent.json",
 		"rails quickstart":            "examples/quickstarts/rails-postgresql-persistent.json",
-		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 	}

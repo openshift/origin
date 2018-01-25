@@ -3,8 +3,6 @@ package validation
 import (
 	"fmt"
 	"net"
-	"net/url"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -71,36 +69,6 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 	}
 
 	validationResults.AddErrors(ValidateDisabledFeatures(config.DisabledFeatures, fldPath.Child("disabledFeatures"))...)
-
-	if config.AssetConfig != nil {
-		assetConfigPath := fldPath.Child("assetConfig")
-		validationResults.Append(ValidateAssetConfig(config.AssetConfig, assetConfigPath))
-		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress
-		if colocated {
-			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
-			if publicURL.Path == "/" {
-				validationResults.AddErrors(field.Invalid(assetConfigPath.Child("publicURL"), config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
-			}
-
-			// Warn if they have customized the asset certificates in ways that will be ignored
-			if !reflect.DeepEqual(config.AssetConfig.ServingInfo.ServerCert, config.ServingInfo.ServerCert) ||
-				!reflect.DeepEqual(config.AssetConfig.ServingInfo.NamedCertificates, config.ServingInfo.NamedCertificates) {
-				validationResults.AddWarnings(field.Invalid(assetConfigPath.Child("servingInfo"), "<not displayed>", "changes to assetConfig certificate configuration are not used when colocated with master API"))
-			}
-		}
-
-		if config.OAuthConfig != nil {
-			if config.OAuthConfig.AssetPublicURL != config.AssetConfig.PublicURL {
-				validationResults.AddErrors(
-					field.Invalid(assetConfigPath.Child("publicURL"), config.AssetConfig.PublicURL, "must match oauthConfig.assetPublicURL"),
-					field.Invalid(fldPath.Child("oauthConfig", "assetPublicURL"), config.OAuthConfig.AssetPublicURL, "must match assetConfig.publicURL"),
-				)
-			}
-		}
-
-		// TODO warn when the CORS list does not include the assetConfig.publicURL host:port
-		// only warn cause they could handle CORS headers themselves in a proxy
-	}
 
 	if config.DNSConfig != nil {
 		dnsConfigPath := fldPath.Child("dnsConfig")
@@ -458,88 +426,6 @@ func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubern
 	}
 
 	return validationResults
-}
-
-func ValidateAssetConfig(config *api.AssetConfig, fldPath *field.Path) ValidationResults {
-	validationResults := ValidationResults{}
-
-	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo, fldPath.Child("servingInfo")))
-
-	if len(config.LogoutURL) > 0 {
-		_, urlErrs := ValidateURL(config.LogoutURL, fldPath.Child("logoutURL"))
-		if len(urlErrs) > 0 {
-			validationResults.AddErrors(urlErrs...)
-		}
-	}
-
-	urlObj, urlErrs := ValidateURL(config.PublicURL, fldPath.Child("publicURL"))
-	if len(urlErrs) > 0 {
-		validationResults.AddErrors(urlErrs...)
-	}
-	if urlObj != nil {
-		if !strings.HasSuffix(urlObj.Path, "/") {
-			validationResults.AddErrors(field.Invalid(fldPath.Child("publicURL"), config.PublicURL, "must have a trailing slash in path"))
-		}
-	}
-
-	if _, urlErrs := ValidateURL(config.MasterPublicURL, fldPath.Child("masterPublicURL")); len(urlErrs) > 0 {
-		validationResults.AddErrors(urlErrs...)
-	}
-
-	if len(config.LoggingPublicURL) > 0 {
-		if _, loggingURLErrs := ValidateSecureURL(config.LoggingPublicURL, fldPath.Child("loggingPublicURL")); len(loggingURLErrs) > 0 {
-			validationResults.AddErrors(loggingURLErrs...)
-		}
-	} else {
-		validationResults.AddWarnings(field.Invalid(fldPath.Child("loggingPublicURL"), "", "required to view aggregated container logs in the console"))
-	}
-
-	if len(config.MetricsPublicURL) > 0 {
-		if _, metricsURLErrs := ValidateSecureURL(config.MetricsPublicURL, fldPath.Child("metricsPublicURL")); len(metricsURLErrs) > 0 {
-			validationResults.AddErrors(metricsURLErrs...)
-		}
-	} else {
-		validationResults.AddWarnings(field.Invalid(fldPath.Child("metricsPublicURL"), "", "required to view cluster metrics in the console"))
-	}
-
-	for i, scriptFile := range config.ExtensionScripts {
-		validationResults.AddErrors(ValidateFile(scriptFile, fldPath.Child("extensionScripts").Index(i))...)
-	}
-
-	for i, stylesheetFile := range config.ExtensionStylesheets {
-		validationResults.AddErrors(ValidateFile(stylesheetFile, fldPath.Child("extensionStylesheets").Index(i))...)
-	}
-
-	nameTaken := map[string]bool{}
-	for i, extConfig := range config.Extensions {
-		idxPath := fldPath.Child("extensions").Index(i)
-		extConfigErrors := ValidateAssetExtensionsConfig(extConfig, idxPath)
-		validationResults.AddErrors(extConfigErrors...)
-		if nameTaken[extConfig.Name] {
-			dupError := field.Invalid(idxPath.Child("name"), extConfig.Name, "duplicate extension name")
-			validationResults.AddErrors(dupError)
-		} else {
-			nameTaken[extConfig.Name] = true
-		}
-	}
-
-	return validationResults
-}
-
-var extNameExp = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
-
-func ValidateAssetExtensionsConfig(extConfig api.AssetExtensionsConfig, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-
-	allErrs = append(allErrs, ValidateDir(extConfig.SourceDirectory, fldPath.Child("sourceDirectory"))...)
-
-	if len(extConfig.Name) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
-	} else if !extNameExp.MatchString(extConfig.Name) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), extConfig.Name, fmt.Sprintf("does not match %v", extNameExp)))
-	}
-
-	return allErrs
 }
 
 func ValidateImageConfig(config api.ImageConfig, fldPath *field.Path) field.ErrorList {
