@@ -39,7 +39,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return err
 	}
 
-	for _, role := range GetServiceCatalogRBACDelta() {
+	for _, role := range GetServiceCatalogClusterRoles() {
 		if _, err := (&reconciliation.ReconcileRoleOptions{
 			Confirm:                true,
 			RemoveExtraPermissions: false,
