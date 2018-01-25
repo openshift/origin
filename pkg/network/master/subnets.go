@@ -60,10 +60,10 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 	return nil
 }
 
-// addNode takes the nodeName, a preferred nodeIP, the node's annotations and other valid ip addresses
+// addNode takes the nodeName, a preferred nodeIP and the node's annotations
 // Creates or updates a HostSubnet if needed
 // Returns the IP address used for hostsubnet (either the preferred or one from the otherValidAddresses) and any error
-func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations map[string]string, otherValidAddresses []kapi.NodeAddress) (string, error) {
+func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations map[string]string) (string, error) {
 	// Validate node IP before proceeding
 	if err := master.networkInfo.ValidateNodeIP(nodeIP); err != nil {
 		return "", err
@@ -74,8 +74,6 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	if err == nil {
 		if sub.HostIP == nodeIP {
 			return nodeIP, nil
-		} else if isValidNodeIP(otherValidAddresses, sub.HostIP) {
-			return sub.HostIP, nil
 		} else {
 			// Node IP changed, update old subnet
 			sub.HostIP = nodeIP
@@ -129,15 +127,6 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 
 	glog.Infof("Deleted HostSubnet %s", common.HostSubnetToString(sub))
 	return nil
-}
-
-func isValidNodeIP(validAddresses []kapi.NodeAddress, nodeIP string) bool {
-	for _, addr := range validAddresses {
-		if addr.Address == nodeIP {
-			return true
-		}
-	}
-	return false
 }
 
 // Because openshift-sdn uses an overlay and doesn't need GCE Routes, we need to
@@ -216,13 +205,13 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 	}
 	master.clearInitialNodeNetworkUnavailableCondition(node)
 
-	if oldNodeIP, ok := master.hostSubnetNodeIPs[node.UID]; ok && ((nodeIP == oldNodeIP) || isValidNodeIP(node.Status.Addresses, oldNodeIP)) {
+	if oldNodeIP, ok := master.hostSubnetNodeIPs[node.UID]; ok && (nodeIP == oldNodeIP) {
 		return
 	}
 	// Node status is frequently updated by kubelet, so log only if the above condition is not met
 	glog.V(5).Infof("Watch %s event for Node %q", eventType, node.Name)
 
-	usedNodeIP, err := master.addNode(node.Name, nodeIP, nil, node.Status.Addresses)
+	usedNodeIP, err := master.addNode(node.Name, nodeIP, nil)
 	if err != nil {
 		glog.Errorf("Error creating subnet for node %s, ip %s: %v", node.Name, nodeIP, err)
 		return
@@ -279,7 +268,7 @@ func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType 
 			glog.Errorf("VNID %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation)
 		}
 	}
-	_, err = master.addNode(hs.Name, hs.HostIP, hsAnnotations, nil)
+	_, err = master.addNode(hs.Name, hs.HostIP, hsAnnotations)
 	if err != nil {
 		glog.Errorf("Error creating subnet for node %s, ip %s: %v", hs.Name, hs.HostIP, err)
 		return
