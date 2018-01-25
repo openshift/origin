@@ -73,20 +73,6 @@ func (h *Helper) InstallWebConsole(f *clientcmd.Factory, imageFormat string, ser
 		clusterInfo["metricsPublicURL"] = metricsURL
 	}
 
-	// START deprecated properties
-	// These properties have been renamed and will be removed from cluster up
-	// in a future pull. Keep both the old and new properties for now so that
-	// the cluster up is not broken while the origin-web-console image is updated.
-	consoleConfig["publicURL"] = publicURL
-	consoleConfig["masterPublicURL"] = masterURL
-	if len(loggingURL) > 0 {
-		consoleConfig["loggingPublicURL"] = loggingURL
-	}
-	if len(metricsURL) > 0 {
-		consoleConfig["metricsPublicURL"] = metricsURL
-	}
-	// END deprecated properties
-
 	// serialize it back out as a string to use as a template parameter
 	updatedConfig, err := yaml.Marshal(consoleConfig)
 	if err != nil {
