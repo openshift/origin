@@ -6,7 +6,7 @@ import (
 
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 )
 

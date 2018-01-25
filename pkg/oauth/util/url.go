@@ -4,8 +4,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
-	"github.com/openshift/origin/pkg/oauth/server/osinserver"
+	"github.com/openshift/origin/pkg/oauthserver/osinserver"
+	"github.com/openshift/origin/pkg/oauthserver/server/tokenrequest"
 )
 
 const OpenShiftOAuthAPIPrefix = "/oauth"

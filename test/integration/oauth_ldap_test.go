@@ -13,11 +13,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	restclient "k8s.io/client-go/rest"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

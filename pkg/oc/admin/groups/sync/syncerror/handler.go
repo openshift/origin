@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 )
 
 // Handler knows how to handle errors
