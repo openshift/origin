@@ -50,7 +50,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
 			// instantiating prometheus tempalte
 			var err error
-			for i := 0; i < 30; i++ {
+			for i := 0; i < waitForPrometheusStartSeconds; i++ {
 				err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("https://%s:%d", host, statsPort), 403)
 				if err == nil {
 					break
@@ -119,9 +119,9 @@ type metricTest struct {
 }
 
 func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI) {
-	// expect all correct metrics within 60 seconds
+	// expect all correct metrics within a reasonable time period
 	errsMap := map[string]error{}
-	for i := 0; i < 120; i++ {
+	for i := 0; i < waitForPrometheusStartSeconds; i++ {
 		for query, tcs := range metricTests {
 			//TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
 			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into

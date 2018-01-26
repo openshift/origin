@@ -109,7 +109,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			times := 10
 			var results string
 			defer func() { e2e.Logf("received metrics:\n%s", results) }()
-			err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
+			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
