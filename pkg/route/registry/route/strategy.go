@@ -214,14 +214,37 @@ func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *
 		if hostChanged {
 			return kvalidation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))
 		}
-		if route.Spec.TLS == nil || older.Spec.TLS == nil {
-			return kvalidation.ValidateImmutableField(route.Spec.TLS, older.Spec.TLS, field.NewPath("spec", "tls"))
+
+		// if tls is being updated without host being updated, we check if 'create' permission exists on custom-host subresource
+		res, err := s.sarClient.Create(
+			authorizationutil.AddUserToSAR(
+				user,
+				&authorizationapi.SubjectAccessReview{
+					Spec: authorizationapi.SubjectAccessReviewSpec{
+						ResourceAttributes: &authorizationapi.ResourceAttributes{
+							Namespace:   apirequest.NamespaceValue(ctx),
+							Verb:        "create",
+							Group:       routeapi.GroupName,
+							Resource:    "routes",
+							Subresource: "custom-host",
+						},
+					},
+				},
+			),
+		)
+		if err != nil {
+			return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), err)}
 		}
-		errs := kvalidation.ValidateImmutableField(route.Spec.TLS.CACertificate, older.Spec.TLS.CACertificate, field.NewPath("spec", "tls", "caCertificate"))
-		errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.Certificate, older.Spec.TLS.Certificate, field.NewPath("spec", "tls", "certificate"))...)
-		errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.DestinationCACertificate, older.Spec.TLS.DestinationCACertificate, field.NewPath("spec", "tls", "destinationCACertificate"))...)
-		errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.Key, older.Spec.TLS.Key, field.NewPath("spec", "tls", "key"))...)
-		return errs
+		if !res.Status.Allowed {
+			if route.Spec.TLS == nil || older.Spec.TLS == nil {
+				return kvalidation.ValidateImmutableField(route.Spec.TLS, older.Spec.TLS, field.NewPath("spec", "tls"))
+			}
+			errs := kvalidation.ValidateImmutableField(route.Spec.TLS.CACertificate, older.Spec.TLS.CACertificate, field.NewPath("spec", "tls", "caCertificate"))
+			errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.Certificate, older.Spec.TLS.Certificate, field.NewPath("spec", "tls", "certificate"))...)
+			errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.DestinationCACertificate, older.Spec.TLS.DestinationCACertificate, field.NewPath("spec", "tls", "destinationCACertificate"))...)
+			errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.Key, older.Spec.TLS.Key, field.NewPath("spec", "tls", "key"))...)
+			return errs
+		}
 	}
 	return nil
 }
