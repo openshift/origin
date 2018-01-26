@@ -298,7 +298,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(readWrite...).Groups(routeGroup, legacyRouteGroup).Resources("routes").RuleOrDie(),
 				// admins can create routes with custom hosts
-				rbac.NewRule("create").Groups(routeGroup, legacyRouteGroup).Resources("routes/custom-host").RuleOrDie(),
+				rbac.NewRule("create", "update").Groups(routeGroup, legacyRouteGroup).Resources("routes/custom-host").RuleOrDie(),
 				rbac.NewRule(read...).Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),
 				// an admin can run routers that write back conditions to the route
 				rbac.NewRule("update").Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),

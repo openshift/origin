@@ -1181,6 +1181,7 @@ items:
     - routes/custom-host
     verbs:
     - create
+    - update
   - apiGroups:
     - ""
     - route.openshift.io
