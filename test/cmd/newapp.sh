@@ -53,14 +53,25 @@ os::cmd::expect_success 'oc delete is myruby'
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/nodejs-ex --strategy=docker' 'No Dockerfile was found'
 
 # repo related error message validation
-os::cmd::expect_failure_and_text 'oc new-app mysql-persisten mysql' 'mysql-persisten as a local directory'
-os::cmd::expect_failure_and_text 'oc new-app mysql-persisten mysql' 'mysql as a local directory'
-os::cmd::expect_failure_and_text 'oc new-app --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'as a Git repository URL:  '
-os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'as a Git repository URL:  '
-os::cmd::expect_failure_and_text 'oc new-app https://examplegit.com/openshift/nodejs-e' 'as a Git repository URL:  '
-os::cmd::expect_failure_and_text 'oc new-build --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'as a Git repository URL:  '
-os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'as a Git repository URL:  '
-os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/nodejs-e' 'as a Git repository URL:  '
+os::cmd::expect_success 'oc create -f examples/db-templates/mysql-persistent-template.json'
+os::cmd::expect_failure_and_text 'oc new-app mysql-persisten mysql' 'only a partial match was found for'
+os::cmd::expect_success 'oc delete template/mysql-persistent'
+os::cmd::expect_failure_and_text 'oc new-app --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'none of the arguments provided could be classified as a source code location'
+os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-app https://examplegit.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-app https://examplegit.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-app https://examplegit.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-build --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'none of the arguments provided could be classified as a source code location'
+os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/nodejs-e' 'unable to load template file'
+os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/nodejs-e' 'unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/nodejs-e' 'was classified as an image, image~source, or loaded template reference.'
+os::cmd::expect_failure_and_text 'oc new-build --name imagesourcetest python~https://github.com/openshift-katacoda/blog-django-py --source-image xxx --source-image-path=yyy --dry-run' 'unable to locate any '
+os::cmd::expect_failure_and_text 'oc new-app ~java' 'you must specify a image name'
 
 # setting source secret via the --source-secret flag
 os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/cakephp-ex --source-secret=mysecret -o yaml' 'name: mysecret'
@@ -346,8 +357,8 @@ os::cmd::expect_success_and_text 'oc new-app --dry-run --docker-image=mysql' 'Th
 os::cmd::expect_success_and_text 'oc new-app --dry-run --docker-image=mysql' "WARNING: Image \"mysql\" runs as the 'root' user"
 
 # verify multiple errors are displayed together, a nested error is returned, and that the usage message is displayed
-os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: no match for "__template_fail"'
-os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: no match for "__templatefile_fail"'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: unable to locate any'
+os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'with name "__templatefile_fail"'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' 'error: unable to find the specified template file'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run __template_fail __templatefile_fail' "The 'oc new-app' command will match arguments"
 
@@ -448,7 +459,7 @@ os::cmd::expect_success_and_text 'oc new-app -f test/testdata/circular.yaml' 'sh
 os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/bc-from-imagestreamimage.json --dry-run' 'Unable to follow reference type'
 
 # do not allow use of non-existent image (should fail)
-os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml' "no match for"
+os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml' "unable to locate any"
 # allow use of non-existent image (should succeed)
 os::cmd::expect_success 'oc new-app openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images'
 

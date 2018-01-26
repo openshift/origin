@@ -20,6 +20,10 @@ type ImageStreamSearcher struct {
 	AllowMissingTags  bool
 }
 
+func (r ImageStreamSearcher) Type() string {
+	return "images in image streams"
+}
+
 // Search will attempt to find imagestreams with names that match the passed in value
 func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	componentMatches := ComponentMatches{}
@@ -360,6 +364,10 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imageapi.Ima
 		matches = append(matches, match)
 	}
 	return matches
+}
+
+func (r *ImageStreamByAnnotationSearcher) Type() string {
+	return "image stream images with a 'supports' annotation"
 }
 
 // Search finds image stream images using their 'supports' annotation

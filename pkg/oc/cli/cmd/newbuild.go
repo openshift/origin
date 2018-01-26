@@ -212,9 +212,16 @@ func (o *NewBuildOptions) RunNewBuild() error {
 	return nil
 }
 
-func transformBuildError(err error, baseName, commandName, commandPath string, groups errorGroups) {
+func transformBuildError(err error, baseName, commandName, commandPath string, groups errorGroups, config *newcmd.AppConfig) {
 	switch t := err.(type) {
 	case newapp.ErrNoMatch:
+		classification, _ := config.ClassificationWinners[t.Value]
+		if classification.IncludeGitErrors {
+			notGitRepo, ok := config.SourceClassificationErrors[t.Value]
+			if ok {
+				t.Errs = append(t.Errs, notGitRepo.Value)
+			}
+		}
 		groups.Add(
 			"no-matches",
 			heredoc.Docf(`
@@ -229,6 +236,7 @@ func transformBuildError(err error, baseName, commandName, commandPath string, g
 
 				See '%[1]s -h' for examples.`, commandPath,
 			),
+			classification.String(),
 			t,
 			t.Errs...,
 		)
@@ -236,8 +244,9 @@ func transformBuildError(err error, baseName, commandName, commandPath string, g
 	}
 	switch err {
 	case newcmd.ErrNoInputs:
-		groups.Add("", "", usageError(commandPath, newBuildNoInput, baseName, commandName))
+		groups.Add("", "", "", usageError(commandPath, newBuildNoInput, baseName, commandName))
 		return
 	}
-	transformRunError(err, baseName, commandName, commandPath, groups)
+	transformRunError(err, baseName, commandName, commandPath, groups, config)
+	return
 }

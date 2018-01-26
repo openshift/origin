@@ -186,6 +186,11 @@ func TestBuildTemplates(t *testing.T) {
 	for n, c := range tests {
 		appCfg := AppConfig{}
 		appCfg.Out = &bytes.Buffer{}
+		appCfg.EnvironmentClassificationErrors = map[string]ArgumentClassificationError{}
+		appCfg.SourceClassificationErrors = map[string]ArgumentClassificationError{}
+		appCfg.TemplateClassificationErrors = map[string]ArgumentClassificationError{}
+		appCfg.ComponentClassificationErrors = map[string]ArgumentClassificationError{}
+		appCfg.ClassificationWinners = map[string]ArgumentClassificationWinner{}
 
 		// the previous fake was broken and didn't 404 properly.  this test is relying on that
 		templateFake := templatefakeclient.NewSimpleClientset()

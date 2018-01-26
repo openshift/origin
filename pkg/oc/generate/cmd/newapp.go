@@ -132,12 +132,29 @@ type AppConfig struct {
 
 	OriginNamespace string
 
-	ArgumentClassificationErrors []ArgumentClassificationError
+	EnvironmentClassificationErrors map[string]ArgumentClassificationError
+	SourceClassificationErrors      map[string]ArgumentClassificationError
+	TemplateClassificationErrors    map[string]ArgumentClassificationError
+	ComponentClassificationErrors   map[string]ArgumentClassificationError
+	ClassificationWinners           map[string]ArgumentClassificationWinner
 }
 
 type ArgumentClassificationError struct {
 	Key   string
 	Value error
+}
+
+type ArgumentClassificationWinner struct {
+	Name             string
+	Suffix           string
+	IncludeGitErrors bool
+}
+
+func (w *ArgumentClassificationWinner) String() string {
+	if len(w.Name) == 0 || len(w.Suffix) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("Argument '%s' was classified as %s.", w.Name, w.Suffix)
 }
 
 type ErrRequiresExplicitAccess struct {
@@ -180,6 +197,11 @@ func NewAppConfig() *AppConfig {
 				JenkinsfileTester: jenkinsfile.NewTester(),
 			},
 		},
+		EnvironmentClassificationErrors: map[string]ArgumentClassificationError{},
+		SourceClassificationErrors:      map[string]ArgumentClassificationError{},
+		TemplateClassificationErrors:    map[string]ArgumentClassificationError{},
+		ComponentClassificationErrors:   map[string]ArgumentClassificationError{},
+		ClassificationWinners:           map[string]ArgumentClassificationWinner{},
 	}
 }
 
@@ -248,6 +270,11 @@ func (c *AppConfig) tryToAddEnvironmentArguments(s string) bool {
 	if rc {
 		glog.V(2).Infof("treating %s as possible environment argument\n", s)
 		c.Environment = append(c.Environment, s)
+	} else {
+		c.EnvironmentClassificationErrors[s] = ArgumentClassificationError{
+			Key:   "is not an environment variable",
+			Value: nil,
+		}
 	}
 	return rc
 }
@@ -262,18 +289,21 @@ func (c *AppConfig) tryToAddSourceArguments(s string) bool {
 		return true
 	}
 
+	// will combine multiple errors into one line / string
+	errStr := ""
 	if rerr != nil {
-		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
-			Key:   fmt.Sprintf("%s as a Git repository URL", s),
-			Value: rerr,
-		})
+		errStr = fmt.Sprintf("git ls-remote failed with: %v", rerr)
 	}
 
 	if derr != nil {
-		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
-			Key:   fmt.Sprintf("%s as a local directory pointing to a Git repository", s),
-			Value: derr,
-		})
+		if len(errStr) > 0 {
+			errStr = errStr + "; "
+		}
+		errStr = fmt.Sprintf("%s local file access failed with: %v", errStr, derr)
+	}
+	c.SourceClassificationErrors[s] = ArgumentClassificationError{
+		Key:   "is not a Git repository",
+		Value: fmt.Errorf(errStr),
 	}
 
 	return false
@@ -286,10 +316,10 @@ func (c *AppConfig) tryToAddComponentArguments(s string) bool {
 		c.Components = append(c.Components, s)
 		return true
 	}
-	c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
-		Key:   fmt.Sprintf("%s as a template loaded in an accessible project, an imagestream tag, or a docker image reference", s),
+	c.ComponentClassificationErrors[s] = ArgumentClassificationError{
+		Key:   "is not an image reference, image~source reference, nor template loaded in an accessible project",
 		Value: err,
-	})
+	}
 
 	return false
 }
@@ -302,10 +332,10 @@ func (c *AppConfig) tryToAddTemplateArguments(s string) bool {
 		return true
 	}
 	if err != nil {
-		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
-			Key:   fmt.Sprintf("%s as a template stored in a local file", s),
+		c.TemplateClassificationErrors[s] = ArgumentClassificationError{
+			Key:   "is not a template stored in a local file",
 			Value: err,
-		})
+		}
 	}
 	return false
 }
@@ -313,7 +343,6 @@ func (c *AppConfig) tryToAddTemplateArguments(s string) bool {
 // AddArguments converts command line arguments into the appropriate bucket based on what they look like
 func (c *AppConfig) AddArguments(args []string) []string {
 	unknown := []string{}
-	c.ArgumentClassificationErrors = []ArgumentClassificationError{}
 	for _, s := range args {
 		if len(s) == 0 {
 			continue
@@ -321,9 +350,20 @@ func (c *AppConfig) AddArguments(args []string) []string {
 
 		switch {
 		case c.tryToAddEnvironmentArguments(s):
+			c.ClassificationWinners[s] = ArgumentClassificationWinner{Name: s, Suffix: "an environment value"}
 		case c.tryToAddSourceArguments(s):
-		case c.tryToAddComponentArguments(s):
+			c.ClassificationWinners[s] = ArgumentClassificationWinner{Name: s, Suffix: "a source repository"}
+			delete(c.EnvironmentClassificationErrors, s)
 		case c.tryToAddTemplateArguments(s):
+			c.ClassificationWinners[s] = ArgumentClassificationWinner{Name: s, Suffix: "a template"}
+			delete(c.EnvironmentClassificationErrors, s)
+			delete(c.SourceClassificationErrors, s)
+		case c.tryToAddComponentArguments(s):
+			// NOTE, component argument classification currently is the most lenient, so we save it for the end
+			c.ClassificationWinners[s] = ArgumentClassificationWinner{Name: s, Suffix: "an image, image~source, or loaded template reference", IncludeGitErrors: true}
+			delete(c.EnvironmentClassificationErrors, s)
+			delete(c.TemplateClassificationErrors, s)
+			// we are going to save the source errors in case this really was a source repo in the end
 		default:
 			glog.V(2).Infof("treating %s as unknown\n", s)
 			unknown = append(unknown, s)
