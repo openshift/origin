@@ -490,6 +490,7 @@
 		"size=65536k"
 	    ]
 	}
+        $ADDTL_MOUNTS
     ],
     "hooks": {},
     "linux": {
