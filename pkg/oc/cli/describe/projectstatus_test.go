@@ -20,13 +20,13 @@ import (
 	kubeclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	osgraph "github.com/openshift/origin/pkg/api/graph"
 	appsfakeclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
 	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
 	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	imageclientscheme "github.com/openshift/origin/pkg/image/generated/internalclientset/scheme"
+	osgraph "github.com/openshift/origin/pkg/oc/graph/genericgraph"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectfakeclient "github.com/openshift/origin/pkg/project/generated/internalclientset/fake"
 	projectclientscheme "github.com/openshift/origin/pkg/project/generated/internalclientset/scheme"
@@ -429,7 +429,7 @@ func TestProjectStatus(t *testing.T) {
 		if len(test.File) > 0 {
 			// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
 			var err error
-			objs, err = readObjectsFromPath("../../../../pkg/api/graph/test/"+test.File, "example", legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
+			objs, err = readObjectsFromPath("../../../../pkg/oc/graph/genericgraph/test/"+test.File, "example", legacyscheme.Codecs.UniversalDecoder(), legacyscheme.Scheme)
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", k, err)
 			}
