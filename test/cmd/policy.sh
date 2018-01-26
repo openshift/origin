@@ -50,22 +50,21 @@ os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify 
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user -z NamespaceWithoutRole' 'you must specify a role'
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user view' 'you must specify at least one user or service account'
 
-os::cmd::expect_success_and_text 'oc policy add-role-to-group cluster-admin system:unauthenticated' 'role "cluster-admin" added: "system:unauthenticated"'
-os::cmd::expect_success_and_text 'oc policy add-role-to-user cluster-admin system:no-user' 'role "cluster-admin" added: "system:no-user"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-group cluster-admin --rolebinding-name cluster-admin system:unauthenticated' 'role "cluster-admin" added: "system:unauthenticated"'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'role "cluster-admin" added: "system:no-user"'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'system:no-user'
 
-os::cmd::expect_success_and_text 'oc policy add-role-to-user cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" added: \["one" "two" "three" "four"\]'
+os::cmd::expect_success_and_text 'oc policy add-role-to-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" added: \["one" "two" "three" "four"\]'
 os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'one'
 os::cmd::expect_success_and_text 'oc get rolebinding/cluster-admin --no-headers' 'four'
 
-os::cmd::expect_success_and_text 'oc policy remove-role-from-group cluster-admin system:unauthenticated' 'role "cluster-admin" removed: "system:unauthenticated"'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-group --rolebinding-name cluster-admin cluster-admin system:unauthenticated' 'role "cluster-admin" removed: "system:unauthenticated"'
 
-os::cmd::expect_success_and_text 'oc policy remove-role-from-user cluster-admin system:no-user' 'role "cluster-admin" removed: "system:no-user"'
-os::cmd::expect_success_and_text 'oc policy remove-role-from-user cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" removed: \["one" "two" "three" "four"\]'
-os::cmd::expect_success 'oc get rolebinding/cluster-admin --no-headers'
-os::cmd::expect_success_and_not_text 'oc get rolebinding/cluster-admin --no-headers' 'four'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin system:no-user' 'role "cluster-admin" removed: "system:no-user"'
+os::cmd::expect_success_and_text 'oc policy remove-role-from-user --rolebinding-name cluster-admin cluster-admin -z=one,two --serviceaccount=three,four' 'role "cluster-admin" removed: \["one" "two" "three" "four"\]'
+os::cmd::expect_failure_and_text 'oc get rolebinding/cluster-admin --no-headers' 'NotFound'
 
 os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
 os::cmd::expect_success 'oc policy remove-user system:no-user'
