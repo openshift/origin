@@ -26,11 +26,14 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
+				exutil.DumpImageStreams(oc)
 			}
 		})
 
 		g.Describe("Creating from a template", func() {
 			g.It(fmt.Sprintf("should instantiate the template"), func() {
+				exutil.CheckOpenShiftNamespaceImageStreams(oc)
+
 				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 				g.By(fmt.Sprintf("calling oc process -f %q", templatePath))
