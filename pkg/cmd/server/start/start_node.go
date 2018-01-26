@@ -431,20 +431,14 @@ func execKubelet(kubeletArgs []string) (bool, error) {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	externalKubeClient, _, err := configapi.GetExternalKubeClient(nodeConfig.MasterKubeConfig, nodeConfig.MasterClientConnectionOverrides)
+	kubeletFlagsAsMap, err := nodeoptions.ComputeKubeletFlagsAsMap(nodeConfig.KubeletArguments, nodeConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot create kubelet args: %v", err)
 	}
-	server, err := nodeoptions.Build(nodeConfig)
-	if err != nil {
-		glog.V(4).Infof("Unable to build node options: %v", err)
-		return err
-	}
-	kubeletArgs := nodeoptions.ToFlags(server)
+	kubeletArgs := nodeoptions.KubeletArgsMapToArgs(kubeletFlagsAsMap)
 	if err := nodeoptions.CheckFlags(kubeletArgs); err != nil {
 		return err
 	}
-	server.ClusterDNS = node.GetClusterDNS(externalKubeClient, server.ClusterDNS)
 
 	// as a step towards decomposing OpenShift into Kubernetes components, perform an execve
 	// to launch the Kubelet instead of loading in-process
@@ -456,17 +450,6 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("Unable to call exec on kubelet, continuing with normal startup: %v", err))
 		}
-	}
-
-	proxyConfig, err := networkoptions.Build(nodeConfig)
-	if err != nil {
-		glog.V(4).Infof("Unable to build network options: %v", err)
-		return err
-	}
-	networkConfig, err := network.New(nodeConfig, server.ClusterDomain, proxyConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
-	if err != nil {
-		glog.V(4).Infof("Unable to initialize network configuration: %v", err)
-		return err
 	}
 
 	if components.Enabled(ComponentKubelet) {
@@ -485,6 +468,21 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 
 	} else {
 		glog.Infof("Starting node networking %s (%s)", nodeConfig.NodeName, version.Get().String())
+	}
+
+	proxyConfig, err := networkoptions.Build(nodeConfig)
+	if err != nil {
+		glog.V(4).Infof("Unable to build network options: %v", err)
+		return err
+	}
+	clusterDomain := ""
+	if len(kubeletFlagsAsMap["cluster-domain"]) > 0 {
+		clusterDomain = kubeletFlagsAsMap["cluster-domain"][0]
+	}
+	networkConfig, err := network.New(nodeConfig, clusterDomain, proxyConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
+	if err != nil {
+		glog.V(4).Infof("Unable to initialize network configuration: %v", err)
+		return err
 	}
 
 	if components.Enabled(ComponentPlugins) {

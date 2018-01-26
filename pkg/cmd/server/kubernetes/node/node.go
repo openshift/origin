@@ -3,16 +3,12 @@ package node
 import (
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/golang/glog"
 
 	kapiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/volume"
 
@@ -25,8 +21,7 @@ import (
 // EnsureKubeletAccess performs a number of test operations that the Kubelet requires to properly function.
 // All errors here are fatal.
 func EnsureKubeletAccess() {
-	containerized := cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"
-	if containerized {
+	if cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true" {
 		if _, err := os.Stat("/rootfs"); os.IsPermission(err) || os.IsNotExist(err) {
 			glog.Fatal("error: Running in containerized mode, but cannot find the /rootfs directory - be sure to mount the host filesystem at /rootfs (read-only) in the container.")
 		}
@@ -144,90 +139,4 @@ func PatchUpstreamVolumePluginsForLocalQuota(nodeConfig configapi.NodeConfig) fu
 
 		return ret
 	}
-}
-
-func GetClusterDNS(dnsClient kclientsetexternal.Interface, currClusterDNS []string) []string {
-	var clusterDNS net.IP
-	if len(currClusterDNS) == 0 {
-		if service, err := dnsClient.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
-			if includesServicePort(service.Spec.Ports, 53, "dns") {
-				// Use master service if service includes "dns" port 53.
-				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
-			}
-		}
-	}
-	if clusterDNS == nil {
-		if endpoint, err := dnsClient.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
-			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
-				// Use first endpoint if endpoint includes "dns" port 53.
-				clusterDNS = net.ParseIP(endpointIP)
-			} else if endpointIP, ok := firstEndpointIP(endpoint, 53); ok {
-				// Test and use first endpoint if endpoint includes any port 53.
-				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", endpointIP, 53), 50*time.Millisecond, 0, 2); err == nil {
-					clusterDNS = net.ParseIP(endpointIP)
-				}
-			}
-		}
-	}
-	if clusterDNS != nil && !clusterDNS.IsUnspecified() {
-		return []string{clusterDNS.String()}
-	}
-
-	return currClusterDNS
-}
-
-// TODO: more generic location
-func includesServicePort(ports []kapiv1.ServicePort, port int, portName string) bool {
-	for _, p := range ports {
-		if p.Port == int32(port) && p.Name == portName {
-			return true
-		}
-	}
-	return false
-}
-
-// TODO: more generic location
-func includesEndpointPort(ports []kapiv1.EndpointPort, port int) bool {
-	for _, p := range ports {
-		if p.Port == int32(port) {
-			return true
-		}
-	}
-	return false
-}
-
-// TODO: more generic location
-func firstEndpointIP(endpoints *kapiv1.Endpoints, port int) (string, bool) {
-	for _, s := range endpoints.Subsets {
-		if !includesEndpointPort(s.Ports, port) {
-			continue
-		}
-		for _, a := range s.Addresses {
-			return a.IP, true
-		}
-	}
-	return "", false
-}
-
-// TODO: more generic location
-func firstEndpointIPWithNamedPort(endpoints *kapiv1.Endpoints, port int, portName string) (string, bool) {
-	for _, s := range endpoints.Subsets {
-		if !includesNamedEndpointPort(s.Ports, port, portName) {
-			continue
-		}
-		for _, a := range s.Addresses {
-			return a.IP, true
-		}
-	}
-	return "", false
-}
-
-// TODO: more generic location
-func includesNamedEndpointPort(ports []kapiv1.EndpointPort, port int, portName string) bool {
-	for _, p := range ports {
-		if p.Port == int32(port) && p.Name == portName {
-			return true
-		}
-	}
-	return false
 }

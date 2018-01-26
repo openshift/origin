@@ -70,7 +70,6 @@ RUN mkdir -p /opt/cni/bin
 # make reloading easy.  Revisit if/when dind becomes useful for more
 # than dev/test.
 RUN ln -sf /data/openshift /usr/local/bin/ && \
-    ln -sf /data/openshift-diagnostics /usr/local/bin/ && \
     ln -sf /data/oc        /usr/local/bin/ && \
     ln -sf /data/openshift /usr/local/bin/openshift-deploy && \
     ln -sf /data/openshift /usr/local/bin/openshift-docker-build && \
