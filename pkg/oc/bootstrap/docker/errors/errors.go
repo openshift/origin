@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/cmd/util/prefixwriter"
+	"github.com/openshift/origin/pkg/oc/util/prefixwriter"
 )
 
 type Error interface {

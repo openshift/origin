@@ -23,6 +23,7 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 	envresolve "github.com/openshift/origin/pkg/pod/envresolve"
 )
 
@@ -168,7 +169,7 @@ func keyToEnvName(key string) string {
 }
 
 func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
-	resources, envArgs, ok := cmdutil.SplitEnvironmentFromResources(args)
+	resources, envArgs, ok := utilenv.SplitEnvironmentFromResources(args)
 	if !ok {
 		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
@@ -220,7 +221,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 
 	cmdutil.WarnAboutCommaSeparation(o.Err, o.EnvParams, "--env")
 
-	env, remove, err := cmdutil.ParseEnv(append(o.EnvParams, o.EnvArgs...), o.In)
+	env, remove, err := utilenv.ParseEnv(append(o.EnvParams, o.EnvArgs...), o.In)
 	if err != nil {
 		return err
 	}

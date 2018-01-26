@@ -37,7 +37,7 @@ import (
 	buildcmd "github.com/openshift/origin/pkg/build/cmd"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"

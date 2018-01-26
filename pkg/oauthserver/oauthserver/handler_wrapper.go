@@ -2,8 +2,6 @@ package oauthserver
 
 import (
 	"net/http"
-
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 type handlerWrapper interface {
@@ -12,11 +10,11 @@ type handlerWrapper interface {
 
 // handlerWrapperMux wraps all handlers before registering them in the contained mux
 type handlerWrapperMux struct {
-	mux     cmdutil.Mux
+	mux     mux
 	wrapper handlerWrapper
 }
 
-var _ = cmdutil.Mux(&handlerWrapperMux{})
+var _ = mux(&handlerWrapperMux{})
 
 func (m *handlerWrapperMux) Handle(pattern string, handler http.Handler) {
 	m.mux.Handle(pattern, m.wrapper.Wrap(handler))

@@ -33,7 +33,7 @@ import (
 	templateapiv1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	"github.com/openshift/origin/pkg/config/cmd"
+	"github.com/openshift/origin/pkg/bulk"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
@@ -223,7 +223,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 			return false, err
 		}
 
-		cli, err := cmd.ClientMapperFromConfig(c.config).ClientForMapping(mapping)
+		cli, err := bulk.ClientMapperFromConfig(c.config).ClientForMapping(mapping)
 		if err != nil {
 			return false, err
 		}
@@ -423,11 +423,11 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		meta.SetOwnerReferences(ref)
 	}
 
-	bulk := cmd.Bulk{
+	bulk := bulk.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:   c.restmapper,
 			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: cmd.ClientMapperFromConfig(c.config),
+			ClientMapper: bulk.ClientMapperFromConfig(c.config),
 		},
 		Op: func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
 			if len(info.Namespace) > 0 {

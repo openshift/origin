@@ -26,7 +26,7 @@ import (
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	utilglog "github.com/openshift/origin/pkg/util/glog"
 

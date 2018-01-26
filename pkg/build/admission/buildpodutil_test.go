@@ -10,6 +10,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
+
+	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 )
 
 func TestGetBuild(t *testing.T) {

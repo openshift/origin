@@ -22,12 +22,12 @@ import (
 	"github.com/openshift/origin/pkg/client/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/term"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/errors"
 	loginutil "github.com/openshift/origin/pkg/oc/cli/cmd/login/util"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	cmderr "github.com/openshift/origin/pkg/oc/errors"
+	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )

@@ -30,9 +30,9 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/oc/generate/app"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	fileutil "github.com/openshift/origin/pkg/util/file"

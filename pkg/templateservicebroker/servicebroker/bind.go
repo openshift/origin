@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/util/jsonpath"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/config/cmd"
+	"github.com/openshift/origin/pkg/bulk"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
@@ -210,7 +210,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 			return api.Forbidden(err)
 		}
 
-		cli, err := cmd.ClientMapperFromConfig(b.extconfig).ClientForMapping(mapping)
+		cli, err := bulk.ClientMapperFromConfig(b.extconfig).ClientForMapping(mapping)
 		if err != nil {
 			return api.InternalServerError(err)
 		}

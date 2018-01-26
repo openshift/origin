@@ -28,7 +28,7 @@ import (
 
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
