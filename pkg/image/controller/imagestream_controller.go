@@ -236,15 +236,15 @@ func handleImageStream(stream *imageapi.ImageStream, client imageclient.ImageInt
 		Spec: imageapi.ImageStreamImportSpec{Import: true},
 	}
 	for tag, tagRef := range stream.Spec.Tags {
-		if !(partial && tagImportable(tagRef)) && !tagNeedsImport(stream, tag, tagRef, true) {
-			continue
+		if tagImportable(tagRef) &&
+			(tagNeedsImport(stream, tag, tagRef, true) || !partial) {
+			isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
+				From:            kapi.ObjectReference{Kind: "DockerImage", Name: tagRef.From.Name},
+				To:              &kapi.LocalObjectReference{Name: tag},
+				ImportPolicy:    tagRef.ImportPolicy,
+				ReferencePolicy: tagRef.ReferencePolicy,
+			})
 		}
-		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
-			From:            kapi.ObjectReference{Kind: "DockerImage", Name: tagRef.From.Name},
-			To:              &kapi.LocalObjectReference{Name: tag},
-			ImportPolicy:    tagRef.ImportPolicy,
-			ReferencePolicy: tagRef.ReferencePolicy,
-		})
 	}
 	if repo := stream.Spec.DockerImageRepository; !partial && len(repo) > 0 {
 		insecure := stream.Annotations[imageapi.InsecureRepositoryAnnotation] == "true"
