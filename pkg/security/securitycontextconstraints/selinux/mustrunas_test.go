@@ -62,9 +62,15 @@ func TestMustRunAsValidate(t *testing.T) {
 		return &api.SELinuxOptions{
 			User:  "user",
 			Role:  "role",
-			Level: "level",
+			Level: "s0:c0,c6",
 			Type:  "type",
 		}
+	}
+
+	newValidOptsWithLevel := func(level string) *api.SELinuxOptions {
+		opts := newValidOpts()
+		opts.Level = level
+		return opts
 	}
 
 	role := newValidOpts()
@@ -73,50 +79,64 @@ func TestMustRunAsValidate(t *testing.T) {
 	user := newValidOpts()
 	user.User = "invalid"
 
-	level := newValidOpts()
-	level.Level = "invalid"
-
 	seType := newValidOpts()
 	seType.Type = "invalid"
 
+	validOpts := newValidOpts()
+
 	tests := map[string]struct {
-		seLinux     *api.SELinuxOptions
+		podSeLinux  *api.SELinuxOptions
+		sccSeLinux  *api.SELinuxOptions
 		expectedMsg string
 	}{
 		"invalid role": {
-			seLinux:     role,
+			podSeLinux:  role,
+			sccSeLinux:  validOpts,
 			expectedMsg: "role: Invalid value",
 		},
 		"invalid user": {
-			seLinux:     user,
+			podSeLinux:  user,
+			sccSeLinux:  validOpts,
 			expectedMsg: "user: Invalid value",
 		},
-		"invalid level": {
-			seLinux:     level,
+		"levels are not equal": {
+			podSeLinux:  newValidOptsWithLevel("s0"),
+			sccSeLinux:  newValidOptsWithLevel("s0:c1,c2"),
 			expectedMsg: "level: Invalid value",
 		},
-		"invalid type": {
-			seLinux:     seType,
-			expectedMsg: "type: Invalid value",
+		"levels differ by sensitivity": {
+			podSeLinux:  newValidOptsWithLevel("s0:c6"),
+			sccSeLinux:  newValidOptsWithLevel("s1:c6"),
+			expectedMsg: "level: Invalid value",
+		},
+		"levels differ by categories": {
+			podSeLinux:  newValidOptsWithLevel("s0:c0,c8"),
+			sccSeLinux:  newValidOptsWithLevel("s0:c1,c7"),
+			expectedMsg: "level: Invalid value",
 		},
 		"valid": {
-			seLinux:     newValidOpts(),
+			podSeLinux:  validOpts,
+			sccSeLinux:  validOpts,
+			expectedMsg: "",
+		},
+		"valid with different order of categories": {
+			podSeLinux:  newValidOptsWithLevel("s0:c6,c0"),
+			sccSeLinux:  validOpts,
 			expectedMsg: "",
 		},
 	}
 
-	opts := &securityapi.SELinuxContextStrategyOptions{
-		SELinuxOptions: newValidOpts(),
-	}
-
 	for name, tc := range tests {
+		opts := &securityapi.SELinuxContextStrategyOptions{
+			SELinuxOptions: tc.sccSeLinux,
+		}
 		mustRunAs, err := NewMustRunAs(opts)
 		if err != nil {
 			t.Errorf("unexpected error initializing NewMustRunAs for testcase %s: %#v", name, err)
 			continue
 		}
 
-		errs := mustRunAs.Validate(nil, nil, nil, tc.seLinux)
+		errs := mustRunAs.Validate(nil, nil, nil, tc.podSeLinux)
 		//should've passed but didn't
 		if len(tc.expectedMsg) == 0 && len(errs) > 0 {
 			t.Errorf("%s expected no errors but received %v", name, errs)

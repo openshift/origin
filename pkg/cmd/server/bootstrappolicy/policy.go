@@ -267,7 +267,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 		},
 		{
 			// a role for a namespace level admin.  It is `edit` plus the power to grant permissions to other users.
-			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:aggregate-to-admin", Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true"}},
+			ObjectMeta: metav1.ObjectMeta{Name: AggregatedAdminRoleName, Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-admin": "true"}},
 			Rules: []rbac.PolicyRule{
 				rbac.NewRule(readWrite...).Groups(authzGroup, legacyAuthzGroup).Resources("roles", "rolebindings").RuleOrDie(),
 				rbac.NewRule("create").Groups(authzGroup, legacyAuthzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "subjectrulesreviews").RuleOrDie(),
@@ -317,7 +317,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			// a role for a namespace level editor.  It grants access to all user level actions in a namespace.
 			// It does not grant powers for "privileged" resources which are domain of the system: `/status`
 			// subresources or `quota`/`limits` which are used to control namespaces
-			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:aggregate-to-edit", Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-edit": "true"}},
+			ObjectMeta: metav1.ObjectMeta{Name: AggregatedEditRoleName, Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-edit": "true"}},
 			Rules: []rbac.PolicyRule{
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
@@ -357,7 +357,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 		{
 			// a role for namespace level viewing.  It grants Read-only access to non-escalating resources in
 			// a namespace.
-			ObjectMeta: metav1.ObjectMeta{Name: "system:openshift:aggregate-to-view", Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"}},
+			ObjectMeta: metav1.ObjectMeta{Name: AggregatedViewRoleName, Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-view": "true"}},
 			Rules: []rbac.PolicyRule{
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
@@ -1068,4 +1068,12 @@ func GetBootstrapNamespaceRoleBindings() map[string][]rbac.RoleBinding {
 		ret[namespace] = roleBindings
 	}
 	return ret
+}
+
+func GetBootstrapClusterRolesToAggregate() map[string]string {
+	return map[string]string{
+		AdminRoleName: AggregatedAdminRoleName,
+		EditRoleName:  AggregatedEditRoleName,
+		ViewRoleName:  AggregatedViewRoleName,
+	}
 }

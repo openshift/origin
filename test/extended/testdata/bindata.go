@@ -28992,6 +28992,10 @@ objects:
               path: /
               port: 8443
               scheme: HTTPS
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
         nodeSelector: "${{NODE_SELECTOR}}"
         volumes:
         - name: serving-cert
