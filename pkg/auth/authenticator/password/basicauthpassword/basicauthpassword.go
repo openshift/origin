@@ -42,7 +42,7 @@ type RemoteUserData struct {
 	// ordered according to the End-User's locale and preferences.  Optional.
 	Name string `json:"name"`
 	// PreferredUsername is a shorthand name by which the End-User wishes to be referred. Optional.
-	// Useful when the immutable subject is different than the login used by the user to authenticate
+	// Useful when the immutable subject is different from the login used by the user to authenticate
 	PreferredUsername string `json:"preferred_username"`
 	// Email is the end-User's preferred e-mail address. Optional.
 	Email string `json:"email"`
