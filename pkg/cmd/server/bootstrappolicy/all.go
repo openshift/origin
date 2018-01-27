@@ -6,9 +6,10 @@ import (
 
 func Policy() *rbacrest.PolicyData {
 	return &rbacrest.PolicyData{
-		ClusterRoles:        GetBootstrapClusterRoles(),
-		ClusterRoleBindings: GetBootstrapClusterRoleBindings(),
-		Roles:               GetBootstrapNamespaceRoles(),
-		RoleBindings:        GetBootstrapNamespaceRoleBindings(),
+		ClusterRoles:            GetBootstrapClusterRoles(),
+		ClusterRoleBindings:     GetBootstrapClusterRoleBindings(),
+		Roles:                   GetBootstrapNamespaceRoles(),
+		RoleBindings:            GetBootstrapNamespaceRoleBindings(),
+		ClusterRolesToAggregate: GetBootstrapClusterRolesToAggregate(),
 	}
 }
