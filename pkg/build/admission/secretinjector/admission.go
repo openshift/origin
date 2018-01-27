@@ -12,9 +12,9 @@ import (
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	authclient "github.com/openshift/origin/pkg/auth/client"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	authclient "github.com/openshift/origin/pkg/oauthserver/client"
 	"github.com/openshift/origin/pkg/util/urlpattern"
 )
 

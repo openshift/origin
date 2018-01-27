@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	_ "github.com/openshift/origin/pkg/user/apis/user/install"
 	userfakeclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"

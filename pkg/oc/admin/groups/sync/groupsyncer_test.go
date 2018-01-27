@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userfakeclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"

@@ -9,13 +9,13 @@ import (
 	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	authenticationapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
@@ -52,7 +52,7 @@ func TestScopedTokens(t *testing.T) {
 
 	whoamiOnlyToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
-		ClientName: oauthapiserver.OpenShiftCLIClientID,
+		ClientName: oauthserver.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.UserInfo},
 		UserName:   userName,
@@ -156,7 +156,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: oauthapiserver.OpenShiftCLIClientID,
+		ClientName: oauthserver.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*"},
 		UserName:   userName,
@@ -179,7 +179,7 @@ func TestScopeEscalations(t *testing.T) {
 
 	escalatingEditToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: oauthapiserver.OpenShiftCLIClientID,
+		ClientName: oauthserver.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*:!"},
 		UserName:   userName,

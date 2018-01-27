@@ -5,8 +5,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/groupdetector"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 )

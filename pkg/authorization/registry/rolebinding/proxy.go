@@ -10,9 +10,9 @@ import (
 	restclient "k8s.io/client-go/rest"
 	rbacinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
-	authclient "github.com/openshift/origin/pkg/auth/client"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
+	authclient "github.com/openshift/origin/pkg/oauthserver/client"
 	utilregistry "github.com/openshift/origin/pkg/util/registry"
 )
 

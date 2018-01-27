@@ -1,7 +1,7 @@
 package user
 
 import (
-	authapi "github.com/openshift/origin/pkg/auth/api"
+	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 

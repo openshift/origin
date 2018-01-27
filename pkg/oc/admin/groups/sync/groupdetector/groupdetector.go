@@ -1,7 +1,7 @@
 package groupdetector
 
 import (
-	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 )
 

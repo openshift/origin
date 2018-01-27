@@ -17,12 +17,12 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	authenticationclient "github.com/openshift/origin/pkg/auth/client"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	jenkinscontroller "github.com/openshift/origin/pkg/build/controller/jenkins"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/config/cmd"
+	authenticationclient "github.com/openshift/origin/pkg/oauthserver/client"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 

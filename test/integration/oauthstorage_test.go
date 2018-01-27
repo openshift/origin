@@ -13,8 +13,8 @@ import (
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	"github.com/openshift/origin/pkg/oauth/server/osinserver"
-	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	"github.com/openshift/origin/pkg/oauthserver/osinserver"
+	registrystorage "github.com/openshift/origin/pkg/oauthserver/osinserver/registrystorage"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

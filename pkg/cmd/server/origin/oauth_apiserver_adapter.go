@@ -9,18 +9,18 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
+	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
 
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
 // we can run this in a pod.  This is an indication of leaky abstraction because it spent too much time in openshift start
-func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig, listener net.Listener) (*oauthapiserver.OAuthServerConfig, error) {
+func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig, listener net.Listener) (*oauthserver.OAuthServerConfig, error) {
 	options := masterConfig.Options
 	servingConfig := options.ServingInfo
 	oauthConfig := masterConfig.Options.OAuthConfig
 
-	oauthServerConfig, err := oauthapiserver.NewOAuthServerConfig(*oauthConfig, &masterConfig.PrivilegedLoopbackClientConfig)
+	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(*oauthConfig, &masterConfig.PrivilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
