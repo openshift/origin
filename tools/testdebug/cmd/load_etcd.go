@@ -5,19 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"os"
+	"time"
 
 	coreosetcdclient "github.com/coreos/etcd/client"
+	etcdclient "github.com/coreos/etcd/client"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 
+	knet "k8s.io/apimachinery/pkg/util/net"
+	restclient "k8s.io/client-go/rest"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -67,7 +72,7 @@ func (o *DebugAPIServerOptions) Complete(args []string) error {
 }
 
 func (o *DebugAPIServerOptions) Run() error {
-	masterConfig, err := testserver.DefaultMasterOptionsWithTweaks(true /*start etcd server*/, true /*use default ports*/)
+	masterConfig, err := testserver.DefaultMasterOptionsWithTweaks(true /*use default ports*/)
 	if err != nil {
 		return err
 	}
@@ -131,11 +136,11 @@ func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConf
 // connect to the etcd server and block until the server responds at least once, or return an
 // error if the server never responded.
 func getAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (etcdclient.Client, error) {
-	etcdClient, err := etcd.MakeEtcdClient(etcdClientInfo)
+	etcdClient, err := makeEtcdClient(etcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
-	if err := etcd.TestEtcdClient(etcdClient); err != nil {
+	if err := testEtcdClient(etcdClient); err != nil {
 		return nil, err
 	}
 	return etcdClient, nil
@@ -185,5 +190,55 @@ func (o *DebugAPIServerOptions) ImportEtcdDump(etcdClientInfo configapi.EtcdConn
 		}
 	}
 
+	return nil
+}
+
+// makeEtcdClient creates an etcd client based on the provided config.
+func makeEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (etcdclient.Client, error) {
+	tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{
+		TLSClientConfig: restclient.TLSClientConfig{
+			CertFile: etcdClientInfo.ClientCert.CertFile,
+			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
+			CAFile:   etcdClientInfo.CA,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	transport := knet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: tlsConfig,
+		Dial: (&net.Dialer{
+			// default from http.DefaultTransport
+			Timeout: 30 * time.Second,
+			// Lower the keep alive for connections.
+			KeepAlive: 1 * time.Second,
+		}).Dial,
+		// Because watches are very bursty, defends against long delays in watch reconnections.
+		MaxIdleConnsPerHost: 500,
+	})
+
+	cfg := etcdclient.Config{
+		Endpoints: etcdClientInfo.URLs,
+		// TODO: Determine if transport needs optimization
+		Transport: transport,
+	}
+	return etcdclient.New(cfg)
+}
+
+// testEtcdClient verifies a client is functional.  It will attempt to
+// connect to the etcd server and block until the server responds at least once, or return an
+// error if the server never responded.
+func testEtcdClient(etcdClient etcdclient.Client) error {
+	for i := 0; ; i++ {
+		_, err := etcdclient.NewKeysAPI(etcdClient).Get(context.Background(), "/", nil)
+		if err == nil || etcdutil.IsEtcdNotFound(err) {
+			break
+		}
+		if i > 100 {
+			return fmt.Errorf("could not reach etcd(v2): %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 	return nil
 }
