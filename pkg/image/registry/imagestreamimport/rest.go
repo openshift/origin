@@ -20,14 +20,13 @@ import (
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	imageapiv1 "github.com/openshift/api/image/v1"
+	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -49,7 +48,7 @@ type REST struct {
 	streams           imagestream.Registry
 	internalStreams   rest.CreaterUpdater
 	images            rest.Creater
-	isClient          imageclient.ImageStreamsGetter
+	isV1Client        imageclientv1.ImageStreamsGetter
 	transport         http.RoundTripper
 	insecureTransport http.RoundTripper
 	clientFn          ImporterDockerRegistryFunc
@@ -63,7 +62,8 @@ var _ rest.Creater = &REST{}
 // if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
 // include client certs unless you wish to allow the entire cluster to import using those certs.
 func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStreams rest.CreaterUpdater,
-	images rest.Creater, isClient imageclient.ImageStreamsGetter,
+	images rest.Creater,
+	isV1Client imageclientv1.ImageStreamsGetter,
 	transport, insecureTransport http.RoundTripper,
 	clientFn ImporterDockerRegistryFunc,
 	registryWhitelister whitelist.RegistryWhitelister,
@@ -74,7 +74,7 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 		streams:           streams,
 		internalStreams:   internalStreams,
 		images:            images,
-		isClient:          isClient,
+		isV1Client:        isV1Client,
 		transport:         transport,
 		insecureTransport: insecureTransport,
 		clientFn:          clientFn,
@@ -187,19 +187,11 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 
 	// only load secrets if we need them
 	credentials := importer.NewLazyCredentialsForSecrets(func() ([]corev1.Secret, error) {
-		secrets, err := r.isClient.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
+		secrets, err := r.isV1Client.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		secretsv1 := make([]corev1.Secret, len(secrets.Items))
-		for i, secret := range secrets.Items {
-			err := kapiv1.Convert_core_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
-			if err != nil {
-				utilruntime.HandleError(err)
-				continue
-			}
-		}
-		return secretsv1, nil
+		return secrets.Items, nil
 	})
 	importCtx := registryclient.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
 	imports := r.importFn(importCtx)
