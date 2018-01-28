@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -91,6 +93,7 @@ func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 
+	flags.BoolVar(&options.NodeArgs.WriteFlagsOnly, "write-flags", false, "When this is specified only the arguments necessary to start the Kubelet will be output.")
 	flags.StringVar(&options.NodeArgs.BootstrapConfigName, "bootstrap-config-name", options.NodeArgs.BootstrapConfigName, "On startup, the node will request a client cert from the master and get its config from this config map in the openshift-node namespace (experimental).")
 
 	// autocompletion hints
@@ -172,12 +175,20 @@ func (o NodeOptions) Validate(args []string) error {
 		if o.IsRunFromConfig() {
 			return errors.New("--config may not be set if you're only writing the config")
 		}
+		if o.NodeArgs.WriteFlagsOnly {
+			return errors.New("--write-config and --write-flags are mutually exclusive")
+		}
 	}
 
 	// if we are starting up using a config file, run no validations here
-	if len(o.NodeArgs.BootstrapConfigName) > 0 && !o.IsRunFromConfig() {
-		if err := o.NodeArgs.Validate(); err != nil {
-			return err
+	if len(o.NodeArgs.BootstrapConfigName) > 0 {
+		if o.NodeArgs.WriteFlagsOnly {
+			return errors.New("--write-flags is mutually exclusive with --bootstrap-config-name")
+		}
+		if !o.IsRunFromConfig() {
+			if err := o.NodeArgs.Validate(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -201,7 +212,7 @@ func (o NodeOptions) StartNode() error {
 		return err
 	}
 
-	if o.IsWriteConfigOnly() {
+	if o.NodeArgs.WriteFlagsOnly || o.IsWriteConfigOnly() {
 		return nil
 	}
 
@@ -223,6 +234,17 @@ func (o NodeOptions) RunNode() error {
 	// allow listen address to be overriden
 	if addr := o.NodeArgs.ListenArg.ListenAddr; addr.Provided {
 		nodeConfig.ServingInfo.BindAddress = addr.HostPort(o.NodeArgs.ListenArg.ListenAddr.DefaultPort)
+	}
+	// do a local resolution of node config DNS IP, supports bootstrapping cases
+	if nodeConfig.DNSIP == "0.0.0.0" {
+		glog.V(4).Infof("Defaulting to the DNSIP config to the node's IP")
+		nodeConfig.DNSIP = nodeConfig.NodeIP
+		// TODO: the Kubelet should do this defaulting (to the IP it recognizes)
+		if len(nodeConfig.DNSIP) == 0 {
+			if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
+				nodeConfig.DNSIP = ip.String()
+			}
+		}
 	}
 
 	var validationResults validation.ValidationResults
@@ -256,11 +278,11 @@ func (o NodeOptions) RunNode() error {
 		return nil
 	}
 
-	if err := StartNode(*nodeConfig, o.NodeArgs.Components); err != nil {
-		return err
+	if o.NodeArgs.WriteFlagsOnly {
+		return WriteKubeletFlags(*nodeConfig)
 	}
 
-	return nil
+	return StartNode(*nodeConfig, o.NodeArgs.Components)
 }
 
 // resolveNodeConfig creates a new configuration on disk by reading from the master, reads
@@ -371,41 +393,13 @@ func (o NodeOptions) IsRunFromConfig() bool {
 }
 
 // execKubelet attempts to call execve() for the kubelet with the configuration defined
-// in server passed as flags. If the binary is not the same as the current file and
-// the environment variable OPENSHIFT_ALLOW_UNSUPPORTED_KUBELET is unset, the method
-// will return an error. The returned boolean indicates whether fallback to in-process
-// is allowed.
-func execKubelet(kubeletArgs []string) (bool, error) {
-	// verify the Kubelet binary to use
+// in server passed as flags.
+func execKubelet(kubeletArgs []string) error {
 	path := "kubelet"
-	requireSameBinary := true
-	if newPath := os.Getenv("OPENSHIFT_ALLOW_UNSUPPORTED_KUBELET"); len(newPath) > 0 {
-		requireSameBinary = false
-		path = newPath
-	}
 	kubeletPath, err := exec.LookPath(path)
 	if err != nil {
-		return requireSameBinary, err
+		return err
 	}
-	kubeletFile, err := os.Stat(kubeletPath)
-	if err != nil {
-		return requireSameBinary, err
-	}
-	thisPath, err := exec.LookPath(os.Args[0])
-	if err != nil {
-		return true, err
-	}
-	thisFile, err := os.Stat(thisPath)
-	if err != nil {
-		return true, err
-	}
-	if !os.SameFile(thisFile, kubeletFile) {
-		if requireSameBinary {
-			return true, fmt.Errorf("binary at %q is not the same file as %q, cannot execute", thisPath, kubeletPath)
-		}
-		glog.Warningf("UNSUPPORTED: Executing a different Kubelet than the current binary is not supported: %s", kubeletPath)
-	}
-
 	// convert current settings to flags
 	args := append([]string{kubeletPath}, kubeletArgs...)
 	for i := glog.Level(10); i > 0; i-- {
@@ -426,16 +420,49 @@ func execKubelet(kubeletArgs []string) (bool, error) {
 			break
 		}
 	}
+	// execve the child process, replacing this process
 	glog.V(3).Infof("Exec %s %s", kubeletPath, strings.Join(args, " "))
-	return false, syscall.Exec(kubeletPath, args, os.Environ())
+	return syscall.Exec(kubeletPath, args, os.Environ())
 }
 
-func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	kubeletFlagsAsMap, err := nodeoptions.ComputeKubeletFlagsAsMap(nodeConfig.KubeletArguments, nodeConfig)
+// safeArgRegexp matches only characters that are known safe. DO NOT add to this list
+// without fully considering whether that new character can be used to break shell escaping
+// rules.
+var safeArgRegexp = regexp.MustCompile(`^[\da-zA-Z\-=_\.,/\:]+$`)
+
+// shellEscapeArg quotes an argument if it contains characters that my cause a shell
+// interpreter to split the single argument into multiple.
+func shellEscapeArg(s string) string {
+	if safeArgRegexp.MatchString(s) {
+		return s
+	}
+	return strconv.Quote(s)
+}
+
+// WriteKubeletFlags writes the correct set of flags to start a Kubelet from the provided node config to
+// stdout, instead of launching anything.
+func WriteKubeletFlags(nodeConfig configapi.NodeConfig) error {
+	kubeletArgs, err := nodeoptions.ComputeKubeletFlags(nodeConfig.KubeletArguments, nodeConfig)
 	if err != nil {
 		return fmt.Errorf("cannot create kubelet args: %v", err)
 	}
-	kubeletArgs := nodeoptions.KubeletArgsMapToArgs(kubeletFlagsAsMap)
+	if err := nodeoptions.CheckFlags(kubeletArgs); err != nil {
+		return err
+	}
+	var outputArgs []string
+	for _, s := range kubeletArgs {
+		outputArgs = append(outputArgs, shellEscapeArg(s))
+	}
+	fmt.Println(strings.Join(outputArgs, " "))
+	return nil
+}
+
+// StartNode launches the node processes.
+func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
+	kubeletArgs, err := nodeoptions.ComputeKubeletFlags(nodeConfig.KubeletArguments, nodeConfig)
+	if err != nil {
+		return fmt.Errorf("cannot create kubelet args: %v", err)
+	}
 	if err := nodeoptions.CheckFlags(kubeletArgs); err != nil {
 		return err
 	}
@@ -443,11 +470,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	// as a step towards decomposing OpenShift into Kubernetes components, perform an execve
 	// to launch the Kubelet instead of loading in-process
 	if components.Calculated().Equal(sets.NewString(ComponentKubelet)) {
-		ok, err := execKubelet(kubeletArgs)
-		if !ok {
-			return err
-		}
-		if err != nil {
+		if err := execKubelet(kubeletArgs); err != nil {
 			utilruntime.HandleError(fmt.Errorf("Unable to call exec on kubelet, continuing with normal startup: %v", err))
 		}
 	}
@@ -475,9 +498,9 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		glog.V(4).Infof("Unable to build network options: %v", err)
 		return err
 	}
-	clusterDomain := ""
-	if len(kubeletFlagsAsMap["cluster-domain"]) > 0 {
-		clusterDomain = kubeletFlagsAsMap["cluster-domain"][0]
+	clusterDomain := nodeConfig.DNSDomain
+	if len(nodeConfig.KubeletArguments["cluster-domain"]) > 0 {
+		clusterDomain = nodeConfig.KubeletArguments["cluster-domain"][0]
 	}
 	networkConfig, err := network.New(nodeConfig, clusterDomain, proxyConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
 	if err != nil {

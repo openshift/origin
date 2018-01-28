@@ -52,6 +52,10 @@ type NodeArgs struct {
 	// Components is the set of enabled components.
 	Components *utilflags.ComponentFlag
 
+	// WriteFlagsOnly will print flags to run the Kubelet from the provided arguments rather than launching
+	// the Kubelet itself.
+	WriteFlagsOnly bool
+
 	// NodeName is the hostname to identify this node with the master.
 	NodeName string
 
