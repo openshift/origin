@@ -145,6 +145,15 @@ func determineSourceKind(f *clientcmd.Factory, input string) string {
 		return "DockerImage"
 	}
 
+	glog.Warningf("%v", err)
+
+	switch input {
+	case "istag":
+		return "ImageStreamTag"
+	case "isimage":
+		return "ImageStreamImage"
+	}
+
 	return input
 }
 
@@ -188,6 +197,8 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, "invalid source %q; valid values are %v", o.sourceKind, strings.Join(validSources.List(), ", ")))
 			}
 		}
+
+		glog.V(3).Infof("Using %q as a source kind", sourceKind)
 
 		ref, err := imageapi.ParseDockerImageReference(source)
 		if err != nil {
