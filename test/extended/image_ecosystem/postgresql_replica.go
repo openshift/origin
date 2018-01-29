@@ -22,9 +22,7 @@ var (
 	postgreSQLEphemeralTemplate   = exutil.FixturePath("..", "..", "examples", "db-templates", "postgresql-ephemeral-template.json")
 	postgreSQLHelperName          = "postgresql-helper"
 	postgreSQLImages              = []string{
-		"postgresql:9.2",
-		"postgresql:9.4",
-		"postgresql:9.5",
+		"postgresql:9.6",
 	}
 )
 
