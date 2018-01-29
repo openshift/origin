@@ -66,7 +66,11 @@ func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDire
 			UniqueName: pkg.ImportPath,
 			LabelName:  labelNameForNode(pkg.ImportPath),
 		}
-		g.AddNode(n)
+		err := g.AddNode(n)
+		if err != nil {
+			return nil, err
+		}
+
 		filteredPackages = append(filteredPackages, pkg)
 	}
 
@@ -88,6 +92,10 @@ func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDire
 			to, exists := g.NodeByName(dependency)
 			if !exists {
 				return nil, fmt.Errorf("expected child node for dependency %q was not found in graph", dependency)
+			}
+
+			if g.HasEdgeFromTo(from, to) {
+				continue
 			}
 
 			g.SetEdge(concrete.Edge{
