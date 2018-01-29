@@ -313,8 +313,7 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 		stream.Spec.Tags = make(map[string]imageapi.TagReference)
 	}
 	stream.Spec.Tags[r.InternalTag()] = imageapi.TagReference{
-		// Make this a constant
-		Annotations: map[string]string{"openshift.io/imported-from": r.Reference.Exact()},
+		Annotations: map[string]string{imageapi.ImportedFromAnnotation: r.Reference.Exact()},
 		From: &kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: r.PullSpec(),

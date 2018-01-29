@@ -19,6 +19,9 @@ const (
 	// ManagedByOpenShiftAnnotation indicates that an image is managed by OpenShift's registry.
 	ManagedByOpenShiftAnnotation = "openshift.io/image.managed"
 
+	// ImportedFromAnnotation indicates the original source repository of an imagestream.
+	ImportedFromAnnotation = "openshift.io/imported-from"
+
 	// DockerImageRepositoryCheckAnnotation indicates that OpenShift has
 	// attempted to import tag and image information from an external Docker
 	// image repository.
