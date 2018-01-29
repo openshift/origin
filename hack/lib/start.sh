@@ -290,6 +290,11 @@ function os::start::master() {
 	os::cmd::try_until_text "oc get --raw /healthz --as system:unauthenticated --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
 	os::cmd::try_until_text "oc get --raw /healthz/ready --as system:unauthenticated --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
 	os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
+
+	# wait for lease acquisition that indicates the controllers and scheduler have successfully started
+	os::cmd::try_until_success "oc get configmap kube-controller-manager --namespace kube-system --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
+	os::cmd::try_until_success "oc get configmap openshift-master-controllers --namespace kube-system --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
+	os::cmd::try_until_success "oc get configmap kube-scheduler --namespace kube-system --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 	os::test::junit::declare_suite_end
 
 	os::log::debug "OpenShift server health checks done at: $( date )"
