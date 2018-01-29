@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	internalapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	apitest "k8s.io/kubernetes/pkg/kubelet/apis/cri/testing"
 	fakeremote "k8s.io/kubernetes/pkg/kubelet/remote/fake"
@@ -35,24 +36,24 @@ const (
 // Users should call fakeRuntime.Stop() to cleanup the server.
 func createAndStartFakeRemoteRuntime(t *testing.T) (*fakeremote.RemoteRuntime, string) {
 	endpoint, err := fakeremote.GenerateEndpoint()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	fakeRuntime := fakeremote.NewFakeRemoteRuntime()
-	go fakeRuntime.Start(endpoint)
+	fakeRuntime.Start(endpoint)
 
 	return fakeRuntime, endpoint
 }
 
 func createRemoteRuntimeService(endpoint string, t *testing.T) internalapi.RuntimeService {
 	runtimeService, err := NewRemoteRuntimeService(endpoint, defaultConnectionTimeout)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return runtimeService
 }
 
 func createRemoteImageService(endpoint string, t *testing.T) internalapi.ImageManagerService {
 	imageService, err := NewRemoteImageService(endpoint, defaultConnectionTimeout)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return imageService
 }
@@ -63,7 +64,7 @@ func TestVersion(t *testing.T) {
 
 	r := createRemoteRuntimeService(endpoint, t)
 	version, err := r.Version(apitest.FakeVersion)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, apitest.FakeVersion, version.Version)
 	assert.Equal(t, apitest.FakeRuntimeName, version.RuntimeName)
 }
