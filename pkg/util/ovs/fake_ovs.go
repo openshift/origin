@@ -3,6 +3,7 @@ package ovs
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // ovsFake implements a fake ovs.Interface for testing purposes
@@ -12,10 +13,16 @@ import (
 // to support enough features to make the SDN unit tests pass, and should do enough
 // error checking to catch bugs that have tripped us up in the past (eg,
 // specifying "nw_dst" without "ip").
+
+type ovsPortInfo struct {
+	ofport      int
+	externalIDs map[string]string
+}
+
 type ovsFake struct {
 	bridge string
 
-	ports map[string]int
+	ports map[string]ovsPortInfo
 	flows ovsFlows
 }
 
@@ -25,7 +32,7 @@ func NewFake(bridge string) Interface {
 }
 
 func (fake *ovsFake) AddBridge(properties ...string) error {
-	fake.ports = make(map[string]int)
+	fake.ports = make(map[string]ovsPortInfo)
 	fake.flows = make([]OvsFlow, 0)
 	return nil
 }
@@ -48,8 +55,8 @@ func (fake *ovsFake) GetOFPort(port string) (int, error) {
 		return -1, err
 	}
 
-	if ofport, exists := fake.ports[port]; exists {
-		return ofport, nil
+	if portInfo, exists := fake.ports[port]; exists {
+		return portInfo.ofport, nil
 	} else {
 		return -1, fmt.Errorf("no row %q in table Interface", port)
 	}
@@ -60,28 +67,45 @@ func (fake *ovsFake) AddPort(port string, ofportRequest int, properties ...strin
 		return -1, err
 	}
 
-	ofport, exists := fake.ports[port]
+	var externalIDs map[string]string
+	for _, property := range properties {
+		if !strings.HasPrefix(property, "external-ids=") {
+			continue
+		}
+		externalIDs = make(map[string]string, 1)
+		for _, id := range strings.Split(property[13:], ",") {
+			parsed := strings.Split(id, "=")
+			if len(parsed) != 2 {
+				return -1, fmt.Errorf("could not parse external-id %q", id)
+			}
+			externalIDs[parsed[0]] = parsed[1]
+		}
+	}
+
+	portInfo, exists := fake.ports[port]
 	if exists {
-		if ofport != ofportRequest && ofportRequest != -1 {
-			return -1, fmt.Errorf("allocated ofport (%d) did not match request (%d)", ofport, ofportRequest)
+		if portInfo.ofport != ofportRequest && ofportRequest != -1 {
+			return -1, fmt.Errorf("allocated ofport (%d) did not match request (%d)", portInfo.ofport, ofportRequest)
 		}
 	} else {
 		if ofportRequest == -1 {
-			ofport := 1
-			for _, existingPort := range fake.ports {
-				if existingPort >= ofport {
-					ofport = existingPort + 1
+			portInfo.ofport = 1
+			for _, existingPortInfo := range fake.ports {
+				if existingPortInfo.ofport >= portInfo.ofport {
+					portInfo.ofport = existingPortInfo.ofport + 1
 				}
 			}
 		} else {
 			if ofportRequest < 1 || ofportRequest > 65535 {
 				return -1, fmt.Errorf("requested ofport (%d) out of range", ofportRequest)
 			}
-			ofport = ofportRequest
+			portInfo.ofport = ofportRequest
 		}
-		fake.ports[port] = ofport
+		portInfo.externalIDs = externalIDs
+		fake.ports[port] = portInfo
 	}
-	return ofport, nil
+
+	return portInfo.ofport, nil
 }
 
 func (fake *ovsFake) DeletePort(port string) error {
@@ -114,7 +138,23 @@ func (fake *ovsFake) Set(table, record string, values ...string) error {
 }
 
 func (fake *ovsFake) Find(table, column, condition string) ([]string, error) {
-	return make([]string, 0), nil
+	results := make([]string, 0)
+	if (table == "Interface" || table == "interface") && strings.HasPrefix(condition, "external-ids:") {
+		parsed := strings.Split(condition[13:], "=")
+		if len(parsed) != 2 {
+			return nil, fmt.Errorf("could not parse condition %q", condition)
+		}
+		for portName, portInfo := range fake.ports {
+			if portInfo.externalIDs[parsed[0]] == parsed[1] {
+				if column == "name" {
+					results = append(results, portName)
+				} else if column == "ofport" {
+					results = append(results, fmt.Sprintf("%d", portInfo.ofport))
+				}
+			}
+		}
+	}
+	return results, nil
 }
 
 func (fake *ovsFake) Clear(table, record string, columns ...string) error {

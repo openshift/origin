@@ -3,7 +3,6 @@
 package node
 
 import (
-	"encoding/hex"
 	"fmt"
 	"net"
 	"sort"
@@ -228,11 +227,11 @@ func (oc *ovsController) ensureOvsPort(hostVeth, sandboxID string) (int, error) 
 	return oc.ovs.AddPort(hostVeth, -1, "external-ids=sandbox="+sandboxID)
 }
 
-func (oc *ovsController) setupPodFlows(ofport int, podIP, podMAC, note string, vnid uint32) error {
+func (oc *ovsController) setupPodFlows(ofport int, podIP, podMAC string, vnid uint32) error {
 	otx := oc.ovs.NewTransaction()
 
 	// ARP/IP traffic from container
-	otx.AddFlow("table=20, priority=100, in_port=%d, arp, nw_src=%s, arp_sha=%s, actions=load:%d->NXM_NX_REG0[], note:%s, goto_table:21", ofport, podIP, podMAC, vnid, note)
+	otx.AddFlow("table=20, priority=100, in_port=%d, arp, nw_src=%s, arp_sha=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, podMAC, vnid)
 	otx.AddFlow("table=20, priority=100, in_port=%d, ip, nw_src=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, vnid)
 	if oc.useConnTrack {
 		otx.AddFlow("table=25, priority=100, ip, nw_src=%s, actions=load:%d->NXM_NX_REG0[], goto_table:30", podIP, vnid)
@@ -256,34 +255,12 @@ func (oc *ovsController) cleanupPodFlows(podIP string) error {
 	return otx.EndTransaction()
 }
 
-func getPodNote(sandboxID string) (string, error) {
-	bytes, err := hex.DecodeString(sandboxID)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode sandbox ID %q: %v", sandboxID, err)
-	}
-	if len(bytes) != 32 {
-		return "", fmt.Errorf("invalid sandbox ID %q length; expected 32 bytes", sandboxID)
-	}
-	var note string
-	for _, b := range bytes {
-		if len(note) > 0 {
-			note += "."
-		}
-		note += fmt.Sprintf("%02x", b)
-	}
-	return note, nil
-}
-
 func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC, sandboxID string, vnid uint32) (int, error) {
-	note, err := getPodNote(sandboxID)
-	if err != nil {
-		return -1, err
-	}
 	ofport, err := oc.ensureOvsPort(hostVeth, sandboxID)
 	if err != nil {
 		return -1, err
 	}
-	return ofport, oc.setupPodFlows(ofport, podIP, podMAC, note, vnid)
+	return ofport, oc.setupPodFlows(ofport, podIP, podMAC, vnid)
 }
 
 // Returned list can also be used for port names
@@ -346,54 +323,52 @@ func (oc *ovsController) SetPodBandwidth(hostVeth, sandboxID string, ingressBPS,
 	return nil
 }
 
-func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, string, string, string, error) {
-	note, err := getPodNote(sandboxID)
+func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, string, string, error) {
+	strports, err := oc.ovs.Find("interface", "ofport", "external-ids:sandbox="+sandboxID)
 	if err != nil {
-		return 0, "", "", "", err
+		return 0, "", "", err
+	} else if len(strports) == 0 {
+		return 0, "", "", fmt.Errorf("failed to find pod details from OVS flows")
+	} else if len(strports) > 1 {
+		return 0, "", "", fmt.Errorf("found multiple ofports for sandbox ID %q: %#v", sandboxID, strports)
 	}
-	flows, err := oc.ovs.DumpFlows("table=20,arp")
+	ofport, err := strconv.Atoi(strports[0])
 	if err != nil {
-		return 0, "", "", "", err
+		return 0, "", "", fmt.Errorf("could not parse ofport %q: %v", strports[0], err)
 	}
 
-	// Find the flow with the given note and extract the podIP, ofport, and MAC from them
-	for _, flow := range flows {
-		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
-		if err != nil {
-			return 0, "", "", "", err
-		}
-		if !parsed.NoteHasPrefix(note) {
-			continue
-		}
-
-		macField, macOk := parsed.FindField("arp_sha")
-		portField, pOk := parsed.FindField("in_port")
-		ipField, ipOk := parsed.FindField("arp_spa")
-		if !macOk || !pOk || !ipOk {
-			continue
-		}
-
-		ofport, err := strconv.Atoi(portField.Value)
-		if err != nil {
-			return 0, "", "", "", fmt.Errorf("failed to parse ofport %q: %v", portField.Value, err)
-		}
-		if _, err := net.ParseMAC(macField.Value); err != nil {
-			return 0, "", "", "", fmt.Errorf("failed to parse arp_sha %q: %v", macField.Value, err)
-		}
-		podMAC := macField.Value
-		if net.ParseIP(ipField.Value) == nil {
-			return 0, "", "", "", fmt.Errorf("failed to parse arp_spa %q", ipField.Value)
-		}
-		podIP := ipField.Value
-
-		return ofport, podIP, podMAC, note, nil
+	flows, err := oc.ovs.DumpFlows("table=20,arp,in_port=%d", ofport)
+	if err != nil {
+		return 0, "", "", err
+	} else if len(flows) != 1 {
+		return 0, "", "", fmt.Errorf("could not find correct OVS flows for port %d", ofport)
 	}
 
-	return 0, "", "", "", fmt.Errorf("failed to find pod details from OVS flows")
+	parsed, err := ovs.ParseFlow(ovs.ParseForDump, flows[0])
+	if err != nil {
+		return 0, "", "", err
+	}
+
+	macField, macOk := parsed.FindField("arp_sha")
+	ipField, ipOk := parsed.FindField("arp_spa")
+	if !macOk || !ipOk {
+		return 0, "", "", fmt.Errorf("failed to parse OVS flows for sandbox ID %q", sandboxID)
+	}
+
+	if _, err := net.ParseMAC(macField.Value); err != nil {
+		return 0, "", "", fmt.Errorf("failed to parse arp_sha %q: %v", macField.Value, err)
+	}
+	podMAC := macField.Value
+	if net.ParseIP(ipField.Value) == nil {
+		return 0, "", "", fmt.Errorf("failed to parse arp_spa %q", ipField.Value)
+	}
+	podIP := ipField.Value
+
+	return ofport, podIP, podMAC, nil
 }
 
 func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
-	ofport, podIP, podMAC, note, err := oc.getPodDetailsBySandboxID(sandboxID)
+	ofport, podIP, podMAC, err := oc.getPodDetailsBySandboxID(sandboxID)
 	if err != nil {
 		return err
 	}
@@ -401,11 +376,11 @@ func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
 	if err != nil {
 		return err
 	}
-	return oc.setupPodFlows(ofport, podIP, podMAC, note, vnid)
+	return oc.setupPodFlows(ofport, podIP, podMAC, vnid)
 }
 
 func (oc *ovsController) TearDownPod(sandboxID string) error {
-	_, podIP, _, _, err := oc.getPodDetailsBySandboxID(sandboxID)
+	_, podIP, _, err := oc.getPodDetailsBySandboxID(sandboxID)
 	if err != nil {
 		// OVS flows related to sandboxID not found
 		// Nothing needs to be done in that case

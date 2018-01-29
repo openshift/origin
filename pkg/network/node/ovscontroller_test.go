@@ -218,9 +218,7 @@ func TestOVSService(t *testing.T) {
 }
 
 const (
-	sandboxID         string = "bcb5d8d287fcf97458c48ad643b101079e3bc265a94e097e7407440716112f69"
-	sandboxNote       string = "bc.b5.d8.d2.87.fc.f9.74.58.c4.8a.d6.43.b1.01.07.9e.3b.c2.65.a9.4e.09.7e.74.07.44.07.16.11.2f.69"
-	sandboxNoteAction string = "note:" + sandboxNote
+	sandboxID string = "bcb5d8d287fcf97458c48ad643b101079e3bc265a94e097e7407440716112f69"
 )
 
 func TestOVSPod(t *testing.T) {
@@ -239,7 +237,7 @@ func TestOVSPod(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66", sandboxNoteAction},
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66"},
 		},
 		flowChange{
 			kind:  flowAdded,
@@ -267,7 +265,7 @@ func TestOVSPod(t *testing.T) {
 	// Update
 	err = oc.UpdatePod(sandboxID, 43)
 	if err != nil {
-		t.Fatalf("Unexpected error adding pod rules: %v", err)
+		t.Fatalf("Unexpected error updating pod rules: %v", err)
 	}
 
 	flows, err = ovsif.DumpFlows("")
@@ -277,7 +275,7 @@ func TestOVSPod(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66", sandboxNoteAction},
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66"},
 		},
 		flowChange{
 			kind:  flowAdded,
@@ -323,7 +321,6 @@ func TestGetPodDetails(t *testing.T) {
 		sandboxID string
 		ip        string
 		mac       string
-		note      string
 		errStr    string
 	}
 
@@ -332,7 +329,6 @@ func TestGetPodDetails(t *testing.T) {
 			sandboxID: sandboxID,
 			ip:        "10.130.0.2",
 			mac:       "4a:77:32:e4:ab:9d",
-			note:      sandboxNote,
 		},
 	}
 
@@ -343,7 +339,7 @@ func TestGetPodDetails(t *testing.T) {
 			t.Fatalf("Unexpected error adding pod rules: %v", err)
 		}
 
-		ofport, ip, mac, note, err := oc.getPodDetailsBySandboxID(tc.sandboxID)
+		ofport, ip, mac, err := oc.getPodDetailsBySandboxID(tc.sandboxID)
 		if err != nil {
 			if tc.errStr != "" {
 				if !strings.Contains(err.Error(), tc.errStr) {
@@ -363,9 +359,6 @@ func TestGetPodDetails(t *testing.T) {
 		}
 		if mac != tc.mac {
 			t.Fatalf("unexpected mac %q (expected %q)", mac, tc.mac)
-		}
-		if note != tc.note {
-			t.Fatalf("unexpected note %q (expected %q)", note, tc.note)
 		}
 	}
 }
