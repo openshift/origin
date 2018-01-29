@@ -14,7 +14,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )

@@ -24,9 +24,9 @@ import (
 
 	templateapiv1 "github.com/openshift/api/template/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/bulk"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/config/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
@@ -323,7 +323,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				continue
 			}
 
-			restcli, err := cmd.ClientMapperFromConfig(config).ClientForMapping(mapping)
+			restcli, err := bulk.ClientMapperFromConfig(config).ClientForMapping(mapping)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// list all objects

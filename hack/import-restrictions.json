@@ -315,7 +315,7 @@
       "vendor/golang.org",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
-      "github.com/openshift/origin/pkg/config/cmd",
+      "github.com/openshift/origin/pkg/bulk",
       "github.com/openshift/origin/pkg/template/servicebroker",
       "github.com/openshift/origin/pkg/util/rest"
     ],

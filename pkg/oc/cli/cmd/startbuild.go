@@ -40,8 +40,9 @@ import (
 	buildclientinternal "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 	oerrors "github.com/openshift/origin/pkg/util/errors"
 )
 
@@ -288,7 +289,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 
 	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
-	env, _, err := cmdutil.ParseEnv(o.Env, in)
+	env, _, err := utilenv.ParseEnv(o.Env, in)
 	if err != nil {
 		return err
 	}
@@ -299,7 +300,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 
 	// Handle Docker build arguments. In order to leverage existing logic, we
 	// first create an EnvVar array, then convert it to []docker.BuildArg
-	buildArgs, err := cmdutil.ParseBuildArg(o.Args, in)
+	buildArgs, err := utilenv.ParseBuildArg(o.Args, in)
 	if err != nil {
 		return err
 	}

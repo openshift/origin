@@ -10,7 +10,7 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
 )

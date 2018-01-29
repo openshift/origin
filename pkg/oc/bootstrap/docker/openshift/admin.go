@@ -20,8 +20,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"

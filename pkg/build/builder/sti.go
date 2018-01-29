@@ -28,7 +28,7 @@ import (
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

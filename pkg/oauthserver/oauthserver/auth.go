@@ -178,7 +178,7 @@ func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
 	return osOAuthClient, nil
 }
 
-func (c *OAuthServerConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
+func (c *OAuthServerConfig) possiblyWrapMux(mux mux) mux {
 	// Register directly into the given mux
 	if c.ExtraOAuthConfig.HandlerWrapper == nil {
 		return mux
@@ -269,7 +269,7 @@ func (c *OAuthServerConfig) getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
-func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
 		return nil, nil, nil, err
@@ -284,7 +284,7 @@ func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, 
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *OAuthServerConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) handlers.GrantHandler {
+func (c *OAuthServerConfig) getGrantHandler(mux mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) handlers.GrantHandler {
 	// check that the global default strategy is something we honor
 	if !configapi.ValidGrantHandlerTypes.Has(string(c.ExtraOAuthConfig.Options.GrantConfig.Method)) {
 		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.ExtraOAuthConfig.Options.GrantConfig.Method)
@@ -318,7 +318,7 @@ func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHan
 	})
 }
 
-func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (handlers.AuthenticationHandler, error) {
+func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (handlers.AuthenticationHandler, error) {
 	// TODO: make this ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
 

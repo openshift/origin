@@ -27,11 +27,11 @@ import (
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/generate/app"
 )
 
 var (

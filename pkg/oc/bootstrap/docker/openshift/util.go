@@ -7,10 +7,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-	genappcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
+	genappcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )

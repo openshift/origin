@@ -16,8 +16,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/bulk"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/config/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/controller"
 	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
@@ -154,7 +154,7 @@ func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templateapi.TemplateI
 			return err
 		}
 
-		cli, err := cmd.ClientMapperFromConfig(config).ClientForMapping(mapping)
+		cli, err := bulk.ClientMapperFromConfig(config).ClientForMapping(mapping)
 		if err != nil {
 			return err
 		}

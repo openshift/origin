@@ -29,8 +29,8 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	"github.com/openshift/origin/pkg/generate/app"
+	configcmd "github.com/openshift/origin/pkg/bulk"
+	"github.com/openshift/origin/pkg/oc/generate/app"
 )
 
 var (

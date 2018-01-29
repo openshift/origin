@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
 	"github.com/openshift/origin/pkg/version"
 )
 

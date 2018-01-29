@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/generate/git"
+	"github.com/openshift/origin/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

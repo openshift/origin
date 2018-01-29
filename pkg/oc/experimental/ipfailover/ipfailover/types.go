@@ -1,8 +1,8 @@
 package ipfailover
 
 import (
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
 )
 
 const (

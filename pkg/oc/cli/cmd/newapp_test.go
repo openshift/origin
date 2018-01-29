@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/oc/generate/app"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
-	newcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
+	newcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
