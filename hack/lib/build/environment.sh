@@ -15,6 +15,37 @@ function os::build::environment::create() {
   workingdir=$( os::build::environment::release::workingdir )
   additional_context+=" -w ${workingdir}"
 
+  local tmpdir_template="openshift-env-XXXXXXXXXX"
+  local platform=$( os::build::host_platform_friendly )
+  # The mktemp --tmpdir does not work on OSX and /var/tmp/.. extra steps to
+  # share with Docker VM
+  if [[ $platform != "mac" ]]; then
+    if [[ -n "${TMPDIR:-}" ]]; then
+      # If TMPDIR is specified, respect it
+      local container_tmpdir
+      container_tmpdir=$(mktemp -d --tmpdir ${tmpdir_template})
+      additional_context+=" -v ${container_tmpdir}:${container_tmpdir} -e TMPDIR=${container_tmpdir}"
+    else
+      # Bind mount /tmp into the container
+      pushd /tmp > /dev/null
+      local container_tmpname
+      container_tmpname=$(mktemp -d ${tmpdir_template})
+      local host_tmp="${OS_BUILD_ENV_HOST_TMPDIR:-/tmp}/${container_tmpname}"
+      local container_tmp="/tmp/${container_tmpname}"
+      popd > /dev/null
+      additional_context+=" -v ${host_tmp}:/tmp -e OS_BUILD_ENV_HOST_TMPDIR=${host_tmp}"
+
+      # Bind mount /var/tmp into the container
+      pushd /var/tmp > /dev/null
+      local container_var_tmpname
+      container_var_tmpname=$(mktemp -d ${tmpdir_template})
+      local host_var_tmp="${OS_BUILD_ENV_HOST_VAR_TMPDIR:-/var/tmp}/${container_var_tmpname}"
+      local container_tmp="/var/tmp/${container_var_tmpname}"
+      popd > /dev/null
+      additional_context+=" -v ${host_var_tmp}:/var/tmp -e OS_BUILD_ENV_HOST_VAR_TMPDIR=${host_var_tmp}"
+    fi
+  fi
+
   if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
     additional_context+=" --privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
@@ -32,23 +63,14 @@ function os::build::environment::create() {
         docker volume create --name "${OS_BUILD_ENV_VOLUME}" > /dev/null
       fi
 
-      if [[ -n "${OS_BUILD_ENV_TMP_VOLUME:-}" ]]; then
-        if docker volume inspect "${OS_BUILD_ENV_TMP_VOLUME}" >/dev/null 2>&1; then
-          os::log::debug "Re-using volume ${OS_BUILD_ENV_TMP_VOLUME}"
-        else
-          # if OS_BUILD_ENV_VOLUME is set and no volume already exists, create a docker volume to
-          # store the working output so successive iterations can reuse shared code.
-          os::log::debug "Creating volume ${OS_BUILD_ENV_TMP_VOLUME}"
-          docker volume create --name "${OS_BUILD_ENV_TMP_VOLUME}" >/dev/null
-        fi
-        additional_context+=" -v ${OS_BUILD_ENV_TMP_VOLUME}:/tmp"
-      fi
+      local workingdir
+      workingdir=$( os::build::environment::release::workingdir )
       additional_context+=" -v ${OS_BUILD_ENV_VOLUME}:${workingdir}"
     fi
   fi
 
   if [[ -n "${OS_BUILD_ENV_FROM_ARCHIVE-}" ]]; then
-    additional_context+=" -e OS_VERSION_FILE=/tmp/os-version-defs"
+    additional_context+=" -e OS_VERSION_FILE=${workingdir}/os-version-defs"
   else
     additional_context+=" -e OS_VERSION_FILE="
   fi
@@ -109,21 +131,36 @@ readonly -f os::build::environment::release::workingdir
 function os::build::environment::cleanup() {
   local container=$1
   local volume=$2
-  local tmp_volume=$3
   os::log::debug "Stopping container ${container}"
   docker stop --time=0 "${container}" > /dev/null || true
   if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
+    if [[ -n "${TMPDIR:-}" ]]; then
+      os::log::debug "Inspecting container for the TMPDIR env variable"
+      # get the value of TMPDIR from the container
+      local container_tmpdir=$(docker inspect -f '{{range $index, $value := .Config.Env}}{{if eq (index (split $value "=") 0) "TMPDIR"}}{{index (split $value "=") 1}}{{end}}{{end}}' "${container}")
+      os::log::debug "Removing container tmp directory: ${container_tmpdir}"
+      if ! rm -rf "${container_tmpdir}"; then
+        os::log::warning "Failed to remove tmpdir: ${container_tmpdir}"
+      fi
+    else
+      os::log::debug "Inspecting container for bind mounted temp directories"
+      # get the Source directories for the /tmp and /var/tmp Mounts from the container
+      local container_tmpdirs=($(docker inspect -f '{{range .Mounts }}{{if eq .Destination "/tmp" "/var/tmp"}}{{println .Source}}{{end}}{{end}}' "${container}"))
+      os::log::debug "Removing container tmp directories: ${container_tmpdirs[@]}"
+      for tmpdir in "${container_tmpdirs[@]}"; do
+        for tmpdir_prefix in /tmp /var/tmp; do
+          if [[ "${tmpdir}" == ${tmpdir_prefix}/* ]]; then
+            local tmppath="${tmpdir_prefix}/${tmpdir##*/}"
+            os::log::debug "tmp path size: $(du -hs ${tmppath})"
+            if ! rm -rf "${tmpdir_prefix}/${tmpdir##*/}"; then
+              os::log::warning "Failed to remove tmpdir: ${tmppath}"
+           fi
+         fi
+        done
+      done
+    fi
     os::log::debug "Removing container ${container}"
     docker rm "${container}" > /dev/null
-
-    if [[ -z "${OS_BUILD_ENV_REUSE_TMP_VOLUME:-}" ]]; then
-      os::log::debug "Removing tmp build volume"
-      os::build::environment::remove_volume "${tmp_volume}"
-    fi
-    if [[ -n "${OS_BUILD_ENV_CLEAN_BUILD_VOLUME:-}" ]]; then
-      os::log::debug "Removing build volume"
-      os::build::environment::remove_volume "${volume}"
-    fi
   fi
 }
 readonly -f os::build::environment::cleanup
@@ -189,11 +226,11 @@ function os::build::environment::withsource() {
   if [[ -n "${OS_BUILD_ENV_FROM_ARCHIVE-}" ]]; then
     # Generate version definitions. Tree state is clean because we are pulling from git directly.
     OS_GIT_TREE_STATE=clean os::build::version::get_vars
-    os::build::version::save_vars > "/tmp/os-version-defs"
+    os::build::version::save_vars "os-version-defs"
 
     os::log::debug "Generating source code archive"
-    tar -cf - -C /tmp/ os-version-defs | docker cp - "${container}:/tmp"
     git archive --format=tar "${commit}" | docker cp - "${container}:${workingdir}"
+    docker cp os-version-defs "${container}:${workingdir}/"
     os::build::environment::start "${container}"
     return
   fi
@@ -248,17 +285,13 @@ readonly -f os::build::environment::remove_volume
 function os::build::environment::run() {
   local commit="${OS_GIT_COMMIT:-HEAD}"
   local volume
-  local tmp_volume
 
   volume="$( os::build::environment::volume_name "origin-build" "${commit}" "${OS_BUILD_ENV_REUSE_VOLUME:-}" )"
-  tmp_volume="$( os::build::environment::volume_name "origin-build-tmp" "${commit}" "${OS_BUILD_ENV_REUSE_TMP_VOLUME:-}" )"
 
   export OS_BUILD_ENV_VOLUME="${volume}"
-  export OS_BUILD_ENV_TMP_VOLUME="${tmp_volume}"
 
   if [[ -n "${OS_BUILD_ENV_VOLUME_FORCE_NEW:-}" ]]; then
     os::build::environment::remove_volume "${volume}"
-    os::build::environment::remove_volume "${tmp_volume}"
   fi
 
   if [[ -n "${OS_BUILD_ENV_PULL_IMAGE:-}" ]]; then
@@ -268,11 +301,10 @@ function os::build::environment::run() {
 
   os::log::debug "Using commit ${commit}"
   os::log::debug "Using volume ${volume}"
-  os::log::debug "Using tmp volume ${tmp_volume}"
 
   local container
   container="$( os::build::environment::create "$@" )"
-  trap "os::build::environment::cleanup ${container} ${volume} ${tmp_volume}" EXIT
+  trap "os::build::environment::cleanup ${container} ${volume}" EXIT
 
   os::log::debug "Using container ${container}"
 
