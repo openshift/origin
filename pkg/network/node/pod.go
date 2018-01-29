@@ -339,51 +339,6 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 	return result
 }
 
-// For a given container, returns host veth name, container veth MAC, and pod IP
-func getVethInfo(netns, containerIfname string) (string, string, string, error) {
-	var (
-		peerIfindex int
-		contVeth    netlink.Link
-		err         error
-		podIP       string
-	)
-
-	containerNs, err := ns.GetNS(netns)
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to get container netns: %v", err)
-	}
-	defer containerNs.Close()
-
-	err = containerNs.Do(func(ns.NetNS) error {
-		contVeth, err = netlink.LinkByName(containerIfname)
-		if err != nil {
-			return err
-		}
-		peerIfindex = contVeth.Attrs().ParentIndex
-
-		addrs, err := netlink.AddrList(contVeth, netlink.FAMILY_V4)
-		if err != nil {
-			return fmt.Errorf("failed to get container IP addresses: %v", err)
-		}
-		if len(addrs) == 0 {
-			return fmt.Errorf("container had no addresses")
-		}
-		podIP = addrs[0].IP.String()
-
-		return nil
-	})
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to inspect container interface: %v", err)
-	}
-
-	hostVeth, err := netlink.LinkByIndex(peerIfindex)
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to get host veth: %v", err)
-	}
-
-	return hostVeth.Attrs().Name, contVeth.Attrs().HardwareAddr.String(), podIP, nil
-}
-
 // Adds a macvlan interface to a container, if requested, for use with the egress router feature
 func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
 	annotation, ok := pod.Annotations[networkapi.AssignMacvlanAnnotation]
@@ -679,20 +634,9 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
 	defer PodOperationsLatency.WithLabelValues(PodOperationTeardown).Observe(sinceInMicroseconds(time.Now()))
 
-	var podIP string
 	errList := []error{}
 
-	if err := ns.IsNSorErr(req.Netns); err != nil {
-		if _, ok := err.(ns.NSPathNotExistErr); !ok {
-			// Namespace still exists, get pod IP from the veth
-			_, _, podIP, err = getVethInfo(req.Netns, podInterfaceName)
-			if err != nil {
-				errList = append(errList, err)
-			}
-		}
-	}
-
-	if err := m.ovs.TearDownPod(podIP, req.SandboxID); err != nil {
+	if err := m.ovs.TearDownPod(req.SandboxID); err != nil {
 		errList = append(errList, err)
 	}
 
