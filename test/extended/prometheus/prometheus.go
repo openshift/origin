@@ -315,17 +315,24 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)
-	secrets, err := oc.AdminKubeClient().Core().Secrets("kube-system").List(metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	for _, secret := range secrets.Items {
-		if secret.Type != v1.SecretTypeServiceAccountToken {
+	for i := 0; i < 30; i++ {
+		secrets, err := oc.AdminKubeClient().Core().Secrets("kube-system").List(metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, secret := range secrets.Items {
+			if secret.Type != v1.SecretTypeServiceAccountToken {
+				continue
+			}
+			if !strings.HasPrefix(secret.Name, "prometheus-") {
+				continue
+			}
+			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
+			break
+		}
+		if len(bearerToken) == 0 {
+			e2e.Logf("Waiting for prometheus service account secret to show up")
+			time.Sleep(time.Second)
 			continue
 		}
-		if !strings.HasPrefix(secret.Name, "prometheus-") {
-			continue
-		}
-		bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-		break
 	}
 	o.Expect(bearerToken).ToNot(o.BeEmpty())
 
