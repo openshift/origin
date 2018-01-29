@@ -551,7 +551,11 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	for _, roleBinding := range roleBindings {
 		roleBinding.Subjects = removeSubjects(roleBinding.Subjects, subjectsToRemove)
 
-		err := o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
+		if len(roleBinding.Subjects) > 0 {
+			err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
+		} else {
+			err = o.RoleBindingAccessor.DeleteRoleBinding(roleBinding.Name)
+		}
 		if err != nil {
 			return err
 		}

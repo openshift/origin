@@ -121,6 +121,7 @@ type RoleBindingAccessor interface {
 	GetRoleBinding(name string) (*authorizationapi.RoleBinding, error)
 	UpdateRoleBinding(binding *authorizationapi.RoleBinding) error
 	CreateRoleBinding(binding *authorizationapi.RoleBinding) error
+	DeleteRoleBinding(name string) error
 }
 
 // LocalRoleBindingAccessor operates against role bindings in namespace
@@ -179,6 +180,10 @@ func (a LocalRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.Ro
 	binding.Namespace = a.BindingNamespace
 	_, err := a.Client.RoleBindings(a.BindingNamespace).Create(binding)
 	return err
+}
+
+func (a LocalRoleBindingAccessor) DeleteRoleBinding(name string) error {
+	return a.Client.RoleBindings(a.BindingNamespace).Delete(name, &metav1.DeleteOptions{})
 }
 
 // ClusterRoleBindingAccessor operates against cluster scoped role bindings
@@ -248,4 +253,8 @@ func (a ClusterRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.
 	clusterBinding := authorizationapi.ToClusterRoleBinding(binding)
 	_, err := a.Client.ClusterRoleBindings().Create(clusterBinding)
 	return err
+}
+
+func (a ClusterRoleBindingAccessor) DeleteRoleBinding(name string) error {
+	return a.Client.ClusterRoleBindings().Delete(name, &metav1.DeleteOptions{})
 }
