@@ -133,6 +133,7 @@ Requires:       docker >= %{docker_version}
 Requires:       util-linux
 Requires:       socat
 Requires:       nfs-utils
+Requires:       cifs-utils
 Requires:       ethtool
 Requires:       device-mapper-persistent-data >= 0.6.2
 Requires:       conntrack-tools

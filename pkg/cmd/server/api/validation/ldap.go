@@ -8,8 +8,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 )
 
 func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {

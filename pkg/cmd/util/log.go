@@ -6,16 +6,6 @@ import (
 	"github.com/golang/glog"
 )
 
-// GetLogLevel returns the current glog log level
-func GetLogLevel() (level int) {
-	for level = 5; level >= 0; level-- {
-		if glog.V(glog.Level(level)) == true {
-			break
-		}
-	}
-	return
-}
-
 // NewGLogWriterV returns a new Writer that delegates to `glog.Info` at the
 // desired level of verbosity
 func NewGLogWriterV(level int) io.Writer {

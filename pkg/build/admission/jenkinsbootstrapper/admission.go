@@ -17,12 +17,12 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	authenticationclient "github.com/openshift/origin/pkg/auth/client"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	jenkinscontroller "github.com/openshift/origin/pkg/build/controller/jenkins"
+	"github.com/openshift/origin/pkg/bulk"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/config/cmd"
+	authenticationclient "github.com/openshift/origin/pkg/oauthserver/client"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
@@ -97,13 +97,13 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 
 	var bulkErr error
 
-	bulk := &cmd.Bulk{
+	bulk := &bulk.Bulk{
 		Mapper: &resource.Mapper{
 			RESTMapper:   legacyscheme.Registry.RESTMapper(),
 			ObjectTyper:  legacyscheme.Scheme,
-			ClientMapper: cmd.ClientMapperFromConfig(&impersonatingConfig),
+			ClientMapper: bulk.ClientMapperFromConfig(&impersonatingConfig),
 		},
-		Op: cmd.Create,
+		Op: bulk.Create,
 		After: func(info *resource.Info, err error) bool {
 			if kapierrors.IsAlreadyExists(err) {
 				return false

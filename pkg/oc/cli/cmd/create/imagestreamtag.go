@@ -14,10 +14,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
 const ImageStreamTagRecommendedName = "imagestreamtag"
@@ -104,7 +104,7 @@ func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f *clientcmd.
 		return fmt.Errorf("exactly one argument (name:tag) is supported, not: %v", args)
 	}
 
-	annotations, remove, err := ocmdutil.ParseAnnotation(o.Annotations, nil)
+	annotations, remove, err := utilenv.ParseAnnotation(o.Annotations, nil)
 	if err != nil {
 		return err
 	}

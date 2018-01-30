@@ -148,7 +148,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	}
 
 	server.Etcd.EnableGarbageCollection = true
-	server.Etcd.StorageConfig.Type = "etcd2"                 // TODO(post-1.6.1-rebase): enable etcd3 as upstream
+	server.Etcd.StorageConfig.Type = "etcd3"
 	server.Etcd.DefaultStorageMediaType = "application/json" // TODO(post-1.6.1-rebase): enable protobuf with etcd3 as upstream
 	server.Etcd.StorageConfig.Quorum = true
 	server.Etcd.StorageConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix

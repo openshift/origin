@@ -8,8 +8,8 @@ import (
 
 	"gopkg.in/ldap.v2"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/auth/ldaputil/testclient"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil/testclient"
 )
 
 func newTestADLDAPInterface(client ldap.Client) *ADLDAPInterface {

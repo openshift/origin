@@ -9,8 +9,8 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

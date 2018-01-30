@@ -13,8 +13,8 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
+	apps "k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -25,6 +25,8 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
+
+const waitForPrometheusStartSeconds = 240
 
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
@@ -49,7 +51,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			g.By("checking the unsecured metrics path")
 			success := false
 			var metrics map[string]*dto.MetricFamily
-			for i := 0; i < 120; i++ {
+			for i := 0; i < waitForPrometheusStartSeconds; i++ {
 				results, err := getInsecureURLViaPod(ns, execPodName, fmt.Sprintf("https://%s:%d/metrics", host, statsPort))
 				if err != nil {
 					e2e.Logf("unable to get unsecured metrics: %v", err)
@@ -315,7 +317,8 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "test continuing, but create on the prometheus template resulted in: %#v", err)
 		}
-		e2e.WaitForDeploymentComplete(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
+		tester := e2e.NewStatefulSetTester(oc.AdminKubeClient())
+		tester.WaitForRunningAndReady(1, &apps.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)

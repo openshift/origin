@@ -21,12 +21,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	configcmd "github.com/openshift/origin/pkg/bulk"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/generate/appjson"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
-	appcmd "github.com/openshift/origin/pkg/oc/generate/app/cmd"
+	"github.com/openshift/origin/pkg/oc/generate/app"
+	"github.com/openshift/origin/pkg/oc/generate/appjson"
+	appcmd "github.com/openshift/origin/pkg/oc/generate/cmd"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )

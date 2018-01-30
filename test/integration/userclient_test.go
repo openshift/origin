@@ -14,9 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"

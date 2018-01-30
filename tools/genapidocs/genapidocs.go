@@ -9,7 +9,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/go-openapi/loads"
-	"github.com/openshift/origin/pkg/apidocs"
+	"github.com/openshift/origin/tools/genapidocs/apidocs"
 )
 
 func writeAPIDocs(root string) error {

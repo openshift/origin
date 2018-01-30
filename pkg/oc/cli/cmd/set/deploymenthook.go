@@ -16,6 +16,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
 var (
@@ -399,7 +400,7 @@ func (o *DeploymentHookOptions) lifecycleHook(dc *appsapi.DeploymentConfig) (*ap
 		hook.ExecNewPod.ContainerName = dc.Spec.Template.Spec.Containers[0].Name
 	}
 	if len(o.Environment) > 0 {
-		env, _, err := cmdutil.ParseEnv(o.Environment, nil)
+		env, _, err := utilenv.ParseEnv(o.Environment, nil)
 		if err != nil {
 			return nil, err
 		}

@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 	ouserapi "github.com/openshift/origin/pkg/user/apis/user"
 	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"

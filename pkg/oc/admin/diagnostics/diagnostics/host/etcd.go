@@ -10,7 +10,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	etcdclient "github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 
 	"bytes"
@@ -24,7 +23,6 @@ import (
 // and organize them by volume.
 type EtcdWriteVolume struct {
 	MasterConfigLocation string
-	V2Client             etcdclient.Client
 	V3Client             *clientv3.Client
 	durationSpec         string
 	duration             time.Duration
@@ -55,11 +53,11 @@ func (d *EtcdWriteVolume) AvailableParameters() []types.Parameter {
 }
 
 func (d *EtcdWriteVolume) Complete(logger *log.Logger) error {
-	v2Client, v3Client, found, err := findEtcdClients(d.MasterConfigLocation, logger)
+	v3Client, found, err := findEtcdClients(d.MasterConfigLocation, logger)
 	if err != nil || !found {
 		return err
 	}
-	d.V2Client, d.V3Client = v2Client, v3Client
+	d.V3Client = v3Client
 
 	// determine the duration to run the check from either the deprecated env var, the flag, or the default
 	s := os.Getenv("ETCD_WRITE_VOLUME_DURATION") // deprecated way
@@ -78,9 +76,6 @@ func (d *EtcdWriteVolume) Complete(logger *log.Logger) error {
 }
 
 func (d *EtcdWriteVolume) CanRun() (bool, error) {
-	if d.V2Client == nil {
-		return false, fmt.Errorf("must have a V2 etcd client")
-	}
 	if d.V3Client == nil {
 		return false, fmt.Errorf("must have a V3 etcd client")
 	}
@@ -90,8 +85,6 @@ func (d *EtcdWriteVolume) CanRun() (bool, error) {
 func (d *EtcdWriteVolume) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(EtcdWriteName)
 
-	var wg sync.WaitGroup
-
 	ctx := context.Background()
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(d.duration))
 	defer cancel()
@@ -99,44 +92,16 @@ func (d *EtcdWriteVolume) Check() types.DiagnosticResult {
 	keyStats := &keyCounter{}
 	stats := &lockedKeyCounter{KeyCounter: keyStats}
 
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		keys := etcdclient.NewKeysAPI(d.V2Client)
-		w := keys.Watcher("/", &etcdclient.WatcherOptions{Recursive: true})
-		for {
-			evt, err := w.Next(ctx)
-			if err != nil {
-				if err != context.DeadlineExceeded {
-					r.Error("DEw2001", err, fmt.Sprintf("Unable to get a v2 watch event, stopping early: %v", err))
-				}
-				return
-			}
-			node := evt.Node
-			if node == nil {
-				node = evt.PrevNode
-			}
-			if node == nil {
+	ch := d.V3Client.Watch(ctx, "/", clientv3.WithKeysOnly(), clientv3.WithPrefix())
+	for resource := range ch {
+		for _, evt := range resource.Events {
+			if evt.Kv == nil {
 				continue
 			}
-			action := fmt.Sprintf("v2:%s", evt.Action)
-			stats.Inc(strings.Split(action+"/"+strings.TrimPrefix(evt.Node.Key, "/"), "/"))
+			action := fmt.Sprintf("v3:%s", evt.Type)
+			stats.Inc(strings.Split(action+"/"+strings.TrimPrefix(string(evt.Kv.Key), "/"), "/"))
 		}
-	}()
-	go func() {
-		defer wg.Done()
-		ch := d.V3Client.Watch(ctx, "/", clientv3.WithKeysOnly(), clientv3.WithPrefix())
-		for resource := range ch {
-			for _, evt := range resource.Events {
-				if evt.Kv == nil {
-					continue
-				}
-				action := fmt.Sprintf("v3:%s", evt.Type)
-				stats.Inc(strings.Split(action+"/"+strings.TrimPrefix(string(evt.Kv.Key), "/"), "/"))
-			}
-		}
-	}()
-	wg.Wait()
+	}
 
 	bins := keyStats.Bins("", "/")
 	sort.Sort(DescendingBins(bins))
@@ -154,38 +119,32 @@ func (d *EtcdWriteVolume) Check() types.DiagnosticResult {
 }
 
 // findEtcdClients finds and loads etcd clients
-func findEtcdClients(configFile string, logger *log.Logger) (etcdclient.Client, *clientv3.Client, bool, error) {
+func findEtcdClients(configFile string, logger *log.Logger) (*clientv3.Client, bool, error) {
 	masterConfig, err := GetMasterConfig(configFile, logger)
 	if err != nil {
 		configErr := fmt.Errorf("Unreadable master config; skipping this diagnostic.")
 		logger.Error("DE2001", configErr.Error())
-		return nil, nil, false, configErr
+		return nil, false, configErr
 	}
 	if len(masterConfig.EtcdClientInfo.URLs) == 0 {
 		configErr := fmt.Errorf("No etcdClientInfo.urls defined; can't contact etcd")
 		logger.Error("DE2002", configErr.Error())
-		return nil, nil, false, configErr
-	}
-	v2Client, err := etcd.MakeEtcdClient(masterConfig.EtcdClientInfo)
-	if err != nil {
-		configErr := fmt.Errorf("Unable to create an etcd v2 client: %v", err)
-		logger.Error("DE2003", configErr.Error())
-		return nil, nil, false, configErr
+		return nil, false, configErr
 	}
 	config, err := etcd.MakeEtcdClientV3Config(masterConfig.EtcdClientInfo)
 	if err != nil {
 		configErr := fmt.Errorf("Unable to create an etcd v3 client config: %v", err)
 		logger.Error("DE2004", configErr.Error())
-		return nil, nil, false, configErr
+		return nil, false, configErr
 	}
 	config.DialTimeout = 5 * time.Second
 	v3Client, err := clientv3.New(*config)
 	if err != nil {
 		configErr := fmt.Errorf("Unable to create an etcd v3 client: %v", err)
 		logger.Error("DE2005", configErr.Error())
-		return nil, nil, false, configErr
+		return nil, false, configErr
 	}
-	return v2Client, v3Client, true, nil
+	return v3Client, true, nil
 }
 
 type KeyCounter interface {

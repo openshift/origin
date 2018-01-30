@@ -13,10 +13,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"

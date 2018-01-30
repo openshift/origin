@@ -28,11 +28,11 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	generateapp "github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	generateapp "github.com/openshift/origin/pkg/oc/generate/app"
+	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
 type DebugOptions struct {
@@ -178,7 +178,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		o.Command = args[i:]
 		args = args[:i]
 	}
-	resources, envArgs, ok := cmdutil.SplitEnvironmentFromResources(args)
+	resources, envArgs, ok := utilenv.SplitEnvironmentFromResources(args)
 	if !ok {
 		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
@@ -232,7 +232,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		b.FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{o.Filename}})
 	}
 
-	o.AddEnv, o.RemoveEnv, err = cmdutil.ParseEnv(envArgs, nil)
+	o.AddEnv, o.RemoveEnv, err = utilenv.ParseEnv(envArgs, nil)
 	if err != nil {
 		return err
 	}

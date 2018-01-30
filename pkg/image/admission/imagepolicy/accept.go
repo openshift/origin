@@ -22,9 +22,9 @@ var errRejectByPolicy = fmt.Errorf("this image is prohibited by policy")
 type policyDecisions map[kapi.ObjectReference]policyDecision
 
 type policyDecision struct {
-	attrs  *rules.ImagePolicyAttributes
-	tested bool
-	err    error
+	attrs         *rules.ImagePolicyAttributes
+	tested        bool
+	resolutionErr error
 }
 
 func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m meta.ImageReferenceMutator, annotations meta.AnnotationAccessor, attr admission.Attributes, excludedRules sets.String) error {
@@ -49,19 +49,20 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 		if !ok {
 			if policy.RequestsResolution(gr) {
 				resolvedAttrs, err := resolver.ResolveObjectReference(ref, attr.GetNamespace(), resolveAllNames)
-
 				switch {
 				case err != nil && policy.FailOnResolutionFailure(gr):
+					glog.V(5).Infof("resource failed on error during required image resolution: %v", err)
 					// if we had a resolution error and we're supposed to fail, fail
-					decision.err = err
+					decision.resolutionErr = err
 					decision.tested = true
 					decisions[*ref] = decision
 					return err
 
 				case err != nil:
+					glog.V(5).Infof("error during optional image resolution: %v", err)
 					// if we had an error, but aren't supposed to fail, just don't do anything else and keep track of
 					// the resolution failure
-					decision.err = err
+					decision.resolutionErr = err
 
 				case err == nil:
 					// if we resolved properly, assign the attributes and rewrite the pull spec if we need to
@@ -74,7 +75,6 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 					}
 				}
 			}
-
 			// if we don't have any image policy attributes, attempt a best effort parse for the remaining tests
 			if decision.attrs == nil {
 				decision.attrs = &rules.ImagePolicyAttributes{}
@@ -85,24 +85,30 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 					decision.attrs.Name, _ = imageapi.ParseDockerImageReference(ref.Name)
 				}
 			}
-
 			decision.attrs.Resource = gr
 			decision.attrs.ExcludedRules = excludedRules
+			glog.V(5).Infof("post resolution, ref=%s:%s/%s, image attributes=%#v, resolution err=%v", ref.Kind, ref.Name, ref.Namespace, *decision.attrs, decision.resolutionErr)
 		}
 
 		// we only need to test a given input once for acceptance
 		if !decision.tested {
 			accepted := accepter.Accepts(decision.attrs)
-			glog.V(5).Infof("Made decision for %v (as: %v, err: %v): %t", ref, decision.attrs.Name, decision.err, accepted)
+			glog.V(5).Infof("Made decision for %v (as: %v, resolution err: %v): accept=%t", ref, decision.attrs.Name, decision.resolutionErr, accepted)
 
 			decision.tested = true
 			decisions[*ref] = decision
 
 			if !accepted {
-				// if the image is rejected, return the resolution error, if any
-				if decision.err != nil {
-					return decision.err
+				// if the image is rejected due to a resolution error, return the resolution error
+				// This is a dubious result.  It's entirely possible we had an error resolving the image,
+				// but no rule actually requires image resolution and the image was rejected for some other
+				// reason.  The user will then see that it was rejected due to the resolution error, but
+				// that isn't really why it was rejected.  Better logic would check if the rule that
+				// rejected the image, required resolution, and only then report the resolution falure.
+				if decision.resolutionErr != nil {
+					return decision.resolutionErr
 				}
+				// otherwise the image is being rejected by policy
 				return errRejectByPolicy
 			}
 		}
@@ -118,9 +124,8 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 	}
 
 	if len(errs) > 0 {
-		glog.V(5).Infof("failed to create: %v", errs)
+		glog.V(5).Infof("image policy admission rejecting due to: %v", errs)
 		return apierrs.NewInvalid(attr.GetKind().GroupKind(), attr.GetName(), errs)
 	}
-	glog.V(5).Infof("allowed: %#v", attr)
 	return nil
 }

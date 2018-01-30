@@ -13,6 +13,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	overridesapi "github.com/openshift/origin/pkg/build/controller/build/overrides/api"
 	"github.com/openshift/origin/pkg/build/controller/build/overrides/api/validation"
+	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -23,7 +24,7 @@ type BuildOverrides struct {
 // NewBuildOverrides creates a new BuildOverrides that will apply the overrides specified in the plugin config
 func NewBuildOverrides(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildOverrides, error) {
 	config := &overridesapi.BuildOverridesConfig{}
-	err := buildadmission.ReadPluginConfig(pluginConfig, overridesapi.BuildOverridesPlugin, config)
+	err := pluginconfig.ReadPluginConfig(pluginConfig, overridesapi.BuildOverridesPlugin, config)
 	if err != nil {
 		return BuildOverrides{}, err
 	}

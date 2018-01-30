@@ -27,7 +27,7 @@ import (
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
-	"github.com/openshift/origin/pkg/image/prune/testutil"
+	"github.com/openshift/origin/pkg/oc/admin/prune/imageprune/testutil"
 	"github.com/openshift/origin/pkg/version"
 )
 

@@ -14,15 +14,21 @@ curl -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/das
 Note: make sure to have openshift prometheus deployed.
 (https://github.com/openshift/origin/tree/master/examples/prometheus)
 
-1. ```oc create namespace grafana```
-2. ```oc new-app -f grafana-ocp.yaml```
-3. grab the grafana url ``` oc get route |awk 'NR==2 {print $2}' ```
-4. grab the ocp token, from openshift master run: ```oc sa get-token prometheus -n kube-system```
-5. browse to grafana datasource's and add new prometheus datasource. 
-6. grab the prometheus url via ```oc get route -n kube-system prometheus |awk 'NR==2 {print $2}'``` and paste the prometheus url e.g https://prometheus-kube-system.apps.example.com
-7. paste the token string at the token field.
-8. checkout the TLS checkbox.
-9. save & test and make sure all green.
+``` ./setup-grafana.sh prometheus ```
+
+## How to use oauth proxy:
+Note: when using oauth make sure your user has permission to browse grafana.
+- add a openshift user htpasswd ```htpasswd -c /etc/origin/master/htpasswd gfadmin```
+- use the HTPasswdPasswordIdentityProvider as described here - https://docs.openshift.com/enterprise/3.0/admin_guide/configuring_authentication.html 
+- make sure point the provider file to /etc/origin/master/htpasswd.
+  or using this example cmd:
+  ```
+  sed -ie 's|AllowAllPasswordIdentityProvider|HTPasswdPasswordIdentityProvider\n      file: /etc/origin/master/htpasswd|' /etc/origin/master/master-config.yaml
+  ```
+- add view role to user ```oc adm policy add-cluster-role-to-user cluster-reader gfadmin```
+- restart master api ```systemctl restart atomic-openshift-master-api.service```
+- get the grafana url by ```oc get route```
+- discover your openshift dashboard.
 
 ### Pull standalone docker grafana instance
 to build standalone docker instance see

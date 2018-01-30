@@ -867,7 +867,14 @@ func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, op
 	}
 	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v", name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, strings.Join(users, ", "), strings.Join(groups, ", "), strings.Join(sas, ", "), strings.Join(others, ", ")); err != nil {
+	truncatedUsers := strings.Join(users, ", ")
+	if len(users) > 5 {
+		truncatedUsers = strings.Join(users[0:5], ", ") + fmt.Sprintf(" (%d more)", len(users)-5)
+	}
+
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v", name,
+		roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, truncatedUsers,
+		strings.Join(groups, ", "), strings.Join(sas, ", "), strings.Join(others, ", ")); err != nil {
 		return err
 	}
 	if err := appendItemLabels(roleBinding.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {

@@ -116,6 +116,8 @@ objects:
       app: openshift-web-console
     annotations:
       service.alpha.openshift.io/serving-cert-secret-name: webconsole-serving-cert
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
   spec:
     selector:
       webconsole: "true"

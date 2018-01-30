@@ -49,15 +49,6 @@ func mainUsageTemplate() string {
 	return strings.TrimRightFunc(strings.Join(sections, ""), unicode.IsSpace)
 }
 
-func UseOptionsTemplates(cmd *cobra.Command) {
-	templater := &templater{
-		UsageTemplate: ktemplates.OptionsUsageTemplate(),
-		HelpTemplate:  ktemplates.OptionsHelpTemplate(),
-	}
-	cmd.SetUsageFunc(templater.UsageFunc())
-	cmd.SetHelpFunc(templater.HelpFunc())
-}
-
 type templater struct {
 	UsageTemplate string
 	HelpTemplate  string

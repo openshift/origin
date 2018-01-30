@@ -9,6 +9,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
 	"github.com/openshift/origin/pkg/build/controller/build/defaults/api/validation"
+	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -21,7 +22,7 @@ type BuildDefaults struct {
 // NewBuildDefaults creates a new BuildDefaults that will apply the defaults specified in the plugin config
 func NewBuildDefaults(pluginConfig map[string]*configapi.AdmissionPluginConfig) (BuildDefaults, error) {
 	config := &defaultsapi.BuildDefaultsConfig{}
-	err := buildadmission.ReadPluginConfig(pluginConfig, defaultsapi.BuildDefaultsPlugin, config)
+	err := pluginconfig.ReadPluginConfig(pluginConfig, defaultsapi.BuildDefaultsPlugin, config)
 	if err != nil {
 		return BuildDefaults{}, err
 	}

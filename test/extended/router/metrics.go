@@ -73,6 +73,12 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 		ns = oc.KubeFramework().Namespace.Name
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc)
+		}
+	})
+
 	g.Describe("The HAProxy router", func() {
 		g.It("should expose a health check on the metrics port", func() {
 			if !hasHealth {
@@ -90,6 +96,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			if !hasMetrics {
 				g.Skip("router does not have ROUTER_METRICS_TYPE set")
 			}
+
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()
@@ -109,7 +116,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 			times := 10
 			var results string
 			defer func() { e2e.Logf("received metrics:\n%s", results) }()
-			err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
+			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 				o.Expect(err).NotTo(o.HaveOccurred())
 

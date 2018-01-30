@@ -203,7 +203,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 	if !a.accepter.Covers(gr) && !policy.Covers(gr) {
 		return nil
 	}
-
+	glog.V(5).Infof("running image policy admission for %s:%s/%s", attr.GetKind(), attr.GetNamespace(), attr.GetName())
 	m, err := meta.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
 	if err != nil {
 		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
@@ -337,10 +337,17 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 		return &rules.ImagePolicyAttributes{Name: ref, Image: image, IntegratedRegistry: c.integrated.Matches(ref.Registry)}, nil
 	}
 
+	// an image spec that points to the internal registry is by definition also an imagestreamtag reference,
+	// so attempt to resolve it as such.
 	fullReference := c.integrated.Matches(ref.Registry)
+	// if we've been explicitly told to treat this image spec as an imagestreamtag reference, or if it is a single
+	// segment value, attempt to resolve the value as an imagestream tag that will ultimately resolve to an image.
 	partialReference := forceResolveLocalNames || (len(ref.Registry) == 0 && len(ref.Namespace) == 0 && len(ref.Name) > 0)
+
+	// if we can't treat it as an imagestreamtag reference, and since we don't have an imageid (checked earlier),
+	// we aren't going to be able to resolve this value to an image.
 	if !fullReference && !partialReference {
-		return nil, fmt.Errorf("only images imported into the registry are allowed (%s)", ref.Exact())
+		return nil, fmt.Errorf("(%s) could not be resolved to an exact image reference", ref.Exact())
 	}
 
 	tag := ref.Tag
@@ -382,13 +389,13 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 	if partial {
 		if !forceResolveLocalNames && !resolved.LookupPolicy.Local {
 			attrs.IntegratedRegistry = false
-			return attrs, fmt.Errorf("ImageStreamTag does not allow local references")
+			return attrs, fmt.Errorf("ImageStreamTag does not allow local references and the resource did not request image stream resolution")
 		}
 		attrs.LocalRewrite = true
 	}
 	ref, err := imageapi.ParseDockerImageReference(resolved.Image.DockerImageReference)
 	if err != nil {
-		return attrs, fmt.Errorf("ImageStreamTag could not be resolved: %v", err)
+		return attrs, fmt.Errorf("Image reference %s could not be parsed: %v", resolved.Image.DockerImageReference, err)
 	}
 	ref.Tag = ""
 	ref.ID = resolved.Image.Name

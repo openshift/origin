@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/auth/server/errorpage"
+	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 

@@ -5,8 +5,8 @@ import (
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 
-	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authenticationapi "github.com/openshift/origin/pkg/oauthserver/api"
 )
 
 // TranslateLegacyScopeImpersonation is a filter that will translates user scope impersonation for openshift into the equivalent kube headers.

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/util/prefixwriter"
+	"github.com/openshift/origin/pkg/oc/util/prefixwriter"
 )
 
 // execError is an error that occurred executing a local command

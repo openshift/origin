@@ -228,6 +228,24 @@ func DumpPodLogsStartingWith(prefix string, oc *CLI) {
 	}
 }
 
+// DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
+func DumpPodLogsStartingWithInNamespace(prefix, namespace string, oc *CLI) {
+	podsToDump := []kapiv1.Pod{}
+	podList, err := oc.KubeClient().CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		e2e.Logf("Error listing pods: %v", err)
+		return
+	}
+	for _, pod := range podList.Items {
+		if strings.HasPrefix(pod.Name, prefix) {
+			podsToDump = append(podsToDump, pod)
+		}
+	}
+	if len(podsToDump) > 0 {
+		DumpPodLogs(podsToDump, oc)
+	}
+}
+
 func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 	for _, pod := range pods {
 		descOutput, err := oc.Run("describe").Args("pod/" + pod.Name).Output()

@@ -25832,6 +25832,7 @@ var _examplesHelloOpenshiftDockerfile = []byte(`FROM scratch
 MAINTAINER Jessica Forrester <jforrest@redhat.com>
 COPY bin/hello-openshift /hello-openshift
 EXPOSE 8080 8888
+USER 1001
 ENTRYPOINT ["/hello-openshift"]
 `)
 
@@ -29037,6 +29038,8 @@ objects:
       app: openshift-web-console
     annotations:
       service.alpha.openshift.io/serving-cert-secret-name: webconsole-serving-cert
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
   spec:
     selector:
       webconsole: "true"

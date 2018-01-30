@@ -10,14 +10,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
-	"github.com/openshift/origin/pkg/auth/server/errorpage"
-	"github.com/openshift/origin/pkg/auth/server/login"
-	"github.com/openshift/origin/pkg/auth/server/selectprovider"
-	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	"github.com/openshift/origin/pkg/oauthserver/authenticator/redirector"
+	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
+	"github.com/openshift/origin/pkg/oauthserver/server/login"
+	"github.com/openshift/origin/pkg/oauthserver/server/selectprovider"
+	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 

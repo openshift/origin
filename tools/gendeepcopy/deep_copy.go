@@ -20,7 +20,6 @@ func main() {
 
 	// Override defaults. These are Kubernetes specific input locations.
 	arguments.InputDirs = []string{
-		"github.com/openshift/origin/pkg/build/admission/testing",
 		"github.com/openshift/origin/pkg/build/controller/build/defaults/api",
 		"github.com/openshift/origin/pkg/build/controller/build/defaults/api/v1",
 		"github.com/openshift/origin/pkg/build/controller/build/overrides/api",
@@ -28,7 +27,7 @@ func main() {
 		"github.com/openshift/origin/pkg/cmd/server/api",
 		"github.com/openshift/origin/pkg/cmd/server/api/v1",
 		"github.com/openshift/origin/pkg/cmd/server/api/v1/testing",
-		"github.com/openshift/origin/pkg/cmd/util/pluginconfig/testing",
+		"github.com/openshift/origin/pkg/build/controller/build/pluginconfig/testing",
 		"github.com/openshift/origin/pkg/image/admission/imagepolicy/api",
 		"github.com/openshift/origin/pkg/image/admission/imagepolicy/api/v1",
 		"github.com/openshift/origin/pkg/image/admission/imagequalify/api",

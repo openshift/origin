@@ -63,6 +63,35 @@
     ]
   },
 
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/oauthserver",
+
+      "github.com/openshift/origin/pkg/cmd/server/origin",
+      "github.com/openshift/origin/pkg/authorization/registry/clusterrole",
+      "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding",
+      "github.com/openshift/origin/pkg/authorization/registry/role",
+      "github.com/openshift/origin/pkg/authorization/registry/rolebinding",
+      "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper",
+      "github.com/openshift/origin/pkg/build/admission/secretinjector",
+      "github.com/openshift/origin/pkg/cmd/server/api/validation",
+      "github.com/openshift/origin/pkg/cmd/server/handlers",
+      "github.com/openshift/origin/pkg/oauth/util",
+      "github.com/openshift/origin/pkg/oc/admin",
+      "github.com/openshift/origin/pkg/oc/admin/groups/sync",
+      "github.com/openshift/origin/pkg/user"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/oauthserver"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
 
   {
     "checkedPackages": [
@@ -286,7 +315,7 @@
       "vendor/golang.org",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
-      "github.com/openshift/origin/pkg/config/cmd",
+      "github.com/openshift/origin/pkg/bulk",
       "github.com/openshift/origin/pkg/template/servicebroker",
       "github.com/openshift/origin/pkg/util/rest"
     ],
@@ -305,6 +334,61 @@
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/template/apis/template/validation",
       "github.com/openshift/origin/pkg/route/apis/route"
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg/oauthserver"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor/k8s.io/apimachinery",
+      "vendor/k8s.io/apiserver",
+      "vendor/k8s.io/client-go",
+      "vendor/golang.org",
+      "vendor/github.com/RangelReale/osin",
+      "vendor/github.com/RangelReale/osincli",
+      "vendor/github.com/pborman/uuid",
+      "vendor/github.com/gorilla/securecookie",
+      "vendor/github.com/gorilla/sessions",
+      "vendor/github.com/gorilla/context",
+      "vendor/github.com/rackspace/gophercloud",
+      "vendor/github.com/openshift/api",
+      "vendor/gopkg.in/ldap.v2",
+      "vendor/k8s.io/kubernetes",
+      "vendor/github.com/prometheus/client_golang/prometheus",
+      "github.com/openshift/origin/pkg/oauthserver",
+      "github.com/openshift/origin/pkg/user/generated",
+      "github.com/openshift/origin/pkg/route/generated",
+      "github.com/openshift/origin/pkg/oauth/generated"
+    ],
+    "allowedImportPackages": [
+      "vendor/github.com/golang/glog",
+      "vendor/k8s.io/kubernetes/pkg/apis/core",
+      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
+      "github.com/openshift/origin/pkg/authorization/apis/authorization",
+      "github.com/openshift/origin/pkg/user/apis/user",
+      "github.com/openshift/origin/pkg/cmd/server/api",
+      "github.com/openshift/origin/pkg/util/http/links",
+      "github.com/openshift/origin/pkg/authorization/authorizer/scope",
+      "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
+      "github.com/openshift/origin/pkg/oauth/scope",
+      "github.com/openshift/origin/pkg/oauth/apis/oauth",
+      "github.com/openshift/origin/pkg/util/rankedset",
+      "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization",
+      "github.com/openshift/origin/pkg/cmd/server/api",
+      "github.com/openshift/origin/pkg/cmd/server/api/latest",
+      "github.com/openshift/origin/pkg/cmd/util",
+      "github.com/openshift/origin/pkg/serviceaccounts/oauthclient",
+      "github.com/openshift/origin/pkg/oauth/registry/oauthclient",
+      "github.com/openshift/origin/pkg/authorization/authorizer/scope",
+      "github.com/openshift/origin/pkg/user/registry/test",
+      "github.com/openshift/origin/pkg/oauth/util",
+      "github.com/openshift/origin/pkg/api/install",
+      "github.com/openshift/origin/pkg/user",
+      "github.com/openshift/origin/pkg/user/registry/test",
+      "github.com/openshift/origin/pkg/user/registry/useridentitymapping",
+      "github.com/openshift/origin/pkg/util/httprequest"
     ]
   }
 ]

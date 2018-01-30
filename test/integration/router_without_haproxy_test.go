@@ -35,8 +35,6 @@ const waitInterval = 50 * time.Millisecond
 // will match a router's selector will expose routes in that namespace
 // after the subsequent namespace sync.
 func TestRouterNamespaceSync(t *testing.T) {
-	testutil.RequireEtcd(t)
-
 	routeclient, projectclient, kc, fn, err := launchApi(t)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/openshift/origin/pkg/cmd/openshift"
-	cmdsanity "github.com/openshift/origin/pkg/cmd/util/sanity"
+	cmdsanity "github.com/openshift/origin/tools/clicheck/sanity"
 )
 
 var (

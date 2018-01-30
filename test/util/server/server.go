@@ -17,7 +17,6 @@ import (
 
 	"github.com/golang/glog"
 
-	etcdclient "github.com/coreos/etcd/client"
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,7 +112,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
 }
 
-func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
+func setupStartOptions(useDefaultPort bool) (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs := start.GetAllInOneArgs()
 
 	basedir := util.GetBaseDir()
@@ -155,11 +154,6 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 		nodeArgs.ListenArg.ListenAddr.Set(nodeAddr)
 	}
 
-	if !startEtcd {
-		masterArgs.EtcdAddr.Provided = true
-		masterArgs.EtcdAddr.Set(util.GetEtcdURL())
-	}
-
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
 		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
@@ -174,12 +168,12 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 }
 
 func DefaultMasterOptions() (*configapi.MasterConfig, error) {
-	return DefaultMasterOptionsWithTweaks(true, false)
+	return DefaultMasterOptionsWithTweaks(false)
 }
 
-func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.MasterConfig, error) {
+func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfig, error) {
 	startOptions := start.MasterOptions{}
-	startOptions.MasterArgs, _, _, _, _ = setupStartOptions(startEtcd, useDefaultPort)
+	startOptions.MasterArgs, _, _, _, _ = setupStartOptions(useDefaultPort)
 	startOptions.Complete()
 	// reset, since Complete alters the default
 	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
@@ -299,7 +293,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *utilflags.ComponentFlag, error) {
 	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
-	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(true, false)
+	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(false)
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.NodeArgs.Components.Disable("plugins", "proxy", "dns")
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
@@ -378,24 +372,20 @@ func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string
 	return master, node, adminKubeConfigFile, err
 }
 
-func MasterEtcdClients(config *configapi.MasterConfig) (etcdclient.Client, *etcdclientv3.Client, error) {
-	etcd2, err := etcd.MakeEtcdClient(config.EtcdClientInfo)
-	if err != nil {
-		return nil, nil, err
-	}
+func MasterEtcdClients(config *configapi.MasterConfig) (*etcdclientv3.Client, error) {
 	etcd3, err := etcd.MakeEtcdClientV3(config.EtcdClientInfo)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return etcd2, etcd3, nil
+	return etcd3, nil
 }
 
 func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
-	etcd2, etcd3, err := MasterEtcdClients(config)
+	etcd3, err := MasterEtcdClients(config)
 	if err != nil {
 		t.Logf("Unable to get etcd client available for master: %v", err)
 	}
-	util.DumpEtcdOnFailure(t, etcd2, etcd3)
+	dumpEtcdOnFailure(t, etcd3)
 	if config.EtcdConfig != nil {
 		if len(config.EtcdConfig.StorageDir) > 0 {
 			if err := os.RemoveAll(config.EtcdConfig.StorageDir); err != nil {

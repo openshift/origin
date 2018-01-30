@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	etcdtest "k8s.io/apiserver/pkg/storage/etcd/testing"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/flowcontrol"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -33,7 +33,6 @@ import (
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 
-	etcd "github.com/coreos/etcd/client"
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 )
@@ -963,41 +962,13 @@ var kindWhiteList = sets.NewString(
 // namespace used for all tests, do not change this
 const testNamespace = "etcdstoragepathtestnamespace"
 
-// TestEtcd2StoragePath tests to make sure that all objects are stored in an expected location in etcd.
-// It will start failing when a new type is added to ensure that all future types are added to this test.
-// It will also fail when a type gets moved to a different location. Be very careful in this situation because
-// it essentially means that you will be break old clusters unless you create some migration path for the old data.
-func TestEtcd2StoragePath(t *testing.T) {
-	etcdServer := testutil.RequireEtcd2(t)
-	defer etcdServer.DumpEtcdOnFailure(t)
-
-	getter := &etcd2Getter{
-		keys: etcd.NewKeysAPI(etcdServer.Client),
-	}
-	testEtcdStoragePath(t, etcdServer.EtcdTestServer, getter)
-}
-
 // TestEtcd3StoragePath tests to make sure that all objects are stored in an expected location in etcd.
 // It will start failing when a new type is added to ensure that all future types are added to this test.
 // It will also fail when a type gets moved to a different location. Be very careful in this situation because
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
 //
-// TODO: disabled for now because the etcd3 test cluster defaults to unix:// and some parts of
-// OpenShift don't seem to work with that right now.
-/*
 func TestEtcd3StoragePath(t *testing.T) {
-	etcdServer, _ := testutil.RequireEtcd3(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	getter := &etcd3Getter{
-		kv: etcdServer.V3Client,
-	}
-	testEtcdStoragePath(t, etcdServer, getter)
-}
-*/
-
-func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, getter etcdGetter) {
-	masterConfig, err := testserver.DefaultMasterOptionsWithTweaks(false, false)
+	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error getting master config: %#v", err)
 	}
@@ -1015,15 +986,17 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = &serverapi.AdmissionPluginConfig{
 		Configuration: &serverapi.DefaultAdmissionConfig{Disable: true},
 	}
-	if etcdServer.V3Client == nil {
-		masterConfig.KubernetesMasterConfig.APIServerArguments["storage-backend"] = []string{"etcd2"}
-	}
-	masterConfig.EtcdClientInfo.URLs[0] = testutil.GetEtcdURL()
 
 	_, err = testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %#v", err)
 	}
+
+	etcdClient3, err := etcd.MakeEtcdClientV3(masterConfig.EtcdClientInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// use the loopback config because it identifies as having the group system:masters which is a "magic" do anything group
 	// for upstream kube.
 	kubeConfigFile := masterConfig.MasterClients.OpenShiftLoopbackKubeConfig
@@ -1142,7 +1115,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 				}
 			}
 
-			output, err := getter.getFromEtcd(testData.expectedEtcdPath)
+			output, err := getFromEtcd(etcdClient3.KV, testData.expectedEtcdPath)
 			if err != nil {
 				t.Errorf("failed to get from etcd for %s from %s: %#v", kind, pkgPath, err)
 				return
@@ -1491,30 +1464,14 @@ func createSerializers(config restclient.ContentConfig) (*restclient.Serializers
 	return s, nil
 }
 
-type etcdGetter interface {
-	getFromEtcd(path string) (*metaObject, error)
-}
-
-type etcd2Getter struct {
-	keys etcd.KeysAPI
-}
-
-func (e *etcd2Getter) getFromEtcd(path string) (*metaObject, error) {
-	response, err := e.keys.Get(context.Background(), path, nil)
+func getFromEtcd(kv etcdv3.KV, path string) (*metaObject, error) {
+	response, err := kv.Get(context.Background(), "/"+path, etcdv3.WithSerializable())
 	if err != nil {
 		return nil, err
 	}
-	return jsonToMetaObject(response.Node.Value)
-}
 
-type etcd3Getter struct {
-	kv etcdv3.KV
-}
-
-func (e *etcd3Getter) getFromEtcd(path string) (*metaObject, error) {
-	response, err := e.kv.Get(context.Background(), path, etcdv3.WithSerializable())
-	if err != nil {
-		return nil, err
+	if len(response.Kvs) == 0 {
+		return nil, fmt.Errorf("no keys found for %q", "/"+path)
 	}
 
 	into := &metaObject{}

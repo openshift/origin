@@ -4,7 +4,7 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
-	"github.com/openshift/origin/pkg/oauth/server/osinserver"
+	"github.com/openshift/origin/pkg/oauthserver/osinserver"
 )
 
 // OauthAuthorizationServerMetadata holds OAuth 2.0 Authorization Server Metadata used for discovery

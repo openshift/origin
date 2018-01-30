@@ -19,8 +19,8 @@ type VersionInfo interface {
 func NewCmdVersion(fullName string, versionInfo VersionInfo, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "Display client and server versions",
-		Long:  "Display client and server versions",
+		Short: "Display version",
+		Long:  "Display version",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(out, "%s %v\n", fullName, versionInfo)
 		},

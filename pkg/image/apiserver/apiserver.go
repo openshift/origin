@@ -17,6 +17,7 @@ import (
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	imageapiv1 "github.com/openshift/api/image/v1"
+	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -145,6 +146,11 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, err
 	}
 
+	imageV1Client, err := imageclientv1.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	imageStorage, err := imageetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -187,7 +193,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		imageStreamRegistry,
 		internalImageStreamStorage,
 		imageStorage,
-		imageClient.Image(),
+		imageV1Client.ImageV1(),
 		importTransport,
 		insecureImportTransport,
 		importerDockerClientFn,
