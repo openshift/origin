@@ -4,6 +4,7 @@ package node
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"sort"
 	"strings"
@@ -14,6 +15,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+
+	"github.com/containernetworking/plugins/pkg/utils/hwaddr"
 )
 
 func setupOVSController(t *testing.T) (ovs.Interface, *ovsController, []string) {
@@ -225,7 +228,7 @@ func TestOVSPod(t *testing.T) {
 	ovsif, oc, origFlows := setupOVSController(t)
 
 	// Add
-	ofport, err := oc.SetUpPod("veth1", "10.128.0.2", "11:22:33:44:55:66", sandboxID, 42)
+	ofport, err := oc.SetUpPod(sandboxID, "veth1", net.ParseIP("10.128.0.2"), 42)
 	if err != nil {
 		t.Fatalf("Unexpected error adding pod rules: %v", err)
 	}
@@ -237,7 +240,7 @@ func TestOVSPod(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66"},
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "00:00:0a:80:00:02/00:00:ff:ff:ff:ff"},
 		},
 		flowChange{
 			kind:  flowAdded,
@@ -275,7 +278,7 @@ func TestOVSPod(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66"},
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "00:00:0a:80:00:02/00:00:ff:ff:ff:ff"},
 		},
 		flowChange{
 			kind:  flowAdded,
@@ -320,7 +323,6 @@ func TestGetPodDetails(t *testing.T) {
 	type testcase struct {
 		sandboxID string
 		ip        string
-		mac       string
 		errStr    string
 	}
 
@@ -328,18 +330,17 @@ func TestGetPodDetails(t *testing.T) {
 		{
 			sandboxID: sandboxID,
 			ip:        "10.130.0.2",
-			mac:       "4a:77:32:e4:ab:9d",
 		},
 	}
 
 	for _, tc := range testcases {
 		_, oc, _ := setupOVSController(t)
-		tcOFPort, err := oc.SetUpPod("veth1", tc.ip, tc.mac, tc.sandboxID, 42)
+		tcOFPort, err := oc.SetUpPod(tc.sandboxID, "veth1", net.ParseIP(tc.ip), 42)
 		if err != nil {
 			t.Fatalf("Unexpected error adding pod rules: %v", err)
 		}
 
-		ofport, ip, mac, err := oc.getPodDetailsBySandboxID(tc.sandboxID)
+		ofport, ip, err := oc.getPodDetailsBySandboxID(tc.sandboxID)
 		if err != nil {
 			if tc.errStr != "" {
 				if !strings.Contains(err.Error(), tc.errStr) {
@@ -354,11 +355,8 @@ func TestGetPodDetails(t *testing.T) {
 		if ofport != tcOFPort {
 			t.Fatalf("unexpected ofport %d (expected %d)", ofport, tcOFPort)
 		}
-		if ip != tc.ip {
-			t.Fatalf("unexpected ip %q (expected %q)", ip, tc.ip)
-		}
-		if mac != tc.mac {
-			t.Fatalf("unexpected mac %q (expected %q)", mac, tc.mac)
+		if ip.String() != tc.ip {
+			t.Fatalf("unexpected ip %q (expected %q)", ip.String(), tc.ip)
 		}
 	}
 }
@@ -1048,5 +1046,18 @@ func TestSyncVNIDRules(t *testing.T) {
 		if !reflect.DeepEqual(unused, tc.unused) {
 			t.Fatalf("(%d) wrong result, expected %v, got %v", i, tc.unused, unused)
 		}
+	}
+}
+
+// Ensure that CNI's IP-addressed-based MAC addresses use the IP in the way we expect
+func TestSetHWAddrByIP(t *testing.T) {
+	ip := net.ParseIP("1.2.3.4")
+	hwAddr, err := hwaddr.GenerateHardwareAddr4(ip, hwaddr.PrivateMACPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedHWAddr := net.HardwareAddr(append(hwaddr.PrivateMACPrefix, ip.To4()...))
+	if !reflect.DeepEqual(hwAddr, expectedHWAddr) {
+		t.Fatalf("hwaddr.GenerateHardwareAddr4 changed behavior! (%#v != %#v)", hwAddr, expectedHWAddr)
 	}
 }

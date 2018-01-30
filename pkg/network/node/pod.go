@@ -539,7 +539,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		}
 	}
 
-	var hostVethName, contVethMac string
+	var hostVethName string
 	err = ns.WithNetNSPath(req.Netns, func(hostNS ns.NetNS) error {
 		hostVeth, contVeth, err := ip.SetupVeth(podInterfaceName, int(m.mtu), hostNS)
 		if err != nil {
@@ -588,7 +588,6 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		}
 
 		hostVethName = hostVeth.Name
-		contVethMac = contVeth.HardwareAddr.String()
 		return nil
 	})
 	if err != nil {
@@ -604,7 +603,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		return nil, nil, err
 	}
 
-	ofport, err := m.ovs.SetUpPod(hostVethName, podIP.String(), contVethMac, req.SandboxID, vnid)
+	ofport, err := m.ovs.SetUpPod(req.SandboxID, hostVethName, podIP, vnid)
 	if err != nil {
 		return nil, nil, err
 	}
