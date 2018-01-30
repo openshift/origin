@@ -207,6 +207,9 @@ function os::util::ensure_tmpfs() {
 	os::log::debug "Filesystem information:
 $( df -h -T )"
 
+	os::log::debug "Mount information:
+$( findmnt --all )"
+
 	local fstype
 	fstype="$( df --output=fstype "${target}" | tail -n 1 )"
 	if [[ "${fstype}" != "tmpfs" ]]; then
