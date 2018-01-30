@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	"k8s.io/kubernetes/pkg/util/iptables"
@@ -41,7 +42,7 @@ func (n *NodeIPTables) Setup() error {
 	// If firewalld is running, reload will call this method
 	n.ipt.AddReloadFunc(func() {
 		if err := n.syncIPTableRules(); err != nil {
-			glog.Errorf("Reloading openshift iptables failed: %v", err)
+			utilruntime.HandleError(fmt.Errorf("Reloading openshift iptables failed: %v", err))
 		}
 	})
 
@@ -59,7 +60,7 @@ func (n *NodeIPTables) syncLoop() {
 		glog.V(6).Infof("Periodic openshift iptables sync")
 		err := n.syncIPTableRules()
 		if err != nil {
-			glog.Errorf("Syncing openshift iptables failed: %v", err)
+			utilruntime.HandleError(fmt.Errorf("Syncing openshift iptables failed: %v", err))
 		}
 	}
 }

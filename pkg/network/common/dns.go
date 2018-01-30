@@ -8,9 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
-
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kexec "k8s.io/utils/exec"
 )
 
@@ -131,7 +130,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 
 		ttl, err := time.ParseDuration(fmt.Sprintf("%ss", fields[1]))
 		if err != nil {
-			glog.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", dns, err, defaultTTL.String())
+			utilruntime.HandleError(fmt.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", dns, err, defaultTTL.String()))
 			ttl = defaultTTL
 		}
 		if (minTTL.Seconds() == 0) || (minTTL.Seconds() > ttl.Seconds()) {

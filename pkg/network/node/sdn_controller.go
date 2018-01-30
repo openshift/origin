@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/netutils"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/util/sysctl"
@@ -97,7 +98,7 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 	})
 
 	if err != nil {
-		glog.Errorf("error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err)
+		utilruntime.HandleError(fmt.Errorf("Error removing %s route from dev %s: %v; if the route appears later it will not be deleted.", localSubnetCIDR, device, err))
 	}
 }
 
@@ -203,34 +204,34 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	policies := plugin.egressPolicies[vnid]
 	namespaces := plugin.policy.GetNamespaces(vnid)
 	if err := plugin.oc.UpdateEgressNetworkPolicyRules(policies, vnid, namespaces, plugin.egressDNS); err != nil {
-		glog.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error updating OVS flows for EgressNetworkPolicy: %v", err))
 	}
 }
 
 func (plugin *OsdnNode) AddHostSubnetRules(subnet *networkapi.HostSubnet) {
 	glog.Infof("AddHostSubnetRules for %s", common.HostSubnetToString(subnet))
 	if err := plugin.oc.AddHostSubnetRules(subnet); err != nil {
-		glog.Errorf("Error adding OVS flows for subnet %q: %v", subnet.Subnet, err)
+		utilruntime.HandleError(fmt.Errorf("Error adding OVS flows for subnet %q: %v", subnet.Subnet, err))
 	}
 }
 
 func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *networkapi.HostSubnet) {
 	glog.Infof("DeleteHostSubnetRules for %s", common.HostSubnetToString(subnet))
 	if err := plugin.oc.DeleteHostSubnetRules(subnet); err != nil {
-		glog.Errorf("Error deleting OVS flows for subnet %q: %v", subnet.Subnet, err)
+		utilruntime.HandleError(fmt.Errorf("Error deleting OVS flows for subnet %q: %v", subnet.Subnet, err))
 	}
 }
 
 func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) {
 	glog.V(5).Infof("AddServiceRules for %v", service)
 	if err := plugin.oc.AddServiceRules(service, netID); err != nil {
-		glog.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err)
+		utilruntime.HandleError(fmt.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err))
 	}
 }
 
 func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) {
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
 	if err := plugin.oc.DeleteServiceRules(service); err != nil {
-		glog.Errorf("Error deleting OVS flows for service %v: %v", service, err)
+		utilruntime.HandleError(fmt.Errorf("Error deleting OVS flows for service %v: %v", service, err))
 	}
 }

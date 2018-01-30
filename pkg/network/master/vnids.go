@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -292,7 +293,7 @@ func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventTy
 	ns := obj.(*kapi.Namespace)
 	glog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
 	if err := master.vnids.assignVNID(master.networkClient, ns.Name); err != nil {
-		glog.Errorf("Error assigning netid: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error assigning netid: %v", err))
 	}
 }
 
@@ -300,7 +301,7 @@ func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 	ns := obj.(*kapi.Namespace)
 	glog.V(5).Infof("Watch %s event for Namespace %q", watch.Deleted, ns.Name)
 	if err := master.vnids.revokeVNID(master.networkClient, ns.Name); err != nil {
-		glog.Errorf("Error revoking netid: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error revoking netid: %v", err))
 	}
 }
 
@@ -315,6 +316,6 @@ func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, even
 
 	err := master.vnids.updateVNID(master.networkClient, netns)
 	if err != nil {
-		glog.Errorf("Error updating netid: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error updating netid: %v", err))
 	}
 }

@@ -5,11 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
-
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 
 	ktypes "k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kexec "k8s.io/utils/exec"
 )
 
@@ -47,7 +46,7 @@ func (e *EgressDNS) Add(policy networkapi.EgressNetworkPolicy) {
 	for _, rule := range policy.Spec.Egress {
 		if len(rule.To.DNSName) > 0 {
 			if err := dnsInfo.Add(rule.To.DNSName); err != nil {
-				glog.Error(err)
+				utilruntime.HandleError(err)
 			}
 		}
 	}
@@ -96,7 +95,7 @@ func (e *EgressDNS) Sync() {
 			} else {
 				err, changed := e.Update(policyUID)
 				if err != nil {
-					glog.Error(err)
+					utilruntime.HandleError(err)
 				}
 
 				if changed {
