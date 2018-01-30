@@ -54,37 +54,20 @@ func SyncPods(c kclientset.Interface, ns string, selectors map[string]string, ti
 				framework.Failf("Failed getting pods: %v", err)
 				return false, nil // Ignore this error (nil) and try again in "Poll" time
 			}
-			pods := podList.Items
 
-			if pods == nil || len(pods) == 0 {
+			if podList.Items == nil || len(podList.Items) == 0 {
 				return true, nil
 			}
-			for _, p := range pods {
+			for _, p := range podList.Items {
 				if p.Status.Phase != state {
 					return false, nil
 				}
 			}
 			return true, nil
 		})
-	return err
-}
-
-// SyncRunningPods waits for pods to enter Running state
-func SyncRunningPods(c kclientset.Interface, ns string, selectors map[string]string, timeout time.Duration) (err error) {
-	err = SyncPods(c, ns, selectors, timeout, kapiv1.PodRunning)
 	if err == nil {
 		// There wasn't a timeout
 		e2e.Logf("All pods running in %s with labels: %v", ns, selectors)
-	}
-	return err
-}
-
-// SyncSucceededPods waits for pods to enter Completed state
-func SyncSucceededPods(c kclientset.Interface, ns string, selectors map[string]string, timeout time.Duration) (err error) {
-	err = SyncPods(c, ns, selectors, timeout, kapiv1.PodSucceeded)
-	if err == nil {
-		// There wasn't a timeout
-		e2e.Logf("All pods succeeded in %s with labels: %v", ns, selectors)
 	}
 	return err
 }
@@ -135,7 +118,7 @@ func CreatePods(c kclientset.Interface, appName string, ns string, labels map[st
 		if err != nil {
 			return err
 		}
-		return SyncRunningPods(c, ns, sync.Selectors, timeout)
+		return SyncPods(c,ns,sync.Selectors, timeout,kapiv1.PodRunning)
 	}
 
 	if sync.Server.Enabled {
@@ -148,7 +131,7 @@ func CreatePods(c kclientset.Interface, appName string, ns string, labels map[st
 		if err != nil {
 			return err
 		}
-		return SyncSucceededPods(c, ns, sync.Selectors, timeout)
+		return SyncPods(c, ns, sync.Selectors, timeout, kapiv1.PodSucceeded)
 	}
 	return nil
 }
@@ -472,7 +455,7 @@ func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, temp
 		if err != nil {
 			return err
 		}
-		err = SyncRunningPods(c, nsName, sync.Selectors, timeout)
+		err = SyncPods(c, nsName, sync.Selectors, timeout, kapiv1.PodRunning)
 		if err != nil {
 			return err
 		}
@@ -491,7 +474,7 @@ func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, temp
 		if err != nil {
 			return err
 		}
-		err = SyncSucceededPods(c, nsName, sync.Selectors, timeout)
+		err = SyncPods(c, nsName, sync.Selectors, timeout, kapiv1.PodSucceeded)
 		if err != nil {
 			return err
 		}
