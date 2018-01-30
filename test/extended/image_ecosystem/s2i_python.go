@@ -2,6 +2,7 @@ package image_ecosystem
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -109,14 +110,15 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// Ran into an issue where we'd try to hit the endpoint before it was updated, resulting in
-				// request timeouts against the previous pod's ip.  So make sure the endpoint ip has changed before
-				// hitting it.
+				// request timeouts against the previous pod's ip.  So make sure the endpoint is pointing to the
+				// new pod before hitting it.
 				err = wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
 					newEndpoint, err := oc.KubeFramework().ClientSet.Core().Endpoints(oc.Namespace()).Get(dcName, metav1.GetOptions{})
 					if err != nil {
 						return false, err
 					}
-					if newEndpoint.Subsets[0].Addresses[0].IP == oldEndpoint.Subsets[0].Addresses[0].IP {
+					if !strings.Contains(newEndpoint.Subsets[0].Addresses[0].TargetRef.Name, rcNameTwo) {
+						e2e.Logf("waiting on endpoint address ref %s to contain %s", newEndpoint.Subsets[0].Addresses[0].TargetRef.Name, rcNameTwo)
 						return false, nil
 					}
 					e2e.Logf("old endpoint was %#v, new endpoint is %#v", oldEndpoint, newEndpoint)
