@@ -110,6 +110,8 @@ function os::build::environment::cleanup() {
   local container=$1
   local volume=$2
   local tmp_volume=$3
+  os::log::debug "Recording container information to ${LOG_DIR}/${container}.json"
+  docker inspect "${container}" > "${LOG_DIR}/${container}.json"
   os::log::debug "Stopping container ${container}"
   docker stop --time=0 "${container}" > /dev/null || true
   if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
