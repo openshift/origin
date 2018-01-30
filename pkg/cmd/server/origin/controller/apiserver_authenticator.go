@@ -1,4 +1,4 @@
-package authenticator
+package controller
 
 import (
 	"crypto/x509"
@@ -14,9 +14,10 @@ import (
 	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
 )
 
-// NewRemoteAuthenticator creates an authenticator that checks the provided remote endpoint for tokens, allows any linked clientCAs to be checked, and caches
+// TODO this should really be removed in favor of the generic apiserver
+// newRemoteAuthenticator creates an authenticator that checks the provided remote endpoint for tokens, allows any linked clientCAs to be checked, and caches
 // responses as indicated.  If no authentication is possible, the user will be system:anonymous.
-func NewRemoteAuthenticator(tokenReview authenticationclient.TokenReviewInterface, clientCAs *x509.CertPool, cacheTTL time.Duration) (authenticator.Request, error) {
+func newRemoteAuthenticator(tokenReview authenticationclient.TokenReviewInterface, clientCAs *x509.CertPool, cacheTTL time.Duration) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
 
 	tokenAuthenticator, err := webhooktoken.NewFromInterface(tokenReview, cacheTTL)
