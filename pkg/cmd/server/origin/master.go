@@ -19,7 +19,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
@@ -277,13 +276,12 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 	return func(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
 			// these are after the kube handler
 			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
-			handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
 
 			// this is the normal kube handler chain
 			handler = apiserver.DefaultBuildHandlerChain(handler, genericConfig)
 
 			// these handlers are all before the normal kube chain
-			handler = serverhandlers.TranslateLegacyScopeImpersonation(handler)
+			handler = translateLegacyScopeImpersonation(handler)
 			handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / to /console if you're using a browser
