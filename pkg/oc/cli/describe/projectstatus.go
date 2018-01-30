@@ -16,10 +16,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
+	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kappsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/apps/internalversion"
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kapisextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
@@ -30,6 +32,7 @@ import (
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployedges "github.com/openshift/origin/pkg/apps/graph"
 	deployanalysis "github.com/openshift/origin/pkg/apps/graph/analysis"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -93,6 +96,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&podLoader{namespace: namespace, lister: d.K.Core()},
 		&statefulSetLoader{namespace: namespace, lister: d.K.Apps()},
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
+		&deploymentLoader{namespace: namespace, lister: d.K.Extensions()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.BuildClient},
@@ -1376,6 +1380,30 @@ func (l *horizontalPodAutoscalerLoader) Load() error {
 func (l *horizontalPodAutoscalerLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		kubegraph.EnsureHorizontalPodAutoscalerNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type deploymentLoader struct {
+	namespace string
+	lister    kapisextclient.DeploymentsGetter
+	items     []kapisext.Deployment
+}
+
+func (l *deploymentLoader) Load() error {
+	list, err := l.lister.Deployments(l.namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *deploymentLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		appsgraph.EnsureDeploymentNode(g, &l.items[i])
 	}
 
 	return nil
