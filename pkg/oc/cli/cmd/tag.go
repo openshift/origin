@@ -148,9 +148,9 @@ func determineSourceKind(f *clientcmd.Factory, input string) string {
 	glog.V(1).Infof("error while determining source kind: %v", err)
 
 	switch strings.ToLower(input) {
-	case "istag":
+	case "istag", "imagestreamtag":
 		return "ImageStreamTag"
-	case "isimage":
+	case "isimage", "imagestreamimage":
 		return "ImageStreamImage"
 	}
 
