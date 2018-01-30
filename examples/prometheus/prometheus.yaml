@@ -366,7 +366,7 @@ objects:
           expr: up{job="kubernetes-nodes"} == 0
           annotations:
             miqTarget: "ContainerNode"
-            severity: "HIGH"
+            severity: error
             message: "{{$labels.instance}} is down"
     
     recording.rules: |

@@ -11,6 +11,7 @@ groups:
         summary: Docker latency is high
         description: "Docker latency is {{ $value }} seconds for 90% of kubelet operations"
         alertType: latency
+        miqTarget: ContainerNode
         component: container runtime
         selfHealing: false
         url:
@@ -19,11 +20,12 @@ groups:
       expr: up{job="kubernetes-apiservers"} == 0
       for: 10m
       labels:
-        severity: critical
+        severity: error
       annotations:
         summary: Kubernetes API server unreachable
         description: "Kubernetes API server unreachable on {{ $labels.cluster }} instance {{ $labels.instance }}"
         alertType: availability
+        miqTarget: ContainerNode
         component: kubernetes
         selfHealing: false
         url:
@@ -32,11 +34,12 @@ groups:
       expr: absent(up{job="kubernetes-apiservers"})
       for: 5m
       labels:
-        severity: critical
+        severity: error
       annotations:
         summary: Kubernetes API server absent
         description: Kubernetes API server absent
         alertType: availability
+        miqTarget: ContainerNode
         component: kubernetes
         selfHealing: false
         url:
@@ -50,6 +53,7 @@ groups:
         summary: Kubernetes API server errors high
         description: "Kubernetes API server errors (response code 5xx) are {{ $value }}% of total requests"
         alertType: errors
+        miqTarget: ContainerNode
         component: kubernetes
         selfHealing: false
         url:
@@ -63,6 +67,7 @@ groups:
         summary: Kubernetes API server latency high
         description: "Kubernetes API server request latency is {{ $value }} seconds for 90% of requests. NOTE: long-standing requests have been removed from alert query."
         alertType: latency
+        miqTarget: ContainerNode
         component: kubernetes
         selfHealing: false
         url:
