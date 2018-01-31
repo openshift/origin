@@ -131,6 +131,11 @@ func RunAutoscale(f cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []s
 		params["scaleRef-name"] = name
 		params["scaleRef-apiVersion"] = mapping.GroupVersionKind.GroupVersion().String()
 
+		// hack to make scaling DCs work.
+		if mapping.GroupVersionKind.Kind == "DeploymentConfig" && len(mapping.GroupVersionKind.Group) == 0 {
+			params["scaleRef-apiVersion"] = "apps.openshift.io/v1"
+		}
+
 		if err = kubectl.ValidateParams(names, params); err != nil {
 			return err
 		}
