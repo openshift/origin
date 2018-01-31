@@ -1386,10 +1386,14 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			// Wait for deployment pod to be running
 			_, err = waitForRCModification(oc, namespace, appsutil.LatestDeploymentNameForConfig(dc), deploymentRunTimeout,
 				rc.ResourceVersion, func(currentRC *kapiv1.ReplicationController) (bool, error) {
-					if appsutil.DeploymentStatusFor(currentRC) == appsapi.DeploymentStatusRunning {
+					switch appsutil.DeploymentStatusFor(currentRC) {
+					case appsapi.DeploymentStatusRunning, appsapi.DeploymentStatusComplete:
 						return true, nil
+					case appsapi.DeploymentStatusFailed:
+						return true, fmt.Errorf("deployment '%s/%s' has failed", currentRC.Namespace, currentRC.Name)
+					default:
+						return false, nil
 					}
-					return false, nil
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
