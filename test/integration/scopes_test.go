@@ -12,9 +12,9 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	"github.com/openshift/origin/pkg/client/impersonatingclient"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	authenticationapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
@@ -105,8 +105,8 @@ func TestScopedImpersonation(t *testing.T) {
 	}
 
 	err = clusterAdminBuildClient.Build().RESTClient().Get().
-		SetHeader(authenticationapi.ImpersonateUserHeader, "harold").
-		SetHeader(authenticationapi.ImpersonateUserScopeHeader, "user:info").
+		SetHeader(impersonatingclient.ImpersonateUserHeader, "harold").
+		SetHeader(impersonatingclient.ImpersonateUserScopeHeader, "user:info").
 		Namespace(projectName).Resource("builds").Name("name").Do().Into(&buildapi.Build{})
 	if !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
@@ -114,8 +114,8 @@ func TestScopedImpersonation(t *testing.T) {
 
 	user := &userapi.User{}
 	err = userclient.NewForConfigOrDie(clusterAdminClientConfig).RESTClient().Get().
-		SetHeader(authenticationapi.ImpersonateUserHeader, "harold").
-		SetHeader(authenticationapi.ImpersonateUserScopeHeader, "user:info").
+		SetHeader(impersonatingclient.ImpersonateUserHeader, "harold").
+		SetHeader(impersonatingclient.ImpersonateUserScopeHeader, "user:info").
 		Resource("users").Name("~").Do().Into(user)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

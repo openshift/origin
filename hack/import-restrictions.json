@@ -355,7 +355,6 @@
       "vendor/github.com/gorilla/context",
       "vendor/github.com/rackspace/gophercloud",
       "vendor/gopkg.in/ldap.v2",
-      "vendor/k8s.io/kubernetes",
       "vendor/github.com/prometheus/client_golang/prometheus",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
@@ -365,8 +364,6 @@
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
-      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
-      "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/cmd/server/api",
       "github.com/openshift/origin/pkg/util/http/links",
       "github.com/openshift/origin/pkg/authorization/authorizer/scope",

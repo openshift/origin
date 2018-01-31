@@ -1,4 +1,4 @@
-package client
+package impersonatingclient
 
 import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

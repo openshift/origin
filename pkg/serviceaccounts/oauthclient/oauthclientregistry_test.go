@@ -5,17 +5,18 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
@@ -26,9 +27,9 @@ import (
 var (
 	encoder                 = legacyscheme.Codecs.LegacyCodec(oauthapiv1.SchemeGroupVersion)
 	decoder                 = legacyscheme.Codecs.UniversalDecoder()
-	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "serviceaccounts"}
-	secretsResource         = schema.GroupVersionResource{Group: "", Version: "", Resource: "secrets"}
-	secretKind              = schema.GroupVersionKind{Group: "", Version: "", Kind: "Secret"}
+	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "serviceaccounts"}
+	secretsResource         = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
+	secretKind              = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"}
 	routesResource          = schema.GroupVersionResource{Group: "route.openshift.io", Version: "", Resource: "routes"}
 	routeClientKind         = schema.GroupVersionKind{Group: "route.openshift.io", Version: "", Kind: "Route"}
 )
@@ -69,7 +70,7 @@ func TestGetClient(t *testing.T) {
 			name:       "sa no redirects",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace:   "ns-01",
 						Name:        "default",
@@ -88,7 +89,7 @@ func TestGetClient(t *testing.T) {
 			name:       "sa invalid redirect scheme",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace:   "ns-01",
 						Name:        "default",
@@ -105,7 +106,7 @@ func TestGetClient(t *testing.T) {
 			name:       "sa no tokens",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace:   "ns-01",
 						Name:        "default",
@@ -125,7 +126,7 @@ func TestGetClient(t *testing.T) {
 			name:       "good SA",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace:   "ns-01",
 						Name:        "default",
@@ -133,17 +134,17 @@ func TestGetClient(t *testing.T) {
 						Annotations: map[string]string{OAuthRedirectModelAnnotationURIPrefix + "one": "http://anywhere"},
 					},
 				},
-				&kapi.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
+							corev1.ServiceAccountNameKey: "default",
+							corev1.ServiceAccountUIDKey:  "any",
 						},
 					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
+					Type: corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(),
 			expectedClient: &oauthapiv1.OAuthClient{
@@ -163,7 +164,7 @@ func TestGetClient(t *testing.T) {
 			name:       "good SA with valid, simple route redirects",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
@@ -174,17 +175,17 @@ func TestGetClient(t *testing.T) {
 						},
 					},
 				},
-				&kapi.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
+							corev1.ServiceAccountNameKey: "default",
+							corev1.ServiceAccountUIDKey:  "any",
 						},
 					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
+					Type: corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(
 				&routeapi.Route{
@@ -223,7 +224,7 @@ func TestGetClient(t *testing.T) {
 			name:       "good SA with invalid route redirects",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
@@ -235,17 +236,17 @@ func TestGetClient(t *testing.T) {
 						},
 					},
 				},
-				&kapi.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
+							corev1.ServiceAccountNameKey: "default",
+							corev1.ServiceAccountUIDKey:  "any",
 						},
 					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
+					Type: corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(
 				&routeapi.Route{
@@ -284,7 +285,7 @@ func TestGetClient(t *testing.T) {
 			name:       "good SA with a route that doesn't have a host",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
@@ -295,17 +296,17 @@ func TestGetClient(t *testing.T) {
 						},
 					},
 				},
-				&kapi.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
+							corev1.ServiceAccountNameKey: "default",
+							corev1.ServiceAccountUIDKey:  "any",
 						},
 					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
+					Type: corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(
 				&routeapi.Route{
@@ -344,7 +345,7 @@ func TestGetClient(t *testing.T) {
 			name:       "good SA with routes that don't have hosts, some of which are empty or duplicates",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
@@ -357,17 +358,17 @@ func TestGetClient(t *testing.T) {
 						},
 					},
 				},
-				&kapi.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
+							corev1.ServiceAccountNameKey: "default",
+							corev1.ServiceAccountUIDKey:  "any",
 						},
 					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
+					Type: corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(
 				&routeapi.Route{
@@ -430,7 +431,7 @@ func TestGetClient(t *testing.T) {
 			name:       "host overrides route data",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
@@ -443,17 +444,17 @@ func TestGetClient(t *testing.T) {
 						},
 					},
 				},
-				&kapi.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
+							corev1.ServiceAccountNameKey: "default",
+							corev1.ServiceAccountUIDKey:  "any",
 						},
 					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
+					Type: corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(
 				&routeapi.Route{
@@ -509,7 +510,7 @@ func TestGetClient(t *testing.T) {
 			name:       "good SA with valid, route redirects using the same route twice",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
-				&kapi.ServiceAccount{
+				&corev1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
@@ -522,17 +523,17 @@ func TestGetClient(t *testing.T) {
 						},
 					},
 				},
-				&kapi.Secret{
+				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "ns-01",
 						Name:      "default",
 						Annotations: map[string]string{
-							kapi.ServiceAccountNameKey: "default",
-							kapi.ServiceAccountUIDKey:  "any",
+							corev1.ServiceAccountNameKey: "default",
+							corev1.ServiceAccountUIDKey:  "any",
 						},
 					},
-					Type: kapi.SecretTypeServiceAccountToken,
-					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
+					Type: corev1.SecretTypeServiceAccountToken,
+					Data: map[string][]byte{corev1.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(
 				&routeapi.Route{

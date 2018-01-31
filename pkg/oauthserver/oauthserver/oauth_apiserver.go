@@ -9,16 +9,17 @@ import (
 	"github.com/pborman/uuid"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	kclientset "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
@@ -30,8 +31,13 @@ import (
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
 
+var (
+	scheme = runtime.NewScheme()
+	codecs = serializer.NewCodecFactory(scheme)
+)
+
 func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
-	genericConfig := genericapiserver.NewRecommendedConfig(legacyscheme.Codecs)
+	genericConfig := genericapiserver.NewRecommendedConfig(codecs)
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper

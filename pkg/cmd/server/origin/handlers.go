@@ -23,8 +23,8 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/client/impersonatingclient"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	authenticationapi "github.com/openshift/origin/pkg/oauthserver/api"
 )
 
 // cacheExcludedPaths is small and simple until the handlers include the cache headers they need
@@ -158,7 +158,7 @@ func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper api
 // translateLegacyScopeImpersonation is a filter that will translates user scope impersonation for openshift into the equivalent kube headers.
 func translateLegacyScopeImpersonation(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		for _, scope := range req.Header[authenticationapi.ImpersonateUserScopeHeader] {
+		for _, scope := range req.Header[impersonatingclient.ImpersonateUserScopeHeader] {
 			req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey] =
 				append(req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey], scope)
 		}

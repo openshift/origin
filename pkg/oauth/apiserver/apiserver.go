@@ -10,7 +10,6 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
-	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
@@ -118,10 +117,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	coreClient, err := coreclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	routeClient, err := routeclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
@@ -132,8 +127,8 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(
-		coreClient,
-		coreClient,
+		coreV1Client,
+		coreV1Client,
 		coreV1Client.Events(""),
 		routeClient.Route(),
 		oauthClient.OAuthClients(),

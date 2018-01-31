@@ -8,17 +8,17 @@ import (
 	"strings"
 
 	clientv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
@@ -194,13 +194,13 @@ var _ oauthclient.Getter = &saOAuthClientAdapter{}
 func NewServiceAccountOAuthClientGetter(
 	saClient kcoreclient.ServiceAccountsGetter,
 	secretClient kcoreclient.SecretsGetter,
-	eventClient corev1.EventInterface,
+	eventClient kcoreclient.EventInterface,
 	routeClient routeclient.RoutesGetter,
 	delegate oauthclient.Getter,
 	grantMethod oauthapi.GrantHandlerType,
 ) oauthclient.Getter {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: eventClient})
+	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: eventClient})
 	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, clientv1.EventSource{Component: "service-account-oauth-client-getter"})
 	return &saOAuthClientAdapter{
 		saClient:      saClient,
@@ -451,7 +451,7 @@ func getScopeRestrictionsFor(namespace, name string) []oauthapi.ScopeRestriction
 }
 
 // getServiceAccountTokens returns all ServiceAccountToken secrets for the given ServiceAccount
-func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *kapi.ServiceAccount) ([]string, error) {
+func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *corev1.ServiceAccount) ([]string, error) {
 	allSecrets, err := a.secretClient.Secrets(sa.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -459,7 +459,7 @@ func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *kapi.ServiceAccount) 
 	tokens := []string{}
 	for i := range allSecrets.Items {
 		secret := &allSecrets.Items[i]
-		if serviceaccount.InternalIsServiceAccountToken(secret, sa) {
+		if serviceaccount.IsServiceAccountToken(secret, sa) {
 			tokens = append(tokens, string(secret.Data[kapi.ServiceAccountTokenKey]))
 		}
 	}
