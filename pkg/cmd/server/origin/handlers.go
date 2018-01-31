@@ -23,7 +23,6 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client/impersonatingclient"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -155,10 +154,15 @@ func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper api
 	})
 }
 
+// legacyImpersonateUserScopeHeader is the header name older servers were using
+// just for scopes, so we need to translate it from clients that may still be
+// using it.
+const legacyImpersonateUserScopeHeader = "Impersonate-User-Scope"
+
 // translateLegacyScopeImpersonation is a filter that will translates user scope impersonation for openshift into the equivalent kube headers.
 func translateLegacyScopeImpersonation(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		for _, scope := range req.Header[impersonatingclient.ImpersonateUserScopeHeader] {
+		for _, scope := range req.Header[legacyImpersonateUserScopeHeader] {
 			req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey] =
 				append(req.Header[authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey], scope)
 		}
