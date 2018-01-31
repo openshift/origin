@@ -77,6 +77,8 @@ func ValidateSecurityContextConstraints(scc *securityapi.SecurityContextConstrai
 			"required capabilities must be empty when all capabilities are allowed by a wildcard"))
 	}
 
+	allErrs = append(allErrs, validateSCCDefaultAllowPrivilegeEscalation(field.NewPath("defaultAllowPrivilegeEscalation"), scc.DefaultAllowPrivilegeEscalation, scc.AllowPrivilegeEscalation)...)
+
 	allowsFlexVolumes := false
 	hasNoneVolume := false
 
@@ -125,6 +127,16 @@ func validateSCCCapsAgainstDrops(requiredDrops []kapi.Capability, capsToCheck []
 				fmt.Sprintf("capability is listed in %s and requiredDropCapabilities", fldPath.String())))
 		}
 	}
+	return allErrs
+}
+
+// validateSCCDefaultAllowPrivilegeEscalation validates the DefaultAllowPrivilegeEscalation field against the AllowPrivilegeEscalation field of a SecurityContextConstraints.
+func validateSCCDefaultAllowPrivilegeEscalation(fldPath *field.Path, defaultAllowPrivilegeEscalation, allowPrivilegeEscalation *bool) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if defaultAllowPrivilegeEscalation != nil && allowPrivilegeEscalation != nil && *defaultAllowPrivilegeEscalation && !*allowPrivilegeEscalation {
+		allErrs = append(allErrs, field.Invalid(fldPath, defaultAllowPrivilegeEscalation, "Cannot set DefaultAllowPrivilegeEscalation to true without also setting AllowPrivilegeEscalation to true"))
+	}
+
 	return allErrs
 }
 

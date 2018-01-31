@@ -14,6 +14,8 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	var invalidUID int64 = -1
 	var invalidPriority int32 = -1
 	var validPriority int32 = 1
+	yes := true
+	no := false
 
 	validSCC := func() *securityapi.SecurityContextConstraints {
 		return &securityapi.SecurityContextConstraints{
@@ -101,6 +103,10 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 
 	nonEmptyFlexVolumes := validSCC()
 	nonEmptyFlexVolumes.AllowedFlexVolumes = []securityapi.AllowedFlexVolume{{Driver: "example/driver"}}
+
+	invalidDefaultAllowPrivilegeEscalation := validSCC()
+	invalidDefaultAllowPrivilegeEscalation.DefaultAllowPrivilegeEscalation = &yes
+	invalidDefaultAllowPrivilegeEscalation.AllowPrivilegeEscalation = &no
 
 	errorCases := map[string]struct {
 		scc         *securityapi.SecurityContextConstraints
@@ -202,6 +208,11 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 			errorType:   field.ErrorTypeInvalid,
 			errorDetail: "volumes does not include 'flexVolume' or '*', so no flex volumes are allowed",
 		},
+		"invalid defaultAllowPrivilegeEscalation": {
+			scc:         invalidDefaultAllowPrivilegeEscalation,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "Cannot set DefaultAllowPrivilegeEscalation to true without also setting AllowPrivilegeEscalation to true",
+		},
 	}
 
 	for k, v := range errorCases {
@@ -244,6 +255,10 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		{Driver: "example/driver2"},
 	}
 
+	validDefaultAllowPrivilegeEscalation := validSCC()
+	validDefaultAllowPrivilegeEscalation.DefaultAllowPrivilegeEscalation = &yes
+	validDefaultAllowPrivilegeEscalation.AllowPrivilegeEscalation = &yes
+
 	successCases := map[string]struct {
 		scc *securityapi.SecurityContextConstraints
 	}{
@@ -267,6 +282,9 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		},
 		"allow white-listed flexVolume when all volumes are allowed": {
 			scc: flexvolumeWhenAllVolumesAllowed,
+		},
+		"valid defaultAllowPrivilegeEscalation as true": {
+			scc: validDefaultAllowPrivilegeEscalation,
 		},
 	}
 

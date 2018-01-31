@@ -934,3 +934,60 @@ func TestValidateAllowedVolumes(t *testing.T) {
 		}
 	}
 }
+
+// TestValidateAllowPrivilegeEscalation will test that when the SecurityContextConstraints
+// AllowPrivilegeEscalation is false we cannot set a container's securityContext
+// to allowPrivilegeEscalation, but when it is true we can.
+func TestValidateAllowPrivilegeEscalation(t *testing.T) {
+	yes := true
+	no := false
+
+	pod := defaultPod()
+	pod.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation = &yes
+
+	// create a SCC that does not allow privilege escalation
+	scc := defaultSCC()
+	scc.AllowPrivilegeEscalation = &no
+
+	provider, err := NewSimpleProvider(scc)
+	if err != nil {
+		t.Errorf("error creating provider: %v", err.Error())
+	}
+
+	// expect a denial for this SCC and test the error message to ensure it's related to allowPrivilegeEscalation
+	errs := provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+	if len(errs) != 1 {
+		t.Errorf("expected exactly 1 error but got %v", errs)
+	} else {
+		if !strings.Contains(errs.ToAggregate().Error(), "Allowing privilege escalation for containers is not allowed") {
+			t.Errorf("did not find the expected error, received: %v", errs)
+		}
+	}
+
+	// Now set AllowPrivilegeEscalation
+	scc.AllowPrivilegeEscalation = &yes
+	errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+	if len(errs) != 0 {
+		t.Errorf("directly allowing privilege escalation expected no errors but got %v", errs)
+	}
+
+	// Now set the scc spec to false and reset AllowPrivilegeEscalation
+	scc.AllowPrivilegeEscalation = &no
+	pod.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation = nil
+	errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+	if len(errs) != 1 {
+		t.Errorf("expected exactly 1 error but got %v", errs)
+	} else {
+		if !strings.Contains(errs.ToAggregate().Error(), "Allowing privilege escalation for containers is not allowed") {
+			t.Errorf("did not find the expected error, received: %v", errs)
+		}
+	}
+
+	// Now unset both AllowPrivilegeEscalation
+	scc.AllowPrivilegeEscalation = &yes
+	pod.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation = nil
+	errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+	if len(errs) != 0 {
+		t.Errorf("resetting allowing privilege escalation expected no errors but got %v", errs)
+	}
+}

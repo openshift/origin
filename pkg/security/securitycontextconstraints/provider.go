@@ -200,6 +200,17 @@ func (s *simpleProvider) CreateContainerSecurityContext(pod *api.Pod, container 
 		sc.SetReadOnlyRootFilesystem(&readOnlyRootFS)
 	}
 
+	// if the SCC sets DefaultAllowPrivilegeEscalation and the container security context
+	// allowPrivilegeEscalation is not set, then default to that set by the SCC.
+	if s.scc.DefaultAllowPrivilegeEscalation != nil && sc.AllowPrivilegeEscalation() == nil {
+		sc.SetAllowPrivilegeEscalation(s.scc.DefaultAllowPrivilegeEscalation)
+	}
+
+	// if the SCC sets AllowPrivilegeEscalation to false set that as the default
+	if s.scc.AllowPrivilegeEscalation != nil && !*s.scc.AllowPrivilegeEscalation && sc.AllowPrivilegeEscalation() == nil {
+		sc.SetAllowPrivilegeEscalation(s.scc.AllowPrivilegeEscalation)
+	}
+
 	return sc.ContainerSecurityContext(), nil
 }
 
@@ -325,6 +336,17 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("readOnlyRootFilesystem"), readOnly, "ReadOnlyRootFilesystem may not be nil and must be set to true"))
 		} else if !*readOnly {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("readOnlyRootFilesystem"), *readOnly, "ReadOnlyRootFilesystem must be set to true"))
+		}
+	}
+
+	allowEscalation := sc.AllowPrivilegeEscalation()
+	if s.scc.AllowPrivilegeEscalation != nil && !*s.scc.AllowPrivilegeEscalation {
+		if allowEscalation == nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("allowPrivilegeEscalation"), allowEscalation, "Allowing privilege escalation for containers is not allowed"))
+		}
+
+		if allowEscalation != nil && *allowEscalation {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("allowPrivilegeEscalation"), *allowEscalation, "Allowing privilege escalation for containers is not allowed"))
 		}
 	}
 

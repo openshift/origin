@@ -203,3 +203,12 @@ func TestDefaultSCCVolumes(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultAllowPrivilegeEscalation(t *testing.T) {
+	scc := &versioned.SecurityContextConstraints{}
+	output := roundTrip(t, runtime.Object(scc))
+	scc2 := output.(*versioned.SecurityContextConstraints)
+	if scc2.AllowPrivilegeEscalation == nil || *scc2.AllowPrivilegeEscalation != true {
+		t.Errorf("Expected default to true, got: %#v", scc2.AllowPrivilegeEscalation)
+	}
+}
