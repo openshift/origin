@@ -24,15 +24,13 @@ import (
 
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/origin/pkg/apiserver/authentication/internaloauth"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	oauthclientlister "github.com/openshift/origin/pkg/oauth/generated/listers/oauth/internalversion"
-	openshiftauthenticator "github.com/openshift/origin/pkg/oauthserver/authenticator"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/paramtoken"
-	authnregistry "github.com/openshift/origin/pkg/oauthserver/oauth/registry"
-	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
@@ -73,7 +71,7 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper internaloauth.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
@@ -94,16 +92,16 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		validators := []openshiftauthenticator.OAuthTokenValidator{authnregistry.NewExpirationValidator(), authnregistry.NewUIDValidator()}
+		validators := []internaloauth.OAuthTokenValidator{internaloauth.NewExpirationValidator(), internaloauth.NewUIDValidator()}
 		if inactivityTimeout := config.OAuthConfig.TokenConfig.AccessTokenInactivityTimeoutSeconds; inactivityTimeout != nil {
-			timeoutValidator := authnregistry.NewTimeoutValidator(accessTokenGetter, oauthClientLister, *inactivityTimeout, oauthvalidation.MinimumInactivityTimeoutSeconds)
+			timeoutValidator := internaloauth.NewTimeoutValidator(accessTokenGetter, oauthClientLister, *inactivityTimeout, oauthvalidation.MinimumInactivityTimeoutSeconds)
 			validators = append(validators, timeoutValidator)
 			postStartHooks["openshift.io-TokenTimeoutUpdater"] = func(context genericapiserver.PostStartHookContext) error {
 				go timeoutValidator.Run(context.StopCh)
 				return nil
 			}
 		}
-		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
+		oauthTokenAuthenticator := internaloauth.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper, validators...)
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user

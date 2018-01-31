@@ -374,7 +374,6 @@
       "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
       "github.com/openshift/origin/pkg/oauth/scope",
       "github.com/openshift/origin/pkg/oauth/apis/oauth",
-      "github.com/openshift/origin/pkg/util/rankedset",
       "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization",
       "github.com/openshift/origin/pkg/cmd/server/api",
       "github.com/openshift/origin/pkg/cmd/server/api/latest",
