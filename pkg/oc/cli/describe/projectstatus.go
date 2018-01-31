@@ -340,11 +340,11 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		// We print errors by default and warnings if -v is used. If we get none,
 		// this would be an extra new line.
-		if len(errorMarkers) != 0 || (d.Suggest && len(warningMarkers) != 0) {
+		if len(errorMarkers) != 0 || len(infoMarkers) != 0 || (d.Suggest && len(warningMarkers) != 0) {
 			fmt.Fprintln(out)
 		}
 
-		errors, warnings := "", ""
+		errors, warnings, infos := "", "", ""
 		if len(errorMarkers) == 1 {
 			errors = "1 error"
 		} else if len(errorMarkers) > 1 {
@@ -355,16 +355,28 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		} else if len(warningMarkers) > 1 {
 			warnings = fmt.Sprintf("%d warnings", len(warningMarkers))
 		}
+		if len(infoMarkers) == 1 {
+			infos = "1 info"
+		} else if len(infoMarkers) > 0 {
+			infos = fmt.Sprintf("%d infos", len(infoMarkers))
+		}
+
+		markerStrings := []string{errors, warnings, infos}
+		markerString := ""
+		count := 0
+		for _, m := range markerStrings {
+			if len(m) > 0 {
+				if count > 0 {
+					markerString = fmt.Sprintf("%s, ", markerString)
+				}
+				markerString = fmt.Sprintf("%s%s", markerString, m)
+				count++
+			}
+		}
 
 		switch {
-		case !d.Suggest && len(errorMarkers) > 0 && len(warningMarkers) > 0:
-			fmt.Fprintf(out, "%s and %s identified, use '%[3]s status -v' to see details.\n", errors, warnings, d.CommandBaseName)
-
-		case !d.Suggest && len(errorMarkers) > 0 && errorSuggestions > 0:
-			fmt.Fprintf(out, "%s identified, use '%[2]s status -v' to see details.\n", errors, d.CommandBaseName)
-
-		case !d.Suggest && len(warningMarkers) > 0:
-			fmt.Fprintf(out, "%s identified, use '%[2]s status -v' to see details.\n", warnings, d.CommandBaseName)
+		case !d.Suggest && ((len(errorMarkers) > 0 && errorSuggestions > 0) || len(warningMarkers) > 0 || len(infoMarkers) > 0):
+			fmt.Fprintf(out, "%s identified, use '%s status -v' to see details.\n", markerString, d.CommandBaseName)
 
 		case (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0):
 			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")
