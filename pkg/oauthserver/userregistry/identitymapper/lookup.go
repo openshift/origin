@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 var _ = authapi.UserIdentityMapper(&lookupIdentityMapper{})
@@ -15,7 +15,7 @@ var _ = authapi.UserIdentityMapper(&lookupIdentityMapper{})
 // lookupIdentityMapper does not provision a new identity or user, it only allows identities already associated with users
 type lookupIdentityMapper struct {
 	mappings userclient.UserIdentityMappingInterface
-	users    userclient.UserResourceInterface
+	users    userclient.UserInterface
 }
 
 // UserFor returns info about the user for whom identity info has been provided

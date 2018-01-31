@@ -3,6 +3,7 @@ package useridentitymapping
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,15 +14,16 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	userinternal "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // REST implements the RESTStorage interface in terms of an image registry and
 // image repository registry. It only supports the CreateUser method and is used
 // to simplify adding a new Image and tag to an ImageRepository.
 type REST struct {
-	userClient     userclient.UserResourceInterface
+	userClient     userclient.UserInterface
 	identityClient userclient.IdentityInterface
 }
 
@@ -30,13 +32,13 @@ var _ rest.CreaterUpdater = &REST{}
 var _ rest.Deleter = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(userClient userclient.UserResourceInterface, identityClient userclient.IdentityInterface) *REST {
+func NewREST(userClient userclient.UserInterface, identityClient userclient.IdentityInterface) *REST {
 	return &REST{userClient: userClient, identityClient: identityClient}
 }
 
 // New returns a new UserIdentityMapping for use with CreateUser.
 func (r *REST) New() runtime.Object {
-	return &userapi.UserIdentityMapping{}
+	return &userinternal.UserIdentityMapping{}
 }
 
 // GetIdentities returns the mapping for the named identity
@@ -47,7 +49,7 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 
 // CreateUser associates a user and identity if they both exist, and the identity is not already mapped to a user
 func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
-	mapping, ok := obj.(*userapi.UserIdentityMapping)
+	mapping, ok := obj.(*userinternal.UserIdentityMapping)
 	if !ok {
 		return nil, kerrs.NewBadRequest("invalid type")
 	}
@@ -64,7 +66,7 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 	if err != nil {
 		return nil, false, err
 	}
-	mapping, ok := obj.(*userapi.UserIdentityMapping)
+	mapping, ok := obj.(*userinternal.UserIdentityMapping)
 	if !ok {
 		return nil, false, kerrs.NewBadRequest("invalid type")
 	}
@@ -73,7 +75,7 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 }
 
 func (s *REST) createOrUpdate(ctx apirequest.Context, obj runtime.Object, forceCreate bool) (runtime.Object, bool, error) {
-	mapping := obj.(*userapi.UserIdentityMapping)
+	mapping := obj.(*userinternal.UserIdentityMapping)
 	identity, identityErr, oldUser, oldUserErr, oldMapping, oldMappingErr := s.getRelatedObjects(ctx, mapping.Name, &metav1.GetOptions{})
 
 	// Ensure we didn't get any errors other than NotFound errors
@@ -124,14 +126,16 @@ func (s *REST) createOrUpdate(ctx apirequest.Context, obj runtime.Object, forceC
 	// Validate identity
 	if kerrs.IsNotFound(identityErr) {
 		errs := field.ErrorList{field.Invalid(field.NewPath("identity", "name"), mapping.Identity.Name, "referenced identity does not exist")}
-		return nil, false, kerrs.NewInvalid(userapi.Kind("UserIdentityMapping"), mapping.Name, errs)
+		// TODO update to openshift/api
+		return nil, false, kerrs.NewInvalid(userinternal.Kind("UserIdentityMapping"), mapping.Name, errs)
 	}
 
 	// GetIdentities new user
 	newUser, err := s.userClient.Get(mapping.User.Name, metav1.GetOptions{})
 	if kerrs.IsNotFound(err) {
 		errs := field.ErrorList{field.Invalid(field.NewPath("user", "name"), mapping.User.Name, "referenced user does not exist")}
-		return nil, false, kerrs.NewInvalid(userapi.Kind("UserIdentityMapping"), mapping.Name, errs)
+		// TODO update to openshift/api
+		return nil, false, kerrs.NewInvalid(userinternal.Kind("UserIdentityMapping"), mapping.Name, errs)
 	}
 	if err != nil {
 		return nil, false, err
@@ -201,7 +205,7 @@ func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, erro
 func (s *REST) getRelatedObjects(ctx apirequest.Context, name string, options *metav1.GetOptions) (
 	identity *userapi.Identity, identityErr error,
 	user *userapi.User, userErr error,
-	mapping *userapi.UserIdentityMapping, mappingErr error,
+	mapping *userinternal.UserIdentityMapping, mappingErr error,
 ) {
 	// Initialize errors to NotFound
 	identityErr = kerrs.NewNotFound(userapi.Resource("identity"), name)
@@ -281,7 +285,7 @@ func setIdentityUser(identity *userapi.Identity, user *userapi.User) bool {
 	if identityReferencesUser(identity, user) {
 		return false
 	}
-	identity.User = kapi.ObjectReference{
+	identity.User = corev1.ObjectReference{
 		Name: user.Name,
 		UID:  user.UID,
 	}
@@ -294,14 +298,14 @@ func unsetIdentityUser(identity *userapi.Identity) bool {
 	if !hasUserMapping(identity) {
 		return false
 	}
-	identity.User = kapi.ObjectReference{}
+	identity.User = corev1.ObjectReference{}
 	return true
 }
 
 // mappingFor returns a UserIdentityMapping for the given user and identity
 // The name and resource version of the identity mapping match the identity
-func mappingFor(user *userapi.User, identity *userapi.Identity) (*userapi.UserIdentityMapping, error) {
-	return &userapi.UserIdentityMapping{
+func mappingFor(user *userapi.User, identity *userapi.Identity) (*userinternal.UserIdentityMapping, error) {
+	return &userinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            identity.Name,
 			ResourceVersion: identity.ResourceVersion,

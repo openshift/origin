@@ -11,12 +11,15 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	userapi "github.com/openshift/api/user/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapiinternal "github.com/openshift/origin/pkg/user/apis/user"
+	userapiconversion "github.com/openshift/origin/pkg/user/apis/user/v1"
 	"github.com/openshift/origin/pkg/user/registry/test"
 	mappingregistry "github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 )
 
+// TODO this is actually testing the user identity mapping registry
 func TestLookup(t *testing.T) {
 	testcases := map[string]struct {
 		ProviderName     string
@@ -217,7 +220,11 @@ func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string, op
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*userapi.UserIdentityMapping), nil
+	out := &userapi.UserIdentityMapping{}
+	if err := userapiconversion.Convert_user_UserIdentityMapping_To_v1_UserIdentityMapping(obj.(*userapiinternal.UserIdentityMapping), out, nil); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (s *storage) CreateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {

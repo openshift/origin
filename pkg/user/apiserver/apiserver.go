@@ -11,7 +11,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
 	userapiv1 "github.com/openshift/api/user/v1"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"

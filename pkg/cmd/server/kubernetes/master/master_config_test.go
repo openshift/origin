@@ -51,7 +51,6 @@ var expectedGroupPreferredVersions []string = []string{
 	"scheduling.k8s.io/v1alpha1",
 	"settings.k8s.io/v1alpha1",
 	"storage.k8s.io/v1",
-	"user.openshift.io/v1",
 	"v1",
 }
 

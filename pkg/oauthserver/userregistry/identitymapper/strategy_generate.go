@@ -9,9 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/openshift/origin/pkg/user"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 // UserNameGenerator returns a username
@@ -35,12 +34,12 @@ var _ = UserForNewIdentityGetter(&StrategyGenerate{})
 // StrategyGenerate finds an available username for a new identity, based on its preferred username
 // If a user with the preferred username already exists, a unique username is generated
 type StrategyGenerate struct {
-	user        userclient.UserResourceInterface
+	user        userclient.UserInterface
 	generator   UserNameGenerator
-	initializer user.Initializer
+	initializer Initializer
 }
 
-func NewStrategyGenerate(user userclient.UserResourceInterface, initializer user.Initializer) UserForNewIdentityGetter {
+func NewStrategyGenerate(user userclient.UserInterface, initializer Initializer) UserForNewIdentityGetter {
 	return &StrategyGenerate{user, DefaultGenerator, initializer}
 }
 

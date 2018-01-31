@@ -3,7 +3,7 @@ package identitymapper
 import (
 	"testing"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/api/user/v1"
 	"github.com/openshift/origin/pkg/user/registry/test"
 )
 

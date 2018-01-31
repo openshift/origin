@@ -3,9 +3,8 @@ package identitymapper
 import (
 	"fmt"
 
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	"github.com/openshift/origin/pkg/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 type MappingMethodType string
@@ -31,10 +30,10 @@ const (
 // 1. Returns an existing user if the identity exists and is associated with an existing user
 // 2. Returns an error if the identity exists and is not associated with a user (or is associated with a missing user)
 // 3. Handles new identities according to the requested method
-func NewIdentityUserMapper(identities userclient.IdentityInterface, users userclient.UserResourceInterface, userIdentityMapping userclient.UserIdentityMappingInterface, method MappingMethodType) (authapi.UserIdentityMapper, error) {
+func NewIdentityUserMapper(identities userclient.IdentityInterface, users userclient.UserInterface, userIdentityMapping userclient.UserIdentityMappingInterface, method MappingMethodType) (authapi.UserIdentityMapper, error) {
 	// initUser initializes fields in a User API object from its associated Identity
 	// called when adding the first Identity to a User (during create or update of a User)
-	initUser := user.NewDefaultUserInitStrategy()
+	initUser := NewDefaultUserInitStrategy()
 
 	switch method {
 	case MappingMethodLookup:

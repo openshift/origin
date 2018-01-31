@@ -1,8 +1,8 @@
-package user
+package identitymapper
 
 import (
+	userapi "github.com/openshift/api/user/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 type DefaultUserInitStrategy struct {
