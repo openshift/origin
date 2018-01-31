@@ -11,10 +11,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 )
 
@@ -241,6 +243,8 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &kapi.ReplicationController{ObjectMeta: syntheticMeta})
 		case deployapi.IsResourceOrLegacy("deploymentconfigs", r):
 			syntheticNode = deploygraph.FindOrCreateSyntheticDeploymentConfigNode(g, &deployapi.DeploymentConfig{ObjectMeta: syntheticMeta})
+		case r == kapisext.Resource("deployments"):
+			syntheticNode = appsgraph.FindOrCreateSyntheticDeploymentNode(g, &kapisext.Deployment{ObjectMeta: syntheticMeta})
 		default:
 			continue
 		}
