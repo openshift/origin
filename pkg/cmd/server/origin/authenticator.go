@@ -17,10 +17,13 @@ import (
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	userclient "github.com/openshift/client-go/user/clientset/versioned"
+	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
@@ -31,9 +34,6 @@ import (
 	authnregistry "github.com/openshift/origin/pkg/oauthserver/oauth/registry"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 	usercache "github.com/openshift/origin/pkg/user/cache"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
-	"k8s.io/client-go/rest"
 )
 
 func NewAuthenticator(
@@ -73,7 +73,7 @@ func NewAuthenticator(
 	)
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, oauthClientLister oauthclientlister.OAuthClientLister, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	postStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}

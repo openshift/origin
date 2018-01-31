@@ -15,7 +15,8 @@ import (
 	kapirest "k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/api/user/v1"
+	userapiinternal "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -127,7 +128,7 @@ func verifyActions(expectedActions []test.Action, actualActions []test.Action, t
 }
 
 func verifyMapping(object runtime.Object, user *userapi.User, identity *userapi.Identity, t *testing.T) {
-	mapping, ok := object.(*userapi.UserIdentityMapping)
+	mapping, ok := object.(*userapiinternal.UserIdentityMapping)
 	if !ok {
 		t.Errorf("Expected mapping, got %#v", object)
 		return
@@ -242,7 +243,7 @@ func TestCreate(t *testing.T) {
 		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
@@ -264,7 +265,7 @@ func TestCreateExists(t *testing.T) {
 		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
@@ -287,7 +288,7 @@ func TestCreateMissingIdentity(t *testing.T) {
 		{Name: "GetIdentity", Object: identity.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
@@ -311,7 +312,7 @@ func TestCreateMissingUser(t *testing.T) {
 		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
@@ -338,7 +339,7 @@ func TestCreateUserUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("UpdateUser error")
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
@@ -366,7 +367,7 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
@@ -406,7 +407,7 @@ func TestUpdate(t *testing.T) {
 		{Name: "UpdateUser", Object: unassociatedUser1},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -437,7 +438,7 @@ func TestUpdateMissingIdentity(t *testing.T) {
 		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -470,7 +471,7 @@ func TestUpdateMissingUser(t *testing.T) {
 		{Name: "GetUser", Object: unassociatedUser2.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -497,7 +498,7 @@ func TestUpdateOldUserMatches(t *testing.T) {
 		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: identity.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: identity.Name},
 		User:       kapi.ObjectReference{Name: user.Name},
@@ -529,7 +530,7 @@ func TestUpdateWithEmptyResourceVersion(t *testing.T) {
 		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -559,7 +560,7 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: "123"},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -600,7 +601,7 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("Couldn't update old user")
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -640,7 +641,7 @@ func TestUpdateUserUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("Couldn't update new user")
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -680,7 +681,7 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("Couldn't update identity")
 
-	mapping := &userapi.UserIdentityMapping{
+	mapping := &userapiinternal.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},

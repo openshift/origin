@@ -343,6 +343,7 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
+      "vendor/k8s.io/api",
       "vendor/k8s.io/apiserver",
       "vendor/k8s.io/client-go",
       "vendor/golang.org",
@@ -353,21 +354,20 @@
       "vendor/github.com/gorilla/sessions",
       "vendor/github.com/gorilla/context",
       "vendor/github.com/rackspace/gophercloud",
-      "vendor/github.com/openshift/api",
       "vendor/gopkg.in/ldap.v2",
       "vendor/k8s.io/kubernetes",
       "vendor/github.com/prometheus/client_golang/prometheus",
+      "vendor/github.com/openshift/api",
+      "vendor/github.com/openshift/client-go",
+
       "github.com/openshift/origin/pkg/oauthserver",
-      "github.com/openshift/origin/pkg/user/generated",
       "github.com/openshift/origin/pkg/route/generated",
       "github.com/openshift/origin/pkg/oauth/generated"
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
-      "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
-      "github.com/openshift/origin/pkg/user/apis/user",
       "github.com/openshift/origin/pkg/cmd/server/api",
       "github.com/openshift/origin/pkg/util/http/links",
       "github.com/openshift/origin/pkg/authorization/authorizer/scope",
@@ -385,7 +385,8 @@
       "github.com/openshift/origin/pkg/user/registry/test",
       "github.com/openshift/origin/pkg/oauth/util",
       "github.com/openshift/origin/pkg/api/install",
-      "github.com/openshift/origin/pkg/user",
+      "github.com/openshift/origin/pkg/user/apis/user/v1",
+      "github.com/openshift/origin/pkg/user/apis/user",
       "github.com/openshift/origin/pkg/user/registry/test",
       "github.com/openshift/origin/pkg/user/registry/useridentitymapping",
       "github.com/openshift/origin/pkg/util/httprequest"

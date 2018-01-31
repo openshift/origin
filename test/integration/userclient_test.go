@@ -9,16 +9,16 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -57,8 +57,8 @@ func makeIdentityWithUserReference(providerName, providerUserName string, userNa
 func makeMapping(user, identity string) *userapi.UserIdentityMapping {
 	return &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: identity},
-		User:       kapi.ObjectReference{Name: user},
-		Identity:   kapi.ObjectReference{Name: identity},
+		User:       corev1.ObjectReference{Name: user},
+		Identity:   corev1.ObjectReference{Name: identity},
 	}
 }
 

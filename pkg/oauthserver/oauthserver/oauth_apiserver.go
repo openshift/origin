@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -27,7 +28,6 @@ import (
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
@@ -136,7 +136,7 @@ type ExtraOAuthConfig struct {
 	// RouteClient provides a client for OpenShift routes API.
 	RouteClient routeclient.Interface
 
-	UserClient                userclient.UserResourceInterface
+	UserClient                userclient.UserInterface
 	IdentityClient            userclient.IdentityInterface
 	UserIdentityMappingClient userclient.UserIdentityMappingInterface
 

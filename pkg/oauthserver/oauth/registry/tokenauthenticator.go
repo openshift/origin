@@ -5,21 +5,21 @@ import (
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 type tokenAuthenticator struct {
 	tokens      oauthclient.OAuthAccessTokenInterface
-	users       userclient.UserResourceInterface
+	users       userclient.UserInterface
 	groupMapper identitymapper.UserToGroupMapper
 	validators  authenticator.OAuthTokenValidator
 }
 
-func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper, validators ...authenticator.OAuthTokenValidator) kauthenticator.Token {
+func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserInterface, groupMapper identitymapper.UserToGroupMapper, validators ...authenticator.OAuthTokenValidator) kauthenticator.Token {
 	return &tokenAuthenticator{
 		tokens:      tokens,
 		users:       users,

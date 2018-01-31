@@ -4,16 +4,16 @@ import (
 	"errors"
 	"time"
 
+	userv1 "github.com/openshift/api/user/v1"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator"
-	"github.com/openshift/origin/pkg/user/apis/user"
 )
 
 var errExpired = errors.New("token is expired")
 
 func NewExpirationValidator() authenticator.OAuthTokenValidator {
 	return authenticator.OAuthTokenValidatorFunc(
-		func(token *oauth.OAuthAccessToken, _ *user.User) error {
+		func(token *oauth.OAuthAccessToken, _ *userv1.User) error {
 			if token.ExpiresIn > 0 {
 				if expire(token).Before(time.Now()) {
 					return errExpired

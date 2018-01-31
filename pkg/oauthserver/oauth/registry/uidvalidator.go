@@ -5,7 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/api/user/v1"
 )
 
 const errInvalidUIDStr = "user.UID (%s) does not match token.userUID (%s)"

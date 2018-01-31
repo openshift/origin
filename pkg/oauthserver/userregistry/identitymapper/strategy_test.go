@@ -4,14 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/user"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/user/registry/test"
 )
 
@@ -25,7 +24,7 @@ func (t *testInitializer) InitializeUser(identity *userapi.Identity, user *usera
 }
 
 type strategyTestCase struct {
-	MakeStrategy func(user userclient.UserResourceInterface, initializer user.Initializer) UserForNewIdentityGetter
+	MakeStrategy func(user userclient.UserInterface, initializer Initializer) UserForNewIdentityGetter
 
 	// Inputs
 	PreferredUsername string
@@ -60,11 +59,26 @@ func makeIdentity(uid string, providerName string, providerUserName string, user
 		},
 		ProviderName:     providerName,
 		ProviderUserName: providerUserName,
-		User: kapi.ObjectReference{
+		User: corev1.ObjectReference{
 			UID:  types.UID(userUID),
 			Name: userName,
 		},
 		Extra: map[string]string{},
+	}
+}
+func makeUserIdentityMapping(identityUID string, providerName string, providerUserName string, userUID string, userName string) *userapi.UserIdentityMapping {
+	return &userapi.UserIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: providerName + ":" + providerUserName,
+		},
+		User: corev1.ObjectReference{
+			UID:  types.UID(userUID),
+			Name: userName,
+		},
+		Identity: corev1.ObjectReference{
+			UID:  types.UID(identityUID),
+			Name: "stockvalue",
+		},
 	}
 }
 
