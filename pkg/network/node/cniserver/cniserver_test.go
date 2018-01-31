@@ -62,7 +62,7 @@ func TestCNIServer(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	socketPath := filepath.Join(tmpDir, CNIServerSocketName)
 
-	s := NewCNIServer(tmpDir)
+	s := NewCNIServer(tmpDir, &Config{MTU: 1500})
 	if err := s.Start(serverHandleCNI); err != nil {
 		t.Fatalf("error starting CNI server: %v", err)
 	}
@@ -102,6 +102,7 @@ func TestCNIServer(t *testing.T) {
 					"CNI_CONTAINERID": "adsfadsfasfdasdfasf",
 					"CNI_NETNS":       "/path/to/something",
 					"CNI_ARGS":        "K8S_POD_NAMESPACE=awesome-namespace;K8S_POD_NAME=awesome-name",
+					"OSDN_HOSTVETH":   "vethABC",
 				},
 				Config: []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
@@ -143,6 +144,7 @@ func TestCNIServer(t *testing.T) {
 					"CNI_COMMAND":     string(CNI_ADD),
 					"CNI_CONTAINERID": "adsfadsfasfdasdfasf",
 					"CNI_NETNS":       "/path/to/something",
+					"OSDN_HOSTVETH":   "vethABC",
 				},
 				Config: []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
@@ -157,6 +159,7 @@ func TestCNIServer(t *testing.T) {
 					"CNI_COMMAND":     string(CNI_ADD),
 					"CNI_CONTAINERID": "adsfadsfasfdasdfasf",
 					"CNI_ARGS":        "K8S_POD_NAMESPACE=awesome-namespace;K8S_POD_NAME=awesome-name",
+					"OSDN_HOSTVETH":   "vethABC",
 				},
 				Config: []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
@@ -171,11 +174,27 @@ func TestCNIServer(t *testing.T) {
 					"CNI_CONTAINERID": "adsfadsfasfdasdfasf",
 					"CNI_NETNS":       "/path/to/something",
 					"CNI_ARGS":        "K8S_POD_NAMESPACE=awesome-namespace;K8S_POD_NAME=awesome-name",
+					"OSDN_HOSTVETH":   "vethABC",
 				},
 				Config: []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
 			result:      nil,
 			errorPrefix: "unexpected or missing CNI_COMMAND",
+		},
+		// Missing OSDN_HOSTVETH
+		{
+			name: "ARGS4",
+			request: &CNIRequest{
+				Env: map[string]string{
+					"CNI_COMMAND":     string(CNI_ADD),
+					"CNI_CONTAINERID": "adsfadsfasfdasdfasf",
+					"CNI_NETNS":       "/path/to/something",
+					"CNI_ARGS":        "K8S_POD_NAMESPACE=awesome-namespace;K8S_POD_NAME=awesome-name",
+				},
+				Config: []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
+			},
+			result:      nil,
+			errorPrefix: "missing OSDN_HOSTVETH",
 		},
 	}
 

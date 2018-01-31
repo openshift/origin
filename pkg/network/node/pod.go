@@ -35,9 +35,6 @@ import (
 	"github.com/containernetworking/cni/pkg/invoke"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"
-	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containernetworking/plugins/pkg/ip"
-	"github.com/containernetworking/plugins/pkg/ipam"
 	"github.com/containernetworking/plugins/pkg/ns"
 
 	"github.com/vishvananda/netlink"
@@ -180,7 +177,7 @@ func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetwork
 
 	go m.processCNIRequests()
 
-	m.cniServer = cniserver.NewCNIServer(rundir)
+	m.cniServer = cniserver.NewCNIServer(rundir, &cniserver.Config{MTU: m.mtu})
 	return m.cniServer.Start(m.handleCNIRequest)
 }
 
@@ -384,6 +381,8 @@ func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
 		}
 	}
 
+	// Note that this use of ns is safe because it doesn't call Do() or WithNetNSPath()
+
 	podNs, err := ns.GetNS(netns)
 	if err != nil {
 		return fmt.Errorf("could not open netns %q", netns)
@@ -402,17 +401,7 @@ func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create macvlan interface: %v", err)
 	}
-	return podNs.Do(func(netns ns.NetNS) error {
-		l, err := netlink.LinkByName("macvlan0")
-		if err != nil {
-			return fmt.Errorf("failed to find macvlan interface: %v", err)
-		}
-		err = netlink.LinkSetUp(l)
-		if err != nil {
-			return fmt.Errorf("failed to set macvlan interface up: %v", err)
-		}
-		return nil
-	})
+	return nil
 }
 
 func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *invoke.Args {
@@ -539,61 +528,6 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		}
 	}
 
-	var hostVethName string
-	err = ns.WithNetNSPath(req.Netns, func(hostNS ns.NetNS) error {
-		hostVeth, contVeth, err := ip.SetupVeth(podInterfaceName, int(m.mtu), hostNS)
-		if err != nil {
-			return fmt.Errorf("failed to create container veth: %v", err)
-		}
-		// Force a consistent MAC address based on the IP address
-		if err := ip.SetHWAddrByIP(podInterfaceName, podIP, nil); err != nil {
-			return fmt.Errorf("failed to set pod interface MAC address: %v", err)
-		}
-		// refetch to get hardware address and other properties
-		tmp, err := net.InterfaceByIndex(contVeth.Index)
-		if err != nil {
-			return fmt.Errorf("failed to fetch container veth: %v", err)
-		}
-		contVeth = *tmp
-
-		// Clear out gateway to prevent ConfigureIface from adding the cluster
-		// subnet via the gateway
-		ipamResult.IP4.Gateway = nil
-		result030, err := cnicurrent.NewResultFromResult(ipamResult)
-		if err != nil {
-			return fmt.Errorf("failed to convert IPAM: %v", err)
-		}
-		// Add a sandbox interface record which ConfigureInterface expects.
-		// The only interface we report is the pod interface.
-		result030.Interfaces = []*cnicurrent.Interface{
-			{
-				Name:    podInterfaceName,
-				Mac:     contVeth.HardwareAddr.String(),
-				Sandbox: req.Netns,
-			},
-		}
-		intPtr := 0
-		result030.IPs[0].Interface = &intPtr
-
-		if err = ipam.ConfigureIface(podInterfaceName, result030); err != nil {
-			return fmt.Errorf("failed to configure container IPAM: %v", err)
-		}
-
-		lo, err := netlink.LinkByName("lo")
-		if err == nil {
-			err = netlink.LinkSetUp(lo)
-		}
-		if err != nil {
-			return fmt.Errorf("failed to configure container loopback: %v", err)
-		}
-
-		hostVethName = hostVeth.Name
-		return nil
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
 	vnid, err := m.policy.GetVNID(req.PodNamespace)
 	if err != nil {
 		return nil, nil, err
@@ -603,11 +537,11 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		return nil, nil, err
 	}
 
-	ofport, err := m.ovs.SetUpPod(req.SandboxID, hostVethName, podIP, vnid)
+	ofport, err := m.ovs.SetUpPod(req.SandboxID, req.HostVeth, podIP, vnid)
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := setupPodBandwidth(m.ovs, pod, hostVethName, req.SandboxID); err != nil {
+	if err := setupPodBandwidth(m.ovs, pod, req.HostVeth, req.SandboxID); err != nil {
 		return nil, nil, err
 	}
 
