@@ -361,8 +361,7 @@
       "vendor/github.com/openshift/client-go",
 
       "github.com/openshift/origin/pkg/oauthserver",
-      "github.com/openshift/origin/pkg/route/generated",
-      "github.com/openshift/origin/pkg/oauth/generated"
+      "github.com/openshift/origin/pkg/route/generated"
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
@@ -373,7 +372,6 @@
       "github.com/openshift/origin/pkg/authorization/authorizer/scope",
       "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
       "github.com/openshift/origin/pkg/oauth/scope",
-      "github.com/openshift/origin/pkg/oauth/apis/oauth",
       "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization",
       "github.com/openshift/origin/pkg/cmd/server/api",
       "github.com/openshift/origin/pkg/cmd/server/api/latest",

@@ -5,7 +5,7 @@ import (
 
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
-	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oapi "github.com/openshift/api/oauth/v1"
 )
 
 type UserConversion struct{}

@@ -18,7 +18,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routefake "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
@@ -44,7 +43,7 @@ func TestGetClient(t *testing.T) {
 		expectedDelegation  bool
 		expectedErr         string
 		expectedEventMsg    string
-		expectedClient      *oauthapi.OAuthClient
+		expectedClient      *oauthapiv1.OAuthClient
 		expectedKubeActions []clientgotesting.Action
 		expectedOSActions   []clientgotesting.Action
 	}{
@@ -147,12 +146,12 @@ func TestGetClient(t *testing.T) {
 					Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("foo")},
 				}),
 			routeClient: routefake.NewSimpleClientset(),
-			expectedClient: &oauthapi.OAuthClient{
+			expectedClient: &oauthapiv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere"},
-				GrantMethod:       oauthapi.GrantHandlerPrompt,
+				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -205,12 +204,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapi.OAuthClient{
+			expectedClient: &oauthapiv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere", "https://example1.com/defaultpath"},
-				GrantMethod:       oauthapi.GrantHandlerPrompt,
+				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -268,12 +267,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapi.OAuthClient{
+			expectedClient: &oauthapiv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere"},
-				GrantMethod:       oauthapi.GrantHandlerPrompt,
+				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -326,12 +325,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapi.OAuthClient{
+			expectedClient: &oauthapiv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere"},
-				GrantMethod:       oauthapi.GrantHandlerPrompt,
+				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -412,12 +411,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapi.OAuthClient{
+			expectedClient: &oauthapiv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"http://anywhere", "https://a.com/defaultpath", "https://a.com/path2", "https://b.com/defaultpath", "https://b.com/path2"},
-				GrantMethod:       oauthapi.GrantHandlerPrompt,
+				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -491,12 +490,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapi.OAuthClient{
+			expectedClient: &oauthapiv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"https://google.com/otherpath", "https://redhat.com/defaultpath"},
-				GrantMethod:       oauthapi.GrantHandlerPrompt,
+				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -552,12 +551,12 @@ func TestGetClient(t *testing.T) {
 					},
 				},
 			),
-			expectedClient: &oauthapi.OAuthClient{
+			expectedClient: &oauthapiv1.OAuthClient{
 				ObjectMeta:        metav1.ObjectMeta{Name: "system:serviceaccount:ns-01:default"},
 				ScopeRestrictions: getScopeRestrictionsFor("ns-01", "default"),
 				AdditionalSecrets: []string{"foo"},
 				RedirectURIs:      []string{"https://woot.com/awesomepath", "https://woot.com:8000"},
-				GrantMethod:       oauthapi.GrantHandlerPrompt,
+				GrantMethod:       oauthapiv1.GrantHandlerPrompt,
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
@@ -578,7 +577,7 @@ func TestGetClient(t *testing.T) {
 			eventRecorder: fakerecorder,
 			routeClient:   tc.routeClient.Route(),
 			delegate:      delegate,
-			grantMethod:   oauthapi.GrantHandlerPrompt,
+			grantMethod:   oauthapiv1.GrantHandlerPrompt,
 			decoder:       legacyscheme.Codecs.UniversalDecoder(),
 		}
 		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
@@ -628,7 +627,7 @@ type fakeDelegate struct {
 	called bool
 }
 
-func (d *fakeDelegate) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error) {
+func (d *fakeDelegate) Get(name string, options metav1.GetOptions) (*oauthapiv1.OAuthClient, error) {
 	d.called = true
 	return nil, nil
 }

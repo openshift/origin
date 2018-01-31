@@ -16,8 +16,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	clienttesting "k8s.io/client-go/testing"
 
-	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
+	oapi "github.com/openshift/api/oauth/v1"
+	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
 	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
