@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/golang/glog"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -53,7 +52,7 @@ func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNe
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", entry.CIDR, err)
 			}
-			glog.Errorf("Configured clusterNetworks value %q is invalid; treating it as %q", entry.CIDR, cidr.String())
+			utilruntime.HandleError(fmt.Errorf("Configured clusterNetworks value %q is invalid; treating it as %q", entry.CIDR, cidr.String()))
 		}
 		cns = append(cns, ClusterNetwork{ClusterCIDR: cidr, HostSubnetLength: entry.HostSubnetLength})
 	}
@@ -64,7 +63,7 @@ func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNe
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
 		}
-		glog.Errorf("Configured serviceNetworkCIDR value %q is invalid; treating it as %q", serviceNetwork, sn.String())
+		utilruntime.HandleError(fmt.Errorf("Configured serviceNetworkCIDR value %q is invalid; treating it as %q", serviceNetwork, sn.String()))
 	}
 
 	return &NetworkInfo{

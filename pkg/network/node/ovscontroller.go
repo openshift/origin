@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/ovs"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -559,7 +560,7 @@ func (oc *ovsController) AddServiceRules(service *kapi.Service, netID uint32) er
 	for _, port := range service.Spec.Ports {
 		baseRule, err := generateBaseAddServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port))
 		if err != nil {
-			glog.Errorf("Error creating OVS flow for service %v, netid %d: %v", service, netID, err)
+			utilruntime.HandleError(fmt.Errorf("Error creating OVS flow for service %v, netid %d: %v", service, netID, err))
 		}
 		otx.AddFlow(baseRule + action)
 	}
@@ -639,7 +640,7 @@ func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
 func (oc *ovsController) FindUnusedVNIDs() []int {
 	flows, err := oc.ovs.DumpFlows("")
 	if err != nil {
-		glog.Errorf("FindUnusedVNIDs: could not DumpFlows: %v", err)
+		utilruntime.HandleError(fmt.Errorf("FindUnusedVNIDs: could not DumpFlows: %v", err))
 		return nil
 	}
 

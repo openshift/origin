@@ -3,11 +3,13 @@
 package node
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
@@ -61,11 +63,11 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 
 	pods, err := mp.node.GetLocalPods(namespace)
 	if err != nil {
-		glog.Errorf("Could not get list of local pods in namespace %q: %v", namespace, err)
+		utilruntime.HandleError(fmt.Errorf("Could not get list of local pods in namespace %q: %v", namespace, err))
 	}
 	services, err := mp.node.kClient.Core().Services(namespace).List(metav1.ListOptions{})
 	if err != nil {
-		glog.Errorf("Could not get list of services in namespace %q: %v", namespace, err)
+		utilruntime.HandleError(fmt.Errorf("Could not get list of services in namespace %q: %v", namespace, err))
 		services = &kapi.ServiceList{}
 	}
 
@@ -74,7 +76,7 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 		for _, pod := range pods {
 			err = mp.node.UpdatePod(pod)
 			if err != nil {
-				glog.Errorf("Could not update pod %q in namespace %q: %v", pod.Name, namespace, err)
+				utilruntime.HandleError(fmt.Errorf("Could not update pod %q in namespace %q: %v", pod.Name, namespace, err))
 			}
 		}
 
@@ -140,7 +142,7 @@ func (mp *multiTenantPlugin) EnsureVNIDRules(vnid uint32) {
 	otx := mp.node.oc.NewTransaction()
 	otx.AddFlow("table=80, priority=100, reg0=%d, reg1=%d, actions=output:NXM_NX_REG2[]", vnid, vnid)
 	if err := otx.EndTransaction(); err != nil {
-		glog.Errorf("Error adding OVS flow for VNID: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error adding OVS flow for VNID: %v", err))
 	}
 }
 
@@ -157,6 +159,6 @@ func (mp *multiTenantPlugin) SyncVNIDRules() {
 		otx.DeleteFlows("table=80, reg1=%d", vnid)
 	}
 	if err := otx.EndTransaction(); err != nil {
-		glog.Errorf("Error deleting syncing OVS VNID rules: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error deleting syncing OVS VNID rules: %v", err))
 	}
 }

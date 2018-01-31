@@ -23,13 +23,13 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 	subrange := make(map[common.ClusterNetwork][]string)
 	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
-		glog.Errorf("Error in initializing/fetching subnets: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error in initializing/fetching subnets: %v", err))
 		return err
 	}
 	for _, sub := range subnets.Items {
 		if err = master.networkInfo.ValidateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
-			glog.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(&sub), err)
+			utilruntime.HandleError(fmt.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(&sub), err))
 		} else {
 			glog.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
 			_, subnetIP, err := net.ParseCIDR(sub.Subnet)
@@ -93,7 +93,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 			// Current subnet exhausted, check the next one
 			continue
 		} else if err != nil {
-			glog.Errorf("Error allocating network from subnet: %v", possibleSubnet)
+			utilruntime.HandleError(fmt.Errorf("Error allocating network from subnet: %v", possibleSubnet))
 			continue
 		} else {
 			sub = &networkapi.HostSubnet{
@@ -200,7 +200,7 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 		}
 	}
 	if len(nodeIP) == 0 {
-		glog.Errorf("Node IP is not set for node %s, skipping %s event, node: %v", node.Name, eventType, node)
+		utilruntime.HandleError(fmt.Errorf("Node IP is not set for node %s, skipping %s event, node: %v", node.Name, eventType, node))
 		return
 	}
 	master.clearInitialNodeNetworkUnavailableCondition(node)
@@ -213,7 +213,7 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 
 	usedNodeIP, err := master.addNode(node.Name, nodeIP, nil)
 	if err != nil {
-		glog.Errorf("Error creating subnet for node %s, ip %s: %v", node.Name, nodeIP, err)
+		utilruntime.HandleError(fmt.Errorf("Error creating subnet for node %s, ip %s: %v", node.Name, nodeIP, err))
 		return
 	}
 	master.hostSubnetNodeIPs[node.UID] = usedNodeIP
@@ -225,7 +225,7 @@ func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 	delete(master.hostSubnetNodeIPs, node.UID)
 
 	if err := master.deleteNode(node.Name); err != nil {
-		glog.Errorf("Error deleting node %s: %v", node.Name, err)
+		utilruntime.HandleError(fmt.Errorf("Error deleting node %s: %v", node.Name, err))
 		return
 	}
 }
@@ -255,7 +255,7 @@ func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType 
 	// nodes are upgraded after the master
 	err := master.networkClient.Network().HostSubnets().Delete(hs.Name, &metav1.DeleteOptions{})
 	if err != nil {
-		glog.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", hs.Name, hs.HostIP, err)
+		utilruntime.HandleError(fmt.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", hs.Name, hs.HostIP, err))
 		return
 	}
 	var hsAnnotations map[string]string
@@ -265,12 +265,12 @@ func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType 
 			hsAnnotations = make(map[string]string)
 			hsAnnotations[networkapi.FixedVNIDHostAnnotation] = strconv.Itoa(vnidInt)
 		} else {
-			glog.Errorf("VNID %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation)
+			utilruntime.HandleError(fmt.Errorf("VNID %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation))
 		}
 	}
 	_, err = master.addNode(hs.Name, hs.HostIP, hsAnnotations)
 	if err != nil {
-		glog.Errorf("Error creating subnet for node %s, ip %s: %v", hs.Name, hs.HostIP, err)
+		utilruntime.HandleError(fmt.Errorf("Error creating subnet for node %s, ip %s: %v", hs.Name, hs.HostIP, err))
 		return
 	}
 }
@@ -286,7 +286,7 @@ func (master *OsdnMaster) handleDeleteSubnet(obj interface{}) {
 	// release the subnet
 	_, ipnet, err := net.ParseCIDR(hs.Subnet)
 	if err != nil {
-		glog.Errorf("Error parsing subnet %q for node %q for deletion: %v", hs.Subnet, hs.Name, err)
+		utilruntime.HandleError(fmt.Errorf("Error parsing subnet %q for node %q for deletion: %v", hs.Subnet, hs.Name, err))
 		return
 	}
 	for _, possibleSubnetAllocator := range master.subnetAllocatorList {

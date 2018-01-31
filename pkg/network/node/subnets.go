@@ -10,6 +10,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
@@ -116,6 +117,6 @@ func (node *OsdnNode) updateVXLANMulticastRules() {
 		}
 	}
 	if err := node.oc.UpdateVXLANMulticastFlows(remoteIPs); err != nil {
-		glog.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error updating OVS VXLAN multicast flows: %v", err))
 	}
 }
