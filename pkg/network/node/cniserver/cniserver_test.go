@@ -60,9 +60,9 @@ func TestCNIServer(t *testing.T) {
 		t.Fatalf("failed to create temp directory: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
+	socketPath := filepath.Join(tmpDir, CNIServerSocketName)
 
-	path := filepath.Join(tmpDir, "cni-server.sock")
-	s := NewCNIServer(path)
+	s := NewCNIServer(tmpDir)
 	if err := s.Start(serverHandleCNI); err != nil {
 		t.Fatalf("error starting CNI server: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestCNIServer(t *testing.T) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			Dial: func(proto, addr string) (net.Conn, error) {
-				return net.Dial("unix", path)
+				return net.Dial("unix", socketPath)
 			},
 		},
 	}

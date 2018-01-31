@@ -346,7 +346,7 @@ func (node *OsdnNode) Start() error {
 	}
 
 	glog.V(2).Infof("Starting openshift-sdn pod manager")
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetworks); err != nil {
+	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR, node.networkInfo.ClusterNetworks); err != nil {
 		return err
 	}
 

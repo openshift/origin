@@ -9,7 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/golang/glog"
@@ -44,9 +44,12 @@ import (
 // removed and re-created with 0700 permissions each time openshift-node is
 // started.
 
-// Default CNIServer unix domain socket path which the OpenShift SDN CNI
-// plugin uses to talk to the CNIServer
-const CNIServerSocketPath string = "/var/run/openshift-sdn/cni-server.sock"
+// Default directory for CNIServer runtime files
+const CNIServerRunDir string = "/var/run/openshift-sdn"
+
+// CNIServer socket name, and default full path
+const CNIServerSocketName string = "cni-server.sock"
+const CNIServerSocketPath string = CNIServerRunDir + "/" + CNIServerSocketName
 
 // Explicit type for CNI commands the server handles
 type CNICommand string
@@ -95,19 +98,18 @@ type cniRequestFunc func(request *PodRequest) ([]byte, error)
 type CNIServer struct {
 	http.Server
 	requestFunc cniRequestFunc
-	path        string
+	rundir      string
 }
 
-// Create and return a new CNIServer object which will listen on the given
-// socket path
-func NewCNIServer(socketPath string) *CNIServer {
+// Create and return a new CNIServer object which will listen on a socket in the given path
+func NewCNIServer(rundir string) *CNIServer {
 	router := mux.NewRouter()
 
 	s := &CNIServer{
 		Server: http.Server{
 			Handler: router,
 		},
-		path: socketPath,
+		rundir: rundir,
 	}
 	router.NotFoundHandler = http.HandlerFunc(http.NotFound)
 	router.HandleFunc("/", s.handleCNIRequest).Methods("POST")
@@ -125,25 +127,25 @@ func (s *CNIServer) Start(requestFunc cniRequestFunc) error {
 	s.requestFunc = requestFunc
 
 	// Remove and re-create the socket directory with root-only permissions
-	dirName := path.Dir(s.path)
-	if err := os.RemoveAll(s.path); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(s.rundir); err != nil && !os.IsNotExist(err) {
 		utilruntime.HandleError(fmt.Errorf("failed to remove old pod info socket: %v", err))
 	}
-	if err := os.RemoveAll(dirName); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(s.rundir); err != nil && !os.IsNotExist(err) {
 		utilruntime.HandleError(fmt.Errorf("failed to remove contents of socket directory: %v", err))
 	}
-	if err := os.MkdirAll(dirName, 0700); err != nil {
+	if err := os.MkdirAll(s.rundir, 0700); err != nil {
 		return fmt.Errorf("failed to create pod info socket directory: %v", err)
 	}
 
 	// On Linux the socket is created with the permissions of the directory
 	// it is in, so as long as the directory is root-only we can avoid
 	// racy umask manipulation.
-	l, err := net.Listen("unix", s.path)
+	socketPath := filepath.Join(s.rundir, CNIServerSocketName)
+	l, err := net.Listen("unix", socketPath)
 	if err != nil {
 		return fmt.Errorf("failed to listen on pod info socket: %v", err)
 	}
-	if err := os.Chmod(s.path, 0600); err != nil {
+	if err := os.Chmod(socketPath, 0600); err != nil {
 		l.Close()
 		return fmt.Errorf("failed to set pod info socket mode: %v", err)
 	}

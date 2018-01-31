@@ -63,8 +63,8 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	path := filepath.Join(tmpDir, "cni-server.sock")
-	server := cniserver.NewCNIServer(path)
+	path := filepath.Join(tmpDir, cniserver.CNIServerSocketName)
+	server := cniserver.NewCNIServer(tmpDir)
 	if err := server.Start(serverHandleCNI); err != nil {
 		t.Fatalf("error starting CNI server: %v", err)
 	}

@@ -167,7 +167,7 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(socketPath string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork) error {
+func (m *podManager) Start(rundir string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork) error {
 	if m.enableHostports {
 		iptInterface := utiliptables.New(utilexec.New(), utildbus.New(), utiliptables.ProtocolIpv4)
 		m.hostportSyncer = kubehostport.NewHostportSyncer(iptInterface)
@@ -180,7 +180,7 @@ func (m *podManager) Start(socketPath string, localSubnetCIDR string, clusterNet
 
 	go m.processCNIRequests()
 
-	m.cniServer = cniserver.NewCNIServer(socketPath)
+	m.cniServer = cniserver.NewCNIServer(rundir)
 	return m.cniServer.Start(m.handleCNIRequest)
 }
 
