@@ -81,14 +81,14 @@ func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.
 
 func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
-		return kcmdutil.UsageErrorf(cmd, cmd.Use)
+		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified")
 	}
 	if len(o.User) > 0 && len(o.serviceAccount) > 0 {
-		return fmt.Errorf("--user and --serviceaccount are mutually exclusive")
+		return kcmdutil.UsageErrorf(cmd, "--user and --serviceaccount are mutually exclusive")
 	}
 	if len(o.serviceAccount) > 0 { // check whether user supplied a list of SA
 		if len(strings.Split(o.serviceAccount, ",")) > 1 {
-			return fmt.Errorf("only one Service Account is supported")
+			return kcmdutil.UsageErrorf(cmd, "only one Service Account is supported")
 		}
 		if strings.HasPrefix(o.serviceAccount, serviceaccount.ServiceAccountUsernamePrefix) {
 			_, user, err := serviceaccount.SplitUsername(o.serviceAccount)

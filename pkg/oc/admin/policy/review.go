@@ -85,7 +85,7 @@ func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out io.Writer)
 
 func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
-		return kcmdutil.UsageErrorf(cmd, cmd.Use)
+		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified")
 	}
 	for _, sa := range o.serviceAccountNames {
 		if strings.HasPrefix(sa, serviceaccount.ServiceAccountUsernamePrefix) {
