@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	kapiv1 "k8s.io/api/core/v1"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -128,7 +129,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 			timeout, err := time.ParseDuration(sync.Timeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, ns := range namespaces {
-				err := SyncRunningPods(c, ns, sync.Selectors, timeout)
+				err := SyncPods(c, ns, sync.Selectors, timeout, kapiv1.PodRunning)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
@@ -143,7 +144,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 			timeout, err := time.ParseDuration(sync.Timeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, ns := range namespaces {
-				err := SyncSucceededPods(c, ns, sync.Selectors, timeout)
+				err := SyncPods(c, ns, sync.Selectors, timeout, kapiv1.PodSucceeded)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
