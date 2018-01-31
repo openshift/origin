@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 
@@ -132,7 +133,7 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 	// Process new EgressIPs
 	for _, ip := range node.egressIPs.Difference(oldEgressIPs).UnsortedList() {
 		if oldNode := eip.nodesByEgressIP[ip]; oldNode != nil {
-			glog.Errorf("Multiple nodes claiming EgressIP %q (nodes %q, %q)", ip, node.nodeIP, oldNode.nodeIP)
+			utilruntime.HandleError(fmt.Errorf("Multiple nodes claiming EgressIP %q (nodes %q, %q)", ip, node.nodeIP, oldNode.nodeIP))
 			continue
 		}
 
@@ -142,7 +143,7 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 
 		if nodeIP == eip.localIP {
 			if err := eip.claimEgressIP(ip, hex); err != nil {
-				glog.Errorf("Error claiming Egress IP %q: %v", ip, err)
+				utilruntime.HandleError(fmt.Errorf("Error claiming Egress IP %q: %v", ip, err))
 				claimedNodeIP = ""
 			}
 		}
@@ -153,7 +154,7 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 				ns.nodeIP = claimedNodeIP
 				err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, claimedNodeIP, hex)
 				if err != nil {
-					glog.Errorf("Error updating Namespace egress rules: %v", err)
+					utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
 				}
 			}
 		}
@@ -166,7 +167,7 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 
 		if nodeIP == eip.localIP {
 			if err := eip.releaseEgressIP(ip, hex); err != nil {
-				glog.Errorf("Error releasing Egress IP %q: %v", ip, err)
+				utilruntime.HandleError(fmt.Errorf("Error releasing Egress IP %q: %v", ip, err))
 			}
 		}
 
@@ -176,7 +177,7 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 				ns.nodeIP = ""
 				err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", hex)
 				if err != nil {
-					glog.Errorf("Error updating Namespace egress rules: %v", err)
+					utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
 				}
 			}
 		}
@@ -220,7 +221,7 @@ func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) 
 		return
 	}
 	if oldNS := eip.namespacesByEgressIP[egressIP]; oldNS != nil {
-		glog.Errorf("Multiple NetNamespaces claiming EgressIP %q (NetIDs %d, %d)", egressIP, ns.vnid, oldNS.vnid)
+		utilruntime.HandleError(fmt.Errorf("Multiple NetNamespaces claiming EgressIP %q (NetIDs %d, %d)", egressIP, ns.vnid, oldNS.vnid))
 		return
 	}
 
@@ -238,7 +239,7 @@ func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) 
 
 	err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, ns.nodeIP, ipToHex(egressIP))
 	if err != nil {
-		glog.Errorf("Error updating Namespace egress rules: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
 	}
 }
 
@@ -258,7 +259,7 @@ func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
 
 	err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", "")
 	if err != nil {
-		glog.Errorf("Error updating Namespace egress rules: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error updating Namespace egress rules: %v", err))
 	}
 }
 

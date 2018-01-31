@@ -4,8 +4,8 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	"github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion/fake"
+	userapi "github.com/openshift/api/user/v1"
+	"github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
 )
 
 type Action struct {
@@ -29,14 +29,6 @@ type IdentityRegistry struct {
 	ListIdentity *userapi.IdentityList
 
 	Actions *[]Action
-}
-
-func NewIdentityRegistry() *IdentityRegistry {
-	return &IdentityRegistry{
-		GetErr:        map[string]error{},
-		GetIdentities: map[string]*userapi.Identity{},
-		Actions:       &[]Action{},
-	}
 }
 
 func (r *IdentityRegistry) Get(name string, options metav1.GetOptions) (*userapi.Identity, error) {

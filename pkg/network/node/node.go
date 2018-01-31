@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	kubeutilnet "k8s.io/apimachinery/pkg/util/net"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/record"
@@ -225,7 +226,7 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 		if err == ErrorNetworkInterfaceNotFound {
 			err = fmt.Errorf("node IP %q is not a local/private address (hostname %q)", c.SelfIP, c.Hostname)
 		}
-		glog.Errorf("Unable to find network interface for node IP; some features will not work! (%v)", err)
+		utilruntime.HandleError(fmt.Errorf("Unable to find network interface for node IP; some features will not work! (%v)", err))
 	}
 
 	return nil
@@ -304,7 +305,7 @@ func (node *OsdnNode) Start() error {
 	}
 	if err := node.networkInfo.CheckHostNetworks(hostIPNets); err != nil {
 		// checkHostNetworks() errors *should* be fatal, but we didn't used to check this, and we can't break (mostly-)working nodes on upgrade.
-		glog.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err))
 	}
 
 	node.localSubnetCIDR, err = node.getLocalSubnet()
@@ -484,7 +485,7 @@ func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventTyp
 
 	netid, err := node.policy.GetVNID(serv.Namespace)
 	if err != nil {
-		glog.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err)
+		utilruntime.HandleError(fmt.Errorf("Skipped adding service rules for serviceEvent: %v, Error: %v", eventType, err))
 		return
 	}
 

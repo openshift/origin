@@ -57,7 +57,7 @@ objects:
       spec:
         containers:
         - name: tiller
-          image: gcr.io/kubernetes-helm/tiller:v2.6.1
+          image: gcr.io/kubernetes-helm/tiller:${HELM_VERSION}
           env:
           - name: TILLER_NAMESPACE
             valueFrom:
@@ -77,5 +77,8 @@ objects:
         serviceAccountName: tiller
 
 parameters:
+- name: HELM_VERSION
+  value: v2.6.1
+  required: true
 - name: TILLER_NAMESPACE
   required: true

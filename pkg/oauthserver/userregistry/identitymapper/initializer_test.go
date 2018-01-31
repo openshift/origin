@@ -1,10 +1,10 @@
-package user
+package identitymapper
 
 import (
 	"reflect"
 	"testing"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/api/user/v1"
 )
 
 func TestInitializerUser(t *testing.T) {

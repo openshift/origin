@@ -2,16 +2,16 @@ package identitymapper
 
 import (
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	userapi "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // UserForNewIdentityGetter is responsible for creating or locating the persisted User for the given Identity.
@@ -29,7 +29,7 @@ var _ = authapi.UserIdentityMapper(&provisioningIdentityMapper{})
 // Otherwise an error is returned
 type provisioningIdentityMapper struct {
 	identity             userclient.IdentityInterface
-	user                 userclient.UserResourceInterface
+	user                 userclient.UserInterface
 	provisioningStrategy UserForNewIdentityGetter
 }
 
@@ -91,7 +91,7 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx apirequest.Con
 	}
 
 	// CreateIdentity the identity pointing to the persistedUser
-	identity.User = kapi.ObjectReference{
+	identity.User = corev1.ObjectReference{
 		Name: persistedUser.Name,
 		UID:  persistedUser.UID,
 	}

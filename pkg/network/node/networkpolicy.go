@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -128,7 +129,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	policies, err := np.node.kClient.Networking().NetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		if kapierrs.IsForbidden(err) {
-			glog.Errorf("Unable to query NetworkPolicies (%v) - please ensure your nodes have access to view NetworkPolicy (eg, 'oc adm policy reconcile-cluster-roles')", err)
+			utilruntime.HandleError(fmt.Errorf("Unable to query NetworkPolicies (%v) - please ensure your nodes have access to view NetworkPolicy (eg, 'oc adm policy reconcile-cluster-roles')", err))
 		}
 		return err
 	}
@@ -229,7 +230,7 @@ func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
 		}
 	}
 	if err := otx.EndTransaction(); err != nil {
-		glog.Errorf("Error syncing OVS flows for VNID: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Error syncing OVS flows for VNID: %v", err))
 	}
 }
 
@@ -267,7 +268,7 @@ func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []ui
 	sel, err := metav1.LabelSelectorAsSelector(lsel)
 	if err != nil {
 		// Shouldn't happen
-		glog.Errorf("ValidateNetworkPolicy() failure! Invalid NamespaceSelector: %v", err)
+		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid NamespaceSelector: %v", err))
 		return vnids
 	}
 	for vnid, ns := range np.namespaces {
@@ -285,7 +286,7 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 	sel, err := metav1.LabelSelectorAsSelector(lsel)
 	if err != nil {
 		// Shouldn't happen
-		glog.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err)
+		utilruntime.HandleError(fmt.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err))
 		return ips
 	}
 	for _, pod := range np.pods {
@@ -409,7 +410,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNetworkPolicy(obj, _ interface{}
 
 	vnid, err := np.vnids.WaitAndGetVNID(policy.Namespace)
 	if err != nil {
-		glog.Errorf("Could not find VNID for NetworkPolicy %s/%s", policy.Namespace, policy.Name)
+		utilruntime.HandleError(fmt.Errorf("Could not find VNID for NetworkPolicy %s/%s", policy.Namespace, policy.Name))
 		return
 	}
 
@@ -431,7 +432,7 @@ func (np *networkPolicyPlugin) handleDeleteNetworkPolicy(obj interface{}) {
 
 	vnid, err := np.vnids.WaitAndGetVNID(policy.Namespace)
 	if err != nil {
-		glog.Errorf("Could not find VNID for NetworkPolicy %s/%s", policy.Namespace, policy.Name)
+		utilruntime.HandleError(fmt.Errorf("Could not find VNID for NetworkPolicy %s/%s", policy.Namespace, policy.Name))
 		return
 	}
 

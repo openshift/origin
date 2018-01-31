@@ -8,8 +8,8 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
+	userapi "github.com/openshift/api/user/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/test"
 )
 

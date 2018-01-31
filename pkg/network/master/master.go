@@ -9,6 +9,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -109,7 +110,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 			glog.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 
 			if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-				glog.Errorf("Cluster contains objects incompatible with new ClusterNetwork: %v", err)
+				utilruntime.HandleError(fmt.Errorf("Cluster contains objects incompatible with new ClusterNetwork: %v", err))
 			}
 		} else {
 			configChanged, err := clusterNetworkChanged(configCN, existingCN)
@@ -120,7 +121,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 				configCN.TypeMeta = existingCN.TypeMeta
 				configCN.ObjectMeta = existingCN.ObjectMeta
 				if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-					glog.Errorf("Attempting to modify cluster to exclude existing objects: %v", err)
+					utilruntime.HandleError(fmt.Errorf("Attempting to modify cluster to exclude existing objects: %v", err))
 					return false, err
 				}
 				if _, err = master.networkClient.Network().ClusterNetworks().Update(configCN); err != nil {

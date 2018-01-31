@@ -20,7 +20,7 @@ $ kubectl exec zoo-2 -- /opt/zookeeper/bin/zkCli.sh get /foo;
 
 Watch existing members:
 ```console
-$ kubectl run --attach bbox --image=busybox --restart=Never -- sh -c 'while true; do for i in 0 1 2; do echo zoo-$i $(echo stats | nc zoo-$1.zk:2181 | grep Mode); sleep 1; done; done';
+$ kubectl run --attach bbox --image=busybox --restart=Never -- sh -c 'while true; do for i in 0 1 2; do echo zoo-$i $(echo stats | nc zoo-$i.zk:2181 | grep Mode); sleep 1; done; done';
 zoo-2 Mode: follower
 zoo-0 Mode: follower
 zoo-1 Mode: leader

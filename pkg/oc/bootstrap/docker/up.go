@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockermachine"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -334,6 +335,7 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	c.addTask(simpleTask("Checking OpenShift client", c.CheckOpenShiftClient))
 
 	c.addTask(conditionalTask("Create Docker machine", c.CreateDockerMachine, func() bool { return c.ShouldCreateDockerMachine }))
+
 	// Get a Docker client.
 	// If a Docker machine was specified, make sure that the machine is running.
 	// Otherwise, use environment variables.
@@ -341,6 +343,8 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Check that we have the minimum Docker version available to run OpenShift
 	c.addTask(simpleTask("Checking Docker version", c.CheckDockerVersion))
+
+	c.addTask(conditionalTask("Checking prerequisites for port forwarding", c.CheckPortForwardingPrerequisites, func() bool { return c.PortForwarding }))
 
 	// Check for an OpenShift container. If one exists and is running, exit.
 	// If one exists but not running, delete it.
@@ -735,6 +739,18 @@ func (c *CommonStartConfig) CheckDockerVersion(out io.Writer) error {
 	glog.V(5).Infof("Checking that docker API version is at least %v", dockerAPIVersion122)
 	if versions.LessThan(ver, dockerAPIVersion122) {
 		fmt.Fprintf(out, "WARNING: Docker version is %v, it needs to be >= %v\n", ver, dockerAPIVersion122)
+	}
+	return nil
+}
+
+// CheckPortForwardingPrerequisites checks that socat is installed when port forwarding is enabled
+// Socat needs to be installed manually on MacOS
+func (c *CommonStartConfig) CheckPortForwardingPrerequisites(out io.Writer) error {
+	err := localcmd.New("socat").Args("-V").Run()
+	if err != nil {
+		glog.V(2).Infof("Error from socat command execution: %v", err)
+		fmt.Fprintf(out, "WARNING: Port forwarding requires socat command line utility."+
+			"Cluster public ip may not be reachable. Please make sure socat installed in your operating system \n")
 	}
 	return nil
 }
