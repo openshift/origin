@@ -13,7 +13,6 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/features"
-	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -88,9 +87,6 @@ func ComputeKubeletFlagsAsMap(startingArgs map[string][]string, options configap
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		// SDN plugin pod setup/teardown is implemented as a CNI plugin
 		setIfUnset(args, "network-plugin", kubeletcni.CNIPluginName)
-		setIfUnset(args, "cni-conf-dir", kubeletcni.DefaultNetDir)
-		setIfUnset(args, "cni-bin-dir", kubeletcni.DefaultCNIDir)
-		setIfUnset(args, "hairpin-mode", kubeletconfig.HairpinNone)
 	} else {
 		setIfUnset(args, "network-plugin", options.NetworkConfig.NetworkPluginName)
 	}
