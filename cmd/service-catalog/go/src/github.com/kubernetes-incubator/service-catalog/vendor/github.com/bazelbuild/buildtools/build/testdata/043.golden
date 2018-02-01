@@ -1,0 +1,17 @@
+bar = "bar"
+
+# This gets an empty expr_opt in the parser, causing a nil to appear.
+b = bar[:-2]
+
+# Test that slices and partial slices are parsed properly
+f = foo[-1:-2:-3]
+
+f = foo[1::]
+
+f = foo[:1:]
+
+f = foo[::1]
+
+f = foo[::]
+
+f = foo[:]

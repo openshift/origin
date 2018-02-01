@@ -61,6 +61,9 @@ spec:
         - --feature-gates
         - OriginatingIdentity=true
         {{- end }}
+        {{- if .Values.apiserver.serveOpenAPISpec }}
+        - --serve-openapi-spec
+        {{- end }}
         ports:
         - containerPort: 8443
         volumeMounts:
@@ -94,10 +97,10 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 30Mi
           limits:
             cpu: 100m
-            memory: 30Mi
+            memory: 40Mi
         env:
         - name: ETCD_DATA_DIR
           value: /etcd-data-dir

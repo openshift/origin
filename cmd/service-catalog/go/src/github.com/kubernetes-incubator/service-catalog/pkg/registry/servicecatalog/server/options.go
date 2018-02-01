@@ -19,7 +19,6 @@ package server
 import (
 	"fmt"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/kubernetes-incubator/service-catalog/pkg/storage/etcd"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -144,7 +143,6 @@ func (o Options) GetStorage(
 	if o.storageType == StorageTypeEtcd {
 		etcdRESTOpts := o.EtcdOptions.RESTOptions
 		return etcdRESTOpts.Decorator(
-			api.Scheme,
 			etcdRESTOpts.StorageConfig,
 			objectType,
 			resourcePrefix,

@@ -29,25 +29,25 @@ import (
 // WantsInternalServiceCatalogClientSet defines a function which sets ClientSet for admission plugins that need it
 type WantsInternalServiceCatalogClientSet interface {
 	SetInternalServiceCatalogClientSet(internalclientset.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsInternalServiceCatalogInformerFactory defines a function which sets InformerFactory for admission plugins that need it
 type WantsInternalServiceCatalogInformerFactory interface {
 	SetInternalServiceCatalogInformerFactory(informers.SharedInformerFactory)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsKubeClientSet defines a function which sets ClientSet for admission plugins that need it
 type WantsKubeClientSet interface {
 	SetKubeClientSet(kubeclientset.Interface)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 // WantsKubeInformerFactory defines a function which sets InformerFactory for admission plugins that need it
 type WantsKubeInformerFactory interface {
 	SetKubeInformerFactory(kubeinformers.SharedInformerFactory)
-	admission.Validator
+	admission.InitializationValidator
 }
 
 type pluginInitializer struct {

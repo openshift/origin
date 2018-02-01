@@ -80,7 +80,7 @@ items:
   # TODO: do not grant global access, limit to particular secrets referenced from servicebindings
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs:     ["get","create","delete"]
+    verbs:     ["get","create","update","delete"]
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs:     ["get","list","watch"]
@@ -112,26 +112,25 @@ items:
     name: "{{ .Values.controllerManager.serviceAccount }}"
     namespace: "{{ .Release.Namespace }}"
 
-# This gives create/update access to an endpoint in kube-system for leader election
-# TODO: use an object other than endpoints, and in the same namespace as the service catalog, not in kube-system
+# This gives create/update access to configmaps in deployment namespace for leader election
 - apiVersion: {{template "rbacApiVersion" . }}
   kind: Role
   metadata:
     name: "servicecatalog.k8s.io:leader-locking-controller-manager"
-    namespace: kube-system
+    namespace: "{{ .Release.Namespace }}"
   rules:
   - apiGroups: [""]
-    resources: ["endpoints"]
+    resources: ["configmaps"]
     verbs:     ["create"]
   - apiGroups:     [""]
-    resources:     ["endpoints"]
+    resources:     ["configmaps"]
     resourceNames: ["service-catalog-controller-manager"]
     verbs:         ["get","update"]
 - apiVersion: {{template "rbacApiVersion" . }}
   kind: RoleBinding
   metadata:
     name: service-catalog-controller-manager
-    namespace: kube-system
+    namespace: "{{ .Release.Namespace }}"
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: Role

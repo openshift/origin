@@ -1,0 +1,11 @@
+exports_files([
+    "url_substring_blacklist",
+    "url_substring_blacklist_short",
+])
+
+package(default_visibility = ["//foo:bar"])
+
+package(default_visibility = [
+    "//bar:baz",
+    "//foo:bar",
+])

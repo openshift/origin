@@ -139,6 +139,7 @@ var _ = Describe("Catalog", func() {
 	Describe("ServiceMetadata", func() {
 		Describe("JSON encoding", func() {
 			It("uses the correct keys", func() {
+				shareable := true
 				metadata := brokerapi.ServiceMetadata{
 					DisplayName:         "Cassandra",
 					LongDescription:     "A long description of Cassandra",
@@ -146,6 +147,7 @@ var _ = Describe("Catalog", func() {
 					SupportUrl:          "support",
 					ImageUrl:            "image",
 					ProviderDisplayName: "display",
+					Shareable:           &shareable,
 				}
 				jsonString := `{
 					"displayName":"Cassandra",
@@ -153,7 +155,8 @@ var _ = Describe("Catalog", func() {
 					"documentationUrl":"doc",
 					"supportUrl":"support",
 					"imageUrl":"image",
-					"providerDisplayName":"display"
+					"providerDisplayName":"display",
+					"shareable":true
 				}`
 
 				Expect(json.Marshal(metadata)).To(MatchJSON(jsonString))

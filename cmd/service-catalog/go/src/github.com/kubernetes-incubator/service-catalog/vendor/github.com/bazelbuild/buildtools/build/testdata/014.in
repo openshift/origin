@@ -1,0 +1,11 @@
+foo = [ x for x in (1, 2, 3) ]
+
+bar(a=-1, b=not foo)
+
+cc_library(
+    name = "bot_scorer",
+    srcs = [
+        "bot_scorer.cc",
+        "bot_scorer.h",
+    ],
+    deps = [ ":logdata_protolib" ])

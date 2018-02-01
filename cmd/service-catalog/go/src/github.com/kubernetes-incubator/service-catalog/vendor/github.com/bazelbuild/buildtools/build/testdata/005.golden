@@ -1,0 +1,7 @@
+JAVA_FILES = [
+    # Comment regarding Foo.java
+    "Foo.java",
+    "Bar.java",
+    "Baz.java",  # Comment regarding Baz.java
+    "Quux.java",
+]

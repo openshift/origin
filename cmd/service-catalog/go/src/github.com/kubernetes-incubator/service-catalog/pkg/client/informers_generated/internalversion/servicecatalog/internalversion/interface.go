@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,35 +37,37 @@ type Interface interface {
 }
 
 type version struct {
-	internalinterfaces.SharedInformerFactory
+	factory          internalinterfaces.SharedInformerFactory
+	namespace        string
+	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
 // New returns a new Interface.
-func New(f internalinterfaces.SharedInformerFactory) Interface {
-	return &version{f}
+func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
+	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
 // ClusterServiceBrokers returns a ClusterServiceBrokerInformer.
 func (v *version) ClusterServiceBrokers() ClusterServiceBrokerInformer {
-	return &clusterServiceBrokerInformer{factory: v.SharedInformerFactory}
+	return &clusterServiceBrokerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // ClusterServiceClasses returns a ClusterServiceClassInformer.
 func (v *version) ClusterServiceClasses() ClusterServiceClassInformer {
-	return &clusterServiceClassInformer{factory: v.SharedInformerFactory}
+	return &clusterServiceClassInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // ClusterServicePlans returns a ClusterServicePlanInformer.
 func (v *version) ClusterServicePlans() ClusterServicePlanInformer {
-	return &clusterServicePlanInformer{factory: v.SharedInformerFactory}
+	return &clusterServicePlanInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // ServiceBindings returns a ServiceBindingInformer.
 func (v *version) ServiceBindings() ServiceBindingInformer {
-	return &serviceBindingInformer{factory: v.SharedInformerFactory}
+	return &serviceBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ServiceInstances returns a ServiceInstanceInformer.
 func (v *version) ServiceInstances() ServiceInstanceInformer {
-	return &serviceInstanceInformer{factory: v.SharedInformerFactory}
+	return &serviceInstanceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

@@ -133,7 +133,7 @@ func (d *denyPlanChangeIfNotUpdatable) SetInternalServiceCatalogInformerFactory(
 	d.SetReadyFunc(readyFunc)
 }
 
-func (d *denyPlanChangeIfNotUpdatable) Validate() error {
+func (d *denyPlanChangeIfNotUpdatable) ValidateInitialization() error {
 	if d.scLister == nil {
 		return errors.New("missing service class lister")
 	}

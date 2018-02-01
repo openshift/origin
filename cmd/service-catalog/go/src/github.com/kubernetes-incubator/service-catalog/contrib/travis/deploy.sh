@@ -20,7 +20,7 @@ set -o pipefail
 
 export REGISTRY=quay.io/kubernetes-service-catalog/
 
-docker login -e="${QUAY_EMAIL}" -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
+docker login -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
 
 if [[ "${TRAVIS_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+[a-z]*(-(r|R)(c|C)[0-9]+)*$ ]]; then
     echo "Pushing images with tags '${TRAVIS_TAG}' and 'latest'."

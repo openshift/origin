@@ -1,0 +1,3 @@
+[[constraint]]
+  branch = "master"
+  name = "github.com/kubernetes-incubator/service-catalog"

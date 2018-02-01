@@ -23,11 +23,11 @@ func (m *logEntryMatcher) Match(actual interface{}) (success bool, err error) {
 		return false, fmt.Errorf("MatchLogEntry must be passed a chug.LogEntry.  Got:\n%s", format.Object(actual, 1))
 	}
 
-	return m.entry.LogLevel == actualEntry.LogLevel &&
+	return reflect.DeepEqual(m.entry.Error, actualEntry.Error) &&
+		m.entry.LogLevel == actualEntry.LogLevel &&
 		m.entry.Source == actualEntry.Source &&
 		m.entry.Message == actualEntry.Message &&
 		m.entry.Session == actualEntry.Session &&
-		reflect.DeepEqual(m.entry.Error, actualEntry.Error) &&
 		m.entry.Trace == actualEntry.Trace &&
 		reflect.DeepEqual(m.entry.Data, actualEntry.Data), nil
 }

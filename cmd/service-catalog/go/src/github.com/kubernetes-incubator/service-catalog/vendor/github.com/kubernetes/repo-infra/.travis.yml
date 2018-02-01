@@ -13,13 +13,13 @@ before_install:
 install:
   - sudo apt-get install bazel
   - go get -u github.com/alecthomas/gometalinter
-  - go get -u github.com/bazelbuild/buildifier/buildifier
+  - go get -u github.com/bazelbuild/buildtools/buildifier
   - gometalinter --install
   - go install ./...
 
 script:
   - verify/verify-boilerplate.sh --rootdir="$GOPATH/src/k8s.io/repo-infra" -v
   - verify/verify-go-src.sh --rootdir "$GOPATH/src/k8s.io/repo-infra" -v
-  - buildifier -mode=check $(find . -name BUILD -o -name '*.bzl' -type f)
+  - buildifier -mode=check $(find . -name BUILD -o -name '*.bzl' -type f -not -wholename '*/vendor/*')
   - kazel --print-diff --validate
   - bazel build //...

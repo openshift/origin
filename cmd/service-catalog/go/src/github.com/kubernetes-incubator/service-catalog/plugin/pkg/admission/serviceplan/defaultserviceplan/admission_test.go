@@ -48,7 +48,7 @@ func newHandlerForTest(internalClient internalclientset.Interface) (admission.In
 	}
 	pluginInitializer := scadmission.NewPluginInitializer(internalClient, f, nil, nil)
 	pluginInitializer.Initialize(handler)
-	err = admission.Validate(handler)
+	err = admission.ValidateInitialization(handler)
 	return handler, f, err
 }
 
@@ -173,7 +173,7 @@ func TestWithListFailure(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassExternalName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no ClusterServiceClasses.List succeeding")
 	} else if !strings.Contains(err.Error(), "simulated test failure") {
@@ -196,7 +196,7 @@ func TestWithPlanWorks(t *testing.T) {
 	instance.Spec.ClusterServiceClassExternalName = "foo"
 	instance.Spec.ClusterServicePlanExternalName = "bar"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		actions := ""
 		for _, action := range fakeClient.Actions() {
@@ -220,7 +220,7 @@ func TestWithNoPlanFailsWithNoClusterServiceClass(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassExternalName = "foobar"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no plan specified and no serviceclass existing")
 	} else if !strings.Contains(err.Error(), "does not exist, can not figure") {
@@ -247,7 +247,7 @@ func TestWithNoPlanWorksWithSinglePlan(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassExternalName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		actions := ""
 		for _, action := range fakeClient.Actions() {
@@ -275,7 +275,7 @@ func TestWithNoPlanFailsWithMultiplePlans(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassExternalName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no plan specified and no serviceclass existing")
 		return
@@ -304,7 +304,7 @@ func TestWithNoPlanSucceedsWithMultiplePlansFromDifferentClasses(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassExternalName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		actions := ""
 		for _, action := range fakeClient.Actions() {
@@ -328,7 +328,7 @@ func TestWithNoPlanFailsWithNoClusterServiceClassK8SName(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassName = "foobar-id"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no plan specified and no serviceclass existing")
 	} else if !strings.Contains(err.Error(), "does not exist, can not figure") {
@@ -355,7 +355,7 @@ func TestWithNoPlanWorksWithSinglePlanK8SName(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassName = "foo-id"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		actions := ""
 		for _, action := range fakeClient.Actions() {
@@ -383,7 +383,7 @@ func TestWithNoPlanFailsWithMultiplePlansK8SName(t *testing.T) {
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassName = "foo-id"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no plan specified and no serviceclass existing")
 		return
@@ -412,7 +412,7 @@ func TestWithNoPlanSucceedsWithMultiplePlansFromDifferentClassesK8SName(t *testi
 	instance := newServiceInstance("dummy")
 	instance.Spec.ClusterServiceClassName = "foo-id"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		actions := ""
 		for _, action := range fakeClient.Actions() {

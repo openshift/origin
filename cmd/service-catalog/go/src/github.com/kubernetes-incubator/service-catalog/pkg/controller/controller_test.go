@@ -347,7 +347,7 @@ const testOriginatingIdentityValue = `{
 	"username": "fakeusername",
 	"uid": "fakeuid",
 	"groups": ["fakegroup1"],
-	"fakekey": ["fakevalue"]
+        "extra": {"fakekey": ["fakevalue"]}
 }`
 
 var testOriginatingIdentity = &osb.OriginatingIdentity{
@@ -1547,6 +1547,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 		osb.LatestAPIVersion().HeaderValue(),
 		fakeRecorder,
 		7*24*time.Hour,
+		7*24*time.Hour,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -2490,6 +2491,7 @@ func assertServiceBindingStartingOrphanMitigation(t *testing.T, obj runtime.Obje
 	assertServiceBindingOperationStartTimeSet(t, obj, false)
 	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
 	assertServiceBindingOrphanMitigationSet(t, obj, true)
+	assertServiceBindingInProgressPropertiesParameters(t, obj, nil, "")
 	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
 }
 
@@ -2575,13 +2577,13 @@ func assertServiceBindingAsyncBindErrorAfterStateSucceeded(t *testing.T, obj run
 	assertServiceBindingOperationStartTimeSet(t, obj, false)
 	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
 	assertServiceBindingExternalPropertiesParameters(t, obj, nil, "")
-	assertServiceBindingInProgressPropertiesNil(t, obj)
 	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+	assertServiceBindingInProgressPropertiesParameters(t, obj, nil, "")
 	assertCatalogFinalizerExists(t, obj)
 }
 
 func assertServiceBindingAsyncUnbindRetryDurationExceeded(t *testing.T, obj runtime.Object, operation v1beta1.ServiceBindingOperation, readyReason string, failureReason string, originalBinding *v1beta1.ServiceBinding) {
-	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionFalse, readyReason)
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionUnknown, readyReason)
 	assertServiceBindingCondition(t, obj, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, failureReason)
 	assertServiceBindingCurrentOperationClear(t, obj)
 	assertServiceBindingOperationStartTimeSet(t, obj, false)
@@ -2652,6 +2654,16 @@ func assertServiceBindingRequestRetriableErrorWithParameters(t *testing.T, obj r
 	case v1beta1.ServiceBindingOperationUnbind:
 		assertServiceBindingInProgressPropertiesNil(t, obj)
 	}
+	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
+	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
+}
+
+func assertServiceBindingRequestRetriableOrphanMitigation(t *testing.T, obj runtime.Object, reason string, originalBinding *v1beta1.ServiceBinding) {
+	assertServiceBindingReadyCondition(t, obj, v1beta1.ConditionUnknown, reason)
+	assertServiceBindingCurrentOperation(t, obj, v1beta1.ServiceBindingOperationBind)
+	assertServiceBindingOperationStartTimeSet(t, obj, true)
+	assertServiceBindingReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	assertServiceBindingInProgressPropertiesParameters(t, obj, nil, "")
 	assertServiceBindingExternalPropertiesUnchanged(t, obj, originalBinding)
 	assertServiceBindingUnbindStatus(t, obj, v1beta1.ServiceBindingUnbindStatusRequired)
 }

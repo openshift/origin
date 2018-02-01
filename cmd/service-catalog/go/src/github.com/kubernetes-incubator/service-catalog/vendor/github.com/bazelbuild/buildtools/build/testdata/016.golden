@@ -1,0 +1,63 @@
+# 1-element tuple with trailing comma must preserve it.
+
+x = (1,)
+
+y = (
+    1,
+)
+
+foo((1,))
+
+bar(1)
+
+baz([1])
+
+foo((
+    1,
+))
+
+bar(
+    1,
+)
+
+baz([
+    1,
+])
+
+x = (1, 2, -3)
+
+y = (
+    1,
+    2,
+    -3,
+)
+
+foo((1, 2))
+
+bar(1, 2)
+
+baz([
+    1,
+    2,
+])
+
+foo((
+    1,
+    2,
+))
+
+foo((
+    1,
+    2,
+    [3],
+))
+
+bar(
+    1,
+    2,
+)
+
+baz([
+    1,
+    2,
+])

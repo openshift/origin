@@ -43,7 +43,7 @@ func newHandlerForTest(internalClient internalclientset.Interface) (admission.In
 	}
 	pluginInitializer := scadmission.NewPluginInitializer(internalClient, f, nil, nil)
 	pluginInitializer.Initialize(handler)
-	err = admission.Validate(handler)
+	err = admission.ValidateInitialization(handler)
 	return handler, f, err
 }
 
@@ -118,7 +118,7 @@ func TestClusterServicePlanChangeBlockedByUpdateablePlanSetting(t *testing.T) {
 	setupInstanceLister(fakeClient)
 	instance := newServiceInstance("dummy", "foo", "new-plan")
 	informerFactory.Start(wait.NeverStop)
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Update, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Update, nil))
 	if err != nil {
 		if !strings.Contains(err.Error(), "The Service Class foo does not allow plan changes.") {
 			t.Errorf("unexpected error %q returned from admission handler.", err.Error())
@@ -143,7 +143,7 @@ func TestClusterServicePlanChangePermittedByUpdateablePlanSetting(t *testing.T) 
 
 	instance := newServiceInstance("dummy", "foo", "new-plan")
 	informerFactory.Start(wait.NeverStop)
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Update, nil))
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Update, nil))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err.Error())
 	}

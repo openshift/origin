@@ -1,0 +1,133 @@
+name: svcat
+shortDesc: The Kubernetes Service Catalog Command-Line Interface (CLI)
+command: ./svcat
+flags:
+- name: version
+  desc: Show the application version
+tree:
+- name: bind
+  shortDesc: Binds an instance's metadata to a secret, which can then be used by an
+    application to connect to the instance
+  command: ./svcat bind
+  flags:
+  - name: name
+    desc: The name of the binding. Defaults to the name of the instance.
+  - name: param
+    shorthand: p
+    desc: 'Additional parameter to use when binding the instance, format: NAME=VALUE'
+  - name: secret
+    desc: 'Additional parameter, whose value is stored in a secret, to use when binding
+      the instance, format: SECRET[KEY]'
+  - name: secret-name
+    desc: The name of the secret. Defaults to the name of the instance.
+- name: deprovision
+  shortDesc: Deletes an instance of a service
+  command: ./svcat deprovision
+- name: describe
+  shortDesc: Show details of a specific resource
+  command: ./svcat describe
+  tree:
+  - name: binding
+    shortDesc: Show details of a specific binding
+    command: ./svcat describe binding
+    flags:
+    - name: traverse
+      shorthand: t
+      desc: Whether or not to traverse from binding -> instance -> class/plan -> broker
+  - name: broker
+    shortDesc: Show details of a specific broker
+    command: ./svcat describe broker
+  - name: class
+    shortDesc: Show details of a specific class
+    command: ./svcat describe class
+    flags:
+    - name: traverse
+      shorthand: t
+      desc: Whether or not to traverse from plan -> class -> broker
+    - name: uuid
+      shorthand: u
+      desc: Whether or not to get the class by UUID (the default is by name)
+  - name: instance
+    shortDesc: Show details of a specific instance
+    command: ./svcat describe instance
+    flags:
+    - name: traverse
+      shorthand: t
+      desc: Whether or not to traverse from binding -> instance -> class/plan -> broker
+  - name: plan
+    shortDesc: Show details of a specific plan
+    command: ./svcat describe plan
+    flags:
+    - name: traverse
+      shorthand: t
+      desc: Whether or not to traverse from plan -> class -> broker
+    - name: uuid
+      shorthand: u
+      desc: Whether or not to get the class by UUID (the default is by name)
+- name: get
+  shortDesc: List a resource, optionally filtered by name
+  command: ./svcat get
+  tree:
+  - name: bindings
+    shortDesc: List bindings, optionally filtered by name
+    command: ./svcat get bindings
+  - name: brokers
+    shortDesc: List brokers, optionally filtered by name
+    command: ./svcat get brokers
+  - name: classes
+    shortDesc: List classes, optionally filtered by name
+    command: ./svcat get classes
+    flags:
+    - name: uuid
+      shorthand: u
+      desc: Whether or not to get the class by UUID (the default is by name)
+  - name: instances
+    shortDesc: List instances, optionally filtered by name
+    command: ./svcat get instances
+  - name: plans
+    shortDesc: List plans, optionally filtered by name
+    command: ./svcat get plans
+    flags:
+    - name: uuid
+      shorthand: u
+      desc: Whether or not to get the plan by UUID (the default is by name)
+- name: install
+  shortDesc: ' '
+  command: ./svcat install
+  tree:
+  - name: plugin
+    shortDesc: Install as a kubectl plugin
+    command: ./svcat install plugin
+    flags:
+    - name: plugins-path
+      shorthand: p
+      desc: The installation path. Defaults to KUBECTL_PLUGINS_PATH, if defined, otherwise
+        the plugins directory under the KUBECONFIG dir. In most cases, this is ~/.kube/plugins.
+- name: provision
+  shortDesc: Create a new instance of a service
+  command: ./svcat provision
+  flags:
+  - name: class
+    desc: The class name (Required)
+  - name: param
+    shorthand: p
+    desc: 'Additional parameter to use when provisioning the service, format: NAME=VALUE'
+  - name: plan
+    desc: The plan name (Required)
+  - name: secret
+    desc: 'Additional parameter, whose value is stored in a secret, to use when provisioning
+      the service, format: SECRET[KEY]'
+- name: sync
+  shortDesc: Syncs service catalog for a service broker
+  command: ./svcat sync
+  tree:
+  - name: broker
+    shortDesc: Syncs service catalog for a service broker
+    command: ./svcat sync broker
+- name: unbind
+  shortDesc: Unbinds an instance. When an instance name is specified, all of its bindings
+    are removed, otherwise use --name to remove a specific binding
+  command: ./svcat unbind
+  flags:
+  - name: name
+    desc: The name of the binding to remove

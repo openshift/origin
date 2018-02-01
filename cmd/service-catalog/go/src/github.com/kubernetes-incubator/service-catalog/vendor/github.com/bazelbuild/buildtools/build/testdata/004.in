@@ -1,0 +1,3 @@
+JAVA_FILES = [ "Foo.java", "Bar.java",
+               "Baz.java", "Quux.java"
+             ]

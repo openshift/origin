@@ -90,7 +90,11 @@ func (s *sarcheck) Admit(a admission.Attributes) error {
 	} else if clusterServiceBroker.Spec.AuthInfo.Bearer != nil {
 		secretRef = clusterServiceBroker.Spec.AuthInfo.Bearer.SecretRef
 	}
-	glog.V(5).Infof("ClusterServiceBroker %q: evaluating auth secret ref", clusterServiceBroker)
+
+	if secretRef == nil {
+		return nil
+	}
+	glog.V(5).Infof("ClusterServiceBroker %+v: evaluating auth secret ref, with authInfo %q", clusterServiceBroker, secretRef)
 	userInfo := a.GetUserInfo()
 
 	sar := &authorizationapi.SubjectAccessReview{
@@ -131,7 +135,7 @@ func (s *sarcheck) SetKubeClientSet(client kubeclientset.Interface) {
 	s.client = client
 }
 
-func (s *sarcheck) Validate() error {
+func (s *sarcheck) ValidateInitialization() error {
 	if s.client == nil {
 		return fmt.Errorf("missing client")
 	}
