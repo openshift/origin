@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"

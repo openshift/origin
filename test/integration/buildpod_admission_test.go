@@ -16,10 +16,10 @@ import (
 
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
-	overridesapi "github.com/openshift/origin/pkg/build/controller/build/overrides/api"
+	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
+	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

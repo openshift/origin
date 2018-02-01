@@ -11,7 +11,7 @@ import (
 
 	projectclientset "github.com/openshift/client-go/project/clientset/versioned"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

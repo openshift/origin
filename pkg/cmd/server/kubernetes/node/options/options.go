@@ -18,7 +18,7 @@ import (
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/network"

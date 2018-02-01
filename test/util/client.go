@@ -21,7 +21,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"

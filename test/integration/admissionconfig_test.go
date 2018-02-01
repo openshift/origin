@@ -19,9 +19,9 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	serveradmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	testtypes "github.com/openshift/origin/test/integration/testing"
 	testutil "github.com/openshift/origin/test/util"

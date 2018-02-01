@@ -16,8 +16,8 @@ import (
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/ingress/admission/api"
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission"
 )
 
 const (
@@ -37,20 +37,20 @@ func Register(plugins *admission.Plugins) {
 
 type ingressAdmission struct {
 	*admission.Handler
-	config     *api.IngressAdmissionConfig
+	config     *ingressadmission.IngressAdmissionConfig
 	authorizer authorizer.Authorizer
 }
 
 var _ = oadmission.WantsAuthorizer(&ingressAdmission{})
 
-func NewIngressAdmission(config *api.IngressAdmissionConfig) *ingressAdmission {
+func NewIngressAdmission(config *ingressadmission.IngressAdmissionConfig) *ingressAdmission {
 	return &ingressAdmission{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
 		config:  config,
 	}
 }
 
-func readConfig(reader io.Reader) (*api.IngressAdmissionConfig, error) {
+func readConfig(reader io.Reader) (*ingressadmission.IngressAdmissionConfig, error) {
 	if reader == nil || reflect.ValueOf(reader).IsNil() {
 		return nil, nil
 	}
@@ -61,7 +61,7 @@ func readConfig(reader io.Reader) (*api.IngressAdmissionConfig, error) {
 	if obj == nil {
 		return nil, nil
 	}
-	config, ok := obj.(*api.IngressAdmissionConfig)
+	config, ok := obj.(*ingressadmission.IngressAdmissionConfig)
 	if !ok {
 		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}

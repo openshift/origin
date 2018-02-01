@@ -13,10 +13,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/admission/runonceduration/api"
-	"github.com/openshift/origin/pkg/quota/admission/runonceduration/api/validation"
+	"github.com/openshift/origin/pkg/quota/admission/apis/runonceduration"
+	"github.com/openshift/origin/pkg/quota/admission/apis/runonceduration/validation"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -34,7 +34,7 @@ func Register(plugins *admission.Plugins) {
 		})
 }
 
-func readConfig(reader io.Reader) (*api.RunOnceDurationConfig, error) {
+func readConfig(reader io.Reader) (*runonceduration.RunOnceDurationConfig, error) {
 	obj, err := configlatest.ReadYAML(reader)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func readConfig(reader io.Reader) (*api.RunOnceDurationConfig, error) {
 	if obj == nil {
 		return nil, nil
 	}
-	config, ok := obj.(*api.RunOnceDurationConfig)
+	config, ok := obj.(*runonceduration.RunOnceDurationConfig)
 	if !ok {
 		return nil, fmt.Errorf("unexpected config object %#v", obj)
 	}
@@ -54,7 +54,7 @@ func readConfig(reader io.Reader) (*api.RunOnceDurationConfig, error) {
 }
 
 // NewRunOnceDuration creates a new RunOnceDuration admission plugin
-func NewRunOnceDuration(config *api.RunOnceDurationConfig) admission.Interface {
+func NewRunOnceDuration(config *runonceduration.RunOnceDurationConfig) admission.Interface {
 	return &runOnceDuration{
 		Handler: admission.NewHandler(admission.Create),
 		config:  config,
@@ -63,7 +63,7 @@ func NewRunOnceDuration(config *api.RunOnceDurationConfig) admission.Interface {
 
 type runOnceDuration struct {
 	*admission.Handler
-	config *api.RunOnceDurationConfig
+	config *runonceduration.RunOnceDurationConfig
 	cache  *projectcache.ProjectCache
 }
 
@@ -120,7 +120,7 @@ func (a *runOnceDuration) applyProjectAnnotationLimit(namespace string, pod *kap
 	if ns.Annotations == nil {
 		return false, nil
 	}
-	limit, hasLimit := ns.Annotations[api.ActiveDeadlineSecondsLimitAnnotation]
+	limit, hasLimit := ns.Annotations[runonceduration.ActiveDeadlineSecondsLimitAnnotation]
 	if !hasLimit {
 		return false, nil
 	}

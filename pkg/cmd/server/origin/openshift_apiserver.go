@@ -36,7 +36,7 @@ import (
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"

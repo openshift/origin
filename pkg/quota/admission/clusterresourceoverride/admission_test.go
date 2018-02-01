@@ -15,10 +15,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/validation"
+	"github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
+	"github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride/validation"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -43,7 +43,7 @@ kind: ClusterResourceOverrideConfig
 )
 
 var (
-	deserializedYamlConfig = &api.ClusterResourceOverrideConfig{
+	deserializedYamlConfig = &clusterresourceoverride.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    10,
 		MemoryRequestToLimitPercent: 25,
@@ -63,7 +63,7 @@ func TestConfigReader(t *testing.T) {
 		expectErr      bool
 		expectNil      bool
 		expectInvalid  bool
-		expectedConfig *api.ClusterResourceOverrideConfig
+		expectedConfig *clusterresourceoverride.ClusterResourceOverrideConfig
 	}{
 		{
 			name:      "process nil config",
@@ -123,7 +123,7 @@ func TestConfigReader(t *testing.T) {
 func TestLimitRequestAdmission(t *testing.T) {
 	tests := []struct {
 		name               string
-		config             *api.ClusterResourceOverrideConfig
+		config             *clusterresourceoverride.ClusterResourceOverrideConfig
 		pod                *kapi.Pod
 		expectedMemRequest resource.Quantity
 		expectedCpuLimit   resource.Quantity
@@ -329,8 +329,8 @@ func fakeProjectCache(ns *kapi.Namespace) *projectcache.ProjectCache {
 	return projectcache.NewFake((&fake.Clientset{}).Core().Namespaces(), store, "")
 }
 
-func testConfig(lc2mr int64, cr2lr int64, mr2lr int64) *api.ClusterResourceOverrideConfig {
-	return &api.ClusterResourceOverrideConfig{
+func testConfig(lc2mr int64, cr2lr int64, mr2lr int64) *clusterresourceoverride.ClusterResourceOverrideConfig {
+	return &clusterresourceoverride.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     lc2mr,
 		CPURequestToLimitPercent:    cr2lr,
 		MemoryRequestToLimitPercent: mr2lr,

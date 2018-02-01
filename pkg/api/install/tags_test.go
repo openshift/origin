@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 )
 
 func TestDescriptions(t *testing.T) {

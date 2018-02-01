@@ -11,7 +11,7 @@ import (
 	kerrutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
+	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	stringsutil "github.com/openshift/origin/pkg/util/strings"
 )

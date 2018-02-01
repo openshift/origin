@@ -7,12 +7,12 @@ import (
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
-	"github.com/openshift/origin/pkg/build/controller/build/defaults/api/validation"
+	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
+	"github.com/openshift/origin/pkg/build/controller/build/apis/defaults/validation"
 	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 type BuildDefaults struct {

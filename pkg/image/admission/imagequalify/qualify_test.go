@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
+	imagequalifyadmission "github.com/openshift/origin/pkg/image/admission/imagequalify"
 )
 
 type testcase struct {
@@ -14,8 +14,8 @@ type testcase struct {
 	expected string
 }
 
-func parseQualifyRules(rules []api.ImageQualifyRule) (*api.ImageQualifyConfig, error) {
-	config, err := configapilatest.WriteYAML(&api.ImageQualifyConfig{
+func parseQualifyRules(rules []imagequalify.ImageQualifyRule) (*imagequalify.ImageQualifyConfig, error) {
+	config, err := configapilatest.WriteYAML(&imagequalify.ImageQualifyConfig{
 		Rules: rules,
 	})
 
@@ -23,10 +23,10 @@ func parseQualifyRules(rules []api.ImageQualifyRule) (*api.ImageQualifyConfig, e
 		return nil, err
 	}
 
-	return imagequalify.ReadConfig(bytes.NewReader(config))
+	return imagequalifyadmission.ReadConfig(bytes.NewReader(config))
 }
 
-func testQualify(t *testing.T, rules []api.ImageQualifyRule, tests []testcase) {
+func testQualify(t *testing.T, rules []imagequalify.ImageQualifyRule, tests []testcase) {
 	t.Helper()
 
 	config, err := parseQualifyRules(rules)
@@ -35,7 +35,7 @@ func testQualify(t *testing.T, rules []api.ImageQualifyRule, tests []testcase) {
 	}
 
 	for i, tc := range tests {
-		name, err := imagequalify.QualifyImage(tc.image, config.Rules)
+		name, err := imagequalifyadmission.QualifyImage(tc.image, config.Rules)
 		if err != nil {
 			t.Fatalf("test #%v: unexpected error: %s", i, err)
 		}
@@ -46,7 +46,7 @@ func testQualify(t *testing.T, rules []api.ImageQualifyRule, tests []testcase) {
 }
 
 func TestQualifyNoRules(t *testing.T) {
-	rules := []api.ImageQualifyRule{}
+	rules := []imagequalify.ImageQualifyRule{}
 
 	tests := []testcase{{
 		image:    "busybox",
@@ -60,7 +60,7 @@ func TestQualifyNoRules(t *testing.T) {
 }
 
 func TestQualifyImageNoMatch(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "busybox",
 		Domain:  "production.io",
 	}, {
@@ -89,7 +89,7 @@ func TestQualifyImageNoMatch(t *testing.T) {
 }
 
 func TestQualifyRepoAndImageAndTagsWithWildcard(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "repo/busybox",
 		Domain:  "production.io",
 	}, {
@@ -121,7 +121,7 @@ func TestQualifyRepoAndImageAndTagsWithWildcard(t *testing.T) {
 }
 
 func TestQualifyNoRepoWithImageWildcard(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "*",
 		Domain:  "default.io",
 	}}
@@ -138,7 +138,7 @@ func TestQualifyNoRepoWithImageWildcard(t *testing.T) {
 }
 
 func TestQualifyRepoAndImageWildcard(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "*/*",
 		Domain:  "repo.io",
 	}, {
@@ -158,7 +158,7 @@ func TestQualifyRepoAndImageWildcard(t *testing.T) {
 }
 
 func TestQualifyWildcards(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "*/*:*",
 		Domain:  "first.io",
 	}, {
@@ -196,7 +196,7 @@ func TestQualifyWildcards(t *testing.T) {
 }
 
 func TestQualifyRepoWithWildcards(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "*/*:*",
 		Domain:  "first.io",
 	}, {
@@ -246,7 +246,7 @@ func TestQualifyRepoWithWildcards(t *testing.T) {
 }
 
 func TestQualifyTagsWithWildcards(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "a*/*:*v*",
 		Domain:  "v3.io",
 	}, {
@@ -281,7 +281,7 @@ func TestQualifyTagsWithWildcards(t *testing.T) {
 }
 
 func TestQualifyImagesAlreadyQualified(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalify.ImageQualifyRule{{
 		Pattern: "foo",
 		Domain:  "foo.com",
 	}}

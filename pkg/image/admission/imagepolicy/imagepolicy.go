@@ -22,9 +22,9 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/meta"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
-	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api/validation"
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -33,7 +33,7 @@ import (
 )
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register(api.PluginName,
+	plugins.Register(imagepolicy.PluginName,
 		func(input io.Reader) (admission.Interface, error) {
 			obj, err := configlatest.ReadYAML(input)
 			if err != nil {
@@ -42,14 +42,14 @@ func Register(plugins *admission.Plugins) {
 			if obj == nil {
 				return nil, nil
 			}
-			config, ok := obj.(*api.ImagePolicyConfig)
+			config, ok := obj.(*imagepolicy.ImagePolicyConfig)
 			if !ok {
 				return nil, fmt.Errorf("unexpected config object: %#v", obj)
 			}
 			if errs := validation.Validate(config); len(errs) > 0 {
 				return nil, errs.ToAggregate()
 			}
-			glog.V(5).Infof("%s admission controller loaded with config: %#v", api.PluginName, config)
+			glog.V(5).Infof("%s admission controller loaded with config: %#v", imagepolicy.PluginName, config)
 			return newImagePolicyPlugin(config)
 		})
 }
@@ -59,7 +59,7 @@ var _ admission.ValidationInterface = &imagePolicyPlugin{}
 
 type imagePolicyPlugin struct {
 	*admission.Handler
-	config *api.ImagePolicyConfig
+	config *imagepolicy.ImagePolicyConfig
 	client imageinternalclient.ImageInterface
 
 	accepter rules.Accepter
@@ -94,7 +94,7 @@ type imageResolutionPolicy interface {
 
 // imagePolicyPlugin returns an admission controller for pods that controls what images are allowed to run on the
 // cluster.
-func newImagePolicyPlugin(parsed *api.ImagePolicyConfig) (*imagePolicyPlugin, error) {
+func newImagePolicyPlugin(parsed *imagepolicy.ImagePolicyConfig) (*imagePolicyPlugin, error) {
 	m := integratedRegistryMatcher{
 		RegistryMatcher: rules.NewRegistryMatcher(nil),
 	}
@@ -128,10 +128,10 @@ func (a *imagePolicyPlugin) SetProjectCache(c *cache.ProjectCache) {
 // Validate ensures that all required interfaces have been provided, or returns an error.
 func (a *imagePolicyPlugin) ValidateInitialization() error {
 	if a.client == nil {
-		return fmt.Errorf("%s needs an Openshift client", api.PluginName)
+		return fmt.Errorf("%s needs an Openshift client", imagepolicy.PluginName)
 	}
 	if a.projectCache == nil {
-		return fmt.Errorf("%s needs a project cache", api.PluginName)
+		return fmt.Errorf("%s needs a project cache", imagepolicy.PluginName)
 	}
 	imageResolver, err := newImageResolutionCache(a.client, a.integratedRegistryMatcher)
 	if err != nil {
@@ -219,7 +219,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 	var excluded sets.String
 	if ns := attr.GetNamespace(); len(ns) > 0 {
 		if ns, err := a.projectCache.GetNamespace(ns); err == nil {
-			if value := ns.Annotations[api.IgnorePolicyRulesAnnotation]; len(value) > 0 {
+			if value := ns.Annotations[imagepolicy.IgnorePolicyRulesAnnotation]; len(value) > 0 {
 				excluded = sets.NewString(strings.Split(value, ",")...)
 			}
 		}
@@ -446,7 +446,7 @@ func isImageStreamTagNotFound(err error) bool {
 
 // resolutionConfig translates an ImagePolicyConfig into imageResolutionPolicy
 type resolutionConfig struct {
-	config *api.ImagePolicyConfig
+	config *imagepolicy.ImagePolicyConfig
 }
 
 // Covers returns true if the resolver specifically should touch this resource.
@@ -461,7 +461,7 @@ func (config resolutionConfig) Covers(gr schema.GroupResource) bool {
 
 // RequestsResolution is true if the policy demands it or if any rule covers it.
 func (config resolutionConfig) RequestsResolution(gr schema.GroupResource) bool {
-	if api.RequestsResolution(config.config.ResolveImages) {
+	if imagepolicy.RequestsResolution(config.config.ResolveImages) {
 		return true
 	}
 	for _, rule := range config.config.ResolutionRules {
@@ -474,7 +474,7 @@ func (config resolutionConfig) RequestsResolution(gr schema.GroupResource) bool 
 
 // FailOnResolutionFailure does not depend on the nested rules.
 func (config resolutionConfig) FailOnResolutionFailure(gr schema.GroupResource) bool {
-	return api.FailOnResolutionFailure(config.config.ResolveImages)
+	return imagepolicy.FailOnResolutionFailure(config.config.ResolveImages)
 }
 
 var skipImageRewriteOnUpdate = map[schema.GroupResource]struct{}{
@@ -505,7 +505,7 @@ func (config resolutionConfig) RewriteImagePullSpec(attr *rules.ImagePolicyAttri
 		if rule.LocalNames && attr.LocalRewrite {
 			return true
 		}
-		if api.RewriteImagePullSpec(rule.Policy) {
+		if imagepolicy.RewriteImagePullSpec(rule.Policy) {
 			return true
 		}
 		hasMatchingRule = true
@@ -513,7 +513,7 @@ func (config resolutionConfig) RewriteImagePullSpec(attr *rules.ImagePolicyAttri
 	if hasMatchingRule {
 		return false
 	}
-	return api.RewriteImagePullSpec(config.config.ResolveImages)
+	return imagepolicy.RewriteImagePullSpec(config.config.ResolveImages)
 }
 
 // resolutionRuleCoversResource implements wildcard checking on Resource names

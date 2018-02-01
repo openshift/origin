@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configvalidation "github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 

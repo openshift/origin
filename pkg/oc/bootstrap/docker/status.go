@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
@@ -145,7 +145,7 @@ func isHealthy(f *clientcmd.Factory) (bool, error) {
 	return statusCode == 200, nil
 }
 
-func status(container *types.ContainerJSON, config *api.MasterConfig) string {
+func status(container *types.ContainerJSON, config *config.MasterConfig) string {
 	mountMap := make(map[string]string)
 	for _, mount := range container.Mounts {
 		mountMap[mount.Destination] = mount.Source

@@ -21,8 +21,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapiinstall "github.com/openshift/origin/pkg/cmd/server/api/install"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapiinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
