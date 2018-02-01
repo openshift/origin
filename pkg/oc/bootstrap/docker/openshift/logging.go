@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/blang/semver"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -16,11 +18,17 @@ const (
 	svcKibana                      = "kibana-logging"
 	loggingDeployerAccountTemplate = "logging-deployer-account-template"
 	loggingDeployerTemplate        = "logging-deployer-template"
-	loggingPlaybook                = "playbooks/byo/openshift-cluster/openshift-logging.yml"
 )
 
+func getLoggingPlaybook(v semver.Version) string {
+	if v.LTE(version37) {
+		return "playbooks/byo/openshift-cluster/openshift-logging.yml"
+	}
+	return "playbooks/openshift-logging/config.yml"
+}
+
 // InstallLoggingViaAnsible checks whether logging is installed and installs it if not already installed
-func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, publicHostname, loggerHost, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
+func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion semver.Version, serverIP, publicHostname, loggerHost, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
 	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -56,7 +64,7 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, public
 	runner := newAnsibleRunner(h, kubeClient, securityClient, loggingNamespace, imageStreams, "logging")
 
 	//run logging playbook
-	return runner.RunPlaybook(params, loggingPlaybook, hostConfigDir, imagePrefix, imageVersion)
+	return runner.RunPlaybook(params, getLoggingPlaybook(serverVersion), hostConfigDir, imagePrefix, imageVersion)
 }
 
 // InstallLogging checks whether logging is installed and installs it if not already installed

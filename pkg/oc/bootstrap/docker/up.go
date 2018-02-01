@@ -1099,7 +1099,10 @@ func (c *ClientStartConfig) InstallLogging(out io.Writer) error {
 	}
 	serverVersion, _ := c.OpenShiftHelper().ServerVersion()
 	if useAnsible(serverVersion) {
-		return c.OpenShiftHelper().InstallLoggingViaAnsible(f, c.ServerIP, publicMaster,
+		return c.OpenShiftHelper().InstallLoggingViaAnsible(f,
+			serverVersion,
+			c.ServerIP,
+			publicMaster,
 			openshift.LoggingHost(c.RoutingSuffix, c.ServerIP),
 			c.Image,
 			c.ImageVersion,
@@ -1121,7 +1124,10 @@ func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 		if len(publicMaster) == 0 {
 			publicMaster = c.ServerIP
 		}
-		return c.OpenShiftHelper().InstallMetricsViaAnsible(f, c.ServerIP, publicMaster,
+		return c.OpenShiftHelper().InstallMetricsViaAnsible(f,
+			serverVersion,
+			c.ServerIP,
+			publicMaster,
 			openshift.MetricsHost(c.RoutingSuffix, c.ServerIP),
 			c.Image,
 			c.ImageVersion,
