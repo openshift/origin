@@ -41,6 +41,8 @@ const (
 	roleSystemOnly = "authorization.openshift.io/system-only"
 	// roleIsSystemOnly is an annotation value that denotes roleSystemOnly, and thus excludes the role from the UI
 	roleIsSystemOnly = "true"
+	// InfraNodeBootstrapServiceAccountName is the SA used to bootstrap nodes
+	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
 )
 
 var (
