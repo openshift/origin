@@ -947,6 +947,7 @@ items:
     - update
     - watch
   - apiGroups:
+    - extensions
     - networking.k8s.io
     attributeRestrictions: null
     resources:
@@ -1210,6 +1211,7 @@ items:
     - update
     - watch
   - apiGroups:
+    - extensions
     - networking.k8s.io
     attributeRestrictions: null
     resources:
