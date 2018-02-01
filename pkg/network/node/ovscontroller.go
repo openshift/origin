@@ -709,11 +709,11 @@ func (oc *ovsController) ensureTunMAC() error {
 	return nil
 }
 
-func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, egressHex string) error {
+func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, mark string) error {
 	otx := oc.ovs.NewTransaction()
 	otx.DeleteFlows("table=100, reg0=%d", vnid)
 
-	if egressHex == "" {
+	if mark == "" {
 		// Namespace no longer has an EgressIP; no VNID-specific rules needed
 	} else if nodeIP == "" {
 		// Namespace has Egress IP, but it is unavailable, so drop egress traffic
@@ -723,7 +723,7 @@ func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, egressH
 		if err := oc.ensureTunMAC(); err != nil {
 			return err
 		}
-		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->eth_dst,set_field:%s->pkt_mark,goto_table:101", vnid, oc.tunMAC, egressHex)
+		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->eth_dst,set_field:%s->pkt_mark,goto_table:101", vnid, oc.tunMAC, mark)
 	} else {
 		// Remote Egress IP; send via VXLAN
 		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", vnid, nodeIP)
