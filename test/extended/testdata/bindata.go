@@ -25598,6 +25598,20 @@ objects:
           - --web.listen-address=localhost:9090
           image: ${IMAGE_PROMETHEUS}
           imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - |-
+                set -euo pipefail;
+                touch /tmp/prometheusconfig.hash;
+                if [[ $(find /etc/prometheus -type f | sort | xargs md5sum | md5sum) != $(cat /tmp/prometheusconfig.hash) ]]; then
+                  find /etc/prometheus -type f | sort | xargs md5sum | md5sum > /tmp/prometheusconfig.hash;
+                  kill -HUP 1;
+                fi
+            initialDelaySeconds: 60
+            periodSeconds: 60
           volumeMounts:
           - mountPath: /etc/prometheus
             name: prometheus-config
@@ -25709,10 +25723,10 @@ objects:
             name: alertmanager
         - name: alertmanager-tls-secret
           secret:
-            secretName: alertmanager-tls  
+            secretName: alertmanager-tls
         - name: alertmanager-proxy-secret
           secret:
-            secretName: alertmanager-proxy         
+            secretName: alertmanager-proxy
 
         - name: alerts-proxy-secrets
           secret:
@@ -25742,7 +25756,7 @@ objects:
             miqTarget: "ContainerNode"
             severity: "HIGH"
             message: "{{$labels.instance}} is down"
-    
+
     recording.rules: |
       groups:
       - name: aggregate_container_resources
