@@ -14542,6 +14542,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "reference": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -14557,6 +14560,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "2.4"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14574,6 +14580,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/httpd-24-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -14589,6 +14598,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -14604,6 +14616,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "2.4"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14621,6 +14636,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/ruby-20-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14638,6 +14656,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-22-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14655,6 +14676,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-23-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14672,6 +14696,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/ruby-24-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -14687,6 +14714,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -14702,6 +14732,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "8"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14719,6 +14752,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/nodejs-010-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14736,6 +14772,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/nodejs-4-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14753,6 +14792,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/nodejs-6-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14769,6 +14811,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/nodejs-8-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -14784,6 +14829,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -14799,6 +14847,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "5.24"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14816,6 +14867,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/perl-516-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14833,6 +14887,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/perl-520-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14850,6 +14907,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/perl-524-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -14865,6 +14925,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -14880,6 +14943,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "7.1"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14897,6 +14963,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/php-55-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14914,6 +14983,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/php-56-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14931,6 +15003,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/php-70-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14948,6 +15023,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/php-71-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -14963,6 +15041,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -14978,6 +15059,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "3.6"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -14995,6 +15079,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/python-33-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15012,6 +15099,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/python-27-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15029,6 +15119,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/python-34-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15046,6 +15139,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/python-35-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15063,6 +15159,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/python-36-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15078,6 +15177,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -15093,6 +15195,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "10.1"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15110,6 +15215,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-81-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15127,6 +15235,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-90-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15144,6 +15255,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-100-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15161,6 +15275,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/wildfly-101-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15176,6 +15293,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -15189,6 +15309,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "5.7"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15204,6 +15327,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/mysql-55-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15219,6 +15345,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mysql-56-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15234,6 +15363,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mysql-57-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15249,6 +15381,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "1.8",
@@ -15265,6 +15400,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/nginx-18-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15282,6 +15420,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/nginx-110-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15299,6 +15440,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/nginx-112-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15315,6 +15459,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "1.12"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15330,6 +15477,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -15343,6 +15493,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "10.2"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15358,6 +15511,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mariadb-101-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15373,6 +15529,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mariadb-102-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15388,6 +15547,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -15401,6 +15563,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "9.6"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15416,6 +15581,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/postgresql-92-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15431,6 +15599,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/postgresql-94-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15446,6 +15617,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/postgresql-95-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15461,6 +15635,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/postgresql-96-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15476,6 +15653,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -15489,6 +15669,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "3.4"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15504,6 +15687,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/mongodb-24-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15519,6 +15705,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mongodb-26-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15534,6 +15723,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mongodb-32-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15549,6 +15741,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/mongodb-34-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15564,6 +15759,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -15577,6 +15775,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "3.2"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15592,6 +15793,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/centos/redis-32-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
@@ -15607,6 +15811,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
         }
       },
       "spec": {
+        "lookupPolicy": {
+          "local": true
+        },
         "tags": [
           {
             "name": "latest",
@@ -15620,6 +15827,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "name": "2"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15635,6 +15845,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/jenkins-1-centos7:latest"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           },
           {
@@ -15650,6 +15863,9 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "docker.io/openshift/jenkins-2-centos7:v3.9"
+            },
+            "refencePolicy": {
+              "type": "Local"
             }
           }
         ]
