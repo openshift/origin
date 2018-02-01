@@ -226,8 +226,6 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	clientConfig.KeyFile = o.KeyFile
 	token, err := tokencmd.RequestToken(o.Config, o.Reader, o.Username, o.Password)
 	if err != nil {
-		// return error as-is, as method caller expects to check its type
-		fmt.Fprintf(o.ErrOut, "error: %v - %v\n", err, "verify you have provided the correct host and port and that the server is currently running.")
 		return err
 	}
 	clientConfig.BearerToken = token
