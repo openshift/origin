@@ -11,12 +11,14 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/pkg/api"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] weighted openshift router", func() {
@@ -32,6 +34,9 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] weighted open
 			imagePrefix = "openshift/origin"
 		}
 		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:router", oc.Username()).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		// Wait for the policy to be propagated
+		testutil.WaitForClusterPolicyUpdate(oc.InternalKubeClient().Authorization(), "get", api.Resource("service"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
