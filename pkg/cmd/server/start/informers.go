@@ -28,7 +28,7 @@ import (
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"

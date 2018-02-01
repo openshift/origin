@@ -15,7 +15,7 @@ import (
 	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthtypedclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	hostdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/host"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"

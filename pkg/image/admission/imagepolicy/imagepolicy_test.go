@@ -21,10 +21,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
-	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy/api/install"
-	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api/validation"
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
+	_ "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/install"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
@@ -50,7 +50,7 @@ func setDefaultCache(p *imagePolicyPlugin) kcache.Indexer {
 }
 
 func TestDefaultPolicy(t *testing.T) {
-	input, err := os.Open("api/v1/default-policy.yaml")
+	input, err := os.Open("../apis/imagepolicy/v1/default-policy.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestDefaultPolicy(t *testing.T) {
 	if obj == nil {
 		t.Fatal(obj)
 	}
-	config, ok := obj.(*api.ImagePolicyConfig)
+	config, ok := obj.(*imagepolicy.ImagePolicyConfig)
 	if !ok {
 		t.Fatal(config)
 	}
@@ -358,7 +358,7 @@ func TestDefaultPolicy(t *testing.T) {
 			Namespace: "",
 			Name:      "default",
 			Annotations: map[string]string{
-				api.IgnorePolicyRulesAnnotation: "execution-denied",
+				imagepolicy.IgnorePolicyRulesAnnotation: "execution-denied",
 			},
 		},
 	})
@@ -378,9 +378,9 @@ func TestDefaultPolicy(t *testing.T) {
 
 func TestAdmissionWithoutPodSpec(t *testing.T) {
 	onResources := []schema.GroupResource{{Resource: "nodes"}}
-	p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
-		ExecutionRules: []api.ImageExecutionPolicyRule{
-			{ImageCondition: api.ImageCondition{OnResources: onResources}},
+	p, err := newImagePolicyPlugin(&imagepolicy.ImagePolicyConfig{
+		ExecutionRules: []imagepolicy.ImageExecutionPolicyRule{
+			{ImageCondition: imagepolicy.ImageCondition{OnResources: onResources}},
 		},
 	})
 	if err != nil {
@@ -402,11 +402,11 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 
 func TestAdmissionResolution(t *testing.T) {
 	onResources := []schema.GroupResource{{Resource: "pods"}}
-	p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
-		ResolveImages: api.AttemptRewrite,
-		ExecutionRules: []api.ImageExecutionPolicyRule{
-			{ImageCondition: api.ImageCondition{OnResources: onResources}},
-			{Reject: true, ImageCondition: api.ImageCondition{
+	p, err := newImagePolicyPlugin(&imagepolicy.ImagePolicyConfig{
+		ResolveImages: imagepolicy.AttemptRewrite,
+		ExecutionRules: []imagepolicy.ImageExecutionPolicyRule{
+			{ImageCondition: imagepolicy.ImageCondition{OnResources: onResources}},
+			{Reject: true, ImageCondition: imagepolicy.ImageCondition{
 				OnResources:     onResources,
 				MatchRegistries: []string{"index.docker.io"},
 			}},
@@ -507,13 +507,13 @@ func TestAdmissionResolveImages(t *testing.T) {
 	if err != nil || obj == nil {
 		t.Fatal(err)
 	}
-	defaultPolicyConfig := obj.(*api.ImagePolicyConfig)
+	defaultPolicyConfig := obj.(*imagepolicy.ImagePolicyConfig)
 
 	testCases := []struct {
 		name   string
 		client *imageclient.Clientset
-		policy api.ImageResolutionType
-		config *api.ImagePolicyConfig
+		policy imagepolicy.ImageResolutionType
+		config *imagepolicy.ImagePolicyConfig
 		attrs  admission.Attributes
 		admit  bool
 		expect runtime.Object
@@ -521,7 +521,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 
 		{
 			name:   "fails resolution",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(),
 			attrs: admission.NewAttributesRecord(
 				&kapi.Pod{
@@ -540,7 +540,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves images in the integrated registry without altering their ref (avoids looking up the tag)",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
 			),
@@ -566,7 +566,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves images in the integrated registry without altering their ref (avoids looking up the tag)",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
 			),
@@ -592,7 +592,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
 			),
@@ -626,7 +626,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves builds with image stream tags, uses the image DockerImageReference with SHA set",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -663,7 +663,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "does not resolve a build update because the reference didn't change",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -712,7 +712,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
 			),
@@ -746,9 +746,9 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name: "does not rewrite the config because build has DoNotAttempt by default, which overrides global policy",
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.RequiredRewrite,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.RequiredRewrite,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}},
 				},
 			},
@@ -788,10 +788,10 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name: "does not rewrite the config because the default policy uses attempt by default",
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.RequiredRewrite,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
-					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: api.Attempt},
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.RequiredRewrite,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
+					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: imagepolicy.Attempt},
 				},
 			},
 			client: imageclient.NewSimpleClientset(
@@ -830,10 +830,10 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name: "rewrites the config because build has AttemptRewrite which overrides the global policy",
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
-					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: api.AttemptRewrite},
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
+					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: imagepolicy.AttemptRewrite},
 				},
 			},
 			client: imageclient.NewSimpleClientset(
@@ -872,7 +872,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves builds.build.openshift.io with image stream tags, uses the image DockerImageReference with SHA set",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -909,7 +909,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves builds with image stream images",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamImage{
 					ObjectMeta: metav1.ObjectMeta{Name: "test@sha256:0000000000000000000000000000000000000000000000000000000000000001", Namespace: "default"},
@@ -946,7 +946,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves builds that have a local name to their image stream tags, uses the image DockerImageReference with SHA set",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -984,7 +984,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves pods",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -1014,7 +1014,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves replica sets that have a local name to their image stream tags, uses the image DockerImageReference with SHA set",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -1089,7 +1089,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "resolves replica sets that specifically request lookup",
-			policy: api.RequiredRewrite,
+			policy: imagepolicy.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
 					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -1101,7 +1101,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 				&kapiextensions.ReplicaSet{
 					Spec: kapiextensions.ReplicaSetSpec{
 						Template: kapi.PodTemplateSpec{
-							ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{api.ResolveNamesAnnotation: "*"}},
+							ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{imagepolicy.ResolveNamesAnnotation: "*"}},
 							Spec: kapi.PodSpec{
 								Containers: []kapi.Container{
 									{Image: "test:other"},
@@ -1117,7 +1117,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			expect: &kapiextensions.ReplicaSet{
 				Spec: kapiextensions.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{api.ResolveNamesAnnotation: "*"}},
+						ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{imagepolicy.ResolveNamesAnnotation: "*"}},
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
 								{Image: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
@@ -1129,7 +1129,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "if the tag is not found, but the stream is and resolves, resolve to the tag",
-			policy: api.AttemptRewrite,
+			policy: imagepolicy.AttemptRewrite,
 			client: (func() *imageclient.Clientset {
 				fake := &imageclient.Clientset{}
 				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -1178,7 +1178,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "if the tag is not found, but the stream is and doesn't resolve, use the original value",
-			policy: api.AttemptRewrite,
+			policy: imagepolicy.AttemptRewrite,
 			client: (func() *imageclient.Clientset {
 				fake := &imageclient.Clientset{}
 				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -1227,7 +1227,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		{
 			name:   "if the tag is not found, the stream resolves, but the registry is not installed, don't match",
-			policy: api.AttemptRewrite,
+			policy: imagepolicy.AttemptRewrite,
 			client: (func() *imageclient.Clientset {
 				fake := &imageclient.Clientset{}
 				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -1281,14 +1281,14 @@ func TestAdmissionResolveImages(t *testing.T) {
 			config := test.config
 			if config == nil {
 				// old style config
-				config = &api.ImagePolicyConfig{
+				config = &imagepolicy.ImagePolicyConfig{
 					ResolveImages: test.policy,
-					ResolutionRules: []api.ImageResolutionPolicyRule{
+					ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 						{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}, Policy: test.policy},
 						{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "*"}, Policy: test.policy},
 					},
-					ExecutionRules: []api.ImageExecutionPolicyRule{
-						{ImageCondition: api.ImageCondition{OnResources: onResources}},
+					ExecutionRules: []imagepolicy.ImageExecutionPolicyRule{
+						{ImageCondition: imagepolicy.ImageCondition{OnResources: onResources}},
 					},
 				}
 			}
@@ -1333,7 +1333,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 
 func TestResolutionConfig(t *testing.T) {
 	testCases := []struct {
-		config   *api.ImagePolicyConfig
+		config   *imagepolicy.ImagePolicyConfig
 		resource schema.GroupResource
 		attrs    rules.ImagePolicyAttributes
 		update   bool
@@ -1343,15 +1343,15 @@ func TestResolutionConfig(t *testing.T) {
 		rewrite bool
 	}{
 		{
-			config:  &api.ImagePolicyConfig{ResolveImages: api.AttemptRewrite},
+			config:  &imagepolicy.ImagePolicyConfig{ResolveImages: imagepolicy.AttemptRewrite},
 			resolve: true,
 			rewrite: true,
 		},
 		// requires local rewrite for local names
 		{
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
 				},
 			},
@@ -1361,9 +1361,9 @@ func TestResolutionConfig(t *testing.T) {
 		// wildcard resource matches
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
 				},
 			},
@@ -1373,9 +1373,9 @@ func TestResolutionConfig(t *testing.T) {
 		// group mismatch fails
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "*"}},
 				},
 			},
@@ -1386,9 +1386,9 @@ func TestResolutionConfig(t *testing.T) {
 		// resource mismatch fails
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
 				},
 			},
@@ -1399,9 +1399,9 @@ func TestResolutionConfig(t *testing.T) {
 		// resource match succeeds
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
 				},
 			},
@@ -1412,9 +1412,9 @@ func TestResolutionConfig(t *testing.T) {
 		// resource match skips on job update
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}},
 				},
 			},
@@ -1426,9 +1426,9 @@ func TestResolutionConfig(t *testing.T) {
 		// resource match succeeds on job create
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}},
 				},
 			},
@@ -1440,9 +1440,9 @@ func TestResolutionConfig(t *testing.T) {
 		// resource match skips on build update
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}},
 				},
 			},
@@ -1455,9 +1455,9 @@ func TestResolutionConfig(t *testing.T) {
 		// TODO: remove in 3.7
 		{
 			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
-			config: &api.ImagePolicyConfig{
-				ResolveImages: api.DoNotAttempt,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
+			config: &imagepolicy.ImagePolicyConfig{
+				ResolveImages: imagepolicy.DoNotAttempt,
+				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"}},
 				},
 			},

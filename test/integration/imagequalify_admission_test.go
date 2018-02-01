@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	kapi "k8s.io/kubernetes/pkg/apis/core"

@@ -25,7 +25,7 @@ import (
 	templateapiv1 "github.com/openshift/api/template/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/bulk"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/client/internalversion"

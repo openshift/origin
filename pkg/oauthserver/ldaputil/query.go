@@ -7,12 +7,12 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
 
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 )
 
 // NewLDAPQuery converts a user-provided LDAPQuery into a version we can use
-func NewLDAPQuery(config api.LDAPQuery) (LDAPQuery, error) {
+func NewLDAPQuery(config config.LDAPQuery) (LDAPQuery, error) {
 	scope, err := DetermineLDAPScope(config.Scope)
 	if err != nil {
 		return LDAPQuery{}, err
@@ -77,7 +77,7 @@ func (q *LDAPQuery) NewSearchRequest(additionalAttributes []string) *ldap.Search
 
 // NewLDAPQueryOnAttribute converts a user-provided LDAPQuery into a version we can use by parsing
 // the input and combining it with a set of name attributes
-func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
+func NewLDAPQueryOnAttribute(config config.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
 	ldapQuery, err := NewLDAPQuery(config)
 	if err != nil {
 		return LDAPQueryOnAttribute{}, err

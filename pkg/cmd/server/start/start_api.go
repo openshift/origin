@@ -14,7 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 var apiLong = templates.LongDesc(`

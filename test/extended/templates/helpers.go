@@ -17,7 +17,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/bulk"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/controller"
 	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"

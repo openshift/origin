@@ -14,7 +14,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"

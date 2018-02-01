@@ -24,7 +24,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client/impersonatingclient"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 // cacheExcludedPaths is small and simple until the handlers include the cache headers they need

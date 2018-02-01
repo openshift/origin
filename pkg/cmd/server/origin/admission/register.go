@@ -33,12 +33,12 @@ import (
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
-	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
-	imagequalifyapi "github.com/openshift/origin/pkg/image/admission/imagequalify/api"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
+	imagequalifyapi "github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
+	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )
 
 // TODO register this per apiserver or at least per process

@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync"
@@ -14,7 +14,7 @@ var _ PruneBuilder = &ADBuilder{}
 
 type ADBuilder struct {
 	ClientConfig ldapclient.Config
-	Config       *api.ActiveDirectoryConfig
+	Config       *config.ActiveDirectoryConfig
 
 	adLDAPInterface *ad.ADLDAPInterface
 }

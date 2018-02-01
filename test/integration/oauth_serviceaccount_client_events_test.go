@@ -24,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
@@ -40,7 +40,7 @@ type testServer struct {
 	authCodes                chan string
 	authErrors               chan string
 	oauthServer              *httptest.Server
-	masterConfig             *api.MasterConfig
+	masterConfig             *config.MasterConfig
 }
 
 var (

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	master "github.com/openshift/origin/pkg/cmd/server/api"
-	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
+	master "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configvalidation "github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )

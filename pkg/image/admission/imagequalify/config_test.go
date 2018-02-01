@@ -6,10 +6,10 @@ import (
 	"reflect"
 	"testing"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api/validation"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify/validation"
+	imagequalifyadmission "github.com/openshift/origin/pkg/image/admission/imagequalify"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -56,8 +56,8 @@ kind: ImageQualifyConfig
 )
 
 var (
-	deserializedYamlConfig = &api.ImageQualifyConfig{
-		Rules: []api.ImageQualifyRule{{
+	deserializedYamlConfig = &imagequalify.ImageQualifyConfig{
+		Rules: []imagequalify.ImageQualifyRule{{
 			Pattern: "*/*",
 			Domain:  "example.com",
 		}, {
@@ -67,14 +67,14 @@ var (
 	}
 )
 
-func testReaderConfig(rules []api.ImageQualifyRule) *api.ImageQualifyConfig {
-	return &api.ImageQualifyConfig{
+func testReaderConfig(rules []imagequalify.ImageQualifyRule) *imagequalify.ImageQualifyConfig {
+	return &imagequalify.ImageQualifyConfig{
 		Rules: rules,
 	}
 }
 
 func TestConfigReader(t *testing.T) {
-	initialConfig := testReaderConfig([]api.ImageQualifyRule{{
+	initialConfig := testReaderConfig([]imagequalify.ImageQualifyRule{{
 		Pattern: "*/*",
 		Domain:  "example.com",
 	}, {
@@ -93,7 +93,7 @@ func TestConfigReader(t *testing.T) {
 		expectErr      bool
 		expectNil      bool
 		expectInvalid  bool
-		expectedConfig *api.ImageQualifyConfig
+		expectedConfig *imagequalify.ImageQualifyConfig
 	}{{
 		name:      "process nil config",
 		config:    nil,
@@ -128,13 +128,13 @@ func TestConfigReader(t *testing.T) {
 	}, {
 		name:           "empty config",
 		config:         bytes.NewReader([]byte(emptyConfig)),
-		expectedConfig: &api.ImageQualifyConfig{},
+		expectedConfig: &imagequalify.ImageQualifyConfig{},
 		expectInvalid:  false,
 		expectErr:      false,
 	}}
 
 	for _, test := range tests {
-		config, err := imagequalify.ReadConfig(test.config)
+		config, err := imagequalifyadmission.ReadConfig(test.config)
 		if test.expectErr && err == nil {
 			t.Errorf("%s: expected error", test.name)
 		} else if !test.expectErr && err != nil {

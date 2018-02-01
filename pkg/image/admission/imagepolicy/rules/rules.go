@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -52,7 +52,7 @@ func NewRegistryMatcher(names []string) RegistryMatcher {
 
 type resourceSet map[schema.GroupResource]struct{}
 
-func imageConditionInfo(rule *api.ImageCondition) (covers resourceSet, selectors []labels.Selector, err error) {
+func imageConditionInfo(rule *imagepolicy.ImageCondition) (covers resourceSet, selectors []labels.Selector, err error) {
 	covers = make(resourceSet)
 	for _, gr := range rule.OnResources {
 		covers[gr] = struct{}{}
@@ -69,7 +69,7 @@ func imageConditionInfo(rule *api.ImageCondition) (covers resourceSet, selectors
 	return covers, selectors, nil
 }
 
-func requiresImage(rule *api.ImageCondition) bool {
+func requiresImage(rule *imagepolicy.ImageCondition) bool {
 	switch {
 	case len(rule.MatchImageLabels) > 0,
 		len(rule.MatchImageAnnotations) > 0,
@@ -81,7 +81,7 @@ func requiresImage(rule *api.ImageCondition) bool {
 }
 
 // matchImageCondition determines the result of an ImageCondition or the provided arguments.
-func matchImageCondition(condition *api.ImageCondition, integrated RegistryMatcher, attrs *ImagePolicyAttributes) bool {
+func matchImageCondition(condition *imagepolicy.ImageCondition, integrated RegistryMatcher, attrs *ImagePolicyAttributes) bool {
 	result := matchImageConditionValues(condition, integrated, attrs)
 	glog.V(5).Infof("image matches conditions for %q: %t(invert=%t)", condition.Name, result, condition.InvertMatch)
 	if condition.InvertMatch {
@@ -92,7 +92,7 @@ func matchImageCondition(condition *api.ImageCondition, integrated RegistryMatch
 
 // matchImageConditionValues handles only the match rules on the condition, returning true if the conditions match.
 // Use matchImageCondition to apply invertMatch rules.
-func matchImageConditionValues(rule *api.ImageCondition, integrated RegistryMatcher, attrs *ImagePolicyAttributes) bool {
+func matchImageConditionValues(rule *imagepolicy.ImageCondition, integrated RegistryMatcher, attrs *ImagePolicyAttributes) bool {
 	if rule.MatchIntegratedRegistry && !(attrs.IntegratedRegistry || integrated.Matches(attrs.Name.Registry)) {
 		glog.V(5).Infof("image registry %v does not match integrated registry", attrs.Name.Registry)
 		return false
@@ -143,7 +143,7 @@ func matchImageConditionValues(rule *api.ImageCondition, integrated RegistryMatc
 	return true
 }
 
-func matchKeyValue(all map[string]string, conditions []api.ValueCondition) bool {
+func matchKeyValue(all map[string]string, conditions []imagepolicy.ValueCondition) bool {
 	for _, condition := range conditions {
 		switch {
 		case condition.Set:

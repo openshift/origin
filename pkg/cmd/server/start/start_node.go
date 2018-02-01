@@ -26,9 +26,9 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network"
 	networkoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/network/options"

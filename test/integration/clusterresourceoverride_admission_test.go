@@ -9,13 +9,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
-	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/install"
+	_ "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride/install"
 )
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
@@ -112,14 +112,14 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	}
 	// fill in possibly-empty config values
 	if masterConfig.KubernetesMasterConfig == nil {
-		masterConfig.KubernetesMasterConfig = &api.KubernetesMasterConfig{}
+		masterConfig.KubernetesMasterConfig = &config.KubernetesMasterConfig{}
 	}
 	if masterConfig.AdmissionConfig.PluginConfig == nil {
-		masterConfig.AdmissionConfig.PluginConfig = map[string]*api.AdmissionPluginConfig{}
+		masterConfig.AdmissionConfig.PluginConfig = map[string]*config.AdmissionPluginConfig{}
 	}
 	// set our config as desired
 	masterConfig.AdmissionConfig.PluginConfig[overrideapi.PluginName] =
-		&api.AdmissionPluginConfig{Configuration: pluginConfig}
+		&config.AdmissionPluginConfig{Configuration: pluginConfig}
 
 	// start up a server and return useful clients to that server
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)

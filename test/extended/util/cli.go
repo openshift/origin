@@ -28,7 +28,7 @@ import (
 	appsclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"

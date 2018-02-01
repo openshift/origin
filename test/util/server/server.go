@@ -29,7 +29,7 @@ import (
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/start"

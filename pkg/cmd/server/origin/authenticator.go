@@ -25,7 +25,7 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/apiserver/authentication/internaloauth"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"

@@ -18,13 +18,13 @@ import (
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
-	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
-	imagequalify "github.com/openshift/origin/pkg/image/admission/imagequalify/api"
+	imagepolicy "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
+	imagequalify "github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	overrideapi "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride"
 	sccadmission "github.com/openshift/origin/pkg/security/admission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )

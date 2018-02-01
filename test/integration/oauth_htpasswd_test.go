@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/util/tokencmd"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"

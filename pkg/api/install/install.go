@@ -24,7 +24,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/settings/install"
 	_ "k8s.io/kubernetes/pkg/apis/storage/install"
 
-	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
+	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 
 	apps "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	authz "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
