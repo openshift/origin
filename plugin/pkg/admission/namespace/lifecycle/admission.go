@@ -152,7 +152,7 @@ func (l *lifecycle) SetKubeClientSet(client kubeclientset.Interface) {
 	l.client = client
 }
 
-func (l *lifecycle) Validate() error {
+func (l *lifecycle) ValidateInitialization() error {
 	if l.namespaceLister == nil {
 		return fmt.Errorf("missing namespaceLister")
 	}

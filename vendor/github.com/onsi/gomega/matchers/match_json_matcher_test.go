@@ -16,12 +16,36 @@ var _ = Describe("MatchJSONMatcher", func() {
 			         }`).Should(MatchJSON(`{"a":1}`))
 			Ω(`{"a":1, "b":2}`).Should(MatchJSON(`{"b":2, "a":1}`))
 			Ω(`{"a":1}`).ShouldNot(MatchJSON(`{"b":2, "a":1}`))
+
+			Ω(`{"a":"a", "b":"b"}`).ShouldNot(MatchJSON(`{"a":"a", "b":"b", "c":"c"}`))
+			Ω(`{"a":"a", "b":"b", "c":"c"}`).ShouldNot(MatchJSON(`{"a":"a", "b":"b"}`))
+
+			Ω(`{"a":null, "b":null}`).ShouldNot(MatchJSON(`{"c":"c", "d":"d"}`))
+			Ω(`{"a":null, "b":null, "c":null}`).ShouldNot(MatchJSON(`{"a":null, "b":null, "d":null}`))
 		})
 
 		It("should work with byte arrays", func() {
 			Ω([]byte("{}")).Should(MatchJSON([]byte("{}")))
 			Ω("{}").Should(MatchJSON([]byte("{}")))
 			Ω([]byte("{}")).Should(MatchJSON("{}"))
+		})
+	})
+
+	Context("when a key mismatch is found", func() {
+		It("reports the first found mismatch", func() {
+			subject := MatchJSONMatcher{JSONToMatch: `5`}
+			actual := `7`
+			subject.Match(actual)
+
+			failureMessage := subject.FailureMessage(`7`)
+			Ω(failureMessage).ToNot(ContainSubstring("first mismatched key"))
+
+			subject = MatchJSONMatcher{JSONToMatch: `{"a": 1, "b.g": {"c": 2, "1": ["hello", "see ya"]}}`}
+			actual = `{"a": 1, "b.g": {"c": 2, "1": ["hello", "goodbye"]}}`
+			subject.Match(actual)
+
+			failureMessage = subject.FailureMessage(actual)
+			Ω(failureMessage).To(ContainSubstring(`first mismatched key: "b.g"."1"[1]`))
 		})
 	})
 

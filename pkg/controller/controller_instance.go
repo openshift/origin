@@ -18,15 +18,12 @@ package controller
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/golang/glog"
 	osb "github.com/pmorie/go-open-service-broker-client/v2"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 	"github.com/kubernetes-incubator/service-catalog/pkg/pretty"
@@ -191,6 +188,21 @@ func (c *controller) finishPollingServiceInstance(instance *v1beta1.ServiceInsta
 	return nil
 }
 
+// getReconciliationActionForServiceInstance gets the action the reconciler
+// should be taking on the given instance.
+func getReconciliationActionForServiceInstance(instance *v1beta1.ServiceInstance) ReconciliationAction {
+	switch {
+	case instance.Status.AsyncOpInProgress:
+		return reconcilePoll
+	case instance.ObjectMeta.DeletionTimestamp != nil || instance.Status.OrphanMitigationInProgress:
+		return reconcileDelete
+	case instance.Status.ReconciledGeneration != 0:
+		return reconcileUpdate
+	default: // instance.Status.ReconciledGeneration == 0
+		return reconcileAdd
+	}
+}
+
 func (c *controller) reconcileServiceInstanceKey(key string) error {
 	// For namespace-scoped resources, SplitMetaNamespaceKey splits the key
 	// i.e. "namespace/name" into two separate strings
@@ -212,6 +224,227 @@ func (c *controller) reconcileServiceInstanceKey(key string) error {
 	return c.reconcileServiceInstance(instance)
 }
 
+// reconcileServiceInstance is the control-loop for reconciling Instances. An
+// error is returned to indicate that the instance has not been fully
+// processed and should be resubmitted at a later time.
+func (c *controller) reconcileServiceInstance(instance *v1beta1.ServiceInstance) error {
+	reconciliationAction := getReconciliationActionForServiceInstance(instance)
+	switch reconciliationAction {
+	case reconcileAdd:
+		return c.reconcileServiceInstanceAdd(instance)
+	case reconcileUpdate:
+		return c.reconcileServiceInstanceUpdate(instance)
+	case reconcileDelete:
+		return c.reconcileServiceInstanceDelete(instance)
+	case reconcilePoll:
+		return c.pollServiceInstance(instance)
+	default:
+		pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+		return fmt.Errorf(pcb.Messagef("Unknown reconciliation action %v", reconciliationAction))
+	}
+}
+
+// reconcileServiceInstanceAdd is responsible for handling the provisioning
+// of new service instances.
+func (c *controller) reconcileServiceInstanceAdd(instance *v1beta1.ServiceInstance) error {
+	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+
+	if isServiceInstanceFailed(instance) {
+		glog.V(4).Info(pcb.Message("Not processing event because status showed that it has failed"))
+		return nil
+	}
+
+	if instance.Status.ReconciledGeneration == instance.Generation {
+		glog.V(4).Info(pcb.Message("Not processing event because reconciled generation showed there is no work to do"))
+		return nil
+	}
+
+	instance = instance.DeepCopy()
+
+	// Update references to ClusterServicePlan / ClusterServiceClass if necessary.
+	//
+	// TODO(mkibbe): Make this trigger another reconciliation instead of continuing.
+	instance, err := c.resolveReferences(instance)
+	if err != nil {
+		return err
+	}
+
+	glog.V(4).Info(pcb.Message("Processing adding event"))
+
+	serviceClass, servicePlan, brokerName, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(instance)
+	if err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	// Check if the ServiceClass or ServicePlan has been deleted and do not allow
+	// creation of new ServiceInstances.
+	if err := c.checkForRemovedClassAndPlan(instance, serviceClass, servicePlan); err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	request, inProgressProperties, err := c.prepareProvisionRequest(instance, serviceClass, servicePlan)
+	if err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	if instance.Status.CurrentOperation == "" {
+		instance, err = c.recordStartOfServiceInstanceOperation(instance, v1beta1.ServiceInstanceOperationProvision, inProgressProperties)
+		if err != nil {
+			// There has been an update to the instance. Start reconciliation
+			// over with a fresh view of the instance.
+			return err
+		}
+	}
+
+	glog.V(4).Info(pcb.Messagef(
+		"Provisioning a new ServiceInstance of %s at ClusterServiceBroker %q",
+		pretty.ClusterServiceClassName(serviceClass), brokerName,
+	))
+
+	response, err := brokerClient.ProvisionInstance(request)
+	if err != nil {
+		// A failure HTTP response code is treated as a terminal
+		// failure. Depending on the specific response, we may also
+		// need to initiate orphan mitigation.
+		if httpErr, ok := osb.IsHTTPError(err); ok {
+			msg := fmt.Sprintf(
+				"Error provisioning ServiceInstance of %s at ClusterServiceBroker %q: %s",
+				pretty.ClusterServiceClassName(serviceClass), brokerName, httpErr,
+			)
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, errorProvisionCallFailedReason, msg)
+			failedCond := newServiceInstanceFailedCondition(v1beta1.ConditionTrue, "ClusterServiceBrokerReturnedFailure", msg)
+			return c.processProvisionFailure(instance, readyCond, failedCond, shouldStartOrphanMitigation(httpErr.StatusCode))
+		}
+
+		reason := errorErrorCallingProvisionReason
+
+		// A timeout error is considered a terminal failure and we
+		// should initiate orphan mitigation.
+		if urlErr, ok := err.(*url.Error); ok && urlErr.Timeout() {
+			msg := fmt.Sprintf("Communication with the ClusterServiceBroker timed out; operation will not be retried: %v", urlErr)
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, reason, msg)
+			failedCond := newServiceInstanceFailedCondition(v1beta1.ConditionTrue, reason, msg)
+			return c.processProvisionFailure(instance, readyCond, failedCond, true)
+		}
+
+		// All other errors should be retried, unless the
+		// reconciliation retry time limit has passed.
+		msg := fmt.Sprintf("The provision call failed and will be retried: Error communicating with broker for provisioning: %v", err)
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, reason, msg)
+
+		if c.reconciliationRetryDurationExceeded(instance.Status.OperationStartTime) {
+			msg := "Stopping reconciliation retries because too much time has elapsed"
+			failedCond := newServiceInstanceFailedCondition(v1beta1.ConditionTrue, errorReconciliationRetryTimeoutReason, msg)
+			return c.processProvisionFailure(instance, readyCond, failedCond, false)
+		}
+
+		return c.processServiceInstanceOperationError(instance, readyCond)
+	}
+
+	if response.Async {
+		return c.processProvisionAsyncResponse(instance, response)
+	}
+
+	return c.processProvisionSuccess(instance, response.DashboardURL)
+}
+
+// reconcileServiceInstanceUpdate is responsible for handling updating the plan
+// or parameters of a service instance.
+func (c *controller) reconcileServiceInstanceUpdate(instance *v1beta1.ServiceInstance) error {
+	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+
+	if isServiceInstanceFailed(instance) {
+		glog.V(4).Info(pcb.Message("Not processing event because status showed that it has failed"))
+		return nil
+	}
+
+	if instance.Status.ReconciledGeneration == instance.Generation {
+		glog.V(4).Info(pcb.Message("Not processing event because reconciled generation showed there is no work to do"))
+		return nil
+	}
+
+	instance = instance.DeepCopy()
+
+	// Update references to ClusterServicePlan / ClusterServiceClass if necessary.
+	//
+	// TODO(mkibbe): Make this trigger another reconciliation instead of continuing.
+	instance, err := c.resolveReferences(instance)
+	if err != nil {
+		return err
+	}
+
+	glog.V(4).Info(pcb.Message("Processing updating event"))
+
+	serviceClass, servicePlan, brokerName, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(instance)
+	if err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	// Check if the ServiceClass or ServicePlan has been deleted. If so, do
+	// not allow plan upgrades, but do allow parameter changes.
+	if err := c.checkForRemovedClassAndPlan(instance, serviceClass, servicePlan); err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	request, inProgressProperties, err := c.prepareUpdateInstanceRequest(instance, serviceClass, servicePlan)
+	if err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	if instance.Status.CurrentOperation == "" {
+		instance, err = c.recordStartOfServiceInstanceOperation(instance, v1beta1.ServiceInstanceOperationUpdate, inProgressProperties)
+		if err != nil {
+			// There has been an update to the instance. Start reconciliation
+			// over with a fresh view of the instance.
+			return err
+		}
+	}
+
+	glog.V(4).Info(pcb.Messagef(
+		"Updating ServiceInstance of %s at ClusterServiceBroker %q",
+		pretty.ClusterServiceClassName(serviceClass), brokerName,
+	))
+
+	response, err := brokerClient.UpdateInstance(request)
+	if err != nil {
+		if httpErr, ok := osb.IsHTTPError(err); ok {
+			msg := fmt.Sprintf("ClusterServiceBroker returned a failure for update call; update will not be retried: %v", httpErr)
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, errorUpdateInstanceCallFailedReason, msg)
+			return c.processUpdateServiceInstanceFailure(instance, readyCond)
+		}
+
+		reason := errorErrorCallingUpdateInstanceReason
+
+		if urlErr, ok := err.(*url.Error); ok && urlErr.Timeout() {
+			msg := fmt.Sprintf("Communication with the ClusterServiceBroker timed out; update will not be retried: %v", urlErr)
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, reason, msg)
+			return c.processUpdateServiceInstanceFailure(instance, readyCond)
+		}
+
+		msg := fmt.Sprintf("The update call failed and will be retried: Error communicating with broker for updating: %s", err)
+
+		if c.reconciliationRetryDurationExceeded(instance.Status.OperationStartTime) {
+			// log and record the real error, but process as a
+			// failure with reconciliation retry timeout
+			glog.Info(pcb.Message(msg))
+			c.recorder.Event(instance, corev1.EventTypeWarning, reason, msg)
+
+			msg = "Stopping reconciliation retries because too much time has elapsed"
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, errorReconciliationRetryTimeoutReason, msg)
+			return c.processUpdateServiceInstanceFailure(instance, readyCond)
+		}
+
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, reason, msg)
+		return c.processServiceInstanceOperationError(instance, readyCond)
+	}
+
+	if response.Async {
+		return c.processUpdateServiceInstanceAsyncResponse(instance, response)
+	}
+
+	return c.processUpdateServiceInstanceSuccess(instance)
+}
+
 // reconcileServiceInstanceDelete is responsible for handling any instance whose
 // deletion timestamp is set.
 func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceInstance) error {
@@ -220,15 +453,13 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 		return nil
 	}
 
-	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
-
-	finalizerToken := v1beta1.FinalizerServiceCatalog
-	finalizers := sets.NewString(instance.Finalizers...)
-	if !finalizers.Has(finalizerToken) {
+	if finalizers := sets.NewString(instance.Finalizers...); !finalizers.Has(v1beta1.FinalizerServiceCatalog) {
 		return nil
 	}
 
-	// If deprovisioning has failed, do not do anything more
+	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+
+	// If deprovisioning has already failed, do not do anything more
 	if instance.Status.DeprovisionStatus == v1beta1.ServiceInstanceDeprovisionStatusFailed {
 		glog.V(4).Info(pcb.Message("Not processing deleting event because deprovisioning has failed"))
 		return nil
@@ -236,182 +467,50 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 
 	glog.V(4).Info(pcb.Message("Processing deleting event"))
 
-	// Determine if any credentials exist for this instance.  We don't want to
-	// delete the instance if there are any associated creds
-	credentialsLister := c.bindingLister.ServiceBindings(instance.Namespace)
+	instance = instance.DeepCopy()
 
-	selector := labels.NewSelector()
-	credentialsList, err := credentialsLister.List(selector)
-	if err != nil {
-		return err
-	}
-	for _, credentials := range credentialsList {
-		if instance.Name == credentials.Spec.ServiceInstanceRef.Name {
-
-			// found credentials, block the deletion until they are removed
-			clone, err := api.Scheme.DeepCopy(instance)
-			if err != nil {
-				return err
-			}
-			toUpdate := clone.(*v1beta1.ServiceInstance)
-
-			s := "Delete instance blocked by existing ServiceBindings associated with this instance.  All credentials must be removed first"
-			glog.Warning(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorDeprovisionBlockedByCredentialsReason, s)
-
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorDeprovisionBlockedByCredentialsReason,
-				"Delete instance failed. "+s)
-			if _, err = c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return nil
-		}
+	// We don't want to delete the instance if there are any bindings associated.
+	if err := c.checkServiceInstanceHasExistingBindings(instance); err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
 	}
 
-	// If the deprovisioning succeeded or is not needed, then clear out the finalizers
+	// If the deprovisioning succeeded or is not needed, then no need to
+	// make a request to the broker.
 	if instance.Status.DeprovisionStatus == v1beta1.ServiceInstanceDeprovisionStatusNotRequired ||
 		instance.Status.DeprovisionStatus == v1beta1.ServiceInstanceDeprovisionStatusSucceeded {
 
-		glog.V(5).Info(pcb.Message("Clearing catalog finalizer"))
-		clone, err := api.Scheme.DeepCopy(instance)
-		if err != nil {
-			return err
-		}
-		toUpdate := clone.(*v1beta1.ServiceInstance)
-		// Clear the finalizer
-		finalizers.Delete(finalizerToken)
-		toUpdate.Finalizers = finalizers.List()
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-		return nil
+		return c.processServiceInstanceGracefulDeletionSuccess(instance)
 	}
 
-	// At this point, the deprovision status should be Required as the
-	// controller is about to send a deprovision request. The other
-	// valid values for deprovision status have all been handled above.
-	// If the deprovision status is anything other than Required, then either
-	// there is an invalid value or there is a logical error in the
-	// controller. In either case, the controller needs to bail out, setting
-	// the deprovision status to Failed.
+	// At this point, if the deprovision status is not Required, then it is
+	// either an invalid value or there is a logical error in the controller.
+	// Set the deprovision status to Failed and bail out.
 	if instance.Status.DeprovisionStatus != v1beta1.ServiceInstanceDeprovisionStatusRequired {
-		clone, err := api.Scheme.DeepCopy(instance)
-		if err != nil {
-			return err
-		}
-		toUpdate := clone.(*v1beta1.ServiceInstance)
-		s := fmt.Sprintf("%s: %s", errorInvalidDeprovisionStatusMessage, instance.Status.DeprovisionStatus)
-		glog.Info(pcb.Message(s))
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorInvalidDeprovisionStatusReason, s)
-
-		if instance.Status.OrphanMitigationInProgress {
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionUnknown,
-				errorInvalidDeprovisionStatusReason,
-				"Orphan mitigation failed: "+s)
-		} else {
-			setServiceInstanceCondition(toUpdate,
-				v1beta1.ServiceInstanceConditionFailed,
-				v1beta1.ConditionTrue,
-				errorInvalidDeprovisionStatusReason,
-				s)
-		}
-
-		clearServiceInstanceCurrentOperation(toUpdate)
-		toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-		return nil
+		msg := fmt.Sprintf("ServiceInstance has invalid DeprovisionStatus field: %v", instance.Status.DeprovisionStatus)
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionUnknown, errorInvalidDeprovisionStatusReason, msg)
+		failedCond := newServiceInstanceFailedCondition(v1beta1.ConditionTrue, errorInvalidDeprovisionStatusReason, msg)
+		return c.processDeprovisionFailure(instance, readyCond, failedCond)
 	}
 
-	// All updates not having a DeletingTimestamp will have been handled above
-	// and returned early. If we reach this point, we're dealing with an update
-	// that's actually a soft delete-- i.e. we have some finalization to do.
 	serviceClass, servicePlan, brokerName, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(instance)
 	if err != nil {
-		return err
+		return c.handleServiceInstanceReconciliationError(instance, err)
 	}
 
-	// we will definitely update the instance's status - make a deep copy now
-	// for use later in this method.
-	clone, err := api.Scheme.DeepCopy(instance)
+	request, err := c.prepareDeprovisionRequest(instance, serviceClass, servicePlan)
 	if err != nil {
-		return err
-	}
-	toUpdate := clone.(*v1beta1.ServiceInstance)
-
-	var servicePlanExternalID string
-	if instance.Status.ExternalProperties != nil {
-		servicePlanExternalID = instance.Status.ExternalProperties.ClusterServicePlanExternalID
-	} else if servicePlan != nil {
-		servicePlanExternalID = servicePlan.Spec.ExternalID
-	} else {
-		glog.Warning(pcb.Message(errorUnknownServicePlanMessage))
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorUnknownServicePlanReason, errorUnknownServicePlanMessage)
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			errorUnknownServicePlanReason,
-			errorUnknownServicePlanMessage,
-		)
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-
-		return err
+		return c.handleServiceInstanceReconciliationError(instance, err)
 	}
 
-	request := &osb.DeprovisionRequest{
-		InstanceID:        instance.Spec.ExternalID,
-		ServiceID:         serviceClass.Spec.ExternalID,
-		PlanID:            servicePlanExternalID,
-		AcceptsIncomplete: true,
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
-		originatingIdentity, err := buildOriginatingIdentity(instance.Spec.UserInfo)
-		if err != nil {
-			s := fmt.Sprintf("Error building originating identity headers when deprovisioning: %v", err)
-			glog.Warning(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorWithOriginatingIdentity, s)
-
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorWithOriginatingIdentity,
-				s,
-			)
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
-			return err
-		}
-		request.OriginatingIdentity = originatingIdentity
-	}
-
-	if toUpdate.DeletionTimestamp == nil {
-		if toUpdate.Status.OperationStartTime == nil {
+	if instance.DeletionTimestamp == nil {
+		if instance.Status.OperationStartTime == nil {
+			// if mitigating an orphan, set the operation start time if unset
 			now := metav1.Now()
-			toUpdate.Status.OperationStartTime = &now
+			instance.Status.OperationStartTime = &now
 		}
 	} else {
-		if toUpdate.Status.CurrentOperation != v1beta1.ServiceInstanceOperationDeprovision {
-			// Cancel any pending orphan mitigation since the resource is being deleted
-			toUpdate.Status.OrphanMitigationInProgress = false
-
-			toUpdate, err = c.recordStartOfServiceInstanceOperation(toUpdate, v1beta1.ServiceInstanceOperationDeprovision)
+		if instance.Status.CurrentOperation != v1beta1.ServiceInstanceOperationDeprovision {
+			instance, err = c.recordStartOfServiceInstanceOperation(instance, v1beta1.ServiceInstanceOperationDeprovision, nil)
 			if err != nil {
 				// There has been an update to the instance. Start reconciliation
 				// over with a fresh view of the instance.
@@ -420,142 +519,189 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1beta1.ServiceIns
 		}
 	}
 
-	glog.V(4).Info(pcb.Message("Deprovisioning"))
+	glog.V(4).Info(pcb.Message("Sending deprovision request to broker"))
 	response, err := brokerClient.DeprovisionInstance(request)
 	if err != nil {
-		var s string
+		msg := fmt.Sprintf(
+			`Error deprovisioning, %s at ClusterServiceBroker %q: %v`,
+			pretty.ClusterServiceClassName(serviceClass), brokerName, err,
+		)
 		if httpErr, ok := osb.IsHTTPError(err); ok {
-			s = fmt.Sprintf(
-				"Deprovision call failed; received error response from broker: %v",
-				httpErr.Error(),
-			)
-		} else {
-			s = fmt.Sprintf(
-				`Error deprovisioning, %s at ClusterServiceBroker %q: %v`,
-				pretty.ClusterServiceClassName(serviceClass), brokerName, err,
-			)
-		}
-		glog.Warning(pcb.Message(s))
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorDeprovisionCalledReason, s)
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionUnknown,
-			errorDeprovisionCalledReason,
-			"Deprovision call failed. "+s)
-
-		if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-			s := "Stopping reconciliation retries because too much time has elapsed"
-			glog.Info(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-
-			if instance.Status.OrphanMitigationInProgress {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionUnknown,
-					errorOrphanMitigationFailedReason,
-					"Orphan mitigation deprovision call failed. "+s)
-			} else {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			}
-
-			clearServiceInstanceCurrentOperation(toUpdate)
-			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return nil
+			msg = fmt.Sprintf("Deprovision call failed; received error response from broker: %v", httpErr)
 		}
 
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionUnknown, errorDeprovisionCalledReason, msg)
+
+		if c.reconciliationRetryDurationExceeded(instance.Status.OperationStartTime) {
+			msg := "Stopping reconciliation retries because too much time has elapsed"
+			failedCond := newServiceInstanceFailedCondition(v1beta1.ConditionTrue, errorReconciliationRetryTimeoutReason, msg)
+			return c.processDeprovisionFailure(instance, readyCond, failedCond)
 		}
-		return err
+
+		return c.processServiceInstanceOperationError(instance, readyCond)
 	}
 
 	if response.Async {
-		glog.V(5).Info(pcb.Messagef("Received asynchronous de-provisioning response, %s at %s: response: %+v",
-			serviceClass.Name, brokerName, response,
-		))
+		return c.processDeprovisionAsyncResponse(instance, response)
+	}
 
-		if response.OperationKey != nil && *response.OperationKey != "" {
-			key := string(*response.OperationKey)
-			toUpdate.Status.LastOperation = &key
+	return c.processDeprovisionSuccess(instance)
+}
+
+func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) error {
+	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+	glog.V(4).Info(pcb.Message("Processing"))
+
+	instance = instance.DeepCopy()
+
+	serviceClass, servicePlan, _, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(instance)
+	if err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	// There are some conditions that are different depending on which
+	// operation we're polling for. This is more readable than checking the
+	// status in various places.
+	mitigatingOrphan := instance.Status.OrphanMitigationInProgress
+	provisioning := instance.Status.CurrentOperation == v1beta1.ServiceInstanceOperationProvision && !mitigatingOrphan
+	deleting := instance.Status.CurrentOperation == v1beta1.ServiceInstanceOperationDeprovision || mitigatingOrphan
+
+	request, err := c.prepareServiceInstanceLastOperationRequest(instance, serviceClass, servicePlan)
+	if err != nil {
+		return c.handleServiceInstanceReconciliationError(instance, err)
+	}
+
+	glog.V(5).Info(pcb.Message("Polling last operation"))
+
+	response, err := brokerClient.PollLastOperation(request)
+	if err != nil {
+		// If the operation was for delete and we receive a http.StatusGone,
+		// this is considered a success as per the spec
+		if osb.IsGoneError(err) && deleting {
+			if err := c.processDeprovisionSuccess(instance); err != nil {
+				return c.handleServiceInstancePollingError(instance, err)
+			}
+			return c.finishPollingServiceInstance(instance)
 		}
 
-		// Tag this instance as having an ongoing async operation so we can enforce
-		// no other operations against it can start.
-		toUpdate.Status.AsyncOpInProgress = true
+		// We got some kind of error and should continue polling.
+		//
+		// The instance's Ready condition should already be False, so
+		// we just need to record an event.
+		s := fmt.Sprintf("Error polling last operation: %v", err)
+		glog.V(4).Info(pcb.Message(s))
+		c.recorder.Event(instance, corev1.EventTypeWarning, errorPollingLastOperationReason, s)
 
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			asyncDeprovisioningReason,
-			asyncDeprovisioningMessage,
-		)
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
+		if c.reconciliationRetryDurationExceeded(instance.Status.OperationStartTime) {
+			return c.processServiceInstancePollingFailureRetryTimeout(instance, nil)
 		}
 
-		err = c.beginPollingServiceInstance(instance)
+		return c.continuePollingServiceInstance(instance)
+	}
+
+	glog.V(4).Info(pcb.Messagef("Poll returned %q: Response description: %v", response.State, response.Description))
+
+	switch response.State {
+	case osb.StateInProgress:
+		var message string
+		var reason string
+		switch {
+		case deleting:
+			reason = asyncDeprovisioningReason
+			message = asyncDeprovisioningMessage
+		case provisioning:
+			reason = asyncProvisioningReason
+			message = asyncProvisioningMessage
+		default:
+			reason = asyncUpdatingInstanceReason
+			message = asyncUpdatingInstanceMessage
+		}
+
+		if response.Description != nil {
+			message = fmt.Sprintf("%s (%s)", message, *response.Description)
+		}
+
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, reason, message)
+		if c.reconciliationRetryDurationExceeded(instance.Status.OperationStartTime) {
+			return c.processServiceInstancePollingFailureRetryTimeout(instance, readyCond)
+		}
+
+		// only need to update the resource if there was a description for the operation provided
+		if response.Description != nil {
+			c.recorder.Event(instance, corev1.EventTypeNormal, readyCond.Reason, readyCond.Message)
+
+			setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, readyCond.Status, readyCond.Reason, readyCond.Message)
+			if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+				return c.handleServiceInstancePollingError(instance, err)
+			}
+		}
+
+		glog.V(4).Info(pcb.Message("Last operation not completed (still in progress)"))
+		return c.continuePollingServiceInstance(instance)
+	case osb.StateSucceeded:
+		var err error
+		switch {
+		case deleting:
+			err = c.processDeprovisionSuccess(instance)
+		case provisioning:
+			err = c.processProvisionSuccess(instance, nil)
+		default:
+			err = c.processUpdateServiceInstanceSuccess(instance)
+		}
 		if err != nil {
-			return err
+			return c.handleServiceInstancePollingError(instance, err)
+		}
+		return c.finishPollingServiceInstance(instance)
+	case osb.StateFailed:
+		description := "(no description provided)"
+		if response.Description != nil {
+			description = *response.Description
 		}
 
-		c.recorder.Eventf(instance, corev1.EventTypeNormal, asyncDeprovisioningReason, asyncDeprovisioningMessage)
+		var err error
+		switch {
+		case deleting:
+			// For deprovisioning only, we should reattempt even on failure
+			//
+			// TODO(mkibbe): This is actually broken today, as we
+			// will not actually be retrying the deprovision, but
+			// instead constantly re-hitting the "last_operation"
+			// endpoint with the same operation, which will forever
+			// be stuck on failure.
+			msg := "Deprovision call failed: " + description
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionUnknown, errorDeprovisionCalledReason, msg)
 
-		return nil
+			if c.reconciliationRetryDurationExceeded(instance.Status.OperationStartTime) {
+				return c.processServiceInstancePollingFailureRetryTimeout(instance, readyCond)
+			}
+
+			c.processServiceInstanceOperationError(instance, readyCond)
+			return c.continuePollingServiceInstance(instance)
+		case provisioning:
+			reason := errorProvisionCallFailedReason
+			message := "Provision call failed: " + description
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, reason, message)
+			failedCond := newServiceInstanceFailedCondition(v1beta1.ConditionTrue, reason, message)
+			err = c.processProvisionFailure(instance, readyCond, failedCond, false)
+		default:
+			msg := "Update call failed: " + description
+			readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, errorUpdateInstanceCallFailedReason, msg)
+			err = c.processUpdateServiceInstanceFailure(instance, readyCond)
+		}
+		if err != nil {
+			return c.handleServiceInstancePollingError(instance, err)
+		}
+
+		return c.finishPollingServiceInstance(instance)
+	default:
+		glog.Warning(pcb.Messagef("Got invalid state in LastOperationResponse: %q", response.State))
+		if c.reconciliationRetryDurationExceeded(instance.Status.OperationStartTime) {
+			return c.processServiceInstancePollingFailureRetryTimeout(instance, nil)
+		}
+
+		err := fmt.Errorf(`Got invalid state in LastOperationResponse: %q`, response.State)
+		return c.handleServiceInstancePollingError(instance, err)
 	}
-
-	glog.V(5).Info(pcb.Message("Deprovision call to broker succeeded, finalizing"))
-
-	clearServiceInstanceCurrentOperation(toUpdate)
-	toUpdate.Status.ExternalProperties = nil
-	toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
-
-	if instance.DeletionTimestamp != nil {
-		glog.V(5).Info(pcb.Messagef("Successfully deprovisioned, %s at %s",
-			serviceClass.Name, brokerName,
-		))
-		c.recorder.Event(instance, corev1.EventTypeNormal, successDeprovisionReason, successDeprovisionMessage)
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			successDeprovisionReason,
-			successDeprovisionMessage,
-		)
-
-		// Clear the finalizer for normal instance deletions
-		finalizers.Delete(v1beta1.FinalizerServiceCatalog)
-		toUpdate.Finalizers = finalizers.List()
-	} else {
-		// Deprovision due to orphan mitigation successful
-		glog.V(5).Info(pcb.Message(successOrphanMitigationMessage))
-		c.recorder.Event(instance, corev1.EventTypeNormal, successOrphanMitigationReason, successOrphanMitigationMessage)
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			successOrphanMitigationReason,
-			successOrphanMitigationMessage,
-		)
-	}
-
-	if _, err = c.updateServiceInstanceStatus(toUpdate); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // isServiceInstanceFailed returns whether the instance has a failed condition with
@@ -570,1003 +716,32 @@ func isServiceInstanceFailed(instance *v1beta1.ServiceInstance) bool {
 	return false
 }
 
-// reconcileServiceInstance is the control-loop for reconciling Instances. An
-// error is returned to indicate that the instance has not been fully
-// processed and should be resubmitted at a later time.
-func (c *controller) reconcileServiceInstance(instance *v1beta1.ServiceInstance) error {
-	if instance.Status.AsyncOpInProgress {
-		return c.pollServiceInstance(instance)
-	}
-
-	if instance.ObjectMeta.DeletionTimestamp != nil || instance.Status.OrphanMitigationInProgress {
-		return c.reconcileServiceInstanceDelete(instance)
-	}
-	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
-	// Currently, we only set a failure condition if the initial provision
-	// call fails, so if that condition is set, we only need to remove the
-	// finalizer from the instance. We will need to reevaluate this logic as
-	// we make any changes to capture permanent failure in new cases.
-	if isServiceInstanceFailed(instance) {
-		glog.V(4).Info(pcb.Message("Not processing event because status showed that it has failed"))
-		return nil
-	}
-
-	// If the instance's "metadata.generation" matches its
-	// "status.reconciledGeneration", then no new changes have been made to
-	// the instance's spec, and we can just return.
-	if instance.Status.ReconciledGeneration == instance.Generation {
-		glog.V(4).Info(pcb.Message("Not processing event because reconciled generation showed there is no work to do"))
-		return nil
-	}
-
-	// we will definitely update the instance's status - make a deep copy now
-	// for use later in this method.
-	clone, err := api.Scheme.DeepCopy(instance)
-	if err != nil {
-		return err
-	}
-	toUpdate := clone.(*v1beta1.ServiceInstance)
-
-	// Update references to ClusterServicePlan / ClusterServiceClass if necessary.
-	toUpdate, err = c.resolveReferences(toUpdate)
-	if err != nil {
-		return err
-	}
-
-	glog.V(4).Info(pcb.Message("Processing adding/updating event"))
-
-	serviceClass, servicePlan, brokerName, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(toUpdate)
-	if err != nil {
-		return err
-	}
-
-	// Check if the ServiceClass or ServicePlan has been deleted and do not allow
-	// creation of new ServiceInstances or plan upgrades. It's little complicated
-	// since we do want to allow parameter changes on an instance whose plan or class
-	// has been removed from the broker's catalog.
-	// If changes are not allowed, the method will set the appropriate status / record
-	// events, so we can just return here on failure.
-	err = c.checkForRemovedClassAndPlan(instance, serviceClass, servicePlan)
-	if err != nil {
-		return err
-	}
-
-	ns, err := c.kubeClient.CoreV1().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
-	if err != nil {
-		s := fmt.Sprintf("Failed to get namespace %q during instance create: %s", instance.Namespace, err)
-		glog.Info(pcb.Message(s))
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorFindingNamespaceServiceInstanceReason, s)
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			errorFindingNamespaceServiceInstanceReason,
-			"Error finding namespace for instance. "+s,
-		)
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	parameters, parametersChecksum, rawParametersWithRedaction, err := prepareInProgressPropertyParameters(
-		c.kubeClient,
-		instance.Namespace,
-		instance.Spec.Parameters,
-		instance.Spec.ParametersFrom,
-	)
-	if err != nil {
-		glog.Warning(pcb.Message(err.Error()))
-		c.recorder.Event(toUpdate, corev1.EventTypeWarning, errorWithParameters, err.Error())
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			errorWithParameters,
-			err.Error(),
-		)
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-		return err
-	}
-
-	toUpdate.Status.InProgressProperties = &v1beta1.ServiceInstancePropertiesState{
-		ClusterServicePlanExternalName: servicePlan.Spec.ExternalName,
-		ClusterServicePlanExternalID:   servicePlan.Spec.ExternalID,
-		Parameters:                     rawParametersWithRedaction,
-		ParametersChecksum:             parametersChecksum,
-		UserInfo:                       instance.Spec.UserInfo,
-	}
-
-	var originatingIdentity *osb.OriginatingIdentity
-	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
-		originatingIdentity, err = buildOriginatingIdentity(instance.Spec.UserInfo)
-		if err != nil {
-			s := fmt.Sprintf("Error building originating identity headers for provisioning: %v", err)
-			glog.Warning(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorWithOriginatingIdentity, s)
-
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorWithOriginatingIdentity,
-				s,
-			)
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
-			return err
-		}
-	}
-
-	// osb client handles whether or not to really send this based
-	// on the version of the client.
-	requestContext := map[string]interface{}{
-		"platform":  ContextProfilePlatformKubernetes,
-		"namespace": instance.Namespace,
-	}
-
-	var (
-		isProvisioning             bool
-		provisionRequest           *osb.ProvisionRequest
-		updateRequest              *osb.UpdateInstanceRequest
-		currentOperation           v1beta1.ServiceInstanceOperation
-		provisionOrUpdateText      string
-		provisionedOrUpdatedText   string
-		provisioningOrUpdatingText string
-	)
-	if toUpdate.Status.ReconciledGeneration == 0 {
-		isProvisioning = true
-		provisionRequest = &osb.ProvisionRequest{
-			AcceptsIncomplete:   true,
-			InstanceID:          instance.Spec.ExternalID,
-			ServiceID:           serviceClass.Spec.ExternalID,
-			PlanID:              servicePlan.Spec.ExternalID,
-			Parameters:          parameters,
-			OrganizationGUID:    string(ns.UID),
-			SpaceGUID:           string(ns.UID),
-			Context:             requestContext,
-			OriginatingIdentity: originatingIdentity,
-		}
-		currentOperation = v1beta1.ServiceInstanceOperationProvision
-		provisionOrUpdateText = "provision"
-		provisionedOrUpdatedText = "provisioned"
-		provisioningOrUpdatingText = "provisioning"
-		toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
-	} else {
-		isProvisioning = false
-		updateRequest = &osb.UpdateInstanceRequest{
-			AcceptsIncomplete:   true,
-			InstanceID:          instance.Spec.ExternalID,
-			ServiceID:           serviceClass.Spec.ExternalID,
-			Context:             requestContext,
-			OriginatingIdentity: originatingIdentity,
-		}
-		// Only send the plan ID if the plan ID has changed from what the Broker has
-		if toUpdate.Status.ExternalProperties == nil ||
-			servicePlan.Spec.ExternalID != toUpdate.Status.ExternalProperties.ClusterServicePlanExternalID {
-			planID := servicePlan.Spec.ExternalID
-			updateRequest.PlanID = &planID
-		}
-		// Only send the parameters if they have changed from what the Broker has
-		if toUpdate.Status.ExternalProperties == nil ||
-			toUpdate.Status.InProgressProperties.ParametersChecksum != toUpdate.Status.ExternalProperties.ParametersChecksum {
-			updateRequest.Parameters = parameters
-		}
-		currentOperation = v1beta1.ServiceInstanceOperationUpdate
-		provisionOrUpdateText = "update"
-		provisionedOrUpdatedText = "updated"
-		provisioningOrUpdatingText = "updating"
-	}
-
-	if toUpdate.Status.CurrentOperation == "" {
-		toUpdate, err = c.recordStartOfServiceInstanceOperation(toUpdate, currentOperation)
-		if err != nil {
-			// There has been an update to the instance. Start reconciliation
-			// over with a fresh view of the instance.
-			return err
-		}
-	}
-
-	var provisionResponse *osb.ProvisionResponse
-	var updateResponse *osb.UpdateInstanceResponse
-	if isProvisioning {
-		glog.V(4).Info(pcb.Messagef(
-			"Provisioning a new ServiceInstance of %s at ClusterServiceBroker %q",
-			pretty.ClusterServiceClassName(serviceClass), brokerName,
-		))
-		provisionResponse, err = brokerClient.ProvisionInstance(provisionRequest)
-	} else {
-		glog.V(4).Info(pcb.Messagef(
-			"Updating ServiceInstance of %s at ClusterServiceBroker %q",
-			pretty.ClusterServiceClassName(serviceClass), brokerName,
-		))
-		updateResponse, err = brokerClient.UpdateInstance(updateRequest)
-	}
-	if err != nil {
-		// There are two buckets of errors to handle:
-		// 1.  Errors that represent a failure response from the broker
-		// 2.  All other errors
-		if httpErr, ok := osb.IsHTTPError(err); ok {
-			reason := errorProvisionCallFailedReason
-			if !isProvisioning {
-				reason = errorUpdateInstanceCallFailedReason
-			}
-			// An error from the broker represents a permanent failure and
-			// should not be retried; set the Failed condition.
-			s := fmt.Sprintf(
-				"Error %v ServiceInstance of %s at ClusterServiceBroker %q: %s",
-				provisioningOrUpdatingText, pretty.ClusterServiceClassName(serviceClass), brokerName, httpErr,
-			)
-			glog.Warning(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, reason, s)
-
-			if isProvisioning {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					"ClusterServiceBrokerReturnedFailure",
-					s)
-
-				if shouldStartOrphanMitigation(httpErr.StatusCode) {
-					c.setServiceInstanceStartOrphanMitigation(toUpdate)
-
-					if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-						return err
-					}
-
-					return httpErr
-				}
-			}
-
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				reason,
-				fmt.Sprintf("ClusterServiceBroker returned a failure for %v call; operation will not be retried: %v", provisionOrUpdateText, s))
-
-			clearServiceInstanceCurrentOperation(toUpdate)
-
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		reason := errorErrorCallingProvisionReason
-		if !isProvisioning {
-			reason = errorErrorCallingUpdateInstanceReason
-		}
-		s := fmt.Sprintf("Error communicating with broker for %q: %s", provisioningOrUpdatingText, err)
-		glog.Warning(pcb.Message(s))
-		c.recorder.Event(instance, corev1.EventTypeWarning, reason, s)
-
-		urlErr, ok := err.(*url.Error)
-		if ok && urlErr.Timeout() {
-			var (
-				reason  string
-				message string
-			)
-			if isProvisioning {
-				reason = errorErrorCallingProvisionReason
-			} else {
-				reason = errorErrorCallingUpdateInstanceReason
-			}
-			message = "Communication with the ClusterServiceBroker timed out; operation will not be retried: " + s
-			// Communication to the broker timed out. Treat as terminal failure and
-			// begin orphan mitigation.
-
-			if isProvisioning {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					reason,
-					message)
-				c.setServiceInstanceStartOrphanMitigation(toUpdate)
-			} else {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionFalse,
-					reason,
-					message)
-				clearServiceInstanceCurrentOperation(toUpdate)
-			}
-
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
-			return err
-		}
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			reason,
-			fmt.Sprintf("The %v call failed and will be retried: %v", provisionOrUpdateText, s))
-
-		if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-			s := "Stopping reconciliation retries because too much time has elapsed"
-			glog.Info(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-			if isProvisioning {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			} else {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionFalse,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			}
-			clearServiceInstanceCurrentOperation(toUpdate)
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return nil
-		}
-
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-
-		return err
-	}
-
-	if isProvisioning && provisionResponse.DashboardURL != nil && *provisionResponse.DashboardURL != "" {
-		url := *provisionResponse.DashboardURL
-		toUpdate.Status.DashboardURL = &url
-	}
-
-	// ClusterServiceBroker can return either a synchronous or asynchronous
-	// response, if the response is StatusAccepted it's an async
-	// and we need to add it to the polling queue. ClusterServiceBroker can
-	// optionally return 'Operation' that will then need to be
-	// passed back to the broker during polling of last_operation.
-	var response interface{}
-	async := false
-	if isProvisioning {
-		response = provisionResponse
-		async = provisionResponse.Async
-	} else {
-		response = updateResponse
-		async = updateResponse.Async
-	}
-	if async {
-		glog.V(5).Info(pcb.Messagef(
-			"Received asynchronous %v response for ServiceInstance of %s at ClusterServiceBroker %q: response: %+v",
-			provisioningOrUpdatingText, pretty.ClusterServiceClassName(serviceClass), brokerName, response,
-		))
-
-		var operationKey *osb.OperationKey
-		if isProvisioning {
-			operationKey = provisionResponse.OperationKey
-		} else {
-			operationKey = updateResponse.OperationKey
-		}
-		if operationKey != nil && *operationKey != "" {
-			key := string(*operationKey)
-			toUpdate.Status.LastOperation = &key
-		}
-
-		// Tag this instance as having an ongoing async operation so we can enforce
-		// no other operations against it can start.
-		toUpdate.Status.AsyncOpInProgress = true
-
-		reason := asyncProvisioningReason
-		message := asyncProvisioningMessage
-		if !isProvisioning {
-			reason = asyncUpdatingInstanceReason
-			message = asyncUpdatingInstanceMessage
-		}
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			reason,
-			message,
-		)
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-
-		if err := c.beginPollingServiceInstance(instance); err != nil {
-			return err
-		}
-
-		c.recorder.Eventf(instance, corev1.EventTypeNormal, reason, message)
-	} else {
-		reason := successProvisionReason
-		message := successProvisionMessage
-		if !isProvisioning {
-			reason = successUpdateInstanceReason
-			message = successUpdateInstanceMessage
-		}
-		glog.V(5).Info(pcb.Messagef(
-			"Successfully %v ServiceInstance of %s at ClusterServiceBroker %q: response: %+v",
-			provisionedOrUpdatedText, pretty.ClusterServiceClassName(serviceClass), brokerName, response,
-		))
-
-		toUpdate.Status.ExternalProperties = toUpdate.Status.InProgressProperties
-		clearServiceInstanceCurrentOperation(toUpdate)
-
-		// TODO: process response
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionTrue,
-			reason,
-			message,
-		)
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-
-		c.recorder.Eventf(instance, corev1.EventTypeNormal, reason, message)
-	}
-	return nil
-}
-
-func (c *controller) pollServiceInstance(instance *v1beta1.ServiceInstance) error {
-	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
-	glog.V(4).Info(pcb.Message("Processing"))
-
-	serviceClass, servicePlan, _, brokerClient, err := c.getClusterServiceClassPlanAndClusterServiceBroker(instance)
-	if err != nil {
-		return err
-	}
-
-	// There are three possible operations that require polling:
-	// 1) Normal asynchronous provision
-	// 2) Normal asynchronous deprovision
-	// 3) Deprovisioning as part of orphan mitigation
-	//
-	// There are some conditions that are different depending on which
-	// operation we're polling for. This is more readable than checking the
-	// status in various places.
+// processServiceInstancePollingFailureRetryTimeout marks the instance as having
+// failed polling due to its reconciliation retry duration expiring
+func (c *controller) processServiceInstancePollingFailureRetryTimeout(instance *v1beta1.ServiceInstance, readyCond *v1beta1.ServiceInstanceCondition) error {
 	mitigatingOrphan := instance.Status.OrphanMitigationInProgress
 	provisioning := instance.Status.CurrentOperation == v1beta1.ServiceInstanceOperationProvision && !mitigatingOrphan
-	deleting := false
-	if instance.Status.CurrentOperation == v1beta1.ServiceInstanceOperationDeprovision || mitigatingOrphan {
-		deleting = true
-	}
+	deleting := instance.Status.CurrentOperation == v1beta1.ServiceInstanceOperationDeprovision || mitigatingOrphan
 
-	// OperationStartTime must be set because we are polling an in-progress
-	// operation. If it is not set, this is a logical error. Let's bail out.
-	if instance.Status.OperationStartTime == nil {
-		clone, err := api.Scheme.DeepCopy(instance)
-		if err != nil {
-			return err
-		}
-		toUpdate := clone.(*v1beta1.ServiceInstance)
-		s := "Stopping reconciliation retries because the operation start time is not set"
-		glog.Info(pcb.Message(s))
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
+	msg := "Stopping reconciliation retries because too much time has elapsed"
+	failedCond := newServiceInstanceFailedCondition(v1beta1.ConditionTrue, errorReconciliationRetryTimeoutReason, msg)
 
-		if mitigatingOrphan {
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionUnknown,
-				errorOrphanMitigationFailedReason,
-				"Orphan mitigation failed: "+s)
-		} else if deleting || provisioning {
-			setServiceInstanceCondition(toUpdate,
-				v1beta1.ServiceInstanceConditionFailed,
-				v1beta1.ConditionTrue,
-				errorReconciliationRetryTimeoutReason,
-				s)
-		} else {
-			setServiceInstanceCondition(toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorReconciliationRetryTimeoutReason,
-				s)
-		}
-
-		if !provisioning {
-			clearServiceInstanceCurrentOperation(toUpdate)
-			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-		} else {
-			c.setServiceInstanceStartOrphanMitigation(toUpdate)
-		}
-
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-		return c.finishPollingServiceInstance(instance)
-	}
-
-	request := &osb.LastOperationRequest{
-		InstanceID: instance.Spec.ExternalID,
-		ServiceID:  &serviceClass.Spec.ExternalID,
-		PlanID:     &servicePlan.Spec.ExternalID,
-	}
-	if instance.Status.LastOperation != nil && *instance.Status.LastOperation != "" {
-		key := osb.OperationKey(*instance.Status.LastOperation)
-		request.OperationKey = &key
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
-		originatingIdentity, err := buildOriginatingIdentity(instance.Spec.UserInfo)
-		if err != nil {
-			s := fmt.Sprintf("Error building originating identity headers for polling last operation: %v", err)
-			glog.Warning(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorWithOriginatingIdentity, s)
-
-			clone, cloneErr := api.Scheme.DeepCopy(instance)
-			if cloneErr != nil {
-				return cloneErr
-			}
-			toUpdate := clone.(*v1beta1.ServiceInstance)
-			setServiceInstanceCondition(toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				errorWithOriginatingIdentity,
-				s)
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return err
-		}
-		request.OriginatingIdentity = originatingIdentity
-	}
-
-	glog.V(5).Info(pcb.Message("Polling last operation"))
-
-	response, err := brokerClient.PollLastOperation(request)
-	if err != nil {
-		// If the operation was for delete and we receive a http.StatusGone,
-		// this is considered a success as per the spec, so mark as deleted
-		// and remove any finalizers.
-		if osb.IsGoneError(err) && deleting {
-			clone, err := api.Scheme.DeepCopy(instance)
-			if err != nil {
-				return err
-			}
-			toUpdate := clone.(*v1beta1.ServiceInstance)
-
-			var (
-				reason  string
-				message string
-			)
-			switch {
-			case mitigatingOrphan:
-				reason = successOrphanMitigationReason
-				message = successOrphanMitigationMessage
-			default:
-				reason = successDeprovisionReason
-				message = successDeprovisionMessage
-			}
-
-			clearServiceInstanceCurrentOperation(toUpdate)
-			toUpdate.Status.ExternalProperties = nil
-			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
-
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				reason,
-				message,
-			)
-
-			if !mitigatingOrphan {
-				// Clear the finalizer
-				if finalizers := sets.NewString(toUpdate.Finalizers...); finalizers.Has(v1beta1.FinalizerServiceCatalog) {
-					finalizers.Delete(v1beta1.FinalizerServiceCatalog)
-					toUpdate.Finalizers = finalizers.List()
-				}
-			}
-
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
-			glog.V(5).Info(pcb.Message(message))
-
-			c.recorder.Event(instance, corev1.EventTypeNormal, reason, message)
-
-			return c.finishPollingServiceInstance(instance)
-		}
-
-		// We got some kind of error from the broker.  While polling last
-		// operation, this represents an invalid response and we should
-		// continue polling last operation.
-		//
-		// The ready condition on the instance should already have
-		// condition false; it should be sufficient to create an event for
-		// the instance.
-		errText := ""
-		if httpErr, ok := osb.IsHTTPError(err); ok {
-			errText = httpErr.Error()
-		} else {
-			errText = err.Error()
-		}
-
-		s := fmt.Sprintf("Error polling last operation: %v", errText)
-		glog.V(4).Info(pcb.Message(s))
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorPollingLastOperationReason, s)
-
-		if c.isReconciliationRetryDurationExceeded(instance) {
-			return c.reconciliationRetryDurationExceededFinishPollingServiceInstance(instance, mitigatingOrphan, provisioning, deleting)
-		}
-
-		return c.continuePollingServiceInstance(instance)
-	}
-
-	glog.V(4).Info(pcb.Messagef(
-		"Poll returned %q : Response description: %v",
-		response.State, response.Description,
-	))
-
-	switch response.State {
-	case osb.StateInProgress:
-		var toUpdate *v1beta1.ServiceInstance
-
-		// if the description is non-nil, then update the instance condition with it
-		if response.Description != nil {
-			// The way the worker keeps on requeueing is by returning an error, so
-			// we need to keep on polling.
-			clone, err := api.Scheme.DeepCopy(instance)
-			if err != nil {
-				return err
-			}
-			toUpdate = clone.(*v1beta1.ServiceInstance)
-			toUpdate.Status.AsyncOpInProgress = true
-
-			var message string
-			var reason string
-			switch {
-			case deleting:
-				reason = asyncDeprovisioningReason
-				message = asyncDeprovisioningMessage
-			case provisioning:
-				reason = asyncProvisioningReason
-				message = asyncProvisioningMessage
-			default:
-				reason = asyncUpdatingInstanceReason
-				message = asyncUpdatingInstanceMessage
-			}
-
-			if response.Description != nil {
-				message = fmt.Sprintf("%s (%s)", message, *response.Description)
-			}
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				reason,
-				message,
-			)
-		}
-
-		if !time.Now().Before(instance.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-			if toUpdate == nil {
-				clone, err := api.Scheme.DeepCopy(instance)
-				if err != nil {
-					return err
-				}
-				toUpdate = clone.(*v1beta1.ServiceInstance)
-			}
-			s := "Stopping reconciliation retries because too much time has elapsed"
-			glog.Info(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-
-			if mitigatingOrphan {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionUnknown,
-					errorOrphanMitigationFailedReason,
-					"Orphan mitigation failed: "+s)
-			} else if deleting || provisioning {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			} else {
-				setServiceInstanceCondition(toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionFalse,
-					errorReconciliationRetryTimeoutReason,
-					s)
-			}
-
-			if !provisioning {
-				clearServiceInstanceCurrentOperation(toUpdate)
-			} else {
-				c.setServiceInstanceStartOrphanMitigation(toUpdate)
-			}
-
-			if deleting {
-				toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-			}
-
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
-			return c.finishPollingServiceInstance(instance)
-		}
-
-		if toUpdate != nil {
-			if _, err = c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-		}
-
-		err = c.continuePollingServiceInstance(instance)
-		if err != nil {
-			return err
-		}
-		glog.V(4).Info(pcb.Message("Last operation not completed (still in progress)"))
-	case osb.StateSucceeded:
-		var (
-			readyStatus v1beta1.ConditionStatus
-			message     string
-			reason      string
-			actionText  string
-		)
-		switch {
-		case mitigatingOrphan:
-			readyStatus = v1beta1.ConditionFalse
-			reason = successOrphanMitigationReason
-			message = successOrphanMitigationMessage
-			actionText = "completed orphan mitigation"
-		case deleting:
-			readyStatus = v1beta1.ConditionFalse
-			reason = successDeprovisionReason
-			message = successDeprovisionMessage
-			actionText = "deprovisioned"
-		case provisioning:
-			readyStatus = v1beta1.ConditionTrue
-			reason = successProvisionReason
-			message = successProvisionMessage
-			actionText = "provisioned"
-		default:
-			readyStatus = v1beta1.ConditionTrue
-			reason = successUpdateInstanceReason
-			message = successUpdateInstanceMessage
-			actionText = "updated"
-		}
-
-		// Update the instance to reflect that an async operation is no longer
-		// in progress.
-		clone, err := api.Scheme.DeepCopy(instance)
-		if err != nil {
-			return err
-		}
-		toUpdate := clone.(*v1beta1.ServiceInstance)
-
-		toUpdate.Status.ExternalProperties = toUpdate.Status.InProgressProperties
-		clearServiceInstanceCurrentOperation(toUpdate)
-		if deleting {
-			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
-		}
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			readyStatus,
-			reason,
-			message,
-		)
-
-		if deleting && !mitigatingOrphan {
-			// Clear the finalizer
-			if finalizers := sets.NewString(toUpdate.Finalizers...); finalizers.Has(v1beta1.FinalizerServiceCatalog) {
-				finalizers.Delete(v1beta1.FinalizerServiceCatalog)
-				toUpdate.Finalizers = finalizers.List()
-			}
-		}
-
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-
-		c.recorder.Event(instance, corev1.EventTypeNormal, reason, message)
-		glog.V(5).Info(pcb.Messagef("Successfully %v", actionText))
-
-		err = c.finishPollingServiceInstance(instance)
-		if err != nil {
-			return err
-		}
-	case osb.StateFailed:
-		description := "(no description provided)"
-		if response.Description != nil {
-			description = *response.Description
-		}
-		var (
-			reason  string
-			message string
-		)
-		switch {
-		case mitigatingOrphan:
-			reason = errorOrphanMitigationFailedReason
-			message = "Orphan mitigation failed: " + description
-		case deleting:
-			reason = errorDeprovisionCalledReason
-			message = "Deprovision call failed: " + description
-		case provisioning:
-			reason = errorProvisionCallFailedReason
-			message = "Provision call failed: " + description
-		default:
-			reason = errorUpdateInstanceCallFailedReason
-			message = "Update call failed: " + description
-		}
-
-		c.recorder.Event(instance, corev1.EventTypeWarning, reason, message)
-		glog.V(5).Info(pcb.Message(message))
-
-		clone, err := api.Scheme.DeepCopy(instance)
-		if err != nil {
-			return err
-		}
-		toUpdate := clone.(*v1beta1.ServiceInstance)
-
-		if !deleting {
-			clearServiceInstanceCurrentOperation(toUpdate)
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionFalse,
-				reason,
-				message,
-			)
-			if provisioning {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					reason,
-					message,
-				)
-			}
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-			return c.finishPollingServiceInstance(instance)
-		}
-
-		if !time.Now().Before(instance.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-			s := "Stopping reconciliation retries on ServiceInstance because too much time has elapsed"
-			glog.Info(pcb.Message(s))
-			c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-
-			clearServiceInstanceCurrentOperation(toUpdate)
-			toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-
-			setServiceInstanceCondition(
-				toUpdate,
-				v1beta1.ServiceInstanceConditionReady,
-				v1beta1.ConditionUnknown,
-				errorReconciliationRetryTimeoutReason,
-				s,
-			)
-
-			if mitigatingOrphan {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionReady,
-					v1beta1.ConditionUnknown,
-					errorOrphanMitigationFailedReason,
-					"Orphan mitigation failed: "+s)
-			} else {
-				setServiceInstanceCondition(
-					toUpdate,
-					v1beta1.ServiceInstanceConditionFailed,
-					v1beta1.ConditionTrue,
-					errorReconciliationRetryTimeoutReason,
-					s,
-				)
-			}
-
-			if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-				return err
-			}
-
-			return c.finishPollingServiceInstance(instance)
-		}
-
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionUnknown,
-			reason,
-			message,
-		)
-		if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-			return err
-		}
-		err = c.continuePollingServiceInstance(instance)
-		if err != nil {
-			return err
-		}
-
+	var err error
+	switch {
+	case deleting:
+		err = c.processDeprovisionFailure(instance, readyCond, failedCond)
+	case provisioning:
+		// always finish polling instance, as triggering OM will return an error
+		c.finishPollingServiceInstance(instance)
+		return c.processProvisionFailure(instance, readyCond, failedCond, true)
 	default:
-		glog.Warning(pcb.Messagef("Got invalid state in LastOperationResponse: %q", response.State))
-		if c.isReconciliationRetryDurationExceeded(instance) {
-			return c.reconciliationRetryDurationExceededFinishPollingServiceInstance(instance, mitigatingOrphan, provisioning, deleting)
-		}
-		return fmt.Errorf(`Got invalid state in LastOperationResponse: %q`, response.State)
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, errorReconciliationRetryTimeoutReason, msg)
+		err = c.processUpdateServiceInstanceFailure(instance, readyCond)
 	}
-	return nil
-}
-
-// isReconciliationRetryDurationExceeded tests if the current Operation State time has
-// elapsed the reconciliationRetryDuration time period
-func (c *controller) isReconciliationRetryDurationExceeded(instance *v1beta1.ServiceInstance) bool {
-	if time.Now().After(instance.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
-		return true
-	}
-	return false
-}
-
-// reconciliationRetryDurationExceededFinishPollingServiceInstance marks the instance as
-// failed from time expired based on current state and then prepares the
-// instance for removal from reconciliation
-func (c *controller) reconciliationRetryDurationExceededFinishPollingServiceInstance(instance *v1beta1.ServiceInstance, mitigatingOrphan, provisioning, deleting bool) error {
-	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
-
-	clone, err := api.Scheme.DeepCopy(instance)
 	if err != nil {
-		return err
-	}
-	toUpdate := clone.(*v1beta1.ServiceInstance)
-	s := "Stopping reconciliation retries on ServiceInstance because too much time has elapsed"
-	glog.Info(pcb.Message(s))
-	c.recorder.Event(instance, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-
-	if mitigatingOrphan {
-		setServiceInstanceCondition(
-			toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionUnknown,
-			errorOrphanMitigationFailedReason,
-			"Orphan mitigation failed: "+s)
-	} else if deleting || provisioning {
-		setServiceInstanceCondition(toUpdate,
-			v1beta1.ServiceInstanceConditionFailed,
-			v1beta1.ConditionTrue,
-			errorReconciliationRetryTimeoutReason,
-			s)
-	} else {
-		setServiceInstanceCondition(toUpdate,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			errorReconciliationRetryTimeoutReason,
-			s)
+		return c.handleServiceInstancePollingError(instance, err)
 	}
 
-	if !provisioning {
-		clearServiceInstanceCurrentOperation(toUpdate)
-	} else {
-		c.setServiceInstanceStartOrphanMitigation(toUpdate)
-	}
-
-	if deleting {
-		toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
-	}
-
-	if _, err := c.updateServiceInstanceStatus(toUpdate); err != nil {
-		return err
-	}
 	return c.finishPollingServiceInstance(instance)
 }
 
@@ -1749,6 +924,32 @@ func (c *controller) resolveClusterServicePlanRef(instance *v1beta1.ServiceInsta
 	return instance, nil
 }
 
+// newServiceInstanceReadyCondition is a helper function that returns a Ready
+// condition with the given status, reason, and message, with its transition
+// time set to now.
+func newServiceInstanceReadyCondition(status v1beta1.ConditionStatus, reason, message string) *v1beta1.ServiceInstanceCondition {
+	return &v1beta1.ServiceInstanceCondition{
+		Type:               v1beta1.ServiceInstanceConditionReady,
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+	}
+}
+
+// newServiceInstanceFailedCondition is a helper function that returns a Failed
+// condition with the given status, reason, and message, with its transition
+// time set to now.
+func newServiceInstanceFailedCondition(status v1beta1.ConditionStatus, reason, message string) *v1beta1.ServiceInstanceCondition {
+	return &v1beta1.ServiceInstanceCondition{
+		Type:               v1beta1.ServiceInstanceConditionFailed,
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+	}
+}
+
 // setServiceInstanceCondition sets a single condition on an Instance's status: if
 // the condition already exists in the status, it is mutated; if the condition
 // does not already exist in the status, it is added.  Other conditions in the
@@ -1775,6 +976,7 @@ func setServiceInstanceConditionInternal(toUpdate *v1beta1.ServiceInstance,
 	t metav1.Time) {
 
 	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, toUpdate.Namespace, toUpdate.Name)
+	glog.Info(pcb.Message(message))
 	glog.V(5).Info(pcb.Messagef(
 		"Setting condition %q to %v",
 		conditionType, status,
@@ -1856,16 +1058,12 @@ func (c *controller) updateServiceInstanceCondition(
 	reason,
 	message string) error {
 	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
-	clone, err := api.Scheme.DeepCopy(instance)
-	if err != nil {
-		return err
-	}
-	toUpdate := clone.(*v1beta1.ServiceInstance)
+	toUpdate := instance.DeepCopy()
 
 	setServiceInstanceCondition(toUpdate, conditionType, status, reason, message)
 
 	glog.V(4).Info(pcb.Messagef("Updating %v condition to %v", conditionType, status))
-	_, err = c.serviceCatalogClient.ServiceInstances(instance.Namespace).UpdateStatus(toUpdate)
+	_, err := c.serviceCatalogClient.ServiceInstances(instance.Namespace).UpdateStatus(toUpdate)
 	if err != nil {
 		glog.Errorf(pcb.Messagef("Failed to update condition %v to true: %v", conditionType, err))
 	}
@@ -1874,8 +1072,9 @@ func (c *controller) updateServiceInstanceCondition(
 }
 
 // recordStartOfServiceInstanceOperation updates the instance to indicate that
-// there is a current operation being performed. The Status of the instance
-// is recorded in the registry.
+// there is an operation being performed. If the instance was already
+// performing a different operation, that operation is replaced. The Status of
+// the instance is recorded in the registry.
 // params:
 // toUpdate - a modifiable copy of the instance in the registry to update
 // operation - operation that is being performed on the instance
@@ -1883,7 +1082,11 @@ func (c *controller) updateServiceInstanceCondition(
 // 1 - a modifiable copy of the updated instance in the registry; or toUpdate
 //     if there was an error
 // 2 - any error that occurred
-func (c *controller) recordStartOfServiceInstanceOperation(toUpdate *v1beta1.ServiceInstance, operation v1beta1.ServiceInstanceOperation) (*v1beta1.ServiceInstance, error) {
+func (c *controller) recordStartOfServiceInstanceOperation(toUpdate *v1beta1.ServiceInstance, operation v1beta1.ServiceInstanceOperation, inProgressProperties *v1beta1.ServiceInstancePropertiesState) (*v1beta1.ServiceInstance, error) {
+	currentReconciledGeneration := toUpdate.Status.ReconciledGeneration
+	clearServiceInstanceCurrentOperation(toUpdate)
+
+	toUpdate.Status.ReconciledGeneration = currentReconciledGeneration
 	toUpdate.Status.CurrentOperation = operation
 	now := metav1.Now()
 	toUpdate.Status.OperationStartTime = &now
@@ -1893,9 +1096,12 @@ func (c *controller) recordStartOfServiceInstanceOperation(toUpdate *v1beta1.Ser
 	case v1beta1.ServiceInstanceOperationProvision:
 		reason = provisioningInFlightReason
 		message = provisioningInFlightMessage
+		toUpdate.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusRequired
+		toUpdate.Status.InProgressProperties = inProgressProperties
 	case v1beta1.ServiceInstanceOperationUpdate:
 		reason = instanceUpdatingInFlightReason
 		message = instanceUpdatingInFlightMessage
+		toUpdate.Status.InProgressProperties = inProgressProperties
 	case v1beta1.ServiceInstanceOperationDeprovision:
 		reason = deprovisioningInFlightReason
 		message = deprovisioningInFlightMessage
@@ -1910,33 +1116,6 @@ func (c *controller) recordStartOfServiceInstanceOperation(toUpdate *v1beta1.Ser
 	return c.updateServiceInstanceStatus(toUpdate)
 }
 
-// setServiceInstanceStartOrphanMitigation sets the fields of the instance's
-// Status to indicate that orphan mitigation is starting. The Status is *not*
-// recorded in the registry.
-func (c *controller) setServiceInstanceStartOrphanMitigation(toUpdate *v1beta1.ServiceInstance) {
-	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, toUpdate.Namespace, toUpdate.Name)
-	glog.V(5).Info(pcb.Message(startingInstanceOrphanMitigationMessage))
-
-	c.recorder.Event(
-		toUpdate,
-		corev1.EventTypeWarning,
-		startingInstanceOrphanMitigationReason,
-		startingInstanceOrphanMitigationMessage,
-	)
-
-	toUpdate.Status.OperationStartTime = nil
-	toUpdate.Status.AsyncOpInProgress = false
-	toUpdate.Status.OrphanMitigationInProgress = true
-
-	setServiceInstanceCondition(
-		toUpdate,
-		v1beta1.ServiceInstanceConditionReady,
-		v1beta1.ConditionFalse,
-		startingInstanceOrphanMitigationReason,
-		startingInstanceOrphanMitigationMessage,
-	)
-}
-
 // checkForRemovedClassAndPlan looks at serviceClass and servicePlan and
 // if either has been deleted, will block a new instance creation. If
 //
@@ -1944,7 +1123,6 @@ func (c *controller) checkForRemovedClassAndPlan(instance *v1beta1.ServiceInstan
 	classDeleted := serviceClass.Status.RemovedFromBrokerCatalog
 	planDeleted := servicePlan.Status.RemovedFromBrokerCatalog
 
-	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
 	if !classDeleted && !planDeleted {
 		// Neither has been deleted, life's good.
 		return nil
@@ -1966,38 +1144,16 @@ func (c *controller) checkForRemovedClassAndPlan(instance *v1beta1.ServiceInstan
 
 	// At this point we know that plan is being changed
 	if planDeleted {
-		s := fmt.Sprintf("Service Plan %q (K8S name: %q) has been deleted, can not provision.", servicePlan.Spec.ExternalName, servicePlan.Name)
-		glog.Warning(pcb.Message(s))
-		c.recorder.Event(instance, corev1.EventTypeWarning, errorDeletedClusterServicePlanReason, s)
-
-		setServiceInstanceCondition(
-			instance,
-			v1beta1.ServiceInstanceConditionReady,
-			v1beta1.ConditionFalse,
-			errorDeletedClusterServicePlanReason,
-			s,
-		)
-		if _, err := c.updateServiceInstanceStatus(instance); err != nil {
-			return err
+		return &operationError{
+			reason:  errorDeletedClusterServicePlanReason,
+			message: fmt.Sprintf("%s has been deleted; cannot provision.", pretty.ClusterServicePlanName(servicePlan)),
 		}
-		return fmt.Errorf(s)
 	}
 
-	s := fmt.Sprintf("Service Class %q (K8S name: %q) has been deleted, can not provision.", serviceClass.Spec.ExternalName, serviceClass.Name)
-	glog.Warning(pcb.Message(s))
-	c.recorder.Event(instance, corev1.EventTypeWarning, errorDeletedClusterServiceClassReason, s)
-
-	setServiceInstanceCondition(
-		instance,
-		v1beta1.ServiceInstanceConditionReady,
-		v1beta1.ConditionFalse,
-		errorDeletedClusterServiceClassReason,
-		s,
-	)
-	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
-		return err
+	return &operationError{
+		reason:  errorDeletedClusterServiceClassReason,
+		message: fmt.Sprintf("%s has been deleted; cannot provision.", pretty.ClusterServiceClassName(serviceClass)),
 	}
-	return fmt.Errorf(s)
 }
 
 // clearServiceInstanceCurrentOperation sets the fields of the instance's Status
@@ -2013,13 +1169,489 @@ func clearServiceInstanceCurrentOperation(toUpdate *v1beta1.ServiceInstance) {
 	toUpdate.Status.ReconciledGeneration = toUpdate.Generation
 }
 
-// shouldStartOrphanMitigation returns whether an error with the given status
-// code indicates that orphan migitation should start.
-func shouldStartOrphanMitigation(statusCode int) bool {
-	is2XX := (statusCode >= 200 && statusCode < 300)
-	is5XX := (statusCode >= 500 && statusCode < 600)
+// serviceInstanceHasExistingBindings returns true if there are any existing
+// bindings associated with the given ServiceInstance.
+func (c *controller) checkServiceInstanceHasExistingBindings(instance *v1beta1.ServiceInstance) error {
+	bindingLister := c.bindingLister.ServiceBindings(instance.Namespace)
 
-	return (is2XX && statusCode != http.StatusOK) ||
-		statusCode == http.StatusRequestTimeout ||
-		is5XX
+	selector := labels.NewSelector()
+	bindingList, err := bindingLister.List(selector)
+	if err != nil {
+		return err
+	}
+	for _, binding := range bindingList {
+		if instance.Name == binding.Spec.ServiceInstanceRef.Name {
+			return &operationError{
+				reason:  errorDeprovisionBlockedByCredentialsReason,
+				message: "All associated ServiceBindings must be removed before this ServiceInstance can be deleted",
+			}
+		}
+	}
+
+	return nil
+}
+
+// requestHelper is a helper struct with properties common to multiple request
+// types.
+type requestHelper struct {
+	ns                   *corev1.Namespace
+	parameters           map[string]interface{}
+	inProgressProperties *v1beta1.ServiceInstancePropertiesState
+	originatingIdentity  *osb.OriginatingIdentity
+	requestContext       map[string]interface{}
+}
+
+// prepareRequestHelper is a helper function that generates a struct with
+// properties common to multiple request types.
+func (c *controller) prepareRequestHelper(instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, servicePlan *v1beta1.ClusterServicePlan) (*requestHelper, error) {
+	rh := &requestHelper{}
+
+	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
+		originatingIdentity, err := buildOriginatingIdentity(instance.Spec.UserInfo)
+		if err != nil {
+			return nil, &operationError{
+				reason:  errorWithOriginatingIdentity,
+				message: fmt.Sprintf("Error building originating identity headers: %v", err),
+			}
+		}
+		rh.originatingIdentity = originatingIdentity
+	}
+
+	reconciliationAction := getReconciliationActionForServiceInstance(instance)
+	if reconciliationAction == reconcileDelete || reconciliationAction == reconcilePoll {
+		return rh, nil
+	}
+
+	// Only prepare namespace, parameters, and context for provision/update
+	ns, err := c.kubeClient.CoreV1().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
+	if err != nil {
+		return nil, &operationError{
+			reason:  errorFindingNamespaceServiceInstanceReason,
+			message: fmt.Sprintf("Failed to get namespace %q: %s", instance.Namespace, err),
+		}
+	}
+	rh.ns = ns
+
+	parameters, parametersChecksum, rawParametersWithRedaction, err := prepareInProgressPropertyParameters(
+		c.kubeClient,
+		instance.Namespace,
+		instance.Spec.Parameters,
+		instance.Spec.ParametersFrom,
+	)
+	if err != nil {
+		return nil, &operationError{
+			reason:  errorWithParameters,
+			message: err.Error(),
+		}
+	}
+	rh.parameters = parameters
+
+	rh.inProgressProperties = &v1beta1.ServiceInstancePropertiesState{
+		ClusterServicePlanExternalName: servicePlan.Spec.ExternalName,
+		ClusterServicePlanExternalID:   servicePlan.Spec.ExternalID,
+		Parameters:                     rawParametersWithRedaction,
+		ParametersChecksum:             parametersChecksum,
+		UserInfo:                       instance.Spec.UserInfo,
+	}
+
+	// osb client handles whether or not to really send this based
+	// on the version of the client.
+	rh.requestContext = map[string]interface{}{
+		"platform":  ContextProfilePlatformKubernetes,
+		"namespace": instance.Namespace,
+	}
+
+	return rh, nil
+}
+
+// prepareProvisionRequest creates a provision request object to be passed to
+// the broker client to provision the given instance.
+func (c *controller) prepareProvisionRequest(instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, servicePlan *v1beta1.ClusterServicePlan) (*osb.ProvisionRequest, *v1beta1.ServiceInstancePropertiesState, error) {
+	rh, err := c.prepareRequestHelper(instance, serviceClass, servicePlan)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	request := &osb.ProvisionRequest{
+		AcceptsIncomplete:   true,
+		InstanceID:          instance.Spec.ExternalID,
+		ServiceID:           serviceClass.Spec.ExternalID,
+		PlanID:              servicePlan.Spec.ExternalID,
+		Parameters:          rh.parameters,
+		OrganizationGUID:    string(rh.ns.UID),
+		SpaceGUID:           string(rh.ns.UID),
+		Context:             rh.requestContext,
+		OriginatingIdentity: rh.originatingIdentity,
+	}
+
+	return request, rh.inProgressProperties, nil
+}
+
+// prepareUpdateInstanceRequest creates an update instance request object to be
+// passed to the broker client to update the given instance.
+func (c *controller) prepareUpdateInstanceRequest(instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, servicePlan *v1beta1.ClusterServicePlan) (*osb.UpdateInstanceRequest, *v1beta1.ServiceInstancePropertiesState, error) {
+	rh, err := c.prepareRequestHelper(instance, serviceClass, servicePlan)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	request := &osb.UpdateInstanceRequest{
+		AcceptsIncomplete:   true,
+		InstanceID:          instance.Spec.ExternalID,
+		ServiceID:           serviceClass.Spec.ExternalID,
+		Context:             rh.requestContext,
+		OriginatingIdentity: rh.originatingIdentity,
+	}
+
+	// Only send the plan ID if the plan ID has changed from what the Broker has
+	if instance.Status.ExternalProperties == nil ||
+		servicePlan.Spec.ExternalID != instance.Status.ExternalProperties.ClusterServicePlanExternalID {
+		planID := servicePlan.Spec.ExternalID
+		request.PlanID = &planID
+	}
+	// Only send the parameters if they have changed from what the Broker has
+	if instance.Status.ExternalProperties == nil ||
+		rh.inProgressProperties.ParametersChecksum != instance.Status.ExternalProperties.ParametersChecksum {
+		if rh.parameters != nil {
+			request.Parameters = rh.parameters
+		} else {
+			request.Parameters = make(map[string]interface{})
+		}
+	}
+
+	return request, rh.inProgressProperties, nil
+}
+
+// prepareDeprovisionRequest creates a deprovision request object to be passed
+// to the broker client to deprovision the given instance.
+func (c *controller) prepareDeprovisionRequest(instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, servicePlan *v1beta1.ClusterServicePlan) (*osb.DeprovisionRequest, error) {
+	rh, err := c.prepareRequestHelper(instance, serviceClass, servicePlan)
+	if err != nil {
+		return nil, err
+	}
+
+	var servicePlanExternalID string
+	if instance.Status.ExternalProperties != nil {
+		servicePlanExternalID = instance.Status.ExternalProperties.ClusterServicePlanExternalID
+	} else if servicePlan != nil {
+		servicePlanExternalID = servicePlan.Spec.ExternalID
+	} else {
+		return nil, &operationError{
+			reason:  errorUnknownServicePlanReason,
+			message: errorUnknownServicePlanMessage,
+		}
+	}
+
+	request := &osb.DeprovisionRequest{
+		InstanceID:          instance.Spec.ExternalID,
+		ServiceID:           serviceClass.Spec.ExternalID,
+		PlanID:              servicePlanExternalID,
+		OriginatingIdentity: rh.originatingIdentity,
+		AcceptsIncomplete:   true,
+	}
+
+	return request, nil
+}
+
+// preparePollServiceInstanceRequest creates a request object to be passed to
+// the broker client to query the given instance's last operation endpoint.
+func (c *controller) prepareServiceInstanceLastOperationRequest(instance *v1beta1.ServiceInstance, serviceClass *v1beta1.ClusterServiceClass, servicePlan *v1beta1.ClusterServicePlan) (*osb.LastOperationRequest, error) {
+	rh, err := c.prepareRequestHelper(instance, serviceClass, servicePlan)
+	if err != nil {
+		return nil, err
+	}
+
+	request := &osb.LastOperationRequest{
+		InstanceID:          instance.Spec.ExternalID,
+		ServiceID:           &serviceClass.Spec.ExternalID,
+		PlanID:              &servicePlan.Spec.ExternalID,
+		OriginatingIdentity: rh.originatingIdentity,
+	}
+	if instance.Status.LastOperation != nil && *instance.Status.LastOperation != "" {
+		key := osb.OperationKey(*instance.Status.LastOperation)
+		request.OperationKey = &key
+	}
+
+	return request, nil
+}
+
+// processServiceInstanceGracefulDeletionSuccess handles the logging and
+// updating of a ServiceInstance that has successfully finished graceful
+// deletion.
+func (c *controller) processServiceInstanceGracefulDeletionSuccess(instance *v1beta1.ServiceInstance) error {
+	finalizers := sets.NewString(instance.Finalizers...)
+	finalizers.Delete(v1beta1.FinalizerServiceCatalog)
+	instance.Finalizers = finalizers.List()
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+	glog.Info(pcb.Message("Cleared finalizer"))
+
+	return nil
+}
+
+// handleServiceInstanceReconciliationError is a helper function that handles
+// on error whether the error represents an operation error and should update
+// the ServiceInstance resource.
+func (c *controller) handleServiceInstanceReconciliationError(instance *v1beta1.ServiceInstance, err error) error {
+	if resourceErr, ok := err.(*operationError); ok {
+		status := v1beta1.ConditionFalse
+		if instance.Status.CurrentOperation == v1beta1.ServiceInstanceOperationDeprovision {
+			status = v1beta1.ConditionUnknown
+		}
+		readyCond := newServiceInstanceReadyCondition(status, resourceErr.reason, resourceErr.message)
+		return c.processServiceInstanceOperationError(instance, readyCond)
+	}
+	return err
+}
+
+// processServiceInstanceOperationError handles the logging and updating of
+// a ServiceInstance that hit a retryable error during reconciliation.
+func (c *controller) processServiceInstanceOperationError(instance *v1beta1.ServiceInstance, readyCond *v1beta1.ServiceInstanceCondition) error {
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, readyCond.Status, readyCond.Reason, readyCond.Message)
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	c.recorder.Event(instance, corev1.EventTypeWarning, readyCond.Reason, readyCond.Message)
+
+	// The result of this function should be directly returned from the
+	// reconciler, so it is necessary to return an error to tell the worker
+	// to retry reconciling the resource.
+	return fmt.Errorf(readyCond.Message)
+}
+
+// processProvisionSuccess handles the logging and updating of a
+// ServiceInstance that has successfully been provisioned at the broker.
+func (c *controller) processProvisionSuccess(instance *v1beta1.ServiceInstance, dashboardURL *string) error {
+	setServiceInstanceDashboardURL(instance, dashboardURL)
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionTrue, successProvisionReason, successProvisionMessage)
+	instance.Status.ExternalProperties = instance.Status.InProgressProperties
+	clearServiceInstanceCurrentOperation(instance)
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	c.recorder.Eventf(instance, corev1.EventTypeNormal, successProvisionReason, successProvisionMessage)
+	return nil
+}
+
+// processProvisionFailure handles the logging and updating of a
+// ServiceInstance that hit a terminal failure during provision reconciliation.
+func (c *controller) processProvisionFailure(instance *v1beta1.ServiceInstance, readyCond, failedCond *v1beta1.ServiceInstanceCondition, shouldMitigateOrphan bool) error {
+	if failedCond == nil {
+		return fmt.Errorf("failedCond must not be nil")
+	}
+
+	if readyCond != nil {
+		c.recorder.Event(instance, corev1.EventTypeWarning, readyCond.Reason, readyCond.Message)
+		setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, readyCond.Status, readyCond.Reason, readyCond.Message)
+	}
+
+	c.recorder.Event(instance, corev1.EventTypeWarning, failedCond.Reason, failedCond.Message)
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionFailed, failedCond.Status, failedCond.Reason, failedCond.Message)
+
+	// Need to vary return error depending on whether the worker should
+	// requeue this resource.
+	var err error
+	if shouldMitigateOrphan {
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionFalse, startingInstanceOrphanMitigationReason, startingInstanceOrphanMitigationMessage)
+		c.recorder.Event(instance, corev1.EventTypeWarning, readyCond.Reason, readyCond.Message)
+		setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, readyCond.Status, readyCond.Reason, readyCond.Message)
+
+		instance.Status.OperationStartTime = nil
+		instance.Status.AsyncOpInProgress = false
+		instance.Status.OrphanMitigationInProgress = true
+
+		err = fmt.Errorf(failedCond.Message)
+	} else {
+		clearServiceInstanceCurrentOperation(instance)
+	}
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	return err
+}
+
+// processProvisionAsyncResponse handles the logging and updating
+// of a ServiceInstance that received an asynchronous response from the broker
+// when requesting a provision.
+func (c *controller) processProvisionAsyncResponse(instance *v1beta1.ServiceInstance, response *osb.ProvisionResponse) error {
+	setServiceInstanceDashboardURL(instance, response.DashboardURL)
+	setServiceInstanceLastOperation(instance, response.OperationKey)
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionFalse, asyncProvisioningReason, asyncProvisioningMessage)
+	instance.Status.AsyncOpInProgress = true
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	c.recorder.Event(instance, corev1.EventTypeNormal, asyncProvisioningReason, asyncProvisioningMessage)
+	return c.beginPollingServiceInstance(instance)
+}
+
+// processUpdateServiceInstanceSuccess handles the logging and updating of a
+// ServiceInstance that has successfully been updated at the broker.
+func (c *controller) processUpdateServiceInstanceSuccess(instance *v1beta1.ServiceInstance) error {
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionTrue, successUpdateInstanceReason, successUpdateInstanceMessage)
+	instance.Status.ExternalProperties = instance.Status.InProgressProperties
+	clearServiceInstanceCurrentOperation(instance)
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	c.recorder.Eventf(instance, corev1.EventTypeNormal, successUpdateInstanceReason, successUpdateInstanceMessage)
+	return nil
+}
+
+// processUpdateServiceInstanceFailure handles the logging and updating of a
+// ServiceInstance that hit a terminal failure during update reconciliation.
+func (c *controller) processUpdateServiceInstanceFailure(instance *v1beta1.ServiceInstance, readyCond *v1beta1.ServiceInstanceCondition) error {
+	c.recorder.Event(instance, corev1.EventTypeWarning, readyCond.Reason, readyCond.Message)
+
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, readyCond.Status, readyCond.Reason, readyCond.Message)
+	clearServiceInstanceCurrentOperation(instance)
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// processUpdateServiceInstanceAsyncResponse handles the logging and updating
+// of a ServiceInstance that received an asynchronous response from the broker
+// when requesting an instance update.
+func (c *controller) processUpdateServiceInstanceAsyncResponse(instance *v1beta1.ServiceInstance, response *osb.UpdateInstanceResponse) error {
+	setServiceInstanceLastOperation(instance, response.OperationKey)
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionFalse, asyncUpdatingInstanceReason, asyncUpdatingInstanceMessage)
+	instance.Status.AsyncOpInProgress = true
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	c.recorder.Event(instance, corev1.EventTypeNormal, asyncUpdatingInstanceReason, asyncUpdatingInstanceMessage)
+	return c.beginPollingServiceInstance(instance)
+}
+
+// processDeprovisionSuccess handles the logging and updating of
+// a ServiceInstance that has successfully been deprovisioned at the broker.
+func (c *controller) processDeprovisionSuccess(instance *v1beta1.ServiceInstance) error {
+	mitigatingOrphan := instance.Status.OrphanMitigationInProgress
+
+	reason := successDeprovisionReason
+	msg := successDeprovisionMessage
+	if mitigatingOrphan {
+		reason = successOrphanMitigationReason
+		msg = successOrphanMitigationMessage
+	}
+
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionFalse, reason, msg)
+	clearServiceInstanceCurrentOperation(instance)
+	instance.Status.ExternalProperties = nil
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusSucceeded
+
+	if mitigatingOrphan {
+		if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+			return err
+		}
+	} else {
+		// If part of a resource deletion request, follow-through to the
+		// graceful deletion handler in order to clear the finalizer.
+		if err := c.processServiceInstanceGracefulDeletionSuccess(instance); err != nil {
+			return err
+		}
+	}
+
+	c.recorder.Event(instance, corev1.EventTypeNormal, reason, msg)
+	return nil
+}
+
+// processDeprovisionFailure handles the logging and updating of a
+// ServiceInstance that hit a terminal failure during deprovision
+// reconciliation.
+func (c *controller) processDeprovisionFailure(instance *v1beta1.ServiceInstance, readyCond, failedCond *v1beta1.ServiceInstanceCondition) error {
+	if failedCond == nil {
+		return fmt.Errorf("failedCond must not be nil")
+	}
+
+	if instance.Status.OrphanMitigationInProgress {
+		// replace Ready condition with orphan mitigation-related one.
+		msg := "Orphan mitigation failed: " + failedCond.Message
+		readyCond := newServiceInstanceReadyCondition(v1beta1.ConditionUnknown, errorOrphanMitigationFailedReason, msg)
+
+		setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, readyCond.Status, readyCond.Reason, readyCond.Message)
+		c.recorder.Event(instance, corev1.EventTypeWarning, readyCond.Reason, readyCond.Message)
+	} else {
+		if readyCond != nil {
+			setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionUnknown, readyCond.Reason, readyCond.Message)
+			c.recorder.Event(instance, corev1.EventTypeWarning, readyCond.Reason, readyCond.Message)
+		}
+
+		setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionFailed, failedCond.Status, failedCond.Reason, failedCond.Message)
+		c.recorder.Event(instance, corev1.EventTypeWarning, failedCond.Reason, failedCond.Message)
+	}
+
+	clearServiceInstanceCurrentOperation(instance)
+	instance.Status.DeprovisionStatus = v1beta1.ServiceInstanceDeprovisionStatusFailed
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// processDeprovisionAsyncResponse handles the logging and
+// updating of a ServiceInstance that received an asynchronous response from
+// the broker when requesting a deprovision.
+func (c *controller) processDeprovisionAsyncResponse(instance *v1beta1.ServiceInstance, response *osb.DeprovisionResponse) error {
+	setServiceInstanceLastOperation(instance, response.OperationKey)
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionFalse, asyncDeprovisioningReason, asyncDeprovisioningMessage)
+	instance.Status.AsyncOpInProgress = true
+
+	if _, err := c.updateServiceInstanceStatus(instance); err != nil {
+		return err
+	}
+
+	c.recorder.Event(instance, corev1.EventTypeNormal, asyncDeprovisioningReason, asyncDeprovisioningMessage)
+	return c.beginPollingServiceInstance(instance)
+}
+
+// handleServiceInstancePollingError is a helper function that handles logic for
+// an error returned during reconciliation while polling a service instance.
+func (c *controller) handleServiceInstancePollingError(instance *v1beta1.ServiceInstance, err error) error {
+	// During polling, an error means we should:
+	//	1) log the error
+	//	2) attempt to requeue in the polling queue
+	//		- if successful, we can return nil to avoid regular queue
+	//		- if failure, return err to fall back to regular queue
+	pcb := pretty.NewContextBuilder(pretty.ServiceInstance, instance.Namespace, instance.Name)
+	glog.V(4).Info(pcb.Messagef("Error during polling: %v", err))
+	return c.continuePollingServiceInstance(instance)
+}
+
+// setServiceInstanceDashboardURL sets the dashboard URL on the given instance.
+func setServiceInstanceDashboardURL(instance *v1beta1.ServiceInstance, dashboardURL *string) {
+	if dashboardURL != nil && *dashboardURL != "" {
+		url := *dashboardURL
+		instance.Status.DashboardURL = &url
+	}
+}
+
+// setServiceInstanceLastOperation sets the last operation key on the given
+// instance.
+func setServiceInstanceLastOperation(instance *v1beta1.ServiceInstance, operationKey *osb.OperationKey) {
+	if operationKey != nil && *operationKey != "" {
+		key := string(*operationKey)
+		instance.Status.LastOperation = &key
+	}
 }

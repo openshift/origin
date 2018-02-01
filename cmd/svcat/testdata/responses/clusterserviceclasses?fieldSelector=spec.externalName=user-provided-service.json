@@ -1,0 +1,31 @@
+{
+  "kind": "ClusterServiceClassList",
+  "apiVersion": "servicecatalog.k8s.io/v1beta1",
+  "metadata": {
+    "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/clusterserviceclasses",
+    "resourceVersion": "114"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468",
+        "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/clusterserviceclasses/4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468",
+        "uid": "7b3c2fe0-f711-11e7-aa44-0242ac110005",
+        "resourceVersion": "3",
+        "creationTimestamp": "2018-01-11T20:53:31Z"
+      },
+      "spec": {
+        "clusterServiceBrokerName": "ups-broker",
+        "externalName": "user-provided-service",
+        "externalID": "4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468",
+        "description": "A user provided service",
+        "bindable": true,
+        "bindingRetrievable": false,
+        "planUpdatable": true
+      },
+      "status": {
+        "removedFromBrokerCatalog": false
+      }
+    }
+  ]
+}

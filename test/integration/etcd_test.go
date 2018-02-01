@@ -61,8 +61,18 @@ func startEtcd() error {
 }
 
 func stopEtcd() {
+	if etcdContext.etcd == nil {
+		return
+	}
 	etcdContext.etcd.Server.Stop()
 	os.RemoveAll(etcdContext.dir)
+
+	select {
+	case <-etcdContext.etcd.Server.StopNotify():
+		glog.Info("server is stopped!")
+	case <-time.After(60 * time.Second):
+		glog.Error("server took too long to stop!")
+	}
 }
 
 func TestMain(m *testing.M) {

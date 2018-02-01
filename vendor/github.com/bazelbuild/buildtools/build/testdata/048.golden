@@ -1,0 +1,48 @@
+has_sets(
+    name = "empty",
+    labels = {},
+)
+
+has_sets(
+    name = "one",
+    labels = {"foo"},
+)
+
+has_sets(
+    name = "one_trailing",
+    labels = {"bar"},
+)
+
+has_sets(
+    name = "two",
+    labels = {
+        "foo",
+        "bar",
+    },
+)
+
+has_sets(
+    name = "two_trailing",
+    labels = {
+        "foo",
+        "bar",
+    },
+)
+
+has_sets(
+    name = "three",
+    labels = {
+        "foo",
+        "bar",
+        "baz",
+    },
+)
+
+has_sets(
+    name = "three_trailing",
+    labels = {
+        "foo",
+        "bar",
+        "baz",
+    },
+)

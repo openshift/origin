@@ -1,0 +1,50 @@
+{
+  "kind": "ServiceInstance",
+  "apiVersion": "servicecatalog.k8s.io/v1beta1",
+  "metadata": {
+    "name": "ups-instance",
+    "namespace": "test-ns",
+    "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/namespaces/test-ns/serviceinstances/ups-instance",
+    "uid": "5b47fd85-f712-11e7-aa44-0242ac110005",
+    "resourceVersion": "13",
+    "generation": 1,
+    "creationTimestamp": "2018-01-11T20:59:47Z",
+    "finalizers": [
+      "kubernetes-incubator/service-catalog"
+    ]
+  },
+  "spec": {
+    "clusterServiceClassExternalName": "user-provided-service",
+    "clusterServicePlanExternalName": "default",
+    "clusterServiceClassRef": {
+      "name": "4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468"
+    },
+    "clusterServicePlanRef": {
+      "name": "86064792-7ea2-467b-af93-ac9694d96d52"
+    },
+    "parameters": {},
+    "externalID": "7e2c42f3-6d94-4409-bb15-7610d60af544",
+    "updateRequests": 0
+  },
+  "status": {
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "True",
+        "lastTransitionTime": "2018-01-11T20:59:47Z",
+        "reason": "ProvisionedSuccessfully",
+        "message": "The instance was provisioned successfully"
+      }
+    ],
+    "asyncOpInProgress": false,
+    "orphanMitigationInProgress": false,
+    "reconciledGeneration": 1,
+    "externalProperties": {
+      "clusterServicePlanExternalName": "default",
+      "clusterServicePlanExternalID": "86064792-7ea2-467b-af93-ac9694d96d52",
+      "parameters": {},
+      "parameterChecksum": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "deprovisionStatus": "Required"
+  }
+}

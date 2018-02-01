@@ -54,27 +54,6 @@ func (m *PingRequest) String() string            { return proto.CompactTextStrin
 func (*PingRequest) ProtoMessage()               {}
 func (*PingRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
-func (m *PingRequest) GetValue() string {
-	if m != nil {
-		return m.Value
-	}
-	return ""
-}
-
-func (m *PingRequest) GetSleepTimeMs() int32 {
-	if m != nil {
-		return m.SleepTimeMs
-	}
-	return 0
-}
-
-func (m *PingRequest) GetErrorCodeReturned() uint32 {
-	if m != nil {
-		return m.ErrorCodeReturned
-	}
-	return 0
-}
-
 type PingResponse struct {
 	Value   string `protobuf:"bytes,1,opt,name=Value,json=value" json:"Value,omitempty"`
 	Counter int32  `protobuf:"varint,2,opt,name=counter" json:"counter,omitempty"`
@@ -84,20 +63,6 @@ func (m *PingResponse) Reset()                    { *m = PingResponse{} }
 func (m *PingResponse) String() string            { return proto.CompactTextString(m) }
 func (*PingResponse) ProtoMessage()               {}
 func (*PingResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
-
-func (m *PingResponse) GetValue() string {
-	if m != nil {
-		return m.Value
-	}
-	return ""
-}
-
-func (m *PingResponse) GetCounter() int32 {
-	if m != nil {
-		return m.Counter
-	}
-	return 0
-}
 
 func init() {
 	proto.RegisterType((*Empty)(nil), "mwitkow.testproto.Empty")
@@ -111,7 +76,7 @@ var _ grpc.ClientConn
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion3
 
 // Client API for TestService service
 
@@ -301,7 +266,7 @@ var _TestService_serviceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "test.proto",
+	Metadata: fileDescriptor0,
 }
 
 func init() { proto.RegisterFile("test.proto", fileDescriptor0) }

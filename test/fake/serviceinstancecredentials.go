@@ -17,7 +17,6 @@ limitations under the License.
 package fake
 
 import (
-	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -43,12 +42,8 @@ func (c *ServiceBindings) Update(serviceInstance *v1beta1.ServiceBinding) (resul
 }
 
 func (c *ServiceBindings) UpdateStatus(serviceInstance *v1beta1.ServiceBinding) (*v1beta1.ServiceBinding, error) {
-	clone, err := api.Scheme.DeepCopy(serviceInstance)
-	if err != nil {
-		return nil, err
-	}
-	instanceCopy := clone.(*v1beta1.ServiceBinding)
-	_, err = c.ServiceBindingInterface.UpdateStatus(instanceCopy)
+	instanceCopy := serviceInstance.DeepCopy()
+	_, err := c.ServiceBindingInterface.UpdateStatus(instanceCopy)
 	return serviceInstance, err
 }
 

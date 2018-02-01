@@ -1,0 +1,11 @@
+
+filegroup(
+  name = "foo" + cpu,
+  srcs = [
+    prefix + "/bin/" + triple + "-objcopy"
+ ] + ([
+       prefix + "/bin/ccperf-collect",
+       "what"] if triple != 'sparc' else [])
+  + glob([
+          "moar_thing/*"])
+)

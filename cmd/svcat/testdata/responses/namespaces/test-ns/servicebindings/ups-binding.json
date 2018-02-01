@@ -1,0 +1,43 @@
+{
+  "kind": "ServiceBinding",
+  "apiVersion": "servicecatalog.k8s.io/v1beta1",
+  "metadata": {
+    "name": "ups-binding",
+    "namespace": "test-ns",
+    "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/namespaces/test-ns/servicebindings/ups-binding",
+    "uid": "7f2aefa0-f712-11e7-aa44-0242ac110005",
+    "resourceVersion": "16",
+    "generation": 1,
+    "creationTimestamp": "2018-01-11T21:00:47Z",
+    "finalizers": [
+      "kubernetes-incubator/service-catalog"
+    ]
+  },
+  "spec": {
+    "instanceRef": {
+      "name": "ups-instance"
+    },
+    "parameters": {},
+    "secretName": "ups-binding",
+    "externalID": "061e1d78-d27e-4958-97b8-e9f5aa2f99d7"
+  },
+  "status": {
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "True",
+        "lastTransitionTime": "2018-01-11T21:00:47Z",
+        "reason": "InjectedBindResult",
+        "message": "Injected bind result"
+      }
+    ],
+    "asyncOpInProgress": false,
+    "reconciledGeneration": 1,
+    "externalProperties": {
+      "parameters": {},
+      "parameterChecksum": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    "orphanMitigationInProgress": false,
+    "unbindStatus": "Required"
+  }
+}

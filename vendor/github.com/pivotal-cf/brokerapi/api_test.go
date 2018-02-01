@@ -103,6 +103,7 @@ var _ = Describe("Service Broker API", func() {
 		makeRequest := func(method, path, body string) *httptest.ResponseRecorder {
 			recorder := httptest.NewRecorder()
 			request, _ := http.NewRequest(method, path, strings.NewReader(body))
+			request.Header.Add("X-Broker-API-Version", "2.13")
 			request.SetBasicAuth(credentials.Username, credentials.Password)
 			request = request.WithContext(ctx)
 			brokerAPI.ServeHTTP(recorder, request)
@@ -113,37 +114,37 @@ var _ = Describe("Service Broker API", func() {
 			ctx = context.WithValue(context.Background(), "test_context", true)
 		})
 
-		It("catalog endpoint passes the request context to the broker", func() {
+		Specify("a catalog endpoint which passes the request context to the broker", func() {
 			makeRequest("GET", "/v2/catalog", "")
 			Expect(fakeServiceBroker.ReceivedContext).To(BeTrue())
 		})
 
-		It("provision endpoint passes the request context to the broker", func() {
+		Specify("a provision endpoint which passes the request context to the broker", func() {
 			makeRequest("PUT", "/v2/service_instances/instance-id", "{}")
 			Expect(fakeServiceBroker.ReceivedContext).To(BeTrue())
 		})
 
-		It("deprovision endpoint passes the request context to the broker", func() {
-			makeRequest("DELETE", "/v2/service_instances/instance-id", "")
+		Specify("a deprovision endpoint which passes the request context to the broker", func() {
+			makeRequest("DELETE", "/v2/service_instances/instance-id?service_id=asdf&plan_id=fdsa", "")
 			Expect(fakeServiceBroker.ReceivedContext).To(BeTrue())
 		})
 
-		It("bind endpoint passes the request context to the broker", func() {
+		Specify("a bind endpoint which passes the request context to the broker", func() {
 			makeRequest("PUT", "/v2/service_instances/instance-id/service_bindings/binding-id", "{}")
 			Expect(fakeServiceBroker.ReceivedContext).To(BeTrue())
 		})
 
-		It("unbind endpoint passes the request context to the broker", func() {
-			makeRequest("DELETE", "/v2/service_instances/instance-id/service_bindings/binding-id", "")
+		Specify("an unbind endpoint which passes the request context to the broker", func() {
+			makeRequest("DELETE", "/v2/service_instances/instance-id/service_bindings/binding-id?plan_id=plan-id&service_id=service-id", "")
 			Expect(fakeServiceBroker.ReceivedContext).To(BeTrue())
 		})
 
-		It("update endpoint passes the request context to the broker", func() {
+		Specify("an update endpoint which passes the request context to the broker", func() {
 			makeRequest("PATCH", "/v2/service_instances/instance-id", "{}")
 			Expect(fakeServiceBroker.ReceivedContext).To(BeTrue())
 		})
 
-		It("last operation endpoint passes the request context to the broker", func() {
+		Specify("a last operation endpoint which passes the request context to the broker", func() {
 			makeRequest("GET", "/v2/service_instances/instance-id/last_operation", "{}")
 			Expect(fakeServiceBroker.ReceivedContext).To(BeTrue())
 		})
@@ -235,10 +236,10 @@ var _ = Describe("Service Broker API", func() {
 	})
 
 	Describe("instance lifecycle endpoint", func() {
-		makeInstanceDeprovisioningRequest := func(instanceID, queryString string) *testflight.Response {
+		makeInstanceDeprovisioningRequestFull := func(instanceID, serviceID, planID, apiVersion, queryString string) *testflight.Response {
 			response := &testflight.Response{}
 			testflight.WithServer(brokerAPI, func(r *testflight.Requester) {
-				path := fmt.Sprintf("/v2/service_instances/%s?plan_id=plan-id&service_id=service-id", instanceID)
+				path := fmt.Sprintf("/v2/service_instances/%s?plan_id=%s&service_id=%s", instanceID, planID, serviceID)
 				if queryString != "" {
 					path = fmt.Sprintf("%s&%s", path, queryString)
 				}
@@ -246,11 +247,15 @@ var _ = Describe("Service Broker API", func() {
 				Expect(err).NotTo(HaveOccurred())
 				request.Header.Add("Content-Type", "application/json")
 				request.SetBasicAuth("username", "password")
-
+				request.Header.Add("X-Broker-API-Version", apiVersion)
 				response = r.Do(request)
 
 			})
 			return response
+		}
+
+		makeInstanceDeprovisioningRequest := func(instanceID, queryString string) *testflight.Response {
+			return makeInstanceDeprovisioningRequestFull(instanceID, "service-id", "plan-id", "2.13", queryString)
 		}
 
 		Describe("provisioning", func() {
@@ -303,6 +308,7 @@ var _ = Describe("Service Broker API", func() {
 
 			Context("when there are arbitrary params", func() {
 				var rawParams string
+				var rawCtx string
 
 				BeforeEach(func() {
 					provisionDetails["parameters"] = map[string]interface{}{
@@ -317,6 +323,18 @@ var _ = Describe("Service Broker API", func() {
 						"object": { "Name": "some-name" },
 						"array": [ "a", "b", "c" ]
 					}`
+					provisionDetails["context"] = map[string]interface{}{
+						"platform":      "fake-platform",
+						"serial-number": 12648430,
+						"object":        struct{ Name string }{"parameter"},
+						"array":         []interface{}{"1", "2", "3"},
+					}
+					rawCtx = `{
+						"platform":"fake-platform",
+						"serial-number":12648430,
+						"object": {"Name":"parameter"},
+						"array":[ "1", "2", "3" ]
+					}`
 				})
 
 				It("calls Provision on the service broker with all params", func() {
@@ -329,6 +347,13 @@ var _ = Describe("Service Broker API", func() {
 					detailsWithRawParameters := brokerapi.DetailsWithRawParameters(fakeServiceBroker.ProvisionDetails)
 					rawParameters := detailsWithRawParameters.GetRawParameters()
 					Expect(string(rawParameters)).To(MatchJSON(rawParams))
+				})
+
+				It("calls Provision with details with raw context", func() {
+					makeInstanceProvisioningRequest(instanceID, provisionDetails, "")
+					detailsWithRawContext := brokerapi.DetailsWithRawContext(fakeServiceBroker.ProvisionDetails)
+					rawContext := detailsWithRawContext.GetRawContext()
+					Expect(string(rawContext)).To(MatchJSON(rawCtx))
 				})
 			})
 
@@ -649,6 +674,9 @@ var _ = Describe("Service Broker API", func() {
 						"organization_id": "org-id",
 						"space_id":        "space-id",
 					},
+					"context": map[string]interface{}{
+						"new-context": "new-context-value",
+					},
 				}
 			})
 
@@ -688,6 +716,12 @@ var _ = Describe("Service Broker API", func() {
 						detailsWithRawParameters := brokerapi.DetailsWithRawParameters(fakeServiceBroker.UpdateDetails)
 						rawParameters := detailsWithRawParameters.GetRawParameters()
 						Expect(rawParameters).To(Equal(json.RawMessage(`{"new-param":"new-param-value"}`)))
+					})
+
+					It("calls update with details with raw context", func() {
+						Expect(fakeServiceBroker.UpdateDetails.RawContext).To(
+							Equal(json.RawMessage(`{"new-context":"new-context-value"}`)),
+						)
 					})
 
 					Context("when accepts_incomplete=true", func() {
@@ -987,6 +1021,37 @@ var _ = Describe("Service Broker API", func() {
 					})
 				})
 			})
+
+			Context("the request is malformed", func() {
+				It("missing header X-Broker-API-Version", func() {
+					response := makeInstanceDeprovisioningRequestFull("instance-id", "service-id", "plan-id", "", "")
+					Expect(response.StatusCode).To(Equal(412))
+					Expect(lastLogLine().Message).To(ContainSubstring(".deprovision.broker-api-version-invalid"))
+					Expect(lastLogLine().Data["error"]).To(ContainSubstring("X-Broker-API-Version Header not set"))
+				})
+
+				It("has wrong version of API", func() {
+					response := makeInstanceDeprovisioningRequestFull("instance-id", "service-id", "plan-id", "1.1", "")
+					Expect(response.StatusCode).To(Equal(412))
+					Expect(lastLogLine().Message).To(ContainSubstring(".deprovision.broker-api-version-invalid"))
+					Expect(lastLogLine().Data["error"]).To(ContainSubstring("X-Broker-API-Version Header must be 2.x"))
+				})
+
+				It("missing service-id", func() {
+					response := makeInstanceDeprovisioningRequestFull("instance-id", "", "plan-id", "2.13", "")
+					Expect(response.StatusCode).To(Equal(400))
+					Expect(lastLogLine().Message).To(ContainSubstring(".deprovision.service-id-missing"))
+					Expect(lastLogLine().Data["error"]).To(ContainSubstring("service-id missing"))
+				})
+
+				It("missing plan-id", func() {
+					response := makeInstanceDeprovisioningRequestFull("instance-id", "service-id", "", "2.13", "")
+					Expect(response.StatusCode).To(Equal(400))
+					Expect(lastLogLine().Message).To(ContainSubstring(".deprovision.plan-id-missing"))
+					Expect(lastLogLine().Data["error"]).To(ContainSubstring("plan-id missing"))
+				})
+
+			})
 		})
 	})
 
@@ -1136,6 +1201,11 @@ var _ = Describe("Service Broker API", func() {
 				})
 
 				Context("when there are arbitrary params", func() {
+					var (
+						rawParams string
+						rawCtx    string
+					)
+
 					BeforeEach(func() {
 						details["parameters"] = map[string]interface{}{
 							"string": "some-string",
@@ -1143,17 +1213,45 @@ var _ = Describe("Service Broker API", func() {
 							"object": struct{ Name string }{"some-name"},
 							"array":  []interface{}{"a", "b", "c"},
 						}
-					})
 
-					It("calls Bind on the service broker with all params", func() {
-						rawParams := `{
+						details["context"] = map[string]interface{}{
+							"platform":      "fake-platform",
+							"serial-number": 12648430,
+							"object":        struct{ Name string }{"parameter"},
+							"array":         []interface{}{"1", "2", "3"},
+						}
+
+						rawParams = `{
 							"string":"some-string",
 							"number":1,
 							"object": { "Name": "some-name" },
 							"array": [ "a", "b", "c" ]
 						}`
+						rawCtx = `{
+						"platform":"fake-platform",
+						"serial-number":12648430,
+						"object": {"Name":"parameter"},
+						"array":[ "1", "2", "3" ]
+					}`
+					})
+
+					It("calls Bind on the service broker with all params", func() {
 						makeBindingRequest(instanceID, bindingID, details)
 						Expect(string(fakeServiceBroker.BoundBindingDetails.RawParameters)).To(MatchJSON(rawParams))
+					})
+
+					It("calls Bind with details with raw parameters", func() {
+						makeBindingRequest(instanceID, bindingID, details)
+						detailsWithRawParameters := brokerapi.DetailsWithRawParameters(fakeServiceBroker.BoundBindingDetails)
+						rawParameters := detailsWithRawParameters.GetRawParameters()
+						Expect(string(rawParameters)).To(MatchJSON(rawParams))
+					})
+
+					It("calls Bind with details with raw context", func() {
+						makeBindingRequest(instanceID, bindingID, details)
+						detailsWithRawContext := brokerapi.DetailsWithRawContext(fakeServiceBroker.BoundBindingDetails)
+						rawContext := detailsWithRawContext.GetRawContext()
+						Expect(string(rawContext)).To(MatchJSON(rawCtx))
 					})
 				})
 
@@ -1283,18 +1381,23 @@ var _ = Describe("Service Broker API", func() {
 		})
 
 		Describe("unbinding", func() {
-			makeUnbindingRequest := func(instanceID string, bindingID string) *testflight.Response {
+			makeUnbindingRequestWithServiceIDPlanID := func(instanceID, bindingID, serviceID, planID, apiVersion string) *testflight.Response {
 				response := &testflight.Response{}
 				testflight.WithServer(brokerAPI, func(r *testflight.Requester) {
-					path := fmt.Sprintf("/v2/service_instances/%s/service_bindings/%s?plan_id=plan-id&service_id=service-id",
-						instanceID, bindingID)
+					path := fmt.Sprintf("/v2/service_instances/%s/service_bindings/%s?plan_id=%s&service_id=%s",
+						instanceID, bindingID, planID, serviceID)
 					request, _ := http.NewRequest("DELETE", path, strings.NewReader(""))
 					request.Header.Add("Content-Type", "application/json")
+					request.Header.Add("X-Broker-API-Version", apiVersion)
 					request.SetBasicAuth("username", "password")
 
 					response = r.Do(request)
 				})
 				return response
+			}
+
+			makeUnbindingRequest := func(instanceID string, bindingID string) *testflight.Response {
+				return makeUnbindingRequestWithServiceIDPlanID(instanceID, bindingID, "service-id", "plan-id", "2.13")
 			}
 
 			Context("when the associated instance exists", func() {
@@ -1309,6 +1412,44 @@ var _ = Describe("Service Broker API", func() {
 						"space_guid":        "space-guid",
 					}
 					makeInstanceProvisioningRequest(instanceID, provisionDetails, "")
+				})
+
+				Context("the request is malformed", func() {
+					var bindingID string
+
+					BeforeEach(func() {
+						bindingID = uniqueBindingID()
+						makeBindingRequest(instanceID, bindingID, map[string]interface{}{})
+					})
+
+					It("missing header X-Broker-API-Version", func() {
+						response := makeUnbindingRequestWithServiceIDPlanID(instanceID, bindingID, "service-id", "plan-id", "")
+						Expect(response.StatusCode).To(Equal(412))
+						Expect(lastLogLine().Message).To(ContainSubstring(".unbind.broker-api-version-invalid"))
+						Expect(lastLogLine().Data["error"]).To(ContainSubstring("X-Broker-API-Version Header not set"))
+					})
+
+					It("has wrong version of API", func() {
+						response := makeUnbindingRequestWithServiceIDPlanID(instanceID, bindingID, "service-id", "plan-id", "1.1")
+						Expect(response.StatusCode).To(Equal(412))
+						Expect(lastLogLine().Message).To(ContainSubstring(".unbind.broker-api-version-invalid"))
+						Expect(lastLogLine().Data["error"]).To(ContainSubstring("X-Broker-API-Version Header must be 2.x"))
+					})
+
+					It("missing service-id", func() {
+						response := makeUnbindingRequestWithServiceIDPlanID(instanceID, bindingID, "", "plan-id", "2.13")
+						Expect(response.StatusCode).To(Equal(400))
+						Expect(lastLogLine().Message).To(ContainSubstring(".unbind.service-id-missing"))
+						Expect(lastLogLine().Data["error"]).To(ContainSubstring("service-id missing"))
+					})
+
+					It("missing plan-id", func() {
+						response := makeUnbindingRequestWithServiceIDPlanID(instanceID, bindingID, "service-id", "", "2.13")
+						Expect(response.StatusCode).To(Equal(400))
+						Expect(lastLogLine().Message).To(ContainSubstring(".unbind.plan-id-missing"))
+						Expect(lastLogLine().Data["error"]).To(ContainSubstring("plan-id missing"))
+					})
+
 				})
 
 				Context("and the binding exists", func() {

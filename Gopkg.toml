@@ -1,0 +1,66 @@
+# Tips for using dep:
+# * Run dep ensure to sync your Gopkg.lock and vendor directory with your Gopkg.toml and code.
+# * Gopkg.toml tells dep:
+#   * How to upgrade your dependencies.
+#   * How to resolve differences between the various versions that you vs. your dependencies require.
+#   * What versions downstream consumers of your code as a library should use.
+# * You don't have to add every dependency that you use to Gopkg.toml, dep knows
+#   your dependencies from the imports in your code, and uses the lock to stick to a particular revision.
+# * In case of merge conflicts, focus on fixing Gopkg.toml, and then re-run dep ensure to update Gopkg.lock.
+# * Isolate changes to the vendor/ directory in a separate commit so it's easier to review your pull request.
+
+
+# Force dep to vendor the code generators, which aren't imported just used at dev time.
+# Picking a subpackage with Go code won't be necessary once https://github.com/golang/dep/issues/1306 is implemented.
+required = [
+  "github.com/jteeuwen/go-bindata/go-bindata",
+  "k8s.io/code-generator/cmd/defaulter-gen",
+  "k8s.io/code-generator/cmd/deepcopy-gen",
+  "k8s.io/code-generator/cmd/conversion-gen",
+  "k8s.io/code-generator/cmd/client-gen",
+  "k8s.io/code-generator/cmd/lister-gen",
+  "k8s.io/code-generator/cmd/informer-gen",
+  "k8s.io/code-generator/cmd/openapi-gen",
+  "k8s.io/gengo/args",
+  "github.com/kubernetes/repo-infra/kazel",
+]
+
+# in sync with Kubernetes master (k8s 1.10 future release), but different from Kubernetes etcd version (3.1.10),
+# but seems to have some improvements in memory consumption for embedded mode used in integration tests?
+# (with v3.1.10 etcd pod crashes in Travis CI while we run tests)
+# see https://github.com/kubernetes/kubernetes/blob/v1.9.1/Godeps/Godeps.json
+[[constraint]]
+  name = "github.com/coreos/etcd"
+  version = "3.2.13"
+
+# We want Nov 4, 2014 version as the Jul 24, 2015 version (latest version)
+# introduces bug documented in issue 1187
+# Using an override to not unncessarily restrict downstream consumers who
+# won't need this exact revision.
+[[override]]
+  name = "github.com/golang/glog"
+  revision = "44145f04b68cf362d9c4df2182967c2275eaefed"
+
+[[constraint]]
+  name = "github.com/spf13/viper"
+  version = "~1.0.0"
+
+[[constraint]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.9.1"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.9.1"
+
+[[constraint]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.9.1"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.9.1"
+
+[[constraint]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.9.1"

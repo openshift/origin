@@ -48,17 +48,6 @@ var _ = Describe("RedactingWriterSink", func() {
 			Expect(message["data"].(map[string]interface{})["lager serialisation error"]).To(Equal("json: unsupported type: func()"))
 			Expect(message["data"].(map[string]interface{})["data_dump"]).ToNot(BeEmpty())
 		})
-
-		Measure("should be efficient", func(b Benchmarker) {
-			runtime := b.Time("runtime", func() {
-				for i := 0; i < 5000; i++ {
-					sink.Log(lager.LogFormat{LogLevel: lager.INFO, Message: "hello world", Data: map[string]interface{}{"some_key": func() {}}})
-					Expect(writer.Copy()).ToNot(BeEmpty())
-				}
-			})
-
-			Expect(runtime.Seconds()).To(BeNumerically("<", 1), "logging shouldn't take too long.")
-		}, 1)
 	})
 
 	Context("when logging below the minimum log level", func() {

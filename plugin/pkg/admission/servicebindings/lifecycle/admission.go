@@ -99,7 +99,7 @@ func (b *enforceNoNewCredentialsForDeletedInstance) SetInternalServiceCatalogInf
 	b.SetReadyFunc(instanceInformer.Informer().HasSynced)
 }
 
-func (b *enforceNoNewCredentialsForDeletedInstance) Validate() error {
+func (b *enforceNoNewCredentialsForDeletedInstance) ValidateInitialization() error {
 	if b.instanceLister == nil {
 		return fmt.Errorf("missing serviceInstanceLister")
 	}

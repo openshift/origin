@@ -1,0 +1,42 @@
+# Comprehensions with nested loops and conditions
+
+list_comprehension = [
+  a # item
+  for b in c # first for
+  if b # condition 1
+  if foo(b) # condition 2
+  for a in b # second for
+  if a # condition 3
+  if bar(a) # condition 4
+]
+
+dict_comprehension = {
+  a : a # item
+  for b in c # first for
+  if b # condition 1
+  if foo(b) # condition 2
+  for a in b # second for
+  if a # condition 3
+  if bar(a) # condition 4
+}
+
+# Comprehensions with tuple unpacking
+
+[a + b + c for a, b in c]
+[a + b + c for (a, b) in c]
+[a + b + c for a, (b, c) in d]
+[a + b + c for (a, b), c in d]
+[a + b + c for (a, (b, c)) in d]
+[a + b + c for (
+    a,
+    (b, c)
+) in d]
+
+[a for (a) in b]
+[a for (a,) in b]
+[a for (
+    a
+) in b]
+[a for (
+    a,
+) in b]

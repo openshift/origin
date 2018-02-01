@@ -29,8 +29,7 @@ import (
 const (
 	openAPIGenTag = "// +k8s:openapi-gen"
 
-	baseImport = "k8s.io/kubernetes/"
-	staging    = "staging/src/"
+	staging = "staging/src/"
 )
 
 // walkGenerated updates the rule for kubernetes' OpenAPI generated file.
@@ -96,9 +95,10 @@ func (v *Vendorer) findOpenAPI(root string) ([]string, error) {
 func (v *Vendorer) addGeneratedOpenAPIRule(paths []string) error {
 	var openAPITargets []string
 	var vendorTargets []string
+	baseImport := v.cfg.GoPrefix + "/"
 	for _, p := range paths {
 		if !strings.HasPrefix(p, baseImport) {
-			return fmt.Errorf("openapi-gen path outside of kubernetes: %s", p)
+			return fmt.Errorf("openapi-gen path outside of %s: %s", v.cfg.GoPrefix, p)
 		}
 		np := p[len(baseImport):]
 		if strings.HasPrefix(np, staging) {

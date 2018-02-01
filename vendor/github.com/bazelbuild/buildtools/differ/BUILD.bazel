@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "diff.go",
+    ] + select({
+        "//:windows": ["isatty_windows.go"],
+        "//conditions:default": ["isatty_other.go"],
+    }),
+    visibility = ["//visibility:public"],
+)

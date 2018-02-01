@@ -33,7 +33,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	fakerestclient "k8s.io/client-go/rest/fake"
@@ -119,7 +118,6 @@ func NewRESTClient(newEmptyObj func() runtime.Object) *RESTClient {
 		NegotiatedSerializer: serializer.DirectCodecFactory{
 			CodecFactory: Codecs,
 		},
-		APIRegistry: Registry,
 	}
 	return &RESTClient{
 		Storage:    storage,
@@ -237,18 +235,7 @@ func getItems(storage NamespacedStorage) func(http.ResponseWriter, *http.Request
 		for _, obj := range objs {
 			// We need to strip away typemeta, but we don't want to tamper with what's
 			// in memory, so we're going to make a deep copy first.
-			objCopy, err := conversion.NewCloner().DeepCopy(obj)
-			if err != nil {
-				errStr := fmt.Sprintf("error performing deep copy: %s", err)
-				http.Error(rw, errStr, http.StatusInternalServerError)
-				return
-			}
-			item, ok := objCopy.(runtime.Object)
-			if !ok {
-				errStr := fmt.Sprintf("error performing type assertion: %s", err)
-				http.Error(rw, errStr, http.StatusInternalServerError)
-				return
-			}
+			item := obj.DeepCopyObject()
 			items = append(items, item)
 		}
 		var list runtime.Object

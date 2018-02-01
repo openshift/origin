@@ -1,0 +1,4 @@
+  Name:        ups-binding                                                   
+  Namespace:   test-ns                                                       
+  Status:      Ready - Injected bind result @ 2018-01-11 21:00:47 +0000 UTC  
+  Instance:    ups-instance                                                  

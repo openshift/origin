@@ -23,8 +23,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/metrics"
 	"github.com/kubernetes-incubator/service-catalog/pkg/pretty"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -219,33 +219,24 @@ func (c *controller) reconcileClusterServiceBroker(broker *v1beta1.ClusterServic
 				return err
 			}
 			if broker.Status.OperationStartTime == nil {
-				clone, err := api.Scheme.DeepCopy(broker)
-				if err == nil {
-					toUpdate := clone.(*v1beta1.ClusterServiceBroker)
-					toUpdate.Status.OperationStartTime = &now
-					if _, err := c.serviceCatalogClient.ClusterServiceBrokers().UpdateStatus(toUpdate); err != nil {
-						glog.Error(pcb.Messagef("Error updating operation start time: %v", err))
-						return err
-					}
+				toUpdate := broker.DeepCopy()
+				toUpdate.Status.OperationStartTime = &now
+				if _, err := c.serviceCatalogClient.ClusterServiceBrokers().UpdateStatus(toUpdate); err != nil {
+					glog.Error(pcb.Messagef("Error updating operation start time: %v", err))
+					return err
 				}
 			} else if !time.Now().Before(broker.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
 				s := "Stopping reconciliation retries because too much time has elapsed"
 				glog.Info(pcb.Message(s))
 				c.recorder.Event(broker, corev1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-				clone, err := api.Scheme.DeepCopy(broker)
-				if err == nil {
-					toUpdate := clone.(*v1beta1.ClusterServiceBroker)
-					toUpdate.Status.OperationStartTime = nil
-					toUpdate.Status.ReconciledGeneration = toUpdate.Generation
-					if err := c.updateClusterServiceBrokerCondition(toUpdate,
-						v1beta1.ServiceBrokerConditionFailed,
-						v1beta1.ConditionTrue,
-						errorReconciliationRetryTimeoutReason,
-						s); err != nil {
-						return err
-					}
-				}
-				return nil
+				toUpdate := broker.DeepCopy()
+				toUpdate.Status.OperationStartTime = nil
+				toUpdate.Status.ReconciledGeneration = toUpdate.Generation
+				return c.updateClusterServiceBrokerCondition(toUpdate,
+					v1beta1.ServiceBrokerConditionFailed,
+					v1beta1.ConditionTrue,
+					errorReconciliationRetryTimeoutReason,
+					s)
 			}
 			return err
 		}
@@ -254,11 +245,7 @@ func (c *controller) reconcileClusterServiceBroker(broker *v1beta1.ClusterServic
 
 		// set the operation start time if not already set
 		if broker.Status.OperationStartTime != nil {
-			clone, err := api.Scheme.DeepCopy(broker)
-			if err != nil {
-				return err
-			}
-			toUpdate := clone.(*v1beta1.ClusterServiceBroker)
+			toUpdate := broker.DeepCopy()
 			toUpdate.Status.OperationStartTime = nil
 			if _, err := c.serviceCatalogClient.ClusterServiceBrokers().UpdateStatus(toUpdate); err != nil {
 				glog.Error(pcb.Messagef("Error updating operation start time: %v", err))
@@ -408,6 +395,10 @@ func (c *controller) reconcileClusterServiceBroker(broker *v1beta1.ClusterServic
 
 		c.recorder.Event(broker, corev1.EventTypeNormal, successFetchedCatalogReason, successFetchedCatalogMessage)
 
+		// Update metrics with the number of serviceclass and serviceplans from this broker
+		metrics.BrokerServiceClassCount.WithLabelValues(broker.Name).Set(float64(len(payloadServiceClasses)))
+		metrics.BrokerServicePlanCount.WithLabelValues(broker.Name).Set(float64(len(payloadServicePlans)))
+
 		return nil
 	}
 
@@ -477,6 +468,10 @@ func (c *controller) reconcileClusterServiceBroker(broker *v1beta1.ClusterServic
 
 		c.recorder.Eventf(broker, corev1.EventTypeNormal, successClusterServiceBrokerDeletedReason, successClusterServiceBrokerDeletedMessage, broker.Name)
 		glog.V(5).Info(pcb.Message("Successfully deleted"))
+
+		// delete the metrics associated with this broker
+		metrics.BrokerServiceClassCount.DeleteLabelValues(broker.Name)
+		metrics.BrokerServicePlanCount.DeleteLabelValues(broker.Name)
 		return nil
 	}
 
@@ -535,12 +530,7 @@ func (c *controller) reconcileClusterServiceClassFromClusterServiceBrokerCatalog
 
 	// There was an existing service class -- project the update onto it and
 	// update it.
-	clone, err := api.Scheme.DeepCopy(existingServiceClass)
-	if err != nil {
-		return err
-	}
-
-	toUpdate := clone.(*v1beta1.ClusterServiceClass)
+	toUpdate := existingServiceClass.DeepCopy()
 	toUpdate.Spec.BindingRetrievable = serviceClass.Spec.BindingRetrievable
 	toUpdate.Spec.Bindable = serviceClass.Spec.Bindable
 	toUpdate.Spec.PlanUpdatable = serviceClass.Spec.PlanUpdatable
@@ -609,12 +599,7 @@ func (c *controller) reconcileClusterServicePlanFromClusterServiceBrokerCatalog(
 
 	// There was an existing service plan -- project the update onto it and
 	// update it.
-	clone, err := api.Scheme.DeepCopy(existingServicePlan)
-	if err != nil {
-		return err
-	}
-
-	toUpdate := clone.(*v1beta1.ClusterServicePlan)
+	toUpdate := existingServicePlan.DeepCopy()
 	toUpdate.Spec.Description = servicePlan.Spec.Description
 	toUpdate.Spec.Bindable = servicePlan.Spec.Bindable
 	toUpdate.Spec.Free = servicePlan.Spec.Free
@@ -636,11 +621,7 @@ func (c *controller) reconcileClusterServicePlanFromClusterServiceBrokerCatalog(
 // with the given status, reason, and message.
 func (c *controller) updateClusterServiceBrokerCondition(broker *v1beta1.ClusterServiceBroker, conditionType v1beta1.ServiceBrokerConditionType, status v1beta1.ConditionStatus, reason, message string) error {
 	pcb := pretty.NewContextBuilder(pretty.ClusterServiceBroker, "", broker.Name)
-	clone, err := api.Scheme.DeepCopy(broker)
-	if err != nil {
-		return err
-	}
-	toUpdate := clone.(*v1beta1.ClusterServiceBroker)
+	toUpdate := broker.DeepCopy()
 	newCondition := v1beta1.ServiceBrokerCondition{
 		Type:    conditionType,
 		Status:  status,
@@ -682,7 +663,7 @@ func (c *controller) updateClusterServiceBrokerCondition(broker *v1beta1.Cluster
 	}
 
 	glog.V(4).Info(pcb.Messagef("Updating ready condition to %v", status))
-	_, err = c.serviceCatalogClient.ClusterServiceBrokers().UpdateStatus(toUpdate)
+	_, err := c.serviceCatalogClient.ClusterServiceBrokers().UpdateStatus(toUpdate)
 	if err != nil {
 		glog.Error(pcb.Messagef("Error updating ready condition: %v", err))
 	} else {
@@ -706,12 +687,7 @@ func (c *controller) updateClusterServiceBrokerFinalizers(
 		glog.Error(pcb.Messagef("Error finalizing: %v", err))
 	}
 
-	clone, err := api.Scheme.DeepCopy(broker)
-	if err != nil {
-		return err
-	}
-	toUpdate := clone.(*v1beta1.ClusterServiceBroker)
-
+	toUpdate := broker.DeepCopy()
 	toUpdate.Finalizers = finalizers
 
 	logContext := fmt.Sprint(pcb.Messagef("Updating finalizers to %v", finalizers))

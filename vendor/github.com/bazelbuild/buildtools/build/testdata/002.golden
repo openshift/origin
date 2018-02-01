@@ -1,0 +1,14 @@
+cc_test(
+    name = "b\"ar'\"",
+    size = "small",
+    srcs = [
+        "a.cc",
+        "b.cc",
+        "c.cc",
+    ],
+    deps = [
+        ":foo",
+        "//base",
+        "//util:map-util",
+    ],
+)

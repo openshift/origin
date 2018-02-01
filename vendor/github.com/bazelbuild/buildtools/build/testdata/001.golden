@@ -1,0 +1,16 @@
+cc_test(
+    name = "bar",
+    size = "small",
+    srcs = [
+        "a.cc",
+        "b.cc",
+        "c.cc",
+    ],
+    data = ["datum"],
+    datum = ["data"],
+    deps = [
+        ":foo",
+        "//base",
+        "//util:map-util",
+    ],
+)

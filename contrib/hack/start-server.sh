@@ -52,12 +52,12 @@ count=0
 D_HOST=${DOCKER_HOST:-localhost}
 D_HOST=${D_HOST#*//}   # remove leading proto://
 D_HOST=${D_HOST%:*}    # remove trailing port #
-while ! wget --ca-certificate ${ROOT}/.var/run/kubernetes-service-catalog/apiserver.crt https://${D_HOST}:${PORT} > /dev/null 2>&1 ; do
+while ! curl --cacert ${ROOT}/.var/run/kubernetes-service-catalog/apiserver.crt https://${D_HOST}:${PORT} > /dev/null 2>&1 ; do
 	sleep 1
 	(( count++ )) || true
 	if [ "${count}" == "30" ]; then
 		echo "Timed-out waiting for API Server"
-		(set -x ; wget --ca-certificate ${ROOT}/.var/run/kubernetes-service-catalog/apiserver.crt https://${D_HOST}:${PORT})
+		(set -x ; curl --cacert ${ROOT}/.var/run/kubernetes-service-catalog/apiserver.crt https://${D_HOST}:${PORT})
 		(set -x ; docker ps)
 		(set -x ; docker logs apiserver)
 		exit 1
