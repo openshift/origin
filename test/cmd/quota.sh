@@ -32,7 +32,8 @@ os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-asmail --as
 # the point of the test is to make sure that clusterquota is counting correct and secrets are auto-created and countable
 # the create_dockercfg controller can issue multiple creates if the token controller doesn't fill them in, but the creates are duplicates
 # since an annotation tracks the intended secrets to be created.  That results in multi-counting quota until reconciliation runs
-os::cmd::try_until_text 'oc get secrets -o name --all-namespaces; oc describe appliedclusterresourcequota/for-deads-by-annotation -n quota-bar --as deads' "secrets.*(1[0-9]|20|21|22)"
+# do not go past 26.  If you get to 27, you might be selecting an extra namespace.
+os::cmd::try_until_text 'oc get secrets -o name --all-namespaces; oc describe appliedclusterresourcequota/for-deads-by-annotation -n quota-bar --as deads' "secrets.*(1[0-9]|20|21|22|23|24|25|26)"
 os::cmd::expect_success 'oc delete project quota-foo'
 os::cmd::try_until_not_text 'oc get clusterresourcequota/for-deads-by-annotation -o jsonpath="{.status.namespaces[*].namespace}"' 'quota-foo'
 os::cmd::expect_success 'oc delete project quota-bar'
