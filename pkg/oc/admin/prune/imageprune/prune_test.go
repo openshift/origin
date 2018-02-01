@@ -20,13 +20,13 @@ import (
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/diff"
 
-	"github.com/openshift/origin/pkg/api/graph"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
-	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/oc/admin/prune/imageprune/testutil"
+	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
+	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 
 	// these are needed to make kapiref.GetReference work in the prune.go file
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
@@ -1306,7 +1306,7 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 }
 
 func TestImageIsPrunable(t *testing.T) {
-	g := graph.New()
+	g := genericgraph.New()
 	imageNode := imagegraph.EnsureImageNode(g, &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "myImage"}})
 	streamNode := imagegraph.EnsureImageStreamNode(g, &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "myStream"}})
 	g.AddEdge(streamNode, imageNode, ReferencedImageEdgeKind)

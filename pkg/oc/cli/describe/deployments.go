@@ -19,14 +19,14 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
-	"github.com/openshift/origin/pkg/api/graph"
-	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	appsedges "github.com/openshift/origin/pkg/apps/graph"
-	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	appsedges "github.com/openshift/origin/pkg/oc/graph/appsgraph"
+	appsgraph "github.com/openshift/origin/pkg/oc/graph/appsgraph/nodes"
+	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
+	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
 )
 
 const (
@@ -468,7 +468,7 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 		}
 	}
 
-	g := graph.New()
+	g := genericgraph.New()
 	dcNode := appsgraph.EnsureDeploymentConfigNode(g, config)
 	for i := range deployments {
 		kubegraph.EnsureReplicationControllerNode(g, &deployments[i])

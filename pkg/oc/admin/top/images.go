@@ -15,13 +15,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/api/graph"
-	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
+	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
+	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
 )
 
 const (
@@ -155,7 +155,7 @@ func (i imageInfo) PrintLine(out io.Writer) {
 // imagesTop generates Image information from a graph and returns this as a list
 // of imageInfo array.
 func (o TopImagesOptions) imagesTop() []Info {
-	g := graph.New()
+	g := genericgraph.New()
 	addImagesToGraph(g, o.Images)
 	addImageStreamsToGraph(g, o.Streams)
 	addPodsToGraph(g, o.Pods)
@@ -210,7 +210,7 @@ func getStorage(image *imageapi.Image) int64 {
 	return storage
 }
 
-func getImageStreamTags(g graph.Graph, node *imagegraph.ImageNode) []string {
+func getImageStreamTags(g genericgraph.Graph, node *imagegraph.ImageNode) []string {
 	istags := []string{}
 	for _, e := range g.InboundEdges(node, ImageStreamImageEdgeKind) {
 		streamNode, ok := e.From().(*imagegraph.ImageStreamNode)
@@ -235,7 +235,7 @@ func getTags(stream *imageapi.ImageStream, image *imageapi.Image) []string {
 	return tags
 }
 
-func getImageParents(g graph.Graph, node *imagegraph.ImageNode) []string {
+func getImageParents(g genericgraph.Graph, node *imagegraph.ImageNode) []string {
 	parents := []string{}
 	for _, e := range g.InboundEdges(node, ParentImageEdgeKind) {
 		imageNode, ok := e.From().(*imagegraph.ImageNode)
@@ -247,7 +247,7 @@ func getImageParents(g graph.Graph, node *imagegraph.ImageNode) []string {
 	return parents
 }
 
-func getImageUsage(g graph.Graph, node *imagegraph.ImageNode) []string {
+func getImageUsage(g genericgraph.Graph, node *imagegraph.ImageNode) []string {
 	usage := []string{}
 	for _, e := range g.InboundEdges(node, PodImageEdgeKind) {
 		podNode, ok := e.From().(*kubegraph.PodNode)
