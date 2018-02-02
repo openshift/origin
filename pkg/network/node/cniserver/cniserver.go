@@ -9,7 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/golang/glog"
@@ -44,9 +44,21 @@ import (
 // removed and re-created with 0700 permissions each time openshift-node is
 // started.
 
-// Default CNIServer unix domain socket path which the OpenShift SDN CNI
-// plugin uses to talk to the CNIServer
-const CNIServerSocketPath string = "/var/run/openshift-sdn/cni-server.sock"
+// Default directory for CNIServer runtime files
+const CNIServerRunDir string = "/var/run/openshift-sdn"
+
+// CNIServer socket name, and default full path
+const CNIServerSocketName string = "cni-server.sock"
+const CNIServerSocketPath string = CNIServerRunDir + "/" + CNIServerSocketName
+
+// Config file containing MTU, and default full path
+const CNIServerConfigFileName string = "config.json"
+const CNIServerConfigFilePath string = CNIServerRunDir + "/" + CNIServerConfigFileName
+
+// Server-to-plugin config data
+type Config struct {
+	MTU uint32 `json:"mtu"`
+}
 
 // Explicit type for CNI commands the server handles
 type CNICommand string
@@ -76,6 +88,8 @@ type PodRequest struct {
 	SandboxID string
 	// kernel network namespace path
 	Netns string
+	// for an ADD request, the host side of the created veth
+	HostVeth string
 	// Channel for returning the operation result to the CNIServer
 	Result chan *PodResult
 }
@@ -95,19 +109,20 @@ type cniRequestFunc func(request *PodRequest) ([]byte, error)
 type CNIServer struct {
 	http.Server
 	requestFunc cniRequestFunc
-	path        string
+	rundir      string
+	config      *Config
 }
 
-// Create and return a new CNIServer object which will listen on the given
-// socket path
-func NewCNIServer(socketPath string) *CNIServer {
+// Create and return a new CNIServer object which will listen on a socket in the given path
+func NewCNIServer(rundir string, config *Config) *CNIServer {
 	router := mux.NewRouter()
 
 	s := &CNIServer{
 		Server: http.Server{
 			Handler: router,
 		},
-		path: socketPath,
+		rundir: rundir,
+		config: config,
 	}
 	router.NotFoundHandler = http.HandlerFunc(http.NotFound)
 	router.HandleFunc("/", s.handleCNIRequest).Methods("POST")
@@ -125,25 +140,36 @@ func (s *CNIServer) Start(requestFunc cniRequestFunc) error {
 	s.requestFunc = requestFunc
 
 	// Remove and re-create the socket directory with root-only permissions
-	dirName := path.Dir(s.path)
-	if err := os.RemoveAll(s.path); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(s.rundir); err != nil && !os.IsNotExist(err) {
 		utilruntime.HandleError(fmt.Errorf("failed to remove old pod info socket: %v", err))
 	}
-	if err := os.RemoveAll(dirName); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(s.rundir); err != nil && !os.IsNotExist(err) {
 		utilruntime.HandleError(fmt.Errorf("failed to remove contents of socket directory: %v", err))
 	}
-	if err := os.MkdirAll(dirName, 0700); err != nil {
+	if err := os.MkdirAll(s.rundir, 0700); err != nil {
 		return fmt.Errorf("failed to create pod info socket directory: %v", err)
+	}
+
+	// Write config file
+	config, err := json.Marshal(s.config)
+	if err != nil {
+		return fmt.Errorf("could not marshal config data: %v", err)
+	}
+	configPath := filepath.Join(s.rundir, CNIServerConfigFileName)
+	err = ioutil.WriteFile(configPath, config, os.FileMode(0444))
+	if err != nil {
+		return fmt.Errorf("could not write config file %q: %v", configPath, err)
 	}
 
 	// On Linux the socket is created with the permissions of the directory
 	// it is in, so as long as the directory is root-only we can avoid
 	// racy umask manipulation.
-	l, err := net.Listen("unix", s.path)
+	socketPath := filepath.Join(s.rundir, CNIServerSocketName)
+	l, err := net.Listen("unix", socketPath)
 	if err != nil {
 		return fmt.Errorf("failed to listen on pod info socket: %v", err)
 	}
-	if err := os.Chmod(s.path, 0600); err != nil {
+	if err := os.Chmod(socketPath, 0600); err != nil {
 		l.Close()
 		return fmt.Errorf("failed to set pod info socket mode: %v", err)
 	}
@@ -155,6 +181,22 @@ func (s *CNIServer) Start(requestFunc cniRequestFunc) error {
 		}
 	}, 0)
 	return nil
+}
+
+func ReadConfig(configPath string) (*Config, error) {
+	bytes, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("OpenShift SDN network process is not (yet?) available")
+		} else {
+			return nil, fmt.Errorf("could not read config file %q: %v", configPath, err)
+		}
+	}
+	var config Config
+	if err = json.Unmarshal(bytes, &config); err != nil {
+		return nil, fmt.Errorf("could not parse config file %q: %v", configPath, err)
+	}
+	return &config, nil
 }
 
 // Split the "CNI_ARGS" environment variable's value into a map.  CNI_ARGS
@@ -202,6 +244,11 @@ func cniRequestToPodRequest(r *http.Request) (*PodRequest, error) {
 	req.Netns, ok = cr.Env["CNI_NETNS"]
 	if !ok {
 		return nil, fmt.Errorf("missing CNI_NETNS")
+	}
+
+	req.HostVeth, ok = cr.Env["OSDN_HOSTVETH"]
+	if !ok && req.Command == CNI_ADD {
+		return nil, fmt.Errorf("missing OSDN_HOSTVETH")
 	}
 
 	cniArgs, err := gatherCNIArgs(cr.Env)
