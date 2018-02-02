@@ -63,6 +63,19 @@ func (m PriorityRESTMapper) ResourceFor(partiallySpecifiedResource schema.GroupV
 	}
 
 	remainingGVRs := append([]schema.GroupVersionResource{}, originalGVRs...)
+	// if we're requesting an oapi resource, strip the oapi resource from this list so the groupified one is the only one that can match.
+	// if we're requesting an exact match, we will already have returned, so the reference file cases *should* return before this.
+	if isOAPIResource(partiallySpecifiedResource) {
+		keep := []schema.GroupVersionResource{}
+		for _, gvr := range remainingGVRs {
+			if len(gvr.Group) == 0 {
+				continue
+			}
+			keep = append(keep, gvr)
+		}
+		remainingGVRs = keep
+	}
+
 	for _, pattern := range m.ResourcePriority {
 		matchedGVRs := []schema.GroupVersionResource{}
 		for _, gvr := range remainingGVRs {
@@ -99,6 +112,19 @@ func (m PriorityRESTMapper) KindFor(partiallySpecifiedResource schema.GroupVersi
 	}
 
 	remainingGVKs := append([]schema.GroupVersionKind{}, originalGVKs...)
+	// if we're requesting an oapi kind, strip the oapi kind from this list so the groupified one is the only one that can match.
+	// if we're requesting an exact match, we will already have returned, so the reference file cases *should* return before this.
+	if isOAPIResource(partiallySpecifiedResource) {
+		keep := []schema.GroupVersionKind{}
+		for _, gvk := range remainingGVKs {
+			if len(gvk.Group) == 0 {
+				continue
+			}
+			keep = append(keep, gvk)
+		}
+		remainingGVKs = keep
+	}
+
 	for _, pattern := range m.KindPriority {
 		matchedGVKs := []schema.GroupVersionKind{}
 		for _, gvr := range remainingGVKs {
