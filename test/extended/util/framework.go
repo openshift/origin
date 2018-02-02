@@ -118,13 +118,13 @@ func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
 //DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
 // as part of debugging when the language imagestreams in the openshift namespace seem to disappear
 func DumpImageStreams(oc *CLI) {
-	out, err := oc.Run("get").Args("is", "-n", "openshift", "-o", "yaml", "--config", KubeConfigPath()).Output()
+	out, err := oc.AsAdmin().Run("get").Args("is", "-n", "openshift", "-o", "yaml", "--config", KubeConfigPath()).Output()
 	if err == nil {
 		e2e.Logf("\n  imagestreams in openshift namespace: \n%s\n", out)
 	} else {
 		e2e.Logf("\n  error on getting imagestreams in openshift namespace: %+v\n%#v\n", err, out)
 	}
-	out, err = oc.Run("get").Args("is", "-o", "yaml").Output()
+	out, err = oc.AsAdmin().Run("get").Args("is", "-o", "yaml").Output()
 	if err == nil {
 		e2e.Logf("\n  imagestreams in dynamic test namespace: \n%s\n", out)
 	} else {
@@ -142,7 +142,7 @@ func DumpImageStreams(oc *CLI) {
 
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
 func DumpBuildLogs(bc string, oc *CLI) {
-	buildOutput, err := oc.Run("logs").Args("-f", "bc/"+bc, "--timestamps").Output()
+	buildOutput, err := oc.AsAdmin().Run("logs").Args("-f", "bc/"+bc, "--timestamps").Output()
 	if err == nil {
 		e2e.Logf("\n\n  build logs : %s\n\n", buildOutput)
 	} else {
@@ -158,7 +158,7 @@ func DumpBuildLogs(bc string, oc *CLI) {
 // DumpBuilds will dump the yaml for every build in the test namespace; remember, pipeline builds
 // don't have build pods so a generic framework dump won't cat our pipeline builds objs in openshift
 func DumpBuilds(oc *CLI) {
-	buildOutput, err := oc.Run("get").Args("builds", "-o", "yaml").Output()
+	buildOutput, err := oc.AsAdmin().Run("get").Args("builds", "-o", "yaml").Output()
 	if err == nil {
 		e2e.Logf("\n\n builds yaml:\n%s\n\n", buildOutput)
 	} else {
@@ -167,11 +167,11 @@ func DumpBuilds(oc *CLI) {
 }
 
 func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*kapiv1.PodList, error) {
-	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d", appsapi.DeployerPodForDeploymentLabel, dcName, version)).String()})
+	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d", appsapi.DeployerPodForDeploymentLabel, dcName, version)).String()})
 }
 
 func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
-	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
+	return oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
 }
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
@@ -202,7 +202,7 @@ func DumpApplicationPodLogs(dcName string, oc *CLI) {
 
 func DumpPodStates(oc *CLI) {
 	e2e.Logf("Dumping pod state for namespace %s", oc.Namespace())
-	out, err := oc.Run("get").Args("pods", "-o", "yaml").Output()
+	out, err := oc.AsAdmin().Run("get").Args("pods", "-o", "yaml").Output()
 	if err != nil {
 		e2e.Logf("Error dumping pod states: %v", err)
 		return
@@ -213,7 +213,7 @@ func DumpPodStates(oc *CLI) {
 // DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
 func DumpPodLogsStartingWith(prefix string, oc *CLI) {
 	podsToDump := []kapiv1.Pod{}
-	podList, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
+	podList, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
 	if err != nil {
 		e2e.Logf("Error listing pods: %v", err)
 		return
@@ -231,7 +231,7 @@ func DumpPodLogsStartingWith(prefix string, oc *CLI) {
 // DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
 func DumpPodLogsStartingWithInNamespace(prefix, namespace string, oc *CLI) {
 	podsToDump := []kapiv1.Pod{}
-	podList, err := oc.KubeClient().CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	podList, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		e2e.Logf("Error listing pods: %v", err)
 		return
@@ -248,7 +248,7 @@ func DumpPodLogsStartingWithInNamespace(prefix, namespace string, oc *CLI) {
 
 func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 	for _, pod := range pods {
-		descOutput, err := oc.Run("describe").Args("pod/" + pod.Name).Output()
+		descOutput, err := oc.AsAdmin().Run("describe").Args("pod/" + pod.Name).Output()
 		if err == nil {
 			e2e.Logf("Describing pod %q\n%s\n\n", pod.Name, descOutput)
 		} else {
@@ -256,7 +256,7 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 		}
 
 		dumpContainer := func(container *kapiv1.Container) {
-			depOutput, err := oc.Run("logs").Args("pod/"+pod.Name, "-c", container.Name).Output()
+			depOutput, err := oc.AsAdmin().Run("logs").Args("pod/"+pod.Name, "-c", container.Name).Output()
 			if err == nil {
 				e2e.Logf("Log for pod %q/%q\n---->\n%s\n<----end of log for %[1]q/%[2]q\n", pod.Name, container.Name, depOutput)
 			} else {
