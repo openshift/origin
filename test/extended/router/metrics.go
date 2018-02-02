@@ -75,7 +75,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc)
+			exutil.DumpPodLogsStartingWithInNamespace("router", "default", oc.AsAdmin())
 		}
 	})
 
