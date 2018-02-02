@@ -14,9 +14,9 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
-	cmdtest "github.com/openshift/origin/pkg/apps/cmd/test"
 	"github.com/openshift/origin/pkg/apps/strategy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	cmdtest "github.com/openshift/origin/pkg/apps/util/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

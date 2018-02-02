@@ -38,8 +38,8 @@ import (
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appscmd "github.com/openshift/origin/pkg/apps/cmd"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
@@ -362,7 +362,7 @@ func (f *ring0Factory) DefaultNamespace() (string, bool, error) {
 func DefaultGenerators(cmdName string) map[string]kubectl.Generator {
 	generators := map[string]map[string]kubectl.Generator{}
 	generators["run"] = map[string]kubectl.Generator{
-		"deploymentconfig/v1": appscmd.BasicDeploymentConfigController{},
+		"deploymentconfig/v1": deploymentcmd.BasicDeploymentConfigController{},
 		"run-controller/v1":   kubectl.BasicReplicationController{}, // legacy alias for run/v1
 	}
 	generators["expose"] = map[string]kubectl.Generator{

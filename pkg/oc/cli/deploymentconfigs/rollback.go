@@ -1,4 +1,4 @@
-package cmd
+package deploymentconfigs
 
 import (
 	"bytes"
