@@ -1963,7 +1963,7 @@ func TestInstantiateBuildTriggerCauseImageChange(t *testing.T) {
 func TestInstantiateBuildTriggerCauseGenericWebHook(t *testing.T) {
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	changeMessage := "Generic WebHook"
-	webHookSecret := "testsecret"
+	webHookSecret := "<secret>"
 
 	gitRevision := &buildapi.SourceRevision{
 		Git: &buildapi.GitSourceRevision{
@@ -1980,7 +1980,7 @@ func TestInstantiateBuildTriggerCauseGenericWebHook(t *testing.T) {
 			buildapi.BuildTriggerCause{
 				Message: changeMessage,
 				GenericWebHook: &buildapi.GenericWebHookCause{
-					Secret:   webHookSecret,
+					Secret:   "<secret>",
 					Revision: gitRevision,
 				},
 			},
@@ -2008,7 +2008,7 @@ func TestInstantiateBuildTriggerCauseGenericWebHook(t *testing.T) {
 func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	changeMessage := buildapi.BuildTriggerCauseGithubMsg
-	webHookSecret := "testsecret"
+	webHookSecret := "<secret>"
 
 	gitRevision := &buildapi.SourceRevision{
 		Git: &buildapi.GitSourceRevision{
@@ -2025,7 +2025,7 @@ func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 			buildapi.BuildTriggerCause{
 				Message: changeMessage,
 				GitHubWebHook: &buildapi.GitHubWebHookCause{
-					Secret:   webHookSecret,
+					Secret:   "<secret>",
 					Revision: gitRevision,
 				},
 			},
@@ -2053,7 +2053,7 @@ func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 func TestInstantiateBuildTriggerCauseGitLabWebHook(t *testing.T) {
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	changeMessage := buildapi.BuildTriggerCauseGitLabMsg
-	webHookSecret := "testsecret"
+	webHookSecret := "<secret>"
 
 	gitRevision := &buildapi.SourceRevision{
 		Git: &buildapi.GitSourceRevision{
@@ -2072,7 +2072,7 @@ func TestInstantiateBuildTriggerCauseGitLabWebHook(t *testing.T) {
 				GitLabWebHook: &buildapi.GitLabWebHookCause{
 					CommonWebHookCause: buildapi.CommonWebHookCause{
 						Revision: gitRevision,
-						Secret:   webHookSecret,
+						Secret:   "<secret>",
 					},
 				},
 			},
@@ -2100,7 +2100,7 @@ func TestInstantiateBuildTriggerCauseGitLabWebHook(t *testing.T) {
 func TestInstantiateBuildTriggerCauseBitbucketWebHook(t *testing.T) {
 	buildTriggerCauses := []buildapi.BuildTriggerCause{}
 	changeMessage := buildapi.BuildTriggerCauseBitbucketMsg
-	webHookSecret := "testsecret"
+	webHookSecret := "<secret>"
 
 	gitRevision := &buildapi.SourceRevision{
 		Git: &buildapi.GitSourceRevision{
@@ -2118,7 +2118,7 @@ func TestInstantiateBuildTriggerCauseBitbucketWebHook(t *testing.T) {
 				Message: changeMessage,
 				BitbucketWebHook: &buildapi.BitbucketWebHookCause{
 					CommonWebHookCause: buildapi.CommonWebHookCause{
-						Secret:   webHookSecret,
+						Secret:   "<secret>",
 						Revision: gitRevision,
 					},
 				},

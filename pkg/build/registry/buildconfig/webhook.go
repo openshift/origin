@@ -146,7 +146,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	}
 	warning := err
 
-	buildTriggerCauses := webhook.GenerateBuildTriggerInfo(revision, hookType, secret)
+	buildTriggerCauses := webhook.GenerateBuildTriggerInfo(revision, hookType)
 	request := &buildapi.BuildRequest{
 		TriggeredBy: buildTriggerCauses,
 		ObjectMeta:  metav1.ObjectMeta{Name: name},
