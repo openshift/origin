@@ -247,6 +247,8 @@ func (eip *egressIPWatcher) handleAddOrUpdateNetNamespace(obj, _ interface{}, ev
 			glog.Warningf("Ignoring extra EgressIPs (%v) in NetNamespace %q", netns.EgressIPs[1:], netns.Name)
 		}
 		eip.updateNamespaceEgress(netns.NetID, netns.EgressIPs[0])
+	} else {
+		eip.deleteNamespaceEgress(netns.NetID)
 	}
 }
 
