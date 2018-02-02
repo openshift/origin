@@ -59,6 +59,7 @@ $ s2i build . centos/ruby-22-centos7 hello-world-app
 				source, err := git.Parse(args[0])
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "ERROR: couldn't parse %q: %v\n", args[0], err)
+					return
 				}
 				cfg.Source = source
 				cfg.Source.URL.Fragment = ref

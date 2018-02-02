@@ -400,7 +400,7 @@ func (t *stiTar) extractFile(dir string, header *tar.Header, tarReader io.Reader
 		return err
 	}
 	if written != header.Size {
-		return fmt.Errorf("Wrote %d bytes, expected to write %d", written, header.Size)
+		return fmt.Errorf("wrote %d bytes, expected to write %d", written, header.Size)
 	}
 	return t.Chmod(path, header.FileInfo().Mode())
 }

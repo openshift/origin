@@ -281,8 +281,8 @@ func (h *fs) RemoveDirectory(dir string) error {
 	// TODO: Remove this workaround when we switch to go 1.7 -- os.RemoveAll should
 	// be fixed for Windows in that release.  https://github.com/golang/go/issues/9606
 	if runtime.GOOS == "windows" {
-		cmd := exec.Command("cmd.exe", "/c", fmt.Sprintf("rd /s /q %s", dir))
-		output, err := cmd.Output()
+		command := exec.Command("cmd.exe", "/c", fmt.Sprintf("rd /s /q %s", dir))
+		output, err := command.Output()
 		if err != nil {
 			glog.Errorf("Error removing directory %q: %v %s", dir, err, string(output))
 			return err

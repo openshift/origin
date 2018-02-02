@@ -208,6 +208,9 @@ Download the latest [64-bit Windows release](https://github.com/openshift/source
 Extract the zip file through a file browser.  Add the extracted directory to your PATH.  You can now use
 s2i from the command line.
 
+Note:  We have had some reports of Windows Defender falsely alerting reporting that the Windows binaries
+contain "Trojan:Win32/Azden.A!cl".  This appears to be a common false alert for other applications as well.
+
 ##### From source
 
 Assuming Go and Docker are installed and configured, execute the following commands:

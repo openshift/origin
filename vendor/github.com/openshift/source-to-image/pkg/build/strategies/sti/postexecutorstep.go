@@ -207,16 +207,16 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 				return fmt.Errorf("could not create directory %q: %v", dstDir, err)
 			}
 
-			file := filepath.Base(artifact.Source)
-			old := filepath.Join(artifactsDir, file)
-			new := filepath.Join(artifactsDir, dstSubDir, file)
-			glog.V(5).Infof("Renaming %q to %q", old, new)
-			if err := step.fs.Rename(old, new); err != nil {
+			currentFile := filepath.Base(artifact.Source)
+			oldFile := filepath.Join(artifactsDir, currentFile)
+			newFile := filepath.Join(artifactsDir, dstSubDir, currentFile)
+			glog.V(5).Infof("Renaming %q to %q", oldFile, newFile)
+			if err := step.fs.Rename(oldFile, newFile); err != nil {
 				step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 					utilstatus.ReasonFSOperationFailed,
 					utilstatus.ReasonMessageFSOperationFailed,
 				)
-				return fmt.Errorf("could not rename %q -> %q: %v", old, new, err)
+				return fmt.Errorf("could not rename %q -> %q: %v", oldFile, newFile, err)
 			}
 		}
 	}
@@ -484,7 +484,7 @@ func downloadAndExtractFileFromContainer(docker dockerpkg.Docker, tar s2itar.Tar
 	}
 
 	// after writing to the file descriptor we need to rewind pointer to the beginning of the file before next reading
-	if _, err := fd.Seek(0, os.SEEK_SET); err != nil {
+	if _, err := fd.Seek(0, io.SeekStart); err != nil {
 		res := utilstatus.NewFailureReason(
 			utilstatus.ReasonGenericS2IBuildFailed,
 			utilstatus.ReasonMessageGenericS2iBuildFailed,

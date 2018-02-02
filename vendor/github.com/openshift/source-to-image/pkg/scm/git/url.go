@@ -91,13 +91,12 @@ func Parse(rawurl string) (*URL, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		if u.Scheme == "file" && u.Opaque == "" {
 			if u.Host != "" {
-				return nil, fmt.Errorf("url %q has non-empty host", rawurl)
+				return nil, fmt.Errorf("file url %q has non-empty host %q", rawurl, u.Host)
 			}
 			if runtime.GOOS == "windows" && (len(u.Path) == 0 || !filepath.IsAbs(u.Path[1:])) {
-				return nil, fmt.Errorf("url %q has non-absolute path", rawurl)
+				return nil, fmt.Errorf("file url %q has non-absolute path %q", rawurl, u.Path)
 			}
 		}
 
