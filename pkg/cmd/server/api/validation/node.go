@@ -24,7 +24,8 @@ func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationR
 func ValidateInClusterNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
-	if len(config.NodeName) == 0 {
+	hasBootstrapConfig := len(config.KubeletArguments["bootstrap-kubeconfig"]) > 0
+	if len(config.NodeName) == 0 && !hasBootstrapConfig {
 		validationResults.AddErrors(field.Required(fldPath.Child("nodeName"), ""))
 	}
 	if len(config.NodeIP) > 0 {
@@ -42,7 +43,9 @@ func ValidateInClusterNodeConfig(config *api.NodeConfig, fldPath *field.Path) Va
 		validationResults.AddErrors(ValidateHostPort(config.DNSBindAddress, fldPath.Child("dnsBindAddress"))...)
 	}
 	if len(config.DNSIP) > 0 {
-		validationResults.AddErrors(ValidateSpecifiedIP(config.DNSIP, fldPath.Child("dnsIP"))...)
+		if !hasBootstrapConfig || config.DNSIP != "0.0.0.0" {
+			validationResults.AddErrors(ValidateSpecifiedIP(config.DNSIP, fldPath.Child("dnsIP"))...)
+		}
 	}
 	for i, nameserver := range config.DNSNameservers {
 		validationResults.AddErrors(ValidateSpecifiedIPPort(nameserver, fldPath.Child("dnsNameservers").Index(i))...)
