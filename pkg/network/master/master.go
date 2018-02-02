@@ -15,7 +15,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	osconfigapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	osapivalidation "github.com/openshift/origin/pkg/network/apis/network/validation"

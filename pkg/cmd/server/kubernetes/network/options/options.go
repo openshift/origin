@@ -10,7 +10,7 @@ import (
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 

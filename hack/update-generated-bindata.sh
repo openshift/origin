@@ -35,7 +35,7 @@ pushd "${OS_ROOT}" > /dev/null
     examples/prometheus/... \
     examples/service-catalog/... \
     install/... \
-    pkg/image/admission/imagepolicy/api/v1/...
+    pkg/image/admission/apis/imagepolicy/v1/...
 
 "$(os::util::find::gopath_binary go-bindata)" \
     -nocompress \

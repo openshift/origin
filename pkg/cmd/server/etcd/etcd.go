@@ -10,7 +10,7 @@ import (
 	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
 	restclient "k8s.io/client-go/rest"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 // MakeEtcdClientV3Config creates client configuration based on the configapi.

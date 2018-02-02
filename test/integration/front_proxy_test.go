@@ -22,7 +22,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -60,7 +60,7 @@ func TestFrontProxy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	masterConfig.AuthConfig.RequestHeader = &api.RequestHeaderAuthenticationOptions{
+	masterConfig.AuthConfig.RequestHeader = &config.RequestHeaderAuthenticationOptions{
 		ClientCA:          frontProxyClientCA,
 		ClientCommonNames: []string{proxyCertCommonName},
 

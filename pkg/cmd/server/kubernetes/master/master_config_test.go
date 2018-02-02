@@ -27,7 +27,7 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	schedulerapp "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 var expectedGroupPreferredVersions []string = []string{

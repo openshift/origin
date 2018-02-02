@@ -12,7 +12,7 @@ import (
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
+	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"

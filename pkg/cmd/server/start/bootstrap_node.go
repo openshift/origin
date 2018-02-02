@@ -18,8 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/certificate/bootstrap"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 

@@ -7,7 +7,7 @@ import (
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"

@@ -44,7 +44,7 @@
 // install/templateservicebroker/apiserver-template.yaml
 // install/templateservicebroker/previous/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
-// pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
+// pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml
 // DO NOT EDIT!
 
 package bootstrap
@@ -15645,7 +15645,7 @@ func installTemplateservicebrokerRbacTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
-var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
+var _pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
 apiVersion: v1
 # To require that all images running on the platform be imported first, you may uncomment the
 # following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
@@ -15666,17 +15666,17 @@ executionRules:
   skipOnResolutionFailure: true
 `)
 
-func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes() ([]byte, error) {
-	return _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, nil
+func pkgImageAdmissionApisImagepolicyV1DefaultPolicyYamlBytes() ([]byte, error) {
+	return _pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml, nil
 }
 
-func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml() (*asset, error) {
-	bytes, err := pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes()
+func pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml() (*asset, error) {
+	bytes, err := pkgImageAdmissionApisImagepolicyV1DefaultPolicyYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "pkg/image/admission/imagepolicy/api/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -15777,7 +15777,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
 	"install/templateservicebroker/previous/apiserver-template.yaml": installTemplateservicebrokerPreviousApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
-	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
+	"pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml": pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -15897,10 +15897,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 	"pkg": &bintree{nil, map[string]*bintree{
 		"image": &bintree{nil, map[string]*bintree{
 			"admission": &bintree{nil, map[string]*bintree{
-				"imagepolicy": &bintree{nil, map[string]*bintree{
-					"api": &bintree{nil, map[string]*bintree{
+				"apis": &bintree{nil, map[string]*bintree{
+					"imagepolicy": &bintree{nil, map[string]*bintree{
 						"v1": &bintree{nil, map[string]*bintree{
-							"default-policy.yaml": &bintree{pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, map[string]*bintree{}},
+							"default-policy.yaml": &bintree{pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml, map[string]*bintree{}},
 						}},
 					}},
 				}},

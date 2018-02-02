@@ -20,7 +20,7 @@ import (
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	_ "github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )
 
 func TestGetDefaultSessionSecrets(t *testing.T) {
@@ -50,8 +50,8 @@ func TestGetEmptySessionSecretsFile(t *testing.T) {
 	}
 	defer os.Remove(tmpfile.Name())
 
-	secrets := &api.SessionSecrets{
-		Secrets: []api.SessionSecret{},
+	secrets := &config.SessionSecrets{
+		Secrets: []config.SessionSecret{},
 	}
 
 	yaml, err := latest.WriteYAML(secrets)
@@ -73,8 +73,8 @@ func TestGetValidSessionSecretsFile(t *testing.T) {
 	}
 	defer os.Remove(tmpfile.Name())
 
-	secrets := &api.SessionSecrets{
-		Secrets: []api.SessionSecret{
+	secrets := &config.SessionSecrets{
+		Secrets: []config.SessionSecret{
 			{Authentication: "a1", Encryption: "e1"},
 			{Authentication: "a2", Encryption: "e2"},
 		},

@@ -19,8 +19,8 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/spf13/cobra"

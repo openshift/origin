@@ -18,7 +18,7 @@ import (
 
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
