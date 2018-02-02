@@ -374,7 +374,21 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 			provision()
 			bind()
 			unbind()
+			// unbinding a second time should result in a gone message, but not an error
+			unbind()
 			deprovision()
+
+			/*
+			     Reenable once the TSB changes have made it into a published image
+			   			provision()
+			   			bind()
+			   			g.By("deleting the template instance that was bound")
+			   			err := cli.Run("delete").Args("templateinstance", "--all").Execute()
+			   			o.Expect(err).NotTo(o.HaveOccurred())
+			   			unbind()
+			   			// unbinding a second time should result in a gone message, but not an error
+			   			unbind()
+			*/
 		})
 	})
 })
