@@ -127,7 +127,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		authorizationapi.Kind("ClusterRole"):            &ClusterRoleDescriber{oauthorizationClient},
 		authorizationapi.Kind("RoleBindingRestriction"): &RoleBindingRestrictionDescriber{oauthorizationClient},
 		oauthapi.Kind("OAuthAccessToken"):               &OAuthAccessTokenDescriber{oauthClient},
-		authorizationapi.Kind("Identity"):               &IdentityDescriber{userClient},
+		userapi.Kind("Identity"):                        &IdentityDescriber{userClient},
 		userapi.Kind("User"):                            &UserDescriber{userClient},
 		userapi.Kind("Group"):                           &GroupDescriber{userClient},
 		userapi.Kind("UserIdentityMapping"):             &UserIdentityMappingDescriber{userClient},
