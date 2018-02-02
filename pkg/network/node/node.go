@@ -47,8 +47,8 @@ import (
 )
 
 const (
-	cniDirPath       = "/etc/cni/net.d"
 	openshiftCNIFile = "80-openshift-network.conf"
+	hostLocalDataDir = "/var/lib/cni"
 )
 
 type osdnPolicy interface {
@@ -75,6 +75,7 @@ type OsdnNodeConfig struct {
 	RuntimeEndpoint string
 	MTU             uint32
 	EnableHostports bool
+	CNIConfDir      string
 
 	NetworkClient networkclient.Interface
 	KClient       kclientset.Interface
@@ -102,6 +103,7 @@ type OsdnNode struct {
 	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
+	cniDirPath         string
 
 	// Synchronizes operations on egressPolicies
 	egressPoliciesLock sync.Mutex
@@ -154,7 +156,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 
 	// If our CNI config file exists, remove it so that kubelet doesn't think
 	// we're ready yet
-	os.Remove(filepath.Join(cniDirPath, openshiftCNIFile))
+	os.Remove(filepath.Join(c.CNIConfDir, openshiftCNIFile))
 
 	if err := c.setNodeIP(); err != nil {
 		return nil, err
@@ -184,6 +186,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		kubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
+		cniDirPath:         c.CNIConfDir,
 
 		runtimeEndpoint: c.RuntimeEndpoint,
 		// 2 minutes is the current default value used in kubelet
@@ -380,7 +383,7 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
-	if err := os.MkdirAll(cniDirPath, 0755); err != nil {
+	if err := os.MkdirAll(node.cniDirPath, 0755); err != nil {
 		return err
 	}
 
@@ -396,7 +399,7 @@ func (node *OsdnNode) Start() error {
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
-	return ioutil.WriteFile(filepath.Join(cniDirPath, openshiftCNIFile), []byte(`
+	return ioutil.WriteFile(filepath.Join(node.cniDirPath, openshiftCNIFile), []byte(`
 {
   "cniVersion": "0.2.0",
   "name": "openshift-sdn",

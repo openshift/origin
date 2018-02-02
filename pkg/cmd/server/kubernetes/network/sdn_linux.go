@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	kcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -35,6 +36,11 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		}
 	}
 
+	cniConfDir := kcni.DefaultNetDir
+	if val, ok := options.KubeletArguments["cni-conf-dir"]; ok && len(val) == 1 {
+		cniConfDir = val[0]
+	}
+
 	// dockershim + kube CNI driver delegates hostport handling to plugins,
 	// while CRI-O handles hostports itself. Thus we need to disable the
 	// SDN's hostport handling when run under CRI-O.
@@ -49,6 +55,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.
 		Hostname:           options.NodeName,
 		SelfIP:             options.NodeIP,
 		RuntimeEndpoint:    runtimeEndpoint,
+		CNIConfDir:         cniConfDir,
 		MTU:                options.NetworkConfig.MTU,
 		NetworkClient:      networkClient,
 		KClient:            kubeClient,
