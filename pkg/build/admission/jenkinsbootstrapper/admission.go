@@ -20,9 +20,9 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	jenkinscontroller "github.com/openshift/origin/pkg/build/controller/jenkins"
 	"github.com/openshift/origin/pkg/bulk"
+	authenticationclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	authenticationclient "github.com/openshift/origin/pkg/oauthserver/client"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 

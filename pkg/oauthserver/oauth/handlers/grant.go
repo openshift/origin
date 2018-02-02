@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 
+	oauthapi "github.com/openshift/api/oauth/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	"github.com/openshift/origin/pkg/oauthserver/api"

@@ -15,9 +15,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 
+	oapi "github.com/openshift/api/oauth/v1"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/oauth/scope"

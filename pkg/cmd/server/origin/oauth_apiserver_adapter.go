@@ -63,7 +63,7 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig, listener n
 	}
 	// TODO pass a privileged client config through during construction.  It is NOT a loopback client.
 	oauthServerConfig.ExtraOAuthConfig.RouteClient = routeClient
-	oauthServerConfig.ExtraOAuthConfig.KubeClient = masterConfig.PrivilegedLoopbackKubernetesClientsetInternal
+	oauthServerConfig.ExtraOAuthConfig.KubeClient = masterConfig.PrivilegedLoopbackKubernetesClientsetExternal
 
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
 	if !options.DisabledFeatures.Has(configapi.FeatureWebConsole) {

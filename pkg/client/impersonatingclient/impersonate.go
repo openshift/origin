@@ -1,4 +1,4 @@
-package client
+package impersonatingclient
 
 import (
 	"net/http"
@@ -12,7 +12,12 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authenticationapi "github.com/openshift/origin/pkg/oauthserver/api"
+)
+
+const (
+	ImpersonateUserHeader      = "Impersonate-User"
+	ImpersonateGroupHeader     = "Impersonate-Group"
+	ImpersonateUserScopeHeader = "Impersonate-User-Scope"
 )
 
 type impersonatingRoundTripper struct {
@@ -27,16 +32,16 @@ func newImpersonatingRoundTripper(user user.Info, delegate http.RoundTripper) ht
 
 func (rt *impersonatingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	req = utilnet.CloneRequest(req)
-	req.Header.Del(authenticationapi.ImpersonateUserHeader)
-	req.Header.Del(authenticationapi.ImpersonateGroupHeader)
-	req.Header.Del(authenticationapi.ImpersonateUserScopeHeader)
+	req.Header.Del(ImpersonateUserHeader)
+	req.Header.Del(ImpersonateGroupHeader)
+	req.Header.Del(ImpersonateUserScopeHeader)
 
-	req.Header.Set(authenticationapi.ImpersonateUserHeader, rt.user.GetName())
+	req.Header.Set(ImpersonateUserHeader, rt.user.GetName())
 	for _, group := range rt.user.GetGroups() {
-		req.Header.Add(authenticationapi.ImpersonateGroupHeader, group)
+		req.Header.Add(ImpersonateGroupHeader, group)
 	}
 	for _, scope := range rt.user.GetExtra()[authorizationapi.ScopesKey] {
-		req.Header.Add(authenticationapi.ImpersonateUserScopeHeader, scope)
+		req.Header.Add(ImpersonateUserScopeHeader, scope)
 	}
 	return rt.delegate.RoundTrip(req)
 }
@@ -68,9 +73,9 @@ func NewImpersonatingRESTClient(user user.Info, client restclient.Interface) res
 
 // Verb does the impersonation per request by setting the proper headers
 func (c impersonatingRESTClient) impersonate(req *restclient.Request) *restclient.Request {
-	req.SetHeader(authenticationapi.ImpersonateUserHeader, c.user.GetName())
-	req.SetHeader(authenticationapi.ImpersonateGroupHeader, c.user.GetGroups()...)
-	req.SetHeader(authenticationapi.ImpersonateUserScopeHeader, c.user.GetExtra()[authorizationapi.ScopesKey]...)
+	req.SetHeader(ImpersonateUserHeader, c.user.GetName())
+	req.SetHeader(ImpersonateGroupHeader, c.user.GetGroups()...)
+	req.SetHeader(ImpersonateUserScopeHeader, c.user.GetExtra()[authorizationapi.ScopesKey]...)
 	return req
 }
 

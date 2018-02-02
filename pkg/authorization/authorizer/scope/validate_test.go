@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapi "github.com/openshift/api/oauth/v1"
 )
 
 func TestValidateScopeRestrictions(t *testing.T) {

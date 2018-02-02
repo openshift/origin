@@ -13,8 +13,8 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	authclient "github.com/openshift/origin/pkg/oauthserver/client"
 	"github.com/openshift/origin/pkg/util/urlpattern"
 )
 

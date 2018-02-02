@@ -11,10 +11,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	oauthapi "github.com/openshift/api/oauth/v1"
+	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver"
-	registrystorage "github.com/openshift/origin/pkg/oauthserver/osinserver/registrystorage"
+	"github.com/openshift/origin/pkg/oauthserver/osinserver/registrystorage"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

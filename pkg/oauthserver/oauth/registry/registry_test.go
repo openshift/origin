@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
+	oapi "github.com/openshift/api/oauth/v1"
+	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver"
