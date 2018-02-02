@@ -14,9 +14,9 @@ import (
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
+	oauthapi "github.com/openshift/api/oauth/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
@@ -486,7 +486,7 @@ func validateScopeRestrictions(client *oauthapi.OAuthClient, scope string) error
 
 	for _, restriction := range client.ScopeRestrictions {
 		if len(restriction.ExactValues) > 0 {
-			if err := ValidateLiteralScopeRestrictions(scope, restriction.ExactValues); err != nil {
+			if err := validateLiteralScopeRestrictions(scope, restriction.ExactValues); err != nil {
 				errs = append(errs, err)
 				continue
 			}
@@ -497,7 +497,7 @@ func validateScopeRestrictions(client *oauthapi.OAuthClient, scope string) error
 			if !clusterRoleEvaluatorInstance.Handles(scope) {
 				continue
 			}
-			if err := ValidateClusterRoleScopeRestrictions(scope, *restriction.ClusterRole); err != nil {
+			if err := validateClusterRoleScopeRestrictions(scope, *restriction.ClusterRole); err != nil {
 				errs = append(errs, err)
 				continue
 			}
@@ -513,7 +513,7 @@ func validateScopeRestrictions(client *oauthapi.OAuthClient, scope string) error
 	return kutilerrors.NewAggregate(errs)
 }
 
-func ValidateLiteralScopeRestrictions(scope string, literals []string) error {
+func validateLiteralScopeRestrictions(scope string, literals []string) error {
 	for _, literal := range literals {
 		if literal == scope {
 			return nil
@@ -523,7 +523,7 @@ func ValidateLiteralScopeRestrictions(scope string, literals []string) error {
 	return fmt.Errorf("%v not found in %v", scope, literals)
 }
 
-func ValidateClusterRoleScopeRestrictions(scope string, restriction oauthapi.ClusterRoleScopeRestriction) error {
+func validateClusterRoleScopeRestrictions(scope string, restriction oauthapi.ClusterRoleScopeRestriction) error {
 	role, namespace, escalating, err := clusterRoleEvaluatorInstance.parseScope(scope)
 	if err != nil {
 		return err

@@ -3,7 +3,7 @@ package oauthclient
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapi "github.com/openshift/api/oauth/v1"
 )
 
 // Getter exposes a way to get a specific client.  This is useful for other registries to get scope limitations

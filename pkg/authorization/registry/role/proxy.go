@@ -12,7 +12,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
-	authclient "github.com/openshift/origin/pkg/oauthserver/client"
+	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	utilregistry "github.com/openshift/origin/pkg/util/registry"
 )
 

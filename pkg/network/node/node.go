@@ -85,6 +85,7 @@ type OsdnNodeConfig struct {
 
 	IPTablesSyncPeriod time.Duration
 	ProxyMode          kubeproxyconfig.ProxyMode
+	MasqueradeBit      *int32
 }
 
 type OsdnNode struct {
@@ -182,7 +183,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		hostSubnetMap:      make(map[string]*networkapi.HostSubnet),
 		kubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
-		egressIP:           newEgressIPWatcher(c.SelfIP, oc),
+		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
 
 		runtimeEndpoint: c.RuntimeEndpoint,
 		// 2 minutes is the current default value used in kubelet
@@ -346,7 +347,7 @@ func (node *OsdnNode) Start() error {
 	}
 
 	glog.V(2).Infof("Starting openshift-sdn pod manager")
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetworks); err != nil {
+	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR, node.networkInfo.ClusterNetworks); err != nil {
 		return err
 	}
 

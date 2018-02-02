@@ -213,9 +213,9 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 	return chainArray
 }
 
-func (n *NodeIPTables) AddEgressIPRules(egressIP, egressHex string) error {
+func (n *NodeIPTables) AddEgressIPRules(egressIP, mark string) error {
 	for _, cidr := range n.clusterNetworkCIDR {
-		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", egressHex, "-j", "SNAT", "--to-source", egressIP)
+		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
 		if err != nil {
 			return err
 		}
@@ -224,9 +224,9 @@ func (n *NodeIPTables) AddEgressIPRules(egressIP, egressHex string) error {
 	return err
 }
 
-func (n *NodeIPTables) DeleteEgressIPRules(egressIP, egressHex string) error {
+func (n *NodeIPTables) DeleteEgressIPRules(egressIP, mark string) error {
 	for _, cidr := range n.clusterNetworkCIDR {
-		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", egressHex, "-j", "SNAT", "--to-source", egressIP)
+		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", mark, "-j", "SNAT", "--to-source", egressIP)
 		if err != nil {
 			return err
 		}

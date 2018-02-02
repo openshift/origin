@@ -3,7 +3,6 @@ package webhook
 import (
 	"crypto/hmac"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -89,8 +88,8 @@ func CheckSecret(namespace, userSecret string, triggers []*buildapi.WebHookTrigg
 	return nil, ErrSecretMismatch
 }
 
-func GenerateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType, secret string) (buildTriggerCauses []buildapi.BuildTriggerCause) {
-	hiddenSecret := fmt.Sprintf("%s***", secret[:(len(secret)/2)])
+func GenerateBuildTriggerInfo(revision *buildapi.SourceRevision, hookType string) (buildTriggerCauses []buildapi.BuildTriggerCause) {
+	hiddenSecret := "<secret>"
 	switch {
 	case hookType == "generic":
 		buildTriggerCauses = append(buildTriggerCauses,

@@ -15,6 +15,7 @@ import (
 	cniskel "github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"
+	"github.com/containernetworking/plugins/pkg/ns"
 
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 	utiltesting "k8s.io/client-go/util/testing"
@@ -63,13 +64,18 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	path := filepath.Join(tmpDir, "cni-server.sock")
-	server := cniserver.NewCNIServer(path)
+	path := filepath.Join(tmpDir, cniserver.CNIServerSocketName)
+	server := cniserver.NewCNIServer(tmpDir, &cniserver.Config{MTU: 1500})
 	if err := server.Start(serverHandleCNI); err != nil {
 		t.Fatalf("error starting CNI server: %v", err)
 	}
 
-	cniPlugin := NewCNIPlugin(path)
+	hostNS, err := ns.GetCurrentNS()
+	if err != nil {
+		panic(fmt.Sprintf("could not get current kernel netns: %v", err))
+	}
+	defer hostNS.Close()
+	cniPlugin := NewCNIPlugin(path, hostNS)
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
 	expectedResult = &cni020.Result{
@@ -139,7 +145,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 		skelArgsToEnv(tc.reqType, tc.skelArgs)
 		switch tc.reqType {
 		case cniserver.CNI_ADD:
-			result, err = cniPlugin.CmdAdd(tc.skelArgs)
+			result, err = cniPlugin.testCmdAdd(tc.skelArgs)
 		case cniserver.CNI_DEL:
 			err = cniPlugin.CmdDel(tc.skelArgs)
 		default:
@@ -148,6 +154,9 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 		clearEnv()
 
 		if tc.errorPrefix == "" {
+			if err != nil {
+				t.Fatalf("[%s] expected result %v but got error: %v", tc.name, tc.result, err)
+			}
 			if tc.result != nil && !reflect.DeepEqual(result, tc.result) {
 				t.Fatalf("[%s] expected result %v but got %v", tc.name, tc.result, result)
 			}

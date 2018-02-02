@@ -477,8 +477,8 @@ func TestGeneratedBuildTriggerInfoGenericWebHook(t *testing.T) {
 		},
 	}
 
-	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "generic", "mysecret")
-	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "generic")
+	hiddenSecret := "<secret>"
 	for _, cause := range buildtriggerCause {
 		if !reflect.DeepEqual(revision, cause.GenericWebHook.Revision) {
 			t.Errorf("Expected returned revision to equal: %v", revision)
@@ -507,8 +507,8 @@ func TestGeneratedBuildTriggerInfoGitHubWebHook(t *testing.T) {
 		},
 	}
 
-	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "github", "mysecret")
-	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "github")
+	hiddenSecret := "<secret>"
 	for _, cause := range buildtriggerCause {
 		if !reflect.DeepEqual(revision, cause.GitHubWebHook.Revision) {
 			t.Errorf("Expected returned revision to equal: %v", revision)
@@ -537,8 +537,8 @@ func TestGeneratedBuildTriggerInfoGitLabWebHook(t *testing.T) {
 		},
 	}
 
-	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "gitlab", "mysecret")
-	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "gitlab")
+	hiddenSecret := "<secret>"
 	for _, cause := range buildtriggerCause {
 		if !reflect.DeepEqual(revision, cause.GitLabWebHook.Revision) {
 			t.Errorf("Expected returned revision to equal: %v", revision)
@@ -567,8 +567,8 @@ func TestGeneratedBuildTriggerInfoBitbucketWebHook(t *testing.T) {
 		},
 	}
 
-	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "bitbucket", "mysecret")
-	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	buildtriggerCause := webhook.GenerateBuildTriggerInfo(revision, "bitbucket")
+	hiddenSecret := "<secret>"
 	for _, cause := range buildtriggerCause {
 		if !reflect.DeepEqual(revision, cause.BitbucketWebHook.Revision) {
 			t.Errorf("Expected returned revision to equal: %v", revision)

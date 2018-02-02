@@ -12,7 +12,7 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/set-probe-liveness"
 # This test setting a liveness probe, without warning about replication controllers whose deployment depends on deployment configs
-os::cmd::expect_success_and_text 'oc create -f pkg/api/graph/test/simple-deployment.yaml' 'deploymentconfig "simple-deployment" created'
+os::cmd::expect_success_and_text 'oc create -f pkg/oc/graph/genericgraph/test/simple-deployment.yaml' 'deploymentconfig "simple-deployment" created'
 os::cmd::expect_success_and_text 'oc status -v' 'dc/simple-deployment has no liveness probe'
 
 # test --local flag

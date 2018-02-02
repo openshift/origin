@@ -140,6 +140,7 @@ os::test::junit::declare_suite_start "cmd/deployments/autoscale"
 os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config.yaml'
 os::cmd::expect_success 'oc autoscale dc/test-deployment-config --max 5'
 os::cmd::expect_success_and_text "oc get hpa/test-deployment-config --template='{{.spec.maxReplicas}}'" "5"
+os::cmd::expect_success_and_text "oc get hpa/test-deployment-config -o jsonpath='{.spec.scaleTargetRef.apiVersion}'" "apps.openshift.io/v1"
 os::cmd::expect_success 'oc delete dc/test-deployment-config'
 os::cmd::expect_success 'oc delete hpa/test-deployment-config'
 echo "autoscale: ok"

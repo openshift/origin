@@ -14,11 +14,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/api/graph"
+	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 )
 
 const TopImageStreamsRecommendedName = "imagestreams"
@@ -124,7 +124,7 @@ func (i imageStreamInfo) PrintLine(out io.Writer) {
 // imageStreamsTop generates ImageStream information from a graph and
 // returns this as a list of imageStreamInfo array.
 func (o TopImageStreamsOptions) imageStreamsTop() []Info {
-	g := graph.New()
+	g := genericgraph.New()
 	addImagesToGraph(g, o.Images)
 	addImageStreamsToGraph(g, o.Streams)
 
@@ -153,7 +153,7 @@ func (o TopImageStreamsOptions) imageStreamsTop() []Info {
 	return infos
 }
 
-func getImageStreamSize(g graph.Graph, node *imagegraph.ImageStreamNode) (int64, int, int) {
+func getImageStreamSize(g genericgraph.Graph, node *imagegraph.ImageStreamNode) (int64, int, int) {
 	imageEdges := g.OutboundEdges(node, ImageStreamImageEdgeKind)
 	storage := int64(0)
 	images := len(imageEdges)

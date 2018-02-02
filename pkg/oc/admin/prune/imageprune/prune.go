@@ -26,15 +26,15 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
-	"github.com/openshift/origin/pkg/api/graph"
-	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
+	appsgraph "github.com/openshift/origin/pkg/oc/graph/appsgraph/nodes"
+	buildgraph "github.com/openshift/origin/pkg/oc/graph/buildgraph/nodes"
+	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
+	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
+	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
 )
 
 // TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there
@@ -172,7 +172,7 @@ type Pruner interface {
 
 // pruner is an object that knows how to prune a data set
 type pruner struct {
-	g              graph.Graph
+	g              genericgraph.Graph
 	algorithm      pruneAlgorithm
 	registryClient *http.Client
 	registryURL    *url.URL
@@ -266,7 +266,7 @@ func NewPruner(options PrunerOptions) (Pruner, kerrors.Aggregate) {
 
 // buildGraph builds a graph
 func (p *pruner) buildGraph(options PrunerOptions) kerrors.Aggregate {
-	p.g = graph.New()
+	p.g = genericgraph.New()
 
 	var errs []error
 
@@ -745,7 +745,7 @@ func getImageNodes(nodes []gonum.Node) map[string]*imagegraph.ImageNode {
 }
 
 // edgeKind returns true if the edge from "from" to "to" is of the desired kind.
-func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
+func edgeKind(g genericgraph.Graph, from, to gonum.Node, desiredKind string) bool {
 	edge := g.Edge(from, to)
 	kinds := g.EdgeKinds(edge)
 	return kinds.Has(desiredKind)
@@ -756,7 +756,7 @@ func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 // from an image stream to an image where the image is not the current image
 // for a tag and the image stream is at least as old as the minimum pruning
 // age.
-func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode, algorithm pruneAlgorithm) bool {
+func imageIsPrunable(g genericgraph.Graph, imageNode *imagegraph.ImageNode, algorithm pruneAlgorithm) bool {
 	if !algorithm.allImages {
 		if imageNode.Image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
 			glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping",
@@ -784,12 +784,12 @@ func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode, algorithm p
 // calculatePrunableImages returns the list of prunable images and a
 // graph.NodeSet containing the image node IDs.
 func calculatePrunableImages(
-	g graph.Graph,
+	g genericgraph.Graph,
 	imageNodes map[string]*imagegraph.ImageNode,
 	algorithm pruneAlgorithm,
-) (map[string]*imagegraph.ImageNode, graph.NodeSet) {
+) (map[string]*imagegraph.ImageNode, genericgraph.NodeSet) {
 	prunable := make(map[string]*imagegraph.ImageNode)
-	ids := make(graph.NodeSet)
+	ids := make(genericgraph.NodeSet)
 
 	for _, imageNode := range imageNodes {
 		glog.V(4).Infof("Examining image %q", imageNode.Image.Name)
@@ -806,12 +806,12 @@ func calculatePrunableImages(
 
 // subgraphWithoutPrunableImages creates a subgraph from g with prunable image
 // nodes excluded.
-func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet) graph.Graph {
+func subgraphWithoutPrunableImages(g genericgraph.Graph, prunableImageIDs genericgraph.NodeSet) genericgraph.Graph {
 	return g.Subgraph(
-		func(g graph.Interface, node gonum.Node) bool {
+		func(g genericgraph.Interface, node gonum.Node) bool {
 			return !prunableImageIDs.Has(node.ID())
 		},
-		func(g graph.Interface, from, to gonum.Node, edgeKinds sets.String) bool {
+		func(g genericgraph.Interface, from, to gonum.Node, edgeKinds sets.String) bool {
 			if prunableImageIDs.Has(from.ID()) {
 				return false
 			}
@@ -824,7 +824,7 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 }
 
 // calculatePrunableImageComponents returns the list of prunable image components.
-func calculatePrunableImageComponents(g graph.Graph) []*imagegraph.ImageComponentNode {
+func calculatePrunableImageComponents(g genericgraph.Graph) []*imagegraph.ImageComponentNode {
 	components := []*imagegraph.ImageComponentNode{}
 	nodes := g.Nodes()
 
@@ -844,7 +844,7 @@ func calculatePrunableImageComponents(g graph.Graph) []*imagegraph.ImageComponen
 	return components
 }
 
-func getPrunableComponents(g graph.Graph, prunableImageIDs graph.NodeSet) []*imagegraph.ImageComponentNode {
+func getPrunableComponents(g genericgraph.Graph, prunableImageIDs genericgraph.NodeSet) []*imagegraph.ImageComponentNode {
 	graphWithoutPrunableImages := subgraphWithoutPrunableImages(g, prunableImageIDs)
 	return calculatePrunableImageComponents(graphWithoutPrunableImages)
 }
@@ -853,7 +853,7 @@ func getPrunableComponents(g graph.Graph, prunableImageIDs graph.NodeSet) []*ima
 // to prunable images, invoking streamPruner.UpdateImageStream for each updated
 // stream.
 func pruneStreams(
-	g graph.Graph,
+	g genericgraph.Graph,
 	prunableImageNodes map[string]*imagegraph.ImageNode,
 	streamPruner ImageStreamDeleter,
 	keepYoungerThan time.Time,
@@ -916,7 +916,7 @@ func pruneStreams(
 // pruneISTagHistory processes tag event list of the given image stream tag. It removes references to images
 // that are going to be removed or are missing in the graph.
 func pruneISTagHistory(
-	g graph.Graph,
+	g genericgraph.Graph,
 	prunableImageNodes map[string]*imagegraph.ImageNode,
 	keepYoungerThan time.Time,
 	streamName string,
@@ -952,7 +952,7 @@ func pruneISTagHistory(
 
 func tagEventIsPrunable(
 	tagEvent imageapi.TagEvent,
-	g graph.Graph,
+	g genericgraph.Graph,
 	prunableImageNodes map[string]*imagegraph.ImageNode,
 	keepYoungerThan time.Time,
 ) (ok bool, reason string) {
@@ -973,7 +973,7 @@ func tagEventIsPrunable(
 }
 
 // pruneImages invokes imagePruner.DeleteImage with each image that is prunable.
-func pruneImages(g graph.Graph, imageNodes map[string]*imagegraph.ImageNode, imagePruner ImageDeleter) []error {
+func pruneImages(g genericgraph.Graph, imageNodes map[string]*imagegraph.ImageNode, imagePruner ImageDeleter) []error {
 	errs := []error{}
 
 	for _, imageNode := range imageNodes {
@@ -1033,7 +1033,7 @@ func (p *pruner) Prune(
 }
 
 // imageComponentIsPrunable returns true if the image component is not referenced by any images.
-func imageComponentIsPrunable(g graph.Graph, cn *imagegraph.ImageComponentNode) bool {
+func imageComponentIsPrunable(g genericgraph.Graph, cn *imagegraph.ImageComponentNode) bool {
 	for _, predecessor := range g.To(cn) {
 		glog.V(4).Infof("Examining predecessor %#v of image config %v", predecessor, cn)
 		if g.Kind(predecessor) == imagegraph.ImageNodeKind {
@@ -1047,7 +1047,7 @@ func imageComponentIsPrunable(g graph.Graph, cn *imagegraph.ImageComponentNode) 
 
 // streamReferencingImageComponent returns a list of ImageStreamNodes that reference a
 // given ImageComponentNode.
-func streamsReferencingImageComponent(g graph.Graph, cn *imagegraph.ImageComponentNode) []*imagegraph.ImageStreamNode {
+func streamsReferencingImageComponent(g genericgraph.Graph, cn *imagegraph.ImageComponentNode) []*imagegraph.ImageStreamNode {
 	ret := []*imagegraph.ImageStreamNode{}
 	for _, predecessor := range g.To(cn) {
 		if g.Kind(predecessor) != imagegraph.ImageStreamNodeKind {
@@ -1062,7 +1062,7 @@ func streamsReferencingImageComponent(g graph.Graph, cn *imagegraph.ImageCompone
 // pruneImageComponents invokes layerLinkDeleter.DeleteLayerLink for each repository layer link to
 // be deleted from the registry.
 func pruneImageComponents(
-	g graph.Graph,
+	g genericgraph.Graph,
 	registryClient *http.Client,
 	registryURL *url.URL,
 	imageComponents []*imagegraph.ImageComponentNode,
@@ -1089,7 +1089,7 @@ func pruneImageComponents(
 // pruneBlobs invokes blobPruner.DeleteBlob for each blob to be deleted from the
 // registry.
 func pruneBlobs(
-	g graph.Graph,
+	g genericgraph.Graph,
 	registryClient *http.Client,
 	registryURL *url.URL,
 	componentNodes []*imagegraph.ImageComponentNode,
@@ -1110,7 +1110,7 @@ func pruneBlobs(
 // pruneManifests invokes manifestPruner.DeleteManifest for each repository
 // manifest to be deleted from the registry.
 func pruneManifests(
-	g graph.Graph,
+	g genericgraph.Graph,
 	registryClient *http.Client,
 	registryURL *url.URL,
 	imageNodes map[string]*imagegraph.ImageNode,
@@ -1325,7 +1325,7 @@ func makeISTagWithStream(is *imageapi.ImageStream, tag string) *imageapi.ImageSt
 
 // resolveISTagName parses ImageStreamTag's name and tries to find it in the graph. If the parsing fails,
 // an error is returned. If the istag cannot be found, nil is returned.
-func resolveISTagName(g graph.Graph, referrer *kapi.ObjectReference, istagName string) (*imagegraph.ImageStreamTagNode, error) {
+func resolveISTagName(g genericgraph.Graph, referrer *kapi.ObjectReference, istagName string) (*imagegraph.ImageStreamTagNode, error) {
 	name, tag, err := imageapi.ParseImageStreamTagName(istagName)
 	if err != nil {
 		return nil, newErrBadReferenceTo("ImageStreamTag", istagName, referrer, err.Error())

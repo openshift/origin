@@ -5,8 +5,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	oauth "github.com/openshift/api/oauth/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 

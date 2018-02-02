@@ -19,15 +19,22 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/020"
+	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
+	"github.com/containernetworking/plugins/pkg/ip"
+	"github.com/containernetworking/plugins/pkg/ipam"
+	"github.com/containernetworking/plugins/pkg/ns"
+
+	"github.com/vishvananda/netlink"
 )
 
 type cniPlugin struct {
 	socketPath string
+	hostNS     ns.NetNS
 }
 
-func NewCNIPlugin(socketPath string) *cniPlugin {
-	return &cniPlugin{socketPath: socketPath}
+func NewCNIPlugin(socketPath string, hostNS ns.NetNS) *cniPlugin {
+	return &cniPlugin{socketPath: socketPath, hostNS: hostNS}
 }
 
 // Create and fill a CNIRequest with this plugin's environment and stdin which
@@ -63,7 +70,11 @@ func (p *cniPlugin) doCNI(url string, req *cniserver.CNIRequest) ([]byte, error)
 		},
 	}
 
-	resp, err := client.Post(url, "application/json", bytes.NewReader(data))
+	var resp *http.Response
+	err = p.hostNS.Do(func(ns.NetNS) error {
+		resp, err = client.Post(url, "application/json", bytes.NewReader(data))
+		return err
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to send CNI request: %v", err)
 	}
@@ -83,8 +94,9 @@ func (p *cniPlugin) doCNI(url string, req *cniserver.CNIRequest) ([]byte, error)
 
 // Send the ADD command environment and config to the CNI server, returning
 // the IPAM result to the caller
-func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) (types.Result, error) {
-	body, err := p.doCNI("http://dummy/", newCNIRequest(args))
+func (p *cniPlugin) doCNIServerAdd(req *cniserver.CNIRequest, hostVeth string) (types.Result, error) {
+	req.Env["OSDN_HOSTVETH"] = hostVeth
+	body, err := p.doCNI("http://dummy/", req)
 	if err != nil {
 		return nil, err
 	}
@@ -99,17 +111,102 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) (types.Result, error) {
 	return result, nil
 }
 
-// Send the ADD command environment and config to the CNI server, printing
-// the IPAM result to stdout when called as a CNI plugin
-func (p *cniPlugin) skelCmdAdd(args *skel.CmdArgs) error {
-	result, err := p.CmdAdd(args)
+func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
+	return p.doCNIServerAdd(newCNIRequest(args), "dummy0")
+}
+
+func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
+	req := newCNIRequest(args)
+	ifname := req.Env["CNI_IFNAME"]
+	netns := req.Env["CNI_NETNS"]
+	if ifname == "" || netns == "" {
+		return fmt.Errorf("CNI request did not include required environment variables")
+	}
+
+	config, err := cniserver.ReadConfig(cniserver.CNIServerConfigFilePath)
 	if err != nil {
 		return err
 	}
+
+	var hostVeth, contVeth net.Interface
+	err = ns.WithNetNSPath(netns, func(hostNS ns.NetNS) error {
+		hostVeth, contVeth, err = ip.SetupVeth(ifname, int(config.MTU), hostNS)
+		if err != nil {
+			return fmt.Errorf("failed to create container veth: %v", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	result, err := p.doCNIServerAdd(req, hostVeth.Name)
+	if err != nil {
+		return err
+	}
+
+	// current.NewResultFromResult and ipam.ConfigureIface both think that
+	// a route with no gateway specified means to pass the default gateway
+	// as the next hop to ip.AddRoute, but that's not what we want; we want
+	// to pass nil as the next hop. So we need to clear the default gateway.
+	result020, err := types020.GetResult(result)
+	if err != nil {
+		return fmt.Errorf("failed to convert IPAM result: %v", err)
+	}
+	result020.IP4.Gateway = nil
+
+	result030, err := current.NewResultFromResult(result020)
+	if err != nil || len(result030.IPs) != 1 || result030.IPs[0].Version != "4" {
+		return fmt.Errorf("failed to convert IPAM result: %v", err)
+	}
+
+	// Add a sandbox interface record which ConfigureInterface expects.
+	// The only interface we report is the pod interface.
+	result030.Interfaces = []*current.Interface{
+		{
+			Name:    ifname,
+			Mac:     contVeth.HardwareAddr.String(),
+			Sandbox: netns,
+		},
+	}
+	index := 0
+	result030.IPs[0].Interface = &index
+
+	err = ns.WithNetNSPath(netns, func(ns.NetNS) error {
+		// Set up eth0
+		if err := ip.SetHWAddrByIP(ifname, result030.IPs[0].Address.IP, nil); err != nil {
+			return fmt.Errorf("failed to set pod interface MAC address: %v", err)
+		}
+		if err := ipam.ConfigureIface(ifname, result030); err != nil {
+			return fmt.Errorf("failed to configure container IPAM: %v", err)
+		}
+
+		// Set up lo
+		link, err := netlink.LinkByName("lo")
+		if err == nil {
+			err = netlink.LinkSetUp(link)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to configure container loopback: %v", err)
+		}
+
+		// Set up macvlan0 (if it exists)
+		link, err = netlink.LinkByName("macvlan0")
+		if err == nil {
+			err = netlink.LinkSetUp(link)
+			if err != nil {
+				return fmt.Errorf("failed to configure macvlan device: %v", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	return result.Print()
 }
 
-// Send the DEL command environment and config to the CNI server
 func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
 	_, err := p.doCNI("http://dummy/", newCNIRequest(args))
 	return err
@@ -117,6 +214,11 @@ func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	p := NewCNIPlugin(cniserver.CNIServerSocketPath)
-	skel.PluginMain(p.skelCmdAdd, p.CmdDel, version.Legacy)
+	hostNS, err := ns.GetCurrentNS()
+	if err != nil {
+		panic(fmt.Sprintf("could not get current kernel netns: %v", err))
+	}
+	defer hostNS.Close()
+	p := NewCNIPlugin(cniserver.CNIServerSocketPath, hostNS)
+	skel.PluginMain(p.CmdAdd, p.CmdDel, version.Legacy)
 }

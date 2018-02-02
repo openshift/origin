@@ -9,7 +9,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/endpoints/request"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapi "github.com/openshift/api/oauth/v1"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 )
 

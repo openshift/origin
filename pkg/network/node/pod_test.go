@@ -156,7 +156,7 @@ func TestPodManager(t *testing.T) {
 		t.Fatalf("failed to create temp directory: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
-	socketPath := filepath.Join(tmpDir, "cni-server.sock")
+	socketPath := filepath.Join(tmpDir, cniserver.CNIServerSocketName)
 
 	testcases := map[string]struct {
 		operations []*operation
@@ -318,7 +318,10 @@ func TestPodManager(t *testing.T) {
 		podManager := newDefaultPodManager()
 		podManager.podHandler = podTester
 		_, cidr, _ := net.ParseCIDR("1.2.0.0/16")
-		podManager.Start(socketPath, "1.2.3.0/24", []common.ClusterNetwork{{ClusterCIDR: cidr, HostSubnetLength: 8}})
+		err := podManager.Start(tmpDir, "1.2.3.0/24", []common.ClusterNetwork{{ClusterCIDR: cidr, HostSubnetLength: 8}})
+		if err != nil {
+			t.Fatalf("could not start PodManager: %v", err)
+		}
 
 		// Add pods to our expected pod list before kicking off the
 		// actual pod setup to ensure we don't concurrently access
@@ -408,13 +411,16 @@ func TestDirectPodUpdate(t *testing.T) {
 		t.Fatalf("failed to create temp directory: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
-	socketPath := filepath.Join(tmpDir, "cni-server.sock")
+	socketPath := filepath.Join(tmpDir, cniserver.CNIServerSocketName)
 
 	podTester := newPodTester(t, "update", socketPath)
 	podManager := newDefaultPodManager()
 	podManager.podHandler = podTester
 	_, cidr, _ := net.ParseCIDR("1.2.0.0/16")
-	podManager.Start(socketPath, "1.2.3.0/24", []common.ClusterNetwork{{ClusterCIDR: cidr, HostSubnetLength: 8}})
+	err = podManager.Start(tmpDir, "1.2.3.0/24", []common.ClusterNetwork{{ClusterCIDR: cidr, HostSubnetLength: 8}})
+	if err != nil {
+		t.Fatalf("could not start PodManager: %v", err)
+	}
 
 	op := &operation{
 		command:   cniserver.CNI_UPDATE,

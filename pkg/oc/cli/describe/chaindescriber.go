@@ -13,13 +13,13 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
-	buildedges "github.com/openshift/origin/pkg/build/graph"
-	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
-	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
+	buildedges "github.com/openshift/origin/pkg/oc/graph/buildgraph"
+	buildanalysis "github.com/openshift/origin/pkg/oc/graph/buildgraph/analysis"
+	buildgraph "github.com/openshift/origin/pkg/oc/graph/buildgraph/nodes"
+	osgraph "github.com/openshift/origin/pkg/oc/graph/genericgraph"
+	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 	dotutil "github.com/openshift/origin/pkg/util/dot"
 	"github.com/openshift/origin/pkg/util/parallel"
 )

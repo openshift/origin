@@ -39,6 +39,62 @@ func TestFakePorts(t *testing.T) {
 	}
 }
 
+func TestFind(t *testing.T) {
+	ovsif := NewFake("br0")
+	err := ovsif.AddBridge()
+	if err != nil {
+		t.Fatalf("unexpected error adding bridge: %v", err)
+	}
+
+	vethA, err := ovsif.AddPort("vethA", -1, "external-ids=sandboxID=ALPHA")
+	if err != nil {
+		t.Fatalf("unexpected error adding port: %v", err)
+	}
+	vethB, err := ovsif.AddPort("vethB", -1, "external-ids=sandboxID=BETA,notSandbox=ALPHA")
+	if err != nil {
+		t.Fatalf("unexpected error adding port: %v", err)
+	}
+	vethC, err := ovsif.AddPort("vethC", -1, "external-ids=sandboxID=GAMMA,notSandbox=ALPHA")
+	if err != nil {
+		t.Fatalf("unexpected error adding port: %v", err)
+	}
+	if vethA == vethB || vethA == vethC || vethB == vethC {
+		t.Fatalf("port numbers are reused: %d, %d, %d", vethA, vethB, vethC)
+	}
+
+	ports, err := ovsif.Find("interface", "name", "external-ids:sandboxID=ALPHA")
+	if err != nil {
+		t.Fatalf("unexpected error finding port: %v", err)
+	}
+	if len(ports) != 1 || ports[0] != "vethA" {
+		t.Fatalf("unexpected result finding port ALPHA's name: %#v", ports)
+	}
+
+	ports, err = ovsif.Find("interface", "ofport", "external-ids:sandboxID=BETA")
+	if err != nil {
+		t.Fatalf("unexpected error finding port: %v", err)
+	}
+	if len(ports) != 1 || ports[0] != fmt.Sprintf("%d", vethB) {
+		t.Fatalf("unexpected result finding port BETA's ofport: %#v", ports)
+	}
+
+	ports, err = ovsif.Find("interface", "name", "external-ids:notSandbox=ALPHA")
+	if err != nil {
+		t.Fatalf("unexpected error finding port: %v", err)
+	}
+	if len(ports) != 2 || (ports[0] != "vethB" && ports[0] != "vethC") || (ports[1] != "vethB" && ports[1] != "vethC") || (ports[0] == ports[1]) {
+		t.Fatalf("unexpected result finding notSandbox=ALPHA ports: %#v", ports)
+	}
+
+	ports, err = ovsif.Find("interface", "name", "external-ids:sandboxID=DELTA")
+	if err != nil {
+		t.Fatalf("unexpected error finding port: %v", err)
+	}
+	if len(ports) != 0 {
+		t.Fatalf("unexpected result finding sandboxID=DELTA ports: %#v", ports)
+	}
+}
+
 func checkDump(ovsif Interface, filter string, cmpFlows []string) error {
 	dumpedFlows, err := ovsif.DumpFlows(filter)
 	if err != nil {
