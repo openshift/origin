@@ -105,7 +105,7 @@ if [ -n "$old_pids" ]; then
     fi
   fi
 
-  /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pids
+  /usr/sbin/haproxy -f $config_file -p $pid_file -x /var/lib/haproxy/run/haproxy.sock -sf $old_pids
   reload_status=$?
 
   if [[ "$installed_iptables" == 1 ]]; then
