@@ -309,7 +309,7 @@ need to introduce a new dependency run `make update-deps`, and almost never upda
 directly.  When you're done open a PR against the aforementioned repository and ping
 [@openshift/api-review](https://github.com/orgs/openshift/teams/api-review) for a review.
 
-2. The next step includes updating the [openshit/client-go](https://github.com/openshift/client-go/)
+2. The next step includes updating the [openshift/client-go](https://github.com/openshift/client-go/)
 with the changes from step 1, since it vendors it.  To do so run `make update-deps` to pick up
 the changes from step 1 and then run `make generate` to update the client code with necessary
 changes.  When you're done open a PR against the aforementioned repository and ping
