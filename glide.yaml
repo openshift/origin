@@ -3,6 +3,9 @@ excludeDirs:
 - cmd/cluster-capacity
 - cmd/service-catalog
 - pkg/build/builder
+- openshift.local.config
+- openshift.local.etcd
+- openshift.local.volumes
 import:
 # kube first
 - package: k8s.io/kube-openapi
@@ -75,6 +78,10 @@ import:
 - package: github.com/opencontainers/runc
   repo:    git@github.com:openshift/opencontainers-runc
   version: openshift-3.9
+# pod - sjenning
+- package: github.com/google/cadvisor
+  repo:    git@github.com:openshift/google-cadvisor
+  version: release-v0.28.3
 # cli
 - package: github.com/docker/distribution
   repo:    git@github.com:openshift/docker-distribution
@@ -88,8 +95,23 @@ import:
 - package: github.com/coreos/etcd
   version: v3.2.8
 # cli
+- package: github.com/gonum/blas
+  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
+# cli
+- package: github.com/gonum/floats
+  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
+# cli
 - package: github.com/gonum/graph
   version: bde6d0fbd9dec5a997e906611fe0364001364c41
+# cli
+- package: github.com/gonum/internal
+  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
+# cli
+- package: github.com/gonum/lapack
+  version: 5ed4b826becd1807e09377508f51756586d1a98c
+# cli
+- package: github.com/gonum/matrix
+  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
 # networking
 - package: github.com/vishvananda/netlink
   version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
@@ -116,9 +138,24 @@ import:
 # auth (for sally)
 - package: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
+# auth (for sally)
+- package: github.com/gorilla/sessions
+  version: a3acf13e802c358d65f249324d14ed24aac11370
 # new-app
 - package: github.com/joho/godotenv
   version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
+# dev-ex (template service broker)
+- package: github.com/lestrrat/go-jspointer
+  version: f4881e611bdbe9fb413a7780721ef8400a1f2341
+# dev-ex (template service broker)
+- package: github.com/lestrrat/go-jsref
+  version: 50df7b2d07d799426a9ac43fa24bdb4785f72a54
+# dev-ex (template service broker)
+- package: github.com/lestrrat/go-jsschema
+  version: a6a42341b50d8d7e2a733db922eefaa756321021
+# master? for bindata
+- package: github.com/jteeuwen/go-bindata
+  version: a0ff2567cfb70903282db057e799fd826784d41d
 
 # why do we have this?
 - package: google.golang.org/appengine
