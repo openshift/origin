@@ -5,52 +5,23 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/authentication/user"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/transport"
 	"k8s.io/client-go/util/flowcontrol"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
-
-const (
-	ImpersonateUserHeader      = "Impersonate-User"
-	ImpersonateGroupHeader     = "Impersonate-Group"
-	ImpersonateUserScopeHeader = "Impersonate-User-Scope"
-)
-
-type impersonatingRoundTripper struct {
-	user     user.Info
-	delegate http.RoundTripper
-}
-
-// newImpersonatingRoundTripper will add headers to impersonate a user, including user, groups, and scopes
-func newImpersonatingRoundTripper(user user.Info, delegate http.RoundTripper) http.RoundTripper {
-	return &impersonatingRoundTripper{user: user, delegate: delegate}
-}
-
-func (rt *impersonatingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	req = utilnet.CloneRequest(req)
-	req.Header.Del(ImpersonateUserHeader)
-	req.Header.Del(ImpersonateGroupHeader)
-	req.Header.Del(ImpersonateUserScopeHeader)
-
-	req.Header.Set(ImpersonateUserHeader, rt.user.GetName())
-	for _, group := range rt.user.GetGroups() {
-		req.Header.Add(ImpersonateGroupHeader, group)
-	}
-	for _, scope := range rt.user.GetExtra()[authorizationapi.ScopesKey] {
-		req.Header.Add(ImpersonateUserScopeHeader, scope)
-	}
-	return rt.delegate.RoundTrip(req)
-}
 
 // NewImpersonatingConfig wraps the config's transport to impersonate a user, including user, groups, and scopes
 func NewImpersonatingConfig(user user.Info, config restclient.Config) restclient.Config {
 	oldWrapTransport := config.WrapTransport
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return newImpersonatingRoundTripper(user, oldWrapTransport(rt))
+		newConfig := transport.ImpersonationConfig{
+			UserName: user.GetName(),
+			Groups:   user.GetGroups(),
+			Extra:    user.GetExtra(),
+		}
+		return transport.NewImpersonatingRoundTripper(newConfig, oldWrapTransport(rt))
 	}
 	return config
 }
@@ -73,9 +44,11 @@ func NewImpersonatingRESTClient(user user.Info, client restclient.Interface) res
 
 // Verb does the impersonation per request by setting the proper headers
 func (c impersonatingRESTClient) impersonate(req *restclient.Request) *restclient.Request {
-	req.SetHeader(ImpersonateUserHeader, c.user.GetName())
-	req.SetHeader(ImpersonateGroupHeader, c.user.GetGroups()...)
-	req.SetHeader(ImpersonateUserScopeHeader, c.user.GetExtra()[authorizationapi.ScopesKey]...)
+	req.SetHeader(transport.ImpersonateUserHeader, c.user.GetName())
+	req.SetHeader(transport.ImpersonateGroupHeader, c.user.GetGroups()...)
+	for k, vv := range c.user.GetExtra() {
+		req.SetHeader(transport.ImpersonateUserExtraHeaderPrefix+k, vv...)
+	}
 	return req
 }
 

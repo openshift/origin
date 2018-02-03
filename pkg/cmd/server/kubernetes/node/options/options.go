@@ -3,6 +3,7 @@ package node
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -23,9 +24,8 @@ import (
 	"github.com/openshift/origin/pkg/network"
 )
 
-// computeKubeletFlags returns the flags to use when starting the kubelet
-// TODO this needs to return a []string and be passed to cobra, but as an intermediate step, we'll compute the map and run it through the existing paths
-func ComputeKubeletFlagsAsMap(startingArgs map[string][]string, options configapi.NodeConfig) (map[string][]string, error) {
+// ComputeKubeletFlags returns the flags to use when starting the kubelet.
+func ComputeKubeletFlags(startingArgs map[string][]string, options configapi.NodeConfig) ([]string, error) {
 	args := map[string][]string{}
 	for key, slice := range startingArgs {
 		for _, val := range slice {
@@ -115,32 +115,35 @@ func ComputeKubeletFlagsAsMap(startingArgs map[string][]string, options configap
 		}
 	}
 
-	// we sometimes have different clusterdns options.  I really don't understand why
-	externalKubeClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-	args["cluster-dns"] = getClusterDNS(externalKubeClient, args["cluster-dns"])
-
-	return args, nil
-}
-
-func KubeletArgsMapToArgs(argsMap map[string][]string) []string {
-	args := []string{}
-	for key, value := range argsMap {
-		for _, token := range value {
-			args = append(args, fmt.Sprintf("--%s=%v", key, token))
+	// default cluster-dns to the master's DNS if possible, but only if we can reach the master
+	// TODO: this exists to support legacy cases where the node defaulted to the master's DNS.
+	//   we can remove this when we drop support for master DNS when CoreDNS is in use everywhere.
+	if len(args["cluster-dns"]) == 0 {
+		if externalKubeClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides); err == nil {
+			args["cluster-dns"] = getClusterDNS(externalKubeClient, args["cluster-dns"])
 		}
 	}
 
 	// there is a special case.  If you set `--cgroups-per-qos=false` and `--enforce-node-allocatable` is
 	// an empty string, `--enforce-node-allocatable=""` needs to be explicitly set
 	// cgroups-per-qos defaults to true
-	if cgroupArg, enforceAllocatable := argsMap["cgroups-per-qos"], argsMap["enforce-node-allocatable"]; len(cgroupArg) == 1 && cgroupArg[0] == "false" && len(enforceAllocatable) == 0 {
-		args = append(args, `--enforce-node-allocatable=`)
+	if cgroupArg, enforceAllocatable := args["cgroups-per-qos"], args["enforce-node-allocatable"]; len(cgroupArg) == 1 && cgroupArg[0] == "false" && len(enforceAllocatable) == 0 {
+		args["enforce-node-allocatable"] = []string{""}
 	}
 
-	return args
+	var keys []string
+	for key := range args {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	var arguments []string
+	for _, key := range keys {
+		for _, token := range args[key] {
+			arguments = append(arguments, fmt.Sprintf("--%s=%v", key, token))
+		}
+	}
+	return arguments, nil
 }
 
 func setIfUnset(cmdLineArgs map[string][]string, key string, value ...string) {
