@@ -177,7 +177,9 @@ func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 	var checkpointErr, statusErr error
 
 	// Try to retrieve sandbox information from docker daemon or sandbox checkpoint
-	status, statusErr := ds.PodSandboxStatus(podSandboxID)
+	glog.Warningf("##### StopPodSandbox %q getting status", podSandboxID)
+	status, statusErr := ds.internalPodSandboxStatus(podSandboxID, false)
+	glog.Warningf("##### StopPodSandbox %q got status %#v err %v", podSandboxID, status, statusErr)
 	if statusErr == nil {
 		nsOpts := status.GetLinux().GetNamespaces().GetOptions()
 		hostNetwork = nsOpts != nil && nsOpts.HostNetwork
@@ -218,16 +220,20 @@ func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 	errList := []error{}
 	ready, ok := ds.getNetworkReady(podSandboxID)
 	if !hostNetwork && (ready || !ok) {
+		glog.Warningf("##### Calling TearDownPod for %q", podSandboxID)
 		// Only tear down the pod network if we haven't done so already
 		cID := kubecontainer.BuildContainerID(runtimeName, podSandboxID)
 		err := ds.network.TearDownPod(namespace, name, cID)
 		if err == nil {
+			glog.Warningf("##### Setting NetworkReady=false for %q", podSandboxID)
 			ds.setNetworkReady(podSandboxID, false)
 		} else {
 			errList = append(errList, err)
 		}
 	}
+	glog.Warningf("##### Stopping sandbox %q", podSandboxID)
 	if err := ds.client.StopContainer(podSandboxID, defaultSandboxGracePeriod); err != nil {
+		glog.Warningf("##### Error stopping sandbox %q", podSandboxID)
 		// Do not return error if the container does not exist
 		if !libdocker.IsContainerNotFoundError(err) {
 			glog.Errorf("Failed to stop sandbox %q: %v", podSandboxID, err)
@@ -236,6 +242,8 @@ func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 			// remove the checkpoint for any sandbox that is not found in the runtime
 			ds.checkpointHandler.RemoveCheckpoint(podSandboxID)
 		}
+	} else {
+		glog.Warningf("##### sandbox stopped %q", podSandboxID)
 	}
 	return utilerrors.NewAggregate(errList)
 	// TODO: Stop all running containers in the sandbox.
@@ -264,11 +272,15 @@ func (ds *dockerService) RemovePodSandbox(podSandboxID string) error {
 	}
 
 	// Remove the sandbox container.
+	glog.Warningf("##### RemovePodSandbox for %q", podSandboxID)
 	err = ds.client.RemoveContainer(podSandboxID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true, Force: true})
+	glog.Warningf("##### RemovePodSandbox for %q got err %v", podSandboxID, err)
 	if err == nil || libdocker.IsContainerNotFoundError(err) {
 		// Only clear network ready when the sandbox has actually been
 		// removed from docker or doesn't exist
+		glog.Warningf("##### RemovePodSandbox for %q clearing networrk ready", podSandboxID)
 		ds.clearNetworkReady(podSandboxID)
+		glog.Warningf("##### RemovePodSandbox for %q network ready cleared", podSandboxID)
 	} else {
 		errs = append(errs, err)
 	}
@@ -313,11 +325,14 @@ func (ds *dockerService) getIP(podSandboxID string, sandbox *dockertypes.Contain
 
 	// Don't bother getting IP if the pod is known and networking isn't ready
 	ready, ok := ds.getNetworkReady(podSandboxID)
+	glog.Warningf("##### PodSandboxStatus %q got ready %v ok %v", podSandboxID, ready, ok)
 	if ok && !ready {
 		return ""
 	}
 
+	glog.Warningf("##### PodSandboxStatus %q getting IP from plugin", podSandboxID)
 	ip, err := ds.getIPFromPlugin(sandbox)
+	glog.Warningf("##### PodSandboxStatus %q got IP %v err %v", podSandboxID, ip, err)
 	if err == nil {
 		return ip
 	}
@@ -341,8 +356,7 @@ func (ds *dockerService) getIP(podSandboxID string, sandbox *dockertypes.Contain
 	return ""
 }
 
-// PodSandboxStatus returns the status of the PodSandbox.
-func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodSandboxStatus, error) {
+func (ds *dockerService) internalPodSandboxStatus(podSandboxID string, checkIP bool) (*runtimeapi.PodSandboxStatus, error) {
 	// Inspect the container.
 	r, err := ds.client.InspectContainer(podSandboxID)
 	if err != nil {
@@ -363,10 +377,13 @@ func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodS
 	}
 
 	var IP string
-	// TODO: Remove this when sandbox is available on windows
-	// This is a workaround for windows, where sandbox is not in use, and pod IP is determined through containers belonging to the Pod.
-	if IP = ds.determinePodIPBySandboxID(podSandboxID); IP == "" {
-		IP = ds.getIP(podSandboxID, r)
+	if checkIP {
+		// TODO: Remove this when sandbox is available on windows
+		// This is a workaround for windows, where sandbox is not in use, and pod IP is determined through containers belonging to the Pod.
+		glog.Warningf("##### PodSandboxStatus %q got state %v", podSandboxID, state)
+		if IP = ds.determinePodIPBySandboxID(podSandboxID); IP == "" {
+			IP = ds.getIP(podSandboxID, r)
+		}
 	}
 	hostNetwork := sharesHostNetwork(r)
 
@@ -395,6 +412,11 @@ func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodS
 			},
 		},
 	}, nil
+}
+
+// PodSandboxStatus returns the status of the PodSandbox.
+func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodSandboxStatus, error) {
+	return ds.internalPodSandboxStatus(podSandboxID, true)
 }
 
 // ListPodSandbox returns a list of Sandbox.

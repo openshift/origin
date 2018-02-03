@@ -26,6 +26,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	kcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
@@ -42,6 +43,7 @@ import (
 
 const (
 	podInterfaceName = knetwork.DefaultInterfaceName
+	cniBinPath       = kcni.DefaultCNIDir
 )
 
 type podHandler interface {
@@ -114,9 +116,10 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 	}
 
 	type hostLocalIPAM struct {
-		Type   string           `json:"type"`
-		Subnet cnitypes.IPNet   `json:"subnet"`
-		Routes []cnitypes.Route `json:"routes"`
+		Type    string           `json:"type"`
+		Subnet  cnitypes.IPNet   `json:"subnet"`
+		Routes  []cnitypes.Route `json:"routes"`
+		DataDir string           `json:"dataDir"`
 	}
 
 	type cniNetworkConfig struct {
@@ -153,7 +156,8 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 		Name:       "openshift-sdn",
 		Type:       "openshift-sdn",
 		IPAM: &hostLocalIPAM{
-			Type: "host-local",
+			Type:    "host-local",
+			DataDir: hostLocalDataDir,
 			Subnet: cnitypes.IPNet{
 				IP:   nodeNet.IP,
 				Mask: nodeNet.Mask,
@@ -410,7 +414,7 @@ func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *i
 		ContainerID: id,
 		NetNS:       netnsPath,
 		IfName:      podInterfaceName,
-		Path:        "/opt/cni/bin",
+		Path:        cniBinPath,
 	}
 }
 
@@ -421,7 +425,7 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.I
 	}
 
 	args := createIPAMArgs(netnsPath, cniserver.CNI_ADD, id)
-	r, err := invoke.ExecPluginWithResult("/opt/cni/bin/host-local", m.ipamConfig, args)
+	r, err := invoke.ExecPluginWithResult(cniBinPath+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
 	}
@@ -441,7 +445,7 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.I
 // Run CNI IPAM release for the container
 func (m *podManager) ipamDel(id string) error {
 	args := createIPAMArgs("", cniserver.CNI_DEL, id)
-	err := invoke.ExecPluginWithoutResult("/opt/cni/bin/host-local", m.ipamConfig, args)
+	err := invoke.ExecPluginWithoutResult(cniBinPath+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
 	}
