@@ -178,7 +178,7 @@ func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 
 	// Try to retrieve sandbox information from docker daemon or sandbox checkpoint
 	glog.Warningf("##### StopPodSandbox %q getting status", podSandboxID)
-	status, statusErr := ds.PodSandboxStatus(podSandboxID)
+	status, statusErr := ds.internalPodSandboxStatus(podSandboxID, false)
 	glog.Warningf("##### StopPodSandbox %q got status %#v err %v", podSandboxID, status, statusErr)
 	if statusErr == nil {
 		nsOpts := status.GetLinux().GetNamespaces().GetOptions()
@@ -356,8 +356,7 @@ func (ds *dockerService) getIP(podSandboxID string, sandbox *dockertypes.Contain
 	return ""
 }
 
-// PodSandboxStatus returns the status of the PodSandbox.
-func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodSandboxStatus, error) {
+func (ds *dockerService) internalPodSandboxStatus(podSandboxID string, checkIP bool) (*runtimeapi.PodSandboxStatus, error) {
 	// Inspect the container.
 	r, err := ds.client.InspectContainer(podSandboxID)
 	if err != nil {
@@ -378,11 +377,13 @@ func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodS
 	}
 
 	var IP string
-	// TODO: Remove this when sandbox is available on windows
-	// This is a workaround for windows, where sandbox is not in use, and pod IP is determined through containers belonging to the Pod.
-	glog.Warningf("##### PodSandboxStatus %q got state %v", podSandboxID, state)
-	if IP = ds.determinePodIPBySandboxID(podSandboxID); IP == "" {
-		IP = ds.getIP(podSandboxID, r)
+	if checkIP {
+		// TODO: Remove this when sandbox is available on windows
+		// This is a workaround for windows, where sandbox is not in use, and pod IP is determined through containers belonging to the Pod.
+		glog.Warningf("##### PodSandboxStatus %q got state %v", podSandboxID, state)
+		if IP = ds.determinePodIPBySandboxID(podSandboxID); IP == "" {
+			IP = ds.getIP(podSandboxID, r)
+		}
 	}
 	hostNetwork := sharesHostNetwork(r)
 
@@ -411,6 +412,11 @@ func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodS
 			},
 		},
 	}, nil
+}
+
+// PodSandboxStatus returns the status of the PodSandbox.
+func (ds *dockerService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodSandboxStatus, error) {
+	return ds.internalPodSandboxStatus(podSandboxID, true)
 }
 
 // ListPodSandbox returns a list of Sandbox.
