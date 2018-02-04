@@ -9420,7 +9420,7 @@ items:
       test: router
       select: weighted
   spec:
-    host: weighted.example.com
+    host: weighted.metrics.example.com
     to:
       name: weightedendpoints1
       kind: Service
@@ -9441,7 +9441,7 @@ items:
       test: router
       select: weighted
   spec:
-    host: zeroweight.example.com
+    host: zeroweight.metrics.example.com
     to:
       name: weightedendpoints1
       kind: Service
