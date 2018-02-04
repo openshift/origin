@@ -898,6 +898,9 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}
 	}
 	if len(c.SourceSecret) > 0 {
+		if len(validation.ValidateSecretName(c.SourceSecret, false)) != 0 {
+			return nil, fmt.Errorf("source secret name %q is invalid", c.SourceSecret)
+		}
 		for _, obj := range objects {
 			if bc, ok := obj.(*buildapi.BuildConfig); ok {
 				glog.V(4).Infof("Setting source secret for build config to: %v", c.SourceSecret)
