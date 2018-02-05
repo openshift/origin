@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 2dff6e436250bd18639de2580b72a6796ef6d878
+%global commit a7c58e16e74e0e4d95400aa3535fe278292952bc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.36.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.3 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=c78146a OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.37.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.3 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=ec78881 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.37.0%{?dist}
+Release:        0.38.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,40 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Feb 05 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.38.0
+- expect build success in test (bparees@redhat.com)
+- add suggestion to describe pod for container names (jvallejo@redhat.com)
+- UPSTREAM: 58533: add suggestion to describe pod for container names
+  (jvallejo@redhat.com)
+- Generated files (simo@redhat.com)
+- Remove empty role bindings when removing subjects (simo@redhat.com)
+- Make some policy commands behave "better" (simo@redhat.com)
+- Deprecate a bunch of policy commands (simo@redhat.com)
+- Add infos count to `oc status` (mdame@redhat.com)
+- Replace icon-cogs with fa-cogs (spadgett@redhat.com)
+- generated (deads@redhat.com)
+- generated (deads@redhat.com)
+- demonstrate adding generated conversions for other types (deads@redhat.com)
+- update conversiongen to use upstream (deads@redhat.com)
+- generated (deads@redhat.com)
+- update deepcopy gen scripts (deads@redhat.com)
+- refactor to match normal api structure (deads@redhat.com)
+- bump(*) (deads@redhat.com)
+- add glide.yaml updates (deads@redhat.com)
+- apps: move pkg/apps/cmd to pkg/oc (mfojtik@redhat.com)
+- fix oadm panic problem (haowang@redhat.com)
+- UPSTREAM: 58617: Make ExpandVolumeDevice() idempotent if existing volume
+  capacity meets the requested size (hchiramm@redhat.com)
+- Update README.md (ccoleman@redhat.com)
+- Test case reuses a hostname from another test (ccoleman@redhat.com)
+- only run one httpd instance in perl hot deploy test (bparees@redhat.com)
+- fix #18291. Use correct playbook for openshift version (jcantril@redhat.com)
+- tls update will be possible with 'create' permissions on custom-host. Checks
+  on changing host stay the same. (rchopra@redhat.com)
+- Add test case for oc explain cronjob (maszulik@redhat.com)
+- UPSTREAM: 58753: Fix kubectl explain for cronjobs (maszulik@redhat.com)
+- Service monitoring best practices for infrastructure (ccoleman@redhat.com)
+
 * Fri Feb 02 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.37.0
 - Use the Upstream header for scope impersonation (simo@redhat.com)
 - UPSTREAM: 58994: Race condition between listener and client in
