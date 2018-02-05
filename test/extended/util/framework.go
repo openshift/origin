@@ -1283,6 +1283,12 @@ func FetchURL(url string, retryTimeout time.Duration) (response string, err erro
 		if err != nil || r.StatusCode != 200 {
 			// lie to the poller that we didn't get an error even though we did
 			// because otherwise it's going to give up.
+			if err != nil {
+				e2e.Logf("error fetching url: %v", err)
+			}
+			if r != nil {
+				e2e.Logf("non-200 status code fetching url: %d", r.StatusCode)
+			}
 			return false, nil
 		}
 		defer r.Body.Close()
