@@ -60,7 +60,7 @@ const ForbiddenListWarning = "Forbidden"
 
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
-	K kclientset.Interface
+	KubeClient kclientset.Interface
 
 	// OpenShift clients
 	ProjectClient projectclient.ProjectInterface
@@ -87,15 +87,15 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	g := osgraph.New()
 
 	loaders := []GraphLoader{
-		&serviceLoader{namespace: namespace, lister: d.K.Core()},
-		&serviceAccountLoader{namespace: namespace, lister: d.K.Core()},
-		&secretLoader{namespace: namespace, lister: d.K.Core()},
-		&pvcLoader{namespace: namespace, lister: d.K.Core()},
-		&rcLoader{namespace: namespace, lister: d.K.Core()},
-		&podLoader{namespace: namespace, lister: d.K.Core()},
-		&statefulSetLoader{namespace: namespace, lister: d.K.Apps()},
-		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
-		&deploymentLoader{namespace: namespace, lister: d.K.Extensions()},
+		&serviceLoader{namespace: namespace, lister: d.KubeClient.Core()},
+		&serviceAccountLoader{namespace: namespace, lister: d.KubeClient.Core()},
+		&secretLoader{namespace: namespace, lister: d.KubeClient.Core()},
+		&pvcLoader{namespace: namespace, lister: d.KubeClient.Core()},
+		&rcLoader{namespace: namespace, lister: d.KubeClient.Core()},
+		&podLoader{namespace: namespace, lister: d.KubeClient.Core()},
+		&statefulSetLoader{namespace: namespace, lister: d.KubeClient.Apps()},
+		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.KubeClient.Autoscaling()},
+		&deploymentLoader{namespace: namespace, lister: d.KubeClient.Extensions()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.BuildClient},

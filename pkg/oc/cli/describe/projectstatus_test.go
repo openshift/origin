@@ -446,7 +446,7 @@ func TestProjectStatus(t *testing.T) {
 		routeClient := routefakeclient.NewSimpleClientset(filterByScheme(routeclientscheme.Scheme, objs...)...)
 
 		d := ProjectStatusDescriber{
-			K:                           kc,
+			KubeClient:                  kc,
 			ProjectClient:               projectClient.Project(),
 			BuildClient:                 buildClient.Build(),
 			ImageClient:                 imageClient.Image(),
@@ -508,7 +508,7 @@ func TestProjectStatusErrors(t *testing.T) {
 		})
 
 		d := ProjectStatusDescriber{
-			K:                           kc,
+			KubeClient:                  kc,
 			ProjectClient:               projectClient.Project(),
 			BuildClient:                 buildClient.Build(),
 			ImageClient:                 imageClient.Image(),
