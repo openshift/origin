@@ -82,7 +82,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
@@ -115,7 +115,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
@@ -147,6 +147,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 		},
 	}
 
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 
 	kcmdutil.AddDryRunFlag(cmd)
@@ -178,6 +179,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 		},
 	}
 
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
@@ -209,7 +211,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
@@ -239,7 +241,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 		},
 	}
 
-	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty creates a new rolebinding with a default name")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
@@ -270,6 +272,8 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 		},
 	}
 
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
+
 	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
@@ -299,6 +303,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 		},
 	}
 
+	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify. If left empty it will operate on all rolebindings")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
 	kcmdutil.AddDryRunFlag(cmd)
@@ -428,18 +433,7 @@ func (o *RoleModificationOptions) getUserSpecifiedBinding() (*authorizationapi.R
 }
 
 func (o *RoleModificationOptions) getUnspecifiedBinding() (*authorizationapi.RoleBinding, bool /* isUpdate */, error) {
-	// Look for existing bindings by role.
-	roleBindings, err := o.RoleBindingAccessor.GetExistingRoleBindingsForRole(o.RoleNamespace, o.RoleName)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if len(roleBindings) > 0 {
-		// only need to add the user or group to a single roleBinding on the role.  Just choose the first one
-		return roleBindings[0], true, nil
-	}
-
-	// Create a new rolebinding with the default naming.
+	// Always create a new role binding with the default naming
 	roleBinding := &authorizationapi.RoleBinding{}
 	roleBindingNames, err := o.RoleBindingAccessor.GetExistingRoleBindingNames()
 	if err != nil {
@@ -512,9 +506,20 @@ subjectCheck:
 }
 
 func (o *RoleModificationOptions) RemoveRole() error {
-	roleBindings, err := o.RoleBindingAccessor.GetExistingRoleBindingsForRole(o.RoleNamespace, o.RoleName)
-	if err != nil {
-		return err
+	var roleBindings []*authorizationapi.RoleBinding
+	var err error
+	if len(o.RoleBindingName) > 0 {
+		existingRoleBinding, err := o.RoleBindingAccessor.GetRoleBinding(o.RoleBindingName)
+		if err != nil {
+			return err
+		}
+		roleBindings = make([]*authorizationapi.RoleBinding, 1)
+		roleBindings[0] = existingRoleBinding
+	} else {
+		roleBindings, err = o.RoleBindingAccessor.GetExistingRoleBindingsForRole(o.RoleNamespace, o.RoleName)
+		if err != nil {
+			return err
+		}
 	}
 	if len(roleBindings) == 0 {
 		return fmt.Errorf("unable to locate RoleBinding for %v/%v", o.RoleNamespace, o.RoleName)
@@ -546,7 +551,11 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	for _, roleBinding := range roleBindings {
 		roleBinding.Subjects = removeSubjects(roleBinding.Subjects, subjectsToRemove)
 
-		err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
+		if len(roleBinding.Subjects) > 0 {
+			err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
+		} else {
+			err = o.RoleBindingAccessor.DeleteRoleBinding(roleBinding.Name)
+		}
 		if err != nil {
 			return err
 		}
