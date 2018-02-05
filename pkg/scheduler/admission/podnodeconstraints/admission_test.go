@@ -20,14 +20,14 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
+	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func TestPodNodeConstraints(t *testing.T) {
 	ns := metav1.NamespaceDefault
 	tests := []struct {
-		config           *api.PodNodeConstraintsConfig
+		config           *podnodeconstraints.PodNodeConstraintsConfig
 		resource         runtime.Object
 		kind             schema.GroupKind
 		groupresource    schema.GroupResource
@@ -154,7 +154,7 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 func TestPodNodeConstraintsResources(t *testing.T) {
 	ns := metav1.NamespaceDefault
 	testconfigs := []struct {
-		config         *api.PodNodeConstraintsConfig
+		config         *podnodeconstraints.PodNodeConstraintsConfig
 		userinfo       user.Info
 		reviewResponse *authorizationapi.SubjectAccessReviewResponse
 	}{
@@ -276,12 +276,12 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 	}
 }
 
-func emptyConfig() *api.PodNodeConstraintsConfig {
-	return &api.PodNodeConstraintsConfig{}
+func emptyConfig() *podnodeconstraints.PodNodeConstraintsConfig {
+	return &podnodeconstraints.PodNodeConstraintsConfig{}
 }
 
-func testConfig() *api.PodNodeConstraintsConfig {
-	return &api.PodNodeConstraintsConfig{
+func testConfig() *podnodeconstraints.PodNodeConstraintsConfig {
+	return &podnodeconstraints.PodNodeConstraintsConfig{
 		NodeSelectorLabelBlacklist: []string{"bogus"},
 	}
 }

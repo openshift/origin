@@ -14,8 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"

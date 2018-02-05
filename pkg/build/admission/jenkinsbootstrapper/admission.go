@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/bulk"
 	authenticationclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 

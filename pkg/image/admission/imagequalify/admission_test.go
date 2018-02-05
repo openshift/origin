@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	imagequalifyapi "github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
 	"github.com/openshift/origin/pkg/image/admission/imagequalify"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
@@ -29,7 +29,7 @@ type testConfig struct {
 	AdmissionObject        runtime.Object
 	Resource               string
 	Subresource            string
-	Config                 *api.ImageQualifyConfig
+	Config                 *imagequalifyapi.ImageQualifyConfig
 }
 
 func container(image string) kapi.Container {
@@ -38,8 +38,8 @@ func container(image string) kapi.Container {
 	}
 }
 
-func parseConfigRules(rules []api.ImageQualifyRule) (*api.ImageQualifyConfig, error) {
-	config, err := configapilatest.WriteYAML(&api.ImageQualifyConfig{
+func parseConfigRules(rules []imagequalifyapi.ImageQualifyRule) (*imagequalifyapi.ImageQualifyConfig, error) {
+	config, err := configapilatest.WriteYAML(&imagequalifyapi.ImageQualifyConfig{
 		Rules: rules,
 	})
 
@@ -50,7 +50,7 @@ func parseConfigRules(rules []api.ImageQualifyRule) (*api.ImageQualifyConfig, er
 	return imagequalify.ReadConfig(bytes.NewReader(config))
 }
 
-func mustParseRules(rules []api.ImageQualifyRule) *api.ImageQualifyConfig {
+func mustParseRules(rules []imagequalifyapi.ImageQualifyRule) *imagequalifyapi.ImageQualifyConfig {
 	config, err := parseConfigRules(rules)
 	if err != nil {
 		panic(err)
@@ -113,7 +113,7 @@ func assertImageNamesEqual(t *testing.T, expected, actual []kapi.Container) {
 }
 
 func TestAdmissionQualifiesUnqualifiedImages(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalifyapi.ImageQualifyRule{{
 		Pattern: "somerepo/*",
 		Domain:  "somerepo.io",
 	}, {
@@ -170,7 +170,7 @@ func TestAdmissionQualifiesUnqualifiedImages(t *testing.T) {
 }
 
 func TestAdmissionValidateErrors(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalifyapi.ImageQualifyRule{{
 		Pattern: "somerepo/*",
 		Domain:  "somerepo.io",
 	}}
@@ -229,7 +229,7 @@ func TestAdmissionValidateErrors(t *testing.T) {
 }
 
 func TestAdmissionErrorsOnNonPodObject(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalifyapi.ImageQualifyRule{{
 		Pattern: "somerepo/*",
 		Domain:  "somerepo.io",
 	}, {
@@ -258,7 +258,7 @@ func TestAdmissionErrorsOnNonPodObject(t *testing.T) {
 }
 
 func TestAdmissionIsIgnoredForSubresource(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalifyapi.ImageQualifyRule{{
 		Pattern: "somerepo/*",
 		Domain:  "somerepo.io",
 	}, {
@@ -308,7 +308,7 @@ func TestAdmissionIsIgnoredForSubresource(t *testing.T) {
 }
 
 func TestAdmissionErrorsOnNonPodsResource(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalifyapi.ImageQualifyRule{{
 		Pattern: "somerepo/*",
 		Domain:  "somerepo.io",
 	}, {
@@ -353,7 +353,7 @@ func TestAdmissionErrorsOnNonPodsResource(t *testing.T) {
 }
 
 func TestAdmissionErrorsWhenImageNamesAreInvalid(t *testing.T) {
-	rules := []api.ImageQualifyRule{{
+	rules := []imagequalifyapi.ImageQualifyRule{{
 		Pattern: "somerepo/*",
 		Domain:  "somerepo.io",
 	}, {

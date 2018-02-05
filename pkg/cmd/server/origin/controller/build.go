@@ -8,7 +8,7 @@ import (
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	sccadmission "github.com/openshift/origin/pkg/security/admission"
 )

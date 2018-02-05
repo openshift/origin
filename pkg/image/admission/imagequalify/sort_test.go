@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
+	imagequalifyadmission "github.com/openshift/origin/pkg/image/admission/imagequalify"
 )
 
-func patternsFromRules(rules []api.ImageQualifyRule) string {
+func patternsFromRules(rules []imagequalify.ImageQualifyRule) string {
 	var bb bytes.Buffer
 
 	for i := range rules {
@@ -23,17 +23,17 @@ func patternsFromRules(rules []api.ImageQualifyRule) string {
 	return strings.TrimSpace(bb.String())
 }
 
-func parseTestSortPatterns(input string) (*api.ImageQualifyConfig, error) {
-	rules := []api.ImageQualifyRule{}
+func parseTestSortPatterns(input string) (*imagequalify.ImageQualifyConfig, error) {
+	rules := []imagequalify.ImageQualifyRule{}
 
 	for i, word := range strings.Fields(input) {
-		rules = append(rules, api.ImageQualifyRule{
+		rules = append(rules, imagequalify.ImageQualifyRule{
 			Pattern: word,
 			Domain:  fmt.Sprintf("domain%v.com", i),
 		})
 	}
 
-	serializedConfig, serializationErr := configapilatest.WriteYAML(&api.ImageQualifyConfig{
+	serializedConfig, serializationErr := configapilatest.WriteYAML(&imagequalify.ImageQualifyConfig{
 		Rules: rules,
 	})
 
@@ -41,7 +41,7 @@ func parseTestSortPatterns(input string) (*api.ImageQualifyConfig, error) {
 		return nil, serializationErr
 	}
 
-	return imagequalify.ReadConfig(bytes.NewReader(serializedConfig))
+	return imagequalifyadmission.ReadConfig(bytes.NewReader(serializedConfig))
 }
 
 func TestSort(t *testing.T) {

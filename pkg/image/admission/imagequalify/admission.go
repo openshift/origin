@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
 )
 
 var _ admission.MutationInterface = &Plugin{}
@@ -19,19 +19,19 @@ var _ admission.ValidationInterface = &Plugin{}
 type Plugin struct {
 	*admission.Handler
 
-	rules []api.ImageQualifyRule
+	rules []imagequalify.ImageQualifyRule
 }
 
 // Register creates and registers the new plugin but only if there is
 // non-empty and a valid configuration.
 func Register(plugins *admission.Plugins) {
-	plugins.Register(api.PluginName, func(config io.Reader) (admission.Interface, error) {
+	plugins.Register(imagequalify.PluginName, func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
 		}
 		if pluginConfig == nil {
-			glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
+			glog.Infof("Admission plugin %q is not configured so it will be disabled.", imagequalify.PluginName)
 			return nil, nil
 		}
 		return NewPlugin(pluginConfig.Rules), nil
@@ -57,7 +57,7 @@ func shouldIgnore(attributes admission.Attributes) bool {
 	}
 }
 
-func qualifyImages(images []string, rules []api.ImageQualifyRule) ([]string, error) {
+func qualifyImages(images []string, rules []imagequalify.ImageQualifyRule) ([]string, error) {
 	qnames := make([]string, len(images))
 
 	for i := range images {
@@ -81,7 +81,7 @@ func containerImages(containers []kapi.Container) []string {
 	return names
 }
 
-func qualifyContainers(containers []kapi.Container, rules []api.ImageQualifyRule, action func(index int, qname string) error) error {
+func qualifyContainers(containers []kapi.Container, rules []imagequalify.ImageQualifyRule, action func(index int, qname string) error) error {
 	qnames, err := qualifyImages(containerImages(containers), rules)
 
 	if err != nil {
@@ -178,7 +178,7 @@ func (p *Plugin) Validate(attributes admission.Attributes) error {
 }
 
 // NewPlugin creates a new admission handler.
-func NewPlugin(rules []api.ImageQualifyRule) *Plugin {
+func NewPlugin(rules []imagequalify.ImageQualifyRule) *Plugin {
 	return &Plugin{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
 		rules:   rules,

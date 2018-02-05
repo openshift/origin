@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	master "github.com/openshift/origin/pkg/cmd/server/api"
+	master "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	hostdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/host"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"

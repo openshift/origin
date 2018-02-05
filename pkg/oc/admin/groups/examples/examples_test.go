@@ -7,10 +7,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/openshift/origin/pkg/cmd/server/api"
-	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 )
 
 func TestLDAPSyncConfigFixtures(t *testing.T) {
@@ -28,7 +28,7 @@ func TestLDAPSyncConfigFixtures(t *testing.T) {
 	fixtures = append(fixtures, "rfc2307/sync-config-tolerating.yaml")
 
 	for _, fixture := range fixtures {
-		var config api.LDAPSyncConfig
+		var config config.LDAPSyncConfig
 
 		yamlConfig, err := ioutil.ReadFile("./../../../../../test/extended/authentication/ldap/" + fixture)
 		if err != nil {

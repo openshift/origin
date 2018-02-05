@@ -4,7 +4,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 )
 
 type Accepter interface {
@@ -32,7 +32,7 @@ func (a mappedAccepter) Accepts(attr *ImagePolicyAttributes) bool {
 }
 
 type executionAccepter struct {
-	rules         []api.ImageExecutionPolicyRule
+	rules         []imagepolicy.ImageExecutionPolicyRule
 	covers        schema.GroupResource
 	defaultReject bool
 
@@ -40,7 +40,7 @@ type executionAccepter struct {
 }
 
 // NewExecutionRuleseAccepter creates an Accepter from the provided rules.
-func NewExecutionRulesAccepter(rules []api.ImageExecutionPolicyRule, integratedRegistryMatcher RegistryMatcher) (Accepter, error) {
+func NewExecutionRulesAccepter(rules []imagepolicy.ImageExecutionPolicyRule, integratedRegistryMatcher RegistryMatcher) (Accepter, error) {
 	mapped := make(mappedAccepter)
 
 	for _, rule := range rules {
