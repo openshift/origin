@@ -26,9 +26,9 @@ func main() {
 
 	admCmd := ""
 
-	// there is no `oc adm version` command.
-	// special-case it here.
-	if os.Args[1] != "version" {
+	// 1. there is no `oc adm version` command,special-case it here.
+	// 2. oadm with no args should run oc adm and print out the default usage msg.
+	if (len(os.Args) > 1 && os.Args[1] != "version") || len(os.Args) == 1 {
 		admCmd = "adm"
 	}
 
