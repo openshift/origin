@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -444,7 +445,7 @@ func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, temp
 		identifierParams := convertVariablesToString(identifier)
 		idArgs := append(allArgs, identifierParams...)
 		e2e.Logf("args: %v", idArgs)
-		configFile, err := oc.SetNamespace(nsName).Run("process").Args(idArgs...).OutputToFile("config.json")
+		configFile, err := oc.SetNamespace(nsName).Run("process").Args(idArgs...).OutputToFile(strconv.FormatInt(rand.Int63(), 10) + "-config.json")
 		if err != nil {
 			e2e.Failf("Unable to process template file. Error: %v", err)
 		}

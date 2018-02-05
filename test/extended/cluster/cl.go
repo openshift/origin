@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -25,7 +26,9 @@ const checkDeleteProjectTimeout = 3 * time.Minute
 const deploymentRunTimeout = 5 * time.Minute
 const testResultFile = "/tmp/TestResult"
 
-var rootDir string
+var (
+	rootDir string
+)
 
 var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	defer g.GinkgoRecover()
@@ -59,127 +62,40 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	})
 
 	g.It("should load the cluster", func() {
-		project := ConfigContext.ClusterLoader.Projects
-		tuningSets := ConfigContext.ClusterLoader.TuningSets
-		sync := ConfigContext.ClusterLoader.Sync
-		if project == nil {
-			e2e.Failf("Invalid config file.\nFile: %v", project)
+		projects := ConfigContext.ClusterLoader.Projects
+		if projects == nil {
+			e2e.Failf("Invalid config file.\nFile: %v", projects)
 		}
-
-		var namespaces []string
-		//totalPods := 0 // Keep track of how many pods for stepping
-		// TODO sjug: add concurrency
+		syncConfig := ConfigContext.ClusterLoader.Sync
 		testStartTime := time.Now()
-		for _, p := range project {
-			// Find tuning if we have it
-			tuning := GetTuningSet(tuningSets, p.Tuning)
-			if tuning != nil {
-				e2e.Logf("Our tuning set is: %v", tuning)
-			}
-			for j := 0; j < p.Number; j++ {
-				var allArgs []string
-				allArgs = append(allArgs, "--skip-config-write")
-				nsName := fmt.Sprintf("%s%d", p.Basename, j)
-				allArgs = append(allArgs, nsName)
 
-				projectExists, err := ProjectExists(oc, nsName)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if !projectExists {
-					e2e.Logf("Project %s does not exist.", nsName)
-				}
-
-				switch p.IfExists {
-				case IF_EXISTS_REUSE:
-					e2e.Logf("Configuration requested reuse of project %v", nsName)
-				case IF_EXISTS_DELETE:
-					e2e.Logf("Configuration requested deletion of project %v", nsName)
-					if projectExists {
-						err = DeleteProject(oc, nsName, checkDeleteProjectInterval, checkDeleteProjectTimeout)
-						o.Expect(err).NotTo(o.HaveOccurred())
-					}
-				default:
-					e2e.Failf("Unsupported ifexists value '%v' for project %v", p.IfExists, project)
-				}
-
-				if p.IfExists == IF_EXISTS_REUSE && projectExists {
-					// do nothing
-				} else {
-					// Create namespaces as defined in Cluster Loader config
-					err = oc.Run("new-project").Args(allArgs...).Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
-				}
-
-				// label namespace nsName
-				if p.Labels != nil {
-					_, err = SetNamespaceLabels(c, nsName, p.Labels)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-				namespaces = append(namespaces, nsName)
-
-				// Create config maps
-				if p.Configmaps != nil {
-					// Configmaps defined, create them
-					err := CreateConfigmaps(oc, c, nsName, p.Configmaps)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-
-				// Create secrets
-				if p.Secrets != nil {
-					// Secrets defined, create them
-					err := CreateSecrets(oc, c, nsName, p.Secrets)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-
-				// Create templates as defined
-				for _, template := range p.Templates {
-					err := CreateTemplates(oc, c, nsName, template, tuning)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-
-				// This is too familiar, create pods
-				for _, pod := range p.Pods {
-					// Parse Pod file into struct
-					config := ParsePods(mkPath(pod.File))
-					// Check if environment variables are defined in CL config
-					if pod.Parameters == nil {
-						e2e.Logf("Pod environment variables will not be modified.")
-					} else {
-						// Override environment variables for Pod using ConfigMap
-						configMapName := InjectConfigMap(c, nsName, pod.Parameters, config)
-						// Cleanup ConfigMap at some point after the Pods are created
-						defer func() {
-							_ = c.Core().ConfigMaps(nsName).Delete(configMapName, nil)
-						}()
-					}
-					// TODO sjug: pass label via config
-					labels := map[string]string{"purpose": "test"}
-					err := CreatePods(c, pod.Basename, nsName, labels, config.Spec, pod.Number, tuning, &pod.Sync)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				}
-			}
+		namespaces, err := process(oc, c, projects)
+		if err != nil {
+			fmt.Printf("Error: %v\n\n", err)
+		} else {
+			fmt.Printf("Created the following namespaces: %+v\n", namespaces)
 		}
 
-		if sync.Running {
-			timeout, err := time.ParseDuration(sync.Timeout)
+		if syncConfig.Running {
+			timeout, err := time.ParseDuration(syncConfig.Timeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, ns := range namespaces {
-				err := SyncRunningPods(c, ns, sync.Selectors, timeout)
+				err := SyncRunningPods(c, ns, syncConfig.Selectors, timeout)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
 
-		if sync.Server.Enabled {
+		if syncConfig.Server.Enabled {
 			var podCount PodCount
-			err := Server(&podCount, sync.Server.Port, false)
+			err := Server(&podCount, syncConfig.Server.Port, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		if sync.Succeeded {
-			timeout, err := time.ParseDuration(sync.Timeout)
+		if syncConfig.Succeeded {
+			timeout, err := time.ParseDuration(syncConfig.Timeout)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, ns := range namespaces {
-				err := SyncSucceededPods(c, ns, sync.Selectors, timeout)
+				err := SyncSucceededPods(c, ns, syncConfig.Selectors, timeout)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
@@ -211,7 +127,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 		// Calculate and log test duration
 		m := []metrics.Metrics{metrics.NewTestDuration("cluster-loader-test", testStartTime, time.Since(testStartTime))}
-		err := metrics.LogMetrics(m)
+		err = metrics.LogMetrics(m)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// If config context set to cleanup on completion
@@ -224,6 +140,164 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 		}
 	})
 })
+
+func process(oc *exutil.CLI, c kclientset.Interface, projects []ClusterLoaderType) ([]string, error) {
+	var err error
+	var wg sync.WaitGroup
+	done := make(chan struct{})
+	errChan := make(chan error, 1)
+	projectSem := make(chan struct{}, 2)
+	resultChan := make(chan string)
+	namespaces := []string{}
+
+	wg.Add(len(projects))
+	for _, project := range projects {
+		go processProject(oc, c, project, projectSem, &wg, resultChan, errChan, done)
+	}
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+loop:
+	for {
+		select {
+		case err = <-errChan:
+			close(done)
+		case <-done:
+			for range resultChan {
+				// Do nothing.
+			}
+			return nil, err
+		case result, ok := <-resultChan:
+			if !ok {
+				break loop
+			}
+			if result != "" {
+				namespaces = append(namespaces, result)
+			}
+		}
+	}
+	return namespaces, nil
+}
+
+func processProject(oc *exutil.CLI, c kclientset.Interface, p ClusterLoaderType, projectSem chan struct{}, wg *sync.WaitGroup, resultChan chan string, errChan chan error, done chan struct{}) {
+	defer wg.Done()
+	select {
+	case projectSem <- struct{}{}:
+	case <-done:
+		return // cancelled
+	}
+	objectSem := make(chan struct{}, 10)
+
+	// Find tuning if we have it
+	tuning := GetTuningSet(ConfigContext.ClusterLoader.TuningSets, p.Tuning)
+	if tuning != nil {
+		e2e.Logf("Our tuning set is: %v", tuning)
+	}
+	for j := 0; j < p.Number; j++ {
+		var allArgs []string
+		allArgs = append(allArgs, "--skip-config-write")
+		nsName := fmt.Sprintf("%s%d", p.Basename, j)
+
+		projectExists, err := ProjectExists(oc, nsName)
+
+		resultChan <- nsName
+		allArgs = append(allArgs, nsName)
+
+		switch p.IfExists {
+		case IF_EXISTS_REUSE:
+			e2e.Logf("Configuration requested reuse of project %v", nsName)
+		case IF_EXISTS_DELETE:
+			e2e.Logf("Configuration requested deletion of project %v", nsName)
+			if projectExists {
+				err = DeleteProject(oc, nsName, checkDeleteProjectInterval, checkDeleteProjectTimeout)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		default:
+			e2e.Failf("Unsupported ifexists value '%v' for project %v", p.IfExists, p)
+		}
+
+		if p.IfExists == IF_EXISTS_REUSE && projectExists {
+			// do nothing
+		} else {
+			// Create namespaces as defined in Cluster Loader config
+			if err := oc.Run("new-project").Args(allArgs...).Execute(); err != nil {
+				errChan <- err
+			}
+			e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
+		}
+
+		// Create config maps
+		if p.Configmaps != nil {
+			wg.Add(1)
+			// Configmaps defined, create them
+			go func(nsName string) {
+				defer wg.Done()
+				objectSem <- struct{}{}
+				if err := CreateConfigmaps(oc, c, nsName, p.Configmaps); err != nil {
+					errChan <- err
+				}
+				<-objectSem
+			}(nsName)
+		}
+
+		// Create secrets
+		if p.Secrets != nil {
+			wg.Add(1)
+			// Secrets defined, create them
+			go func(nsName string) {
+				defer wg.Done()
+				objectSem <- struct{}{}
+				if err := CreateSecrets(oc, c, nsName, p.Secrets); err != nil {
+					errChan <- err
+				}
+				<-objectSem
+			}(nsName)
+		}
+
+		// Create templates as defined
+		for _, template := range p.Templates {
+			wg.Add(1)
+			go func(nsName string, template ClusterLoaderObjectType, tuning *TuningSetType) {
+				defer wg.Done()
+				objectSem <- struct{}{}
+				if err := CreateTemplates(oc, c, nsName, template, tuning); err != nil {
+					errChan <- err
+				}
+				<-objectSem
+			}(nsName, template, tuning)
+		}
+
+		// This is too familiar, create pods
+		for _, pod := range p.Pods {
+			wg.Add(1)
+			go func(nsName string, pod ClusterLoaderObjectType) {
+				defer wg.Done()
+				objectSem <- struct{}{}
+				// Parse Pod file into struct
+				config := ParsePods(mkPath(pod.File))
+				// Check if environment variables are defined in CL config
+				if pod.Parameters == nil {
+					e2e.Logf("Pod environment variables will not be modified.")
+				} else {
+					// Override environment variables for Pod using ConfigMap
+					configMapName := InjectConfigMap(c, nsName, pod.Parameters, config)
+					// Cleanup ConfigMap at some point after the Pods are created
+					defer func() {
+						_ = c.Core().ConfigMaps(nsName).Delete(configMapName, nil)
+					}()
+				}
+				// TODO sjug: pass label via config
+				labels := map[string]string{"purpose": "test"}
+				if err := CreatePods(c, pod.Basename, nsName, labels, config.Spec, pod.Number, tuning, &pod.Sync); err != nil {
+					errChan <- err
+				}
+				<-objectSem
+			}(nsName, pod)
+		}
+	}
+	<-projectSem
+}
 
 func newProject(nsName string) *projectapi.Project {
 	return &projectapi.Project{
