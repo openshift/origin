@@ -27,7 +27,6 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
-	appscmd "github.com/openshift/origin/pkg/apps/cmd"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -39,6 +38,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	deploymentcmd "github.com/openshift/origin/pkg/oc/cli/deploymentconfigs"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
@@ -203,7 +203,7 @@ func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error)
 		if err != nil {
 			return nil, err
 		}
-		return appscmd.NewDeploymentConfigScaler(appsclient.NewForConfigOrDie(config), kc), nil
+		return deploymentcmd.NewDeploymentConfigScaler(appsclient.NewForConfigOrDie(config), kc), nil
 	}
 	return f.kubeObjectMappingFactory.Scaler(mapping)
 }
@@ -220,7 +220,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
-		return appscmd.NewDeploymentConfigReaper(appsclient.NewForConfigOrDie(config), kc), nil
+		return deploymentcmd.NewDeploymentConfigReaper(appsclient.NewForConfigOrDie(config), kc), nil
 	case authorizationapi.IsKindOrLegacy("Role", gk):
 		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
 		if err != nil {
@@ -293,7 +293,7 @@ func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.History
 		if err != nil {
 			return nil, err
 		}
-		return appscmd.NewDeploymentConfigHistoryViewer(kc), nil
+		return deploymentcmd.NewDeploymentConfigHistoryViewer(kc), nil
 	}
 	return f.kubeObjectMappingFactory.HistoryViewer(mapping)
 }
@@ -304,7 +304,7 @@ func (f *ring1Factory) Rollbacker(mapping *meta.RESTMapping) (kubectl.Rollbacker
 		if err != nil {
 			return nil, err
 		}
-		return appscmd.NewDeploymentConfigRollbacker(appsclient.NewForConfigOrDie(config)), nil
+		return deploymentcmd.NewDeploymentConfigRollbacker(appsclient.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeObjectMappingFactory.Rollbacker(mapping)
 }
@@ -315,7 +315,7 @@ func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusVi
 		return nil, err
 	}
 	if appsapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		return appscmd.NewDeploymentConfigStatusViewer(appsclient.NewForConfigOrDie(config)), nil
+		return deploymentcmd.NewDeploymentConfigStatusViewer(appsclient.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeObjectMappingFactory.StatusViewer(mapping)
 }
