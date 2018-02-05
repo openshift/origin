@@ -17,12 +17,6 @@ func ErrTimedOutWaitingForStart(container string) errors.Error {
 	return errors.NewError("timed out waiting for OpenShift container %q", container)
 }
 
-func ErrSocatNotFound() errors.Error {
-	return errors.NewError("socat not found locally").
-		WithDetails("socat is required to enable port forwarding\n").
-		WithSolution("Install socat using your package manager first\n")
-}
-
 type errPortsNotAvailable struct {
 	ports []int
 }
