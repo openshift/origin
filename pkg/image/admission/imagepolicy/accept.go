@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/api/meta"
-	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagepolicy"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -35,10 +35,10 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 	var resolveAllNames bool
 	if annotations != nil {
 		if a, ok := annotations.TemplateAnnotations(); ok {
-			resolveAllNames = a[api.ResolveNamesAnnotation] == "*"
+			resolveAllNames = a[imagepolicy.ResolveNamesAnnotation] == "*"
 		}
 		if !resolveAllNames {
-			resolveAllNames = annotations.Annotations()[api.ResolveNamesAnnotation] == "*"
+			resolveAllNames = annotations.Annotations()[imagepolicy.ResolveNamesAnnotation] == "*"
 		}
 	}
 

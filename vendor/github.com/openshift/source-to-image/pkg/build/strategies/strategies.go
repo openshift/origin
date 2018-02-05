@@ -25,7 +25,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	var buildInfo api.BuildInfo
 	var err error
 
-	fs := fs.NewFileSystem()
+	fileSystem := fs.NewFileSystem()
 
 	startTime := time.Now()
 
@@ -51,7 +51,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	// if we're blocking onbuild, just do a normal s2i build flow
 	// which won't do a docker build and invoke the onbuild commands
 	if image.OnBuild && !config.BlockOnBuild {
-		builder, err = onbuild.New(client, config, fs, overrides)
+		builder, err = onbuild.New(client, config, fileSystem, overrides)
 		if err != nil {
 			buildInfo.FailureReason = utilstatus.NewFailureReason(
 				utilstatus.ReasonGenericS2IBuildFailed,
@@ -62,7 +62,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 		return builder, buildInfo, nil
 	}
 
-	builder, err = sti.New(client, config, fs, overrides)
+	builder, err = sti.New(client, config, fileSystem, overrides)
 	if err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonGenericS2IBuildFailed,

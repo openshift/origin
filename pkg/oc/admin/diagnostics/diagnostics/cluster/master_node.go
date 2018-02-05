@@ -12,7 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )

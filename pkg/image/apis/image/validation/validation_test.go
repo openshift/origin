@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
+	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
 )

@@ -3,13 +3,13 @@ package imagequalify
 import (
 	"sort"
 
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
 )
 
-type lessFunc func(x, y *api.ImageQualifyRule) bool
+type lessFunc func(x, y *imagequalify.ImageQualifyRule) bool
 
 type multiSorter struct {
-	rules []api.ImageQualifyRule
+	rules []imagequalify.ImageQualifyRule
 	less  []lessFunc
 }
 
@@ -17,7 +17,7 @@ var _ sort.Interface = &multiSorter{}
 
 // Sort sorts the argument slice according to the comparator functions
 // passed to orderBy.
-func (s *multiSorter) Sort(rules []api.ImageQualifyRule) {
+func (s *multiSorter) Sort(rules []imagequalify.ImageQualifyRule) {
 	s.rules = rules
 	sort.Sort(s)
 }

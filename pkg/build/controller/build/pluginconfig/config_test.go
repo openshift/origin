@@ -6,13 +6,13 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	testtypes "github.com/openshift/origin/pkg/build/controller/build/pluginconfig/testing"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/api/latest"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 
 	// install server api
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
+	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 )
 
 func TestGetPluginConfig(t *testing.T) {

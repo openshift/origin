@@ -47,19 +47,21 @@ If you have downloaded the client tools from the [releases page](https://github.
 * For a full cluster installation using [Ansible](https://github.com/openshift/openshift-ansible), follow the [Advanced Installation guide](https://docs.openshift.org/latest/install_config/install/advanced_install.html)
 * To build and run from source, see [CONTRIBUTING.adoc](CONTRIBUTING.adoc)
 
+The latest OpenShift Origin images are published to the Docker Hub under the `openshift` account at https://hub.docker.com/u/openshift/. We use a rolling tag system as of v3.9, where the `:latest` tag always points to the most recent alpha release on `master`, the `v3.X` tag points to the most recent build for that release (pre-release and post-release), and `v3.X.Y` is a stable tag for patches to a release.
+
 ### Concepts
 
-OpenShift builds a developer-centric workflow around Docker containers and Kubernetes runtime concepts.  An **Image Stream** lets you easily tag, import, and publish Docker images from the integrated registry.  A **Build Config** allows you to launch Docker builds, build directly from source code, or trigger Jenkins Pipeline jobs whenever an image stream tag is updated.  A **Deployment Config** allows you to redeploy whenever a new image becomes available.  **Routes** make it trivial to expose your Kubernetes services via a public DNS name. As an administrator, you can enable your developers to request new **Projects** which come with predefined roles, quotas, and security controls to fairly divide access.
+OpenShift builds a developer-centric workflow around Docker containers and Kubernetes runtime concepts.  An **Image Stream** lets you easily tag, import, and publish Docker images from the integrated registry.  A **Build Config** allows you to launch Docker builds, build directly from source code, or trigger Jenkins Pipeline jobs whenever an image stream tag is updated.  A **Deployment Config** allows you to use custom deployment logic to rollout your application, and Kubernetes workflow objects like **DaemonSets**, **Deployments**, or **StatefulSets** are upgraded to automatically trigger when new images are available.  **Routes** make it trivial to expose your Kubernetes services via a public DNS name. As an administrator, you can enable your developers to request new **Projects** which come with predefined roles, quotas, and security controls to fairly divide access.
 
 For more on the underlying concepts of OpenShift, please see the [documentation site](https://docs.openshift.org/latest/welcome/index.html).
 
 ### OpenShift API
 
-The OpenShift API is located on each server at `https://<host>:8443/oapi/v1`. These APIs are described via [Swagger v1.2](https://www.swagger.io) at `https://<host>:8443/swaggerapi/oapi/v1`. For more, [see the API documentation](https://docs.openshift.org/latest/rest_api).
+The OpenShift API is located on each server at `https://<host>:8443/apis`. OpenShift adds its own API groups alongside the Kubernetes APIs. For more, [see the API documentation](https://docs.openshift.org/latest/rest_api).
 
 ### Kubernetes
 
-OpenShift embeds Kubernetes and extends it with security and other integrated concepts.  An OpenShift Origin release corresponds to the Kubernetes distribution - for example, OpenShift 1.4 includes Kubernetes 1.4.
+OpenShift extends Kubernetes with security and other developer centric concepts.  Each OpenShift Origin release ships slightly after the Kubernetes release has stabilized. Version numbers are aligned - OpenShift v3.9 is Kubernetes v1.9.
 
 If you're looking for more information about using Kubernetes or the lower level concepts that Origin depends on, see the following:
 
@@ -157,17 +159,13 @@ The list of features that qualify under these labels is described below, along w
 
 Feature | Kubernetes | OpenShift | Justification
 ------- | ---------- | --------- | -------------
-Third Party Resources | Alpha (1.4, 1.5) | Not Yet Secure | Third party resources are still under active development upstream.<br>Known issues include failure to clean up resources in etcd, which may result in a denial of service attack against the cluster.<br>We are considering enabling them for development environments only.
-Garbage Collection | Alpha (1.3)<br>Beta (1.4, 1.5) | Tech Preview (1.4, 1.5) | Garbage collection will automatically delete related resources on the server, and thus given the potential for data loss we are waiting for GC to graduate to beta and have a full release cycle of testing before enabling it in Origin.
-Stateful Sets | Alpha (1.3, 1.4)<br>Beta (1.5) | Tech Preview (1.3, 1.4, 1.5) | Stateful Sets are still being actively developed and no backwards compatibility is guaranteed until 1.5 is released. Starting in 1.5, Stateful Sets will be enabled by default and some backwards compatibility will be guaranteed.
-Init Containers | Alpha (1.3, 1.4)<br>Beta(1.5) | Tech Preview (1.3, 1.4, 1.5) | Init containers are properly secured, but will not be officially supported until 1.6.
-Federated Clusters | Alpha (1.3)<br>Beta (1.4, 1.5) | Tech Preview (1.3, 1.4, 1.5) | A Kubernetes federation server may be used against Origin clusters with the appropriate credentials today.<br>Known issues include tenant support in federation and the ability to have consistent access control between federation and normal clusters.<br>No Origin specific binary is being distributed for federation at this time.
-Deployment | Beta (1.3, 1.4, 1.5) | Tech Preview (1.3, 1.4, 1.5) | OpenShift launched with DeploymentConfigs, a more fully featured Deployment object. DeploymentConfigs are more appropriate for developer flows where you want to push code and have it automatically be deployed, and also provide more advanced hooks and custom deployments.  Use Kubernetes Deployments when you are managing change outside of OpenShift.
-Replica Sets | Beta (1.3, 1.4, 1.5) | Tech Preview (1.3, 1.4, 1.5) | Replica Sets perform the same function as Replication Controllers, but have a more powerful label syntax. Both ReplicationControllers and ReplicaSets can be used.  
-Ingress | Beta (1.2, 1.3, 1.4, 1.5) | Tech Preview (1.3, 1.4, 1.5) | OpenShift launched with Routes, a more full featured Ingress object. In 1.5, Ingress rules can be read by the router (disabled by default), but because Ingress objects reference secrets you must grant the routers a very level of access to your cluster to run with them.  Future changes will likely reduce the security impact of enabling Ingress.
-PodSecurityPolicy | Beta (1.3, 1.4, 1.5) | Tech Preview (1.3, 1.4, 1.5) | OpenShift launched with SecurityContextConstraints, and then upstreamed them as PodSecurityPolicy. We plan to enable upstream PodSecurityPolicy so as to automatically migrate existing SecurityContextConstraints. PodSecurityPolicy has not yet completed a full security review, which will be part of the criteria for tech preview. <br>SecurityContextConstraints are a superset of PodSecurityPolicy features.
-PodAntiAffinitySelectors | Beta (1.3, 1.4, 1.5) | Not Yet Secure (1.3)<br>Tech Preview (1.4, 1.5) | End users are not allowed to set PodAntiAffinitySelectors that are not the node name due to the possibility of attacking the scheduler via denial of service.
-NetworkPolicy | Beta (1.3, 1.4, 1.5) | Tech Preview (1.3, 1.4, 1.5) | Starting with 1.5, OpenShift SDN will expose an experimental mode that uses network policy to restrict access to pods.  Future releases will expand this support.
+Custom Resource Definitions | GA (1.9) | GA (3.9) | 
+Stateful Sets | GA (1.9) | GA (3.9) |
+Deployment | GA (1.9) | GA (1.9) |
+Replica Sets | GA (1.9) | GA (3.9) | Replica Sets perform the same function as Replication Controllers, but have a more powerful label syntax. Both ReplicationControllers and ReplicaSets can be used.  
+Ingress | Beta (1.9) | Tech Preview (3.9) | OpenShift launched with Routes, a more full featured Ingress object. Ingress rules can be read by the router (disabled by default), but because Ingress objects reference secrets you must grant the routers access to your secrets manually.  Ingress is still beta in upstream Kubernetes.
+PodSecurityPolicy | Beta (1.9) | Tech Preview (3.9) | OpenShift launched with SecurityContextConstraints, and then upstreamed them as PodSecurityPolicy. We plan to enable upstream PodSecurityPolicy so as to automatically migrate existing SecurityContextConstraints. PodSecurityPolicy has not yet completed a full security review, which will be part of the criteria for tech preview. <br>SecurityContextConstraints are a superset of PodSecurityPolicy features.
+NetworkPolicy | GA (1.6) | GA (3.7) |
 
 Please contact us if this list omits a feature supported in Kubernetes which does not run in Origin.
 

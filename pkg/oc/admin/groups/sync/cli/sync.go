@@ -19,9 +19,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/server/api"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/server/api/validation"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
@@ -84,7 +84,7 @@ type SyncOptions struct {
 	Source GroupSyncSource
 
 	// Config is the LDAP sync config read from file
-	Config *api.LDAPSyncConfig
+	Config *config.LDAPSyncConfig
 
 	// Whitelist are the names of OpenShift group or LDAP group UIDs to use for syncing
 	Whitelist []string
@@ -274,8 +274,8 @@ func buildNameList(args []string, file string) ([]string, error) {
 	return list, nil
 }
 
-func decodeSyncConfigFromFile(configFile string) (*api.LDAPSyncConfig, error) {
-	var config api.LDAPSyncConfig
+func decodeSyncConfigFromFile(configFile string) (*config.LDAPSyncConfig, error) {
+	var config config.LDAPSyncConfig
 	yamlConfig, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file %s: %v", configFile, err)
@@ -354,7 +354,7 @@ func (o *SyncOptions) Validate() error {
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
 func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
-	bindPassword, err := api.ResolveStringValue(o.Config.BindPassword)
+	bindPassword, err := config.ResolveStringValue(o.Config.BindPassword)
 	if err != nil {
 		return err
 	}
@@ -434,7 +434,7 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	return kerrs.NewAggregate(syncErrors)
 }
 
-func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *api.LDAPSyncConfig, errorHandler syncerror.Handler) (SyncBuilder, error) {
+func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *config.LDAPSyncConfig, errorHandler syncerror.Handler) (SyncBuilder, error) {
 	switch {
 	case syncConfig.RFC2307Config != nil:
 		return &RFC2307Builder{ClientConfig: clientConfig, Config: syncConfig.RFC2307Config, ErrorHandler: errorHandler}, nil

@@ -135,6 +135,9 @@
 // test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml
+// test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl
+// test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm
+// test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
 // test/extended/testdata/imagestream-jenkins-slave-pods.yaml
 // test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
@@ -7037,6 +7040,219 @@ func testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml() (*asset, err
 	return a, nil
 }
 
+var _testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl = []byte(`#!/usr/bin/perl
+use strict;
+use warnings;
+
+use File::Basename qw(dirname);
+use Cwd  qw(abs_path);
+
+use lib (dirname abs_path $0) .'/lib';
+use My::Test qw(test);
+   
+print qq(Content-type: text/plain\n\n);
+     
+test();
+
+`)
+
+func testExtendedTestdataImage_ecosystemPerlHotdeployIndexPlBytes() ([]byte, error) {
+	return _testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl, nil
+}
+
+func testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl() (*asset, error) {
+	bytes, err := testExtendedTestdataImage_ecosystemPerlHotdeployIndexPlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm = []byte(`package My::Test;
+use strict; 
+use warnings;
+
+use Exporter qw(import);
+ 
+our @EXPORT_OK = qw(test);
+
+sub test {
+  print "initial value\n";
+}
+
+1;
+`)
+
+func testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPmBytes() ([]byte, error) {
+	return _testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm, nil
+}
+
+func testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm() (*asset, error) {
+	bytes, err := testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPmBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "perl-hotdeploy-example"
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "name": "${NAME}"
+        }
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}",
+        "annotations": {
+          "description": "Keeps track of changes in the application image"
+        }
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "spec": {
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "openshift",
+              "name": "perl:5.24"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "${NAME}:latest"
+          }
+        } 
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${NAME}"
+      },
+      "spec": {
+        "strategy": {
+          "type": "Rolling"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "perl"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${NAME}:latest"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${NAME}"
+        },
+        "template": {
+          "metadata": {
+            "name": "${NAME}",
+            "labels": {
+              "name": "${NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "perl",
+                "image": " ",
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  }
+                ],
+                "readinessProbe": {
+                  "timeoutSeconds": 3,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/",
+                    "port": 8080
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "NAME",
+      "displayName": "Name",
+      "description": "The name assigned to all of the frontend objects defined in this template.",
+      "required": true,
+      "value": "perl"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataImage_ecosystemPerlHotdeployPerlJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, nil
+}
+
+func testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson() (*asset, error) {
+	bytes, err := testExtendedTestdataImage_ecosystemPerlHotdeployPerlJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataImagestreamJenkinsSlavePodsYaml = []byte(`apiVersion: v1
 kind: ImageStream
 metadata:
@@ -9204,7 +9420,7 @@ items:
       test: router
       select: weighted
   spec:
-    host: weighted.example.com
+    host: weighted.metrics.example.com
     to:
       name: weightedendpoints1
       kind: Service
@@ -9225,7 +9441,7 @@ items:
       test: router
       select: weighted
   spec:
-    host: zeroweight.example.com
+    host: zeroweight.metrics.example.com
     to:
       name: weightedendpoints1
       kind: Service
@@ -25164,7 +25380,7 @@ metadata:
     "openshift.io/display-name": Prometheus
     description: |
       A monitoring solution for an OpenShift cluster - collect and gather metrics and alerts from nodes, services, and the infrastructure. This is a tech preview feature.
-    iconClass: icon-cogs
+    iconClass: fa fa-cogs
     tags: "monitoring,prometheus, alertmanager,time-series"
 parameters:
 - description: The namespace to instantiate prometheus under. Defaults to 'kube-system'.
@@ -29767,6 +29983,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl": testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm": testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
+	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json": testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
 	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
 	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
@@ -30223,6 +30442,17 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"pod-with-new-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml, map[string]*bintree{}},
 					"pod-with-no-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml, map[string]*bintree{}},
 					"pod-with-old-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml, map[string]*bintree{}},
+				}},
+				"image_ecosystem": &bintree{nil, map[string]*bintree{
+					"perl-hotdeploy": &bintree{nil, map[string]*bintree{
+						"index.pl": &bintree{testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl, map[string]*bintree{}},
+						"lib": &bintree{nil, map[string]*bintree{
+							"My": &bintree{nil, map[string]*bintree{
+								"Test.pm": &bintree{testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm, map[string]*bintree{}},
+							}},
+						}},
+						"perl.json": &bintree{testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, map[string]*bintree{}},
+					}},
 				}},
 				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},

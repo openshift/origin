@@ -3,13 +3,13 @@ package imagequalify
 import (
 	"path"
 
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api"
-	"github.com/openshift/origin/pkg/image/admission/imagequalify/api/validation"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify"
+	"github.com/openshift/origin/pkg/image/admission/apis/imagequalify/validation"
 )
 
 // matchImage attempts to match image against each pattern defined in
 // rules. Returns the Rule that matched, or nil if no match was found.
-func matchImage(image string, rules []api.ImageQualifyRule) *api.ImageQualifyRule {
+func matchImage(image string, rules []imagequalify.ImageQualifyRule) *imagequalify.ImageQualifyRule {
 	for i := range rules {
 		if ok, _ := path.Match(rules[i].Pattern, image); ok {
 			return &rules[i]
@@ -18,7 +18,7 @@ func matchImage(image string, rules []api.ImageQualifyRule) *api.ImageQualifyRul
 	return nil
 }
 
-func qualifyImage(image string, rules []api.ImageQualifyRule) (string, error) {
+func qualifyImage(image string, rules []imagequalify.ImageQualifyRule) (string, error) {
 	domain, _, err := validation.ParseDomainName(image)
 	if err != nil {
 		return "", err

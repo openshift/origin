@@ -141,13 +141,13 @@ os::cmd::expect_success_and_text 'oc adm policy who-can get hpa.autoscaling -n d
 os::cmd::expect_success_and_text 'oc adm policy who-can get hpa.v1.autoscaling -n default' "Resource:  horizontalpodautoscalers.autoscaling"
 os::cmd::expect_success_and_text 'oc adm policy who-can get hpa -n default' "Resource:  horizontalpodautoscalers.autoscaling"
 
-os::cmd::expect_success 'oc adm policy add-role-to-group cluster-admin system:unauthenticated'
-os::cmd::expect_success 'oc adm policy add-role-to-user cluster-admin system:no-user'
-os::cmd::expect_success 'oc adm policy add-role-to-user admin -z fake-sa'
+os::cmd::expect_success 'oc adm policy add-role-to-group --rolebinding-name=cluster-admin cluster-admin system:unauthenticated'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=cluster-admin cluster-admin system:no-user'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin -z fake-sa'
 os::cmd::expect_success_and_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
 os::cmd::expect_success 'oc adm policy remove-role-from-user admin -z fake-sa'
 os::cmd::expect_success_and_not_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
-os::cmd::expect_success 'oc adm policy add-role-to-user admin -z fake-sa'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin -z fake-sa'
 os::cmd::expect_success_and_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
 os::cmd::expect_success "oc adm policy remove-role-from-user admin system:serviceaccount:$(oc project -q):fake-sa"
 os::cmd::expect_success_and_not_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
@@ -296,7 +296,7 @@ os::test::junit::declare_suite_start "cmd/admin/ui-project-commands"
 # Test the commands the UI projects page tells users to run
 # These should match what is described in projects.html
 os::cmd::expect_success 'oc adm new-project ui-test-project --admin="createuser"'
-os::cmd::expect_success 'oc adm policy add-role-to-user admin adduser -n ui-test-project'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=admin admin adduser -n ui-test-project'
 # Make sure project can be listed by oc (after auth cache syncs)
 os::cmd::try_until_text 'oc get projects' 'ui\-test\-project'
 # Make sure users got added
@@ -452,10 +452,10 @@ os::cmd::expect_success_and_text 'oc adm groups new orphaned-group cascaded-user
 # Add roles, sccs to users/groups
 os::cmd::expect_success 'oc adm policy add-scc-to-user           restricted    cascaded-user  orphaned-user'
 os::cmd::expect_success 'oc adm policy add-scc-to-group          restricted    cascaded-group orphaned-group'
-os::cmd::expect_success 'oc adm policy add-role-to-user          cluster-admin cascaded-user  orphaned-user  -n default'
-os::cmd::expect_success 'oc adm policy add-role-to-group         cluster-admin cascaded-group orphaned-group -n default'
-os::cmd::expect_success 'oc adm policy add-cluster-role-to-user  cluster-admin cascaded-user  orphaned-user'
-os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-admin cascaded-group orphaned-group'
+os::cmd::expect_success 'oc adm policy add-role-to-user --rolebinding-name=cluster-admin cluster-admin cascaded-user  orphaned-user  -n default'
+os::cmd::expect_success 'oc adm policy add-role-to-group --rolebinding-name=cluster-admin cluster-admin cascaded-group orphaned-group -n default'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user --rolebinding-name=cluster-admin cluster-admin cascaded-user  orphaned-user'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=cluster-admin cluster-admin cascaded-group orphaned-group'
 
 # Delete users
 os::cmd::expect_success 'oc delete user  cascaded-user'

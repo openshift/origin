@@ -11,10 +11,10 @@ import (
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	overridesapi "github.com/openshift/origin/pkg/build/controller/build/overrides/api"
-	"github.com/openshift/origin/pkg/build/controller/build/overrides/api/validation"
+	overridesapi "github.com/openshift/origin/pkg/build/controller/build/apis/overrides"
+	"github.com/openshift/origin/pkg/build/controller/build/apis/overrides/validation"
 	"github.com/openshift/origin/pkg/build/controller/build/pluginconfig"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 )
 
 type BuildOverrides struct {

@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
-	"github.com/openshift/origin/pkg/ingress/admission/api"
+	"github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission"
 )
 
 type fakeAuthorizer struct {
@@ -25,7 +25,7 @@ func TestAdmission(t *testing.T) {
 	var oldIngress *kextensions.Ingress
 
 	tests := []struct {
-		config           *api.IngressAdmissionConfig
+		config           *ingressadmission.IngressAdmissionConfig
 		testName         string
 		oldHost, newHost string
 		op               admission.Operation
@@ -157,18 +157,18 @@ func TestAdmission(t *testing.T) {
 
 }
 
-func emptyConfig() *api.IngressAdmissionConfig {
-	return &api.IngressAdmissionConfig{}
+func emptyConfig() *ingressadmission.IngressAdmissionConfig {
+	return &ingressadmission.IngressAdmissionConfig{}
 }
 
-func testConfigUpdateAllow() *api.IngressAdmissionConfig {
-	return &api.IngressAdmissionConfig{
+func testConfigUpdateAllow() *ingressadmission.IngressAdmissionConfig {
+	return &ingressadmission.IngressAdmissionConfig{
 		AllowHostnameChanges: true,
 	}
 }
 
-func testConfigUpdateDeny() *api.IngressAdmissionConfig {
-	return &api.IngressAdmissionConfig{
+func testConfigUpdateDeny() *ingressadmission.IngressAdmissionConfig {
+	return &ingressadmission.IngressAdmissionConfig{
 		AllowHostnameChanges: false,
 	}
 }

@@ -1,5 +1,5 @@
-hash: 95f716b392d208817b3a8a5257cfa9d44d14b526dba3e3ce3e90f604cfb1bd24
-updated: 2018-01-05T14:39:33.429051893-05:00
+hash: c678949ad760f0923d42236502c001e0048ba43d54db3827b18ada3b2851a4f3
+updated: 2018-02-05T08:05:34.106653094-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -309,7 +309,8 @@ imports:
 - name: github.com/dgrijalva/jwt-go
   version: 01aeca54ebda6e0fbfafd0a524d234159c05ec20
 - name: github.com/docker/distribution
-  version: edc3ab29cdff8694dd6feb85cfeb4b5f1b38ed9c
+  version: a25d9964dcb79db32040eaf6a09016f21bba3952
+  repo: git@github.com:openshift/docker-distribution
   subpackages:
   - context
   - digestset
@@ -529,12 +530,12 @@ imports:
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/cadvisor
-  version: 1e567c2ac359c3ed1303e0c80b6cf08edefc841d
+  version: 1548b36960e691afa34a8eb03e720a1c9facf5dc
+  repo: git@github.com:openshift/google-cadvisor
   subpackages:
   - accelerators
   - api
   - cache/memory
-  - client/v2
   - collector
   - container
   - container/common
@@ -814,7 +815,7 @@ imports:
   - specs-go
   - specs-go/v1
 - name: github.com/opencontainers/runc
-  version: 76d724007fdff600a264f86c21e82ec624921ad5
+  version: ca78c55f8146dae6b6f53be8ea1179b30c04d0fd
   repo: git@github.com:openshift/opencontainers-runc
   subpackages:
   - libcontainer
@@ -842,7 +843,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 7f5fc719c0ee564c2061124ad0e4f05d54807640
+  version: 0d921e363e951d89f583292c60d013c318df64dc
   subpackages:
   - apps/v1
   - authorization/v1
@@ -860,24 +861,44 @@ imports:
   - template/v1
   - user/v1
 - name: github.com/openshift/client-go
-  version: 5a2427467298401a1a6f5fc8845003a55072e63e
+  version: 54eeb57ead752fbf5564b4713bb7321f8aa24f8b
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
   - apps/clientset/versioned/typed/apps/v1
+  - apps/informers/externalversions
+  - apps/informers/externalversions/apps
+  - apps/informers/externalversions/apps/v1
+  - apps/informers/externalversions/internalinterfaces
+  - apps/listers/apps/v1
   - authorization/clientset/versioned
   - authorization/clientset/versioned/fake
   - authorization/clientset/versioned/scheme
   - authorization/clientset/versioned/typed/authorization/v1
   - authorization/clientset/versioned/typed/authorization/v1/fake
+  - authorization/informers/externalversions
+  - authorization/informers/externalversions/authorization
+  - authorization/informers/externalversions/authorization/v1
+  - authorization/informers/externalversions/internalinterfaces
+  - authorization/listers/authorization/v1
   - build/clientset/versioned
   - build/clientset/versioned/fake
   - build/clientset/versioned/scheme
   - build/clientset/versioned/typed/build/v1
   - build/clientset/versioned/typed/build/v1/fake
+  - build/informers/externalversions
+  - build/informers/externalversions/build
+  - build/informers/externalversions/build/v1
+  - build/informers/externalversions/internalinterfaces
+  - build/listers/build/v1
   - image/clientset/versioned
   - image/clientset/versioned/scheme
   - image/clientset/versioned/typed/image/v1
+  - image/informers/externalversions
+  - image/informers/externalversions/image
+  - image/informers/externalversions/image/v1
+  - image/informers/externalversions/internalinterfaces
+  - image/listers/image/v1
   - network/clientset/versioned
   - network/clientset/versioned/scheme
   - network/clientset/versioned/typed/network/v1
@@ -886,12 +907,27 @@ imports:
   - network/informers/externalversions/network
   - network/informers/externalversions/network/v1
   - network/listers/network/v1
+  - oauth/clientset/versioned
+  - oauth/clientset/versioned/fake
+  - oauth/clientset/versioned/scheme
+  - oauth/clientset/versioned/typed/oauth/v1
+  - oauth/clientset/versioned/typed/oauth/v1/fake
+  - oauth/informers/externalversions
+  - oauth/informers/externalversions/internalinterfaces
+  - oauth/informers/externalversions/oauth
+  - oauth/informers/externalversions/oauth/v1
+  - oauth/listers/oauth/v1
   - project/clientset/versioned
   - project/clientset/versioned/scheme
   - project/clientset/versioned/typed/project/v1
   - quota/clientset/versioned
   - quota/clientset/versioned/scheme
   - quota/clientset/versioned/typed/quota/v1
+  - quota/informers/externalversions
+  - quota/informers/externalversions/internalinterfaces
+  - quota/informers/externalversions/quota
+  - quota/informers/externalversions/quota/v1
+  - quota/listers/quota/v1
   - route/clientset/versioned
   - route/clientset/versioned/scheme
   - route/clientset/versioned/typed/route/v1
@@ -900,6 +936,14 @@ imports:
   - route/informers/externalversions/route
   - route/informers/externalversions/route/v1
   - route/listers/route/v1
+  - security/clientset/versioned
+  - security/clientset/versioned/scheme
+  - security/clientset/versioned/typed/security/v1
+  - security/informers/externalversions
+  - security/informers/externalversions/internalinterfaces
+  - security/informers/externalversions/security
+  - security/informers/externalversions/security/v1
+  - security/listers/security/v1
   - template/clientset/versioned
   - template/clientset/versioned/scheme
   - template/clientset/versioned/typed/template/v1
@@ -919,11 +963,11 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 07e152d586c29af4edc7805484199bfbcf022811
+  version: eeb3c28f366cd654c136204f4ab8221593b0e899
   subpackages:
   - imageprogress
 - name: github.com/openshift/source-to-image
-  version: 5bf2cb171c2cab1270fba80dc53ef4ff25b12c97
+  version: db2b4645da20597632c9945e665c4ed01329afcf
   subpackages:
   - pkg/api
   - pkg/errors
@@ -1259,7 +1303,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 1791f5da2379cb6154480063483cd1dd906cfe59
+  version: 129aade7091c4c11a8db5f42ec9f0275146ddeab
   repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - admission/v1beta1
@@ -1293,7 +1337,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 4b7c9840284c1122713da02f50f4e56f59d0f379
+  version: 4cb3fae7f5ae6f982490ce29c1086520d6820b64
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1325,7 +1369,7 @@ imports:
   - pkg/registry/customresource
   - pkg/registry/customresourcedefinition
 - name: k8s.io/apimachinery
-  version: 58c23ccf04e540acd2427553cada70c1b1de3785
+  version: 964731c1975ef041478f0b6cc4a60e68f2ee633a
   repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
   - pkg/api/equality
@@ -1391,7 +1435,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: bf4ef711a472c20b04e26da97380d8b5b532c56f
+  version: e10ed155709d7e0af2909c2322f89dbdf561215f
   repo: git@github.com:openshift/kubernetes-apiserver
   subpackages:
   - pkg/admission
@@ -1500,7 +1544,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 2e98cfd3328c1de185ad3cae0e8005b21481c677
+  version: 9bec2ee837dc016f26e0f2e72101528979f2c176
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1678,7 +1722,7 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: 00f8f55a7115062d42706483402f806cd6eaffec
+  version: a76fee6d12f5ac456c369a28bb788fc34f757686
   repo: git@github.com:openshift/kubernetes-code-generator
   subpackages:
   - cmd/conversion-gen/generators
@@ -1699,7 +1743,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 62763252cfeba5ae506b71c41973d40e1c083dd1
+  version: 6fed3514c2e554ad9adc8c147c5a0766e43b7419
   repo: git@github.com:openshift/kube-aggregator
   subpackages:
   - pkg/apis/apiregistration
@@ -1736,7 +1780,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: a0ce1bc657faa48c85731dcca6a613d91224dea0
+  version: 9f2330231b0359940f057946105ca850ba067443
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
@@ -1959,7 +2003,6 @@ imports:
   - pkg/cloudprovider/providers/aws
   - pkg/cloudprovider/providers/azure
   - pkg/cloudprovider/providers/cloudstack
-  - pkg/cloudprovider/providers/fake
   - pkg/cloudprovider/providers/gce
   - pkg/cloudprovider/providers/openstack
   - pkg/cloudprovider/providers/ovirt
@@ -2075,7 +2118,6 @@ imports:
   - pkg/kubelet/apis/kubeletconfig/validation
   - pkg/kubelet/apis/stats/v1alpha1
   - pkg/kubelet/cadvisor
-  - pkg/kubelet/cadvisor/testing
   - pkg/kubelet/certificate
   - pkg/kubelet/certificate/bootstrap
   - pkg/kubelet/checkpoint
@@ -2470,7 +2512,6 @@ imports:
   - plugin/pkg/scheduler/volumebinder
   - staging/src/k8s.io/apimachinery/pkg/labels
   - staging/src/k8s.io/apimachinery/pkg/util/diff
-  - staging/src/k8s.io/apimachinery/pkg/util/errors
   - test/e2e
   - test/e2e/common
   - test/e2e/framework
@@ -2487,7 +2528,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: 89895fe67943a667a188dd1ae9821cd1168de69f
+  version: a16ca8671a0eff3f459a16d81870b0f62f5f5442
   repo: git@github.com:openshift/kubernetes-metrics
   subpackages:
   - pkg/apis/custom_metrics

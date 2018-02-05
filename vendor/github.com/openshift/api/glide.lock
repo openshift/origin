@@ -1,5 +1,5 @@
-hash: 3251cedf1b8706f384ce638077ae7622c7edd9c34914aed63d0abdbf3af40409
-updated: 2017-12-20T09:27:40.430041541-05:00
+hash: e2f302b249660abd8f0639acdb3432fde17eafbce67877162cb545edbe2594fe
+updated: 2018-01-10T13:48:38.243396665-05:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -76,14 +76,14 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: af4bc157c3a209798fc897f6d4aaaaeb6c2e0d6a
+  version: 006a217681ae70cbacdd66a5e2fca1a61a8ff28e
   subpackages:
   - apps/v1beta1
   - core/v1
   - extensions/v1beta1
   - rbac/v1
 - name: k8s.io/apimachinery
-  version: 180eddb345a5be3a157cea1c624700ad5bd27b8f
+  version: 68f9c3a1feb3140df59c67ced62d3a5df8e6c9c2
   subpackages:
   - pkg/api/equality
   - pkg/api/meta
@@ -126,7 +126,7 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/code-generator
-  version: 0ea404e72920cc2978c0bfcc05a37528e01e5bcf
+  version: 00f8f55a7115062d42706483402f806cd6eaffec
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e

@@ -11,7 +11,7 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/admission/runonceduration/api"
+	"github.com/openshift/origin/pkg/quota/admission/apis/runonceduration"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -26,8 +26,8 @@ func testCache(projectAnnotations map[string]string) *projectcache.ProjectCache 
 	return pCache
 }
 
-func testConfig(n *int64) *api.RunOnceDurationConfig {
-	return &api.RunOnceDurationConfig{
+func testConfig(n *int64) *runonceduration.RunOnceDurationConfig {
+	return &runonceduration.RunOnceDurationConfig{
 		ActiveDeadlineSecondsLimit: n,
 	}
 }
@@ -63,7 +63,7 @@ func int64p(n int64) *int64 {
 func TestRunOnceDurationAdmit(t *testing.T) {
 	tests := []struct {
 		name                          string
-		config                        *api.RunOnceDurationConfig
+		config                        *runonceduration.RunOnceDurationConfig
 		pod                           *kapi.Pod
 		projectAnnotations            map[string]string
 		expectedActiveDeadlineSeconds *int64
@@ -97,7 +97,7 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 			config: testConfig(nil),
 			pod:    testRunOncePodWithDuration(2000),
 			projectAnnotations: map[string]string{
-				api.ActiveDeadlineSecondsLimitAnnotation: "1000",
+				runonceduration.ActiveDeadlineSecondsLimitAnnotation: "1000",
 			},
 			expectedActiveDeadlineSeconds: int64p(1000),
 		},
@@ -106,7 +106,7 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 			config: testConfig(nil),
 			pod:    testRunOncePodWithDuration(10),
 			projectAnnotations: map[string]string{
-				api.ActiveDeadlineSecondsLimitAnnotation: "1000",
+				runonceduration.ActiveDeadlineSecondsLimitAnnotation: "1000",
 			},
 			expectedActiveDeadlineSeconds: int64p(10),
 		},
@@ -115,7 +115,7 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 			config: testConfig(int64p(10)),
 			pod:    testRunOncePodWithDuration(2000),
 			projectAnnotations: map[string]string{
-				api.ActiveDeadlineSecondsLimitAnnotation: "1000",
+				runonceduration.ActiveDeadlineSecondsLimitAnnotation: "1000",
 			},
 			expectedActiveDeadlineSeconds: int64p(1000),
 		},

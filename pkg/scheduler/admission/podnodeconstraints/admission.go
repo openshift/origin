@@ -17,8 +17,8 @@ import (
 
 	"github.com/openshift/origin/pkg/api/meta"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
+	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
 
 // kindsToIgnore is a list of kinds that contain a PodSpec that
@@ -44,7 +44,7 @@ func Register(plugins *admission.Plugins) {
 
 // NewPodNodeConstraints creates a new admission plugin to prevent objects that contain pod templates
 // from containing node bindings by name or selector based on role permissions.
-func NewPodNodeConstraints(config *api.PodNodeConstraintsConfig) admission.Interface {
+func NewPodNodeConstraints(config *podnodeconstraints.PodNodeConstraintsConfig) admission.Interface {
 	plugin := podNodeConstraints{
 		config:  config,
 		Handler: admission.NewHandler(admission.Create, admission.Update),
@@ -59,7 +59,7 @@ func NewPodNodeConstraints(config *api.PodNodeConstraintsConfig) admission.Inter
 type podNodeConstraints struct {
 	*admission.Handler
 	selectorLabelBlacklist sets.String
-	config                 *api.PodNodeConstraintsConfig
+	config                 *podnodeconstraints.PodNodeConstraintsConfig
 	authorizer             authorizer.Authorizer
 }
 
@@ -81,7 +81,7 @@ func shouldCheckResource(resource schema.GroupResource, kind schema.GroupKind) (
 
 var _ = oadmission.WantsAuthorizer(&podNodeConstraints{})
 
-func readConfig(reader io.Reader) (*api.PodNodeConstraintsConfig, error) {
+func readConfig(reader io.Reader) (*podnodeconstraints.PodNodeConstraintsConfig, error) {
 	if reader == nil || reflect.ValueOf(reader).IsNil() {
 		return nil, nil
 	}
@@ -92,7 +92,7 @@ func readConfig(reader io.Reader) (*api.PodNodeConstraintsConfig, error) {
 	if obj == nil {
 		return nil, nil
 	}
-	config, ok := obj.(*api.PodNodeConstraintsConfig)
+	config, ok := obj.(*podnodeconstraints.PodNodeConstraintsConfig)
 	if !ok {
 		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}

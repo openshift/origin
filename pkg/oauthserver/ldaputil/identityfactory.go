@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
+	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 )
 
