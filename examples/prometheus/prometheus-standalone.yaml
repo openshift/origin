@@ -6,7 +6,7 @@ metadata:
     "openshift.io/display-name": Prometheus
     description: |
       A Prometheus deployment that can be customized to monitor components and dispatch alerts. It is secure by default and can be used to monitor arbitrary clients.
-    iconClass: icon-cogs
+    iconClass: fa fa-cogs
     tags: "monitoring,prometheus,alertmanager,time-series"
 parameters:
 - description: The location of the proxy image

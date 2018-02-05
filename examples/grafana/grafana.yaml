@@ -7,7 +7,7 @@ metadata:
     "openshift.io/display-name": Grafana
     description: |
       Grafana server with patched Prometheus datasource.
-    iconClass: icon-cogs
+    iconClass: fa fa-cogs
     tags: "metrics,monitoring,grafana,prometheus"
 parameters:
 - description: The location of the grafana image

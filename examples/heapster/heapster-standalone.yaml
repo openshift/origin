@@ -6,7 +6,7 @@ metadata:
     "openshift.io/display-name": Heapster Metrics (Standalone)
     description: |
       A simple metrics solution for an OpenShift cluster. Expects to be installed in the 'kube-system' namespace.
-    iconClass: icon-cogs
+    iconClass: fa fa-cogs
     tags: "metrics,monitoring,heapster"
   labels:
     metrics-infra: heapster
