@@ -94,7 +94,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		var d types.Diagnostic
 		switch diagnosticName {
 		case agldiags.AggregatedLoggingName:
-			d = agldiags.NewAggregatedLogging(o.MasterConfigLocation, kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), oauthorizationClient.Authorization(), appsClient.Apps(), securityClient.Security())
+			d = agldiags.NewAggregatedLogging(kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), oauthorizationClient.Authorization(), appsClient.Apps(), securityClient.Security())
 		case clustdiags.NodeDefinitionsName:
 			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient}
 		case clustdiags.MasterNodeName:
