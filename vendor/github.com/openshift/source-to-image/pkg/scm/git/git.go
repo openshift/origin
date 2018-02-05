@@ -55,16 +55,6 @@ func cloneConfigToArgs(opts CloneConfig) []string {
 	return result
 }
 
-func stringInSlice(s string, slice []string) bool {
-	for _, element := range slice {
-		if s == element {
-			return true
-		}
-	}
-
-	return false
-}
-
 // followGitSubmodule looks at a .git /file/ and tries to retrieve from inside
 // it the gitdir value, which is supposed to indicate the location of the
 // corresponding .git /directory/.  Note: the gitdir value should point directly

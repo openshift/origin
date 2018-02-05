@@ -1,5 +1,5 @@
-hash: 6da94a04d17790083fe43232e1633957692729a49ee9d4a223dbc8225915b94c
-updated: 2017-12-15T12:18:26.934482511-05:00
+hash: 0c13cb9e8a1931681c1b6625e0f425c0576457608abd9cd96dba0c4db77abeb7
+updated: 2018-01-10T14:29:48.946654561-05:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -25,7 +25,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/protobuf
   version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
@@ -63,7 +63,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/openshift/api
-  version: 3922a2604003bc9fba95f09e17581e9917270a65
+  version: 7ed662e65c669e569547533a8cb1684c4a22ef4c
   subpackages:
   - apps/v1
   - authorization/v1
@@ -116,7 +116,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: af4bc157c3a209798fc897f6d4aaaaeb6c2e0d6a
+  version: 006a217681ae70cbacdd66a5e2fca1a61a8ff28e
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
@@ -147,7 +147,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: 180eddb345a5be3a157cea1c624700ad5bd27b8f
+  version: 68f9c3a1feb3140df59c67ced62d3a5df8e6c9c2
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
@@ -188,7 +188,7 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 78700dec6369ba22221b72770783300f143df150
+  version: 9389c055a838d4f208b699b3c7c51b70f2368861
   subpackages:
   - discovery
   - discovery/fake
@@ -207,7 +207,7 @@ imports:
   - util/flowcontrol
   - util/integer
 - name: k8s.io/code-generator
-  version: 0ea404e72920cc2978c0bfcc05a37528e01e5bcf
+  version: 00f8f55a7115062d42706483402f806cd6eaffec
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e

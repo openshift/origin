@@ -23,7 +23,7 @@ func Config(client docker.Client, config *api.Config) string {
 		if len(config.Description) > 0 {
 			fmt.Fprintf(out, "Description:\t%s\n", config.Description)
 		}
-		describeBuilderImage(client, config, config.BuilderImage, out)
+		describeBuilderImage(client, config, out)
 		describeRuntimeImage(config, out)
 		fmt.Fprintf(out, "Source:\t%s\n", config.Source)
 		if len(config.ContextDir) > 0 {
@@ -94,7 +94,7 @@ func Config(client docker.Client, config *api.Config) string {
 	return out
 }
 
-func describeBuilderImage(client docker.Client, config *api.Config, image string, out io.Writer) {
+func describeBuilderImage(client docker.Client, config *api.Config, out io.Writer) {
 	c := &api.Config{
 		DockerConfig:       config.DockerConfig,
 		PullAuthentication: config.PullAuthentication,

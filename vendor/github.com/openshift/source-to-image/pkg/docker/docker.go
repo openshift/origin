@@ -392,7 +392,7 @@ func (d *stiDocker) UploadToContainer(fs fs.FileSystem, src, dest, container str
 // If the source is a single file, then the file copied into destination (which
 // has to be full path to a file inside the container).
 func (d *stiDocker) UploadToContainerWithTarWriter(fs fs.FileSystem, src, dest, container string, makeTarWriter func(io.Writer) s2itar.Writer) error {
-	path := filepath.Dir(dest)
+	destPath := filepath.Dir(dest)
 	r, w := io.Pipe()
 	go func() {
 		tarWriter := makeTarWriter(w)
@@ -405,10 +405,10 @@ func (d *stiDocker) UploadToContainerWithTarWriter(fs fs.FileSystem, src, dest, 
 
 		w.CloseWithError(err)
 	}()
-	glog.V(3).Infof("Uploading %q to %q ...", src, path)
+	glog.V(3).Infof("Uploading %q to %q ...", src, destPath)
 	ctx, cancel := getDefaultContext()
 	defer cancel()
-	err := d.client.CopyToContainer(ctx, container, path, r, dockertypes.CopyToContainerOptions{})
+	err := d.client.CopyToContainer(ctx, container, destPath, r, dockertypes.CopyToContainerOptions{})
 	if err != nil {
 		glog.V(0).Infof("error: Uploading to container failed: %v", err)
 	}
@@ -574,8 +574,8 @@ func (d *stiDocker) PullImage(name string) (*api.Image, error) {
 				if msg.Error != nil {
 					return msg.Error
 				}
-				if msg.ProgressMessage != "" {
-					glog.V(4).Infof("pulling image %s: %s", name, msg.ProgressMessage)
+				if msg.Progress != nil {
+					glog.V(4).Infof("pulling image %s: %s", name, msg.Progress.String())
 				}
 			}
 		})
@@ -680,7 +680,7 @@ func getVariable(image *api.Image, name string) string {
 	envName := name + "="
 	for _, v := range image.Config.Env {
 		if strings.HasPrefix(v, envName) {
-			return strings.TrimSpace((v[len(envName):]))
+			return strings.TrimSpace(v[len(envName):])
 		}
 	}
 
@@ -1058,9 +1058,9 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 		case result := <-waitC:
 			if result.StatusCode != 0 {
 				var output string
-				json, _ := d.client.ContainerInspect(ctx, container.ID)
-				if err == nil && json.ContainerJSONBase != nil && json.ContainerJSONBase.State != nil {
-					state := json.ContainerJSONBase.State
+				jsonOutput, _ := d.client.ContainerInspect(ctx, container.ID)
+				if err == nil && jsonOutput.ContainerJSONBase != nil && jsonOutput.ContainerJSONBase.State != nil {
+					state := jsonOutput.ContainerJSONBase.State
 					output = fmt.Sprintf("Status: %s, Error: %s, OOMKilled: %v, Dead: %v", state.Status, state.Error, state.OOMKilled, state.Dead)
 				}
 				return s2ierr.NewContainerError(container.ID, int(result.StatusCode), output)

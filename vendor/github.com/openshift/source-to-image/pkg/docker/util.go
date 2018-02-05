@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 
 	"github.com/docker/distribution/reference"
@@ -326,12 +325,11 @@ func isOnbuildAllowed(directives []string, allowed *user.RangeList) bool {
 }
 
 func extractUser(userSpec string) string {
-	user := userSpec
-	if strings.Contains(user, ":") {
+	if strings.Contains(userSpec, ":") {
 		parts := strings.SplitN(userSpec, ":", 2)
-		user = parts[0]
+		return strings.TrimSpace(parts[0])
 	}
-	return strings.TrimSpace(user)
+	return strings.TrimSpace(userSpec)
 }
 
 // CheckReachable returns if the Docker daemon is reachable from s2i
@@ -385,12 +383,6 @@ func GetDefaultDockerConfig() *api.DockerConfig {
 
 	if cfg.Endpoint = os.Getenv("DOCKER_HOST"); cfg.Endpoint == "" {
 		cfg.Endpoint = client.DefaultDockerHost
-
-		// TODO: remove this when we bump engine-api to >=
-		// cf82c64276ebc2501e72b241f9fdc1e21e421743
-		if runtime.GOOS == "darwin" {
-			cfg.Endpoint = "unix:///var/run/docker.sock"
-		}
 	}
 
 	certPath := os.Getenv("DOCKER_CERT_PATH")

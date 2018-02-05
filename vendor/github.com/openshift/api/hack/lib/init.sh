@@ -22,6 +22,7 @@ route/v1 \
 security/v1 \
 template/v1 \
 user/v1 \
+webconsole/v1 \
 "
 API_PACKAGES="\
 github.com/openshift/api/apps/v1,\
@@ -35,5 +36,6 @@ github.com/openshift/api/quota/v1,\
 github.com/openshift/api/route/v1,\
 github.com/openshift/api/security/v1,\
 github.com/openshift/api/template/v1,\
-github.com/openshift/api/user/v1\
+github.com/openshift/api/user/v1,\
+github.com/openshift/api/webconsole/v1\
 "

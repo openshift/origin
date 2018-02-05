@@ -10567,6 +10567,420 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"github.com/openshift/api/user/v1.User", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
+		"github.com/openshift/api/webconsole/v1.CertInfo": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "CertInfo relates a certificate with a private key",
+					Properties: map[string]spec.Schema{
+						"certFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CertFile is a file containing a PEM-encoded certificate",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"keyFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"certFile", "keyFile"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/api/webconsole/v1.ClusterInfo": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ClusterInfo holds information the web console needs to talk to the cluster such as master public URL and metrics public URL",
+					Properties: map[string]spec.Schema{
+						"consolePublicURL": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ConsolePublicURL is where you can find the web console server (TODO do we really need this?)",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"masterPublicURL": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MasterPublicURL is how the web console can access the OpenShift v1 server",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"loggingPublicURL": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LoggingPublicURL is the public endpoint for logging (optional)",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metricsPublicURL": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MetricsPublicURL is the public endpoint for metrics (optional)",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"logoutPublicURL": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LogoutPublicURL is an optional, absolute URL to redirect web browsers to after logging out of the web console. If not specified, the built-in logout page is shown.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"consolePublicURL", "masterPublicURL", "loggingPublicURL", "metricsPublicURL", "logoutPublicURL"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/api/webconsole/v1.ExtensionsConfiguration": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ExtensionsConfiguration holds custom script, stylesheets, and properties used for web console customization",
+					Properties: map[string]spec.Schema{
+						"scriptURLs": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ScriptURLs are URLs to load as scripts when the Web Console loads. The URLs must be accessible from the browser.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"stylesheetURLs": {
+							SchemaProps: spec.SchemaProps{
+								Description: "StylesheetURLs are URLs to load as stylesheets when the Web Console loads. The URLs must be accessible from the browser.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"properties": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Properties are key(string) and value(string) pairs that will be injected into the console under the global variable OPENSHIFT_EXTENSION_PROPERTIES",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"scriptURLs", "stylesheetURLs", "properties"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/api/webconsole/v1.FeaturesConfiguration": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "FeaturesConfiguration defines various feature gates for the web console",
+					Properties: map[string]spec.Schema{
+						"inactivityTimeoutMinutes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "InactivityTimeoutMinutes is the number of minutes of inactivity before you are automatically logged out of the web console (optional). If set to 0, inactivity timeout is disabled.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"clusterResourceOverridesEnabled": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterResourceOverridesEnabled indicates that the cluster is configured for overcommit. When set to true, the web console will hide the CPU request, CPU limit, and memory request fields in its editors and skip validation on those fields. The memory limit field will still be displayed.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"inactivityTimeoutMinutes", "clusterResourceOverridesEnabled"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/api/webconsole/v1.HTTPServingInfo": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "HTTPServingInfo holds configuration for serving HTTP",
+					Properties: map[string]spec.Schema{
+						"bindAddress": {
+							SchemaProps: spec.SchemaProps{
+								Description: "BindAddress is the ip:port to serve on",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"bindNetwork": {
+							SchemaProps: spec.SchemaProps{
+								Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"certFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CertFile is a file containing a PEM-encoded certificate",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"keyFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"clientCA": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"namedCertificates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/api/webconsole/v1.NamedCertificate"),
+										},
+									},
+								},
+							},
+						},
+						"minTLSVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"cipherSuites": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"maxRequestsInFlight": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"requestTimeoutSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+					},
+					Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates", "maxRequestsInFlight", "requestTimeoutSeconds"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/api/webconsole/v1.NamedCertificate"},
+		},
+		"github.com/openshift/api/webconsole/v1.NamedCertificate": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "NamedCertificate specifies a certificate/key, and the names it should be served for",
+					Properties: map[string]spec.Schema{
+						"names": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"certFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CertFile is a file containing a PEM-encoded certificate",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"keyFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"names", "certFile", "keyFile"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/api/webconsole/v1.ServingInfo": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ServingInfo holds information about serving web pages",
+					Properties: map[string]spec.Schema{
+						"bindAddress": {
+							SchemaProps: spec.SchemaProps{
+								Description: "BindAddress is the ip:port to serve on",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"bindNetwork": {
+							SchemaProps: spec.SchemaProps{
+								Description: "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"certFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CertFile is a file containing a PEM-encoded certificate",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"keyFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"clientCA": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"namedCertificates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/api/webconsole/v1.NamedCertificate"),
+										},
+									},
+								},
+							},
+						},
+						"minTLSVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"cipherSuites": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/api/webconsole/v1.NamedCertificate"},
+		},
+		"github.com/openshift/api/webconsole/v1.WebConsoleConfiguration": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "WebConsoleConfiguration holds the necessary configuration options for serving the web console",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"servingInfo": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ServingInfo is the HTTP serving information for these assets",
+								Ref:         ref("github.com/openshift/api/webconsole/v1.HTTPServingInfo"),
+							},
+						},
+						"clusterInfo": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterInfo holds information the web console needs to talk to the cluster such as master public URL and metrics public URL",
+								Ref:         ref("github.com/openshift/api/webconsole/v1.ClusterInfo"),
+							},
+						},
+						"features": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Features define various feature gates for the web console",
+								Ref:         ref("github.com/openshift/api/webconsole/v1.FeaturesConfiguration"),
+							},
+						},
+						"extensions": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Extensions define custom scripts, stylesheets, and properties used for web console customization",
+								Ref:         ref("github.com/openshift/api/webconsole/v1.ExtensionsConfiguration"),
+							},
+						},
+					},
+					Required: []string{"servingInfo", "clusterInfo", "features", "extensions"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/api/webconsole/v1.ClusterInfo", "github.com/openshift/api/webconsole/v1.ExtensionsConfiguration", "github.com/openshift/api/webconsole/v1.FeaturesConfiguration", "github.com/openshift/api/webconsole/v1.HTTPServingInfo"},
+		},
 		"k8s.io/api/admissionregistration/v1alpha1.Initializer": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{

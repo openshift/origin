@@ -5,8 +5,8 @@ import:
   version: openshift-3.9
 - package: k8s.io/code-generator
   repo:    git@github.com:openshift/kubernetes-code-generator
-  version: release-1.9.0-beta.1
+  version: release-1.9.1
 - package: k8s.io/apimachinery
-  version: release-1.9
+  version: kubernetes-1.9.1
 - package: k8s.io/api
-  version: release-1.9
+  version: kubernetes-1.9.1
