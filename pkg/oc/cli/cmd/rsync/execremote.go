@@ -14,11 +14,12 @@ import (
 
 // remoteExecutor will execute commands on a given pod/container by using the kube Exec command
 type remoteExecutor struct {
-	Namespace     string
-	PodName       string
-	ContainerName string
-	Client        kclientset.Interface
-	Config        *restclient.Config
+	Namespace         string
+	PodName           string
+	ContainerName     string
+	SuggestedCmdUsage string
+	Client            kclientset.Interface
+	Config            *restclient.Config
 }
 
 // Ensure it implements the executor interface
@@ -37,10 +38,11 @@ func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.
 			Err:           errOut,
 			Stdin:         in != nil,
 		},
-		Executor:  &kubecmd.DefaultRemoteExecutor{},
-		PodClient: e.Client.Core(),
-		Config:    e.Config,
-		Command:   command,
+		SuggestedCmdUsage: e.SuggestedCmdUsage,
+		Executor:          &kubecmd.DefaultRemoteExecutor{},
+		PodClient:         e.Client.Core(),
+		Config:            e.Config,
+		Command:           command,
 	}
 	err := execOptions.Validate()
 	if err != nil {
@@ -66,10 +68,11 @@ func newRemoteExecutor(f *clientcmd.Factory, o *RsyncOptions) (executor, error) 
 	}
 
 	return &remoteExecutor{
-		Namespace:     o.Namespace,
-		PodName:       o.PodName(),
-		ContainerName: o.ContainerName,
-		Config:        config,
-		Client:        client,
+		Namespace:         o.Namespace,
+		PodName:           o.PodName(),
+		ContainerName:     o.ContainerName,
+		SuggestedCmdUsage: o.SuggestedCmdUsage,
+		Config:            config,
+		Client:            client,
 	}, nil
 }
