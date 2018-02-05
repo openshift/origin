@@ -70,6 +70,8 @@ func testBuildDigest(oc *exutil.CLI, buildFixture string, buildLogLevel uint) {
 		logLevelArg := fmt.Sprintf("--build-loglevel=%d", buildLogLevel)
 		g.By("starting a test build")
 		br, err := exutil.StartBuildAndWait(oc, "test", logLevelArg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		br.AssertSuccess()
 
 		g.By("checking that the image digest has been saved to the build status")
 		o.Expect(br.Build.Status.Output.To).NotTo(o.BeNil())
