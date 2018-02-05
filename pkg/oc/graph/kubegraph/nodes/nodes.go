@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"github.com/gonum/graph"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
@@ -114,6 +115,37 @@ func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.Repl
 	return rcNode
 }
 
+// EnsureReplicaSetNode adds a graph node for the ReplicaSet if it does not already exist.
+func EnsureReplicaSetNode(g osgraph.MutableUniqueGraph, rs *extensions.ReplicaSet) *ReplicaSetNode {
+	rcNodeName := ReplicaSetNodeName(rs)
+	rcNode := osgraph.EnsureUnique(g,
+		rcNodeName,
+		func(node osgraph.Node) graph.Node {
+			return &ReplicaSetNode{node, rs, true}
+		},
+	).(*ReplicaSetNode)
+
+	rcSpecNode := EnsureReplicaSetSpecNode(g, &rs.Spec, rs.Namespace, rcNodeName)
+	g.AddEdge(rcNode, rcSpecNode, osgraph.ContainsEdgeKind)
+
+	return rcNode
+}
+
+func EnsureReplicaSetSpecNode(g osgraph.MutableUniqueGraph, rsSpec *extensions.ReplicaSetSpec, namespace string, ownerName osgraph.UniqueName) *ReplicaSetSpecNode {
+	rcSpecName := ReplicaSetSpecNodeName(rsSpec, ownerName)
+	rcSpecNode := osgraph.EnsureUnique(g,
+		rcSpecName,
+		func(node osgraph.Node) graph.Node {
+			return &ReplicaSetSpecNode{node, rsSpec, namespace, ownerName}
+		},
+	).(*ReplicaSetSpecNode)
+
+	ptSpecNode := EnsurePodTemplateSpecNode(g, &rsSpec.Template, namespace, rcSpecName)
+	g.AddEdge(rcSpecNode, ptSpecNode, osgraph.ContainsEdgeKind)
+
+	return rcSpecNode
+}
+
 func FindOrCreateSyntheticReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.ReplicationController) *ReplicationControllerNode {
 	return osgraph.EnsureUnique(g,
 		ReplicationControllerNodeName(rc),
@@ -121,6 +153,16 @@ func FindOrCreateSyntheticReplicationControllerNode(g osgraph.MutableUniqueGraph
 			return &ReplicationControllerNode{node, rc, false}
 		},
 	).(*ReplicationControllerNode)
+}
+
+func FindOrCreateSyntheticDeploymentNode(g osgraph.MutableUniqueGraph, deployment *extensions.Deployment) *DeploymentNode {
+	return osgraph.EnsureUnique(
+		g,
+		DeploymentNodeName(deployment),
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentNode{Node: node, Deployment: deployment, IsFound: false}
+		},
+	).(*DeploymentNode)
 }
 
 func EnsureReplicationControllerSpecNode(g osgraph.MutableUniqueGraph, rcSpec *kapi.ReplicationControllerSpec, namespace string, ownerName osgraph.UniqueName) *ReplicationControllerSpecNode {
@@ -210,4 +252,71 @@ func EnsureStatefulSetSpecNode(g osgraph.MutableUniqueGraph, spec *kapps.Statefu
 	g.AddEdge(specNode, ptSpecNode, osgraph.ContainsEdgeKind)
 
 	return specNode
+}
+
+func EnsureDeploymentNode(g osgraph.MutableUniqueGraph, deployment *extensions.Deployment) *DeploymentNode {
+	nodeName := DeploymentNodeName(deployment)
+	node := osgraph.EnsureUnique(g,
+		nodeName,
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentNode{Node: node, Deployment: deployment}
+		},
+	).(*DeploymentNode)
+
+	specNode := EnsureDeploymentSpecNode(g, &deployment.Spec, deployment.Namespace, nodeName)
+	g.AddEdge(node, specNode, osgraph.ContainsEdgeKind)
+
+	return node
+}
+
+func EnsureDeploymentSpecNode(g osgraph.MutableUniqueGraph, spec *extensions.DeploymentSpec, namespace string, ownerName osgraph.UniqueName) *DeploymentSpecNode {
+	specName := DeploymentSpecNodeName(spec, ownerName)
+	specNode := osgraph.EnsureUnique(g,
+		specName,
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentSpecNode{node, spec, namespace, ownerName}
+		},
+	).(*DeploymentSpecNode)
+
+	ptSpecNode := EnsurePodTemplateSpecNode(g, &spec.Template, namespace, specName)
+	g.AddEdge(specNode, ptSpecNode, osgraph.ContainsEdgeKind)
+
+	return specNode
+}
+
+// EnsureDaemonSetNode adds the provided daemon set to the graph if it does not exist
+func EnsureDaemonSetNode(g osgraph.MutableUniqueGraph, ds *extensions.DaemonSet) *DaemonSetNode {
+	dsName := DaemonSetNodeName(ds)
+	dsNode := osgraph.EnsureUnique(
+		g,
+		dsName,
+		func(node osgraph.Node) graph.Node {
+			return &DaemonSetNode{Node: node, DaemonSet: ds, IsFound: true}
+		},
+	).(*DaemonSetNode)
+
+	podTemplateSpecNode := EnsurePodTemplateSpecNode(g, &ds.Spec.Template, ds.Namespace, dsName)
+	g.AddEdge(dsNode, podTemplateSpecNode, osgraph.ContainsEdgeKind)
+
+	return dsNode
+}
+
+func FindOrCreateSyntheticDaemonSetNode(g osgraph.MutableUniqueGraph, ds *extensions.DaemonSet) *DaemonSetNode {
+	return osgraph.EnsureUnique(
+		g,
+		DaemonSetNodeName(ds),
+		func(node osgraph.Node) graph.Node {
+			return &DaemonSetNode{Node: node, DaemonSet: ds, IsFound: false}
+		},
+	).(*DaemonSetNode)
+}
+
+func FindOrCreateSyntheticReplicaSetNode(g osgraph.MutableUniqueGraph, rs *extensions.ReplicaSet) *ReplicaSetNode {
+	return osgraph.EnsureUnique(
+		g,
+		ReplicaSetNodeName(rs),
+		func(node osgraph.Node) graph.Node {
+			return &ReplicaSetNode{Node: node, ReplicaSet: rs, IsFound: false}
+		},
+	).(*ReplicaSetNode)
 }

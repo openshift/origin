@@ -62,7 +62,7 @@ func TestOverlappingHPAsWarning(t *testing.T) {
 	}
 
 	kubegraph.AddHPAScaleRefEdges(g)
-	appsgraph.AddAllDeploymentEdges(g)
+	appsgraph.AddAllDeploymentConfigsDeploymentEdges(g)
 
 	markers := FindOverlappingHPAs(g, osgraph.DefaultNamer)
 	if len(markers) != 8 {
@@ -87,7 +87,7 @@ func TestOverlappingLegacyHPAsWarning(t *testing.T) {
 	}
 
 	kubegraph.AddHPAScaleRefEdges(g)
-	appsgraph.AddAllDeploymentEdges(g)
+	appsgraph.AddAllDeploymentConfigsDeploymentEdges(g)
 
 	markers := FindOverlappingHPAs(g, osgraph.DefaultNamer)
 	if len(markers) != 8 {

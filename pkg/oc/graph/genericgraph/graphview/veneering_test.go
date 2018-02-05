@@ -31,7 +31,7 @@ func TestServiceGroup(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
-	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
 
 	coveredNodes := IntSet{}
 
@@ -104,7 +104,7 @@ func TestBareDCGroup(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
-	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
 
 	coveredNodes := IntSet{}
 
@@ -160,7 +160,7 @@ func TestBareBCGroup(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
-	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
 
 	coveredNodes := IntSet{}
 
@@ -348,8 +348,8 @@ func TestGraph(t *testing.T) {
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
-	appsedges.AddAllTriggerEdges(g)
-	appsedges.AddAllDeploymentEdges(g)
+	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
+	appsedges.AddAllDeploymentConfigsDeploymentEdges(g)
 
 	t.Log(g)
 
@@ -399,7 +399,7 @@ func TestGraph(t *testing.T) {
 	}
 
 	for _, bareDCPipeline := range bareDCPipelines {
-		t.Logf("from %s", bareDCPipeline.Deployment.DeploymentConfig.Name)
+		t.Logf("from %s", bareDCPipeline.DeploymentConfig.DeploymentConfig.Name)
 		for _, path := range bareDCPipeline.Images {
 			t.Logf("  %v", path)
 		}
@@ -413,7 +413,7 @@ func TestGraph(t *testing.T) {
 		indent := "  "
 
 		for _, deployment := range serviceGroup.DeploymentConfigPipelines {
-			t.Logf("%sdeployment %s", indent, deployment.Deployment.DeploymentConfig.Name)
+			t.Logf("%sdeployment %s", indent, deployment.DeploymentConfig.DeploymentConfig.Name)
 			for _, image := range deployment.Images {
 				t.Logf("%s  image %s", indent, image.Image.ImageSpec())
 				if image.Build != nil {

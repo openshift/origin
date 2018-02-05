@@ -1,6 +1,7 @@
 package kubegraph
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/gonum/graph"
@@ -12,11 +13,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
+	"github.com/openshift/origin/pkg/image/trigger/annotations"
 	appsgraph "github.com/openshift/origin/pkg/oc/graph/appsgraph/nodes"
 	osgraph "github.com/openshift/origin/pkg/oc/graph/genericgraph"
+	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
 )
 
@@ -33,6 +38,12 @@ const (
 	ReferencedServiceAccountEdgeKind = "ReferencedServiceAccount"
 	// ScalingEdgeKind goes from HorizontalPodAutoscaler to scaled objects indicating that the HPA scales the object
 	ScalingEdgeKind = "Scaling"
+	// TriggersDeploymentEdgeKind points from DeploymentConfigs to ImageStreamTags that trigger the deployment
+	TriggersDeploymentEdgeKind = "TriggersDeployment"
+	// UsedInDeploymentEdgeKind points from DeploymentConfigs to DockerImageReferences that are used in the deployment
+	UsedInDeploymentEdgeKind = "UsedInDeployment"
+	// DeploymentEdgeKind points from Deployment to the ReplicaSet that are fulfilling the deployment
+	DeploymentEdgeKind = "Deployment"
 )
 
 // AddExposedPodTemplateSpecEdges ensures that a directed edge exists between a service and all the PodTemplateSpecs
@@ -121,6 +132,8 @@ func AddAllManagedByControllerPodEdges(g osgraph.MutableUniqueGraph) {
 		switch cast := node.(type) {
 		case *kubegraph.ReplicationControllerNode:
 			AddManagedByControllerPodEdges(g, cast, cast.ReplicationController.Namespace, cast.ReplicationController.Spec.Selector)
+		case *kubegraph.ReplicaSetNode:
+			AddManagedByControllerPodEdges(g, cast, cast.ReplicaSet.Namespace, cast.ReplicaSet.Spec.Selector.MatchLabels)
 		case *kubegraph.StatefulSetNode:
 			// TODO: refactor to handle expanded selectors (along with ReplicaSets and Deployments)
 			AddManagedByControllerPodEdges(g, cast, cast.StatefulSet.Namespace, cast.StatefulSet.Spec.Selector.MatchLabels)
@@ -243,12 +256,148 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &kapi.ReplicationController{ObjectMeta: syntheticMeta})
 		case appsapi.IsResourceOrLegacy("deploymentconfigs", r):
 			syntheticNode = appsgraph.FindOrCreateSyntheticDeploymentConfigNode(g, &appsapi.DeploymentConfig{ObjectMeta: syntheticMeta})
-		case r == kapisext.Resource("deployments"):
-			syntheticNode = appsgraph.FindOrCreateSyntheticDeploymentNode(g, &kapisext.Deployment{ObjectMeta: syntheticMeta})
+		case r == extensions.Resource("deployments"):
+			syntheticNode = kubegraph.FindOrCreateSyntheticDeploymentNode(g, &extensions.Deployment{ObjectMeta: syntheticMeta})
 		default:
 			continue
 		}
 
 		g.AddEdge(hpaNode, syntheticNode, ScalingEdgeKind)
+	}
+}
+
+func addTriggerEdges(obj runtime.Object, podTemplate kapi.PodTemplateSpec, addEdgeFn func(image appsapi.TemplateImage, err error)) {
+	m, err := meta.Accessor(obj)
+	if err != nil {
+		return
+	}
+	triggerAnnotation, ok := m.GetAnnotations()[triggerapi.TriggerAnnotationKey]
+	if !ok {
+		return
+	}
+	triggers := []triggerapi.ObjectFieldTrigger{}
+	if err := json.Unmarshal([]byte(triggerAnnotation), &triggers); err != nil {
+		return
+	}
+	triggerFn := func(container *kapi.Container) (appsapi.TemplateImage, bool) {
+		from := kapi.ObjectReference{}
+		for _, trigger := range triggers {
+			c, remainder, err := annotations.ContainerForObjectFieldPath(obj, trigger.FieldPath)
+			if err != nil || remainder != "image" {
+				continue
+			}
+			from.Namespace = trigger.From.Namespace
+			if len(from.Namespace) == 0 {
+				from.Namespace = m.GetNamespace()
+			}
+			from.Name = trigger.From.Name
+			from.Kind = trigger.From.Kind
+			if len(from.Kind) == 0 {
+				from.Kind = "ImageStreamTag"
+			}
+			return appsapi.TemplateImage{
+				Image: c.GetImage(),
+				From:  &from,
+			}, true
+		}
+		return appsapi.TemplateImage{}, false
+	}
+	appsapi.EachTemplateImage(&podTemplate.Spec, triggerFn, addEdgeFn)
+}
+
+func AddTriggerStatefulSetsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.StatefulSetNode) *kubegraph.StatefulSetNode {
+	addTriggerEdges(node.StatefulSet, node.StatefulSet.Spec.Template, func(image appsapi.TemplateImage, err error) {
+		if err != nil {
+			return
+		}
+		if image.From != nil {
+			if len(image.From.Name) == 0 {
+				return
+			}
+			name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
+			g.AddEdge(in, node, TriggersDeploymentEdgeKind)
+			return
+		}
+
+		tag := image.Ref.Tag
+		image.Ref.Tag = ""
+		in := imagegraph.EnsureDockerRepositoryNode(g, image.Ref.String(), tag)
+		g.AddEdge(in, node, UsedInDeploymentEdgeKind)
+	})
+	return node
+}
+
+func AddAllTriggerStatefulSetsEdges(g osgraph.MutableUniqueGraph) {
+	for _, node := range g.(graph.Graph).Nodes() {
+		if sNode, ok := node.(*kubegraph.StatefulSetNode); ok {
+			AddTriggerStatefulSetsEdges(g, sNode)
+		}
+	}
+}
+
+func AddTriggerDeploymentsEdges(g osgraph.MutableUniqueGraph, node *kubegraph.DeploymentNode) *kubegraph.DeploymentNode {
+	addTriggerEdges(node.Deployment, node.Deployment.Spec.Template, func(image appsapi.TemplateImage, err error) {
+		if err != nil {
+			return
+		}
+		if image.From != nil {
+			if len(image.From.Name) == 0 {
+				return
+			}
+			name, tag, _ := imageapi.SplitImageStreamTag(image.From.Name)
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(image.From.Namespace, name, tag))
+			g.AddEdge(in, node, TriggersDeploymentEdgeKind)
+			return
+		}
+		tag := image.Ref.Tag
+		image.Ref.Tag = ""
+		in := imagegraph.EnsureDockerRepositoryNode(g, image.Ref.String(), tag)
+		g.AddEdge(in, node, UsedInDeploymentEdgeKind)
+	})
+	return node
+}
+
+func AddAllTriggerDeploymentsEdges(g osgraph.MutableUniqueGraph) {
+	for _, node := range g.(graph.Graph).Nodes() {
+		if dNode, ok := node.(*kubegraph.DeploymentNode); ok {
+			AddTriggerDeploymentsEdges(g, dNode)
+		}
+	}
+}
+
+func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *kubegraph.DeploymentNode) *kubegraph.DeploymentNode {
+	for _, n := range g.(graph.Graph).Nodes() {
+		if rsNode, ok := n.(*kubegraph.ReplicaSetNode); ok {
+			if rsNode.ReplicaSet.Namespace != node.Deployment.Namespace {
+				continue
+			}
+			if BelongsToDeployment(node.Deployment, rsNode.ReplicaSet) {
+				g.AddEdge(node, rsNode, DeploymentEdgeKind)
+				g.AddEdge(rsNode, node, ManagedByControllerEdgeKind)
+			}
+		}
+	}
+
+	return node
+}
+
+func BelongsToDeployment(config *extensions.Deployment, b *extensions.ReplicaSet) bool {
+	if b.OwnerReferences == nil {
+		return false
+	}
+	for _, ref := range b.OwnerReferences {
+		if ref.Kind == "Deployment" && ref.Name == config.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func AddAllDeploymentEdges(g osgraph.MutableUniqueGraph) {
+	for _, node := range g.(graph.Graph).Nodes() {
+		if dNode, ok := node.(*kubegraph.DeploymentNode); ok {
+			AddDeploymentEdges(g, dNode)
+		}
 	}
 }

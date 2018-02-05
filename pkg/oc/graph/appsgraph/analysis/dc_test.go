@@ -16,7 +16,7 @@ func TestMissingImageStreamTag(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	buildedges.AddAllInputOutputEdges(g)
-	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 	imageedges.AddAllImageStreamImageRefEdges(g)
 
@@ -36,7 +36,7 @@ func TestMissingImageStream(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	buildedges.AddAllInputOutputEdges(g)
-	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 	imageedges.AddAllImageStreamImageRefEdges(g)
 
@@ -56,7 +56,7 @@ func TestMissingReadinessProbe(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	buildedges.AddAllInputOutputEdges(g)
-	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerDeploymentConfigsEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
 	markers := FindDeploymentConfigReadinessWarnings(g, osgraph.DefaultNamer, "command probe")

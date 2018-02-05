@@ -560,7 +560,7 @@ func (p *pruner) addDaemonSetsToGraph(dss *kapisext.DaemonSetList) []error {
 		ds := &dss.Items[i]
 		desc := fmt.Sprintf("DaemonSet %s", getName(ds))
 		glog.V(4).Infof("Examining %s", desc)
-		dsNode := appsgraph.EnsureDaemonSetNode(p.g, ds)
+		dsNode := kubegraph.EnsureDaemonSetNode(p.g, ds)
 		errs = append(errs, p.addPodSpecToGraph(getRef(ds), &ds.Spec.Template.Spec, dsNode)...)
 	}
 
@@ -578,7 +578,7 @@ func (p *pruner) addDeploymentsToGraph(dmnts *kapisext.DeploymentList) []error {
 		d := &dmnts.Items[i]
 		ref := getRef(d)
 		glog.V(4).Infof("Examining %s", getKindName(ref))
-		dNode := appsgraph.EnsureDeploymentNode(p.g, d)
+		dNode := kubegraph.EnsureDeploymentNode(p.g, d)
 		errs = append(errs, p.addPodSpecToGraph(ref, &d.Spec.Template.Spec, dNode)...)
 	}
 
@@ -615,7 +615,7 @@ func (p *pruner) addReplicaSetsToGraph(rss *kapisext.ReplicaSetList) []error {
 		rs := &rss.Items[i]
 		ref := getRef(rs)
 		glog.V(4).Infof("Examining %s", getKindName(ref))
-		rsNode := appsgraph.EnsureReplicaSetNode(p.g, rs)
+		rsNode := kubegraph.EnsureReplicaSetNode(p.g, rs)
 		errs = append(errs, p.addPodSpecToGraph(ref, &rs.Spec.Template.Spec, rsNode)...)
 	}
 
