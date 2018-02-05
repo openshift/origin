@@ -13708,7 +13708,7 @@ metadata:
     "openshift.io/display-name": Heapster Metrics (Standalone)
     description: |
       A simple metrics solution for an OpenShift cluster. Expects to be installed in the 'kube-system' namespace.
-    iconClass: icon-cogs
+    iconClass: fa fa-cogs
     tags: "metrics,monitoring,heapster"
   labels:
     metrics-infra: heapster
@@ -13839,7 +13839,7 @@ metadata:
     "openshift.io/display-name": Prometheus
     description: |
       A monitoring solution for an OpenShift cluster - collect and gather metrics and alerts from nodes, services, and the infrastructure. This is a tech preview feature.
-    iconClass: icon-cogs
+    iconClass: fa fa-cogs
     tags: "monitoring,prometheus, alertmanager,time-series"
 parameters:
 - description: The namespace to instantiate prometheus under. Defaults to 'kube-system'.
