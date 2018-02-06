@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a7c58e16e74e0e4d95400aa3535fe278292952bc
+%global commit f2718f7b1fcbc7299bddad6f1799037d89b9b6cd
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.37.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.3 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=ec78881 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.38.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.3 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=6f7a2d7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.38.0%{?dist}
+Release:        0.39.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,12 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Feb 06 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.39.0
+- apps: do not inject oversized env vars into deployer pod (mfojtik@redhat.com)
+- bootstrap: Remove unused ErrSocatNotFound (walters@verbum.org)
+- better failure debug for fetch url tests (bparees@redhat.com)
+- node selector annotation for any label. (mrsiano@gmail.com)
+
 * Mon Feb 05 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.38.0
 - expect build success in test (bparees@redhat.com)
 - add suggestion to describe pod for container names (jvallejo@redhat.com)
