@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/golang/glog"
@@ -107,6 +108,17 @@ func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func isServerRelativeURL(then string) bool {
+	if len(then) == 0 {
+		return false
+	}
+	u, err := url.Parse(then)
+	if err != nil {
+		return false
+	}
+	return len(u.Scheme) == 0 && len(u.Host) == 0 && strings.HasPrefix(u.Path, "/")
+}
+
 func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 	uri, err := getBaseURL(req)
 	if err != nil {
@@ -125,8 +137,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 			Password: passwordParam,
 		},
 	}
-	if then := req.URL.Query().Get("then"); then != "" {
-		// TODO: sanitize 'then'
+	if then := req.URL.Query().Get("then"); isServerRelativeURL(then) {
 		form.Values.Then = then
 	} else {
 		http.Redirect(w, req, "/", http.StatusFound)
@@ -158,7 +169,7 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	then := req.FormValue("then")
-	if len(then) == 0 {
+	if !isServerRelativeURL(then) {
 		http.Redirect(w, req, "/", http.StatusFound)
 		return
 	}
