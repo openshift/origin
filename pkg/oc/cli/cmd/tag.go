@@ -141,7 +141,10 @@ func determineSourceKind(f *clientcmd.Factory, input string) (string, error) {
 
 	mapper, _ := f.Object()
 	gvks, err := mapper.KindsFor(schema.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
-	return gvks[0].Kind, err
+	if err == nil && len(gvks) > 0 {
+		return gvks[0].Kind, nil
+	}
+	return "", err
 }
 
 // Complete completes all the required options for the tag command.
@@ -180,6 +183,9 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 			sourceKind, err = determineSourceKind(f, sourceKind)
 			if err != nil {
 				return fmt.Errorf("failed to determine source kind: %v", err)
+			}
+			if len(sourceKind) == 0 {
+				return fmt.Errorf("failed to determine source kind. client might not be compatible with server side")
 			}
 		}
 		if len(sourceKind) > 0 {
