@@ -49,7 +49,7 @@ ${component} and ${version}; any others will cause this error.
 This could be a typo or you might be intending to hardcode something,
 such as a version which should be specified as e.g. v3.0, not ${v3.0}.
 Note that the --images flag may be supplied via the master, node, or
-"openshift admin registry/router" invocations and should usually
+"oc adm registry/router" invocations and should usually
 be the same for each.`,
 }
 
