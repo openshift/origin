@@ -116,6 +116,48 @@ func okContainer() *v1.Container {
 	}
 }
 
+func TestMakeDeployerContainer(t *testing.T) {
+	randSeq := func(n int) string {
+		b := make([]byte, n)
+		for i := range b {
+			b[i] = '0'
+		}
+		return string(b)
+	}
+	client := &fake.Clientset{}
+	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
+	strategy := appstest.OkRollingStrategy()
+	tests := []struct {
+		name        string
+		environment []v1.EnvVar
+		expected    []v1.EnvVar
+	}{
+		{
+			name:        "simple var should be injected",
+			environment: []v1.EnvVar{{Name: "FOO", Value: "BAR"}},
+			expected:    []v1.EnvVar{{Name: "FOO", Value: "BAR"}},
+		},
+		{
+			name:        "big vars should not be injected",
+			environment: []v1.EnvVar{{Name: "FOO", Value: randSeq(1001 * 128)}},
+			expected:    []v1.EnvVar{},
+		},
+	}
+	for _, test := range tests {
+		controller.environment = test.environment
+		container := controller.makeDeployerContainer(&strategy)
+		if len(test.expected) == 0 {
+			if len(container.Env) > 0 {
+				t.Errorf("%s: expected no variables in container env vars, got %#v", test.name, container.Env)
+			}
+			continue
+		}
+		if !reflect.DeepEqual(container.Env, test.expected) {
+			t.Errorf("%s: expected env vars (%#v) does match container env vars (%#v)", test.name, test.expected, container.Env)
+		}
+	}
+}
+
 // TestHandle_createPodOk ensures that a deployer pod created in response
 // to a new deployment is valid.
 func TestHandle_createPodOk(t *testing.T) {
