@@ -57,7 +57,8 @@ image_config = {
     image_prefix: {
         "directory": "origin",
         "binaries": {
-            "openshift": "/usr/bin/openshift"
+            "openshift": "/usr/bin/openshift",
+            "hyperkube": "/usr/bin/hyperkube"
         },
         "files": {}
     },
