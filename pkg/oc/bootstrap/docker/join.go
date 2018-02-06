@@ -61,8 +61,8 @@ func NewCmdJoin(name, fullName string, f *osclientcmd.Factory, in io.Reader, out
 		Long:    cmdJoinLong,
 		Example: fmt.Sprintf(cmdJoinExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(config.Complete(f, c))
-			kcmdutil.CheckErr(config.Validate(out))
+			kcmdutil.CheckErr(config.Complete(f, c, out))
+			kcmdutil.CheckErr(config.Validate())
 			if err := config.Start(out); err != nil {
 				os.Exit(1)
 			}
@@ -86,7 +86,7 @@ func (config *ClientJoinConfig) Bind(flags *pflag.FlagSet) {
 }
 
 // Complete initializes fields based on command parameters and execution environment
-func (c *ClientJoinConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) error {
+func (c *ClientJoinConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
 	if len(c.Secret) == 0 && c.In != nil {
 		fmt.Fprintf(c.Out, "Please paste the contents of your secret here and hit ENTER:\n")
 		data, err := ioutil.ReadAll(c.In)
@@ -96,7 +96,7 @@ func (c *ClientJoinConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) 
 		c.Secret = string(data)
 	}
 
-	if err := c.CommonStartConfig.Complete(f, cmd); err != nil {
+	if err := c.CommonStartConfig.Complete(f, cmd, out); err != nil {
 		return err
 	}
 
