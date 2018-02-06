@@ -39,6 +39,7 @@ type AggregatedLogging struct {
 	sumResult         types.DiagnosticResult
 	projResult        map[string]types.DiagnosticResult
 	currentProject    string
+	CmdlineProject    string
 }
 
 const (
@@ -50,6 +51,8 @@ const (
 	openshiftValue  = "openshift"
 
 	fluentdServiceAccountName = "aggregated-logging-fluentd"
+
+	flagLoggingProject = "logging-project"
 )
 
 var loggingSelector = labels.Set{loggingInfraKey: "support"}
@@ -64,10 +67,14 @@ func NewAggregatedLogging(
 	crbClient oauthorizationtypedclient.ClusterRoleBindingsGetter,
 	dcClient appstypedclient.DeploymentConfigsGetter,
 	sccClient securitytypedclient.SecurityContextConstraintsGetter,
+	cmdlineProject string,
 ) *AggregatedLogging {
 	projResult := make(map[string]types.DiagnosticResult)
 	for _, p := range loggingProjects {
 		projResult[p] = types.NewDiagnosticResult(AggregatedLoggingName)
+	}
+	if len(cmdlineProject) > 0 {
+		projResult[cmdlineProject] = types.NewDiagnosticResult(AggregatedLoggingName)
 	}
 	return &AggregatedLogging{
 		OAuthClientClient: oauthClientClient,
@@ -80,6 +87,7 @@ func NewAggregatedLogging(
 		sumResult:         types.NewDiagnosticResult(AggregatedLoggingName),
 		projResult:        projResult,
 		currentProject:    loggingProjects[0],
+		CmdlineProject:    cmdlineProject,
 	}
 }
 
@@ -122,6 +130,8 @@ func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.Lis
 	return d.DCClient.DeploymentConfigs(project).List(options)
 }
 func (d *AggregatedLogging) checkProjectDiagnostics(project string) {
+	d.currentProject = project
+	d.Debug("AGL0010", fmt.Sprintf("Trying diagnostics for project '%s'", project))
 	p, err := d.ProjectClient.Projects().Get(project, metav1.GetOptions{})
 	if err != nil {
 		d.Error("AGL0012", err, fmt.Sprintf("There was an error retrieving project '%s' which is most likely a transient error: %s", project, err))
@@ -184,9 +194,12 @@ func (d *AggregatedLogging) CanRun() (bool, error) {
 }
 
 func (d *AggregatedLogging) Check() types.DiagnosticResult {
+	if len(d.CmdlineProject) > 0 {
+		d.checkProjectDiagnostics(d.CmdlineProject)
+		return d.sumResult
+	}
+
 	for _, p := range loggingProjects {
-		d.currentProject = p
-		d.Debug("AGL0010", fmt.Sprintf("Trying diagnostics for project '%s'", p))
 		d.checkProjectDiagnostics(p)
 		if d.projResult[p].Failure() {
 			d.Debug("AGL0020", fmt.Sprintf("Diagnostics for project '%s' have errors", p))
@@ -207,6 +220,12 @@ func (d *AggregatedLogging) Check() types.DiagnosticResult {
 	msg := fmt.Sprintf("Unable to find the AggregatedLogging project without errors%s", buff.String())
 	d.Error("AGL0030", fmt.Errorf(msg), msg)
 	return d.sumResult
+}
+
+func (d *AggregatedLogging) AvailableParameters() []types.Parameter {
+	return []types.Parameter{
+		{flagLoggingProject, "A project AggregatedLogging has been deployed to", &d.CmdlineProject, ""},
+	}
 }
 
 const projectNodeSelectorWarning = `
