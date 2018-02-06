@@ -111,6 +111,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 						if strings.Contains(response, c.expectedString) {
 							return true, nil
 						}
+						e2e.Logf("url check got %s, expected it to contain %s", response, c.expectedString)
 						return false, nil
 					})
 					o.Expect(response).Should(o.ContainSubstring(c.expectedString))
