@@ -132,29 +132,16 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 	return namespace, streamName, nil
 }
 
-func determineSourceKind(f *clientcmd.Factory, input string) string {
-	mapper, _ := f.Object()
-	gvks, err := mapper.KindsFor(schema.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
-	if err == nil {
-		return gvks[0].Kind
-	}
-
+func determineSourceKind(f *clientcmd.Factory, input string) (string, error) {
 	// DockerImage isn't in RESTMapper
 	switch strings.ToLower(input) {
 	case "docker", "dockerimage":
-		return "DockerImage"
+		return "DockerImage", nil
 	}
 
-	glog.V(1).Infof("error while determining source kind: %v", err)
-
-	switch strings.ToLower(input) {
-	case "istag", "imagestreamtag":
-		return "ImageStreamTag"
-	case "isimage", "imagestreamimage":
-		return "ImageStreamImage"
-	}
-
-	return input
+	mapper, _ := f.Object()
+	gvks, err := mapper.KindsFor(schema.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
+	return gvks[0].Kind, err
 }
 
 // Complete completes all the required options for the tag command.
@@ -189,7 +176,11 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 		sourceKind := o.sourceKind
 		if len(sourceKind) > 0 {
-			sourceKind = determineSourceKind(f, sourceKind)
+			var err error
+			sourceKind, err = determineSourceKind(f, sourceKind)
+			if err != nil {
+				return fmt.Errorf("failed to determine source kind: %v", err)
+			}
 		}
 		if len(sourceKind) > 0 {
 			validSources := sets.NewString("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
