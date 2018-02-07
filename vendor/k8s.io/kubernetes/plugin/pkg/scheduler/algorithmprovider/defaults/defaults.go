@@ -110,10 +110,6 @@ func init() {
 	factory.RegisterPriorityFunction2("ImageLocalityPriority", priorities.ImageLocalityPriorityMap, nil, 1)
 	// Optional, cluster-autoscaler friendly priority function - give used nodes higher priority.
 	factory.RegisterPriorityFunction2("MostRequestedPriority", priorities.MostRequestedPriorityMap, nil, 1)
-	// Prioritizes nodes that satisfy pod's resource limits
-	if utilfeature.DefaultFeatureGate.Enabled(features.ResourceLimitsPriorityFunction) {
-		factory.RegisterPriorityFunction2("ResourceLimitsPriority", priorities.ResourceLimitsPriorityMap, nil, 1)
-	}
 }
 
 func defaultPredicates() sets.String {
@@ -185,7 +181,6 @@ func defaultPredicates() sets.String {
 
 // ApplyFeatureGates applies algorithm by feature gates.
 func ApplyFeatureGates() {
-
 	if utilfeature.DefaultFeatureGate.Enabled(features.TaintNodesByCondition) {
 		// Remove "CheckNodeCondition" predicate
 		factory.RemoveFitPredicate("CheckNodeCondition")
@@ -202,6 +197,11 @@ func ApplyFeatureGates() {
 		factory.InsertPredicateKeyToAlgorithmProviderMap("PodToleratesNodeTaints")
 
 		glog.Warningf("TaintNodesByCondition is enabled, PodToleratesNodeTaints predicate is mandatory")
+	}
+
+	// Prioritizes nodes that satisfy pod's resource limits
+	if utilfeature.DefaultFeatureGate.Enabled(features.ResourceLimitsPriorityFunction) {
+		factory.RegisterPriorityFunction2("ResourceLimitsPriority", priorities.ResourceLimitsPriorityMap, nil, 1)
 	}
 }
 
