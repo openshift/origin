@@ -5,6 +5,11 @@ package trigger
 // containers can be specified by fieldPath.
 const TriggerAnnotationKey = "image.openshift.io/triggers"
 
+// TriggerResumeKey is the annotation used on resources to signal they wish to be resumed
+// if they are paused when a new image is available. This is being used to handle initial
+// rollouts for Deployments.
+const TriggerResumeKey = "image.openshift.io/triggers-resume"
+
 // ObjectFieldTrigger links a field on the current object to another object for mutation.
 type ObjectFieldTrigger struct {
 	// from is the object this should trigger from. The kind and name fields must be set.

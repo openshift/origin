@@ -249,12 +249,30 @@ func (i annotationTriggerIndexer) Index(obj, old interface{}) (string, *trigger.
 	return "", nil, change, nil
 }
 
+func shouldBeResumed(obj runtime.Object) bool {
+	m, err := meta.Accessor(obj)
+	if err != nil {
+		return false
+	}
+	_, exists := m.GetAnnotations()[triggerapi.TriggerResumeKey]
+	if exists {
+		glog.V(5).Infof("Object %s/%s will be resumed", m.GetNamespace(), m.GetName())
+		return true
+	}
+	return false
+}
+
 type AnnotationUpdater interface {
 	Update(obj runtime.Object) error
 }
 
+type ObjectResumer interface {
+	Resume(obj runtime.Object) error
+}
+
 type AnnotationReactor struct {
 	Updater AnnotationUpdater
+	Resumer ObjectResumer
 }
 
 func (r *AnnotationReactor) ImageChanged(obj runtime.Object, tagRetriever trigger.TagRetriever) error {
@@ -262,8 +280,16 @@ func (r *AnnotationReactor) ImageChanged(obj runtime.Object, tagRetriever trigge
 	if err != nil {
 		return err
 	}
-	if changed != nil {
-		return r.Updater.Update(changed)
+	if changed == nil {
+		return nil
+	}
+	if err := r.Updater.Update(changed); err != nil {
+		return err
+	}
+	if r.Resumer != nil && shouldBeResumed(obj) {
+		if err := r.Resumer.Resume(obj); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -341,7 +341,7 @@ func (r *DeploymentRef) Deployment() (*v1.Deployment, error) {
 	}
 
 	selector := map[string]string{
-		"deploymentconfig": r.Name,
+		"deployment": r.Name,
 	}
 	if len(r.Labels) > 0 {
 		if err := util.MergeInto(selector, r.Labels, 0); err != nil {
@@ -425,6 +425,11 @@ func (r *DeploymentRef) Deployment() (*v1.Deployment, error) {
 			a = make(map[string]string)
 		}
 		a[triggerapi.TriggerAnnotationKey] = string(out)
+		// This annotation will be cleared up by trigger controller when the deployment is resumed
+		// after the images are available.
+		a[triggerapi.TriggerResumeKey] = "true"
+		// Pause deployment to handle initial rollout.
+		d.Spec.Paused = true
 		d.SetAnnotations(a)
 	}
 	return d, nil
