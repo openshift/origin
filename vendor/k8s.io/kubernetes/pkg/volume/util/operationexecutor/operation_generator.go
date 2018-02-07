@@ -490,14 +490,6 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 
 			glog.Infof(volumeToMount.GenerateMsgDetailed("MountVolume.WaitForAttach succeeded", fmt.Sprintf("DevicePath %q", devicePath)))
 
-			// resizeFileSystem will resize the file system if user has requested a resize of
-			// underlying persistent volume and is allowed to do so.
-			resizeError := og.resizeFileSystem(volumeToMount, devicePath, volumePlugin.GetPluginName())
-
-			if resizeError != nil {
-				return volumeToMount.GenerateError("MountVolume.Resize failed", resizeError)
-			}
-
 			deviceMountPath, err :=
 				volumeAttacher.GetDeviceMountPath(volumeToMount.VolumeSpec)
 			if err != nil {
@@ -524,6 +516,15 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 				// On failure, return error. Caller will log and retry.
 				return volumeToMount.GenerateError("MountVolume.MarkDeviceAsMounted failed", markDeviceMountedErr)
 			}
+
+			// resizeFileSystem will resize the file system if user has requested a resize of
+			// underlying persistent volume and is allowed to do so.
+			resizeError := og.resizeFileSystem(volumeToMount, devicePath, deviceMountPath, volumePlugin.GetPluginName())
+
+			if resizeError != nil {
+				return volumeToMount.GenerateError("MountVolume.Resize failed", resizeError)
+			}
+
 		}
 
 		if og.checkNodeCapabilitiesBeforeMount {
@@ -581,7 +582,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 	}, nil
 }
 
-func (og *operationGenerator) resizeFileSystem(volumeToMount VolumeToMount, devicePath string, pluginName string) error {
+func (og *operationGenerator) resizeFileSystem(volumeToMount VolumeToMount, devicePath, deviceMountPath, pluginName string) error {
 	if !utilfeature.DefaultFeatureGate.Enabled(features.ExpandPersistentVolumes) {
 		glog.V(6).Infof("Resizing is not enabled for this volume %s", volumeToMount.VolumeName)
 		return nil
@@ -621,7 +622,7 @@ func (og *operationGenerator) resizeFileSystem(volumeToMount VolumeToMount, devi
 			}
 
 			resizer := resizefs.NewResizeFs(diskFormatter)
-			resizeStatus, resizeErr := resizer.Resize(devicePath)
+			resizeStatus, resizeErr := resizer.Resize(devicePath, deviceMountPath)
 
 			if resizeErr != nil {
 				resizeDetailedError := volumeToMount.GenerateErrorDetailed("MountVolume.resizeFileSystem failed", resizeErr)
