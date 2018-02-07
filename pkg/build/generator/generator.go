@@ -275,13 +275,16 @@ func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.B
 		// Update the Docker build args
 		if dockerOpts.BuildArgs != nil && len(dockerOpts.BuildArgs) > 0 {
 			if newBuild.Spec.Strategy.DockerStrategy == nil {
-				return nil, errors.NewBadRequest(fmt.Sprintf("Cannot specify build args on %s/%s, not a Docker build.", bc.Namespace, bc.ObjectMeta.Name))
+				return nil, errors.NewBadRequest(fmt.Sprintf("Cannot specify Docker build specific options on %s/%s, not a Docker build.", bc.Namespace, bc.ObjectMeta.Name))
 			}
 			newBuild.Spec.Strategy.DockerStrategy.BuildArgs = updateBuildArgs(&newBuild.Spec.Strategy.DockerStrategy.BuildArgs, dockerOpts.BuildArgs)
 		}
 
 		// Update the Docker noCache option
 		if dockerOpts.NoCache != nil {
+			if newBuild.Spec.Strategy.DockerStrategy == nil {
+				return nil, errors.NewBadRequest(fmt.Sprintf("Cannot specify Docker build specific options on %s/%s, not a Docker build.", bc.Namespace, bc.ObjectMeta.Name))
+			}
 			newBuild.Spec.Strategy.DockerStrategy.NoCache = *dockerOpts.NoCache
 		}
 	}
@@ -292,6 +295,9 @@ func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.B
 
 		// Update the Source incremental option
 		if sourceOpts.Incremental != nil {
+			if newBuild.Spec.Strategy.SourceStrategy == nil {
+				return nil, errors.NewBadRequest(fmt.Sprintf("Cannot specify Source build specific options on %s/%s, not a Source build.", bc.Namespace, bc.ObjectMeta.Name))
+			}
 			newBuild.Spec.Strategy.SourceStrategy.Incremental = sourceOpts.Incremental
 		}
 	}

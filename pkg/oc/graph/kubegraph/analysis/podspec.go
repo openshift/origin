@@ -95,6 +95,12 @@ func FindMissingLivenessProbes(g osgraph.Graph, f osgraph.Namer, setProbeCommand
 			continue
 		}
 
+		// skip any podSpec nodes that belong to Pods with controller
+		// owner references.
+		if hasControllerOwnerReference(topLevelNode) {
+			continue
+		}
+
 		topLevelString := f.ResourceName(topLevelNode)
 		markers = append(markers, osgraph.Marker{
 			Node:         podSpecNode,
@@ -116,6 +122,20 @@ func FindMissingLivenessProbes(g osgraph.Graph, f osgraph.Namer, setProbeCommand
 func hasLivenessProbe(podSpecNode *kubegraph.PodSpecNode) bool {
 	for _, container := range podSpecNode.PodSpec.Containers {
 		if container.LivenessProbe != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// hasControllerOwnerReference returns true if a given Pod node is controller controlled.
+func hasControllerOwnerReference(node graph.Node) bool {
+	pod, ok := node.(*kubegraph.PodNode)
+	if !ok {
+		return false
+	}
+	for _, ref := range pod.OwnerReferences {
+		if ref.Controller != nil && *ref.Controller == true {
 			return true
 		}
 	}

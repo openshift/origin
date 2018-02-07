@@ -65,6 +65,7 @@ os::cmd::expect_failure_and_text 'oc new-build https://examplegit.com/openshift/
 # setting source secret via the --source-secret flag
 os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/cakephp-ex --source-secret=mysecret -o yaml' 'name: mysecret'
 os::cmd::expect_success_and_text 'oc new-build https://github.com/openshift/cakephp-ex --source-secret=mynewsecret -o yaml' 'name: mynewsecret'
+os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/cakephp-ex --source-secret=InvalidSecretName -o yaml' 'error: source secret name "InvalidSecretName" is invalid'
 os::cmd::expect_success_and_text 'oc new-app -f examples/quickstarts/cakephp-mysql.json --source-secret=mysecret -o yaml' 'name: mysecret'
 os::cmd::expect_success 'oc new-app https://github.com/openshift/cakephp-ex --source-secret=mysecret'
 os::cmd::expect_success 'oc delete all --selector="label=cakephp-ex"'

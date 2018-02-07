@@ -83,12 +83,7 @@ function os::build::setup_env() {
   # a version number, so we skip this check on Travis.  It's unnecessary
   # there anyway.
   if [[ "${TRAVIS:-}" != "true" ]]; then
-    local go_version
-    go_version=($(go version))
-    if [[ "${go_version[2]}" < "${OS_REQUIRED_GO_VERSION}" ]]; then
-      os::log::fatal "Detected Go version: ${go_version[*]}.
-Builds require Go version ${OS_REQUIRED_GO_VERSION} or greater."
-    fi
+    os::golang::verify_go_version
   fi
   # For any tools that expect this to be set (it is default in golang 1.6),
   # force vendor experiment.
@@ -283,7 +278,7 @@ function os::build::export_targets() {
       targets+=("${arg}")
     fi
   done
-  
+
   binaries=($(os::build::binaries_from_targets "${targets[@]-}"))
 }
 readonly -f os::build::export_targets
