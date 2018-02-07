@@ -173,6 +173,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 			kcmdutil.CheckErr(config.Complete(f, c))
 			kcmdutil.CheckErr(config.Validate(out, errout))
 			if err := config.Start(out); err != nil {
+				fmt.Fprintf(errout, "%s\n", err.Error())
 				os.Exit(1)
 			}
 		},
@@ -520,8 +521,7 @@ func (c *ClientStartConfig) Start(out io.Writer) error {
 			}
 			err := task.fn(w)
 			if err != nil {
-				taskPrinter.Failure(err)
-				return err
+				return taskPrinter.ToError(err)
 			}
 			taskPrinter.Success()
 		}
