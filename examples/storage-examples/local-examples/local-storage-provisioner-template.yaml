@@ -57,19 +57,24 @@ objects:
                 fieldPath: metadata.namespace
           - name: VOLUME_CONFIG_NAME
             value: ${CONFIGMAP}
-          image: quay.io/external_storage/local-volume-provisioner:v1.0.1
+          image: ${PROVISIONER_IMAGE}
           name: provisioner
           securityContext:
             runAsUser: 0
           volumeMounts:
           - mountPath: /mnt/local-storage
             name: local-storage
+          - mountPath: /etc/provisioner/config
+            name: provisioner-config
+            readOnly: true
         serviceAccountName: "${SERVICE_ACCOUNT}"
         volumes:
         - hostPath:
             path: /mnt/local-storage
           name: local-storage
-
+        - configMap:
+            name: ${CONFIGMAP}
+          name: provisioner-config
 
 parameters:
   - name: SERVICE_ACCOUNT
@@ -84,3 +89,7 @@ parameters:
     description: Name of ConfigMap with local provisioner configuration.
     required: true
     value: local-storage-admin
+  - name: PROVISIONER_IMAGE
+    description: Name of image with local provisioner.
+    required: true
+    value: quay.io/external_storage/local-volume-provisioner:v1.0.1
