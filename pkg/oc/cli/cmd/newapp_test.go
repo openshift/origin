@@ -205,6 +205,19 @@ func TestNewAppRunFailure(t *testing.T) {
 			},
 			expectedErr: "--search can't be used with --param",
 		},
+		"search_without_argument": {
+			config: &newcmd.AppConfig{
+				AsSearch: true,
+				ComponentInputs: newcmd.ComponentInputs{
+					DockerImages: []string{""},
+				},
+			},
+			expectedErr: "no matches found",
+		},
+		"without_args": {
+			config:      &newcmd.AppConfig{},
+			expectedErr: "You must specify one or more images, image streams, templates, or source code locations to create an application.",
+		},
 	}
 
 	opts := &NewAppOptions{
@@ -318,6 +331,42 @@ func TestNewAppRunQueryActions(t *testing.T) {
 			expectedDockerVisited:        true,
 			expectedTemplateFilesVisited: true,
 		},
+		{
+			name: "search template failure",
+			config: &newcmd.AppConfig{
+				AsSearch: true,
+				ComponentInputs: newcmd.ComponentInputs{
+					Templates: []string{"non-exist-template"},
+				},
+			},
+			expectedActions: []testAction{
+				{namespace: "openshift", verb: "list", resource: "templates"},
+			},
+
+			expectedErr: "no matches found",
+		},
+		{
+			name: "search imagestream failure",
+			config: &newcmd.AppConfig{
+				AsSearch: true,
+				ComponentInputs: newcmd.ComponentInputs{
+					ImageStreams: []string{"#@@#%*"},
+				},
+			},
+			expectedErr: "no matches found",
+		},
+		{
+			name: "search dockerimage failure",
+			config: &newcmd.AppConfig{
+				AsSearch: true,
+				ComponentInputs: newcmd.ComponentInputs{
+					DockerImages: []string{"fakerepo/non-exist-image"},
+				},
+			},
+			expectedDockerVisited: true,
+			expectedActions:       []testAction{},
+			expectedErr:           "no matches found",
+		},
 	}
 
 	o := &NewAppOptions{
@@ -351,6 +400,13 @@ func TestNewAppRunQueryActions(t *testing.T) {
 				return app.ComponentMatches{match}, []error{}
 			},
 		}
+		o.Config.DockerSearcher = MockSearcher{
+			OnSearch: func(precise bool, terms ...string) (app.ComponentMatches, []error) {
+				dockerVisited = true
+				return app.ComponentMatches{}, []error{}
+			},
+		}
+
 		o.Config.TemplateFileSearcher = MockSearcher{
 			OnSearch: func(precise bool, terms ...string) (app.ComponentMatches, []error) {
 				tfVisited = true
