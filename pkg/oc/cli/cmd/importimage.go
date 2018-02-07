@@ -359,11 +359,6 @@ func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imagea
 		return stream, isi, nil
 	}
 
-	// the stream already exists
-	if len(stream.Spec.DockerImageRepository) == 0 && len(stream.Spec.Tags) == 0 {
-		return nil, nil, fmt.Errorf("image stream does not have valid docker images to be imported")
-	}
-
 	if o.All {
 		// importing the entire repository
 		isi, err = o.importAll(stream)
