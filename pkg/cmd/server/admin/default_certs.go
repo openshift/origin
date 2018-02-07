@@ -52,6 +52,10 @@ func DefaultKubeletClientCerts(certDir string) []ClientCertInfo {
 	}
 }
 
+func DefaultFrontProxySignerName() string {
+	return fmt.Sprintf("%s@%d", "aggregator-proxy-ca", time.Now().Unix())
+}
+
 func DefaultMasterKubeletClientCertInfo(certDir string) ClientCertInfo {
 	return ClientCertInfo{
 		CertLocation: configapi.CertInfo{
