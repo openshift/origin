@@ -142,6 +142,8 @@ build_name="$(oc start-build -o=name test)"
 os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
 build_name="$(oc start-build -o=name --incremental test)"
 os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
+os::cmd::expect_failure_and_text "oc start-build test --no-cache" 'Cannot specify Docker build specific options'
+os::cmd::expect_failure_and_text "oc start-build test --build-arg=a=b" 'Cannot specify Docker build specific options'
 os::cmd::expect_success 'oc delete all --selector="name=test"'
 # --no-cache flag should override Spec.Strategy.SourceStrategy.NoCache
 os::cmd::expect_success 'oc create -f test/extended/testdata/builds/test-docker-build.json'
@@ -159,6 +161,7 @@ build_name="$(oc start-build -o=name test)"
 os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
 build_name="$(oc start-build -o=name --no-cache test)"
 os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
+os::cmd::expect_failure_and_text "oc start-build test --incremental" 'Cannot specify Source build specific options'
 os::cmd::expect_success 'oc delete all --selector="name=test"'
 echo "start-build: ok"
 os::test::junit::declare_suite_end
