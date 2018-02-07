@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f2718f7b1fcbc7299bddad6f1799037d89b9b6cd
+%global commit 91f4f53e8e9de99f002118c3e5ed6040c1d7fa82
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.38.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.3 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=6f7a2d7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.39.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.3 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=e58dd22 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.39.0%{?dist}
+Release:        0.40.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,21 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Feb 07 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.40.0
+- cli: truncate groups in get clusterrolebindings (mfojtik@redhat.com)
+- make sure we can unbind a delete templateinstance (bparees@redhat.com)
+- Add source secret validation to new build (nakayamakenjiro@gmail.com)
+- add hyperkube to locally built images (deads@redhat.com)
+- pkg/cmd/server/config has moved to pkg/cmd/server/apis/config
+  (rchopra@redhat.com)
+- cli: do not suggest liveness probes for controller owned pods
+  (mfojtik@redhat.com)
+- check all buildrequest options for validity against build type
+  (bparees@redhat.com)
+- return gone on unbind from non-existent templateinstance (bparees@redhat.com)
+- Perform golang check in a unified way (maszulik@redhat.com)
+- UPSTREAM: 56872: Fix event generation (hekumar@redhat.com)
+
 * Tue Feb 06 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.39.0
 - apps: do not inject oversized env vars into deployer pod (mfojtik@redhat.com)
 - bootstrap: Remove unused ErrSocatNotFound (walters@verbum.org)
