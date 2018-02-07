@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -90,12 +91,13 @@ type HostAdmitter struct {
 	claimedHosts     RouteMap
 	claimedWildcards RouteMap
 	blockedWildcards RouteMap
+	labels           labels.Selector
 }
 
 // NewHostAdmitter creates a plugin wrapper that checks whether or not to
 // admit routes and relay them to the next plugin in the chain.
 // Recorder is an interface for indicating why a route was rejected.
-func NewHostAdmitter(plugin router.Plugin, fn RouteAdmissionFunc, allowWildcards, disableNamespaceCheck bool, recorder RejectionRecorder) *HostAdmitter {
+func NewHostAdmitter(plugin router.Plugin, fn RouteAdmissionFunc, allowWildcards, disableNamespaceCheck bool, recorder RejectionRecorder, NamespaceLabels labels.Selector) *HostAdmitter {
 	return &HostAdmitter{
 		plugin:   plugin,
 		admitter: fn,
@@ -107,6 +109,7 @@ func NewHostAdmitter(plugin router.Plugin, fn RouteAdmissionFunc, allowWildcards
 		claimedHosts:     RouteMap{},
 		claimedWildcards: RouteMap{},
 		blockedWildcards: RouteMap{},
+		labels:           NamespaceLabels,
 	}
 }
 
@@ -122,7 +125,7 @@ func (p *HostAdmitter) HandleEndpoints(eventType watch.EventType, endpoints *kap
 
 // HandleRoute processes watch events on the Route resource.
 func (p *HostAdmitter) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	if err := p.admitter(route); err != nil {
+	if err := p.admitter(route); (err != nil) && (p.labels != nil) {
 		glog.Errorf("Route %s not admitted: %s", routeNameKey(route), err.Error())
 		p.recorder.RecordRouteRejection(route, "RouteNotAdmitted", err.Error())
 		return err

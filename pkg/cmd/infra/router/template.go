@@ -252,7 +252,6 @@ func (o *TemplateRouterOptions) Validate() error {
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
 	glog.Infof("Starting template router (%s)", version.Get())
-
 	statsPort := o.StatsPort
 	switch {
 	case o.MetricsType == "haproxy" && statsPort != 0:
@@ -421,7 +420,7 @@ func (o *TemplateRouterOptions) Run() error {
 		nextPlugin = controller.NewExtendedValidator(nextPlugin, controller.RejectionRecorder(statusPlugin))
 	}
 	uniqueHostPlugin := controller.NewUniqueHost(nextPlugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin))
-	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin))
+	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin), o.NamespaceLabels)
 
 	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	controller := factory.Create(plugin, false, o.EnableIngress)

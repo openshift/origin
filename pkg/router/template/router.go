@@ -150,7 +150,6 @@ type templateData struct {
 
 func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	dir := cfg.dir
-
 	glog.V(2).Infof("Creating a new template router, writing to %s", dir)
 	if len(cfg.peerEndpointsKey) > 0 {
 		glog.V(2).Infof("Router will use %s service to identify peers", cfg.peerEndpointsKey)
