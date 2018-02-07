@@ -7,28 +7,28 @@ import (
 	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
 )
 
-type StatefulSet struct {
-	StatefulSet *kubegraph.StatefulSetNode
+type Deployment struct {
+	Deployment *kubegraph.DeploymentNode
 
-	OwnedPods   []*kubegraph.PodNode
-	CreatedPods []*kubegraph.PodNode
+	ActiveDeployment    *kubegraph.ReplicaSetNode
+	InactiveDeployments []*kubegraph.ReplicaSetNode
 
 	Images []ImagePipeline
 
 	// TODO: handle conflicting once controller refs are present, not worth it yet
 }
 
-// AllStatefulSets returns all the StatefulSets that aren't in the excludes set and the set of covered NodeIDs
-func AllStatefulSets(g osgraph.Graph, excludeNodeIDs IntSet) ([]StatefulSet, IntSet) {
+// AllDeployments returns all the Deployments that aren't in the excludes set and the set of covered NodeIDs
+func AllDeployments(g osgraph.Graph, excludeNodeIDs IntSet) ([]Deployment, IntSet) {
 	covered := IntSet{}
-	views := []StatefulSet{}
+	views := []Deployment{}
 
-	for _, uncastNode := range g.NodesByKind(kubegraph.StatefulSetNodeKind) {
+	for _, uncastNode := range g.NodesByKind(kubegraph.DeploymentNodeKind) {
 		if excludeNodeIDs.Has(uncastNode.ID()) {
 			continue
 		}
 
-		view, covers := NewStatefulSet(g, uncastNode.(*kubegraph.StatefulSetNode))
+		view, covers := NewDeployment(g, uncastNode.(*kubegraph.DeploymentNode))
 		covered.Insert(covers.List()...)
 		views = append(views, view)
 	}
@@ -36,19 +36,13 @@ func AllStatefulSets(g osgraph.Graph, excludeNodeIDs IntSet) ([]StatefulSet, Int
 	return views, covered
 }
 
-// NewStatefulSet returns the StatefulSet and a set of all the NodeIDs covered by the StatefulSet
-func NewStatefulSet(g osgraph.Graph, node *kubegraph.StatefulSetNode) (StatefulSet, IntSet) {
+// NewDeployment returns the Deployment and a set of all the NodeIDs covered by the Deployment
+func NewDeployment(g osgraph.Graph, node *kubegraph.DeploymentNode) (Deployment, IntSet) {
 	covered := IntSet{}
 	covered.Insert(node.ID())
 
-	view := StatefulSet{}
-	view.StatefulSet = node
-
-	for _, uncastPodNode := range g.PredecessorNodesByEdgeKind(node, kubeedges.ManagedByControllerEdgeKind) {
-		podNode := uncastPodNode.(*kubegraph.PodNode)
-		covered.Insert(podNode.ID())
-		view.OwnedPods = append(view.OwnedPods, podNode)
-	}
+	view := Deployment{}
+	view.Deployment = node
 
 	for _, istNode := range g.PredecessorNodesByEdgeKind(node, kubeedges.TriggersDeploymentEdgeKind) {
 		imagePipeline, covers := NewImagePipelineFromImageTagLocation(g, istNode, istNode.(ImageTagLocation))
@@ -62,6 +56,17 @@ func NewStatefulSet(g osgraph.Graph, node *kubegraph.StatefulSetNode) (StatefulS
 
 		covered.Insert(covers.List()...)
 		view.Images = append(view.Images, imagePipeline)
+	}
+
+	view.ActiveDeployment, view.InactiveDeployments = kubeedges.RelevantDeployments(g, view.Deployment)
+	for _, rs := range view.InactiveDeployments {
+		_, covers := NewReplicaSet(g, rs)
+		covered.Insert(covers.List()...)
+	}
+
+	if view.ActiveDeployment != nil {
+		_, covers := NewReplicaSet(g, view.ActiveDeployment)
+		covered.Insert(covers.List()...)
 	}
 
 	return view, covered

@@ -160,7 +160,7 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	canRequestProjects, _ := loginutil.CanRequestProjects(config, o.namespace)
 
 	o.describer = &describe.ProjectStatusDescriber{
-		K:             kclientset,
+		KubeClient:    kclientset,
 		ProjectClient: projectClient.Project(),
 		BuildClient:   buildClient.Build(),
 		ImageClient:   imageClient.Image(),

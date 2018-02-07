@@ -473,12 +473,12 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	for i := range deployments {
 		kubegraph.EnsureReplicationControllerNode(g, &deployments[i])
 	}
-	appsedges.AddTriggerEdges(g, dcNode)
-	appsedges.AddDeploymentEdges(g, dcNode)
+	appsedges.AddTriggerDeploymentConfigsEdges(g, dcNode)
+	appsedges.AddDeploymentConfigsDeploymentEdges(g, dcNode)
 	activeDeployment, inactiveDeployments := appsedges.RelevantDeployments(g, dcNode)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		descriptions := describeDeployments(f, dcNode, activeDeployment, inactiveDeployments, nil, d.count)
+		descriptions := describeDeploymentConfigDeployments(f, dcNode, activeDeployment, inactiveDeployments, nil, d.count)
 		for i, description := range descriptions {
 			descriptions[i] = fmt.Sprintf("%v %v", name, description)
 		}
