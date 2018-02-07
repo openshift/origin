@@ -858,6 +858,13 @@ func printRoleList(list *authorizationapi.RoleList, w io.Writer, opts kprinters.
 	return nil
 }
 
+func truncatedList(list []string, maxLength int) string {
+	if len(list) > maxLength {
+		return fmt.Sprintf("%s (%d more)", strings.Join(list[0:maxLength], ", "), len(list)-maxLength)
+	}
+	return strings.Join(list, ", ")
+}
+
 func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, roleBinding.Name, opts.WithKind)
 	if opts.WithNamespace {
@@ -867,14 +874,9 @@ func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, op
 	}
 	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 
-	truncatedUsers := strings.Join(users, ", ")
-	if len(users) > 5 {
-		truncatedUsers = strings.Join(users[0:5], ", ") + fmt.Sprintf(" (%d more)", len(users)-5)
-	}
-
 	if _, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v", name,
-		roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, truncatedUsers,
-		strings.Join(groups, ", "), strings.Join(sas, ", "), strings.Join(others, ", ")); err != nil {
+		roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, truncatedList(users, 5),
+		truncatedList(groups, 5), strings.Join(sas, ", "), strings.Join(others, ", ")); err != nil {
 		return err
 	}
 	if err := appendItemLabels(roleBinding.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
