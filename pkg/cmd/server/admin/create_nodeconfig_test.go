@@ -107,7 +107,7 @@ func executeNodeConfig(args []string) string {
 		},
 	}
 
-	root.AddCommand(NewCommandNodeConfig("create-node-config", "openshift admin", ioutil.Discard))
+	root.AddCommand(NewCommandNodeConfig("create-node-config", "oc adm", ioutil.Discard))
 	root.SetArgs(argsToUse)
 	root.Execute()
 

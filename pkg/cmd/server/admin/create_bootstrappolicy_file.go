@@ -25,7 +25,7 @@ import (
 const (
 	DefaultPolicyFile                    = "openshift.local.config/master/policy.json"
 	CreateBootstrapPolicyFileCommand     = "create-bootstrap-policy-file"
-	CreateBootstrapPolicyFileFullCommand = "openshift admin " + CreateBootstrapPolicyFileCommand
+	CreateBootstrapPolicyFileFullCommand = "oc adm " + CreateBootstrapPolicyFileCommand
 )
 
 type CreateBootstrapPolicyFileOptions struct {
