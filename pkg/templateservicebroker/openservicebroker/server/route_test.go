@@ -260,7 +260,7 @@ func TestProvision(t *testing.T) {
 				},
 			},
 			expectCode:  http.StatusUnprocessableEntity,
-			expectError: `This service plan requires client support for asynchronous service operations.`,
+			expectError: `This request requires client support for asynchronous service operations.`,
 		},
 		{
 			name: "no identity",
@@ -361,7 +361,7 @@ func TestDeprovision(t *testing.T) {
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID),
 			},
 			expectCode:  http.StatusUnprocessableEntity,
-			expectError: `This service plan requires client support for asynchronous service operations.`,
+			expectError: `This request requires client support for asynchronous service operations.`,
 		},
 		{
 			name: "no identity",
