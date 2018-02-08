@@ -364,7 +364,7 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", ip, 10*time.Second)
 }
 
-func InSingleTenantContext(body func()) {
+func InNonIsolatingContext(body func()) {
 	Context("when using a plugin that does not isolate namespaces by default", func() {
 		BeforeEach(func() {
 			if pluginIsolatesNamespaces() {
@@ -376,7 +376,7 @@ func InSingleTenantContext(body func()) {
 	})
 }
 
-func InMultiTenantContext(body func()) {
+func InIsolatingContext(body func()) {
 	Context("when using a plugin that isolates namespaces by default", func() {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {

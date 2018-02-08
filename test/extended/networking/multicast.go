@@ -18,7 +18,7 @@ import (
 )
 
 var _ = Describe("[Area:Networking] multicast", func() {
-	InSingleTenantContext(func() {
+	InNonIsolatingContext(func() {
 		oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 		f := oc.KubeFramework()
 
@@ -27,7 +27,7 @@ var _ = Describe("[Area:Networking] multicast", func() {
 		})
 	})
 
-	InMultiTenantContext(func() {
+	InIsolatingContext(func() {
 		oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 		f := oc.KubeFramework()
 
