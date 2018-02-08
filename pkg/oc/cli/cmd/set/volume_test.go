@@ -48,6 +48,39 @@ func fakePodWithVol() *api.Pod {
 	return fakePod
 }
 
+func fakePodWithVolumeClaim() *api.Pod {
+	fakePod := &api.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "fakepod",
+		},
+		Spec: api.PodSpec{
+			Containers: []api.Container{
+				{
+					Name: "fake-container",
+					VolumeMounts: []api.VolumeMount{
+						{
+							Name:      "fake-mount",
+							MountPath: "/var/www/html",
+						},
+					},
+				},
+			},
+			Volumes: []api.Volume{
+				{
+					Name: "fake-mount",
+					VolumeSource: api.VolumeSource{
+						PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
+							ClaimName: "fake-claim",
+						},
+					},
+				},
+			},
+		},
+	}
+	return fakePod
+}
+
 func makeFakePod() *api.Pod {
 	fakePod := &api.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -154,6 +187,73 @@ func TestAddVolume(t *testing.T) {
 
 	if patchError != nil {
 		t.Error(patchError)
+	}
+}
+
+func TestAddRemoveVolumeWithExistingClaim(t *testing.T) {
+	fakePod := fakePodWithVolumeClaim()
+	addOpts := &AddVolumeOptions{}
+	infos, vOptions := getFakeInfo(fakePod)
+	vOptions.AddOpts = addOpts
+	vOptions.Add = true
+	addOpts.Type = "pvc"
+	addOpts.MountPath = "/srv"
+	addOpts.ClaimName = "fake-claim"
+	addOpts.Overwrite = false
+	patches, patchError := vOptions.getVolumeUpdatePatches(infos, false)
+
+	if len(patches) < 1 {
+		t.Errorf("Expected at least 1 patch object")
+	}
+
+	if patchError != nil {
+		t.Error(patchError)
+	}
+
+	updatedInfo := patches[0].Info
+	podObject, ok := updatedInfo.Object.(*api.Pod)
+
+	if !ok {
+		t.Errorf("Expected pod info to be updated")
+	}
+
+	updatedPodSpec := podObject.Spec
+
+	if len(updatedPodSpec.Volumes) > 1 {
+		t.Errorf("Expected no new volume to be added")
+	}
+
+	container := updatedPodSpec.Containers[0]
+
+	if len(container.VolumeMounts) < 2 {
+		t.Errorf("Expected 2 mount volumes got 1 ")
+	}
+
+	removeOpts := &AddVolumeOptions{}
+	removeInfos, removeVolumeOptions := getFakeInfo(podObject)
+	removeVolumeOptions.AddOpts = removeOpts
+	removeVolumeOptions.Remove = true
+	removeVolumeOptions.Confirm = true
+
+	removePatches, patchError2 := removeVolumeOptions.getVolumeUpdatePatches(removeInfos, false)
+	if len(removePatches) < 1 {
+		t.Errorf("Expected at least 1 patch object")
+	}
+	if patchError2 != nil {
+		t.Error(patchError2)
+	}
+
+	updatedInfo2 := removePatches[0].Info
+	podObject2, ok := updatedInfo2.Object.(*api.Pod)
+
+	if !ok {
+		t.Errorf("Expected pod info to be updated")
+	}
+
+	updatedPodSpec2 := podObject2.Spec
+
+	if len(updatedPodSpec2.Volumes) > 0 {
+		t.Errorf("Expected volume to be removed")
 	}
 }
 
