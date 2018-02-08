@@ -8,7 +8,6 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -60,10 +59,8 @@ type clusterResourceOverridePlugin struct {
 	ProjectCache *cache.ProjectCache
 	LimitRanger  admission.Interface
 }
-type limitRangerActions struct{}
 
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
-var _ = limitranger.LimitRangerActions(&limitRangerActions{})
 var _ = kadmission.WantsInternalKubeInformerFactory(&clusterResourceOverridePlugin{})
 var _ = kadmission.WantsInternalKubeClientSet(&clusterResourceOverridePlugin{})
 
@@ -98,20 +95,6 @@ func (d *clusterResourceOverridePlugin) SetInternalKubeInformerFactory(i informe
 
 func (d *clusterResourceOverridePlugin) SetInternalKubeClientSet(c kclientset.Interface) {
 	d.LimitRanger.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(c)
-}
-
-// these serve to satisfy the interface so that our kept LimitRanger limits nothing and only provides defaults.
-func (d *limitRangerActions) SupportsAttributes(a admission.Attributes) bool {
-	return true
-}
-func (d *limitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
-	return true
-}
-func (d *limitRangerActions) MutateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	return nil
-}
-func (d *limitRangerActions) ValidateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	return nil
 }
 
 func (a *clusterResourceOverridePlugin) SetProjectCache(projectCache *cache.ProjectCache) {
