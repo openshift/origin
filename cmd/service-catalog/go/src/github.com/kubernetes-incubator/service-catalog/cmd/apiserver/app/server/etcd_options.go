@@ -17,7 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/spf13/pflag"
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
@@ -42,7 +41,7 @@ const (
 // NewEtcdOptions creates a new, empty, EtcdOptions instance
 func NewEtcdOptions() *EtcdOptions {
 	return &EtcdOptions{
-		EtcdOptions: genericserveroptions.NewEtcdOptions(storagebackend.NewDefaultConfig(DefaultEtcdPathPrefix, api.Scheme, nil)),
+		EtcdOptions: genericserveroptions.NewEtcdOptions(storagebackend.NewDefaultConfig(DefaultEtcdPathPrefix, nil)),
 	}
 }
 

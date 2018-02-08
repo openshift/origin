@@ -1,0 +1,11 @@
+  Name:          default                               
+  Description:   Sample plan description               
+  UUID:          86064792-7ea2-467b-af93-ac9694d96d52  
+  Status:        Active                                
+  Free:          true                                  
+  Class:         user-provided-service                 
+
+Instances:
+      NAME       NAMESPACE   STATUS  
++--------------+-----------+--------+
+  ups-instance   test-ns     Ready   

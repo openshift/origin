@@ -22,6 +22,7 @@ type LogFormat struct {
 	Message   string   `json:"message"`
 	LogLevel  LogLevel `json:"log_level"`
 	Data      Data     `json:"data"`
+	Error     error    `json:"-"`
 }
 
 func (log LogFormat) ToJSON() []byte {

@@ -14,6 +14,8 @@ spec:
       app: {{ template "fullname" . }}-controller-manager
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "{{ .Values.controllerManager.enablePrometheusScrape }}"
       labels:
         app: {{ template "fullname" . }}-controller-manager
         chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
@@ -42,7 +44,8 @@ spec:
         - --port
         - "8080"
         {{ if .Values.controllerManager.leaderElection.activated -}}
-        - "--leader-election-namespace=$(K8S_NAMESPACE)"
+        - "--leader-election-namespace={{ .Release.Namespace }}"
+        - "--leader-elect-resource-lock=configmaps"
         {{- else }}
         - "--leader-elect=false"
         {{- end }}

@@ -7,6 +7,5 @@ spec:
   clusterServiceClassExternalName: user-provided-service
   clusterServicePlanExternalName: default
   parameters:
-    credentials:
-      param-1: value-1
-      param-2: value-2
+    param-1: value-1
+    param-2: value-2

@@ -23,6 +23,11 @@ ENV GLIDE_VERSION=v0.12.3 \
 RUN curl -sSL https://github.com/Masterminds/glide/releases/download/$GLIDE_VERSION/glide-$GLIDE_VERSION-linux-amd64.tar.gz \
     | tar -vxz -C /usr/local/bin --strip=1
 
+# Install dep as root
+ENV DEP_VERSION=v0.3.2
+RUN curl -sSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/$DEP_VERSION/dep-linux-amd64 && \
+    chmod +x /usr/local/bin/dep
+
 # Install etcd
 RUN curl -sSL https://github.com/coreos/etcd/releases/download/v3.1.10/etcd-v3.1.10-linux-amd64.tar.gz \
     | tar -vxz -C /usr/local/bin --strip=1 etcd-v3.1.10-linux-amd64/etcd

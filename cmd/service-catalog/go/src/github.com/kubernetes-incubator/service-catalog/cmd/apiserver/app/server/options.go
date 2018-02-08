@@ -57,6 +57,8 @@ type ServiceCatalogServerOptions struct {
 	DisableAuth bool
 	// StandaloneMode if true asserts that we will not depend on a kube-apiserver
 	StandaloneMode bool
+	// whether or not to serve the OpenAPI spec (at /swagger.json)
+	ServeOpenAPISpec bool
 }
 
 // NewServiceCatalogServerOptions creates a new instances of
@@ -93,6 +95,13 @@ func (s *ServiceCatalogServerOptions) AddFlags(flags *pflag.FlagSet) {
 		"disable-auth",
 		false,
 		"Disable authentication and authorization for testing purposes",
+	)
+
+	flags.BoolVar(
+		&s.ServeOpenAPISpec,
+		"serve-openapi-spec",
+		false,
+		"Whether this API server should serve the OpenAPI spec (problematic with older versions of kubectl)",
 	)
 
 	s.GenericServerRunOptions.AddUniversalFlags(flags)

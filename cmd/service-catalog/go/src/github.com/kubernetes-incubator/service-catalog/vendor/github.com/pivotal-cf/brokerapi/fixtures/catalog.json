@@ -11,6 +11,48 @@
       "name": "default",
       "metadata": {
         "displayName": "Cassandra"
+      },
+      "schemas": {
+        "service_instance": {
+          "create": {
+            "parameters": {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "type": "object",
+              "properties": {
+                "billing-account": {
+                  "description": "Billing account number used to charge use of shared fake server.",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "update": {
+            "parameters": {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "type": "object",
+              "properties": {
+                "billing-account": {
+                  "description": "Billing account number used to charge use of shared fake server.",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "service_binding": {
+          "create": {
+            "parameters": {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "type": "object",
+              "properties": {
+                "billing-account": {
+                  "description": "Billing account number used to charge use of shared fake server.",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     }],
     "metadata": {

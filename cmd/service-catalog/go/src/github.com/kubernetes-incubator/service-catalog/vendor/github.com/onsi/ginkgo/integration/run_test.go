@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"runtime"
 	"strings"
@@ -98,6 +99,24 @@ var _ = Describe("Running Specs", func() {
 			Ω(output).Should(ContainSubstring("Test Suite Passed"))
 			Ω(output).Should(ContainSubstring("Detected Programmatic Focus - setting exit status to %d", types.GINKGO_FOCUS_EXIT_CODE))
 		})
+
+		Context("when the GINKGO_EDITOR_INTEGRATION environment variable is set", func() {
+			BeforeEach(func() {
+				os.Setenv("GINKGO_EDITOR_INTEGRATION", "true")
+			})
+			AfterEach(func() {
+				os.Setenv("GINKGO_EDITOR_INTEGRATION", "")
+			})
+			It("should exit with a status code of 0 to allow a coverage file to be generated", func() {
+				session := startGinkgo(tmpDir, "--noColor", "--succinct=false", "-r")
+				Eventually(session).Should(gexec.Exit(0))
+				output := string(session.Out.Contents())
+
+				Ω(output).Should(ContainSubstring("Running Suite: Passing_ginkgo_tests Suite"))
+				Ω(output).Should(ContainSubstring("Running Suite: More_ginkgo_tests Suite"))
+				Ω(output).Should(ContainSubstring("Test Suite Passed"))
+			})
+		})
 	})
 
 	Context("when told to skipPackages", func() {
@@ -143,6 +162,29 @@ var _ = Describe("Running Specs", func() {
 			output := string(session.Err.Contents())
 
 			Ω(output).Should(ContainSubstring("Found no test suites"))
+		})
+	})
+
+	Context("when there are test files but `go test` reports there are no tests to run", func() {
+		BeforeEach(func() {
+			pathToTest = tmpPath("ginkgo")
+			copyIn("no_test_fn", pathToTest)
+		})
+
+		It("suggests running ginkgo bootstrap", func() {
+			session := startGinkgo(tmpDir, "--noColor", "--skipPackage=other,focused", "-r")
+			Eventually(session).Should(gexec.Exit(0))
+			output := string(session.Err.Contents())
+
+			Ω(output).Should(ContainSubstring(`Found no test suites, did you forget to run "ginkgo bootstrap"?`))
+		})
+
+		It("fails if told to requireSuite", func() {
+			session := startGinkgo(tmpDir, "--noColor", "--skipPackage=other,focused", "-r", "-requireSuite")
+			Eventually(session).Should(gexec.Exit(1))
+			output := string(session.Err.Contents())
+
+			Ω(output).Should(ContainSubstring(`Found no test suites, did you forget to run "ginkgo bootstrap"?`))
 		})
 	})
 
@@ -244,7 +286,7 @@ var _ = Describe("Running Specs", func() {
 				if nodes > 4 {
 					nodes = nodes - 1
 				}
-				Ω(output).Should(MatchRegexp(`\[\d+\] Passing_ginkgo_tests Suite - 4 specs - %d nodes [%s]{4} SUCCESS! \d+(\.\d+)?[muµ]s`, nodes, regexp.QuoteMeta(denoter)))
+				Ω(output).Should(MatchRegexp(`\[\d+\] Passing_ginkgo_tests Suite - 4 specs - %d nodes [%s]{4} SUCCESS! \d+(\.\d+)?[muµ]?s`, nodes, regexp.QuoteMeta(denoter)))
 				Ω(output).Should(ContainSubstring("Test Suite Passed"))
 			})
 		})

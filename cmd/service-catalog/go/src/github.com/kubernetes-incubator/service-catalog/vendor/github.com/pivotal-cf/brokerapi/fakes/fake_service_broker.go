@@ -81,6 +81,48 @@ func (fakeBroker *FakeServiceBroker) Services(context context.Context) []brokera
 						Bullets:     []string{},
 						DisplayName: "Cassandra",
 					},
+					Schemas: &brokerapi.ServiceSchemas{
+						Instance: brokerapi.ServiceInstanceSchema{
+							Create: brokerapi.Schema{
+								Schema: map[string]interface{}{
+									"$schema": "http://json-schema.org/draft-04/schema#",
+									"type":    "object",
+									"properties": map[string]interface{}{
+										"billing-account": map[string]interface{}{
+											"description": "Billing account number used to charge use of shared fake server.",
+											"type":        "string",
+										},
+									},
+								},
+							},
+							Update: brokerapi.Schema{
+								Schema: map[string]interface{}{
+									"$schema": "http://json-schema.org/draft-04/schema#",
+									"type":    "object",
+									"properties": map[string]interface{}{
+										"billing-account": map[string]interface{}{
+											"description": "Billing account number used to charge use of shared fake server.",
+											"type":        "string",
+										},
+									},
+								},
+							},
+						},
+						Binding: brokerapi.ServiceBindingSchema{
+							Create: brokerapi.Schema{
+								Schema: map[string]interface{}{
+									"$schema": "http://json-schema.org/draft-04/schema#",
+									"type":    "object",
+									"properties": map[string]interface{}{
+										"billing-account": map[string]interface{}{
+											"description": "Billing account number used to charge use of shared fake server.",
+											"type":        "string",
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 			Metadata: &brokerapi.ServiceMetadata{

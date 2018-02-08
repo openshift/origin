@@ -31,7 +31,6 @@ import (
 	"github.com/satori/go.uuid"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
-	"k8s.io/apimachinery/pkg/conversion/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -124,14 +123,14 @@ func doUnstructuredRoundTrip(t *testing.T, group testapi.TestGroup, kind string)
 		return
 	}
 
-	newUnstr, err := unstructured.DefaultConverter.ToUnstructured(item)
+	newUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(item)
 	if err != nil {
 		t.Errorf("ToUnstructured failed: %v", err)
 		return
 	}
 
 	newObj := reflect.New(reflect.TypeOf(item).Elem()).Interface().(runtime.Object)
-	err = unstructured.DefaultConverter.FromUnstructured(newUnstr, newObj)
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(newUnstr, newObj)
 	if err != nil {
 		t.Errorf("FromUnstructured failed: %v", err)
 		return

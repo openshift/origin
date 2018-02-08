@@ -32,10 +32,11 @@ func MatchAllElements(identifier Identifier, elements Elements) types.GomegaMatc
 //  })
 func MatchElements(identifier Identifier, options Options, elements Elements) types.GomegaMatcher {
 	return &ElementsMatcher{
-		Identifier:    identifier,
-		Elements:      elements,
-		IgnoreExtras:  options&IgnoreExtras != 0,
-		IgnoreMissing: options&IgnoreMissing != 0,
+		Identifier:      identifier,
+		Elements:        elements,
+		IgnoreExtras:    options&IgnoreExtras != 0,
+		IgnoreMissing:   options&IgnoreMissing != 0,
+		AllowDuplicates: options&AllowDuplicates != 0,
 	}
 }
 
@@ -52,6 +53,8 @@ type ElementsMatcher struct {
 	IgnoreExtras bool
 	// Whether to ignore missing elements or consider it an error.
 	IgnoreMissing bool
+	// Whether to key duplicates when matching IDs.
+	AllowDuplicates bool
 
 	// State.
 	failures []error
@@ -88,10 +91,11 @@ func (m *ElementsMatcher) matchElements(actual interface{}) (errs []error) {
 	for i := 0; i < val.Len(); i++ {
 		element := val.Index(i).Interface()
 		id := m.Identifier(element)
-		// TODO: Add options to ignore & match duplicates.
 		if elements[id] {
-			errs = append(errs, fmt.Errorf("found duplicate element ID %s", id))
-			continue
+			if !m.AllowDuplicates {
+				errs = append(errs, fmt.Errorf("found duplicate element ID %s", id))
+				continue
+			}
 		}
 		elements[id] = true
 

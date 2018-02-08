@@ -176,7 +176,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		Expect(binding).NotTo(BeNil())
 
 		By("Waiting for ServiceBinding to be ready")
-		err = util.WaitForBindingCondition(f.ServiceCatalogClientSet.ServicecatalogV1beta1(),
+		_, err = util.WaitForBindingCondition(f.ServiceCatalogClientSet.ServicecatalogV1beta1(),
 			testnamespace.Name,
 			bindingName,
 			v1beta1.ServiceBindingCondition{

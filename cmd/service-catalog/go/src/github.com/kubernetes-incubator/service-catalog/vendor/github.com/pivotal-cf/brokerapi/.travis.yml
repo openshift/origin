@@ -4,8 +4,6 @@ go:
   - 1.7.3
 
 install:
-  - go get -v github.com/tools/godep
-  - godep restore
   - go get -v github.com/onsi/ginkgo/ginkgo
 
 script: ginkgo -r

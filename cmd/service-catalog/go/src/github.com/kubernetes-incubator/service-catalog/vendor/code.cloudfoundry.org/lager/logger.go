@@ -117,6 +117,7 @@ func (l *logger) Error(action string, err error, data ...Data) {
 		Message:   fmt.Sprintf("%s.%s", l.task, action),
 		LogLevel:  ERROR,
 		Data:      logData,
+		Error:     err,
 	}
 
 	for _, sink := range l.sinks {
@@ -143,6 +144,7 @@ func (l *logger) Fatal(action string, err error, data ...Data) {
 		Message:   fmt.Sprintf("%s.%s", l.task, action),
 		LogLevel:  FATAL,
 		Data:      logData,
+		Error:     err,
 	}
 
 	for _, sink := range l.sinks {

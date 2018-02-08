@@ -1,0 +1,18 @@
+cc_library(
+    name = "abc",
+    srcs = [
+        "eggs.cc",
+        "spam.cc",
+    ],
+    linkopts = [
+        "-l",
+        "pthread",
+        "-l",
+        "apparmor",
+    ],
+    deps = [
+        "bacon",
+        "egg",
+        "spam",
+    ],
+)

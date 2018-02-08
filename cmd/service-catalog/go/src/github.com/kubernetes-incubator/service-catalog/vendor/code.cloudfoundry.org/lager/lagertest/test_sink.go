@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/gbytes"
@@ -19,8 +20,10 @@ type TestLogger struct {
 }
 
 type TestSink struct {
+	writeLock *sync.Mutex
 	lager.Sink
 	buffer *gbytes.Buffer
+	Errors []error
 }
 
 func NewTestLogger(component string) *TestLogger {
@@ -41,8 +44,9 @@ func NewTestSink() *TestSink {
 	buffer := gbytes.NewBuffer()
 
 	return &TestSink{
-		Sink:   lager.NewWriterSink(buffer, lager.DEBUG),
-		buffer: buffer,
+		writeLock: new(sync.Mutex),
+		Sink:      lager.NewWriterSink(buffer, lager.DEBUG),
+		buffer:    buffer,
 	}
 }
 
@@ -74,4 +78,14 @@ func (s *TestSink) LogMessages() []string {
 		messages = append(messages, log.Message)
 	}
 	return messages
+}
+
+func (s *TestSink) Log(log lager.LogFormat) {
+	s.writeLock.Lock()
+	defer s.writeLock.Unlock()
+
+	if log.Error != nil {
+		s.Errors = append(s.Errors, log.Error)
+	}
+	s.Sink.Log(log)
 }

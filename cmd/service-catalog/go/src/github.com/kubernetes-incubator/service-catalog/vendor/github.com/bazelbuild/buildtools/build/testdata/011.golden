@@ -1,0 +1,1 @@
+java_library(name = "file_without_trailing_newline")

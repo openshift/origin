@@ -1,0 +1,3 @@
+     NAME                                 URL                              STATUS  
++------------+-----------------------------------------------------------+--------+
+  ups-broker   http://ups-broker-ups-broker.ups-broker.svc.cluster.local   Ready   

@@ -1,0 +1,23 @@
+{
+  "i-am-an-unrelated-field": true,
+  "IsLabelArg": {
+    "srcs": true
+  },
+  "LabelBlacklist": {
+
+  },
+  "IsSortableListArg": {
+    "srcs": true,
+    "visibility": true
+  },
+  "SortableBlacklist": {
+    "genrule.srcs": true
+  },
+  "SortableWhitelist": {
+
+  },
+  "NamePriority": {
+    "name": -1
+  },
+  "StripLabelLeadingSlashes": true
+}

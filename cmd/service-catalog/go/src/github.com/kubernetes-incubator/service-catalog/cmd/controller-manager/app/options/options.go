@@ -39,17 +39,18 @@ type ControllerManagerServer struct {
 }
 
 const (
-	defaultResyncInterval               = 5 * time.Minute
-	defaultServiceBrokerRelistInterval  = 24 * time.Hour
-	defaultContentType                  = "application/json"
-	defaultBindAddress                  = "0.0.0.0"
-	defaultPort                         = 10000
-	defaultK8sKubeconfigPath            = "./kubeconfig"
-	defaultServiceCatalogKubeconfigPath = "./service-catalog-kubeconfig"
-	defaultOSBAPIContextProfile         = true
-	defaultConcurrentSyncs              = 5
-	defaultLeaderElectionNamespace      = "kube-system"
-	defaultReconciliationRetryDuration  = 7 * 24 * time.Hour
+	defaultResyncInterval                         = 5 * time.Minute
+	defaultServiceBrokerRelistInterval            = 24 * time.Hour
+	defaultContentType                            = "application/json"
+	defaultBindAddress                            = "0.0.0.0"
+	defaultPort                                   = 10000
+	defaultK8sKubeconfigPath                      = "./kubeconfig"
+	defaultServiceCatalogKubeconfigPath           = "./service-catalog-kubeconfig"
+	defaultOSBAPIContextProfile                   = true
+	defaultConcurrentSyncs                        = 5
+	defaultLeaderElectionNamespace                = "kube-system"
+	defaultReconciliationRetryDuration            = 7 * 24 * time.Hour
+	defaultOperationPollingMaximumBackoffDuration = 20 * time.Minute
 )
 
 var defaultOSBAPIPreferredVersion = osb.LatestAPIVersion().HeaderValue()
@@ -59,21 +60,22 @@ var defaultOSBAPIPreferredVersion = osb.LatestAPIVersion().HeaderValue()
 func NewControllerManagerServer() *ControllerManagerServer {
 	s := ControllerManagerServer{
 		ControllerManagerConfiguration: componentconfig.ControllerManagerConfiguration{
-			Address:                      defaultBindAddress,
-			Port:                         defaultPort,
-			ContentType:                  defaultContentType,
-			K8sKubeconfigPath:            defaultK8sKubeconfigPath,
-			ServiceCatalogKubeconfigPath: defaultServiceCatalogKubeconfigPath,
-			ResyncInterval:               defaultResyncInterval,
-			ServiceBrokerRelistInterval:  defaultServiceBrokerRelistInterval,
-			OSBAPIContextProfile:         defaultOSBAPIContextProfile,
-			OSBAPIPreferredVersion:       defaultOSBAPIPreferredVersion,
-			ConcurrentSyncs:              defaultConcurrentSyncs,
-			LeaderElection:               leaderelectionconfig.DefaultLeaderElectionConfiguration(),
-			LeaderElectionNamespace:      defaultLeaderElectionNamespace,
-			EnableProfiling:              true,
-			EnableContentionProfiling:    false,
-			ReconciliationRetryDuration:  defaultReconciliationRetryDuration,
+			Address:                                defaultBindAddress,
+			Port:                                   defaultPort,
+			ContentType:                            defaultContentType,
+			K8sKubeconfigPath:                      defaultK8sKubeconfigPath,
+			ServiceCatalogKubeconfigPath:           defaultServiceCatalogKubeconfigPath,
+			ResyncInterval:                         defaultResyncInterval,
+			ServiceBrokerRelistInterval:            defaultServiceBrokerRelistInterval,
+			OSBAPIContextProfile:                   defaultOSBAPIContextProfile,
+			OSBAPIPreferredVersion:                 defaultOSBAPIPreferredVersion,
+			ConcurrentSyncs:                        defaultConcurrentSyncs,
+			LeaderElection:                         leaderelectionconfig.DefaultLeaderElectionConfiguration(),
+			LeaderElectionNamespace:                defaultLeaderElectionNamespace,
+			EnableProfiling:                        true,
+			EnableContentionProfiling:              false,
+			ReconciliationRetryDuration:            defaultReconciliationRetryDuration,
+			OperationPollingMaximumBackoffDuration: defaultOperationPollingMaximumBackoffDuration,
 		},
 	}
 	s.LeaderElection.LeaderElect = true
@@ -100,6 +102,7 @@ func (s *ControllerManagerServer) AddFlags(fs *pflag.FlagSet) {
 	leaderelectionconfig.BindFlags(&s.LeaderElection, fs)
 	fs.StringVar(&s.LeaderElectionNamespace, "leader-election-namespace", s.LeaderElectionNamespace, "Namespace to use for leader election lock")
 	fs.DurationVar(&s.ReconciliationRetryDuration, "reconciliation-retry-duration", s.ReconciliationRetryDuration, "The maximum amount of time to retry reconciliations on a resource before failing")
+	fs.DurationVar(&s.OperationPollingMaximumBackoffDuration, "operation-polling-maximum-backoff-duration", s.OperationPollingMaximumBackoffDuration, "The maximum amount of time to back-off while polling an OSB API operation")
 
 	utilfeature.DefaultFeatureGate.AddFlag(fs)
 }

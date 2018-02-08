@@ -39,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
@@ -338,7 +337,7 @@ func TestReconcileServiceBindingWithSecretConflict(t *testing.T) {
 	assertServiceBindingCurrentOperation(t, updatedServiceBinding, v1beta1.ServiceBindingOperationBind)
 	assertServiceBindingOperationStartTimeSet(t, updatedServiceBinding, true)
 	assertServiceBindingReconciledGeneration(t, updatedServiceBinding, binding.Status.ReconciledGeneration)
-	assertServiceBindingInProgressPropertiesNil(t, updatedServiceBinding)
+	assertServiceBindingInProgressPropertiesParameters(t, updatedServiceBinding, nil, "")
 	// External properties are updated because the bind request with the Broker was successful
 	assertServiceBindingExternalPropertiesParameters(t, updatedServiceBinding, nil, "")
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
@@ -560,8 +559,9 @@ func TestReconcileServiceBindingNonbindableClusterServiceClass(t *testing.T) {
 	expectedEvent := warningEventBuilder(errorNonbindableClusterServiceClassReason).msgf(
 		"References a non-bindable ClusterServiceClass (K8S: %q ExternalName: %q) and Plan (%q) combination",
 		"UNBINDABLE-SERVICE", "test-unbindable-serviceclass", "test-unbindable-plan",
-	)
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+	).String()
+	expectedEvents := []string{expectedEvent, expectedEvent}
+	if err := checkEvents(events, expectedEvents); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -727,75 +727,18 @@ func TestReconcileServiceBindingBindableClusterServiceClassNonbindablePlan(t *te
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
+	assertNumEvents(t, events, 2)
 
 	expectedEvent := warningEventBuilder(errorNonbindableClusterServiceClassReason).msgf(
 		"References a non-bindable ClusterServiceClass (K8S: %q ExternalName: %q) and Plan (%q) combination",
 		"SCGUID", "test-serviceclass", "test-unbindable-plan",
-	)
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// TestReconcileBindingFailsWithInstanceAsyncOngoing tests reconcileBinding
-// to ensure a binding that references an instance that has the
-// AsyncOpInProgreset flag set to true fails as expected.
-func TestReconcileServiceBindingFailsWithServiceInstanceAsyncOngoing(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeClusterServiceBrokerClient, testController, sharedInformers := newTestController(t, noFakeActions())
-
-	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
-	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
-	sharedInformers.ServiceInstances().Informer().GetStore().Add(getTestServiceInstanceAsyncProvisioning(""))
-	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
-
-	binding := &v1beta1.ServiceBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       testServiceBindingName,
-			Namespace:  testNamespace,
-			Generation: 1,
-		},
-		Spec: v1beta1.ServiceBindingSpec{
-			ServiceInstanceRef: v1beta1.LocalObjectReference{Name: testServiceInstanceName},
-			ExternalID:         testServiceBindingGUID,
-		},
-		Status: v1beta1.ServiceBindingStatus{
-			UnbindStatus: v1beta1.ServiceBindingUnbindStatusNotRequired,
-		},
+	).String()
+	expectedEvents := []string{
+		expectedEvent,
+		expectedEvent,
 	}
 
-	err := testController.reconcileServiceBinding(binding)
-	if err == nil {
-		t.Fatalf("reconcileServiceBinding did not fail with async operation ongoing")
-	}
-
-	if err := checkEventContains(err.Error(), "Ongoing Asynchronous"); err != nil {
-		t.Fatal(err)
-	}
-
-	brokerActions := fakeClusterServiceBrokerClient.Actions()
-	assertNumberOfClusterServiceBrokerActions(t, brokerActions, 0)
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says binding was created
-	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding)
-	assertServiceBindingErrorBeforeRequest(t, updatedServiceBinding, errorWithOngoingAsyncOperation, binding)
-	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
-
-	events := getRecordedEvents(testController)
-
-	assertNumEvents(t, events, 1)
-	if err := checkEventContains(events[0], "has ongoing asynchronous operation"); err != nil {
-		t.Fatal(err)
-	}
-	if err := checkEventContains(events[0], testNamespace+"/"+testServiceInstanceName); err != nil {
+	if err := checkEvents(events, expectedEvents); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -827,8 +770,7 @@ func TestReconcileServiceBindingServiceInstanceNotReady(t *testing.T) {
 		},
 	}
 
-	err := testController.reconcileServiceBinding(binding)
-	if err != nil {
+	if err := testController.reconcileServiceBinding(binding); err == nil {
 		t.Fatalf("a binding cannot be created against an instance that is not prepared")
 	}
 
@@ -847,7 +789,7 @@ func TestReconcileServiceBindingServiceInstanceNotReady(t *testing.T) {
 	assertNumEvents(t, events, 1)
 
 	expectedEvent := warningEventBuilder(errorServiceInstanceNotReadyReason).msgf(
-		"ServiceBinding cannot begin because referenced ServiceInstance %q is not ready",
+		"Binding cannot begin because referenced ServiceInstance %q is not ready",
 		"test-ns/test-instance",
 	)
 	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
@@ -866,8 +808,11 @@ func TestReconcileServiceBindingNamespaceError(t *testing.T) {
 
 	sharedInformers.ClusterServiceBrokers().Informer().GetStore().Add(getTestClusterServiceBroker())
 	sharedInformers.ClusterServiceClasses().Informer().GetStore().Add(getTestClusterServiceClass())
-	sharedInformers.ServiceInstances().Informer().GetStore().Add(getTestServiceInstanceWithRefs())
 	sharedInformers.ClusterServicePlans().Informer().GetStore().Add(getTestClusterServicePlan())
+
+	instance := getTestServiceInstanceWithRefs()
+	setServiceInstanceCondition(instance, v1beta1.ServiceInstanceConditionReady, v1beta1.ConditionTrue, "", "")
+	sharedInformers.ServiceInstances().Informer().GetStore().Add(instance)
 
 	binding := &v1beta1.ServiceBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -992,8 +937,8 @@ func TestReconcileServiceBindingDelete(t *testing.T) {
 
 	events := getRecordedEvents(testController)
 
-	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+	expectedEvent := normalEventBuilder(successUnboundReason)
+	if err := checkEventPrefixes(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1263,8 +1208,8 @@ func TestReconcileServiceBindingDeleteFailedServiceBinding(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+	expectedEvent := normalEventBuilder(successUnboundReason)
+	if err := checkEventPrefixes(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1387,13 +1332,12 @@ func TestReconcileServiceBindingWithClusterServiceBrokerHTTPError(t *testing.T) 
 
 	events := getRecordedEvents(testController)
 
-	expectedEvent := warningEventBuilder(errorBindCallReason).msgf(
-		"Error creating ServiceBinding for ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
-		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
-	).msg(
-		"Status: 422; ErrorMessage: AsyncRequired; Description: This service plan requires client support for asynchronous service operations.; ResponseError: <nil>",
-	)
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+	expectedEvents := []string{
+		warningEventBuilder(errorBindCallReason).String(),
+		warningEventBuilder("ServiceBindingReturnedFailure").String(),
+	}
+
+	if err := checkEventPrefixes(events, expectedEvents); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1548,13 +1492,12 @@ func TestReconcileServiceBindingWithServiceBindingFailure(t *testing.T) {
 
 	events := getRecordedEvents(testController)
 
-	expectedEvent := warningEventBuilder(errorBindCallReason).msgf(
-		"Error creating ServiceBinding for ServiceInstance %q of ClusterServiceClass (K8S: %q ExternalName: %q) at ClusterServiceBroker %q:",
-		"test-ns/test-instance", "SCGUID", "test-serviceclass", "test-broker",
-	).msg(
-		"Status: 409; ErrorMessage: ServiceBindingExists; Description: Service binding with the same id, for the same service instance already exists.; ResponseError: <nil>",
-	)
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+	expectedEvents := []string{
+		warningEventBuilder(errorBindCallReason).String(),
+		warningEventBuilder("ServiceBindingReturnedFailure").String(),
+	}
+
+	if err := checkEventPrefixes(events, expectedEvents); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -1649,14 +1592,9 @@ func TestUpdateServiceBindingCondition(t *testing.T) {
 	for _, tc := range cases {
 		_, fakeCatalogClient, _, testController, _ := newTestController(t, noFakeActions())
 
-		clone, err := api.Scheme.DeepCopy(tc.input)
-		if err != nil {
-			t.Errorf("%v: deep copy failed", tc.name)
-			continue
-		}
-		inputClone := clone.(*v1beta1.ServiceBinding)
+		inputClone := tc.input.DeepCopy()
 
-		err = testController.updateServiceBindingCondition(tc.input, v1beta1.ServiceBindingConditionReady, tc.status, tc.reason, tc.message)
+		err := testController.updateServiceBindingCondition(tc.input, v1beta1.ServiceBindingConditionReady, tc.status, tc.reason, tc.message)
 		if err != nil {
 			t.Errorf("%v: error updating broker condition: %v", tc.name, err)
 			continue
@@ -1813,8 +1751,8 @@ func TestReconcileUnbindingWithClusterServiceBrokerHTTPError(t *testing.T) {
 	if err := scmeta.AddFinalizer(binding, v1beta1.FinalizerServiceCatalog); err != nil {
 		t.Fatalf("Finalizer error: %v", err)
 	}
-	if err := testController.reconcileServiceBinding(binding); err != nil {
-		t.Fatalf("reconcileServiceBinding should not have returned an error: %v", err)
+	if err := testController.reconcileServiceBinding(binding); err == nil {
+		t.Fatalf("reconcileServiceBinding should have returned an error")
 	}
 
 	actions := fakeCatalogClient.Actions()
@@ -1825,7 +1763,7 @@ func TestReconcileUnbindingWithClusterServiceBrokerHTTPError(t *testing.T) {
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	updatedServiceBinding = assertUpdateStatus(t, actions[1], binding)
-	assertServiceBindingRequestFailingError(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, errorUnbindCallReason, errorUnbindCallReason, binding)
+	assertServiceBindingRequestRetriableError(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, errorUnbindCallReason, binding)
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
@@ -1966,6 +1904,7 @@ func TestReconcileBindingSuccessOnFinalRetry(t *testing.T) {
 	binding.Status.CurrentOperation = v1beta1.ServiceBindingOperationBind
 	startTime := metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
 	binding.Status.OperationStartTime = &startTime
+	binding.Status.InProgressProperties = &v1beta1.ServiceBindingPropertiesState{}
 
 	if err := testController.reconcileServiceBinding(binding); err != nil {
 		t.Fatalf("a valid binding should not fail: %v", err)
@@ -2085,9 +2024,10 @@ func TestReconcileBindingWithSecretConflictFailedAfterFinalRetry(t *testing.T) {
 			SecretName:         testServiceBindingSecretName,
 		},
 		Status: v1beta1.ServiceBindingStatus{
-			CurrentOperation:   v1beta1.ServiceBindingOperationBind,
-			OperationStartTime: &startTime,
-			UnbindStatus:       v1beta1.ServiceBindingUnbindStatusRequired,
+			CurrentOperation:     v1beta1.ServiceBindingOperationBind,
+			OperationStartTime:   &startTime,
+			UnbindStatus:         v1beta1.ServiceBindingUnbindStatusRequired,
+			InProgressProperties: &v1beta1.ServiceBindingPropertiesState{},
 		},
 	}
 
@@ -2116,7 +2056,6 @@ func TestReconcileBindingWithSecretConflictFailedAfterFinalRetry(t *testing.T) {
 	assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionReady, v1beta1.ConditionFalse, errorServiceBindingOrphanMitigation)
 	assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionFailed, v1beta1.ConditionTrue, errorReconciliationRetryTimeoutReason)
 	assertServiceBindingStartingOrphanMitigation(t, updatedServiceBinding, binding)
-	assertServiceBindingInProgressPropertiesNil(t, updatedServiceBinding)
 	assertServiceBindingExternalPropertiesParameters(t, updatedServiceBinding, nil, "")
 
 	kubeActions := fakeKubeClient.Actions()
@@ -2478,13 +2417,14 @@ func TestReconcileBindingWithSetOrphanMitigation(t *testing.T) {
 
 			updatedServiceBinding = assertUpdateStatus(t, actions[1], binding).(*v1beta1.ServiceBinding)
 
+			assertServiceBindingExternalPropertiesNil(t, updatedServiceBinding)
+
 			if tc.setOrphanMitigation {
 				assertServiceBindingStartingOrphanMitigation(t, updatedServiceBinding, binding)
 			} else {
 				assertServiceBindingReadyFalse(t, updatedServiceBinding)
 				assertServiceBindingCondition(t, updatedServiceBinding, v1beta1.ServiceBindingConditionReady, v1beta1.ConditionFalse)
-				assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, tc.setOrphanMitigation)
-				assertServiceBindingExternalPropertiesNil(t, updatedServiceBinding)
+				assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 			}
 		})
 	}
@@ -2638,14 +2578,14 @@ func TestReconcileBindingWithOrphanMitigationReconciliationRetryTimeOut(t *testi
 	assertNumberOfActions(t, actions, 1)
 
 	updatedServiceBinding := assertUpdateStatus(t, actions[0], binding).(*v1beta1.ServiceBinding)
-	assertServiceBindingRequestFailingError(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, errorUnbindCallReason, "reason-orphan-mitigation-began", binding)
+	assertServiceBindingRequestFailingError(t, updatedServiceBinding, v1beta1.ServiceBindingOperationUnbind, errorOrphanMitigationFailedReason, "reason-orphan-mitigation-began", binding)
 	assertServiceBindingOrphanMitigationSet(t, updatedServiceBinding, false)
 
 	events := getRecordedEvents(testController)
 
 	expectedEventPrefixes := []string{
 		warningEventBuilder(errorUnbindCallReason).String(),
-		warningEventBuilder(errorReconciliationRetryTimeoutReason).String(),
+		warningEventBuilder(errorOrphanMitigationFailedReason).String(),
 	}
 
 	if err := checkEventPrefixes(events, expectedEventPrefixes); err != nil {
@@ -2681,9 +2621,10 @@ func TestReconcileServiceBindingDeleteDuringOngoingOperation(t *testing.T) {
 			SecretName:         testServiceBindingSecretName,
 		},
 		Status: v1beta1.ServiceBindingStatus{
-			CurrentOperation:   v1beta1.ServiceBindingOperationBind,
-			OperationStartTime: &startTime,
-			UnbindStatus:       v1beta1.ServiceBindingUnbindStatusRequired,
+			CurrentOperation:     v1beta1.ServiceBindingOperationBind,
+			OperationStartTime:   &startTime,
+			InProgressProperties: &v1beta1.ServiceBindingPropertiesState{},
+			UnbindStatus:         v1beta1.ServiceBindingUnbindStatusRequired,
 		},
 	}
 
@@ -2745,8 +2686,8 @@ func TestReconcileServiceBindingDeleteDuringOngoingOperation(t *testing.T) {
 
 	events := getRecordedEvents(testController)
 
-	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+	expectedEvent := normalEventBuilder(successUnboundReason)
+	if err := checkEventPrefixes(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -2844,11 +2785,10 @@ func TestReconcileServiceBindingDeleteDuringOrphanMitigation(t *testing.T) {
 
 	events := getRecordedEvents(testController)
 
-	expectedEvent := normalEventBuilder(successUnboundReason).msg("This binding was deleted successfully")
-	if err := checkEvents(events, expectedEvent.stringArr()); err != nil {
+	expectedEvent := normalEventBuilder(successUnboundReason)
+	if err := checkEventPrefixes(events, expectedEvent.stringArr()); err != nil {
 		t.Fatal(err)
 	}
-
 }
 
 // TestReconcileServiceBindingAsynchronousBind tests the situation where the
@@ -3067,6 +3007,7 @@ func TestPollServiceBinding(t *testing.T) {
 		validateBrokerActionsFunc func(t *testing.T, actions []fakeosb.Action)
 		validateKubeActionsFunc   func(t *testing.T, actions []clientgotesting.Action)
 		validateConditionsFunc    func(t *testing.T, updatedBinding *v1beta1.ServiceBinding, originalBinding *v1beta1.ServiceBinding)
+		shouldError               bool
 		shouldFinishPolling       bool
 		expectedEvents            []string
 	}{
@@ -3108,7 +3049,7 @@ func TestPollServiceBinding(t *testing.T) {
 				assertServiceBindingAsyncInProgress(t, updatedBinding, v1beta1.ServiceBindingOperationBind, asyncBindingReason, testOperation, originalBinding)
 			},
 			shouldFinishPolling: false,
-			expectedEvents:      []string{},
+			expectedEvents:      []string{corev1.EventTypeNormal + " " + asyncBindingReason + " " + "The binding is being created asynchronously (testdescr)"},
 		},
 		{
 			name:    "bind - failed",
@@ -3131,7 +3072,10 @@ func TestPollServiceBinding(t *testing.T) {
 				)
 			},
 			shouldFinishPolling: true,
-			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Bind call failed: " + lastOperationDescription},
+			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Bind call failed: " + lastOperationDescription,
+				corev1.EventTypeWarning + " " + errorBindCallReason + " " + "Bind call failed: " + lastOperationDescription,
+			},
 		},
 		{
 			name:    "bind - invalid state",
@@ -3162,8 +3106,9 @@ func TestPollServiceBinding(t *testing.T) {
 			},
 			shouldFinishPolling: true,
 			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorAsyncOpTimeoutReason + " " + "The asynchronous Bind operation timed out and will not be retried",
 				corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed",
-				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + `ServiceBinding "test-binding/test-ns": Starting orphan mitigation`,
+				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + "Starting orphan mitigation",
 			},
 		},
 		{
@@ -3181,8 +3126,9 @@ func TestPollServiceBinding(t *testing.T) {
 			},
 			shouldFinishPolling: true,
 			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorAsyncOpTimeoutReason + " " + "The asynchronous Bind operation timed out and will not be retried",
 				corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed",
-				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + `ServiceBinding "test-binding/test-ns": Starting orphan mitigation`,
+				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + "Starting orphan mitigation",
 			},
 		},
 		{
@@ -3204,7 +3150,8 @@ func TestPollServiceBinding(t *testing.T) {
 			shouldFinishPolling: true,
 			expectedEvents: []string{
 				corev1.EventTypeWarning + " " + errorFetchingBindingFailedReason + " " + "Could not do a GET on binding resource: some error",
-				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + `ServiceBinding "test-binding/test-ns": Starting orphan mitigation`,
+				corev1.EventTypeWarning + " " + errorFetchingBindingFailedReason + " " + "Could not do a GET on binding resource: some error",
+				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + "Starting orphan mitigation",
 			},
 		},
 		{
@@ -3253,7 +3200,8 @@ func TestPollServiceBinding(t *testing.T) {
 			shouldFinishPolling: true, // should not be requeued in polling queue; will drop back to default rate limiting
 			expectedEvents: []string{
 				corev1.EventTypeWarning + " " + errorInjectingBindResultReason + " " + `Error injecting bind results: Secret "test-ns/test-binding" is not owned by ServiceBinding, controllerRef: nil`,
-				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + `ServiceBinding "test-binding/test-ns": Starting orphan mitigation`,
+				corev1.EventTypeWarning + " " + errorInjectingBindResultReason + " " + `Error injecting bind results: Secret "test-ns/test-binding" is not owned by ServiceBinding, controllerRef: nil`,
+				corev1.EventTypeWarning + " " + errorServiceBindingOrphanMitigation + " " + "Starting orphan mitigation",
 			},
 		},
 		{
@@ -3356,7 +3304,7 @@ func TestPollServiceBinding(t *testing.T) {
 				assertServiceBindingAsyncInProgress(t, updatedBinding, v1beta1.ServiceBindingOperationUnbind, asyncUnbindingReason, testOperation, originalBinding)
 			},
 			shouldFinishPolling: false,
-			expectedEvents:      []string{},
+			expectedEvents:      []string{corev1.EventTypeNormal + " " + asyncUnbindingReason + " " + "The binding is being deleted asynchronously (testdescr)"},
 		},
 		{
 			name:    "unbind - error",
@@ -3370,7 +3318,7 @@ func TestPollServiceBinding(t *testing.T) {
 			expectedEvents:            []string{corev1.EventTypeWarning + " " + errorPollingLastOperationReason + " " + "Error polling last operation: random error"},
 		},
 		{
-			name:    "unbind - failed",
+			name:    "unbind - failed (retries)",
 			binding: getTestServiceBindingAsyncUnbinding(testOperation),
 			pollReaction: &fakeosb.PollBindingLastOperationReaction{
 				Response: &osb.LastOperationResponse{
@@ -3380,15 +3328,15 @@ func TestPollServiceBinding(t *testing.T) {
 			},
 			validateBrokerActionsFunc: validatePollBindingLastOperationAction,
 			validateConditionsFunc: func(t *testing.T, updatedBinding *v1beta1.ServiceBinding, originalBinding *v1beta1.ServiceBinding) {
-				assertServiceBindingRequestFailingError(
+				assertServiceBindingRequestRetriableError(
 					t,
 					updatedBinding,
 					v1beta1.ServiceBindingOperationUnbind,
 					errorUnbindCallReason,
-					errorUnbindCallReason,
 					originalBinding,
 				)
 			},
+			shouldError:         true,
 			shouldFinishPolling: true,
 			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + "Unbind call failed: " + lastOperationDescription},
 		},
@@ -3421,13 +3369,16 @@ func TestPollServiceBinding(t *testing.T) {
 					t,
 					updatedBinding,
 					v1beta1.ServiceBindingOperationUnbind,
-					asyncUnbindingReason,
+					errorAsyncOpTimeoutReason,
 					errorReconciliationRetryTimeoutReason,
 					originalBinding,
 				)
 			},
 			shouldFinishPolling: true,
-			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed"},
+			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorAsyncOpTimeoutReason + " " + "The asynchronous Unbind operation timed out and will not be retried",
+				corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed",
+			},
 		},
 		{
 			name:    "unbind - invalid state - retry duration exceeded",
@@ -3444,13 +3395,42 @@ func TestPollServiceBinding(t *testing.T) {
 					t,
 					updatedBinding,
 					v1beta1.ServiceBindingOperationUnbind,
-					"",
+					errorAsyncOpTimeoutReason,
 					errorReconciliationRetryTimeoutReason,
 					originalBinding,
 				)
 			},
 			shouldFinishPolling: true,
-			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed"},
+			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorAsyncOpTimeoutReason + " " + "The asynchronous Unbind operation timed out and will not be retried",
+				corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed",
+			},
+		},
+		{
+			name:    "unbind - failed - retry duration exceeded",
+			binding: getTestServiceBindingAsyncUnbindingRetryDurationExceeded(testOperation),
+			pollReaction: &fakeosb.PollBindingLastOperationReaction{
+				Response: &osb.LastOperationResponse{
+					State:       osb.StateFailed,
+					Description: strPtr(lastOperationDescription),
+				},
+			},
+			validateBrokerActionsFunc: validatePollBindingLastOperationAction,
+			validateConditionsFunc: func(t *testing.T, updatedBinding *v1beta1.ServiceBinding, originalBinding *v1beta1.ServiceBinding) {
+				assertServiceBindingRequestFailingError(
+					t,
+					updatedBinding,
+					v1beta1.ServiceBindingOperationUnbind,
+					errorUnbindCallReason,
+					errorReconciliationRetryTimeoutReason,
+					originalBinding,
+				)
+			},
+			shouldFinishPolling: true,
+			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + "Unbind call failed: " + lastOperationDescription,
+				corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed",
+			},
 		},
 		// Unbind as part of orphan mitigation
 		{
@@ -3498,7 +3478,7 @@ func TestPollServiceBinding(t *testing.T) {
 				assertServiceBindingAsyncInProgress(t, updatedBinding, v1beta1.ServiceBindingOperationBind, asyncUnbindingReason, testOperation, originalBinding)
 			},
 			shouldFinishPolling: false,
-			expectedEvents:      []string{},
+			expectedEvents:      []string{corev1.EventTypeNormal + " " + asyncUnbindingReason + " " + "The binding is being deleted asynchronously (testdescr)"},
 		},
 		{
 			name:    "orphan mitigation - error",
@@ -3512,7 +3492,7 @@ func TestPollServiceBinding(t *testing.T) {
 			expectedEvents:            []string{corev1.EventTypeWarning + " " + errorPollingLastOperationReason + " " + "Error polling last operation: random error"},
 		},
 		{
-			name:    "orphan mitigation - failed",
+			name:    "orphan mitigation - failed (retries)",
 			binding: getTestServiceBindingAsyncOrphanMitigation(testOperation),
 			pollReaction: &fakeosb.PollBindingLastOperationReaction{
 				Response: &osb.LastOperationResponse{
@@ -3522,10 +3502,11 @@ func TestPollServiceBinding(t *testing.T) {
 			},
 			validateBrokerActionsFunc: validatePollBindingLastOperationAction,
 			validateConditionsFunc: func(t *testing.T, updatedBinding *v1beta1.ServiceBinding, originalBinding *v1beta1.ServiceBinding) {
-				assertServiceBindingOrphanMitigationFailure(t, updatedBinding, originalBinding)
+				assertServiceBindingRequestRetriableOrphanMitigation(t, updatedBinding, errorUnbindCallReason, originalBinding)
 			},
+			shouldError:         true,
 			shouldFinishPolling: true,
-			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorOrphanMitigationFailedReason + " " + "Orphan mitigation failed: " + lastOperationDescription},
+			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + "Unbind call failed: " + lastOperationDescription},
 		},
 		{
 			name:    "orphan mitigation - invalid state",
@@ -3555,7 +3536,10 @@ func TestPollServiceBinding(t *testing.T) {
 				assertServiceBindingAsyncOrphanMitigationRetryDurationExceeded(t, updatedBinding, originalBinding)
 			},
 			shouldFinishPolling: true,
-			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed"},
+			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorAsyncOpTimeoutReason + " " + "The asynchronous Unbind operation timed out and will not be retried",
+				corev1.EventTypeWarning + " " + errorOrphanMitigationFailedReason + " " + "Orphan mitigation failed: Stopping reconciliation retries because too much time has elapsed",
+			},
 		},
 		{
 			name:    "orphan mitigation - invalid state - retry duration exceeded",
@@ -3571,7 +3555,29 @@ func TestPollServiceBinding(t *testing.T) {
 				assertServiceBindingAsyncOrphanMitigationRetryDurationExceeded(t, updatedBinding, originalBinding)
 			},
 			shouldFinishPolling: true,
-			expectedEvents:      []string{corev1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason + " " + "Stopping reconciliation retries because too much time has elapsed"},
+			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorAsyncOpTimeoutReason + " " + "The asynchronous Unbind operation timed out and will not be retried",
+				corev1.EventTypeWarning + " " + errorOrphanMitigationFailedReason + " " + "Orphan mitigation failed: Stopping reconciliation retries because too much time has elapsed",
+			},
+		},
+		{
+			name:    "orphan mitigation - failed - retry duration exceeded",
+			binding: getTestServiceBindingAsyncOrphanMitigationRetryDurationExceeded(testOperation),
+			pollReaction: &fakeosb.PollBindingLastOperationReaction{
+				Response: &osb.LastOperationResponse{
+					State:       osb.StateFailed,
+					Description: strPtr(lastOperationDescription),
+				},
+			},
+			validateBrokerActionsFunc: validatePollBindingLastOperationAction,
+			validateConditionsFunc: func(t *testing.T, updatedBinding *v1beta1.ServiceBinding, originalBinding *v1beta1.ServiceBinding) {
+				assertServiceBindingAsyncOrphanMitigationRetryDurationExceeded(t, updatedBinding, originalBinding)
+			},
+			shouldFinishPolling: true,
+			expectedEvents: []string{
+				corev1.EventTypeWarning + " " + errorUnbindCallReason + " " + "Unbind call failed: " + lastOperationDescription,
+				corev1.EventTypeWarning + " " + errorOrphanMitigationFailedReason + " " + "Orphan mitigation failed: Stopping reconciliation retries because too much time has elapsed",
+			},
 		},
 	}
 
@@ -3594,7 +3600,10 @@ func TestPollServiceBinding(t *testing.T) {
 
 			bindingKey := tc.binding.Namespace + "/" + tc.binding.Name
 
-			if err := testController.pollServiceBinding(tc.binding); err != nil {
+			err := testController.pollServiceBinding(tc.binding)
+			if tc.shouldError && err == nil {
+				t.Fatalf("expected error when polling service binding but there was none")
+			} else if !tc.shouldError && err != nil {
 				t.Fatalf("unexpected error when polling service binding: %v", err)
 			}
 

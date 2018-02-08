@@ -145,7 +145,7 @@ func (d *defaultServicePlan) SetInternalServiceCatalogClientSet(f internalclient
 	d.spClient = f.Servicecatalog().ClusterServicePlans()
 }
 
-func (d *defaultServicePlan) Validate() error {
+func (d *defaultServicePlan) ValidateInitialization() error {
 	if d.scClient == nil {
 		return errors.New("missing clusterserviceclass interface")
 	}

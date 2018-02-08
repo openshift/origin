@@ -29,61 +29,35 @@ import (
 )
 
 func TestClusterServicePlanRemovedFromCatalogWithoutInstances(t *testing.T) {
-	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t)
-	defer shutdownController()
-	defer shutdownServer()
-
-	client := catalogClient.ServicecatalogV1beta1()
-
-	broker := &v1beta1.ClusterServiceBroker{
-		ObjectMeta: metav1.ObjectMeta{Name: testClusterServiceBrokerName},
-		Spec: v1beta1.ClusterServiceBrokerSpec{
-			URL: testBrokerURL,
-		},
+	ct := &controllerTest{
+		t:      t,
+		broker: getTestBroker(),
 	}
 
-	_, err := client.ClusterServiceBrokers().Create(broker)
-	if nil != err {
-		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
-	}
+	ct.run(func(ct *controllerTest) {
+		removedPlan := getTestClusterServicePlanRemoved()
+		removedPlan, err := ct.client.ClusterServicePlans().Create(removedPlan)
+		if err != nil {
+			t.Fatalf("error creating ClusterServicePlan: %v", err)
+		}
 
-	err = util.WaitForBrokerCondition(client,
-		testClusterServiceBrokerName,
-		v1beta1.ServiceBrokerCondition{
-			Type:   v1beta1.ServiceBrokerConditionReady,
-			Status: v1beta1.ConditionTrue,
-		})
-	if err != nil {
-		t.Fatalf("error waiting for broker to become ready: %v", err)
-	}
+		err = util.WaitForClusterServicePlanToExist(ct.client, testRemovedClusterServicePlanGUID)
+		if err != nil {
+			t.Fatalf("error waiting for ClusterServicePlan to exist: %v", err)
+		}
 
-	err = util.WaitForClusterServiceClassToExist(client, testClusterServiceClassGUID)
-	if nil != err {
-		t.Fatalf("error waiting from ClusterServiceClass to exist: %v", err)
-	}
+		t.Log("updating ClusterServiceClass status")
+		removedPlan.Status.RemovedFromBrokerCatalog = true
+		_, err = ct.client.ClusterServicePlans().UpdateStatus(removedPlan)
+		if err != nil {
+			t.Fatalf("error marking ClusterServicePlan as removed from catalog: %v", err)
+		}
 
-	removedPlan := getTestClusterServicePlanRemoved()
-	removedPlan, err = client.ClusterServicePlans().Create(removedPlan)
-	if err != nil {
-		t.Fatalf("error creating ClusterServicePlan: %v", err)
-	}
-
-	err = util.WaitForClusterServicePlanToExist(client, testRemovedClusterServicePlanGUID)
-	if err != nil {
-		t.Fatalf("error waiting for ClusterServicePlan to exist: %v", err)
-	}
-
-	t.Log("updating ClusterServiceClass status")
-	removedPlan.Status.RemovedFromBrokerCatalog = true
-	_, err = client.ClusterServicePlans().UpdateStatus(removedPlan)
-	if err != nil {
-		t.Fatalf("error marking ClusterServicePlan as removed from catalog: %v", err)
-	}
-
-	err = util.WaitForClusterServicePlanToNotExist(client, testRemovedClusterServicePlanGUID)
-	if err != nil {
-		t.Fatalf("error waiting for remove ClusterServicePlan to not exist: %v", err)
-	}
+		err = util.WaitForClusterServicePlanToNotExist(ct.client, testRemovedClusterServicePlanGUID)
+		if err != nil {
+			t.Fatalf("error waiting for remove ClusterServicePlan to not exist: %v", err)
+		}
+	})
 }
 
 const (
@@ -111,61 +85,35 @@ func getTestClusterServicePlanRemoved() *v1beta1.ClusterServicePlan {
 }
 
 func TestClusterServiceClassRemovedFromCatalogWithoutInstances(t *testing.T) {
-	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t)
-	defer shutdownController()
-	defer shutdownServer()
-
-	client := catalogClient.ServicecatalogV1beta1()
-
-	broker := &v1beta1.ClusterServiceBroker{
-		ObjectMeta: metav1.ObjectMeta{Name: testClusterServiceBrokerName},
-		Spec: v1beta1.ClusterServiceBrokerSpec{
-			URL: testBrokerURL,
-		},
+	ct := &controllerTest{
+		t:      t,
+		broker: getTestBroker(),
 	}
 
-	_, err := client.ClusterServiceBrokers().Create(broker)
-	if nil != err {
-		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
-	}
+	ct.run(func(ct *controllerTest) {
+		removedClass := getTestClusterServiceClassRemoved()
+		removedClass, err := ct.client.ClusterServiceClasses().Create(removedClass)
+		if err != nil {
+			t.Fatalf("error creating ClusterServiceClass: %v", err)
+		}
 
-	err = util.WaitForBrokerCondition(client,
-		testClusterServiceBrokerName,
-		v1beta1.ServiceBrokerCondition{
-			Type:   v1beta1.ServiceBrokerConditionReady,
-			Status: v1beta1.ConditionTrue,
-		})
-	if err != nil {
-		t.Fatalf("error waiting for broker to become ready: %v", err)
-	}
+		err = util.WaitForClusterServiceClassToExist(ct.client, testRemovedClusterServiceClassGUID)
+		if err != nil {
+			t.Fatalf("error waiting for ClusterServiceClass to exist: %v", err)
+		}
 
-	err = util.WaitForClusterServiceClassToExist(client, testClusterServiceClassGUID)
-	if nil != err {
-		t.Fatalf("error waiting from ClusterServiceClass to exist: %v", err)
-	}
+		t.Log("updating ClusterServiceClass status")
+		removedClass.Status.RemovedFromBrokerCatalog = true
+		_, err = ct.client.ClusterServiceClasses().UpdateStatus(removedClass)
+		if err != nil {
+			t.Fatalf("error marking ClusterServiceClass as removed from catalog: %v", err)
+		}
 
-	removedClass := getTestClusterServiceClassRemoved()
-	removedClass, err = client.ClusterServiceClasses().Create(removedClass)
-	if err != nil {
-		t.Fatalf("error creating ClusterServiceClass: %v", err)
-	}
-
-	err = util.WaitForClusterServiceClassToExist(client, testRemovedClusterServiceClassGUID)
-	if err != nil {
-		t.Fatalf("error waiting for ClusterServiceClass to exist: %v", err)
-	}
-
-	t.Log("updating ClusterServiceClass status")
-	removedClass.Status.RemovedFromBrokerCatalog = true
-	_, err = client.ClusterServiceClasses().UpdateStatus(removedClass)
-	if err != nil {
-		t.Fatalf("error marking ClusterServiceClass as removed from catalog: %v", err)
-	}
-
-	err = util.WaitForClusterServiceClassToNotExist(client, testRemovedClusterServiceClassGUID)
-	if err != nil {
-		t.Fatalf("error waiting for remove ClusterServiceClass to not exist: %v", err)
-	}
+		err = util.WaitForClusterServiceClassToNotExist(ct.client, testRemovedClusterServiceClassGUID)
+		if err != nil {
+			t.Fatalf("error waiting for remove ClusterServiceClass to not exist: %v", err)
+		}
+	})
 }
 
 func getTestClusterServiceClassRemoved() *v1beta1.ClusterServiceClass {

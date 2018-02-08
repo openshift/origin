@@ -25,5 +25,5 @@ type Config interface {
 // CompletedConfig is the result of a Config being Complete()-ed. Calling code should call Start()
 // to start a server from its completed config
 type CompletedConfig interface {
-	NewServer() (*ServiceCatalogAPIServer, error)
+	NewServer(stopCh <-chan struct{}) (*ServiceCatalogAPIServer, error)
 }

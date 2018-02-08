@@ -1,0 +1,4 @@
+/bazel-*
+*~
+.idea
+*.iml

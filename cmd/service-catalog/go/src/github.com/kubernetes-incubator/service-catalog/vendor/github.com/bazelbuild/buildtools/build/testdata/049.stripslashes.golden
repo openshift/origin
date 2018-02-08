@@ -1,0 +1,9 @@
+cc_library(
+    name = "foo",
+    deps = [
+        ":bar",
+        "some:dep",
+        "some/other/dep",
+        "yet/another:dep",
+    ],
+)
