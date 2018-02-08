@@ -61,6 +61,9 @@ objects:
           name: provisioner
           securityContext:
             runAsUser: 0
+            seLinuxOptions:
+              # Trump SELinux contexts of all pods that could write files to local volume - the provisioner must be able to clean their files.
+              level: "s0:c0.c1023"
           volumeMounts:
           - mountPath: /mnt/local-storage
             name: local-storage

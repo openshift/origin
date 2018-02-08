@@ -127,15 +127,15 @@ provisioner!
 
 The provisioner is installed from OpenShift template that's available at https://raw.githubusercontent.com/jsafrane/origin/local-storage/examples/storage-examples/local-examples/local-storage-provisioner-template.yaml.
 
-1. Prepare a service account that will be able to run pods as root user and use
-   HostPath volumes:
+1. Prepare a service account that will be able to run pods as root user, use
+   HostPath volumes and run with any SELinux context:
    ```bash
    oc create serviceaccount local-storage-admin
-   oc adm policy add-scc-to-user hostmount-anyuid -z local-storage-admin
+   oc adm policy add-scc-to-user privileged -z local-storage-admin
    ```
-   Root privileges are necessary for the provisioner pod so it can delete any
-   content on the local volumes. HostPath is necessary to access
-   `/mnt/local-storage` on the host.
+   Root privileges and any SELinux context are necessary for the provisioner
+   pod so it can delete any content on the local volumes. HostPath is necessary
+   to access `/mnt/local-storage` on the host.
 
 2. Install the template:
    ```bash
