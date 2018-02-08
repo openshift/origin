@@ -12,6 +12,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -26,8 +28,6 @@ import (
 	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 )
 
 type updateConfigFunc func(d *appsapi.DeploymentConfig)
@@ -426,6 +426,23 @@ func rCConditionFromMeta(condition func(metav1.Object) (bool, error)) func(rc *k
 	}
 }
 
+func waitForPodModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(pod *kapiv1.Pod) (bool, error)) (*kapiv1.Pod, error) {
+	watcher, err := oc.KubeClient().CoreV1().Pods(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+	if err != nil {
+		return nil, err
+	}
+	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
+			return true, fmt.Errorf("different kind of event appeared while waiting for Pod modification: event: %#v", event)
+		}
+		return condition(event.Object.(*kapiv1.Pod))
+	})
+	if err != nil {
+		return nil, err
+	}
+	return event.Object.(*kapiv1.Pod), nil
+}
+
 func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *kapiv1.ReplicationController) (bool, error)) (*kapiv1.ReplicationController, error) {
 	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
 	if err != nil {
@@ -433,8 +450,8 @@ func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeou
 	}
 
 	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
-		if event.Type != watch.Modified {
-			return false, fmt.Errorf("different kind of event appeared while waiting for modification: event: %#v", event)
+		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
+			return true, fmt.Errorf("different kind of event appeared while waiting for RC modification: event: %#v", event)
 		}
 		return condition(event.Object.(*kapiv1.ReplicationController))
 	})
@@ -454,16 +471,13 @@ func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeou
 	}
 
 	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
-		if event.Type != watch.Modified {
-			return false, fmt.Errorf("different kind of event appeared while waiting for modification: event: %#v", event)
+		if event.Type != watch.Modified && (resourceVersion == "" && event.Type != watch.Added) {
+			return true, fmt.Errorf("different kind of event appeared while waiting for DC modification: event: %#v", event)
 		}
 		return condition(event.Object.(*appsapi.DeploymentConfig))
 	})
 	if err != nil {
 		return nil, err
-	}
-	if event.Type != watch.Modified {
-		return nil, fmt.Errorf("waiting for DC modification failed: event: %v", event)
 	}
 	return event.Object.(*appsapi.DeploymentConfig), nil
 }
@@ -612,7 +626,7 @@ func readDCFixture(path string) (*appsapi.DeploymentConfig, error) {
 	}
 
 	dc := new(appsapi.DeploymentConfig)
-	err = appsapiv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(dcv1, dc, nil)
+	err = kapi.Scheme.Convert(dcv1, dc, nil)
 	return dc, err
 }
 
