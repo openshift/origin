@@ -150,7 +150,12 @@ Provides:       tuned-profiles-%{name}-node
 %package clients
 Summary:        %{product_name} Client binaries for Linux
 Obsoletes:      openshift-clients < %{package_refector_version}
+# https://bugzilla.redhat.com/show_bug.cgi?id=1161251
+%if 0%{?fedora} || 0%{?rhel} >= 8
+Requires:       git-core
+%else
 Requires:       git
+%endif
 Requires:       bash-completion
 
 %description clients
