@@ -209,7 +209,7 @@ func TestCreateImageImport(t *testing.T) {
 		},
 		"empty image stream": {
 			name: "testis",
-			err:  "does not have valid docker images",
+			err:  "the tag \"latest\" does not exist on the image stream - choose an existing tag to import or use the 'tag' command to create a new tag",
 			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 			},
