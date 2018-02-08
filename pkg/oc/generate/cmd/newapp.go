@@ -106,6 +106,7 @@ type AppConfig struct {
 
 	AllowSecretUse              bool
 	SourceSecret                string
+	PushSecret                  string
 	AllowNonNumericExposedPorts bool
 	SecretAccessor              app.SecretAccessor
 
@@ -905,6 +906,18 @@ func (c *AppConfig) Run() (*AppResult, error) {
 			if bc, ok := obj.(*buildapi.BuildConfig); ok {
 				glog.V(4).Infof("Setting source secret for build config to: %v", c.SourceSecret)
 				bc.Spec.Source.SourceSecret = &kapi.LocalObjectReference{Name: c.SourceSecret}
+				break
+			}
+		}
+	}
+	if len(c.PushSecret) > 0 {
+		if len(validation.ValidateSecretName(c.PushSecret, false)) != 0 {
+			return nil, fmt.Errorf("push secret name %q is invalid", c.PushSecret)
+		}
+		for _, obj := range objects {
+			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+				glog.V(4).Infof("Setting push secret for build config to: %v", c.SourceSecret)
+				bc.Spec.Output.PushSecret = &kapi.LocalObjectReference{Name: c.PushSecret}
 				break
 			}
 		}

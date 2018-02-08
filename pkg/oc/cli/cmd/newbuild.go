@@ -114,6 +114,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 	cmd.Flags().StringSliceVar(&config.DockerImages, "docker-image", config.DockerImages, "Name of a Docker image to use as a builder.")
 	cmd.Flags().StringSliceVar(&config.Secrets, "build-secret", config.Secrets, "Secret and destination to use as an input for the build.")
 	cmd.Flags().StringVar(&config.SourceSecret, "source-secret", "", "The name of an existing secret that should be used for cloning a private git repository.")
+	cmd.Flags().StringVar(&config.PushSecret, "push-secret", "", "The name of an existing secret that should be used for pushing the output image.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts.")
 	cmd.Flags().StringVar(&config.To, "to", "", "Push built images to this image stream tag (or Docker image repository if --to-docker is set).")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "If true, have the build output push to a Docker repository.")
