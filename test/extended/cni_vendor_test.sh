@@ -2,12 +2,14 @@
 
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
-# Set this to false if the plugin does not implement NetworkPolicy
-export NETWORKING_E2E_NETWORKPOLICY="${NETWORKING_E2E_NETWORKPOLICY:-true}"
+# Uncomment this if the plugin does not implement NetworkPolicy:
 
-# Set this to true if the plugin implements isolation in the same manner as
-# redhat/openshift-ovs-multitenant
-export NETWORKING_E2E_ISOLATION="${NETWORKING_E2E_ISOLATION:-false}"
+# export NETWORKING_E2E_NETWORKPOLICY=false
+
+# Uncomment this if the plugin implements isolation in the same manner as
+# redhat/openshift-ovs-multitenant:
+
+# export NETWORKING_E2E_ISOLATION=true
 
 export NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-\[Area:Networking\]}"
 export NETWORKING_E2E_EXTERNAL=1

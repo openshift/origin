@@ -130,8 +130,6 @@ TEST_FAILURES=0
 function test-osdn-plugin() {
   local name=$1
   local plugin=$2
-  local isolation=$3
-  local networkpolicy=$4
 
   os::log::info "Targeting ${name} plugin: ${plugin}"
 
@@ -146,9 +144,7 @@ function test-osdn-plugin() {
     export TEST_REPORT_FILE_NAME="${name}-junit"
 
     local kubeconfig="$(get-kubeconfig-from-root "${OPENSHIFT_CONFIG_ROOT}")"
-    if ! TEST_REPORT_FILE_NAME=networking_${name}_${isolation} \
-         NETWORKING_E2E_ISOLATION="${isolation}" \
-         NETWORKING_E2E_NETWORKPOLICY="${networkpolicy}" \
+    if ! TEST_REPORT_FILE_NAME=networking_${name} \
          run-extended-tests "${kubeconfig}" "${log_dir}/test.log"; then
       tests_failed=1
       os::log::error "e2e tests failed for plugin: ${plugin}"
@@ -372,13 +368,13 @@ else
   if [[ -z "${NETWORKING_E2E_MINIMAL}" ]]; then
     # Ignore deployment errors for a given plugin to allow other plugins
     # to be tested.
-    test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" "false" "false" || true
+    test-osdn-plugin "subnet" "redhat/openshift-ovs-subnet" || true
     if kernel-supports-networkpolicy; then
-      test-osdn-plugin "networkpolicy" "redhat/openshift-ovs-networkpolicy" "false" "true" || true
+      test-osdn-plugin "networkpolicy" "redhat/openshift-ovs-networkpolicy" || true
     else
       os::log::warning "Skipping networkpolicy tests due to kernel version"
     fi
   fi
 
-  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" "true" "false" || true
+  test-osdn-plugin "multitenant" "redhat/openshift-ovs-multitenant" || true
 fi
