@@ -25,6 +25,10 @@ type TemplateSearcher struct {
 	StopOnExactMatch bool
 }
 
+func (r TemplateSearcher) Type() string {
+	return "templates loaded in accessible projects"
+}
+
 // Search searches for a template and returns matches with the object representation
 func (r TemplateSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	matches := ComponentMatches{}
@@ -102,6 +106,10 @@ func IsPossibleTemplateFile(value string) (bool, error) {
 type TemplateFileSearcher struct {
 	Builder   *resource.Builder
 	Namespace string
+}
+
+func (r *TemplateFileSearcher) Type() string {
+	return "template files"
 }
 
 // Search attempts to read template files and transform it into template objects

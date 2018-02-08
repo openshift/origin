@@ -41,6 +41,10 @@ type DockerClientSearcher struct {
 	AllowMissingImages bool
 }
 
+func (r DockerClientSearcher) Type() string {
+	return "local docker images"
+}
+
 // Search searches all images in local docker server for images that match terms
 func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	componentMatches := ComponentMatches{}
@@ -164,6 +168,10 @@ func (r DockerClientSearcher) Search(precise bool, terms ...string) (ComponentMa
 type MissingImageSearcher struct {
 }
 
+func (r MissingImageSearcher) Type() string {
+	return "images not found in docker registry nor locally"
+}
+
 // Search always returns an exact match for the search terms.
 func (r MissingImageSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	componentMatches := ComponentMatches{}
@@ -182,6 +190,10 @@ type ImageImportSearcher struct {
 	Client        imageclient.ImageStreamImportInterface
 	AllowInsecure bool
 	Fallback      Searcher
+}
+
+func (s ImageImportSearcher) Type() string {
+	return "images via the image stream import API"
 }
 
 // Search invokes the new ImageStreamImport API to have the server look up Docker images for the user,
@@ -265,6 +277,10 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 type DockerRegistrySearcher struct {
 	Client        dockerregistry.Client
 	AllowInsecure bool
+}
+
+func (r DockerRegistrySearcher) Type() string {
+	return "images in the docker registry"
 }
 
 // Search searches in the Docker registry for images that match terms

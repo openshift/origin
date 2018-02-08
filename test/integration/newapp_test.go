@@ -119,6 +119,11 @@ func TestNewAppAddArguments(t *testing.T) {
 
 	for n, c := range tests {
 		a := &cmd.AppConfig{}
+		a.EnvironmentClassificationErrors = map[string]cmd.ArgumentClassificationError{}
+		a.SourceClassificationErrors = map[string]cmd.ArgumentClassificationError{}
+		a.TemplateClassificationErrors = map[string]cmd.ArgumentClassificationError{}
+		a.ComponentClassificationErrors = map[string]cmd.ArgumentClassificationError{}
+		a.ClassificationWinners = map[string]cmd.ArgumentClassificationWinner{}
 		unknown := a.AddArguments(c.args)
 		if !reflect.DeepEqual(a.Environment, c.env) {
 			t.Errorf("%s: Different env variables. Expected: %v, Actual: %v", n, c.env, a.Environment)
@@ -154,7 +159,7 @@ func TestNewAppResolve(t *testing.T) {
 						},
 					},
 				})},
-			expectedErr: `no match for "mysql:invalid`,
+			expectedErr: `unable to locate any`,
 		},
 		{
 			name: "Successful mysql builder",
@@ -279,6 +284,10 @@ type ExactMatchDockerSearcher struct {
 	Errs []error
 }
 
+func (r *ExactMatchDockerSearcher) Type() string {
+	return ""
+}
+
 // Search always returns a match for every term passed in
 func (r *ExactMatchDockerSearcher) Search(precise bool, terms ...string) (app.ComponentMatches, []error) {
 	matches := app.ComponentMatches{}
@@ -299,6 +308,10 @@ func (r *ExactMatchDockerSearcher) Search(precise bool, terms ...string) (app.Co
 // creates a Matcher which triggers the logic to enable tag support.
 type ExactMatchDirectTagDockerSearcher struct {
 	Errs []error
+}
+
+func (r *ExactMatchDirectTagDockerSearcher) Type() string {
+	return ""
 }
 
 func (r *ExactMatchDirectTagDockerSearcher) Search(precise bool, terms ...string) (app.ComponentMatches, []error) {

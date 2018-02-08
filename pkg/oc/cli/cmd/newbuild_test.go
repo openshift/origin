@@ -108,6 +108,10 @@ type MockSearcher struct {
 	OnSearch func(precise bool, terms ...string) (app.ComponentMatches, []error)
 }
 
+func (m MockSearcher) Type() string {
+	return ""
+}
+
 // Search mocks a search.
 func (m MockSearcher) Search(precise bool, terms ...string) (app.ComponentMatches, []error) {
 	return m.OnSearch(precise, terms...)

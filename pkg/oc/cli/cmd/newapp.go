@@ -605,7 +605,29 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 
 	unknown := config.AddArguments(args)
 	if len(unknown) != 0 {
-		return kcmdutil.UsageErrorf(c, "Did not recognize the following arguments: %v", unknown)
+		buf := &bytes.Buffer{}
+		fmt.Fprintf(buf, "Did not recognize the following arguments: %v\n\n", unknown)
+		for _, argName := range unknown {
+			fmt.Fprintf(buf, "%s:\n", argName)
+			for _, classErr := range config.EnvironmentClassificationErrors {
+				if classErr.Value != nil {
+					fmt.Fprintf(buf, fmt.Sprintf("%s:  %v\n", classErr.Key, classErr.Value))
+				} else {
+					fmt.Fprintf(buf, fmt.Sprintf("%s\n", classErr.Key))
+				}
+			}
+			for _, classErr := range config.SourceClassificationErrors {
+				fmt.Fprintf(buf, fmt.Sprintf("%s:  %v\n", classErr.Key, classErr.Value))
+			}
+			for _, classErr := range config.TemplateClassificationErrors {
+				fmt.Fprintf(buf, fmt.Sprintf("%s:  %v\n", classErr.Key, classErr.Value))
+			}
+			for _, classErr := range config.ComponentClassificationErrors {
+				fmt.Fprintf(buf, fmt.Sprintf("%s:  %v\n", classErr.Key, classErr.Value))
+			}
+			fmt.Fprintln(buf)
+		}
+		return kcmdutil.UsageErrorf(c, heredoc.Docf(buf.String()))
 	}
 
 	if config.AllowMissingImages && config.AsSearch {
@@ -701,7 +723,7 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func handleError(err error, baseName, commandName, commandPath string, config *newcmd.AppConfig, transformError func(err error, baseName, commandName, commandPath string, groups errorGroups)) error {
+func handleError(err error, baseName, commandName, commandPath string, config *newcmd.AppConfig, transformError func(err error, baseName, commandName, commandPath string, groups errorGroups, config *newcmd.AppConfig)) error {
 	if err == nil {
 		return nil
 	}
@@ -711,23 +733,19 @@ func handleError(err error, baseName, commandName, commandPath string, config *n
 	}
 	groups := errorGroups{}
 	for _, err := range errs {
-		transformError(err, baseName, commandName, commandPath, groups)
+		transformError(err, baseName, commandName, commandPath, groups, config)
 	}
 	buf := &bytes.Buffer{}
-	if len(config.ArgumentClassificationErrors) > 0 {
-		fmt.Fprintf(buf, "Errors occurred while determining argument types:\n")
-		for _, classErr := range config.ArgumentClassificationErrors {
-			fmt.Fprintf(buf, fmt.Sprintf("\n%s:  %v\n", classErr.Key, classErr.Value))
-		}
-		fmt.Fprint(buf, "\n")
-		// this print serves as a header for the printing of the errorGroups, but
-		// only print it if we precede with classification errors, to help distinguish
-		// between the two
-		fmt.Fprintln(buf, "Errors occurred during resource creation:")
-	}
 	for _, group := range groups {
 		fmt.Fprint(buf, kcmdutil.MultipleErrors("error: ", group.errs))
+		if len(group.classification) > 0 {
+			fmt.Fprintln(buf)
+		}
+		fmt.Fprintf(buf, group.classification)
 		if len(group.suggestion) > 0 {
+			if len(group.classification) > 0 {
+				fmt.Fprintln(buf)
+			}
 			fmt.Fprintln(buf)
 		}
 		fmt.Fprint(buf, group.suggestion)
@@ -736,20 +754,22 @@ func handleError(err error, baseName, commandName, commandPath string, config *n
 }
 
 type errorGroup struct {
-	errs       []error
-	suggestion string
+	errs           []error
+	suggestion     string
+	classification string
 }
 type errorGroups map[string]errorGroup
 
-func (g errorGroups) Add(group string, suggestion string, err error, errs ...error) {
+func (g errorGroups) Add(group string, suggestion string, classification string, err error, errs ...error) {
 	all := g[group]
 	all.errs = append(all.errs, errs...)
 	all.errs = append(all.errs, err)
 	all.suggestion = suggestion
+	all.classification = classification
 	g[group] = all
 }
 
-func transformRunError(err error, baseName, commandName, commandPath string, groups errorGroups) {
+func transformRunError(err error, baseName, commandName, commandPath string, groups errorGroups, config *newcmd.AppConfig) {
 	switch t := err.(type) {
 	case newcmd.ErrRequiresExplicitAccess:
 		if t.Input.Token != nil && t.Input.Token.ServiceAccount {
@@ -762,6 +782,7 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 					You can see more information about the image by adding the --dry-run flag.
 					If you trust the provided image, include the flag --grant-install-rights.`,
 				),
+				"",
 				fmt.Errorf("installing %q requires an 'installer' service account with project editor access", t.Match.Value),
 			)
 		} else {
@@ -774,11 +795,19 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 					You can see more information about the image by adding the --dry-run flag.
 					If you trust the provided image, include the flag --grant-install-rights.`,
 				),
+				"",
 				fmt.Errorf("installing %q requires that you grant the image access to run with your credentials", t.Match.Value),
 			)
 		}
 		return
 	case newapp.ErrNoMatch:
+		classification, _ := config.ClassificationWinners[t.Value]
+		if classification.IncludeGitErrors {
+			notGitRepo, ok := config.SourceClassificationErrors[t.Value]
+			if ok {
+				t.Errs = append(t.Errs, notGitRepo.Value)
+			}
+		}
 		groups.Add(
 			"no-matches",
 			heredoc.Docf(`
@@ -794,11 +823,13 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 
 				See '%[1]s -h' for examples.`, commandPath,
 			),
+			heredoc.Docf(classification.String()),
 			t,
 			t.Errs...,
 		)
 		return
 	case newapp.ErrMultipleMatches:
+		classification, _ := config.ClassificationWinners[t.Value]
 		buf := &bytes.Buffer{}
 		for i, match := range t.Matches {
 
@@ -812,6 +843,7 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 
 						%[2]sTo view a full list of matches, use '%[3]s %[4]s -S %[1]s'`, t.Value, buf.String(), baseName, commandName,
 					),
+					classification.String(),
 					t,
 					t.Errs...,
 				)
@@ -830,11 +862,13 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 
 					%[2]s`, t.Value, buf.String(),
 			),
+			classification.String(),
 			t,
 			t.Errs...,
 		)
 		return
 	case newapp.ErrPartialMatch:
+		classification, _ := config.ClassificationWinners[t.Value]
 		buf := &bytes.Buffer{}
 		fmt.Fprintf(buf, "* %s\n", t.Match.Description)
 		fmt.Fprintf(buf, "  Use %[1]s to specify this image or template\n\n", t.Match.Argument)
@@ -846,11 +880,13 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 
 					%[2]s`, t.Value, buf.String(),
 			),
+			classification.String(),
 			t,
 			t.Errs...,
 		)
 		return
 	case newapp.ErrNoTagsFound:
+		classification, _ := config.ClassificationWinners[t.Value]
 		buf := &bytes.Buffer{}
 		fmt.Fprintf(buf, "  Use --allow-missing-imagestream-tags to use this image stream\n\n")
 		groups.Add(
@@ -860,6 +896,7 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 
 					%[2]s`, t.Match.Name, buf.String(),
 			),
+			classification.String(),
 			t,
 			t.Errs...,
 		)
@@ -868,13 +905,14 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 	switch err {
 	case errNoTokenAvailable:
 		// TODO: improve by allowing token generation
-		groups.Add("", "", fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)"))
+		groups.Add("", "", "", fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)"))
 	case newcmd.ErrNoInputs:
 		// TODO: suggest things to the user
-		groups.Add("", "", usageError(commandPath, newAppNoInput, baseName, commandName))
+		groups.Add("", "", "", usageError(commandPath, newAppNoInput, baseName, commandName))
 	default:
-		groups.Add("", "", err)
+		groups.Add("", "", "", err)
 	}
+	return
 }
 
 func usageError(commandPath, format string, args ...interface{}) error {

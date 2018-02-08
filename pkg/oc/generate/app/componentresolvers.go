@@ -2,6 +2,7 @@ package app
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -24,6 +25,7 @@ type Resolver interface {
 // matches
 type Searcher interface {
 	Search(precise bool, terms ...string) (ComponentMatches, []error)
+	Type() string
 }
 
 // WeightedResolver is a resolver identified as exact or not, depending on its weight
@@ -42,6 +44,7 @@ type PerfectMatchWeightedResolver []WeightedResolver
 // Resolve resolves the provided input and returns only exact matches
 func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
 	var errs []error
+	types := []string{}
 	candidates := ScoredComponentMatches{}
 	var group MultiSimpleSearcher
 	var groupWeight float32 = 0.0
@@ -59,6 +62,7 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 			glog.V(5).Infof("Error from resolver: %v\n", err)
 			errs = append(errs, err...)
 		}
+		types = append(types, group.Type())
 
 		sort.Sort(ScoredComponentMatches(matches))
 		if len(matches) > 0 && matches[0].Score == 0.0 && (len(matches) == 1 || matches[1].Score != 0.0) {
@@ -75,7 +79,7 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 
 	switch len(candidates) {
 	case 0:
-		return nil, ErrNoMatch{Value: value, Errs: errs}
+		return nil, ErrNoMatch{Value: value, Errs: errs, Type: strings.Join(types, ", ")}
 	case 1:
 		if candidates[0].Score != 0.0 {
 			if candidates[0].NoTagsFound {
@@ -108,7 +112,7 @@ type FirstMatchResolver struct {
 func (r FirstMatchResolver) Resolve(value string) (*ComponentMatch, error) {
 	matches, err := r.Searcher.Search(true, value)
 	if len(matches) == 0 {
-		return nil, ErrNoMatch{Value: value, Errs: err}
+		return nil, ErrNoMatch{Value: value, Errs: err, Type: r.Searcher.Type()}
 	}
 	return matches[0], errors.NewAggregate(err)
 }
@@ -125,7 +129,7 @@ type HighestScoreResolver struct {
 func (r HighestScoreResolver) Resolve(value string) (*ComponentMatch, error) {
 	matches, err := r.Searcher.Search(true, value)
 	if len(matches) == 0 {
-		return nil, ErrNoMatch{Value: value, Errs: err}
+		return nil, ErrNoMatch{Value: value, Errs: err, Type: r.Searcher.Type()}
 	}
 	sort.Sort(ScoredComponentMatches(matches))
 	return matches[0], errors.NewAggregate(err)
@@ -146,7 +150,7 @@ func (r HighestUniqueScoreResolver) Resolve(value string) (*ComponentMatch, erro
 	sort.Sort(ScoredComponentMatches(matches))
 	switch len(matches) {
 	case 0:
-		return nil, ErrNoMatch{Value: value, Errs: err}
+		return nil, ErrNoMatch{Value: value, Errs: err, Type: r.Searcher.Type()}
 	case 1:
 		return matches[0], errors.NewAggregate(err)
 	default:
@@ -184,7 +188,7 @@ func (r UniqueExactOrInexactMatchResolver) Resolve(value string) (*ComponentMatc
 		inexact := matches.Inexact()
 		switch len(inexact) {
 		case 0:
-			return nil, ErrNoMatch{Value: value, Errs: err}
+			return nil, ErrNoMatch{Value: value, Errs: err, Type: r.Searcher.Type()}
 		case 1:
 			return inexact[0], errors.NewAggregate(err)
 		default:
@@ -213,6 +217,14 @@ func (r PipelineResolver) Resolve(value string) (*ComponentMatch, error) {
 // MultiSimpleSearcher is a set of searchers
 type MultiSimpleSearcher []Searcher
 
+func (s MultiSimpleSearcher) Type() string {
+	t := []string{}
+	for _, searcher := range s {
+		t = append(t, searcher.Type())
+	}
+	return strings.Join(t, ", ")
+}
+
 // Search searches using all searchers it holds
 func (s MultiSimpleSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	var errs []error
@@ -238,6 +250,14 @@ type WeightedSearcher struct {
 // MultiWeightedSearcher is a set of weighted searchers where lower weight has higher
 // priority in search results
 type MultiWeightedSearcher []WeightedSearcher
+
+func (s MultiWeightedSearcher) Type() string {
+	t := []string{}
+	for _, searcher := range s {
+		t = append(t, searcher.Type())
+	}
+	return strings.Join(t, ", ")
+}
 
 // Search searches using all searchers it holds and score according to searcher height
 func (s MultiWeightedSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {

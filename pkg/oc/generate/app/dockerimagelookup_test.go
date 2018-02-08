@@ -12,6 +12,10 @@ type fakeRegistrySearcher struct {
 	errs    []error
 }
 
+func (f fakeRegistrySearcher) Type() string {
+	return ""
+}
+
 func (f fakeRegistrySearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	return f.matches, f.errs
 }
