@@ -16,36 +16,7 @@ export SHELLOPTS
 #
 # The EmptyDir test is a canary; it will fail if mount propagation is
 # not properly configured on the host.
-NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-etworking|Services should be able to create a functioning NodePort service|Feature:OSNetworkPolicy|EmptyDir volumes should support \(root,0644,tmpfs\)}"
-NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
-
-DEFAULT_SKIP_LIST=(
-  # Requires lots of setup that this script doesn't so
-  "\[Feature:Federation\]"
-
-  # Skipped until https://github.com/openshift/origin/issues/11042 is resolved
-  "should preserve source pod IP for traffic thru service cluster IP"
-
-  # Panicing, needs investigation
-  "Networking IPerf"
-
-  # Skipped due to origin returning 403 for some of the urls
-  "should provide unchanging, static URL paths for kubernetes api services"
-
-  # DNS inside container fails in CI but works locally
-  "should provide Internet connection for containers"
-
-  # Skip tests that require GCE or AWS. (They'll skip themselves if we run them, but
-  # only after several seconds of setup.)
-  "should be able to up and down services"
-  "should work after restarting kube-proxy"
-  "should work after restarting apiserver"
-  "should be able to change the type and ports of a service"
-
-  # Assumes kube-proxy (aka OpenShift node) is serving /healthz at port 10249, which we currently
-  # have disabled
-  "Networking.*should check kube-proxy urls"
-)
+NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-Networking|Services|Feature:OSNetworkPolicy|EmptyDir volumes should support \(root,0644,tmpfs\)}"
 
 NETWORKING_E2E_MINIMAL="${NETWORKING_E2E_MINIMAL:-}"
 
@@ -210,16 +181,12 @@ function run-extended-tests() {
   local dlv_debug="${DLV_DEBUG:-}"
 
   local focus_regex="${NETWORKING_E2E_FOCUS}"
-  local skip_regex="${NETWORKING_E2E_SKIP}"
+  local skip_regex=""
 
-  if [[ -z "${skip_regex}" ]]; then
-    skip_regex="$(join '|' "${DEFAULT_SKIP_LIST[@]}")"
-    if [[ -n "${NETWORKING_E2E_MINIMAL}" ]]; then
-      skip_regex="${skip_regex}|$(join '|' "${MINIMAL_SKIP_LIST[@]}")"
-    fi
-    if [[ -n "${NETWORKING_E2E_EXTERNAL}" ]]; then
-      skip_regex="${skip_regex}|$(join '|' "${EXTERNAL_PLUGIN_SKIP_LIST[@]}")"
-    fi
+  if [[ -n "${NETWORKING_E2E_MINIMAL}" ]]; then
+    skip_regex="$(join '|' "${MINIMAL_SKIP_LIST[@]}")"
+  elif [[ -n "${NETWORKING_E2E_EXTERNAL}" ]]; then
+    skip_regex="$(join '|' "${EXTERNAL_PLUGIN_SKIP_LIST[@]}")"
   fi
 
   export KUBECONFIG="${kubeconfig}"
