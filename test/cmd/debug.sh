@@ -25,7 +25,7 @@ os::cmd::expect_success_and_text "oc debug --v=8 -t dc/test-deployment-config -o
 os::cmd::expect_success_and_not_text "oc debug --tty=false dc/test-deployment-config -o yaml" 'tty'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'stdin'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'tty'
-os::cmd::expect_failure_and_text "oc debug dc/test-deployment-config --node-name=invalid -- /bin/env" 'on node "invalid"'
+os::cmd::expect_failure_and_text "oc debug dc/test-deployment-config --node-name=invalid -- /bin/env" 'error: unable to get the pod return code'
 # Does not require a real resource on the server
 os::cmd::expect_success_and_not_text "oc debug -T -f examples/hello-openshift/hello-pod.json -o yaml" 'tty'
 os::cmd::expect_success_and_text "oc debug -f examples/hello-openshift/hello-pod.json --keep-liveness --keep-readiness -o yaml" ''
@@ -33,6 +33,9 @@ os::cmd::expect_success_and_text "oc debug -f examples/hello-openshift/hello-pod
 os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'stdin'
 os::cmd::expect_success_and_not_text "oc debug -f examples/hello-openshift/hello-pod.json -o yaml -- /bin/env" 'tty'
 # TODO: write a test that emulates a TTY to verify the correct defaulting of what the pod is created
+os::cmd::expect_success 'oc create -f test/integration/testdata/test-deployment-config-multiple-containers.yaml'
+os::cmd::expect_code ' oc debug dc/test-deployment-config-multiple-containers -c ruby-helloworld1 -- /bin/exit 1' '1'
+os::cmd::expect_code ' oc debug dc/test-deployment-config-multiple-containers -c ruby-helloworld2 -- /bin/exit 1' '1'
 
 # Ensure debug does not depend on a container actually existing for the selected resource.
 # The command should not hang waiting for an attachable pod. Timeout each cmd after 10s.
