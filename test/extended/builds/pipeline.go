@@ -57,9 +57,10 @@ func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI,
 var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 	var (
-		jenkinsTemplatePath          = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
-		mavenSlavePipelinePath       = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
-		mavenSlaveGradlePipelinePath = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
+		jenkinsTemplatePath           = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		nodejsDeclarativePipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "nodejs-sample-pipeline.yaml")
+		mavenSlavePipelinePath        = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
+		mavenSlaveGradlePipelinePath  = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
 		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
 		blueGreenPipelinePath         = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		clientPluginPipelinePath      = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
@@ -227,6 +228,55 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-gradle-pipeline", oc, true)
 			br.AssertSuccess()
+		})
+	})
+
+	g.Context("Pipelines with declarative syntax", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker.Stop()
+			}
+		})
+
+		g.It("should build successfully", func() {
+			// create the bc
+			g.By(fmt.Sprintf("calling oc create -f %q", nodejsDeclarativePipelinePath))
+			err := oc.Run("create").Args("-f", nodejsDeclarativePipelinePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// start the build
+			g.By("starting the pipeline build and waiting for it to complete")
+			br, err := exutil.StartBuildAndWait(oc, "nodejs-sample-pipeline")
+			if err != nil || !br.BuildSuccess {
+				exutil.DumpBuilds(oc)
+				exutil.DumpPodLogsStartingWith("nodejs", oc)
+				exutil.DumpBuildLogs("nodejs-mongodb-example", oc)
+				exutil.DumpDeploymentLogs("mongodb", 1, oc)
+				exutil.DumpDeploymentLogs("nodejs-mongodb-example", 1, oc)
+			}
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-nodejs-sample-pipeline", oc, true)
+			br.AssertSuccess()
+
+			// wait for the service to be running
+			g.By("expecting the openshift-jee-sample service to be deployed and running")
+			_, err = exutil.GetEndpointAddress(oc, "nodejs-mongodb-example")
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 
