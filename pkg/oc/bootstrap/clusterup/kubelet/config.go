@@ -3,13 +3,13 @@ package kubelet
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
+	"github.com/openshift/origin/pkg/oc/util/tmputil"
 )
 
 type NodeStartConfig struct {
@@ -50,7 +50,7 @@ func (opt NodeStartConfig) MakeNodeConfig(dockerClient dockerhelper.Interface, i
 		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
 	}
 
-	tempDir, err := ioutil.TempDir("", "oc-cluster-up-node-")
+	tempDir, err := tmputil.TempDir("oc-cluster-up-node-")
 	if err != nil {
 		return "", err
 	}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	dockerclient "github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types/versions"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/util/tmputil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -337,7 +337,7 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 
 	if len(c.PodManifestDir) == 0 {
 		var err error
-		c.PodManifestDir, err = ioutil.TempDir("", "oc-cluster-up-pod-manifest-")
+		c.PodManifestDir, err = tmputil.TempDir("oc-cluster-up-pod-manifest-")
 		if err != nil {
 			return err
 		}

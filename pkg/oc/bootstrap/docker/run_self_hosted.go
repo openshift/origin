@@ -243,7 +243,13 @@ func (c *ClientStartConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string
 	}
 
 	// TODO make this non-broken, but for now spaces are evil
-	return strings.Split(strings.TrimSpace(kubeletFlags), " "), nil
+	flags := strings.Split(strings.TrimSpace(kubeletFlags), " ")
+
+	if driverName, err := c.DockerHelper().CgroupDriver(); err == nil && driverName == "cgroupfs" {
+		flags = append(flags, "--cgroup-driver=cgroupfs")
+	}
+
+	return flags, nil
 }
 
 // makeKubeDNSConfig mutates some pieces of the kubedns dir.
