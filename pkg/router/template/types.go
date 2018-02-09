@@ -103,6 +103,8 @@ type certificateManager interface {
 	WriteCertificatesForConfig(config *ServiceAliasConfig) error
 	// DeleteCertificatesForConfig deletes all certificates for all ServiceAliasConfigs in config
 	DeleteCertificatesForConfig(config *ServiceAliasConfig) error
+	// Commit commits all the changes made to the certificateManager.
+	Commit() error
 	// CertificateWriter provides direct access to the underlying writer if required
 	CertificateWriter() certificateWriter
 }
