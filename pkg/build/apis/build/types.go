@@ -435,7 +435,7 @@ type StatusReason string
 // These are the valid reasons of build statuses.
 const (
 	// StatusReasonError is a generic reason for a build error condition.
-	StatusReasonError StatusReason = "Error"
+	StatusReasonError StatusReason = "Error" //note/fyi:  not used currently, api or v1
 
 	// StatusReasonCannotCreateBuildPodSpec is an error condition when the build
 	// strategy cannot create a build pod spec.
@@ -455,7 +455,7 @@ const (
 
 	// StatusReasonCancelBuildFailed is an error condition when cancelling a build
 	// fails.
-	StatusReasonCancelBuildFailed StatusReason = "CancelBuildFailed"
+	StatusReasonCancelBuildFailed StatusReason = "CancelBuildFailed" // note/fyi: not used currently, api or v1
 
 	// StatusReasonBuildPodDeleted is an error condition when the build pod is
 	// deleted before build completion.
@@ -463,7 +463,7 @@ const (
 
 	// StatusReasonExceededRetryTimeout is an error condition when the build has
 	// not completed and retrying the build times out.
-	StatusReasonExceededRetryTimeout StatusReason = "ExceededRetryTimeout"
+	StatusReasonExceededRetryTimeout StatusReason = "ExceededRetryTimeout" // note/fyi: not used currently, api or v1
 
 	// StatusReasonMissingPushSecret indicates that the build is missing required
 	// secret for pushing the output image.
