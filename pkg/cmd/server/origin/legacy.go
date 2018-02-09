@@ -7,8 +7,10 @@ import (
 
 	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
 	deploymentconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"
+	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
 	buildconfig "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
+	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 )
@@ -197,24 +199,29 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 				// Kube only did this for a select few resources which were controller managed and established links
 				// via a workload controller.  In openshift, these will all conform to registry.Store so we
 				// can actually wrap the "normal" storage here.
-				switch resource {
-				case "buildConfigs":
-					restStorage := s.(*buildconfigetcd.REST)
-					store := *restStorage.Store
+				switch storage := s.(type) {
+				case *buildetcd.REST:
+					legacyStorage[resource] = &buildetcd.LegacyREST{REST: storage}
+
+				case *buildconfigetcd.REST:
+					store := *storage.Store
 					store.DeleteStrategy = buildconfig.LegacyStrategy
 					store.CreateStrategy = buildconfig.LegacyStrategy
-					legacyStorage[resource] = &buildconfigetcd.REST{Store: &store}
-				case "deploymentConfigs":
-					restStorage := s.(*deploymentconfigetcd.REST)
-					store := *restStorage.Store
+					legacyStorage[resource] = &buildconfigetcd.LegacyREST{REST: &buildconfigetcd.REST{Store: &store}}
+
+				case *deploymentconfigetcd.REST:
+					store := *storage.Store
 					store.CreateStrategy = deployconfig.LegacyStrategy
 					store.DeleteStrategy = deployconfig.LegacyStrategy
-					legacyStorage[resource] = &deploymentconfigetcd.REST{Store: &store}
-				case "routes":
-					restStorage := s.(*routeetcd.REST)
-					store := *restStorage.Store
+					legacyStorage[resource] = &deploymentconfigetcd.LegacyREST{REST: &deploymentconfigetcd.REST{Store: &store}}
+
+				case *imagestreametcd.REST:
+					legacyStorage[resource] = &imagestreametcd.LegacyREST{REST: storage}
+
+				case *routeetcd.REST:
+					store := *storage.Store
 					store.Decorator = routeregistry.DecorateLegacyRouteWithEmptyDestinationCACertificates
-					legacyStorage[resource] = &routeetcd.REST{Store: &store}
+					legacyStorage[resource] = &routeetcd.LegacyREST{REST: &routeetcd.REST{Store: &store}}
 
 				default:
 					legacyStorage[resource] = s

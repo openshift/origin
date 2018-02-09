@@ -68,3 +68,12 @@ func (r *DetailsREST) New() runtime.Object {
 func (r *DetailsREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo)
 }
+
+// LegacyREST allows us to wrap and alter some behavior
+type LegacyREST struct {
+	*REST
+}
+
+func (r *LegacyREST) Categories() []string {
+	return []string{}
+}
