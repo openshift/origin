@@ -3,7 +3,6 @@ package kubeapiserver
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
+	"github.com/openshift/origin/pkg/oc/util/tmputil"
 )
 
 type KubeAPIServerStartConfig struct {
@@ -48,7 +48,7 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
 	}
 
-	tempDir, err := ioutil.TempDir("", "oc-cluster-up-kube-apiserver-")
+	tempDir, err := tmputil.TempDir("oc-cluster-up-kube-apiserver-")
 	if err != nil {
 		return "", err
 	}
