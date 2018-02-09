@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 33c480cc46016733a1266bfd52585c934feb3895
+%global commit 97e5dfa2138cf89cbdcd6b9030c87547b582ebdc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.40.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.3 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=0f3afb2 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.41.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.5 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=b1e5ad6 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.41.0%{?dist}
+Release:        0.42.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,58 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Feb 09 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.42.0
+- update oc in build local images (deads@redhat.com)
+- host diagnostics: update master unit names (lmeyer@redhat.com)
+- add declarative pipeline example to build extended test suite
+  (gmontero@redhat.com)
+- Change the haproxy reload detection to tolerate routes named localhost
+  (bbennett@redhat.com)
+- UPSTREAM: 58316: set fsGroup by securityContext.fsGroup in azure file
+  (hchen@redhat.com)
+- Allow import image into empty imagestream (agladkov@redhat.com)
+- add retry for 401 errors to image imported to try pull image without
+  authentication. This is to eliminate case when we try pull public images with
+  wrong/expired secret and it blocks all imports (m.judeikis@gmail.com)
+- NewRequest signature applied in origin code (maszulik@redhat.com)
+- UPSTREAM: 51042: Allow passing request-timeout from NewRequest all the way
+  down (maszulik@redhat.com)
+- Add tnozicka to pkg/image approvers since we own part of that code
+  (tnozicka@gmail.com)
+- Add tests for annotation trigger reconciliation (tnozicka@gmail.com)
+- UPSTREAM: 59297: Improve error returned when fetching container logs during
+  pod termination (joesmith@redhat.com)
+- Fix annotation trigger to reconcile on container image change
+  (tnozicka@gmail.com)
+- adjust newapp/newbuild error messages (arg classification vs. actual
+  processing) (gmontero@redhat.com)
+- UPSTREAM: 58415: Improve messaging on resize (hekumar@redhat.com)
+- oc new-build --push-secret option (mdame@redhat.com)
+- UPSTREAM: 59449: Fix to register priority function ResourceLimitsPriority
+  correctly. (avagarwa@redhat.com)
+- add support for deployments in oc status (mfojtik@redhat.com)
+- Restrict login redirects to server-relative URLs (jliggitt@redhat.com)
+- bump(*) (rchopra@redhat.com)
+- update cockroachdb/cmux for router metrics bzbz1532060 (rchopra@redhat.com)
+- update unauthorized err message - oc login (jvallejo@redhat.com)
+- UPSTREAM: 58991: restore original object on apply err (jvallejo@redhat.com)
+- Add DOCKER_SERVICE to master system-container (mgugino@redhat.com)
+- Fix volume code to consider existing pvc (hekumar@redhat.com)
+- cli: fix kube client name (mfojtik@redhat.com)
+- router: use admin client to get router pod dump (mfojtik@redhat.com)
+- adjust declarative pipeline sample; employ now required use of 'script'
+  directive (gmontero@redhat.com)
+- use upstream generated openapi (deads@redhat.com)
+- update defaulting script (deads@redhat.com)
+- UPSTREAM: 59279: nodelifecycle: set OutOfDisk unknown on node timeout
+  (sjenning@redhat.com)
+- UPSTREAM: 58720: Ensure that the runtime mounts RO volumes read-only
+  (joesmith@redhat.com)
+- Restart console pod when config changes (spadgett@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from d969acde90..b69b4a6c80 (jaboyd@redhat.com)
+- UPSTREAM: <carry>: Short-circuit HPA oapi/v1.DC (sross@redhat.com)
+
 * Wed Feb 07 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.41.0
 - show error when cluster up fails (deads@redhat.com)
 - cli: remove traces of openshift admin command (mfojtik@redhat.com)
