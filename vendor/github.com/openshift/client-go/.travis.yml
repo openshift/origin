@@ -4,7 +4,7 @@ go:
   - 1.8
 
 script:
-  - make verify build
+  - make verify build build-examples
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"
