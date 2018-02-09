@@ -298,8 +298,9 @@ func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
 
 	if ns.assignedIP != "" {
 		ns.requestedIP = ""
-		eip.deleteEgressIP(ns.assignedIP)
-		delete(eip.namespacesByEgressIP, ns.assignedIP)
+		egressIP := ns.assignedIP
+		eip.deleteEgressIP(egressIP)
+		delete(eip.namespacesByEgressIP, egressIP)
 	}
 	delete(eip.namespacesByVNID, vnid)
 }
