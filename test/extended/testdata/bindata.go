@@ -130,6 +130,7 @@
 // test/extended/testdata/hello-builder/scripts/run
 // test/extended/testdata/idling-echo-server-rc.yaml
 // test/extended/testdata/idling-echo-server.yaml
+// test/extended/testdata/image/deployment-with-annotation-trigger.yaml
 // test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml
@@ -6833,6 +6834,49 @@ func testExtendedTestdataIdlingEchoServerYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/idling-echo-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"test:v1"},"fieldPath":"spec.template.spec.containers[?(@.name==\"test\")].image"}]'
+  name: test
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: test
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - image: " "
+          name: test
+          command: ["/bin/sleep"]
+          args:
+           - infinity
+`)
+
+func testExtendedTestdataImageDeploymentWithAnnotationTriggerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, nil
+}
+
+func testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataImageDeploymentWithAnnotationTriggerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/image/deployment-with-annotation-trigger.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -30022,6 +30066,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/hello-builder/scripts/run": testExtendedTestdataHelloBuilderScriptsRun,
 	"test/extended/testdata/idling-echo-server-rc.yaml": testExtendedTestdataIdlingEchoServerRcYaml,
 	"test/extended/testdata/idling-echo-server.yaml": testExtendedTestdataIdlingEchoServerYaml,
+	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml": testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
 	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
@@ -30480,6 +30525,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"idling-echo-server-rc.yaml": &bintree{testExtendedTestdataIdlingEchoServerRcYaml, map[string]*bintree{}},
 				"idling-echo-server.yaml": &bintree{testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
+				"image": &bintree{nil, map[string]*bintree{
+					"deployment-with-annotation-trigger.yaml": &bintree{testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, map[string]*bintree{}},
+				}},
 				"image-pull-secrets": &bintree{nil, map[string]*bintree{
 					"dc-with-new-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml, map[string]*bintree{}},
 					"dc-with-old-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml, map[string]*bintree{}},

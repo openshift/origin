@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"test:v1"},"fieldPath":"spec.template.spec.containers[?(@.name==\"test\")].image"}]'
+  name: test
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: test
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - image: " "
+          name: test
+          command: ["/bin/sleep"]
+          args:
+           - infinity

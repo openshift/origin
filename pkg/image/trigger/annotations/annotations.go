@@ -172,6 +172,33 @@ func UpdateObjectFromImages(obj runtime.Object, tagRetriever trigger.TagRetrieve
 	return updated, nil
 }
 
+// ContainerImageChanged returns true if any container image referenced by newTriggers changed.
+func ContainerImageChanged(oldObj, newObj runtime.Object, newTriggers []triggerapi.ObjectFieldTrigger) bool {
+	for _, trigger := range newTriggers {
+		if trigger.Paused {
+			continue
+		}
+
+		newContainer, _, err := ContainerForObjectFieldPath(newObj, trigger.FieldPath)
+		if err != nil {
+			glog.V(5).Infof("%v", err)
+			continue
+		}
+
+		oldContainer, _, err := ContainerForObjectFieldPath(oldObj, trigger.FieldPath)
+		if err != nil {
+			// might just be a result of the update
+			continue
+		}
+
+		if newContainer.GetImage() != oldContainer.GetImage() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // annotationTriggerIndexer uses annotations on objects to trigger changes.
 type annotationTriggerIndexer struct {
 	prefix string
@@ -235,6 +262,8 @@ func (i annotationTriggerIndexer) Index(obj, old interface{}) (string, *trigger.
 		case len(oldTriggers) == 0:
 			change = cache.Added
 		case !reflect.DeepEqual(oldTriggers, triggers):
+			change = cache.Updated
+		case ContainerImageChanged(old.(runtime.Object), obj.(runtime.Object), triggers):
 			change = cache.Updated
 		}
 	}
