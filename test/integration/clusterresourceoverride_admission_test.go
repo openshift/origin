@@ -3,7 +3,6 @@ package integration
 import (
 	"testing"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -96,12 +95,27 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 		t.Errorf("limit-with-default: CPU req did not match expected 250 mcore: %v", cpu)
 	}
 
-	// set it up so that the overrides create resources that fail validation
-	_, err = podHandler.Create(testClusterResourceOverridePod("limit-with-default-fail", "128Mi", "1"))
-	if err == nil {
-		t.Errorf("limit-with-default-fail: expected to be forbidden")
-	} else if !apierrors.IsForbidden(err) {
-		t.Errorf("limit-with-default-fail: unexpected error: %v", err)
+	// CRO admission plugin now ensures that a limit does not fall
+	// below the minimum across all containers in the namespace
+	// and validation should never fail. Create a POD that would
+	// ordinarily fail validation checks but notice that it a)
+	// doesn't fail and b) the CPU limits and requests are clamped
+	// to the floor of CPU and Memory respectively.
+	podCreated, err = podHandler.Create(testClusterResourceOverridePod("limit-with-min-floor-cpu", "128Mi", "1"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if memory := podCreated.Spec.Containers[0].Resources.Limits.Memory(); memory.Cmp(resource.MustParse("128Mi")) != 0 {
+		t.Errorf("limit-with-min-floor-cpu: Memory limit did not match default 128Mi: %v", memory)
+	}
+	if memory := podCreated.Spec.Containers[0].Resources.Requests.Memory(); memory.Cmp(resource.MustParse("128Mi")) != 0 {
+		t.Errorf("limit-with-min-floor-cpu: Memory req did not match expected 128Mi: %v", memory)
+	}
+	if cpu := podCreated.Spec.Containers[0].Resources.Limits.Cpu(); cpu.Cmp(resource.MustParse("200m")) != 0 {
+		t.Errorf("limit-with-min-floor-cpu: CPU limit did not match expected 200 mcore: %v", cpu)
+	}
+	if cpu := podCreated.Spec.Containers[0].Resources.Requests.Cpu(); cpu.Cmp(resource.MustParse("200m")) != 0 {
+		t.Errorf("limit-with-min-floor-cpu: CPU req did not match expected 200 mcore: %v", cpu)
 	}
 }
 
