@@ -1,0 +1,34 @@
+{
+  "kind": "ClusterServiceBroker",
+  "apiVersion": "servicecatalog.k8s.io/v1beta1",
+  "metadata": {
+    "name": "ups-broker",
+    "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/clusterservicebrokers/ups-broker",
+    "uid": "7b0ce3d1-f711-11e7-aa44-0242ac110005",
+    "resourceVersion": "103",
+    "generation": 2,
+    "creationTimestamp": "2018-01-11T20:53:30Z",
+    "finalizers": [
+      "kubernetes-incubator/service-catalog"
+    ]
+  },
+  "spec": {
+    "url": "http://ups-broker-ups-broker.ups-broker.svc.cluster.local",
+    "relistBehavior": "Duration",
+    "relistDuration": "15m0s",
+    "relistRequests": 1
+  },
+  "status": {
+    "conditions": [
+      {
+        "type": "Ready",
+        "status": "True",
+        "lastTransitionTime": "2018-01-11T20:53:31Z",
+        "reason": "FetchedCatalog",
+        "message": "Successfully fetched catalog entries from broker."
+      }
+    ],
+    "reconciledGeneration": 2,
+    "lastCatalogRetrievalTime": "2018-01-12T02:10:27Z"
+  }
+}

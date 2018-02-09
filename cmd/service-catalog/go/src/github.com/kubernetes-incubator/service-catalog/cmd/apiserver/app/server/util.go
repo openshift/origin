@@ -19,12 +19,15 @@ package server
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
+	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
+	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kubeinformers "k8s.io/client-go/informers"
@@ -36,6 +39,7 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apiserver/authenticator"
 	"github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset"
 	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/internalversion"
+	"github.com/kubernetes-incubator/service-catalog/pkg/openapi"
 	"github.com/kubernetes-incubator/service-catalog/pkg/version"
 )
 
@@ -87,8 +91,23 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Recom
 		return nil, nil, err
 	}
 
-	// TODO: add support for OpenAPI config
-	// see https://github.com/kubernetes-incubator/service-catalog/issues/721
+	if s.ServeOpenAPISpec {
+		genericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(
+			openapi.GetOpenAPIDefinitions, api.Scheme)
+		if genericConfig.OpenAPIConfig.Info == nil {
+			genericConfig.OpenAPIConfig.Info = &spec.Info{}
+		}
+		if genericConfig.OpenAPIConfig.Info.Version == "" {
+			if genericConfig.Version != nil {
+				genericConfig.OpenAPIConfig.Info.Version = strings.Split(genericConfig.Version.String(), "-")[0]
+			} else {
+				genericConfig.OpenAPIConfig.Info.Version = "unversioned"
+			}
+		}
+	} else {
+		glog.Warning("OpenAPI spec will not be served")
+	}
+
 	genericConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
 	// TODO: investigate if we need metrics unique to service catalog, but take defaults for now
 	// see https://github.com/kubernetes-incubator/service-catalog/issues/677
@@ -151,11 +170,11 @@ func buildAdmission(s *ServiceCatalogServerOptions,
 	var err error
 
 	pluginInitializer := scadmission.NewPluginInitializer(client, sharedInformers, kubeClient, kubeSharedInformers)
-	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(admissionControlPluginNames, s.AdmissionOptions.ConfigFile)
+	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(admissionControlPluginNames, s.AdmissionOptions.ConfigFile, api.Scheme)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read plugin config: %v", err)
 	}
-	return s.AdmissionOptions.Plugins.NewFromPlugins(admissionControlPluginNames, admissionConfigProvider, pluginInitializer)
+	return s.AdmissionOptions.Plugins.NewFromPlugins(admissionControlPluginNames, admissionConfigProvider, pluginInitializer, admissionmetrics.WithControllerMetrics)
 }
 
 // addPostStartHooks adds the common post start hooks we invoke when using either server storage option.

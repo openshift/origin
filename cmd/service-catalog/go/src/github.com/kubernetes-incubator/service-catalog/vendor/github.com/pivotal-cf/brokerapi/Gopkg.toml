@@ -1,0 +1,41 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+
+[[constraint]]
+  name = "code.cloudfoundry.org/lager"
+  revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
+
+[[constraint]]
+  name = "github.com/drewolson/testflight"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+
+[[constraint]]
+  name = "github.com/onsi/ginkgo"
+
+[[constraint]]
+  name = "github.com/onsi/gomega"
+
+[[constraint]]
+  name = "github.com/pborman/uuid"

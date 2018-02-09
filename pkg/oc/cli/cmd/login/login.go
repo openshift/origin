@@ -71,6 +71,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out,
 
 			if kapierrors.IsUnauthorized(err) {
 				fmt.Fprintln(out, "Login failed (401 Unauthorized)")
+				fmt.Fprintln(out, "Verify you have provided correct credentials.")
 
 				if err, isStatusErr := err.(*kapierrors.StatusError); isStatusErr {
 					if details := err.Status().Details; details != nil {

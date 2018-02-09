@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/pivotal-cf/brokerapi.svg?branch=master)](https://travis-ci.org/pivotal-cf/brokerapi)
 
-A Go package for building [V2 Cloud Foundry Service Brokers](https://docs.cloudfoundry.org/services/api.html).
+A Go package for building [V2 Open Service Broker API](https://github.com/openservicebrokerapi/servicebroker/) compliant Service Brokers.
 
 ## [Docs](https://godoc.org/github.com/pivotal-cf/brokerapi)
 

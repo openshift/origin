@@ -1,0 +1,9 @@
+cc_library(
+    srcs = [
+        "//hjk/asdf",
+    ],
+    cmd = "abc " +
+          "//def" +
+          " ghi",
+    malloc = "//abc:def",
+)

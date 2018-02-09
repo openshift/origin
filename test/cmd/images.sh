@@ -309,4 +309,14 @@ os::cmd::expect_success 'oc delete project merge-tags'
 echo "apply new imagestream tags: ok"
 os::test::junit::declare_suite_end
 
+# test importing images with wrong docker secrets
+os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-public-images-with-fake-secret"
+os::cmd::expect_success 'oc new-project import-images'
+os::cmd::expect_success 'oc create secret docker-registry dummy-secret1 --docker-server=docker.io --docker-username=dummy1 --docker-password=dummy1 --docker-email==dummy1@example.com'
+os::cmd::expect_success 'oc create secret docker-registry dummy-secret2 --docker-server=docker.io --docker-username=dummy2 --docker-password=dummy2 --docker-email==dummy2@example.com'
+os::cmd::expect_success_and_text 'oc import-image example --from=openshift/hello-openshift --confirm' 'The import completed successfully'
+os::cmd::expect_success 'oc delete project import-images'
+echo "import public images with fake secret ok"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_end

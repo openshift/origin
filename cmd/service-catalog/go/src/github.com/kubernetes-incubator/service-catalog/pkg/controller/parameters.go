@@ -66,6 +66,14 @@ func buildParameters(kubeClient kubernetes.Interface, namespace string, paramete
 			paramsWithSecretsRedacted[k] = v
 		}
 	}
+	// Replace empty map with nil so that the params are omitted from the request
+	if len(params) == 0 {
+		params = nil
+	}
+	// Replace empty map with nil so that the params are omitted from the properties state
+	if len(paramsWithSecretsRedacted) == 0 {
+		paramsWithSecretsRedacted = nil
+	}
 	return params, paramsWithSecretsRedacted, nil
 }
 
@@ -101,6 +109,9 @@ func UnmarshalRawParameters(in []byte) (map[string]interface{}, error) {
 
 // MarshalRawParameters marshals the specified map of parameters into JSON
 func MarshalRawParameters(in map[string]interface{}) ([]byte, error) {
+	if in == nil || len(in) == 0 {
+		return nil, nil
+	}
 	return json.Marshal(in)
 }
 
@@ -125,6 +136,9 @@ func fetchSecretKeyValue(kubeClient kubernetes.Interface, namespace string, secr
 // generateChecksumOfParameters generates a checksum for the map of parameters.
 // This checksum is used to determine if parameters have changed.
 func generateChecksumOfParameters(params map[string]interface{}) (string, error) {
+	if params == nil || len(params) == 0 {
+		return "", nil
+	}
 	paramsAsJSON, err := json.Marshal(params)
 	if err != nil {
 		return "", err
@@ -141,38 +155,33 @@ func generateChecksumOfParameters(params map[string]interface{}) (string, error)
 // 3 - the map of parameters marshaled into JSON as a RawExtension
 // 4 - any error that caused the function to fail.
 func prepareInProgressPropertyParameters(kubeClient kubernetes.Interface, namespace string, specParameters *runtime.RawExtension, specParametersFrom []v1beta1.ParametersFromSource) (map[string]interface{}, string, *runtime.RawExtension, error) {
-	var (
-		parameters                 map[string]interface{}
-		parametersChecksum         string
-		rawParametersWithRedaction *runtime.RawExtension
-		err                        error
-	)
-	if specParameters != nil || specParametersFrom != nil {
-		var parametersWithSecretsRedacted map[string]interface{}
-		parameters, parametersWithSecretsRedacted, err = buildParameters(kubeClient, namespace, specParametersFrom, specParameters)
-		if err != nil {
-			return nil, "", nil, fmt.Errorf(
-				"failed to prepare parameters %s: %s",
-				specParameters, err,
-			)
-		}
+	parameters, parametersWithSecretsRedacted, err := buildParameters(kubeClient, namespace, specParametersFrom, specParameters)
+	if err != nil {
+		return nil, "", nil, fmt.Errorf(
+			"failed to prepare parameters %s: %s",
+			specParameters, err,
+		)
+	}
 
-		parametersChecksum, err = generateChecksumOfParameters(parameters)
-		if err != nil {
-			return nil, "", nil, fmt.Errorf("failed to generate the parameters checksum to store in Status: %s", err)
-		}
+	parametersChecksum, err := generateChecksumOfParameters(parameters)
+	if err != nil {
+		return nil, "", nil, fmt.Errorf("failed to generate the parameters checksum to store in Status: %s", err)
+	}
 
-		marshalledParametersWithRedaction, err := MarshalRawParameters(parametersWithSecretsRedacted)
-		if err != nil {
-			return nil, "", nil, fmt.Errorf(
-				"failed to marshal the parameters to store in the Status: %s",
-				err,
-			)
-		}
+	marshalledParametersWithRedaction, err := MarshalRawParameters(parametersWithSecretsRedacted)
+	if err != nil {
+		return nil, "", nil, fmt.Errorf(
+			"failed to marshal the parameters to store in the Status: %s",
+			err,
+		)
+	}
 
+	var rawParametersWithRedaction *runtime.RawExtension
+	if marshalledParametersWithRedaction != nil {
 		rawParametersWithRedaction = &runtime.RawExtension{
 			Raw: marshalledParametersWithRedaction,
 		}
 	}
+
 	return parameters, parametersChecksum, rawParametersWithRedaction, err
 }

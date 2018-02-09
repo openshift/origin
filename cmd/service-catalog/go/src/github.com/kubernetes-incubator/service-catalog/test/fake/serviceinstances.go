@@ -20,7 +20,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 
 	v1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	v1beta1typed "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1beta1"
@@ -42,12 +41,8 @@ func (c *ServiceInstances) Update(serviceInstance *v1beta1.ServiceInstance) (res
 }
 
 func (c *ServiceInstances) UpdateStatus(serviceInstance *v1beta1.ServiceInstance) (*v1beta1.ServiceInstance, error) {
-	clone, err := api.Scheme.DeepCopy(serviceInstance)
-	if err != nil {
-		return nil, err
-	}
-	instanceCopy := clone.(*v1beta1.ServiceInstance)
-	_, err = c.ServiceInstanceInterface.UpdateStatus(instanceCopy)
+	instanceCopy := serviceInstance.DeepCopy()
+	_, err := c.ServiceInstanceInterface.UpdateStatus(instanceCopy)
 	return serviceInstance, err
 }
 

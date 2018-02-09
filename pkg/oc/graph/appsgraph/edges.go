@@ -27,8 +27,8 @@ const (
 	VolumeClaimEdgeKind = "VolumeClaim"
 )
 
-// AddTriggerEdges creates edges that point to named Docker image repositories for each image used in the deployment.
-func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentConfigNode) *appsgraph.DeploymentConfigNode {
+// AddTriggerDeploymentConfigsEdges creates edges that point to named Docker image repositories for each image used in the deployment.
+func AddTriggerDeploymentConfigsEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentConfigNode) *appsgraph.DeploymentConfigNode {
 	podTemplate := node.DeploymentConfig.Spec.Template
 	if podTemplate == nil {
 		return node
@@ -60,15 +60,15 @@ func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentCon
 	return node
 }
 
-func AddAllTriggerEdges(g osgraph.MutableUniqueGraph) {
+func AddAllTriggerDeploymentConfigsEdges(g osgraph.MutableUniqueGraph) {
 	for _, node := range g.(graph.Graph).Nodes() {
 		if dcNode, ok := node.(*appsgraph.DeploymentConfigNode); ok {
-			AddTriggerEdges(g, dcNode)
+			AddTriggerDeploymentConfigsEdges(g, dcNode)
 		}
 	}
 }
 
-func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentConfigNode) *appsgraph.DeploymentConfigNode {
+func AddDeploymentConfigsDeploymentEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentConfigNode) *appsgraph.DeploymentConfigNode {
 	for _, n := range g.(graph.Graph).Nodes() {
 		if rcNode, ok := n.(*kubegraph.ReplicationControllerNode); ok {
 			if rcNode.ReplicationController.Namespace != node.DeploymentConfig.Namespace {
@@ -84,10 +84,10 @@ func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *appsgraph.Deployment
 	return node
 }
 
-func AddAllDeploymentEdges(g osgraph.MutableUniqueGraph) {
+func AddAllDeploymentConfigsDeploymentEdges(g osgraph.MutableUniqueGraph) {
 	for _, node := range g.(graph.Graph).Nodes() {
 		if dcNode, ok := node.(*appsgraph.DeploymentConfigNode); ok {
-			AddDeploymentEdges(g, dcNode)
+			AddDeploymentConfigsDeploymentEdges(g, dcNode)
 		}
 	}
 }

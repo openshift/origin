@@ -1,18 +1,26 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "examples/examplepb/a_bit_of_everything.proto",
-    "version": "version not set"
+    "title": "A Bit of Everything",
+    "version": "1.0",
+    "contact": {
+      "name": "gRPC-Gateway project",
+      "url": "https://github.com/grpc-ecosystem/grpc-gateway",
+      "email": "none@example.com"
+    }
   },
   "schemes": [
     "http",
-    "https"
+    "https",
+    "wss"
   ],
   "consumes": [
-    "application/json"
+    "application/json",
+    "application/x-foo-mime"
   ],
   "produces": [
-    "application/json"
+    "application/json",
+    "application/x-foo-mime"
   ],
   "paths": {
     "/v1/example/a_bit_of_everything": {
@@ -43,6 +51,8 @@
     },
     "/v1/example/a_bit_of_everything/echo/{value}": {
       "get": {
+        "summary": "Echo allows posting a StringMessage value.",
+        "description": "It also exposes multiple bindings.\n\nThis makes it useful when validating that the OpenAPI v2 API\ndescription exposes documentation correctly on all paths\ndefined as additional_bindings in the proto.",
         "operationId": "Echo",
         "responses": {
           "200": {
@@ -57,13 +67,223 @@
             "name": "value",
             "in": "path",
             "required": true,
-            "type": "string",
-            "format": "string"
+            "type": "string"
           }
         ],
         "tags": [
           "ABitOfEverythingService"
-        ]
+        ],
+        "externalDocs": {
+          "description": "Find out more Echo",
+          "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+        }
+      }
+    },
+    "/v1/example/a_bit_of_everything/query/{uuid}": {
+      "get": {
+        "operationId": "GetQuery",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/protobufEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "single_nested.name",
+            "description": "name is nested field.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "single_nested.amount",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "single_nested.ok",
+            "description": " - FALSE: FALSE is false.\n - TRUE: TRUE is true.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "FALSE",
+              "TRUE"
+            ],
+            "default": "FALSE"
+          },
+          {
+            "name": "float_value",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "float"
+          },
+          {
+            "name": "double_value",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "int64_value",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "uint64_value",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "int32_value",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "fixed64_value",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "fixed32_value",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "bool_value",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "format": "boolean"
+          },
+          {
+            "name": "string_value",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "uint32_value",
+            "description": "TODO(yugui) add bytes_value.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "enum_value",
+            "description": " - ZERO: ZERO means 0\n - ONE: ONE means 1",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "ZERO",
+              "ONE"
+            ],
+            "default": "ZERO"
+          },
+          {
+            "name": "sfixed32_value",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sfixed64_value",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "sint32_value",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sint64_value",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "repeated_string_value",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "oneof_string",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "nonConventionalNameValue",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "timestamp_value",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "repeated_enum_value",
+            "description": "repeated enum value. it is comma-separated in query.\n\n - ZERO: ZERO means 0\n - ONE: ONE means 1",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ZERO",
+                "ONE"
+              ]
+            }
+          }
+        ],
+        "tags": [
+          "ABitOfEverythingService"
+        ],
+        "deprecated": true,
+        "externalDocs": {
+          "description": "Find out more about GetQuery",
+          "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+        }
       }
     },
     "/v1/example/a_bit_of_everything/{float_value}/{double_value}/{int64_value}/separator/{uint64_value}/{int32_value}/{fixed64_value}/{fixed32_value}/{bool_value}/{string_value}/{uint32_value}/{sfixed32_value}/{sfixed64_value}/{sint32_value}/{sint64_value}/{nonConventionalNameValue}": {
@@ -138,8 +358,7 @@
             "name": "string_value",
             "in": "path",
             "required": true,
-            "type": "string",
-            "format": "string"
+            "type": "string"
           },
           {
             "name": "uint32_value",
@@ -180,8 +399,7 @@
             "name": "nonConventionalNameValue",
             "in": "path",
             "required": true,
-            "type": "string",
-            "format": "string"
+            "type": "string"
           }
         ],
         "tags": [
@@ -205,8 +423,7 @@
             "name": "single_nested.name",
             "in": "path",
             "required": true,
-            "type": "string",
-            "format": "string"
+            "type": "string"
           },
           {
             "name": "body",
@@ -238,8 +455,7 @@
             "name": "uuid",
             "in": "path",
             "required": true,
-            "type": "string",
-            "format": "string"
+            "type": "string"
           }
         ],
         "tags": [
@@ -261,8 +477,7 @@
             "name": "uuid",
             "in": "path",
             "required": true,
-            "type": "string",
-            "format": "string"
+            "type": "string"
           }
         ],
         "tags": [
@@ -284,8 +499,7 @@
             "name": "uuid",
             "in": "path",
             "required": true,
-            "type": "string",
-            "format": "string"
+            "type": "string"
           },
           {
             "name": "body",
@@ -303,7 +517,9 @@
     },
     "/v2/example/echo": {
       "get": {
-        "operationId": "Echo",
+        "summary": "Echo allows posting a StringMessage value.",
+        "description": "It also exposes multiple bindings.\n\nThis makes it useful when validating that the OpenAPI v2 API\ndescription exposes documentation correctly on all paths\ndefined as additional_bindings in the proto.",
+        "operationId": "Echo3",
         "responses": {
           "200": {
             "description": "",
@@ -312,12 +528,26 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "value",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "tags": [
           "ABitOfEverythingService"
-        ]
+        ],
+        "externalDocs": {
+          "description": "Find out more Echo",
+          "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+        }
       },
       "post": {
-        "operationId": "Echo",
+        "summary": "Echo allows posting a StringMessage value.",
+        "description": "It also exposes multiple bindings.\n\nThis makes it useful when validating that the OpenAPI v2 API\ndescription exposes documentation correctly on all paths\ndefined as additional_bindings in the proto.",
+        "operationId": "Echo2",
         "responses": {
           "200": {
             "description": "",
@@ -332,14 +562,17 @@
             "in": "body",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "string"
+              "type": "string"
             }
           }
         ],
         "tags": [
           "ABitOfEverythingService"
-        ]
+        ],
+        "externalDocs": {
+          "description": "Find out more Echo",
+          "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+        }
       }
     },
     "/v2/example/timeout": {
@@ -363,14 +596,13 @@
     "ABitOfEverythingNested": {
       "type": "object",
       "properties": {
+        "name": {
+          "type": "string",
+          "description": "name is nested field."
+        },
         "amount": {
           "type": "integer",
           "format": "int64"
-        },
-        "name": {
-          "type": "string",
-          "format": "string",
-          "description": "name is nested field."
         },
         "ok": {
           "$ref": "#/definitions/NestedDeepEnum"
@@ -390,55 +622,11 @@
     "examplepbABitOfEverything": {
       "type": "object",
       "properties": {
-        "bool_value": {
-          "type": "boolean",
-          "format": "boolean"
+        "single_nested": {
+          "$ref": "#/definitions/ABitOfEverythingNested"
         },
-        "double_value": {
-          "type": "number",
-          "format": "double"
-        },
-        "enum_value": {
-          "$ref": "#/definitions/examplepbNumericEnum"
-        },
-        "fixed32_value": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "fixed64_value": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "float_value": {
-          "type": "number",
-          "format": "float"
-        },
-        "int32_value": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "int64_value": {
-          "type": "string",
-          "format": "int64"
-        },
-        "map_value": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/examplepbNumericEnum"
-          }
-        },
-        "mapped_nested_value": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/ABitOfEverythingNested"
-          }
-        },
-        "mapped_string_value": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string",
-            "format": "string"
-          }
+        "uuid": {
+          "type": "string"
         },
         "nested": {
           "type": "array",
@@ -446,23 +634,48 @@
             "$ref": "#/definitions/ABitOfEverythingNested"
           }
         },
-        "nonConventionalNameValue": {
+        "float_value": {
+          "type": "number",
+          "format": "float"
+        },
+        "double_value": {
+          "type": "number",
+          "format": "double"
+        },
+        "int64_value": {
           "type": "string",
-          "format": "string"
+          "format": "int64"
         },
-        "oneof_empty": {
-          "$ref": "#/definitions/protobufEmpty"
-        },
-        "oneof_string": {
+        "uint64_value": {
           "type": "string",
-          "format": "string"
+          "format": "uint64"
         },
-        "repeated_string_value": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "string"
-          }
+        "int32_value": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "fixed64_value": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "fixed32_value": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "bool_value": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "string_value": {
+          "type": "string"
+        },
+        "uint32_value": {
+          "type": "integer",
+          "format": "int64",
+          "title": "TODO(yugui) add bytes_value"
+        },
+        "enum_value": {
+          "$ref": "#/definitions/examplepbNumericEnum"
         },
         "sfixed32_value": {
           "type": "integer",
@@ -472,9 +685,6 @@
           "type": "string",
           "format": "int64"
         },
-        "single_nested": {
-          "$ref": "#/definitions/ABitOfEverythingNested"
-        },
         "sint32_value": {
           "type": "integer",
           "format": "int32"
@@ -483,29 +693,56 @@
           "type": "string",
           "format": "int64"
         },
-        "string_value": {
-          "type": "string",
-          "format": "string"
+        "repeated_string_value": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "oneof_empty": {
+          "$ref": "#/definitions/protobufEmpty"
+        },
+        "oneof_string": {
+          "type": "string"
+        },
+        "map_value": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/examplepbNumericEnum"
+          }
+        },
+        "mapped_string_value": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "mapped_nested_value": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ABitOfEverythingNested"
+          }
+        },
+        "nonConventionalNameValue": {
+          "type": "string"
         },
         "timestamp_value": {
           "type": "string",
           "format": "date-time"
         },
-        "uint32_value": {
-          "type": "integer",
-          "format": "int64",
-          "title": "TODO(yugui) add bytes_value"
-        },
-        "uint64_value": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "uuid": {
-          "type": "string",
-          "format": "string"
+        "repeated_enum_value": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/examplepbNumericEnum"
+          },
+          "title": "repeated enum value. it is comma-separated in query"
         }
       },
-      "title": "Intentionaly complicated message type to cover much features of Protobuf.\nNEXT ID: 27"
+      "title": "Intentionaly complicated message type to cover much features of Protobuf.\nNEXT ID: 27",
+      "externalDocs": {
+        "description": "Find out more about ABitOfEverything",
+        "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+      }
     },
     "examplepbNumericEnum": {
       "type": "string",
@@ -521,23 +758,17 @@
       "description": "service Foo {\n      rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty);\n    }\n\nThe JSON representation for `Empty` is empty JSON object `{}`.",
       "title": "A generic empty message that you can re-use to avoid defining duplicated\nempty messages in your APIs. A typical example is to use it as the request\nor the response type of an API method. For instance:"
     },
-    "sub2IdMessage": {
-      "type": "object",
-      "properties": {
-        "uuid": {
-          "type": "string",
-          "format": "string"
-        }
-      }
-    },
     "subStringMessage": {
       "type": "object",
       "properties": {
         "value": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         }
       }
     }
+  },
+  "externalDocs": {
+    "description": "More about gRPC-Gateway",
+    "url": "https://github.com/grpc-ecosystem/grpc-gateway"
   }
 }

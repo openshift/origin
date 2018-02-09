@@ -1,6 +1,7 @@
 package graphview
 
 import (
+	appsedges "github.com/openshift/origin/pkg/oc/graph/appsgraph"
 	osgraph "github.com/openshift/origin/pkg/oc/graph/genericgraph"
 	kubeedges "github.com/openshift/origin/pkg/oc/graph/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
@@ -11,6 +12,8 @@ type StatefulSet struct {
 
 	OwnedPods   []*kubegraph.PodNode
 	CreatedPods []*kubegraph.PodNode
+
+	Images []ImagePipeline
 
 	// TODO: handle conflicting once controller refs are present, not worth it yet
 }
@@ -45,6 +48,20 @@ func NewStatefulSet(g osgraph.Graph, node *kubegraph.StatefulSetNode) (StatefulS
 		podNode := uncastPodNode.(*kubegraph.PodNode)
 		covered.Insert(podNode.ID())
 		view.OwnedPods = append(view.OwnedPods, podNode)
+	}
+
+	for _, istNode := range g.PredecessorNodesByEdgeKind(node, kubeedges.TriggersDeploymentEdgeKind) {
+		imagePipeline, covers := NewImagePipelineFromImageTagLocation(g, istNode, istNode.(ImageTagLocation))
+		covered.Insert(covers.List()...)
+		view.Images = append(view.Images, imagePipeline)
+	}
+
+	// for image that we use, create an image pipeline and add it to the list
+	for _, tagNode := range g.PredecessorNodesByEdgeKind(node, appsedges.UsedInDeploymentEdgeKind) {
+		imagePipeline, covers := NewImagePipelineFromImageTagLocation(g, tagNode, tagNode.(ImageTagLocation))
+
+		covered.Insert(covers.List()...)
+		view.Images = append(view.Images, imagePipeline)
 	}
 
 	return view, covered

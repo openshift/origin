@@ -3,6 +3,7 @@ package imagestreamimport
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -197,6 +198,34 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 	imports := r.importFn(importCtx)
 	if err := imports.Import(ctx.(gocontext.Context), isi, stream); err != nil {
 		return nil, kapierrors.NewInternalError(err)
+	}
+
+	// check imported images status. If we get authentication error (401), try import same image without authentication.
+	// Docker registry gives 401 on public images if you have wrong secret in your secret list.
+	// this block was introduced by PR #18012
+	// TODO: remove this blocks when smarter auth client gets done with retries
+	var imageStatus []metav1.Status
+	importFailed := false
+	for _, image := range isi.Status.Images {
+		//cache all imports status
+		imageStatus = append(imageStatus, image.Status)
+		if image.Status.Reason == metav1.StatusReasonUnauthorized && strings.Contains(strings.ToLower(image.Status.Message), "username or password") {
+			importFailed = true
+		}
+	}
+	// try import IS without auth if it failed before
+	if importFailed {
+		importCtx := registryclient.NewContext(r.transport, r.insecureTransport).WithCredentials(nil)
+		imports := r.importFn(importCtx)
+		if err := imports.Import(ctx.(gocontext.Context), isi, stream); err != nil {
+			return nil, kapierrors.NewInternalError(err)
+		}
+	}
+	//cycle through status and set old messages so not to confuse users
+	for key, image := range isi.Status.Images {
+		if image.Status.Reason == metav1.StatusReasonUnauthorized {
+			isi.Status.Images[key].Status = imageStatus[key]
+		}
 	}
 
 	// if we encountered an error loading credentials and any images could not be retrieved with an access

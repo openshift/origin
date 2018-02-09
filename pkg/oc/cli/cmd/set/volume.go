@@ -666,7 +666,7 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 			}
 		}
 		for i, m := range c.VolumeMounts {
-			if m.Name == v.Name {
+			if m.Name == v.Name && opts.Overwrite {
 				c.VolumeMounts = append(c.VolumeMounts[:i], c.VolumeMounts[i+1:]...)
 				break
 			}
@@ -683,13 +683,13 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 	return nil
 }
 
-func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (string, error) {
+func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (string, bool, error) {
 	opts := v.AddOpts
 	if opts.Overwrite {
 		// Multiple resources can have same mount-path for different volumes,
 		// so restrict it for single resource to uniquely find the volume
 		if !singleResource {
-			return "", fmt.Errorf("you must specify --name for the volume name when dealing with multiple resources")
+			return "", false, fmt.Errorf("you must specify --name for the volume name when dealing with multiple resources")
 		}
 		if len(opts.MountPath) > 0 {
 			containers, _ := selectContainers(spec.Containers, v.Containers)
@@ -699,7 +699,7 @@ func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (
 				for _, m := range c.VolumeMounts {
 					if path.Clean(m.MountPath) == path.Clean(opts.MountPath) {
 						name = m.Name
-						matchCount += 1
+						matchCount++
 						break
 					}
 				}
@@ -707,33 +707,52 @@ func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (
 
 			switch matchCount {
 			case 0:
-				return "", fmt.Errorf("unable to find the volume for mount-path: %s", opts.MountPath)
+				return "", false, fmt.Errorf("unable to find the volume for mount-path: %s", opts.MountPath)
 			case 1:
-				return name, nil
+				return name, false, nil
 			default:
-				return "", fmt.Errorf("found multiple volumes with same mount-path: %s", opts.MountPath)
+				return "", false, fmt.Errorf("found multiple volumes with same mount-path: %s", opts.MountPath)
 			}
-		} else {
-			return "", fmt.Errorf("ambiguous --overwrite, specify --name or --mount-path")
 		}
-	} else { // Generate volume name
-		name := names.SimpleNameGenerator.GenerateName(volumePrefix)
-		if len(v.Output) == 0 {
-			fmt.Fprintf(v.Err, "info: Generated volume name: %s\n", name)
-		}
-		return name, nil
+		return "", false, fmt.Errorf("ambiguous --overwrite, specify --name or --mount-path")
 	}
+
+	oldName, claimFound := v.checkForExistingClaim(spec)
+
+	if claimFound {
+		return oldName, true, nil
+	}
+	// Generate volume name
+	name := names.SimpleNameGenerator.GenerateName(volumePrefix)
+	if len(v.Output) == 0 {
+		fmt.Fprintf(v.Err, "info: Generated volume name: %s\n", name)
+	}
+	return name, false, nil
+}
+
+func (v *VolumeOptions) checkForExistingClaim(spec *kapi.PodSpec) (string, bool) {
+	for _, vol := range spec.Volumes {
+		oldSource := vol.VolumeSource.PersistentVolumeClaim
+		if oldSource != nil && v.AddOpts.ClaimName == oldSource.ClaimName {
+			return vol.Name, true
+		}
+	}
+	return "", false
 }
 
 func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info, singleResource bool) error {
 	opts := v.AddOpts
+	claimFound := false
 	if len(v.Name) == 0 {
 		var err error
-		v.Name, err = v.getVolumeName(spec, singleResource)
+		v.Name, claimFound, err = v.getVolumeName(spec, singleResource)
 		if err != nil {
 			return err
 		}
+	} else {
+		_, claimFound = v.checkForExistingClaim(spec)
 	}
+
 	newVolume := &kapi.Volume{
 		Name: v.Name,
 	}
@@ -742,7 +761,7 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 	for i, vol := range spec.Volumes {
 		if v.Name == vol.Name {
 			vNameFound = true
-			if !opts.Overwrite {
+			if !opts.Overwrite && !claimFound {
 				return fmt.Errorf("volume '%s' already exists. Use --overwrite to replace", v.Name)
 			}
 			if !opts.TypeChanged && len(opts.Source) == 0 {
@@ -753,7 +772,6 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 			break
 		}
 	}
-
 	// if --overwrite was passed, but volume did not previously
 	// exist, log a warning that no volumes were overwritten
 	if !vNameFound && opts.Overwrite && len(v.Output) == 0 {
@@ -779,12 +797,14 @@ func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info,
 
 func (v *VolumeOptions) removeSpecificVolume(spec *kapi.PodSpec, containers, skippedContainers []*kapi.Container) error {
 	for _, c := range containers {
-		for i, m := range c.VolumeMounts {
-			if v.Name == m.Name {
-				c.VolumeMounts = append(c.VolumeMounts[:i], c.VolumeMounts[i+1:]...)
-				break
+		newMounts := c.VolumeMounts[:0]
+		for _, m := range c.VolumeMounts {
+			// Remove all volume mounts that match specified name
+			if v.Name != m.Name {
+				newMounts = append(newMounts, m)
 			}
 		}
+		c.VolumeMounts = newMounts
 	}
 
 	// Remove volume if no container is using it

@@ -39,7 +39,6 @@ func (g GetRESTOptionsHelper) GetRESTOptions(resource schema.GroupResource) (gen
 		ResourcePrefix: resource.Group + "/" + resource.Resource,
 		StorageConfig:  &storagebackend.Config{},
 		Decorator: generic.StorageDecorator(func(
-			copier runtime.ObjectCopier,
 			config *storagebackend.Config,
 			objectType runtime.Object,
 			resourcePrefix string,

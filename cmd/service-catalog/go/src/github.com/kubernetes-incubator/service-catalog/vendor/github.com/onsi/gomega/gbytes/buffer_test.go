@@ -6,9 +6,21 @@ import (
 
 	. "github.com/onsi/gomega/gbytes"
 
+	"bytes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+type SlowReader struct {
+	R io.Reader
+	D time.Duration
+}
+
+func (s SlowReader) Read(p []byte) (int, error) {
+	time.Sleep(s.D)
+	return s.R.Read(p)
+}
 
 var _ = Describe("Buffer", func() {
 	var buffer *Buffer
@@ -35,6 +47,41 @@ var _ = Describe("Buffer", func() {
 			Ω(buffer).Should(Say("abc"))
 			Ω(buffer).ShouldNot(Say("abc"))
 			Ω(buffer).Should(Say("def"))
+		})
+	})
+
+	Describe("creating a buffer that wraps a reader", func() {
+		Context("for a well-behaved reader", func() {
+			It("should buffer the contents of the reader", func() {
+				reader := bytes.NewBuffer([]byte("abcdef"))
+				buffer := BufferReader(reader)
+				Eventually(buffer).Should(Say("abc"))
+				Ω(buffer).ShouldNot(Say("abc"))
+				Eventually(buffer).Should(Say("def"))
+				Eventually(buffer.Closed).Should(BeTrue())
+			})
+		})
+
+		Context("for a slow reader", func() {
+			It("should allow Eventually to time out", func() {
+				slowReader := SlowReader{
+					R: bytes.NewBuffer([]byte("abcdef")),
+					D: time.Second,
+				}
+				buffer := BufferReader(slowReader)
+				failures := InterceptGomegaFailures(func() {
+					Eventually(buffer, 100*time.Millisecond).Should(Say("abc"))
+				})
+				Ω(failures).ShouldNot(BeEmpty())
+
+				fastReader := SlowReader{
+					R: bytes.NewBuffer([]byte("abcdef")),
+					D: time.Millisecond,
+				}
+				buffer = BufferReader(fastReader)
+				Eventually(buffer, 100*time.Millisecond).Should(Say("abc"))
+				Eventually(buffer.Closed).Should(BeTrue())
+			})
 		})
 	})
 

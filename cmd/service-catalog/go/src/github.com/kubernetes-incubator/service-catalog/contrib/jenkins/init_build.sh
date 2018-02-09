@@ -22,6 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GO_VERSION='1.9'
 HELM_VERSION='v2.7.0'
 GLIDE_VERSION='v0.12.3'
+DEP_VERSION='v0.3.2'
 
 function update-golang() {
   # Check version of golang
@@ -92,10 +93,39 @@ function update-glide() {
 }
 
 
+function update-dep() {
+  # Check version of dep
+  local current="$(dep --version 2>/dev/null || echo "unknown")"
+
+  # dep version prints its output in the format:
+  #   dep:
+  #     version     : v0.3.2
+  #     build date  :
+  #     git hash    :
+  #     go version  : go1.9.2
+  #     go compiler : gc
+  #     platform    : darwin/amd64
+  # To isolate the version string, we include the leading space
+  # in the comparison, and ommit the trailing wildcard.
+  if [[ "${current}" == *" ${DEP_VERSION}"* ]]; then
+    echo "dep is up-to-date: ${current}"
+  else
+    echo "Upgrading dep ${current} to ${DEP_VERSION}"
+
+    # Install new dep.
+    local dep_url='https://github.com/golang/dep/releases/download/'
+    dep_url+="${DEP_VERSION}/dep-linux-amd64"
+
+    curl -sSL -o /usr/local/bin/dep "${dep_url}" && chmod +x /usr/local/bin/dep \
+      || { echo "Cannot upgrade dep to ${DEP_VERSION}"; return 1; }
+  fi
+}
+
 function main() {
   update-golang || error_exit 'Failed to update golang'
   update-helm   || error_exit 'Failed to update helm'
   update-glide  || error_exit 'Failed to update glide'
+  update-dep  || error_exit 'Failed to update dep'
 }
 
 main

@@ -1,0 +1,9 @@
+# shouldn't add trailing spaces to the blank line after the first comment.
+cc_binary(
+    deps = [
+        # comment before blank line
+
+        # comment after blank line
+        "y",
+        "a",
+    ])

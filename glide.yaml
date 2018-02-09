@@ -156,6 +156,9 @@ import:
 # master? for bindata
 - package: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
+# router metrics
+- package: github.com/cockroachdb/cmux
+  version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
 
 # why do we have this?
 - package: google.golang.org/appengine

@@ -340,6 +340,8 @@ func formatRepositoryError(ref imageapi.DockerImageReference, err error) error {
 		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", ref.Exact()))
 	case strings.HasSuffix(err.Error(), "no basic auth credentials"):
 		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", ref.Exact()))
+	case strings.HasSuffix(err.Error(), "incorrect username or password"):
+		err = kapierrors.NewUnauthorized(fmt.Sprintf("incorrect username or password for image %q", ref.Exact()))
 	}
 	return err
 }

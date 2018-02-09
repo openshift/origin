@@ -1,0 +1,54 @@
+{
+  "kind": "ClusterServicePlanList",
+  "apiVersion": "servicecatalog.k8s.io/v1beta1",
+  "metadata": {
+    "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/clusterserviceplans",
+    "resourceVersion": "13"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "86064792-7ea2-467b-af93-ac9694d96d52",
+        "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/clusterserviceplans/86064792-7ea2-467b-af93-ac9694d96d52",
+        "uid": "69ce3c3d-f7de-11e7-9c07-0242ac110006",
+        "resourceVersion": "5",
+        "creationTimestamp": "2018-01-12T21:20:28Z"
+      },
+      "spec": {
+        "clusterServiceBrokerName": "ups-broker",
+        "externalName": "default",
+        "externalID": "86064792-7ea2-467b-af93-ac9694d96d52",
+        "description": "Sample plan description",
+        "free": true,
+        "clusterServiceClassRef": {
+          "name": "4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468"
+        }
+      },
+      "status": {
+        "removedFromBrokerCatalog": false
+      }
+    },
+    {
+      "metadata": {
+        "name": "cc0d7529-18e8-416d-8946-6f7456acd589",
+        "selfLink": "/apis/servicecatalog.k8s.io/v1beta1/clusterserviceplans/cc0d7529-18e8-416d-8946-6f7456acd589",
+        "uid": "69cfe762-f7de-11e7-9c07-0242ac110006",
+        "resourceVersion": "6",
+        "creationTimestamp": "2018-01-12T21:20:28Z"
+      },
+      "spec": {
+        "clusterServiceBrokerName": "ups-broker",
+        "externalName": "premium",
+        "externalID": "cc0d7529-18e8-416d-8946-6f7456acd589",
+        "description": "Premium plan",
+        "free": false,
+        "clusterServiceClassRef": {
+          "name": "4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468"
+        }
+      },
+      "status": {
+        "removedFromBrokerCatalog": false
+      }
+    }
+  ]
+}

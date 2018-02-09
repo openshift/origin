@@ -9,6 +9,10 @@ type mockSearcher struct {
 	numResults int
 }
 
+func (m mockSearcher) Type() string {
+	return ""
+}
+
 func (m mockSearcher) Search(precise bool, terms ...string) (ComponentMatches, []error) {
 	results := ComponentMatches{}
 	for i := 0; i < m.numResults; i++ {

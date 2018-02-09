@@ -42,7 +42,7 @@ func newHandlerForTest(internalClient internalclientset.Interface) (admission.In
 	}
 	pluginInitializer := scadmission.NewPluginInitializer(internalClient, f, nil, nil)
 	pluginInitializer.Initialize(handler)
-	err = admission.Validate(handler)
+	err = admission.ValidateInitialization(handler)
 	return handler, f, err
 }
 
@@ -95,7 +95,7 @@ func TestBlockNewCredentialsForDeletedInstance(t *testing.T) {
 
 	informerFactory.Start(wait.NeverStop)
 
-	err = handler.Admit(admission.NewAttributesRecord(&credential, nil, servicecatalog.Kind("ServiceBindings").WithVersion("version"),
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&credential, nil, servicecatalog.Kind("ServiceBindings").WithVersion("version"),
 		"test-ns", "test-cred", servicecatalog.Resource("servicebindings").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("Unexpected error: %v", err.Error())
@@ -118,7 +118,7 @@ func TestAllowNewCredentialsForNonDeletedInstance(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 
 	credential := newServiceBinding()
-	err = handler.Admit(admission.NewAttributesRecord(&credential, nil, servicecatalog.Kind("ServiceBindings").WithVersion("version"),
+	err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(&credential, nil, servicecatalog.Kind("ServiceBindings").WithVersion("version"),
 		"test-ns", "test-cred", servicecatalog.Resource("servicebindings").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		t.Errorf("Error, admission controller should not block this test")

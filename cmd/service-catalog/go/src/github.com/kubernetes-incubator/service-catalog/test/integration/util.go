@@ -16,13 +16,20 @@ limitations under the License.
 
 package integration
 
-// returns the address of s. useful for filling struct fields that require a *string
-// (for json decoding purposes)
+// strPtr, String Pointer, returns the address of s. useful for filling struct
+// fields that require a *string (for json decoding purposes).
 func strPtr(s string) *string {
 	return &s
 }
 
+// truePtr, Boolean Pointer with the value of true
 func truePtr() *bool {
 	b := true
+	return &b
+}
+
+// falsePtr, Boolean Pointer with the value of false
+func falsePtr() *bool {
+	b := false
 	return &b
 }

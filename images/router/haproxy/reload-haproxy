@@ -49,7 +49,7 @@ function haproxyHealthCheck() {
 
   echo " - Checking ${url} ..."
   while true; do
-    local httpcode=$(curl $timeout_opts -s -o /dev/null -I -w "%{http_code}" ${url})
+    local httpcode=$(curl $timeout_opts -s -o /dev/null -I -H "Host: " -w "%{http_code}" ${url})
 
     if [ "$httpcode" == "503" ]; then
       echo " - Health check ok : $retries retry attempt(s)."

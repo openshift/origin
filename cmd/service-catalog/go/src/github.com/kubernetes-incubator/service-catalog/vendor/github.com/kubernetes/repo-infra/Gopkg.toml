@@ -1,0 +1,12 @@
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/bazelbuild/buildtools"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/golang/glog"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/build"

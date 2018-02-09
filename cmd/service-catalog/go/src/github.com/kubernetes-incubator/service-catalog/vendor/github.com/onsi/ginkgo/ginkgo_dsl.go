@@ -202,7 +202,7 @@ func RunSpecs(t GinkgoTestingT, description string) bool {
 //To run your tests with Ginkgo's default reporter and your custom reporter(s), replace
 //RunSpecs() with this method.
 func RunSpecsWithDefaultAndCustomReporters(t GinkgoTestingT, description string, specReporters []Reporter) bool {
-	specReporters = append([]Reporter{buildDefaultReporter()}, specReporters...)
+	specReporters = append(specReporters, buildDefaultReporter())
 	return RunSpecsWithCustomReporters(t, description, specReporters)
 }
 
@@ -216,7 +216,7 @@ func RunSpecsWithCustomReporters(t GinkgoTestingT, description string, specRepor
 		reporters[i] = reporter
 	}
 	passed, hasFocusedTests := globalSuite.Run(t, description, reporters, writer, config.GinkgoConfig)
-	if passed && hasFocusedTests {
+	if passed && hasFocusedTests && strings.TrimSpace(os.Getenv("GINKGO_EDITOR_INTEGRATION")) == "" {
 		fmt.Println("PASS | FOCUSED")
 		os.Exit(types.GINKGO_FOCUS_EXIT_CODE)
 	}

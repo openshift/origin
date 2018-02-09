@@ -25,23 +25,13 @@ import (
 
 const (
 	originatingIdentityPlatform = "kubernetes"
-	originatingIdentityUsername = "username"
-	originatingIdentityUID      = "uid"
-	originatingIdentityGroups   = "groups"
 )
 
 func buildOriginatingIdentity(userInfo *v1beta1.UserInfo) (*osb.OriginatingIdentity, error) {
 	if userInfo == nil {
 		return nil, nil
 	}
-	oiFields := map[string]interface{}{}
-	oiFields[originatingIdentityUsername] = userInfo.Username
-	oiFields[originatingIdentityUID] = userInfo.UID
-	oiFields[originatingIdentityGroups] = userInfo.Groups
-	for k, v := range userInfo.Extra {
-		oiFields[k] = v
-	}
-	oiValue, err := json.Marshal(oiFields)
+	oiValue, err := json.Marshal(userInfo)
 	if err != nil {
 		return nil, err
 	}

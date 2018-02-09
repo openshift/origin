@@ -10,7 +10,7 @@ import (
 )
 
 type DeploymentConfigPipeline struct {
-	Deployment *appsgraph.DeploymentConfigNode
+	DeploymentConfig *appsgraph.DeploymentConfigNode
 
 	ActiveDeployment    *kubegraph.ReplicationControllerNode
 	InactiveDeployments []*kubegraph.ReplicationControllerNode
@@ -43,7 +43,7 @@ func NewDeploymentConfigPipeline(g osgraph.Graph, dcNode *appsgraph.DeploymentCo
 	covered.Insert(dcNode.ID())
 
 	dcPipeline := DeploymentConfigPipeline{}
-	dcPipeline.Deployment = dcNode
+	dcPipeline.DeploymentConfig = dcNode
 
 	// for everything that can trigger a deployment, create an image pipeline and add it to the list
 	for _, istNode := range g.PredecessorNodesByEdgeKind(dcNode, appsedges.TriggersDeploymentEdgeKind) {
@@ -80,5 +80,5 @@ type SortedDeploymentConfigPipeline []DeploymentConfigPipeline
 func (m SortedDeploymentConfigPipeline) Len() int      { return len(m) }
 func (m SortedDeploymentConfigPipeline) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m SortedDeploymentConfigPipeline) Less(i, j int) bool {
-	return CompareObjectMeta(&m[i].Deployment.DeploymentConfig.ObjectMeta, &m[j].Deployment.DeploymentConfig.ObjectMeta)
+	return CompareObjectMeta(&m[i].DeploymentConfig.DeploymentConfig.ObjectMeta, &m[j].DeploymentConfig.DeploymentConfig.ObjectMeta)
 }

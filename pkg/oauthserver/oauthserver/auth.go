@@ -376,7 +376,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handl
 				}
 
 				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
-				redirectors.Add(identityProvider.Name, redirector.NewRedirector(nil, redirectLoginPath+"?then=${url}"))
+				redirectors.Add(identityProvider.Name, redirector.NewRedirector(nil, redirectLoginPath+"?then=${server-relative-url}"))
 
 				var loginTemplateFile string
 				if c.ExtraOAuthConfig.Options.Templates != nil {

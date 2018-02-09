@@ -7,6 +7,7 @@ import (
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	osgraph "github.com/openshift/origin/pkg/oc/graph/genericgraph"
 )
@@ -24,6 +25,11 @@ var (
 	HorizontalPodAutoscalerNodeKind   = reflect.TypeOf(autoscaling.HorizontalPodAutoscaler{}).Name()
 	StatefulSetNodeKind               = reflect.TypeOf(kapps.StatefulSet{}).Name()
 	StatefulSetSpecNodeKind           = reflect.TypeOf(kapps.StatefulSetSpec{}).Name()
+	DeploymentNodeKind                = reflect.TypeOf(extensions.Deployment{}).Name()
+	DeploymentSpecNodeKind            = reflect.TypeOf(extensions.DeploymentSpec{}).Name()
+	ReplicaSetNodeKind                = reflect.TypeOf(extensions.ReplicaSet{}).Name()
+	ReplicaSetSpecNodeKind            = reflect.TypeOf(extensions.ReplicaSetSpec{}).Name()
+	DaemonSetNodeKind                 = reflect.TypeOf(extensions.DaemonSet{}).Name()
 )
 
 func ServiceNodeName(o *kapi.Service) osgraph.UniqueName {
@@ -104,6 +110,65 @@ func (n PodSpecNode) UniqueName() osgraph.UniqueName {
 
 func (*PodSpecNode) Kind() string {
 	return PodSpecNodeKind
+}
+
+func ReplicaSetNodeName(o *extensions.ReplicaSet) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(ReplicaSetNodeKind, o)
+}
+
+type ReplicaSetNode struct {
+	osgraph.Node
+	ReplicaSet *extensions.ReplicaSet
+
+	IsFound bool
+}
+
+func (n ReplicaSetNode) Found() bool {
+	return n.IsFound
+}
+
+func (n ReplicaSetNode) Object() interface{} {
+	return n.ReplicaSet
+}
+
+func (n ReplicaSetNode) String() string {
+	return string(ReplicaSetNodeName(n.ReplicaSet))
+}
+
+func (n ReplicaSetNode) UniqueName() osgraph.UniqueName {
+	return ReplicaSetNodeName(n.ReplicaSet)
+}
+
+func (*ReplicaSetNode) Kind() string {
+	return ReplicaSetNodeKind
+}
+
+func ReplicaSetSpecNodeName(o *extensions.ReplicaSetSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+	return osgraph.UniqueName(fmt.Sprintf("%s|%v", ReplicaSetSpecNodeKind, ownerName))
+}
+
+type ReplicaSetSpecNode struct {
+	osgraph.Node
+	ReplicaSetSpec *extensions.ReplicaSetSpec
+	Namespace      string
+
+	OwnerName osgraph.UniqueName
+}
+
+func (n ReplicaSetSpecNode) Object() interface{} {
+	return n.ReplicaSetSpec
+}
+
+func (n ReplicaSetSpecNode) String() string {
+	return string(n.UniqueName())
+}
+
+func (n ReplicaSetSpecNode) UniqueName() osgraph.UniqueName {
+	return ReplicaSetSpecNodeName(n.ReplicaSetSpec, n.OwnerName)
+}
+
+func (*ReplicaSetSpecNode) Kind() string {
+	return ReplicaSetSpecNodeKind
 }
 
 func ReplicationControllerNodeName(o *kapi.ReplicationController) osgraph.UniqueName {
@@ -303,6 +368,61 @@ func (n HorizontalPodAutoscalerNode) UniqueName() osgraph.UniqueName {
 	return HorizontalPodAutoscalerNodeName(n.HorizontalPodAutoscaler)
 }
 
+func DeploymentNodeName(o *extensions.Deployment) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(DeploymentNodeKind, o)
+}
+
+type DeploymentNode struct {
+	osgraph.Node
+	Deployment *extensions.Deployment
+
+	IsFound bool
+}
+
+func (n DeploymentNode) Object() interface{} {
+	return n.Deployment
+}
+
+func (n DeploymentNode) String() string {
+	return string(n.UniqueName())
+}
+
+func (n DeploymentNode) UniqueName() osgraph.UniqueName {
+	return DeploymentNodeName(n.Deployment)
+}
+
+func (*DeploymentNode) Kind() string {
+	return DeploymentNodeKind
+}
+
+func DeploymentSpecNodeName(o *extensions.DeploymentSpec, ownerName osgraph.UniqueName) osgraph.UniqueName {
+	return osgraph.UniqueName(fmt.Sprintf("%s|%v", DeploymentSpecNodeKind, ownerName))
+}
+
+type DeploymentSpecNode struct {
+	osgraph.Node
+	DeploymentSpec *extensions.DeploymentSpec
+	Namespace      string
+
+	OwnerName osgraph.UniqueName
+}
+
+func (n DeploymentSpecNode) Object() interface{} {
+	return n.DeploymentSpec
+}
+
+func (n DeploymentSpecNode) String() string {
+	return string(n.UniqueName())
+}
+
+func (n DeploymentSpecNode) UniqueName() osgraph.UniqueName {
+	return DeploymentSpecNodeName(n.DeploymentSpec, n.OwnerName)
+}
+
+func (*DeploymentSpecNode) Kind() string {
+	return DeploymentSpecNodeKind
+}
+
 func StatefulSetNodeName(o *kapps.StatefulSet) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(StatefulSetNodeKind, o)
 }
@@ -354,4 +474,31 @@ func (n StatefulSetSpecNode) UniqueName() osgraph.UniqueName {
 
 func (*StatefulSetSpecNode) Kind() string {
 	return StatefulSetSpecNodeKind
+}
+
+func DaemonSetNodeName(o *extensions.DaemonSet) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(DaemonSetNodeKind, o)
+}
+
+type DaemonSetNode struct {
+	osgraph.Node
+	DaemonSet *extensions.DaemonSet
+
+	IsFound bool
+}
+
+func (n DaemonSetNode) Found() bool {
+	return n.IsFound
+}
+
+func (n DaemonSetNode) Object() interface{} {
+	return n.DaemonSet
+}
+
+func (n DaemonSetNode) String() string {
+	return string(DaemonSetNodeName(n.DaemonSet))
+}
+
+func (*DaemonSetNode) Kind() string {
+	return DaemonSetNodeKind
 }

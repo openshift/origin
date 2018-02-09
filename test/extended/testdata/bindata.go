@@ -130,6 +130,7 @@
 // test/extended/testdata/hello-builder/scripts/run
 // test/extended/testdata/idling-echo-server-rc.yaml
 // test/extended/testdata/idling-echo-server.yaml
+// test/extended/testdata/image/deployment-with-annotation-trigger.yaml
 // test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml
@@ -6833,6 +6834,49 @@ func testExtendedTestdataIdlingEchoServerYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/idling-echo-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"test:v1"},"fieldPath":"spec.template.spec.containers[?(@.name==\"test\")].image"}]'
+  name: test
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: test
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - image: " "
+          name: test
+          command: ["/bin/sleep"]
+          args:
+           - infinity
+`)
+
+func testExtendedTestdataImageDeploymentWithAnnotationTriggerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, nil
+}
+
+func testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataImageDeploymentWithAnnotationTriggerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/image/deployment-with-annotation-trigger.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28050,71 +28094,108 @@ spec:
         // and "openshift" directive/closure from the OpenShift Client Plugin for Jenkins.  Otherwise, the declarative pipeline engine
         // will not be fully engaged.
         pipeline {
-          openshift.withCluster() {
-            openshift.withProject() {
-              echo "Using project: ${openshift.project()}"
-                agent {
-                  node {
-                    // spin up a node.js slave pod to run this build on
-                    label 'nodejs'
-                  }
-                }
-                options {
-                  // set a timeout of 20 minutes for this pipeline
-                  timeout(time: 20, unit: 'MINUTES')
-                }
-                stages {
-                  stage('cleanup') {
-                    steps {
-                      // delete everything with this template label
-                      openshift.selector("all", [ template : templateName ]).delete()
-                      // delete any secrets with this template label
-                      if (openshift.selector("secrets", templateName).exists()) {
-                        openshift.selector("secrets", templateName).delete()
-                      }
-                    }
-                  }
-                  stage('create') {
-                    steps {
-                      // create a new application from the templatePath
-                      openshift.newApp(templatePath)
-                    }
-                  }
-                  stage('build') {
-                    steps {
-                      def builds = openshift.selector("bc", templateName).related('builds')
-                      // wait up to 5 minutes for the build to complete
-                      timeout(5) {
-                        builds.untilEach(1) {
-                          return (it.object().status.phase == "Complete")
-                        }
-                      }
-                    }
-                  }
-                  stage('deploy') {
-                    steps {
-                      def rm = openshift.selector("dc", templateName).rollout()
-                      // wait up to 5 minutes for the deployment to complete
-                      timeout(5) {
-                        openshift.selector("dc", templateName).related('pods').untilEach(1) {
-                          return (it.object().status.phase == "Running")
-                        }
-                      }
-                    }
-                  }
-                  stage('tag') {
-                    steps {
-                      // if everything else succeeded, tag the ${templateName}:latest image as ${templateName}-staging:latest
-                      // a pipeline build config for the staging environment can watch for the ${templateName}-staging:latest
-                      // image to change and then deploy it to the staging environment
-                      openshift.tag("${templateName}:latest", "${templateName}-staging:latest")
-                    }
-                  }
-                }
+            agent {
+              node {
+                // spin up a node.js slave pod to run this build on
+                label 'nodejs'
+              }
             }
-          }
-        }
-    type: JenkinsPipeline
+            options {
+                // set a timeout of 20 minutes for this pipeline
+                timeout(time: 20, unit: 'MINUTES')
+            }
+
+            stages {
+                stage('preamble') {
+                    steps {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    echo "Using project: ${openshift.project()}"
+                                }
+                            }
+                        }
+                    }
+                }
+                stage('cleanup') {
+                    steps {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    // delete everything with this template label
+                                    openshift.selector("all", [ template : templateName ]).delete()
+                                    // delete any secrets with this template label
+                                    if (openshift.selector("secrets", templateName).exists()) {
+                                        openshift.selector("secrets", templateName).delete()
+                                    }
+                                }
+                            }
+                        } // script
+                    } // steps
+                } // stage
+                stage('create') {
+                    steps {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    // create a new application from the templatePath
+                                    openshift.newApp(templatePath)
+                                }
+                            }
+                        } // script
+                    } // steps
+                } // stage
+                stage('build') {
+                    steps {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    def builds = openshift.selector("bc", templateName).related('builds')
+                                    // wait up to 5 minutes for the build to complete
+                                    timeout(5) {
+                                        builds.untilEach(1) {
+                                            return (it.object().status.phase == "Complete")
+                                        }
+                                    }
+                                }
+                            }
+                        } // script
+                    } // steps
+                } // stage
+                stage('deploy') {
+                    steps {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    def rm = openshift.selector("dc", templateName).rollout()
+                                    // wait up to 5 minutes for the deployment to complete
+                                    timeout(5) {
+                                        openshift.selector("dc", templateName).related('pods').untilEach(1) {
+                                            return (it.object().status.phase == "Running")
+                                        }
+                                    }
+                                }
+                            }
+                        } // script
+                    } // steps
+                } // stage
+                stage('tag') {
+                    steps {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    // if everything else succeeded, tag the ${templateName}:latest image as ${templateName}-staging:latest
+                                    // a pipeline build config for the staging environment can watch for the ${templateName}-staging:latest
+                                    // image to change and then deploy it to the staging environment
+                                    openshift.tag("${templateName}:latest", "${templateName}-staging:latest")
+                                }
+                            }
+                        } // script
+                    } // steps
+                } // stage
+            } // stages
+        } // pipeline
+      type: JenkinsPipeline
 `)
 
 func examplesJenkinsPipelineNodejsSamplePipelineYamlBytes() ([]byte, error) {
@@ -29208,10 +29289,17 @@ objects:
               port: 8443
               scheme: HTTPS
           livenessProbe:
-            httpGet:
-              path: /
-              port: 8443
-              scheme: HTTPS
+            exec:
+              command:
+                - /bin/sh
+                - -i
+                - -c
+                - |-
+                  if [[ ! -f /tmp/webconsole-config.hash ]]; then \
+                    md5sum /var/webconsole-config/webconsole-config.yaml > /tmp/webconsole-config.hash; \
+                  elif [[ $(md5sum /var/webconsole-config/webconsole-config.yaml) != $(cat /tmp/webconsole-config.hash) ]]; then \
+                    exit 1; \
+                  fi && curl -k -f https://0.0.0.0:8443/console/
           resources:
             requests:
               cpu: 100m
@@ -29978,6 +30066,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/hello-builder/scripts/run": testExtendedTestdataHelloBuilderScriptsRun,
 	"test/extended/testdata/idling-echo-server-rc.yaml": testExtendedTestdataIdlingEchoServerRcYaml,
 	"test/extended/testdata/idling-echo-server.yaml": testExtendedTestdataIdlingEchoServerYaml,
+	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml": testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
 	"test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
@@ -30436,6 +30525,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"idling-echo-server-rc.yaml": &bintree{testExtendedTestdataIdlingEchoServerRcYaml, map[string]*bintree{}},
 				"idling-echo-server.yaml": &bintree{testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
+				"image": &bintree{nil, map[string]*bintree{
+					"deployment-with-annotation-trigger.yaml": &bintree{testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, map[string]*bintree{}},
+				}},
 				"image-pull-secrets": &bintree{nil, map[string]*bintree{
 					"dc-with-new-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsDcWithNewPullSecretYaml, map[string]*bintree{}},
 					"dc-with-old-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsDcWithOldPullSecretYaml, map[string]*bintree{}},

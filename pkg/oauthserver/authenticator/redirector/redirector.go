@@ -13,6 +13,10 @@ const (
 	// Example use: https://www.example.com/login?then=${url}
 	URLToken = "${url}"
 
+	// ServerRelativeURLToken in the query of the redirectURL gets replaced with the server-relative portion of the original request URL, escaped as a query parameter.
+	// Example use: https://www.example.com/login?then=${server-relative-url}
+	ServerRelativeURLToken = "${server-relative-url}"
+
 	// QueryToken in the query of the redirectURL gets replaced with the original request URL, unescaped.
 	// Example use: https://www.example.com/sso/oauth/authorize?${query}
 	QueryToken = "${query}"
@@ -70,7 +74,12 @@ func buildRedirectURL(redirectTemplate string, baseRequestURL, requestURL *url.U
 	if err != nil {
 		return nil, err
 	}
+	serverRelativeRequestURL := &url.URL{
+		Path:     requestURL.Path,
+		RawQuery: requestURL.RawQuery,
+	}
 	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, QueryToken, requestURL.RawQuery, -1)
 	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, URLToken, url.QueryEscape(requestURL.String()), -1)
+	redirectURL.RawQuery = strings.Replace(redirectURL.RawQuery, ServerRelativeURLToken, url.QueryEscape(serverRelativeRequestURL.String()), -1)
 	return redirectURL, nil
 }

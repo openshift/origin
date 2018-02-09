@@ -11,15 +11,16 @@ import (
 // given component.
 type ErrNoMatch struct {
 	Value     string
+	Type      string
 	Qualifier string
 	Errs      []error
 }
 
 func (e ErrNoMatch) Error() string {
 	if len(e.Qualifier) != 0 {
-		return fmt.Sprintf("no match for %q: %s", e.Value, e.Qualifier)
+		return fmt.Sprintf("unable to locate any %s with name %q: %s", e.Type, e.Value, e.Qualifier)
 	}
-	return fmt.Sprintf("no match for %q", e.Value)
+	return fmt.Sprintf("unable to locate any %s with name %q", e.Type, e.Value)
 }
 
 // Suggestion is the usage error message returned when no match is found.

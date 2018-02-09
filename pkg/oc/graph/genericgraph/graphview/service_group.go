@@ -21,12 +21,16 @@ type ServiceGroup struct {
 
 	DeploymentConfigPipelines []DeploymentConfigPipeline
 	ReplicationControllers    []ReplicationController
+	ReplicaSets               []ReplicaSet
+	Deployments               []Deployment
 	StatefulSets              []StatefulSet
 
 	// TODO: this has to stop
 	FulfillingStatefulSets []*kubegraph.StatefulSetNode
+	FulfillingDeployments  []*kubegraph.DeploymentNode
 	FulfillingDCs          []*appsgraph.DeploymentConfigNode
 	FulfillingRCs          []*kubegraph.ReplicationControllerNode
+	FulfillingRSs          []*kubegraph.ReplicaSetNode
 	FulfillingPods         []*kubegraph.PodNode
 
 	ExposingRoutes []*routegraph.RouteNode
@@ -67,12 +71,16 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 			service.FulfillingDCs = append(service.FulfillingDCs, castContainer)
 		case *kubegraph.ReplicationControllerNode:
 			service.FulfillingRCs = append(service.FulfillingRCs, castContainer)
+		case *kubegraph.ReplicaSetNode:
+			service.FulfillingRSs = append(service.FulfillingRSs, castContainer)
 		case *kubegraph.PodNode:
 			service.FulfillingPods = append(service.FulfillingPods, castContainer)
 		case *kubegraph.StatefulSetNode:
 			service.FulfillingStatefulSets = append(service.FulfillingStatefulSets, castContainer)
+		case *kubegraph.DeploymentNode:
+			service.FulfillingDeployments = append(service.FulfillingDeployments, castContainer)
 		default:
-			utilruntime.HandleError(fmt.Errorf("unrecognized container: %v", castContainer))
+			utilruntime.HandleError(fmt.Errorf("unrecognized container: %v (%T)", castContainer, castContainer))
 		}
 	}
 
@@ -102,11 +110,25 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 		service.ReplicationControllers = append(service.ReplicationControllers, rcView)
 	}
 
+	for _, fulfillingRS := range service.FulfillingRSs {
+		rsView, rsCovers := NewReplicaSet(g, fulfillingRS)
+
+		covered.Insert(rsCovers.List()...)
+		service.ReplicaSets = append(service.ReplicaSets, rsView)
+	}
+
 	for _, fulfillingStatefulSet := range service.FulfillingStatefulSets {
 		view, covers := NewStatefulSet(g, fulfillingStatefulSet)
 
 		covered.Insert(covers.List()...)
 		service.StatefulSets = append(service.StatefulSets, view)
+	}
+
+	for _, fulfillingDeployment := range service.FulfillingDeployments {
+		view, covers := NewDeployment(g, fulfillingDeployment)
+
+		covered.Insert(covers.List()...)
+		service.Deployments = append(service.Deployments, view)
 	}
 
 	for _, fulfillingPod := range service.FulfillingPods {

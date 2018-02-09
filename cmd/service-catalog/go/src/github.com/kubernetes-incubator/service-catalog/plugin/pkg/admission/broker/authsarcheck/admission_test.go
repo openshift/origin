@@ -45,7 +45,7 @@ func newHandlerForTest(kubeClient kubeclientset.Interface) (admission.Interface,
 	}
 	pluginInitializer := scadmission.NewPluginInitializer(nil, nil, kubeClient, kf)
 	pluginInitializer.Initialize(handler)
-	err = admission.Validate(handler)
+	err = admission.ValidateInitialization(handler)
 	return handler, kf, err
 }
 
@@ -89,7 +89,8 @@ func TestAdmissionBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
+					URL:            "http://example.com",
+					RelistBehavior: "Manual",
 				},
 			},
 			userInfo: &user.DefaultInfo{
@@ -105,7 +106,8 @@ func TestAdmissionBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
+					URL:            "http://example.com",
+					RelistBehavior: "Manual",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
@@ -129,7 +131,8 @@ func TestAdmissionBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
+					URL:            "http://example.com",
+					RelistBehavior: "Manual",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
@@ -153,7 +156,8 @@ func TestAdmissionBroker(t *testing.T) {
 					Name: "test-broker",
 				},
 				Spec: servicecatalog.ClusterServiceBrokerSpec{
-					URL: "http://example.com",
+					URL:            "http://example.com",
+					RelistBehavior: "Manual",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
 							SecretRef: &servicecatalog.ObjectReference{
@@ -170,6 +174,49 @@ func TestAdmissionBroker(t *testing.T) {
 			},
 			allowed: false,
 		},
+		{
+			name: "broker with empty authInfo",
+			broker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: "Manual",
+					AuthInfo:       &servicecatalog.ServiceBrokerAuthInfo{},
+				},
+			},
+			userInfo: &user.DefaultInfo{
+				Name:   "system:serviceaccount:test-ns:forbidden",
+				Groups: []string{"system:serviceaccount", "system:serviceaccounts:test-ns"},
+			},
+			allowed: true,
+		},
+		{
+			name: "broker with authInfo, empty strings for Namespace/Name",
+			broker: &servicecatalog.ClusterServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
+					URL:            "http://example.com",
+					RelistBehavior: "Manual",
+					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
+						Bearer: &servicecatalog.BearerTokenAuthConfig{
+							SecretRef: &servicecatalog.ObjectReference{
+								Namespace: "",
+								Name:      "",
+							},
+						},
+					},
+				},
+			},
+			userInfo: &user.DefaultInfo{
+				Name:   "system:serviceaccount:test-ns:catalog",
+				Groups: []string{"system:serviceaccount", "system:serviceaccounts:test-ns"},
+			},
+			allowed: true,
+		},
 	}
 
 	for _, tc := range cases {
@@ -180,7 +227,7 @@ func TestAdmissionBroker(t *testing.T) {
 		}
 		kubeInformerFactory.Start(wait.NeverStop)
 
-		err = handler.Admit(admission.NewAttributesRecord(tc.broker, nil, servicecatalog.Kind("ClusterServiceBroker").WithVersion("version"), tc.broker.Namespace, tc.broker.Name, servicecatalog.Resource("clusterservicebrokers").WithVersion("version"), "", admission.Create, tc.userInfo))
+		err = handler.(admission.MutationInterface).Admit(admission.NewAttributesRecord(tc.broker, nil, servicecatalog.Kind("ClusterServiceBroker").WithVersion("version"), tc.broker.Namespace, tc.broker.Name, servicecatalog.Resource("clusterservicebrokers").WithVersion("version"), "", admission.Create, tc.userInfo))
 		if err != nil && tc.allowed || err == nil && !tc.allowed {
 			t.Errorf("Create test '%s' reports: Unexpected error returned from admission handler: %v", tc.name, err)
 		}

@@ -328,6 +328,23 @@ func TestProjectStatus(t *testing.T) {
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
 		},
+		"with deployment": {
+			File:  "deployment.yaml",
+			ErrFn: func(err error) bool { return err == nil },
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"svc/ruby-deploy",
+				"deployment/ruby-deploy deploys istag/ruby-deploy:latest <-",
+				"bc/ruby-deploy source builds https://github.com/openshift/ruby-ex.git on istag/ruby-22-centos7:latest",
+				"not built yet",
+			},
+			Time: mustParseTime("2015-04-07T04:12:25Z"),
+		},
 		"with stateful sets": {
 			File: "statefulset.yaml",
 			Extra: []runtime.Object{
@@ -339,7 +356,8 @@ func TestProjectStatus(t *testing.T) {
 			Contains: []string{
 				"In project example on server https://example.com:8443\n",
 				"svc/galera (headless):3306",
-				"statefulset/mysql manages erkules/galera:basic, created less than a second ago - 3 pods",
+				"statefulset/mysql manages erkules/galera:basic",
+				"created less than a second ago - 3 pods",
 				"* pod/mysql-1 has restarted 7 times",
 			},
 			Time: mustParseTime("2015-04-07T04:12:25Z"),
@@ -446,7 +464,7 @@ func TestProjectStatus(t *testing.T) {
 		routeClient := routefakeclient.NewSimpleClientset(filterByScheme(routeclientscheme.Scheme, objs...)...)
 
 		d := ProjectStatusDescriber{
-			K:                           kc,
+			KubeClient:                  kc,
 			ProjectClient:               projectClient.Project(),
 			BuildClient:                 buildClient.Build(),
 			ImageClient:                 imageClient.Image(),
@@ -458,6 +476,7 @@ func TestProjectStatus(t *testing.T) {
 			LogsCommandName:             "oc logs -p",
 			SecurityPolicyCommandFormat: "policycommand %s %s",
 		}
+		t.Logf("describing %q ...", test.File)
 		out, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)
@@ -508,7 +527,7 @@ func TestProjectStatusErrors(t *testing.T) {
 		})
 
 		d := ProjectStatusDescriber{
-			K:                           kc,
+			KubeClient:                  kc,
 			ProjectClient:               projectClient.Project(),
 			BuildClient:                 buildClient.Build(),
 			ImageClient:                 imageClient.Image(),

@@ -1,0 +1,10 @@
+  Name:        ups-instance                                                                       
+  Namespace:   test-ns                                                                            
+  Status:      Ready - The instance was provisioned successfully @ 2018-01-11 20:59:47 +0000 UTC  
+  Class:       user-provided-service                                                              
+  Plan:        default                                                                            
+
+Bindings:
+     NAME       STATUS  
++-------------+--------+
+  ups-binding   Ready   

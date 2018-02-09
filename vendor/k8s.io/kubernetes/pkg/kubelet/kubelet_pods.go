@@ -249,11 +249,13 @@ func makeMounts(pod *v1.Pod, podDir string, container *v1.Container, hostName, h
 		}
 		glog.V(5).Infof("Pod %q container %q mount %q has propagation %q", format.Pod(pod), container.Name, mount.Name, propagation)
 
+		mustMountRO := vol.Mounter.GetAttributes().ReadOnly && utilfeature.DefaultFeatureGate.Enabled(features.ReadOnlyAPIDataVolumes)
+
 		mounts = append(mounts, kubecontainer.Mount{
 			Name:           mount.Name,
 			ContainerPath:  containerPath,
 			HostPath:       hostPath,
-			ReadOnly:       mount.ReadOnly,
+			ReadOnly:       mount.ReadOnly || mustMountRO,
 			SELinuxRelabel: relabelVolume,
 			Propagation:    propagation,
 		})
@@ -1145,7 +1147,7 @@ func (kl *Kubelet) validateContainerLogStatus(podName string, podStatus *v1.PodS
 
 	switch {
 	case previous:
-		if lastState.Terminated == nil {
+		if lastState.Terminated == nil || lastState.Terminated.ContainerID == "" {
 			return kubecontainer.ContainerID{}, fmt.Errorf("previous terminated container %q in pod %q not found", containerName, podName)
 		}
 		cID = lastState.Terminated.ContainerID
@@ -1154,9 +1156,21 @@ func (kl *Kubelet) validateContainerLogStatus(podName string, podStatus *v1.PodS
 		cID = cStatus.ContainerID
 
 	case terminated != nil:
-		cID = terminated.ContainerID
+		// in cases where the next container didn't start, terminated.ContainerID will be empty, so get logs from the lastState.Terminated.
+		if terminated.ContainerID == "" {
+			if lastState.Terminated != nil && lastState.Terminated.ContainerID != "" {
+				cID = lastState.Terminated.ContainerID
+			} else {
+				return kubecontainer.ContainerID{}, fmt.Errorf("container %q in pod %q is terminated", containerName, podName)
+			}
+		} else {
+			cID = terminated.ContainerID
+		}
 
 	case lastState.Terminated != nil:
+		if lastState.Terminated.ContainerID == "" {
+			return kubecontainer.ContainerID{}, fmt.Errorf("container %q in pod %q is terminated", containerName, podName)
+		}
 		cID = lastState.Terminated.ContainerID
 
 	case waiting != nil:
