@@ -117,33 +117,33 @@ func EnsureReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.Repl
 
 // EnsureReplicaSetNode adds a graph node for the ReplicaSet if it does not already exist.
 func EnsureReplicaSetNode(g osgraph.MutableUniqueGraph, rs *extensions.ReplicaSet) *ReplicaSetNode {
-	rcNodeName := ReplicaSetNodeName(rs)
-	rcNode := osgraph.EnsureUnique(g,
-		rcNodeName,
+	rsNodeName := ReplicaSetNodeName(rs)
+	rsNode := osgraph.EnsureUnique(g,
+		rsNodeName,
 		func(node osgraph.Node) graph.Node {
 			return &ReplicaSetNode{node, rs, true}
 		},
 	).(*ReplicaSetNode)
 
-	rcSpecNode := EnsureReplicaSetSpecNode(g, &rs.Spec, rs.Namespace, rcNodeName)
-	g.AddEdge(rcNode, rcSpecNode, osgraph.ContainsEdgeKind)
+	rcSpecNode := EnsureReplicaSetSpecNode(g, &rs.Spec, rs.Namespace, rsNodeName)
+	g.AddEdge(rsNode, rcSpecNode, osgraph.ContainsEdgeKind)
 
-	return rcNode
+	return rsNode
 }
 
 func EnsureReplicaSetSpecNode(g osgraph.MutableUniqueGraph, rsSpec *extensions.ReplicaSetSpec, namespace string, ownerName osgraph.UniqueName) *ReplicaSetSpecNode {
-	rcSpecName := ReplicaSetSpecNodeName(rsSpec, ownerName)
-	rcSpecNode := osgraph.EnsureUnique(g,
-		rcSpecName,
+	rsSpecName := ReplicaSetSpecNodeName(rsSpec, ownerName)
+	rsSpecNode := osgraph.EnsureUnique(g,
+		rsSpecName,
 		func(node osgraph.Node) graph.Node {
 			return &ReplicaSetSpecNode{node, rsSpec, namespace, ownerName}
 		},
 	).(*ReplicaSetSpecNode)
 
-	ptSpecNode := EnsurePodTemplateSpecNode(g, &rsSpec.Template, namespace, rcSpecName)
-	g.AddEdge(rcSpecNode, ptSpecNode, osgraph.ContainsEdgeKind)
+	ptSpecNode := EnsurePodTemplateSpecNode(g, &rsSpec.Template, namespace, rsSpecName)
+	g.AddEdge(rsSpecNode, ptSpecNode, osgraph.ContainsEdgeKind)
 
-	return rcSpecNode
+	return rsSpecNode
 }
 
 func FindOrCreateSyntheticReplicationControllerNode(g osgraph.MutableUniqueGraph, rc *kapi.ReplicationController) *ReplicationControllerNode {
