@@ -200,6 +200,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	standaloneDCs, coveredByDCs := graphview.AllDeploymentConfigPipelines(g, coveredNodes)
 	coveredNodes.Insert(coveredByDCs.List()...)
 
+	standaloneDeployments, coveredByDeployments := graphview.AllDeployments(g, coveredNodes)
+	coveredNodes.Insert(coveredByDeployments.List()...)
+
 	standaloneRCs, coveredByRCs := graphview.AllReplicationControllers(g, coveredNodes)
 	coveredNodes.Insert(coveredByRCs.List()...)
 
@@ -300,6 +303,12 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				return graphview.MaxRecentContainerRestartsForRC(g, rc)
 			})...)
 		}
+		for _, standaloneDeployment := range standaloneDeployments {
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeDeploymentInServiceGroup(f, standaloneDeployment, func(rs *kubegraph.ReplicaSetNode) int32 {
+				return graphview.MaxRecentContainerRestartsForRS(g, rs)
+			})...)
+		}
 
 		for _, standaloneImage := range standaloneImages {
 			fmt.Fprintln(out)
@@ -312,6 +321,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeRCInServiceGroup(f, standaloneRC.RC)...)
 		}
+
 		for _, standaloneRS := range standaloneRSs {
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeRSInServiceGroup(f, standaloneRS.RS)...)
@@ -550,7 +560,7 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 	case *kubegraph.ReplicationControllerNode:
 		return namespaceNameWithType("rc", t.ReplicationController.Name, t.ReplicationController.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.ReplicaSetNode:
-		return namespaceNameWithType("rc", t.ReplicaSet.Name, t.ReplicaSet.Namespace, f.currentNamespace, f.hideNamespace)
+		return namespaceNameWithType("rs", t.ReplicaSet.Name, t.ReplicaSet.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.HorizontalPodAutoscalerNode:
 		return namespaceNameWithType("hpa", t.HorizontalPodAutoscaler.Name, t.HorizontalPodAutoscaler.Namespace, f.currentNamespace, f.hideNamespace)
 	case *kubegraph.StatefulSetNode:
