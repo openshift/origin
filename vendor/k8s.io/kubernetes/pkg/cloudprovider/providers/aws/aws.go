@@ -2022,7 +2022,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName,
 // DetachDisk implements Volumes.DetachDisk
 func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName) (string, error) {
 	diskInfo, attached, err := c.checkIfAttachedToNode(diskName, nodeName)
-	if diskInfo == nil {
+	if err != nil {
 		return "", err
 	}
 
