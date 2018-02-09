@@ -30,7 +30,7 @@ func GetSystemdUnits(logger *log.Logger) map[string]types.SystemdUnit {
 	}
 
 	logger.Notice("DS1001", "Performing systemd discovery")
-	for _, name := range []string{"origin-master", "origin-node", "atomic-openshift-master", "atomic-openshift-node", "docker", "openvswitch", "iptables", "etcd", "kubernetes"} {
+	for _, name := range []string{"origin-master-api", "origin-master-controllers", "origin-node", "atomic-openshift-master-api", "atomic-openshift-master-controllers", "atomic-openshift-node", "docker", "openvswitch", "iptables", "etcd", "kubernetes"} {
 		systemdUnits[name] = discoverSystemdUnit(logger, name)
 
 		if systemdUnits[name].Exists {
