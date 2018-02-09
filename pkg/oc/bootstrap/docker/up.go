@@ -170,7 +170,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 		Long:    cmdUpLong,
 		Example: fmt.Sprintf(cmdUpExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			kcmdutil.CheckErr(config.Complete(f, c))
+			kcmdutil.CheckErr(config.Complete(f, c, out))
 			kcmdutil.CheckErr(config.Validate(out, errout))
 			if err := config.Start(out); err != nil {
 				fmt.Fprintf(errout, "%s\n", err.Error())
@@ -289,14 +289,6 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
 }
 
-// Validate validates that required fields in StartConfig have been populated
-func (c *CommonStartConfig) Validate(out io.Writer) error {
-	if len(c.Tasks) == 0 {
-		return fmt.Errorf("no startup tasks to execute")
-	}
-	return nil
-}
-
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *CommonStartConfig) Start(out io.Writer) error {
 	taskPrinter := NewTaskPrinter(out)
@@ -325,25 +317,53 @@ func (config *ClientStartConfig) Bind(flags *pflag.FlagSet) {
 	config.CommonStartConfig.Bind(flags)
 }
 
-func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) error {
+func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
 	c.originalFactory = f
 	c.command = cmd
 
+	// do some defaulting
 	if len(c.ImageVersion) == 0 {
 		c.ImageVersion = defaultImageVersion()
 	}
 
-	c.addTask(simpleTask("Checking OpenShift client", c.CheckOpenShiftClient))
+	// do some struct initialization next
 
-	c.addTask(conditionalTask("Create Docker machine", c.CreateDockerMachine, func() bool { return c.ShouldCreateDockerMachine }))
+	// used for some pretty printing
+	taskPrinter := NewTaskPrinter(getDetailedOut(out))
+
+	// create a docker machine if we need one
+	if c.ShouldCreateDockerMachine {
+		// this default only gets set if we need to create a dockermachine.
+		if len(c.DockerMachine) == 0 {
+			c.DockerMachine = defaultDockerMachineName
+		}
+
+		taskName := "Create Docker machine"
+		taskPrinter.StartTask(taskName)
+		fmt.Fprintf(out, "Creating docker-machine %s\n", c.DockerMachine)
+		if err := CreateDockerMachine(c.DockerMachine); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+	}
 
 	// Get a Docker client.
 	// If a Docker machine was specified, make sure that the machine is running.
 	// Otherwise, use environment variables.
-	c.addTask(simpleTask("Checking Docker client", c.GetDockerClient))
-
+	{
+		taskName := "Create Docker client"
+		taskPrinter.StartTask(taskName)
+		client, err := getDockerClient(out, c.DockerMachine, true)
+		if err != nil {
+			return taskPrinter.ToError(err)
+		}
+		c.dockerClient = client
+		taskPrinter.Success()
+	}
 	// Check that we have the minimum Docker version available to run OpenShift
 	c.addTask(simpleTask("Checking Docker version", c.CheckDockerVersion))
+
+	c.addTask(simpleTask("Checking OpenShift client", CheckOpenShiftClient))
 
 	c.addTask(conditionalTask("Checking prerequisites for port forwarding", c.CheckPortForwardingPrerequisites, func() bool { return c.PortForwarding }))
 
@@ -396,9 +416,20 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	return nil
 }
 
+// Validate validates that required fields in StartConfig have been populated
+func (c *CommonStartConfig) Validate() error {
+	if c.dockerClient == nil {
+		return fmt.Errorf("missing dockerClient")
+	}
+	if len(c.Tasks) == 0 {
+		return fmt.Errorf("no startup tasks to execute")
+	}
+	return nil
+}
+
 // Complete initializes fields based on command parameters and execution environment
-func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) error {
-	if err := c.CommonStartConfig.Complete(f, cmd); err != nil {
+func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
+	if err := c.CommonStartConfig.Complete(f, cmd, out); err != nil {
 		return err
 	}
 
@@ -489,6 +520,9 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 // Validate validates that required fields in StartConfig have been populated
 func (c *ClientStartConfig) Validate(out, errout io.Writer) error {
+	if err := c.CommonStartConfig.Validate(); err != nil {
+		return err
+	}
 	cmdutil.WarnAboutCommaSeparation(errout, c.Environment, "--env")
 	if len(c.Tasks) == 0 {
 		return fmt.Errorf("no startup tasks to execute")
@@ -496,18 +530,20 @@ func (c *ClientStartConfig) Validate(out, errout io.Writer) error {
 	return nil
 }
 
-// Start runs the start tasks ensuring that they are executed in sequence
-func (c *ClientStartConfig) Start(out io.Writer) error {
-	var detailedOut io.Writer
-
+func getDetailedOut(out io.Writer) io.Writer {
 	// When loglevel > 0, just use stdout to write all messages
 	if glog.V(1) {
-		detailedOut = out
+		return out
 	} else {
-		fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
-		detailedOut = &bytes.Buffer{}
+		return &bytes.Buffer{}
 	}
+}
 
+// Start runs the start tasks ensuring that they are executed in sequence
+func (c *ClientStartConfig) Start(out io.Writer) error {
+	fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
+
+	detailedOut := getDetailedOut(out)
 	taskPrinter := NewTaskPrinter(detailedOut)
 	startError := func() error {
 		for _, task := range c.Tasks {
@@ -551,17 +587,13 @@ func defaultImageVersion() string {
 }
 
 // CreateDockerMachine will create a new Docker machine to run OpenShift
-func (c *CommonStartConfig) CreateDockerMachine(out io.Writer) error {
-	if len(c.DockerMachine) == 0 {
-		c.DockerMachine = defaultDockerMachineName
-	}
-	fmt.Fprintf(out, "Creating docker-machine %s\n", c.DockerMachine)
-	return dockermachine.NewBuilder().Name(c.DockerMachine).Create()
+func CreateDockerMachine(dockerMachineName string) error {
+	return dockermachine.NewBuilder().Name(dockerMachineName).Create()
 }
 
 // CheckOpenShiftClient ensures that the client can be configured
 // for the new server
-func (c *CommonStartConfig) CheckOpenShiftClient(out io.Writer) error {
+func CheckOpenShiftClient(out io.Writer) error {
 	kubeConfig := os.Getenv("KUBECONFIG")
 	if len(kubeConfig) == 0 {
 		return nil
@@ -602,13 +634,8 @@ func (c *CommonStartConfig) CheckOpenShiftClient(out io.Writer) error {
 
 // GetDockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary
-func (c *CommonStartConfig) GetDockerClient(out io.Writer) error {
-	client, err := getDockerClient(out, c.DockerMachine, true)
-	if err != nil {
-		return err
-	}
-	c.dockerClient = client
-	return nil
+func (c *CommonStartConfig) GetDockerClient(out io.Writer) dockerhelper.Interface {
+	return c.dockerClient
 }
 
 // getDockerClient obtains a new Docker client from the environment or
