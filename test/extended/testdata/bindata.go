@@ -29264,6 +29264,7 @@ objects:
       metadata:
         name: webconsole
         labels:
+          app: openshift-web-console
           webconsole: "true"
       spec:
         serviceAccountName: webconsole
