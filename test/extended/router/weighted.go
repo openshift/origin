@@ -11,17 +11,15 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/pkg/api"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
-var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] weighted openshift router", func() {
+var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "weighted-router.yaml")
@@ -33,22 +31,16 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] weighted open
 		if len(imagePrefix) == 0 {
 			imagePrefix = "openshift/origin"
 		}
-		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:router", oc.Username()).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		// Wait for the policy to be propagated
-		testutil.WaitForClusterPolicyUpdate(oc.InternalKubeClient().Authorization(), "get", api.Resource("service"), true)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should appropriately serve a route that points to two services", func() {
+		g.It("should serve a route that points to two services and respect weights", func() {
 			defer func() {
-				// This should be done if the test fails but
-				// for now always dump the logs.
-				// if g.CurrentGinkgoTestDescription().Failed
-				dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				if g.CurrentGinkgoTestDescription().Failed {
+					dumpWeightedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				}
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name

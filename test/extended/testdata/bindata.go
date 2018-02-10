@@ -9951,6 +9951,8 @@ kind: Template
 parameters:
 - name: IMAGE
   value: openshift/origin-haproxy-router:latest
+- name: SCOPE
+  value: '["--name=test-scoped", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]'
 objects:
 # a scoped router
 - apiVersion: v1
@@ -9970,7 +9972,7 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]
+      args: "${{SCOPE}}"
       hostNetwork: false
       ports:
       - containerPort: 80
@@ -9998,7 +10000,7 @@ objects:
         valueFrom:
           fieldRef:
             fieldPath: metadata.namespace
-      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template=${name}-${namespace}.myapps.mycompany.com"]
+      args: ["--name=test-override", "--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--override-hostname", "--hostname-template=${name}-${namespace}.myapps.mycompany.com"]
       hostNetwork: false
       ports:
       - containerPort: 80
