@@ -74,7 +74,7 @@ func NewCmdMigrateAuthorization(name, fullName string, f *clientcmd.Factory, in 
 			kcmdutil.CheckErr(options.Validate())
 			kcmdutil.CheckErr(options.Run())
 		},
-		Deprecated: fmt.Sprintf("will not work against 3.7 servers"),
+		Deprecated: fmt.Sprintf("will not work against 3.7 or later servers"),
 	}
 	return cmd
 }
