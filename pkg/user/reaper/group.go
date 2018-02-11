@@ -11,7 +11,6 @@ import (
 
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
@@ -72,9 +71,6 @@ func (r *GroupReaper) Stop(namespace, name string, timeout time.Duration, graceP
 
 	// Remove the group
 	if err := r.groupClient.User().Groups().Delete(name, &metav1.DeleteOptions{}); err != nil {
-		if kerrors.IsNotFound(err) {
-			return kerrors.NewNotFound(userapi.Resource("group"), name)
-		}
 		return err
 	}
 

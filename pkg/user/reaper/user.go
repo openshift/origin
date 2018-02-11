@@ -12,7 +12,6 @@ import (
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
@@ -119,9 +118,6 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 
 	// Remove the user
 	if err := r.userClient.User().Users().Delete(name, &metav1.DeleteOptions{}); err != nil {
-		if kerrors.IsNotFound(err) {
-			return kerrors.NewNotFound(userapi.Resource("user"), name)
-		}
 		return err
 	}
 

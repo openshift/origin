@@ -9,7 +9,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 )
 
@@ -55,9 +54,6 @@ func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, 
 	}
 
 	if err := r.roleClient.ClusterRoles().Delete(name, &metav1.DeleteOptions{}); err != nil {
-		if kerrors.IsNotFound(err) {
-			return kerrors.NewNotFound(authapi.Resource("clusterrole"), name)
-		}
 		return err
 	}
 

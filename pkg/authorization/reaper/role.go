@@ -8,7 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 )
 
@@ -41,9 +40,6 @@ func (r *RoleReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	}
 
 	if err := r.roleClient.Roles(namespace).Delete(name, &metav1.DeleteOptions{}); err != nil {
-		if kerrors.IsNotFound(err) {
-			return kerrors.NewNotFound(authapi.Resource("role"), name)
-		}
 		return err
 	}
 
