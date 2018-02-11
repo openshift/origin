@@ -89,6 +89,7 @@ os::cmd::expect_success_and_text     'oc adm policy who-can create builds/jenkin
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated' 'cluster role "system:build-strategy-docker" removed: "system:authenticated"'
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated' 'cluster role "system:build-strategy-source" removed: "system:authenticated"'
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated' 'cluster role "system:build-strategy-jenkinspipeline" removed: "system:authenticated"'
+
 # ensure build strategy permissions no longer exist
 os::cmd::try_until_failure           'oc adm policy who-can create builds/source | grep system:authenticated'
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/docker' 'system:authenticated'
@@ -125,6 +126,13 @@ os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluste
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user --dry-run' 'cluster role "cluster\-reader" added: "namespaced\-user" \(dry run\)'
 
 os::cmd::expect_success 'oc adm policy add-role-to-group view testgroup'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-reader testgroup'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user'
+
+# ensure that removing missing target causes error.
+os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin ghost' 'error: unable to find target \[ghost\]'
+os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin -z ghost' 'error: unable to find target \[ghost\]'
+
 os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view testgroup -o yaml' 'subjects: \[\]'
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup -o yaml' 'name: cluster\-readers'
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user -o yaml' 'name: cluster\-reader'
