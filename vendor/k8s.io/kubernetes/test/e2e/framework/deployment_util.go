@@ -213,8 +213,8 @@ func CheckDeploymentRevisionAndImage(c clientset.Interface, ns, deploymentName, 
 	return testutils.CheckDeploymentRevisionAndImage(c, ns, deploymentName, revision, image)
 }
 
-func CreateDeployment(client clientset.Interface, replicas int32, podLabels map[string]string, namespace string, pvclaims []*v1.PersistentVolumeClaim, command string) (*extensions.Deployment, error) {
-	deploymentSpec := MakeDeployment(replicas, podLabels, namespace, pvclaims, false, command)
+func CreateDeployment(client clientset.Interface, replicas int32, podLabels map[string]string, nodeSelector map[string]string, namespace string, pvclaims []*v1.PersistentVolumeClaim, command string) (*extensions.Deployment, error) {
+	deploymentSpec := MakeDeployment(replicas, podLabels, nodeSelector, namespace, pvclaims, false, command)
 	deployment, err := client.Extensions().Deployments(namespace).Create(deploymentSpec)
 	if err != nil {
 		return nil, fmt.Errorf("deployment %q Create API error: %v", deploymentSpec.Name, err)
@@ -229,7 +229,7 @@ func CreateDeployment(client clientset.Interface, replicas int32, podLabels map[
 
 // MakeDeployment creates a deployment definition based on the namespace. The deployment references the PVC's
 // name.  A slice of BASH commands can be supplied as args to be run by the pod
-func MakeDeployment(replicas int32, podLabels map[string]string, namespace string, pvclaims []*v1.PersistentVolumeClaim, isPrivileged bool, command string) *extensions.Deployment {
+func MakeDeployment(replicas int32, podLabels map[string]string, nodeSelector map[string]string, namespace string, pvclaims []*v1.PersistentVolumeClaim, isPrivileged bool, command string) *extensions.Deployment {
 	if len(command) == 0 {
 		command = "while true; do sleep 1; done"
 	}
@@ -273,6 +273,9 @@ func MakeDeployment(replicas int32, podLabels map[string]string, namespace strin
 	}
 	deploymentSpec.Spec.Template.Spec.Containers[0].VolumeMounts = volumeMounts
 	deploymentSpec.Spec.Template.Spec.Volumes = volumes
+	if nodeSelector != nil {
+		deploymentSpec.Spec.Template.Spec.NodeSelector = nodeSelector
+	}
 	return deploymentSpec
 }
 

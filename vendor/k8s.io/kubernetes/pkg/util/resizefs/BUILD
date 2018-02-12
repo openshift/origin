@@ -17,7 +17,6 @@ go_library(
     ] + select({
         "@io_bazel_rules_go//go/platform:linux_amd64": [
             "//vendor/github.com/golang/glog:go_default_library",
-            "//vendor/k8s.io/utils/exec:go_default_library",
         ],
         "//conditions:default": [],
     }),
