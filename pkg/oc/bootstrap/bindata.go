@@ -14985,6 +14985,8 @@ objects:
           - service-catalog
           args:
           - controller-manager
+          - --port
+          - "8080"
           - -v
           - "5"
           - --leader-election-namespace
