@@ -8,12 +8,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -317,12 +319,16 @@ func TestLimitRequestAdmission(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, err := newClusterResourceOverride(test.config, func(a *clusterResourceOverridePlugin, attr admission.Attributes) ([]*kapi.LimitRange, error) {
-			return test.namespaceLimits, nil
-		})
+		c, err := newClusterResourceOverride(test.config)
 		if err != nil {
 			t.Errorf("%s: config de/serialize failed: %v", test.name, err)
 			continue
+		}
+		// Override LimitRanger with limits from test case
+		c.(*clusterResourceOverridePlugin).limitRangesLister = fakeLimitRangeLister{
+			namespaceLister: fakeLimitRangeNamespaceLister{
+				limits: test.namespaceLimits,
+			},
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
 		attrs := admission.NewAttributesRecord(test.pod, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
@@ -469,4 +475,22 @@ func fakeMinCPULimitRange(limits ...string) *kapi.LimitRange {
 
 func fakeMinStorageLimitRange(limits ...string) *kapi.LimitRange {
 	return fakeMinLimitRange(kapi.LimitTypePersistentVolumeClaim, kapi.ResourceStorage, limits...)
+}
+
+type fakeLimitRangeLister struct {
+	internalversion.LimitRangeLister
+	namespaceLister fakeLimitRangeNamespaceLister
+}
+
+type fakeLimitRangeNamespaceLister struct {
+	internalversion.LimitRangeNamespaceLister
+	limits []*kapi.LimitRange
+}
+
+func (f fakeLimitRangeLister) LimitRanges(namespace string) internalversion.LimitRangeNamespaceLister {
+	return f.namespaceLister
+}
+
+func (f fakeLimitRangeNamespaceLister) List(selector labels.Selector) ([]*kapi.LimitRange, error) {
+	return f.limits, nil
 }

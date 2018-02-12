@@ -8,10 +8,12 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
@@ -44,11 +46,9 @@ func Register(plugins *admission.Plugins) {
 				glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
 				return nil, nil
 			}
-			return newClusterResourceOverride(pluginConfig, defaultGetNamespaceLimitRanges)
+			return newClusterResourceOverride(pluginConfig)
 		})
 }
-
-type namespaceLimitsFunc func(a *clusterResourceOverridePlugin, attr admission.Attributes) ([]*kapi.LimitRange, error)
 
 type internalConfig struct {
 	limitCPUToMemoryRatio     float64
@@ -57,10 +57,10 @@ type internalConfig struct {
 }
 type clusterResourceOverridePlugin struct {
 	*admission.Handler
-	config       *internalConfig
-	ProjectCache *cache.ProjectCache
-	LimitRanger  admission.Interface
-	namespaceLimitsFunc
+	config            *internalConfig
+	ProjectCache      *cache.ProjectCache
+	LimitRanger       admission.Interface
+	limitRangesLister internalversion.LimitRangeLister
 }
 
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
@@ -69,7 +69,7 @@ var _ = kadmission.WantsInternalKubeClientSet(&clusterResourceOverridePlugin{})
 
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
-func newClusterResourceOverride(config *api.ClusterResourceOverrideConfig, f namespaceLimitsFunc) (admission.Interface, error) {
+func newClusterResourceOverride(config *api.ClusterResourceOverrideConfig) (admission.Interface, error) {
 	glog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, config)
 	var internal *internalConfig
 	if config != nil {
@@ -86,15 +86,15 @@ func newClusterResourceOverride(config *api.ClusterResourceOverrideConfig, f nam
 	}
 
 	return &clusterResourceOverridePlugin{
-		Handler:             admission.NewHandler(admission.Create),
-		config:              internal,
-		LimitRanger:         limitRanger,
-		namespaceLimitsFunc: f,
+		Handler:     admission.NewHandler(admission.Create),
+		config:      internal,
+		LimitRanger: limitRanger,
 	}, nil
 }
 
 func (d *clusterResourceOverridePlugin) SetInternalKubeInformerFactory(i informers.SharedInformerFactory) {
 	d.LimitRanger.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(i)
+	d.limitRangesLister = i.Core().InternalVersion().LimitRanges().Lister()
 }
 
 func (d *clusterResourceOverridePlugin) SetInternalKubeClientSet(c kclientset.Interface) {
@@ -183,8 +183,8 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 
 	namespaceLimits := []*kapi.LimitRange{}
 
-	if a.namespaceLimitsFunc != nil {
-		limits, err := a.namespaceLimitsFunc(a, attr)
+	if a.limitRangesLister != nil {
+		limits, err := a.limitRangesLister.LimitRanges(attr.GetNamespace()).List(labels.Everything())
 		if err != nil {
 			return err
 		}
@@ -313,8 +313,4 @@ func minQuantity(quantities []*resource.Quantity) *resource.Quantity {
 	}
 
 	return min
-}
-
-func defaultGetNamespaceLimitRanges(a *clusterResourceOverridePlugin, attr admission.Attributes) ([]*kapi.LimitRange, error) {
-	return a.LimitRanger.(*limitranger.LimitRanger).GetLimitRanges(attr)
 }
