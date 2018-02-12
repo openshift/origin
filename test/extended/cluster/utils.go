@@ -12,7 +12,6 @@ import (
 	"time"
 	"unicode"
 
-	testutil "github.com/openshift/origin/test/util"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -426,15 +425,12 @@ func newConfigMap(ns string, name string, vars map[string]string) *kapiv1.Config
 }
 
 // CreateTemplates creates templates in user defined namespaces with user configurable tuning sets.
-func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, template ClusterLoaderObjectType, templateCount int, tuning *TuningSetType) error {
+func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, template ClusterLoaderObjectType, tuning *TuningSetType) error {
 	var allArgs []string
 	templateFile := mkPath(template.File)
 	e2e.Logf("We're loading file %v: ", templateFile)
-	templateObj, err := testutil.GetTemplateFixture(templateFile)
-	if err != nil {
-		e2e.Failf("Cant read template config file. Error: %v", err)
-	}
-	allArgs = append(allArgs, templateObj.Name)
+	allArgs = append(allArgs, "-f")
+	allArgs = append(allArgs, templateFile)
 
 	if template.Parameters == nil {
 		e2e.Logf("Template environment variables will not be modified.")
@@ -443,12 +439,20 @@ func CreateTemplates(oc *exutil.CLI, c kclientset.Interface, nsName string, temp
 		allArgs = append(allArgs, params...)
 	}
 
-	for i := 0; i < templateCount; i++ {
-		config, err := oc.AdminTemplateClient().Template().Templates(nsName).Create(templateObj)
-		e2e.Logf("Template %v created, arguments: %v, config: %+v", templateObj.Name, allArgs, config)
+	for i := 0; i < template.Number; i++ {
+		identifier := map[string]interface{}{"IDENTIFIER": i}
+		identifierParams := convertVariablesToString(identifier)
+		idArgs := append(allArgs, identifierParams...)
+		e2e.Logf("args: %v", idArgs)
+		configFile, err := oc.SetNamespace(nsName).Run("process").Args(idArgs...).OutputToFile("config.json")
+		if err != nil {
+			e2e.Failf("Unable to process template file. Error: %v", err)
+		}
 
-		err = oc.SetNamespace(nsName).Run("new-app").Args(allArgs...).Execute()
-		e2e.Logf("args: %v", allArgs)
+		err = oc.SetNamespace(nsName).Run("create").Args("-f", configFile).Execute()
+		if err != nil {
+			e2e.Failf("Unable to create template objects. Error: %v", err)
+		}
 		if err != nil {
 			return err
 		}
