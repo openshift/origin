@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -64,6 +63,9 @@ var (
 	  # Import environment from a config map with a prefix
 	  %[1]s env --from=configmap/myconfigmap --prefix=MYSQL_ dc/myapp
 
+          # Import specific keys from a config map
+          %[1]s env --keys=my-example-key --from=configmap/myconfigmap dc/myapp
+
 	  # Remove the environment variable ENV from container 'c1' in all deployment configs
 	  %[1]s env dc --all --containers="c1" ENV-
 
@@ -98,6 +100,7 @@ type EnvOptions struct {
 	Output            string
 	From              string
 	Prefix            string
+	Keys              []string
 
 	Builder *resource.Builder
 	Infos   []*resource.Info
@@ -124,18 +127,16 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 		Long:    envLong,
 		Example: fmt.Sprintf(envExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(options.Complete(f, cmd, args))
-			err := options.RunEnv(f)
-			if err == kcmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			options.Complete(f, cmd, args)
+			kcmdutil.CheckErr(options.Validate(cmd, args))
+			kcmdutil.CheckErr(options.RunEnv(f))
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.ContainerSelector, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
 	cmd.Flags().StringP("from", "", "", "The name of a resource from which to inject environment variables")
 	cmd.Flags().StringP("prefix", "", "", "Prefix to append to variable names")
+	cmd.Flags().StringSliceVarP(&options.Keys, "keys", "", options.Keys, "Comma-separated list of keys to import from specified resource")
 	cmd.Flags().StringArrayVarP(&options.EnvParams, "env", "e", options.EnvParams, "Specify a key-value pair for an environment variable to set into each container.")
 	cmd.Flags().BoolVar(&options.List, "list", options.List, "If true, display the environment and any changes in the standard format")
 	cmd.Flags().BoolVar(&options.Resolve, "resolve", options.Resolve, "If true, show secret or configmap references when listing variables")
@@ -168,14 +169,7 @@ func keyToEnvName(key string) string {
 	return strings.ToUpper(validEnvNameRegexp.ReplaceAllString(key, "_"))
 }
 
-func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
-	resources, envArgs, ok := utilenv.SplitEnvironmentFromResources(args)
-	if !ok {
-		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
-	}
-	if len(o.Filenames) == 0 && len(resources) < 1 {
-		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
-	}
+func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) {
 
 	o.ContainerSelector = kcmdutil.GetFlagString(cmd, "containers")
 	o.List = kcmdutil.GetFlagBool(cmd, "list")
@@ -188,16 +182,33 @@ func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	o.From = kcmdutil.GetFlagString(cmd, "from")
 	o.Prefix = kcmdutil.GetFlagString(cmd, "prefix")
 
-	o.EnvArgs = envArgs
-	o.Resources = resources
 	o.Cmd = cmd
 
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
 
-	if o.List && len(o.Output) > 0 {
-		return kcmdutil.UsageErrorf(o.Cmd, "--list and --output may not be specified together")
+}
+
+// Ensure that EnvOptions are valid
+func (o *EnvOptions) Validate(cmd *cobra.Command, args []string) error {
+	resources, envArgs, ok := utilenv.SplitEnvironmentFromResources(args)
+	if !ok {
+		return kcmdutil.UsageErrorf(cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
 	}
 
+	if len(o.Filenames) == 0 && len(resources) < 1 {
+		return kcmdutil.UsageErrorf(cmd, "one or more resources must be specified as <resource> <name> or <resource>/<name>")
+	}
+
+	if o.List && len(o.Output) > 0 {
+		return kcmdutil.UsageErrorf(cmd, "--list and --output may not be specified together")
+	}
+
+	if len(o.Keys) > 0 && len(o.From) < 1 {
+		return kcmdutil.UsageErrorf(cmd, "when specifying --keys, a configmap or secret must be provided with --from")
+	}
+
+	o.EnvArgs = envArgs
+	o.Resources = resources
 	return nil
 }
 
@@ -262,7 +273,16 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 							},
 						},
 					}
-					env = append(env, envVar)
+					if len(o.Keys) > 0 {
+						for _, specifiedKey := range o.Keys {
+							if specifiedKey == key {
+								env = append(env, envVar)
+							}
+						}
+					} else {
+						env = append(env, envVar)
+					}
+
 				}
 			case *kapi.ConfigMap:
 				for key := range from.Data {
@@ -277,7 +297,15 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 							},
 						},
 					}
-					env = append(env, envVar)
+					if len(o.Keys) > 0 {
+						for _, specifiedKey := range o.Keys {
+							if specifiedKey == key {
+								env = append(env, envVar)
+							}
+						}
+					} else {
+						env = append(env, envVar)
+					}
 				}
 			default:
 				return fmt.Errorf("unsupported resource specified in --from")
