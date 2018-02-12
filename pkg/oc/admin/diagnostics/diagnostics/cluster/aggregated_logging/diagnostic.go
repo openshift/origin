@@ -1,10 +1,11 @@
 package aggregated_logging
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -16,6 +17,7 @@ import (
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	oauthtypedclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	projecttypedclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routesapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -36,10 +38,9 @@ type AggregatedLogging struct {
 	DCClient          appstypedclient.DeploymentConfigsGetter
 	SCCClient         securitytypedclient.SecurityContextConstraintsGetter
 	KubeClient        kclientset.Interface
-	sumResult         types.DiagnosticResult
-	projResult        map[string]types.DiagnosticResult
-	currentProject    string
-	CmdlineProject    string
+
+	loggingProject string
+	result         types.DiagnosticResult
 }
 
 const (
@@ -56,7 +57,11 @@ const (
 )
 
 var loggingSelector = labels.Set{loggingInfraKey: "support"}
-var loggingProjects = []string{"logging", "openshift-logging"}
+
+// We allow only one logging project per cluster
+// 'openshift-logging' project will be the new default and unmodifiable
+// 'logging' project is current default and maintained for backward compatibility
+var defaultLoggingProjects = []string{"openshift-logging", "logging"}
 
 //NewAggregatedLogging returns the AggregatedLogging Diagnostic
 func NewAggregatedLogging(
@@ -67,15 +72,7 @@ func NewAggregatedLogging(
 	crbClient oauthorizationtypedclient.ClusterRoleBindingsGetter,
 	dcClient appstypedclient.DeploymentConfigsGetter,
 	sccClient securitytypedclient.SecurityContextConstraintsGetter,
-	cmdlineProject string,
 ) *AggregatedLogging {
-	projResult := make(map[string]types.DiagnosticResult)
-	for _, p := range loggingProjects {
-		projResult[p] = types.NewDiagnosticResult(AggregatedLoggingName)
-	}
-	if len(cmdlineProject) > 0 {
-		projResult[cmdlineProject] = types.NewDiagnosticResult(AggregatedLoggingName)
-	}
 	return &AggregatedLogging{
 		OAuthClientClient: oauthClientClient,
 		ProjectClient:     projectClient,
@@ -84,10 +81,7 @@ func NewAggregatedLogging(
 		DCClient:          dcClient,
 		SCCClient:         sccClient,
 		KubeClient:        kclient,
-		sumResult:         types.NewDiagnosticResult(AggregatedLoggingName),
-		projResult:        projResult,
-		currentProject:    loggingProjects[0],
-		CmdlineProject:    cmdlineProject,
+		result:            types.NewDiagnosticResult(AggregatedLoggingName),
 	}
 }
 
@@ -129,46 +123,21 @@ func (d *AggregatedLogging) pods(project string, options metav1.ListOptions) (*k
 func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.ListOptions) (*appsapi.DeploymentConfigList, error) {
 	return d.DCClient.DeploymentConfigs(project).List(options)
 }
-func (d *AggregatedLogging) checkProjectDiagnostics(project string) {
-	d.currentProject = project
-	d.Debug("AGL0010", fmt.Sprintf("Trying diagnostics for project '%s'", project))
-	p, err := d.ProjectClient.Projects().Get(project, metav1.GetOptions{})
-	if err != nil {
-		d.Error("AGL0012", err, fmt.Sprintf("There was an error retrieving project '%s' which is most likely a transient error: %s", project, err))
-		return
-	}
-	nodeSelector, ok := p.ObjectMeta.Annotations["openshift.io/node-selector"]
-	if !ok || len(nodeSelector) != 0 {
-		d.Warn("AGL0014", nil, fmt.Sprintf(projectNodeSelectorWarning, project))
-	}
-	checkServiceAccounts(d, d, project)
-	checkClusterRoleBindings(d, d, project)
-	checkSccs(d, d, project)
-	checkDeploymentConfigs(d, d, project)
-	checkDaemonSets(d, d, project)
-	checkServices(d, d, project)
-	checkRoutes(d, d, project)
-	checkKibana(d, d.RouteClient, d.OAuthClientClient, d.KubeClient, project)
-}
 
 func (d *AggregatedLogging) Info(id string, message string) {
-	d.sumResult.Info(id, message)
-	d.projResult[d.currentProject].Info(id, message)
+	d.result.Info(id, message)
 }
 
 func (d *AggregatedLogging) Error(id string, err error, message string) {
-	d.sumResult.Error(id, err, message)
-	d.projResult[d.currentProject].Error(id, err, message)
+	d.result.Error(id, err, message)
 }
 
 func (d *AggregatedLogging) Debug(id string, message string) {
-	d.sumResult.Debug(id, message)
-	d.projResult[d.currentProject].Debug(id, message)
+	d.result.Debug(id, message)
 }
 
 func (d *AggregatedLogging) Warn(id string, err error, message string) {
-	d.sumResult.Warn(id, err, message)
-	d.projResult[d.currentProject].Warn(id, err, message)
+	d.result.Warn(id, err, message)
 }
 
 func (d *AggregatedLogging) Name() string {
@@ -194,38 +163,47 @@ func (d *AggregatedLogging) CanRun() (bool, error) {
 }
 
 func (d *AggregatedLogging) Check() types.DiagnosticResult {
-	if len(d.CmdlineProject) > 0 {
-		d.checkProjectDiagnostics(d.CmdlineProject)
-		return d.sumResult
-	}
+	checkServiceAccounts(d, d, d.loggingProject)
+	checkClusterRoleBindings(d, d, d.loggingProject)
+	checkSccs(d, d, d.loggingProject)
+	checkDeploymentConfigs(d, d, d.loggingProject)
+	checkDaemonSets(d, d, d.loggingProject)
+	checkServices(d, d, d.loggingProject)
+	checkRoutes(d, d, d.loggingProject)
+	checkKibana(d, d.RouteClient, d.OAuthClientClient, d.KubeClient, d.loggingProject)
 
-	for _, p := range loggingProjects {
-		d.checkProjectDiagnostics(p)
-		if d.projResult[p].Failure() {
-			d.Debug("AGL0020", fmt.Sprintf("Diagnostics for project '%s' have errors", p))
-		} else {
-			d.Debug("AGL0022", fmt.Sprintf("Diagnostics for project '%s' look ok", p))
-			return d.projResult[p]
-		}
-	}
-
-	var buff bytes.Buffer
-	for p, r := range d.projResult {
-		s := "errors"
-		if len(r.Errors()) == 1 {
-			s = "error"
-		}
-		buff.WriteString(fmt.Sprintf(", %s: %d %s", p, len(r.Errors()), s))
-	}
-	msg := fmt.Sprintf("Unable to find the AggregatedLogging project without errors%s", buff.String())
-	d.Error("AGL0030", fmt.Errorf(msg), msg)
-	return d.sumResult
+	return d.result
 }
 
 func (d *AggregatedLogging) AvailableParameters() []types.Parameter {
 	return []types.Parameter{
-		{flagLoggingProject, "A project AggregatedLogging has been deployed to", &d.CmdlineProject, ""},
+		{flagLoggingProject, fmt.Sprintf("Project that supports aggregated logging. Defaults to %s", strings.Join(defaultLoggingProjects, " or ")), &d.loggingProject, ""},
 	}
+}
+
+func (d *AggregatedLogging) Complete(logger *log.Logger) error {
+	// User provided logging project
+	if len(d.loggingProject) != 0 {
+		return nil
+	}
+
+	// Check if any of the default logging projects present in the cluster
+	for _, project := range defaultLoggingProjects {
+		p, err := d.ProjectClient.Projects().Get(project, metav1.GetOptions{})
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				continue
+			}
+			return fmt.Errorf("error fetching project %q: %v", project, err)
+		}
+
+		d.Info("AGL0031", fmt.Sprintf("Found default logging project %q", project))
+		if nodeSelector, ok := p.Annotations["openshift.io/node-selector"]; !ok || (len(nodeSelector) != 0) {
+			d.Warn("AGL0030", nil, fmt.Sprintf(projectNodeSelectorWarning, project))
+		}
+		return nil
+	}
+	return fmt.Errorf("default logging project not found, use '--%s' to specify logging project", flagLoggingProject)
 }
 
 const projectNodeSelectorWarning = `
