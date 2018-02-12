@@ -379,6 +379,10 @@ type DeploymentNode struct {
 	IsFound bool
 }
 
+func (n DeploymentNode) Found() bool {
+	return n.IsFound
+}
+
 func (n DeploymentNode) Object() interface{} {
 	return n.Deployment
 }
@@ -430,6 +434,12 @@ func StatefulSetNodeName(o *kapps.StatefulSet) osgraph.UniqueName {
 type StatefulSetNode struct {
 	osgraph.Node
 	StatefulSet *kapps.StatefulSet
+
+	IsFound bool
+}
+
+func (n StatefulSetNode) Found() bool {
+	return n.IsFound
 }
 
 func (n StatefulSetNode) Object() interface{} {

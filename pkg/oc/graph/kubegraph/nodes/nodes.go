@@ -229,7 +229,7 @@ func EnsureStatefulSetNode(g osgraph.MutableUniqueGraph, statefulSet *kapps.Stat
 	node := osgraph.EnsureUnique(g,
 		nodeName,
 		func(node osgraph.Node) graph.Node {
-			return &StatefulSetNode{node, statefulSet}
+			return &StatefulSetNode{node, statefulSet, false}
 		},
 	).(*StatefulSetNode)
 
