@@ -330,6 +330,8 @@ os::cmd::try_until_success 'oc get imagestreamtags ruby:2.2'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.4'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:12.0'
+os::cmd::try_until_success 'oc get imagestreamtags wildfly:11.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.1'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:10.0'
 os::cmd::try_until_success 'oc get imagestreamtags wildfly:9.0'
@@ -345,7 +347,7 @@ os::cmd::expect_success_and_text 'oc new-app --search --image-stream=php' "Tags:
 os::cmd::expect_success_and_text 'oc new-app --search --image-stream=postgresql' "Tags:\s+9.4, 9.5, 9.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=python' "Tags:\s+2.7, 3.4, 3.5, 3.6, latest"
 os::cmd::expect_success_and_text 'oc new-app -S --image-stream=ruby' "Tags:\s+2.2, 2.3, 2.4, latest"
-os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 8.1, 9.0, latest"
+os::cmd::expect_success_and_text 'oc new-app -S --image-stream=wildfly' "Tags:\s+10.0, 10.1, 11.0, 12.0, 8.1, 9.0, latest"
 os::cmd::expect_success_and_text 'oc new-app --search --template=ruby-helloworld-sample' 'ruby-helloworld-sample'
 # check search - no matches
 os::cmd::expect_failure_and_text 'oc new-app -S foo-the-bar' 'no matches found'

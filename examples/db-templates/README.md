@@ -66,11 +66,19 @@ The new template is now available to use in the Web Console or with `oc
 new-app`.
 
 
-## More information
+## Available database example templates
 
-The usage of each supported database image is further documented in the links
-below:
+* [MariaDB](https://raw.githubusercontent.com/openshift/library/master/official/mariadb/templates/mariadb-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
+* [MariaDB Persistent](https://raw.githubusercontent.com/openshift/library/master/official/mariadb/templates/mariadb-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mariadb.html).
+* [MongoDB](https://raw.githubusercontent.com/openshift/library/master/official/mongodb/templates/mongodb-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mongodb.html).
+* [MongoDB Persistent](https://raw.githubusercontent.com/openshift/library/master/official/mongodb/templates/mongodb-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mongodb.html).
+* [MySQL](https://raw.githubusercontent.com/openshift/library/master/official/mysql/templates/mysql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
+* [MySQL Persistent](https://raw.githubusercontent.com/openshift/library/master/official/mysql/templates/mysql-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/mysql.html).
+* [PostgreSQL](https://raw.githubusercontent.com/openshift/library/master/official/postgresql/templates/postgresql-ephemeral.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/postgresql.html).
+* [PostgreSQL Persistent](https://raw.githubusercontent.com/openshift/library/master/official/postgresql/templates/postgresql-persistent.json) - For more information see the [product documentation](https://docs.openshift.org/latest/using_images/db_images/postgresql.html).
+* [Redis](https://raw.githubusercontent.com/openshift/library/master/official/redis/templates/redis-ephemeral.json) - For more information see the [image documentation](https://github.com/sclorg/redis-container/blob/master/README.md).
+* [Redis Persistent](https://raw.githubusercontent.com/openshift/library/master/official/redis/templates/redis-persistent.json) - For more information see the [image documentation](https://github.com/sclorg/redis-container/blob/master/README.md).
 
-- [MySQL](https://docs.openshift.org/latest/using_images/db_images/mysql.html)
-- [PostgreSQL](https://docs.openshift.org/latest/using_images/db_images/postgresql.html)
-- [MongoDB](https://docs.openshift.org/latest/using_images/db_images/mongodb.html)
+Note: This file is processed by `hack/update-external-examples.sh`. New examples
+must follow the exact syntax of the existing entries. Files in this directory
+are automatically pulled down, do not modify/add files to this directory.

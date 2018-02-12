@@ -150,6 +150,15 @@ update-deps:
 	hack/update-deps.sh
 .PHONY: update-deps
 
+# Update external examples
+#
+# Example:
+#	make update-examples
+update-examples:
+	hack/update-external-examples.sh
+	hack/update-generated-bindata.sh
+.PHONY: update-examples
+
 # Build and run the complete test-suite.
 #
 # Example:
