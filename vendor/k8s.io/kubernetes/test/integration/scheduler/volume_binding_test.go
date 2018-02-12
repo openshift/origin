@@ -266,6 +266,7 @@ func setup(t *testing.T, nsName string) *testConfig {
 		VolumeInformer:            informers.Core().V1().PersistentVolumes(),
 		ClaimInformer:             informers.Core().V1().PersistentVolumeClaims(),
 		ClassInformer:             informers.Storage().V1().StorageClasses(),
+		PodInformed:               informers.Core().V1().Pods(),
 		EventRecorder:             nil, // TODO: add one so we can test PV events
 		EnableDynamicProvisioning: true,
 	}
