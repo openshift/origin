@@ -43,6 +43,11 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		return err
 	}
 
+	if buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil {
+		glog.V(4).Infof("Build pruning for %s/%s is handled by Jenkins, skipping.", buildConfig.Namespace, buildConfig.Name)
+		return nil
+	}
+
 	var buildsToDelete []*buildapi.Build
 	var errList []error
 
