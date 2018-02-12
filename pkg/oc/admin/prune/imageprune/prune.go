@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/docker/distribution/manifest/schema2"
@@ -483,6 +484,11 @@ func (p *pruner) addPodSpecToGraph(referrer *kapi.ObjectReference, spec *kapi.Po
 	for j := range spec.Containers {
 		container := spec.Containers[j]
 
+		if len(strings.TrimSpace(container.Image)) == 0 {
+			glog.V(4).Infof("Ignoring edge from %s because container has no reference to image", getKindName(referrer))
+			continue
+		}
+
 		glog.V(4).Infof("Examining container image %q", container.Image)
 
 		ref, err := imageapi.ParseDockerImageReference(container.Image)
@@ -675,6 +681,10 @@ func (p *pruner) addBuildStrategyImageReferencesToGraph(referrer *kapi.ObjectRef
 
 	switch from.Kind {
 	case "DockerImage":
+		if len(strings.TrimSpace(from.Name)) == 0 {
+			glog.V(4).Infof("Ignoring edge from %s because build strategy has no reference to image", getKindName(referrer))
+			return nil
+		}
 		ref, err := imageapi.ParseDockerImageReference(from.Name)
 		if err != nil {
 			msg := fmt.Sprintf("failed to parse DockerImage name %q of %s: %v", from.Name, getKindName(referrer), err)
