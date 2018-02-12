@@ -3,8 +3,9 @@ package aggregated_logging
 import (
 	"errors"
 	"fmt"
-	"net/url"
+	"strings"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -15,9 +16,7 @@ import (
 	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthtypedclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	hostdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/host"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	projecttypedclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -32,9 +31,6 @@ import (
 // for aggregating container logs
 // https://github.com/openshift/origin-aggregated-logging
 type AggregatedLogging struct {
-	masterConfig      *configapi.MasterConfig
-	loggingURL        string
-	MasterConfigFile  string
 	OAuthClientClient oauthtypedclient.OAuthClientsGetter
 	ProjectClient     projecttypedclient.ProjectsGetter
 	RouteClient       routetypedclient.RoutesGetter
@@ -42,7 +38,9 @@ type AggregatedLogging struct {
 	DCClient          appstypedclient.DeploymentConfigsGetter
 	SCCClient         securitytypedclient.SecurityContextConstraintsGetter
 	KubeClient        kclientset.Interface
-	result            types.DiagnosticResult
+
+	loggingProject string
+	result         types.DiagnosticResult
 }
 
 const (
@@ -54,13 +52,19 @@ const (
 	openshiftValue  = "openshift"
 
 	fluentdServiceAccountName = "aggregated-logging-fluentd"
+
+	flagLoggingProject = "logging-project"
 )
 
 var loggingSelector = labels.Set{loggingInfraKey: "support"}
 
+// We allow only one logging project per cluster
+// 'openshift-logging' project will be the new default and unmodifiable
+// 'logging' project is current default and maintained for backward compatibility
+var defaultLoggingProjects = []string{"openshift-logging", "logging"}
+
 //NewAggregatedLogging returns the AggregatedLogging Diagnostic
 func NewAggregatedLogging(
-	masterConfigFile string,
 	kclient kclientset.Interface,
 	oauthClientClient oauthtypedclient.OAuthClientsGetter,
 	projectClient projecttypedclient.ProjectsGetter,
@@ -70,10 +74,6 @@ func NewAggregatedLogging(
 	sccClient securitytypedclient.SecurityContextConstraintsGetter,
 ) *AggregatedLogging {
 	return &AggregatedLogging{
-		masterConfig: nil,
-		// TODO this needs to be plumbed because the master-config no longer has it.
-		loggingURL:        "",
-		MasterConfigFile:  masterConfigFile,
 		OAuthClientClient: oauthClientClient,
 		ProjectClient:     projectClient,
 		RouteClient:       routeClient,
@@ -152,21 +152,7 @@ func (d *AggregatedLogging) Requirements() (client bool, host bool) {
 	return true, false
 }
 
-func (d *AggregatedLogging) Complete(logger *log.Logger) error {
-	if len(d.MasterConfigFile) > 0 {
-		var err error
-		d.masterConfig, err = hostdiag.GetMasterConfig(d.MasterConfigFile, logger)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (d *AggregatedLogging) CanRun() (bool, error) {
-	if len(d.MasterConfigFile) == 0 || d.masterConfig == nil {
-		return false, errors.New("No master config file was provided")
-	}
 	if d.OAuthClientClient == nil || d.ProjectClient == nil || d.RouteClient == nil || d.CRBClient == nil || d.DCClient == nil {
 		return false, errors.New("Config must include a cluster-admin context to run this diagnostic")
 	}
@@ -177,22 +163,47 @@ func (d *AggregatedLogging) CanRun() (bool, error) {
 }
 
 func (d *AggregatedLogging) Check() types.DiagnosticResult {
-	if len(d.loggingURL) == 0 {
-		return d.result
+	checkServiceAccounts(d, d, d.loggingProject)
+	checkClusterRoleBindings(d, d, d.loggingProject)
+	checkSccs(d, d, d.loggingProject)
+	checkDeploymentConfigs(d, d, d.loggingProject)
+	checkDaemonSets(d, d, d.loggingProject)
+	checkServices(d, d, d.loggingProject)
+	checkRoutes(d, d, d.loggingProject)
+	checkKibana(d, d.RouteClient, d.OAuthClientClient, d.KubeClient, d.loggingProject)
+
+	return d.result
+}
+
+func (d *AggregatedLogging) AvailableParameters() []types.Parameter {
+	return []types.Parameter{
+		{flagLoggingProject, fmt.Sprintf("Project that supports aggregated logging. Defaults to %s", strings.Join(defaultLoggingProjects, " or ")), &d.loggingProject, ""},
+	}
+}
+
+func (d *AggregatedLogging) Complete(logger *log.Logger) error {
+	// User provided logging project
+	if len(d.loggingProject) != 0 {
+		return nil
 	}
 
-	project := retrieveLoggingProject(d.result, d.loggingURL, d.ProjectClient, d.RouteClient)
-	if len(project) != 0 {
-		checkServiceAccounts(d, d, project)
-		checkClusterRoleBindings(d, d, project)
-		checkSccs(d, d, project)
-		checkDeploymentConfigs(d, d, project)
-		checkDaemonSets(d, d, project)
-		checkServices(d, d, project)
-		checkRoutes(d, d, project)
-		checkKibana(d.result, d.RouteClient, d.OAuthClientClient, d.KubeClient, project)
+	// Check if any of the default logging projects present in the cluster
+	for _, project := range defaultLoggingProjects {
+		p, err := d.ProjectClient.Projects().Get(project, metav1.GetOptions{})
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				continue
+			}
+			return fmt.Errorf("error fetching project %q: %v", project, err)
+		}
+
+		d.Info("AGL0031", fmt.Sprintf("Found default logging project %q", project))
+		if nodeSelector, ok := p.Annotations["openshift.io/node-selector"]; !ok || (len(nodeSelector) != 0) {
+			d.Warn("AGL0030", nil, fmt.Sprintf(projectNodeSelectorWarning, project))
+		}
+		return nil
 	}
-	return d.result
+	return fmt.Errorf("default logging project not found, use '--%s' to specify logging project", flagLoggingProject)
 }
 
 const projectNodeSelectorWarning = `
@@ -207,51 +218,3 @@ and updating the annotation:
   'openshift.io/node-selector' : ""
 
 `
-
-func retrieveLoggingProject(r types.DiagnosticResult, loggingURL string, projectClient projecttypedclient.ProjectsGetter, routeClient routetypedclient.RoutesGetter) string {
-	r.Debug("AGL0010", fmt.Sprintf("masterConfig.AssetConfig.LoggingPublicURL: '%s'", loggingURL))
-	projectName := ""
-	if len(loggingURL) == 0 {
-		r.Debug("AGL0017", "masterConfig.AssetConfig.LoggingPublicURL is empty")
-		return projectName
-	}
-
-	loggingUrl, err := url.Parse(loggingURL)
-	if err != nil {
-		r.Error("AGL0011", err, fmt.Sprintf("Unable to parse the loggingPublicURL from the masterConfig '%s'", loggingURL))
-		return projectName
-	}
-
-	routeList, err := routeClient.Routes(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: loggingSelector.AsSelector().String()})
-	if err != nil {
-		r.Error("AGL0012", err, fmt.Sprintf("There was an error while trying to find the route associated with '%s' which is probably transient: %s", loggingUrl, err))
-		return projectName
-	}
-
-	for _, route := range routeList.Items {
-		r.Debug("AGL0013", fmt.Sprintf("Comparing URL to route.Spec.Host: %s", route.Spec.Host))
-		if loggingUrl.Host == route.Spec.Host {
-			if len(projectName) == 0 {
-				projectName = route.ObjectMeta.Namespace
-				r.Info("AGL0015", fmt.Sprintf("Found route '%s' matching logging URL '%s' in project: '%s'", route.ObjectMeta.Name, loggingUrl.Host, projectName))
-			} else {
-				r.Warn("AGL0019", nil, fmt.Sprintf("Found additional route '%s' matching logging URL '%s' in project: '%s'.  This could mean you have multiple logging deployments.", route.ObjectMeta.Name, loggingUrl.Host, projectName))
-			}
-		}
-	}
-	if len(projectName) == 0 {
-		message := fmt.Sprintf("Unable to find a route matching the loggingPublicURL defined in the master config '%s'. Check that the URL is correct and aggregated logging is deployed.", loggingUrl)
-		r.Error("AGL0014", errors.New(message), message)
-		return ""
-	}
-	project, err := projectClient.Projects().Get(projectName, metav1.GetOptions{})
-	if err != nil {
-		r.Error("AGL0018", err, fmt.Sprintf("There was an error retrieving project '%s' which is most likely a transient error: %s", projectName, err))
-		return ""
-	}
-	nodeSelector, ok := project.ObjectMeta.Annotations["openshift.io/node-selector"]
-	if !ok || len(nodeSelector) != 0 {
-		r.Warn("AGL0030", nil, fmt.Sprintf(projectNodeSelectorWarning, projectName))
-	}
-	return projectName
-}
