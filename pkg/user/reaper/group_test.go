@@ -16,6 +16,7 @@ import (
 	authfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityfake "github.com/openshift/origin/pkg/security/generated/internalclientset/fake"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userfake "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 
 	// install all APIs
@@ -32,22 +33,26 @@ var (
 func TestGroupReaper(t *testing.T) {
 	tests := []struct {
 		name     string
-		group    string
+		group    *userapi.Group
 		objects  []runtime.Object
 		sccs     []runtime.Object
 		expected []interface{}
 	}{
 		{
-			name:    "no objects",
-			group:   "mygroup",
+			name: "no objects",
+			group: &userapi.Group{
+				ObjectMeta: metav1.ObjectMeta{Name: "mygroup"},
+			},
 			objects: []runtime.Object{},
 			expected: []interface{}{
 				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
 			},
 		},
 		{
-			name:  "cluster bindings",
-			group: "mygroup",
+			name: "cluster bindings",
+			group: &userapi.Group{
+				ObjectMeta: metav1.ObjectMeta{Name: "mygroup"},
+			},
 			objects: []runtime.Object{
 				&authorizationapi.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects"},
@@ -75,8 +80,10 @@ func TestGroupReaper(t *testing.T) {
 			},
 		},
 		{
-			name:  "namespaced bindings",
-			group: "mygroup",
+			name: "namespaced bindings",
+			group: &userapi.Group{
+				ObjectMeta: metav1.ObjectMeta{Name: "mygroup"},
+			},
 			objects: []runtime.Object{
 				&authorizationapi.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects", Namespace: "ns1"},
@@ -104,8 +111,10 @@ func TestGroupReaper(t *testing.T) {
 			},
 		},
 		{
-			name:  "sccs",
-			group: "mygroup",
+			name: "sccs",
+			group: &userapi.Group{
+				ObjectMeta: metav1.ObjectMeta{Name: "mygroup"},
+			},
 			sccs: []runtime.Object{
 				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-no-subjects"},
@@ -133,7 +142,7 @@ func TestGroupReaper(t *testing.T) {
 
 	for _, test := range tests {
 		authFake := authfake.NewSimpleClientset(test.objects...)
-		userFake := userfake.NewSimpleClientset()
+		userFake := userfake.NewSimpleClientset(test.group)
 		securityFake := securityfake.NewSimpleClientset(test.sccs...)
 
 		actual := []interface{}{}
@@ -154,7 +163,7 @@ func TestGroupReaper(t *testing.T) {
 		securityFake.Fake.PrependReactor("delete", "*", kreactor)
 
 		reaper := NewGroupReaper(userFake, authFake, authFake, securityFake.Security().SecurityContextConstraints())
-		err := reaper.Stop("", test.group, 0, nil)
+		err := reaper.Stop("", test.group.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
