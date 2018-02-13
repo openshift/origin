@@ -119,6 +119,7 @@ type RegistryConfig struct {
 
 	ClusterIP string
 
+	Local bool
 	// TODO: accept environment values.
 }
 
@@ -191,6 +192,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout i
 	cmd.Flags().StringVar(&cfg.FSGroup, "fs-group", "", "Specify fsGroup which is an ID that grants group access to registry block storage")
 	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "If true, use a daemonset instead of a deployment config.")
 	cmd.Flags().BoolVar(&cfg.EnforceQuota, "enforce-quota", cfg.EnforceQuota, "If true, the registry will refuse to write blobs if they exceed quota limits")
+	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -259,11 +261,17 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return fmt.Errorf("error getting namespace: %v", nsErr)
 	}
 
-	kClient, kClientErr := f.ClientSet()
-	if kClientErr != nil {
-		return fmt.Errorf("error getting client: %v", kClientErr)
+	if !opts.Config.Local {
+		kClient, kClientErr := f.ClientSet()
+		if kClientErr != nil {
+			return fmt.Errorf("error getting client: %v", kClientErr)
+		}
+		opts.serviceClient = kClient.Core()
 	}
-	opts.serviceClient = kClient.Core()
+
+	if opts.Config.Local && !opts.Config.Action.DryRun {
+		return fmt.Errorf("--local cannot be specified without --dry-run")
+	}
 
 	opts.Config.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	opts.Config.Action.Out, opts.Config.Action.ErrOut = out, errout
@@ -283,19 +291,21 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	output := opts.Config.Action.ShouldPrint()
 	generate := output
-	service, err := opts.serviceClient.Services(opts.namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
-		if !generate {
-			if !errors.IsNotFound(err) {
-				return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
+	if !opts.Config.Local {
+		service, err := opts.serviceClient.Services(opts.namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			if !generate {
+				if !errors.IsNotFound(err) {
+					return fmt.Errorf("can't check for existing docker-registry %q: %v", name, err)
+				}
+				if opts.Config.Action.DryRun {
+					return fmt.Errorf("Docker registry %q service does not exist", name)
+				}
+				generate = true
 			}
-			if opts.Config.Action.DryRun {
-				return fmt.Errorf("Docker registry %q service does not exist", name)
-			}
-			generate = true
+		} else {
+			clusterIP = service.Spec.ClusterIP
 		}
-	} else {
-		clusterIP = service.Spec.ClusterIP
 	}
 
 	if !generate {
