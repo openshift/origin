@@ -19,7 +19,7 @@ parameters:
 - description: External URL for the grafana route
   name: ROUTE_URL
   value: ""
-- description: The namespace to instantiate grafana under. Defaults to 'grafana'.
+- description: The namespace to instantiate heapster under. Defaults to 'grafana'.
   name: NAMESPACE
   value: grafana
 - description: The session secret for the proxy
