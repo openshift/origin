@@ -936,14 +936,14 @@ func pruneISTagHistory(
 	history := imageStream.Status.Tags[tag]
 	newHistory := imageapi.TagEventList{}
 
-	for i, tagEvent := range history.Items {
-		glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
+	for _, tagEvent := range history.Items {
+		glog.V(4).Infof("Checking image stream tag %s:%s generation %d with image %q", streamName, tag, tagEvent.Generation, tagEvent.Image)
 
 		if ok, reason := tagEventIsPrunable(tagEvent, g, prunableImageNodes, keepYoungerThan); ok {
-			glog.V(4).Infof("Image stream tag %s:%s revision %d - removing because %s", streamName, tag, i, reason)
+			glog.V(4).Infof("Image stream tag %s:%s generation %d - removing because %s", streamName, tag, tagEvent.Generation, reason)
 			tagUpdated = true
 		} else {
-			glog.V(4).Infof("Image stream tag %s:%s revision %d - keeping because %s", streamName, tag, i, reason)
+			glog.V(4).Infof("Image stream tag %s:%s generation %d - keeping because %s", streamName, tag, tagEvent.Generation, reason)
 			newHistory.Items = append(newHistory.Items, tagEvent)
 		}
 	}
