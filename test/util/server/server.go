@@ -424,7 +424,7 @@ func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, err
 	if masterConfig.KubernetesMasterConfig.ControllerArguments == nil {
 		masterConfig.KubernetesMasterConfig.ControllerArguments = map[string][]string{}
 	}
-	masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"] = append(masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"], "clusterrole-aggregation")
+	masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"] = append(masterConfig.KubernetesMasterConfig.ControllerArguments["controllers"], "serviceaccount-token", "clusterrole-aggregation")
 
 	return StartConfiguredMasterWithOptions(masterConfig)
 }

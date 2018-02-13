@@ -21,8 +21,6 @@ func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCA
 			"-tokencleaner",
 			// we have to configure this separately until it is generic
 			"-horizontalpodautoscaling",
-			// we carry patches on this. For now....
-			"-serviceaccount-token",
 		}
 	}
 	if _, ok := cmdLineArgs["service-account-private-key-file"]; !ok {

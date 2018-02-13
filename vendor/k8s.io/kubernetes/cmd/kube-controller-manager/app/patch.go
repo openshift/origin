@@ -1,6 +1,8 @@
 package app
 
 import (
+	"path"
+
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
@@ -27,6 +29,11 @@ func ShimForOpenShift(controllerManager *options.CMServer, clientConfig *rest.Co
 	// TODO this should be replaced by the installer setting up the recycle template file and flags for us
 	cleanupFn, err := applyOpenShiftDefaultRecycler(controllerManager, openshiftConfig)
 	if err != nil {
+		return func() {}, err
+	}
+
+	// TODO this should be replaced by using a flex volume to inject service serving cert CAs into pods instead of adding it to the sa token
+	if err := applyOpenShiftServiceServingCertCAFunc(path.Dir(controllerManager.OpenShiftConfig), openshiftConfig); err != nil {
 		return func() {}, err
 	}
 
