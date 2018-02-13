@@ -298,12 +298,20 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		}
 
 		for _, standaloneDC := range standaloneDCs {
+			if !standaloneDC.DeploymentConfig.Found() {
+				continue
+			}
+
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeDeploymentConfigInServiceGroup(f, standaloneDC, func(rc *kubegraph.ReplicationControllerNode) int32 {
 				return graphview.MaxRecentContainerRestartsForRC(g, rc)
 			})...)
 		}
 		for _, standaloneDeployment := range standaloneDeployments {
+			if !standaloneDeployment.Deployment.Found() {
+				continue
+			}
+
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeDeploymentInServiceGroup(f, standaloneDeployment, func(rs *kubegraph.ReplicaSetNode) int32 {
 				return graphview.MaxRecentContainerRestartsForRS(g, rs)
@@ -318,11 +326,19 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		}
 
 		for _, standaloneRC := range standaloneRCs {
+			if !standaloneRC.RC.Found() {
+				continue
+			}
+
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeRCInServiceGroup(f, standaloneRC.RC)...)
 		}
 
 		for _, standaloneRS := range standaloneRSs {
+			if !standaloneRS.RS.Found() {
+				continue
+			}
+
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeRSInServiceGroup(f, standaloneRS.RS)...)
 		}
