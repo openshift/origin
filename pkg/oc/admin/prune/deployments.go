@@ -17,7 +17,7 @@ import (
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	"github.com/openshift/origin/pkg/apps/prune"
+	"github.com/openshift/origin/pkg/oc/cli/deploymentconfigs/prune"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 

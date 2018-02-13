@@ -452,7 +452,6 @@
       "github.com/openshift/origin/pkg/apps/apis/apps/test",
       "github.com/openshift/origin/pkg/apps/client/internalversion",
       "github.com/openshift/origin/pkg/apps/client/v1",
-      "github.com/openshift/origin/pkg/apps/prune",
       "github.com/openshift/origin/pkg/apps/registry/deployconfig",
       "github.com/openshift/origin/pkg/apps/util",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
