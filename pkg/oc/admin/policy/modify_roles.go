@@ -513,6 +513,12 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		if err != nil {
 			return err
 		}
+		// Check that we update the rolebinding for the intended role.
+		if existingRoleBinding.RoleRef.Name != o.RoleName || existingRoleBinding.RoleRef.Namespace != o.RoleNamespace {
+			return fmt.Errorf("rolebinding %s contains role %s in namespace %s, instead of role %s in namespace %s",
+				o.RoleBindingName, existingRoleBinding.RoleRef.Name, existingRoleBinding.RoleRef.Namespace, o.RoleName, o.RoleNamespace)
+		}
+
 		roleBindings = make([]*authorizationapi.RoleBinding, 1)
 		roleBindings[0] = existingRoleBinding
 	} else {

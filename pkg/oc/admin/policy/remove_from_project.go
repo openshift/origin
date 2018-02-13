@@ -176,7 +176,11 @@ func (o *RemoveFromProjectOptions) Run() error {
 		}
 
 		if !o.DryRun {
-			_, err = o.Client.RoleBindings(o.BindingNamespace).Update(&currBinding)
+			if len(currBinding.Subjects) > 0 {
+				_, err = o.Client.RoleBindings(o.BindingNamespace).Update(&currBinding)
+			} else {
+				err = o.Client.RoleBindings(o.BindingNamespace).Delete(currBinding.Name, &metav1.DeleteOptions{})
+			}
 			if err != nil {
 				return err
 			}
