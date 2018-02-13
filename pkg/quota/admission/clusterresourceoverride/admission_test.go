@@ -254,11 +254,13 @@ func testBestEffortPod() *kapi.Pod {
 		Spec: kapi.PodSpec{
 			InitContainers: []kapi.Container{
 				{
+					Name:      "ctr-1",
 					Resources: kapi.ResourceRequirements{},
 				},
 			},
 			Containers: []kapi.Container{
 				{
+					Name:      "ctr-2",
 					Resources: kapi.ResourceRequirements{},
 				},
 			},
@@ -271,6 +273,7 @@ func testPod(memLimit string, memRequest string, cpuLimit string, cpuRequest str
 		Spec: kapi.PodSpec{
 			InitContainers: []kapi.Container{
 				{
+					Name: "ctr-1",
 					Resources: kapi.ResourceRequirements{
 						Limits: kapi.ResourceList{
 							kapi.ResourceCPU:    resource.MustParse(cpuLimit),
@@ -285,6 +288,7 @@ func testPod(memLimit string, memRequest string, cpuLimit string, cpuRequest str
 			},
 			Containers: []kapi.Container{
 				{
+					Name: "ctr-2",
 					Resources: kapi.ResourceRequirements{
 						Limits: kapi.ResourceList{
 							kapi.ResourceCPU:    resource.MustParse(cpuLimit),
