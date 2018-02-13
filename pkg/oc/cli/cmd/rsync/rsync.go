@@ -79,6 +79,7 @@ type RsyncOptions struct {
 	Quiet             bool
 	Delete            bool
 	Watch             bool
+	Compress          bool
 	SuggestedCmdUsage string
 
 	RsyncInclude  []string
@@ -122,6 +123,8 @@ func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Write
 	cmd.Flags().BoolVar(&o.RsyncProgress, "progress", false, "If true, show progress during transfer")
 	cmd.Flags().BoolVar(&o.RsyncNoPerms, "no-perms", false, "If true, do not transfer permissions")
 	cmd.Flags().BoolVarP(&o.Watch, "watch", "w", false, "Watch directory for changes and resync automatically")
+	cmd.Flags().BoolVar(&o.Compress, "compress", false, "compress file data during the transfer")
+
 	return cmd
 }
 
