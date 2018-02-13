@@ -8,11 +8,12 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
@@ -56,14 +57,13 @@ type internalConfig struct {
 }
 type clusterResourceOverridePlugin struct {
 	*admission.Handler
-	config       *internalConfig
-	ProjectCache *cache.ProjectCache
-	LimitRanger  admission.Interface
+	config            *internalConfig
+	ProjectCache      *cache.ProjectCache
+	LimitRanger       admission.Interface
+	limitRangesLister internalversion.LimitRangeLister
 }
-type limitRangerActions struct{}
 
 var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
-var _ = limitranger.LimitRangerActions(&limitRangerActions{})
 var _ = kadmission.WantsInternalKubeInformerFactory(&clusterResourceOverridePlugin{})
 var _ = kadmission.WantsInternalKubeClientSet(&clusterResourceOverridePlugin{})
 
@@ -94,24 +94,11 @@ func newClusterResourceOverride(config *api.ClusterResourceOverrideConfig) (admi
 
 func (d *clusterResourceOverridePlugin) SetInternalKubeInformerFactory(i informers.SharedInformerFactory) {
 	d.LimitRanger.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(i)
+	d.limitRangesLister = i.Core().InternalVersion().LimitRanges().Lister()
 }
 
 func (d *clusterResourceOverridePlugin) SetInternalKubeClientSet(c kclientset.Interface) {
 	d.LimitRanger.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(c)
-}
-
-// these serve to satisfy the interface so that our kept LimitRanger limits nothing and only provides defaults.
-func (d *limitRangerActions) SupportsAttributes(a admission.Attributes) bool {
-	return true
-}
-func (d *limitRangerActions) SupportsLimit(limitRange *kapi.LimitRange) bool {
-	return true
-}
-func (d *limitRangerActions) MutateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	return nil
-}
-func (d *limitRangerActions) ValidateLimit(limitRange *kapi.LimitRange, resourceName string, obj runtime.Object) error {
-	return nil
 }
 
 func (a *clusterResourceOverridePlugin) SetProjectCache(projectCache *cache.ProjectCache) {
@@ -194,6 +181,21 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 		return nil // project is exempted, do nothing
 	}
 
+	namespaceLimits := []*kapi.LimitRange{}
+
+	if a.limitRangesLister != nil {
+		limits, err := a.limitRangesLister.LimitRanges(attr.GetNamespace()).List(labels.Everything())
+		if err != nil {
+			return err
+		}
+		namespaceLimits = limits
+	}
+
+	// Don't mutate resource requirements below the namespace
+	// limit minimums.
+	nsCPUFloor := minResourceLimits(namespaceLimits, kapi.ResourceCPU)
+	nsMemFloor := minResourceLimits(namespaceLimits, kapi.ResourceMemory)
+
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
 	glog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
@@ -202,16 +204,16 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	}
 	glog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
 	for i := range pod.Spec.InitContainers {
-		updateContainerResources(a.config, &pod.Spec.InitContainers[i])
+		updateContainerResources(a.config, &pod.Spec.InitContainers[i], nsCPUFloor, nsMemFloor)
 	}
 	for i := range pod.Spec.Containers {
-		updateContainerResources(a.config, &pod.Spec.Containers[i])
+		updateContainerResources(a.config, &pod.Spec.Containers[i], nsCPUFloor, nsMemFloor)
 	}
 	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec)
 	return nil
 }
 
-func updateContainerResources(config *internalConfig, container *kapi.Container) {
+func updateContainerResources(config *internalConfig, container *kapi.Container, nsCPUFloor, nsMemFloor *resource.Quantity) {
 	resources := container.Resources
 	memLimit, memFound := resources.Limits[kapi.ResourceMemory]
 	if memFound && config.memoryRequestToLimitRatio != 0 {
@@ -233,6 +235,10 @@ func updateContainerResources(config *internalConfig, container *kapi.Container)
 		if memFloor.Cmp(*q) > 0 {
 			q = memFloor.Copy()
 		}
+		if nsMemFloor != nil && q.Cmp(*nsMemFloor) < 0 {
+			glog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, kapi.ResourceMemory, q.String(), nsMemFloor.String())
+			q = nsMemFloor.Copy()
+		}
 		resources.Requests[kapi.ResourceMemory] = *q
 	}
 	if memFound && config.limitCPUToMemoryRatio != 0 {
@@ -240,6 +246,10 @@ func updateContainerResources(config *internalConfig, container *kapi.Container)
 		q := resource.NewMilliQuantity(int64(amount), resource.DecimalSI)
 		if cpuFloor.Cmp(*q) > 0 {
 			q = cpuFloor.Copy()
+		}
+		if nsCPUFloor != nil && q.Cmp(*nsCPUFloor) < 0 {
+			glog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, kapi.ResourceCPU, q.String(), nsCPUFloor.String())
+			q = nsCPUFloor.Copy()
 		}
 		resources.Limits[kapi.ResourceCPU] = *q
 	}
@@ -251,7 +261,45 @@ func updateContainerResources(config *internalConfig, container *kapi.Container)
 		if cpuFloor.Cmp(*q) > 0 {
 			q = cpuFloor.Copy()
 		}
+		if nsCPUFloor != nil && q.Cmp(*nsCPUFloor) < 0 {
+			glog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, kapi.ResourceCPU, q.String(), nsCPUFloor.String())
+			q = nsCPUFloor.Copy()
+		}
 		resources.Requests[kapi.ResourceCPU] = *q
 	}
+}
 
+// minResourceLimits finds the Min limit for resourceName. Nil is
+// returned if limitRanges is empty or limits contains no resourceName
+// limits.
+func minResourceLimits(limitRanges []*kapi.LimitRange, resourceName kapi.ResourceName) *resource.Quantity {
+	limits := []*resource.Quantity{}
+
+	for _, limitRange := range limitRanges {
+		for _, limit := range limitRange.Spec.Limits {
+			if limit.Type == kapi.LimitTypeContainer {
+				if limit, found := limit.Min[resourceName]; found {
+					limits = append(limits, limit.Copy())
+				}
+			}
+		}
+	}
+
+	if len(limits) == 0 {
+		return nil
+	}
+
+	return minQuantity(limits)
+}
+
+func minQuantity(quantities []*resource.Quantity) *resource.Quantity {
+	min := quantities[0].Copy()
+
+	for i := range quantities {
+		if quantities[i].Cmp(*min) < 0 {
+			min = quantities[i].Copy()
+		}
+	}
+
+	return min
 }
