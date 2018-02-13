@@ -273,6 +273,10 @@ func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeCon
 	if len(c.HostDataDir) > 0 {
 		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/var/lib/etcd:z", c.HostDataDir))
 	}
+	if len(c.HostPersistentVolumesDir) > 0 {
+		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s", c.HostPersistentVolumesDir))
+		container.Environment = append(container.Environment, fmt.Sprintf("OPENSHIFT_PV_DIR=%s", c.HostPersistentVolumesDir))
+	}
 	container.NodeImage = c.openshiftImage()
 	container.Environment = c.Environment
 	container.DockerRoot = dockerRoot

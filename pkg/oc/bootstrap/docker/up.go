@@ -315,15 +315,10 @@ func (c *CommonStartConfig) Start(out io.Writer) error {
 // ClientStartConfig is the configuration for the client start command
 type ClientStartConfig struct {
 	CommonStartConfig
-
-	RunLikeRealEnvironments bool
 }
 
 func (config *ClientStartConfig) Bind(flags *pflag.FlagSet) {
 	config.CommonStartConfig.Bind(flags)
-
-	flags.BoolVar(&config.RunLikeRealEnvironments, "for-real", config.RunLikeRealEnvironments, "run like a real environment runs")
-	flags.MarkHidden("for-real")
 }
 
 func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
@@ -463,6 +458,11 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 	}
 	taskPrinter.Success()
 
+	// this used to be done in the openshift start method, but its mutating state.
+	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
+		c.updateNoProxy()
+	}
+
 	return nil
 }
 
@@ -495,11 +495,6 @@ func (c *CommonStartConfig) Check(out io.Writer) error {
 func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
 	if err := c.CommonStartConfig.Complete(f, cmd, out); err != nil {
 		return err
-	}
-
-	if !c.RunLikeRealEnvironments {
-		// Create an OpenShift configuration and start a container that uses it.
-		c.addTask(simpleTask("Starting OpenShift container", c.StartOpenShift))
 	}
 
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
@@ -603,10 +598,17 @@ func getDetailedOut(out io.Writer) io.Writer {
 func (c *ClientStartConfig) Start(out io.Writer) error {
 	fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
 
-	if c.RunLikeRealEnvironments {
-		if err := c.StartSelfHosted(out); err != nil {
+	if c.PortForwarding {
+		if err := c.OpenShiftHelper().StartSocatTunnel(c.ServerIP); err != nil {
 			return err
 		}
+	}
+
+	if err := c.StartSelfHosted(out); err != nil {
+		return err
+	}
+	if err := c.PostClusterStartupMutations(out); err != nil {
+		return err
 	}
 
 	detailedOut := getDetailedOut(out)
@@ -950,7 +952,7 @@ func (c *CommonStartConfig) DetermineServerIP(out io.Writer) error {
 }
 
 // updateNoProxy will add some default values to the NO_PROXY setting if they are not present
-func (c *ClientStartConfig) updateNoProxy() {
+func (c *CommonStartConfig) updateNoProxy() {
 	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.RegistryServiceIP, openshift.ServiceCatalogServiceIP, "172.30.0.0/8"}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
@@ -965,62 +967,7 @@ func (c *ClientStartConfig) updateNoProxy() {
 	}
 }
 
-// StartOpenShift starts the OpenShift container
-func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
-	var err error
-
-	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
-		c.updateNoProxy()
-	}
-
-	dockerRoot, err := c.DockerHelper().DockerRoot()
-	if err != nil {
-		return err
-	}
-
-	opt := &openshift.StartOptions{
-		ServerIP:                 c.ServerIP,
-		AdditionalIPs:            c.AdditionalIPs,
-		RoutingSuffix:            c.RoutingSuffix,
-		UseSharedVolume:          !c.UseNsenterMount,
-		Images:                   c.imageFormat(),
-		HostVolumesDir:           c.HostVolumesDir,
-		HostConfigDir:            c.HostConfigDir,
-		HostDataDir:              c.HostDataDir,
-		HostPersistentVolumesDir: c.HostPersistentVolumesDir,
-		UseExistingConfig:        c.UseExistingConfig,
-		Environment:              c.Environment,
-		LogLevel:                 c.ServerLogLevel,
-		DNSPort:                  c.DNSPort,
-		PortForwarding:           c.PortForwarding,
-		HTTPProxy:                c.HTTPProxy,
-		HTTPSProxy:               c.HTTPSProxy,
-		NoProxy:                  c.NoProxy,
-		DockerRoot:               dockerRoot,
-		ServiceCatalog:           c.ShouldInstallServiceCatalog,
-	}
-	if c.ShouldInstallMetrics {
-		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
-	}
-	if c.ShouldInstallLogging {
-		opt.LoggingHost = openshift.LoggingHost(c.RoutingSuffix, c.ServerIP)
-	}
-	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
-	if err != nil {
-		return err
-	}
-
-	serverIP, err := c.OpenShiftHelper().ServerIP()
-	if err != nil {
-		return err
-	}
-
-	// Start a container networking test
-	c.containerNetworkErr = make(chan error)
-	go func() {
-		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking(serverIP)
-	}()
-
+func (c *ClientStartConfig) PostClusterStartupMutations(out io.Writer) error {
 	// Setup persistent storage
 	_, kClient, err := c.Clients()
 	if err != nil {
@@ -1051,7 +998,6 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	}
 	return nil
 }
-
 func (c *ClientStartConfig) CheckContainerNetworking(out io.Writer) error {
 	serverIP, err := c.OpenShiftHelper().ServerIP()
 	if err != nil {
