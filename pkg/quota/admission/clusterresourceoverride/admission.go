@@ -193,7 +193,8 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 
 	// Don't mutate resource requirements below the namespace
 	// limit minimums.
-	nsCPUFloor, nsMemFloor := minResourceLimits(namespaceLimits)
+	nsCPUFloor := minResourceLimits(namespaceLimits, kapi.ResourceCPU)
+	nsMemFloor := minResourceLimits(namespaceLimits, kapi.ResourceMemory)
 
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
@@ -268,39 +269,27 @@ func updateContainerResources(config *internalConfig, container *kapi.Container,
 	}
 }
 
-// minResourceLimits finds the minimum CPU and minimum Memory resource
-// values across all the limits in limitRanges. Nil is returned if
-// there is CPU or Memory resource respectively.
-func minResourceLimits(limitRanges []*kapi.LimitRange) (*resource.Quantity, *resource.Quantity) {
-	cpuLimits := []*resource.Quantity{}
-	memLimits := []*resource.Quantity{}
+// minResourceLimits finds the Min limit for resourceName. Nil is
+// returned if limitRanges is empty or limits contains no resourceName
+// limits.
+func minResourceLimits(limitRanges []*kapi.LimitRange, resourceName kapi.ResourceName) *resource.Quantity {
+	limits := []*resource.Quantity{}
 
 	for _, limitRange := range limitRanges {
 		for _, limit := range limitRange.Spec.Limits {
-			if limit.Type != kapi.LimitTypeContainer {
-				continue
-			}
-			if cpuLimit, cpuFound := limit.Min[kapi.ResourceCPU]; cpuFound {
-				cpuLimits = append(cpuLimits, cpuLimit.Copy())
-			}
-			if memLimit, memFound := limit.Min[kapi.ResourceMemory]; memFound {
-				memLimits = append(memLimits, memLimit.Copy())
+			if limit.Type == kapi.LimitTypeContainer {
+				if limit, found := limit.Min[resourceName]; found {
+					limits = append(limits, limit.Copy())
+				}
 			}
 		}
 	}
 
-	var cpuMin *resource.Quantity
-	var memMin *resource.Quantity
-
-	if len(cpuLimits) > 0 {
-		cpuMin = minQuantity(cpuLimits)
+	if len(limits) == 0 {
+		return nil
 	}
 
-	if len(memLimits) > 0 {
-		memMin = minQuantity(memLimits)
-	}
-
-	return cpuMin, memMin
+	return minQuantity(limits)
 }
 
 func minQuantity(quantities []*resource.Quantity) *resource.Quantity {
