@@ -184,9 +184,6 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 			if err != nil {
 				return fmt.Errorf("failed to determine source kind: %v", err)
 			}
-			if len(sourceKind) == 0 {
-				return fmt.Errorf("failed to determine source kind. client might not be compatible with server side")
-			}
 		}
 		if len(sourceKind) > 0 {
 			validSources := sets.NewString("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
