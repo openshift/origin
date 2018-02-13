@@ -57,8 +57,9 @@ func TestScheduledImport(t *testing.T) {
 	}
 
 	// encountering a not found error for image streams should drop the stream
-	sched.scheduler.RunOnce() // we need to run it twice since we have 2 buckets
-	sched.scheduler.RunOnce()
+	for i := 0; i < 3; i++ { // loop all the buckets (2 + the additional internal one)
+		sched.scheduler.RunOnce()
+	}
 	if sched.scheduler.Len() != 0 {
 		t.Fatalf("should have removed item in scheduler: %#v", sched.scheduler)
 	}
@@ -72,8 +73,9 @@ func TestScheduledImport(t *testing.T) {
 	isInformer.Informer().GetIndexer().Add(stream)
 
 	// run a background import
-	sched.scheduler.RunOnce() // we need to run it twice since we have 2 buckets
-	sched.scheduler.RunOnce()
+	for i := 0; i < 3; i++ { // loop all the buckets (2 + the additional internal one)
+		sched.scheduler.RunOnce()
+	}
 	if sched.scheduler.Len() != 1 {
 		t.Fatalf("should have left item in scheduler: %#v", sched.scheduler)
 	}
@@ -85,8 +87,9 @@ func TestScheduledImport(t *testing.T) {
 	sched.enabled = false
 	fake.ClearActions()
 
-	sched.scheduler.RunOnce() // we need to run it twice since we have 2 buckets
-	sched.scheduler.RunOnce()
+	for i := 0; i < 3; i++ { // loop all the buckets (2 + the additional internal one)
+		sched.scheduler.RunOnce()
+	}
 	if sched.scheduler.Len() != 0 {
 		t.Fatalf("should have removed item from scheduler: %#v", sched.scheduler)
 	}

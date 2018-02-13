@@ -69,16 +69,14 @@ func (s *Scheduler) next() (interface{}, interface{}, bool) {
 	defer s.mu.Unlock()
 
 	last := s.buckets[s.position]
-	if len(last) == 0 {
-		s.position = s.at(1)
-		last = s.buckets[s.position]
-	}
-
+	// Grab the first item in the bucket, move it to the end and return it.
 	for k, v := range last {
 		delete(last, k)
 		s.buckets[s.at(-1)][k] = v
 		return k, v, false
 	}
+	// The bucket was empty.  Advance to the next bucket.
+	s.position = s.at(1)
 	return nil, nil, true
 }
 
