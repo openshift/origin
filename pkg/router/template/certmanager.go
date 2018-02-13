@@ -14,15 +14,14 @@ import (
 
 // certificateFile represents a certificate file.
 type certificateFile struct {
-	CertDir  string
-	ID       string
-	Contents []byte
+	certDir string
+	id      string
 }
 
-// certificateFileTag generates a certificate file tag/name. This is used to
-// index into the map of deleted certificates.
+// Tag generates a certificate file tag/name. This is used to index into the
+// the map of deleted certificates.
 func (cf certificateFile) Tag() string {
-	return filepath.Join(cf.CertDir, cf.ID+".pem")
+	return filepath.Join(cf.certDir, cf.id+".pem")
 }
 
 // simpleCertificateManager is the default implementation of a certificateManager
@@ -96,7 +95,7 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 					buffer.Write([]byte(caCertObj.Contents))
 				}
 
-				certFile := certificateFile{CertDir: cm.cfg.certDir, ID: certObj.ID}
+				certFile := certificateFile{certDir: cm.cfg.certDir, id: certObj.ID}
 				delete(cm.deletedCertificates, certFile.Tag())
 				if err := cm.w.WriteCertificate(cm.cfg.certDir, certObj.ID, buffer.Bytes()); err != nil {
 					return err
@@ -109,7 +108,7 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 			destCert, ok := config.Certificates[destCertKey]
 
 			if ok {
-				destCertFile := certificateFile{CertDir: cm.cfg.caCertDir, ID: destCert.ID}
+				destCertFile := certificateFile{certDir: cm.cfg.caCertDir, id: destCert.ID}
 				delete(cm.deletedCertificates, destCertFile.Tag())
 				if err := cm.w.WriteCertificate(cm.cfg.caCertDir, destCert.ID, []byte(destCert.Contents)); err != nil {
 					return err
@@ -131,7 +130,7 @@ func (cm *simpleCertificateManager) DeleteCertificatesForConfig(config *ServiceA
 			certObj, ok := config.Certificates[certKey]
 
 			if ok {
-				certFile := certificateFile{CertDir: cm.cfg.certDir, ID: certObj.ID}
+				certFile := certificateFile{certDir: cm.cfg.certDir, id: certObj.ID}
 				cm.deletedCertificates[certFile.Tag()] = certFile
 			}
 		}
@@ -141,8 +140,7 @@ func (cm *simpleCertificateManager) DeleteCertificatesForConfig(config *ServiceA
 			destCert, ok := config.Certificates[destCertKey]
 
 			if ok {
-
-				destCertFile := certificateFile{CertDir: cm.cfg.caCertDir, ID: destCert.ID}
+				destCertFile := certificateFile{certDir: cm.cfg.caCertDir, id: destCert.ID}
 				cm.deletedCertificates[destCertFile.Tag()] = destCertFile
 			}
 		}
@@ -157,21 +155,19 @@ func (cm *simpleCertificateManager) Commit() error {
 	// reload because the config is invalid, so we _do_ need to "stage"
 	// or commit the removals. Remove all the deleted certificates.
 	for _, certFile := range cm.deletedCertificates {
-		err := cm.w.DeleteCertificate(certFile.CertDir, certFile.ID)
+		err := cm.w.DeleteCertificate(certFile.certDir, certFile.id)
 		if err != nil {
-			// TODO: Do we care if a file deletion failed?
-			// Otherwise we will keep hitting this error on
-			// every commit. Should we just ignore errors here?
-			// Clean this up based on review comments.
-			// FIXME: return err
+			// Log a warning if the delete fails but proceed on.
+			glog.Warningf("Ignoring error deleting certificate file %v: %v", certFile.Tag(), err)
 		}
 	}
 
 	cm.deletedCertificates = make(map[string]certificateFile, 0)
 
 	// If we decide to stage the certificate writes, we can flush the
-	// write to the disk here. The tradeoff is storing a copy in memory
-	// until we commit.
+	// write to the disk here. Today, the certificate writes are done
+	// just before this function is called. The tradeoff is storing a
+	// copy in memory until we commit.
 
 	return nil
 }
