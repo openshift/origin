@@ -158,14 +158,14 @@ func (h *Runner) Start() (string, error) {
 }
 
 // Output starts the container, waits for it to finish and returns its output
-func (h *Runner) Output() (string, string, int, error) {
+func (h *Runner) Output() (string, string, string, int, error) {
 	return h.runWithOutput()
 }
 
 // Run executes the container and waits until it completes
-func (h *Runner) Run() (int, error) {
-	_, _, rc, err := h.runWithOutput()
-	return rc, err
+func (h *Runner) Run() (string, int, error) {
+	containerId, _, _, rc, err := h.runWithOutput()
+	return containerId, rc, err
 }
 
 func (h *Runner) Create() (string, error) {
@@ -234,10 +234,10 @@ func (h *Runner) startContainer(id string) error {
 	return nil
 }
 
-func (h *Runner) runWithOutput() (string, string, int, error) {
+func (h *Runner) runWithOutput() (string, string, string, int, error) {
 	id, err := h.Create()
 	if err != nil {
-		return "", "", 0, err
+		return "", "", "", 0, err
 	}
 	if h.removeContainer {
 		defer func() {
@@ -252,14 +252,14 @@ func (h *Runner) runWithOutput() (string, string, int, error) {
 	err = h.startContainer(id)
 	if err != nil {
 		glog.V(2).Infof("Error occurred starting container %q: %v", id, err)
-		return "", "", 0, err
+		return "", "", "", 0, err
 	}
 
 	glog.V(5).Infof("Waiting for container %q", id)
 	rc, err := h.client.ContainerWait(id)
 	if err != nil {
 		glog.V(2).Infof("Error occurred waiting for container %q: %v", id, err)
-		return "", "", 0, err
+		return "", "", "", 0, err
 	}
 	glog.V(5).Infof("Done waiting for container %q, rc=%d", id, rc)
 
@@ -272,17 +272,17 @@ func (h *Runner) runWithOutput() (string, string, int, error) {
 	err = h.client.ContainerLogs(id, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true}, stdOut, stdErr)
 	if err != nil {
 		glog.V(2).Infof("Error occurred while reading logs: %v", err)
-		return "", "", 0, err
+		return "", "", "", 0, err
 	}
 	glog.V(5).Infof("Done reading logs from container %q", id)
 
 	glog.V(5).Infof("Stdout:\n%s", stdOut.String())
 	glog.V(5).Infof("Stderr:\n%s", stdErr.String())
 	if rc != 0 || err != nil {
-		return stdOut.String(), stdErr.String(), rc, newRunError(rc, err, stdOut.String(), stdErr.String(), h.config)
+		return id, stdOut.String(), stdErr.String(), rc, newRunError(rc, err, stdOut.String(), stdErr.String(), h.config)
 	}
 	glog.V(4).Infof("Container run successful\n")
-	return stdOut.String(), stdErr.String(), rc, nil
+	return id, stdOut.String(), stdErr.String(), rc, nil
 }
 
 // printConfig prints out the relevant parts of a container's Docker config

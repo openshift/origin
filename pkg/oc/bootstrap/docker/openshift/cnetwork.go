@@ -31,7 +31,7 @@ exit 1
 // TestContainerNetworking launches a container that will check whether the container
 // can communicate with the master API and DNS endpoints.
 func (h *Helper) TestContainerNetworking(ip string) error {
-	_, err := h.runHelper.New().Image(h.image).
+	_, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Env(fmt.Sprintf("MASTER_IP=%s", ip)).
 		DNS("172.30.0.1").
