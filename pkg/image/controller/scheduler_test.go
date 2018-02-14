@@ -14,7 +14,7 @@ import (
 
 func TestScheduler(t *testing.T) {
 	keys := []string{}
-	s := NewScheduler(2, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {
+	s := newScheduler(2, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {
 		keys = append(keys, key.(string))
 	})
 
@@ -59,7 +59,7 @@ func TestScheduler(t *testing.T) {
 }
 
 func TestSchedulerAddAndDelay(t *testing.T) {
-	s := NewScheduler(3, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
+	s := newScheduler(3, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
 	// 3 is the last bucket, 0 is the current bucket
 	s.Add("first", "other")
 	if s.buckets[3]["first"] != "other" {
@@ -105,7 +105,7 @@ func TestSchedulerAddAndDelay(t *testing.T) {
 }
 
 func TestSchedulerRemove(t *testing.T) {
-	s := NewScheduler(2, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
+	s := newScheduler(2, flowcontrol.NewFakeAlwaysRateLimiter(), func(key, value interface{}) {})
 	s.Add("test", "other")
 	if s.Remove("test", "value") {
 		t.Fatal(s)
@@ -206,7 +206,7 @@ func TestSchedulerSanity(t *testing.T) {
 	limiter := flowcontrol.NewTokenBucketRateLimiterWithClock(1, 1, clock)
 
 	m := map[int]int{}
-	s := NewScheduler(buckets, limiter, func(key, value interface{}) {
+	s := newScheduler(buckets, limiter, func(key, value interface{}) {
 		fmt.Printf("%v: %v\n", clock.Now().UTC(), key)
 		m[key.(int)]++
 	})
