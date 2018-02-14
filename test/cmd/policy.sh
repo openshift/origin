@@ -69,6 +69,18 @@ os::cmd::expect_failure_and_text 'oc get rolebinding/cluster-admin --no-headers'
 os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
 os::cmd::expect_success 'oc policy remove-user system:no-user'
 
+# Test failure to mix and mismatch role/rolebiding removal
+os::cmd::expect_success 'oc login -u local-admin -p pw'
+os::cmd::expect_success 'oc new-project mismatch-prj'
+os::cmd::expect_success 'oc create rolebinding match --clusterrole=admin --user=user'
+os::cmd::expect_success 'oc create rolebinding mismatch --clusterrole=edit --user=user'
+os::cmd::expect_failure_and_text 'oc policy remove-role-from-user admin user --rolebinding-name mismatch' 'rolebinding mismatch'
+os::cmd::expect_success_and_text 'oc policy remove-user user' 'user'
+os::cmd::expect_failure_and_text 'oc get rolebinding mismatch --no-headers' 'NotFound'
+os::cmd::expect_failure_and_text 'oc get rolebinding match --no-headers' 'NotFound'
+os::cmd::expect_success "oc login -u system:admin -n '${project}'"
+os::cmd::expect_success 'oc delete project mismatch-prj'
+
 # check to make sure that our SCC policies don't prevent GC from deleting pods
 os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/privileged-pod.yaml'
 os::cmd::expect_success 'oc delete pod/test-build-pod-issue --cascade=false'
