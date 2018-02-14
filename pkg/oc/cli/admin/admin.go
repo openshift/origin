@@ -25,6 +25,7 @@ import (
 	migrateetcd "github.com/openshift/origin/pkg/oc/cli/admin/migrate/etcd"
 	migrateimages "github.com/openshift/origin/pkg/oc/cli/admin/migrate/images"
 	migratehpa "github.com/openshift/origin/pkg/oc/cli/admin/migrate/legacyhpa"
+	migratescc "github.com/openshift/origin/pkg/oc/cli/admin/migrate/scc"
 	migratestorage "github.com/openshift/origin/pkg/oc/cli/admin/migrate/storage"
 	migratetemplateinstances "github.com/openshift/origin/pkg/oc/cli/admin/migrate/templateinstances"
 	"github.com/openshift/origin/pkg/oc/cli/admin/network"
@@ -101,6 +102,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 					migratestorage.NewCmdMigrateAPIStorage("storage", fullName+" "+migrate.MigrateRecommendedName+" storage", f, streams),
 					migrateetcd.NewCmdMigrateTTLs("etcd-ttl", fullName+" "+migrate.MigrateRecommendedName+" etcd-ttl", f, streams),
 					migratehpa.NewCmdMigrateLegacyHPA("legacy-hpa", fullName+" "+migrate.MigrateRecommendedName+" legacy-hpa", f, streams),
+					migratescc.NewCmdMigrateSCC("scc", fullName+" "+migrate.MigrateRecommendedName+" scc", f, streams),
 					migratetemplateinstances.NewCmdMigrateTemplateInstances("template-instances", fullName+" "+migrate.MigrateRecommendedName+" template-instances", f, streams),
 				),
 				top.NewCommandTop(top.TopRecommendedName, fullName+" "+top.TopRecommendedName, f, streams),

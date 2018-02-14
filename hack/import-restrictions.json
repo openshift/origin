@@ -492,6 +492,7 @@
       "vendor/github.com/fsouza/go-dockerclient",
       "vendor/github.com/golang/glog",
       "vendor/github.com/gonum/graph",
+      "vendor/github.com/google/gofuzz",
       "vendor/github.com/joho/godotenv",
       "vendor/github.com/MakeNowJust/heredoc",
       "vendor/github.com/opencontainers/go-digest",
