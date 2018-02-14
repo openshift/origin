@@ -853,7 +853,7 @@ var _ = Describe("[sig-storage] Projected", func() {
 
 	// Part 3/3 - DownwardAPI
 	// How long to wait for a log pod to be displayed
-	const podLogTimeout = 2 * time.Minute
+	const podLogTimeout = 5 * time.Minute
 	var podClient *framework.PodClient
 	BeforeEach(func() {
 		podClient = f.PodClient()
