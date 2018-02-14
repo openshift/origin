@@ -88,6 +88,45 @@ func TestAuthorizeToken(t *testing.T) {
 	}
 }
 
+func TestAuthorizeTokenWithInvalidClient(t *testing.T) {
+	sconfig := NewServerConfig()
+	sconfig.AllowedAuthorizeTypes = AllowedAuthorizeType{TOKEN}
+	server := NewServer(sconfig, NewTestingStorage())
+	server.AuthorizeTokenGen = &TestingAuthorizeTokenGen{}
+	server.AccessTokenGen = &TestingAccessTokenGen{}
+	resp := server.NewResponse()
+	redirectUri := "http://redirecturi.com"
+
+	req, err := http.NewRequest("GET", "http://localhost:14000/appauth", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Form = make(url.Values)
+	req.Form.Set("response_type", string(TOKEN))
+	req.Form.Set("client_id", "invalidclient")
+	req.Form.Set("state", "a")
+	req.Form.Set("redirect_uri", redirectUri)
+
+	if ar := server.HandleAuthorizeRequest(resp, req); ar != nil {
+		ar.Authorized = true
+		server.FinishAuthorizeRequest(resp, req, ar)
+	}
+
+	if !resp.IsError {
+		t.Fatalf("Response should be an error")
+	}
+
+	if resp.ErrorId != E_UNAUTHORIZED_CLIENT {
+		t.Fatalf("Incorrect error in response: %v", resp.ErrorId)
+	}
+
+	usedRedirectUrl, redirectErr := resp.GetRedirectUrl()
+
+	if redirectErr == nil && usedRedirectUrl == redirectUri {
+		t.Fatalf("Response must not redirect to the provided redirect URL for an invalid client")
+	}
+}
+
 func TestAuthorizeCodePKCERequired(t *testing.T) {
 	sconfig := NewServerConfig()
 	sconfig.RequirePKCEForPublicClients = true

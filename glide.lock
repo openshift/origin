@@ -1,5 +1,5 @@
-hash: b115582621eec7cec401d50cb8f63802230d2ab61087ee6896ecc5dca35d2a84
-updated: 2018-02-06T16:09:48.177872187-05:00
+hash: 1360d8b9f1a8f475ada0a321c4ddbe7ad4824f830a4121dc47e0a04535a2d332
+updated: 2018-02-14T15:46:31.627992096-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1039,7 +1039,7 @@ imports:
   subpackages:
   - client
 - name: github.com/RangelReale/osin
-  version: 829186e6c125f77df6d6ae0162a9ba59fad91e2d
+  version: 2dc1b43167692cdc89446b99b98fa9de6bff020f
 - name: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
 - name: github.com/renstrom/dedent
@@ -1303,7 +1303,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 9ecdeb35bf012952cb390fcd51a1ee80caae48ff
+  version: 78d52114c359511e7d0d5af4fc50148b5392d7b4
   repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - admission/v1beta1
@@ -1337,7 +1337,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: e7bfd700436f9d1af5857735fad651561c5dbb0a
+  version: 910bc45a64fb0fe0846c1ec00fe9f0703ddaa314
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1369,7 +1369,7 @@ imports:
   - pkg/registry/customresource
   - pkg/registry/customresourcedefinition
 - name: k8s.io/apimachinery
-  version: bd72bdfeee257397dd31eff8c4020889f7c6825e
+  version: 7c9cf22bb3b216a520f072212a0ee84c20b0ae0f
   repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
   - pkg/api/equality
@@ -1435,7 +1435,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: d602ebb157ea23b6caa8550deee232ee78cef0d8
+  version: 093dc91208134c6033229e0a502cbd579852f645
   repo: git@github.com:openshift/kubernetes-apiserver
   subpackages:
   - pkg/admission
@@ -1544,7 +1544,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: b3b0e43479d34ea25196343f979d323a3e60fa60
+  version: 5029a91c3b199abd476215b9930070585c70d62b
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1722,26 +1722,17 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: 05f4b08d8f591d87cc6bfd8a0d03a9ece328d464
+  version: 517f776cbba8525815ebbd787a53004844479497
   repo: git@github.com:openshift/kubernetes-code-generator
-  subpackages:
-  - cmd/conversion-gen/generators
 - name: k8s.io/gengo
   version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e
   repo: git@github.com:openshift/kubernetes-gengo
-  subpackages:
-  - args
-  - examples/defaulter-gen/generators
-  - generator
-  - namer
-  - parser
-  - types
 - name: k8s.io/heapster
   version: c2ac40f1adf8c42a79badddb2a2acd673cae3bcb
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: e91abcd13c6b70424a288cdbbb640a18af0a1561
+  version: 9ef7aa49fa5f75a8fb80b681c06b793f8fafbe1a
   repo: git@github.com:openshift/kube-aggregator
   subpackages:
   - pkg/apis/apiregistration
@@ -1772,13 +1763,12 @@ imports:
   - pkg/aggregator
   - pkg/builder
   - pkg/common
-  - pkg/generators
   - pkg/handler
   - pkg/util
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 8f3cff14fc2ea06833313201a210e2c91ca66c9f
+  version: 8dc544f6e1da99dae381327c12d31e1623f7beae
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
@@ -2054,7 +2044,6 @@ imports:
   - pkg/controller/volume/events
   - pkg/controller/volume/expand
   - pkg/controller/volume/expand/cache
-  - pkg/controller/volume/expand/util
   - pkg/controller/volume/persistentvolume
   - pkg/controller/volume/pvcprotection
   - pkg/credentialprovider
@@ -2526,7 +2515,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: f53c13d7ff5e5d09b39d917042f47497bec3b45c
+  version: a7339a9902a766bceabf8a52a1ab2a9dc0371703
   repo: git@github.com:openshift/kubernetes-metrics
   subpackages:
   - pkg/apis/custom_metrics
