@@ -625,8 +625,8 @@ function os::start::router() {
 	if [[ -n "${DROP_SYN_DURING_RESTART:-}" ]]; then
 		# Rewrite the DC for the router to add the environment variable into the pod definition
 		os::log::debug "Changing the router DC to drop SYN packets during a reload"
-		oc patch dc router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","securityContext":{"privileged":true}}],"securityContext":{"runAsUser": 0}}}}}'
-		oc set env dc/router -c router DROP_SYN_DURING_RESTART=true
+		oc patch deploy router -p '{"spec":{"template":{"spec":{"containers":[{"name":"router","securityContext":{"privileged":true}}],"securityContext":{"runAsUser": 0}}}}}'
+		oc set env deploy/router -c router DROP_SYN_DURING_RESTART=true
 	fi
 }
 readonly -f os::start::router

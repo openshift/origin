@@ -138,7 +138,7 @@ function os::test::extended::setup () {
 
 	os::start::registry
 	if [[ -z "${SKIP_NODE:-}" ]]; then
-		oc rollout status dc/docker-registry
+		oc rollout status deploy/docker-registry
 	fi
 	DROP_SYN_DURING_RESTART=true CREATE_ROUTER_CERT=true os::start::router
 

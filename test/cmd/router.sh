@@ -64,11 +64,11 @@ os::cmd::expect_failure_and_text "oc adm router --ports=80,8443:443" 'container 
 os::cmd::expect_success_and_text "oc adm router -o yaml" 'image:.*-haproxy-router:'
 os::cmd::expect_success "oc adm router --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm router' 'service exists'
-os::cmd::expect_success_and_text 'oc get dc/router -o yaml' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc get deploy/router -o yaml' 'readinessProbe'
 
 # delete the router and deployment config, leaving the clusterrolebinding and service account
 os::cmd::expect_success_and_text "oc delete svc/router" 'service "router" deleted'
-os::cmd::expect_success_and_text "oc delete dc/router" 'deploymentconfig "router" deleted'
+os::cmd::expect_success_and_text "oc delete deploy/router" 'deployment "router" deleted'
 # create a router and check for success with a warning about the existing clusterrolebinding
 os::cmd::expect_success_and_text "oc adm router" 'warning: clusterrolebindings "router-router-role" already exists'
 

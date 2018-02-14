@@ -576,7 +576,7 @@ func pathExistsInRegistry(oc *exutil.CLI, pthComponents ...string) (bool, error)
 	cmd := fmt.Sprintf("test -e '%s' && echo exists || echo missing", pth)
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
 	out, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("rsh").Args(
-		"dc/docker-registry", "/bin/sh", "-c", cmd).Output()
+		"deploy/docker-registry", "/bin/sh", "-c", cmd).Output()
 	if err != nil {
 		return false, fmt.Errorf("failed to check for blob existence: %v", err)
 	}
@@ -626,7 +626,7 @@ func RunHardPrune(oc *exutil.CLI, dryRun bool) (*RegistryStorageFiles, error) {
 	}
 
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
-	output, err := oc.AsAdmin().SetNamespace(metav1.NamespaceDefault).Run("env").Args("--list", "dc/docker-registry").Output()
+	output, err := oc.AsAdmin().SetNamespace(metav1.NamespaceDefault).Run("env").Args("--list", "deploy/docker-registry").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -800,7 +800,7 @@ func (c *CleanUpContainer) Run() {
 	// Remove registry database between tests to avoid the influence of one test on another.
 	// TODO: replace this with removals of individual blobs used in the test case.
 	out, err := c.OC.SetNamespace(metav1.NamespaceDefault).AsAdmin().
-		Run("rsh").Args("dc/docker-registry", "find", "/registry", "-mindepth", "1", "-delete").Output()
+		Run("rsh").Args("deploy/docker-registry", "find", "/registry", "-mindepth", "1", "-delete").Output()
 	if err != nil {
 		fmt.Fprintf(g.GinkgoWriter, "clean up registry failed: %v\n", err)
 		fmt.Fprintf(g.GinkgoWriter, "%s\n", out)

@@ -83,17 +83,14 @@ os::cmd::expect_success "oc adm policy add-scc-to-user privileged -z ipfailover"
 os::cmd::expect_success "oc adm ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
 os::log::info "Waiting for Docker registry pod to start"
-os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::cmd::expect_success 'oc rollout status deploy/docker-registry'
 
 os::log::info "Waiting for IP failover to deploy"
 os::cmd::expect_success 'oc rollout status dc/ipfailover'
 os::cmd::expect_success "oc delete all -l ipfailover=ipfailover"
 
-# check to make sure that logs for rc works
-os::cmd::expect_success "oc logs rc/docker-registry-1 > /dev/null"
-# check that we can get a remote shell to a dc or rc
-os::cmd::expect_success_and_text "oc rsh dc/docker-registry cat config.yml" "5000"
-os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5000"
+# check that we can get a remote shell to a deployment
+os::cmd::expect_success_and_text "oc rsh deploy/docker-registry cat config.yml" "5000"
 
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
@@ -109,8 +106,8 @@ os::cmd::expect_success "dig @${MASTER_SERVICE_IP} docker-registry.default.local
 
 os::log::info "Configure registry to disable mirroring"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
-os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=false'
-os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::cmd::expect_success 'oc env -n default deploy/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=false'
+os::cmd::expect_success 'oc rollout status deploy/docker-registry'
 os::log::info "Registry configured to disable mirroring"
 
 os::log::info "Verify that an image based on a remote image can be pushed to the same image stream while pull-through enabled."
@@ -126,11 +123,11 @@ os::cmd::expect_success "oc get istag/busybox:latest"
 
 os::log::info "Restore registry mirroring"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
-os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=true'
-os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::cmd::expect_success 'oc env -n default deploy/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=true'
+os::cmd::expect_success 'oc rollout status deploy/docker-registry'
 os::log::info "Restore configured to enable mirroring"
 
-registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template '{{range .items}}{{if not .metadata.deletionTimestamp}}{{.metadata.name}}{{end}}{{end}}')"
+registry_pod="$(oc get pod -n default -l docker-registry=default --template '{{range .items}}{{if not .metadata.deletionTimestamp}}{{.metadata.name}}{{end}}{{end}}')"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
@@ -525,7 +522,7 @@ os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
 # TODO: simplify when #4702 is fixed upstream
 os::cmd::try_until_text "oc get endpoints router --output-version=v1 --template='{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}'" '[1-9]+' $((5*TIME_MIN))
 os::log::info "Waiting for router to start..."
-router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
+router_pod=$(oc get pod -n default -l router=router --template='{{(index .items 0).metadata.name}}')
 healthz_uri="http://$(oc get pod "${router_pod}" --template='{{.status.podIP}}'):1936/healthz"
 os::cmd::try_until_success "curl --max-time 2 --fail --silent '${healthz_uri}'" "$((5*TIME_MIN))"
 
@@ -590,7 +587,7 @@ os::cmd::expect_success "docker tag ${GCR_PAUSE_IMAGE} ${DOCKER_REGISTRY}/cache/
 os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # record the storage before pruning
-registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template '{{range .items}}{{if not .metadata.metadata.deletionTimestamp}}{{.metadata.name}}{{end}}{{end}}')"
+registry_pod="$(oc get pod -n default -l docker-registry=default --template '{{range .items}}{{if not .metadata.metadata.deletionTimestamp}}{{.metadata.name}}{{end}}{{end}}')"
 os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.before.txt'"
 
 # set up pruner user
@@ -624,8 +621,8 @@ os::log::info "Validated image pruning"
 # with registry's re-deployment we loose all the blobs stored in its storage until now
 os::log::info "Configure registry to accept manifest V2 schema 2"
 os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
-os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2=true'
-os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::cmd::expect_success 'oc env -n default deploy/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ACCEPTSCHEMA2=true'
+os::cmd::expect_success 'oc rollout status deploy/docker-registry'
 os::log::info "Registry configured to accept manifest V2 schema 2"
 
 os::log::info "Accept manifest V2 schema 2"

@@ -101,13 +101,13 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 
 	eh := exec.NewExecHelper(dockerClient, openshift.OpenShiftContainer)
 
-	stdout, _, _ := eh.Command("oc", "get", "dc", "docker-registry", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
+	stdout, _, _ := eh.Command("oc", "get", "deploy", "docker-registry", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
 	if stdout != "1" {
 		fmt.Fprintln(out, "Notice: Docker registry is not yet ready")
 		notReady++
 	}
 
-	stdout, _, _ = eh.Command("oc", "get", "dc", "router", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
+	stdout, _, _ = eh.Command("oc", "get", "deploy", "router", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
 	if stdout != "1" {
 		fmt.Fprintln(out, "Notice: Router is not yet ready")
 		notReady++

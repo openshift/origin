@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -29,7 +30,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/generate/app"
@@ -771,22 +771,19 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		},
 	)
 
-	objects = append(objects, &appsapi.DeploymentConfig{
+	objects = append(objects, &extensions.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: label,
 		},
-		Spec: appsapi.DeploymentConfigSpec{
-			Strategy: appsapi.DeploymentStrategy{
-				Type:          appsapi.DeploymentStrategyTypeRolling,
-				RollingParams: &appsapi.RollingDeploymentStrategyParams{MaxUnavailable: intstr.FromString("25%")},
+		Spec: extensions.DeploymentSpec{
+			Strategy: extensions.DeploymentStrategy{
+				Type:          extensions.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &extensions.RollingUpdateDeployment{MaxUnavailable: intstr.FromString("25%")},
 			},
 			Replicas: cfg.Replicas,
-			Selector: label,
-			Triggers: []appsapi.DeploymentTriggerPolicy{
-				{Type: appsapi.DeploymentTriggerOnConfigChange},
-			},
-			Template: &kapi.PodTemplateSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: label},
+			Template: kapi.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: label},
 				Spec: kapi.PodSpec{
 					SecurityContext: &kapi.PodSecurityContext{

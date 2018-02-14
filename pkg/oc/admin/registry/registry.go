@@ -28,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/oc/generate/app"
 )
@@ -423,7 +422,8 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		},
 	)
 
-	if opts.Config.DaemonSet {
+	switch {
+	case opts.Config.DaemonSet:
 		objects = append(objects, &extensions.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
@@ -437,19 +437,19 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 				},
 			},
 		})
-	} else {
-		objects = append(objects, &appsapi.DeploymentConfig{
+	default:
+		objects = append(objects, &extensions.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
 				Labels: opts.label,
 			},
-			Spec: appsapi.DeploymentConfigSpec{
+			Spec: extensions.DeploymentSpec{
 				Replicas: opts.Config.Replicas,
-				Selector: opts.label,
-				Triggers: []appsapi.DeploymentTriggerPolicy{
-					{Type: appsapi.DeploymentTriggerOnConfigChange},
+				Selector: &metav1.LabelSelector{MatchLabels: opts.label},
+				Template: kapi.PodTemplateSpec{
+					ObjectMeta: podTemplate.ObjectMeta,
+					Spec:       podTemplate.Spec,
 				},
-				Template: podTemplate,
 			},
 		})
 	}
