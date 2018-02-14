@@ -1125,6 +1125,98 @@
           }
         ]
       }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dotnet",
+        "annotations": {
+          "openshift.io/display-name": ".NET Core Builder Images"
+        }
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "openshift.io/display-name": ".NET Core (Latest)",
+              "description": "Build and run .NET Core applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
+              "iconClass": "icon-dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore",
+              "supports":"dotnet",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.0"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.0"
+            }
+          },
+          {
+            "name": "2.0",
+            "annotations": {
+              "openshift.io/display-name": ".NET Core 2.0",
+              "description": "Build and run .NET Core 2.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "supports":"dotnet:2.0,dotnet",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.0",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.centos.org/dotnet/dotnet-20-centos7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dotnet-runtime",
+        "annotations": {
+          "openshift.io/display-name": ".NET Core Runtime Images"
+        }
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "openshift.io/display-name": ".NET Core Runtime (Latest)",
+              "description": "Run .NET Core applications on CentOS 7. For more information about using this image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/runtime/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core Runtime available on OpenShift, including major versions updates.",
+              "iconClass": "icon-dotnet",
+              "tags": "runtime,.net-runtime,dotnet-runtime,dotnetcore-runtime",
+              "supports":"dotnet-runtime"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.0"
+            }
+          },
+          {
+            "name": "2.0",
+            "annotations": {
+              "openshift.io/display-name": ".NET Core 2.0 Runtime",
+              "description": "Run .NET Core applications on CentOS 7. For more information about using this image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.0/runtime/README.md.",
+              "iconClass": "icon-dotnet",
+              "tags": "runtime,.net-runtime,dotnet-runtime,dotnetcore-runtime",
+              "supports":"dotnet-runtime",
+              "version": "2.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.centos.org/dotnet/dotnet-20-runtime-centos7:latest"
+            }
+          }
+        ]
+      }
     }
   ]
 }
