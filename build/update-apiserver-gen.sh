@@ -50,9 +50,41 @@ ${BINDIR}/conversion-gen "$@" \
 	 --input-dirs "${SC_PKG}/pkg/apis/servicecatalog" \
 	 --input-dirs "${SC_PKG}/pkg/apis/servicecatalog/v1beta1" \
 	 --output-file-base zz_generated.conversion
-# generate openapi
+
+#
+# Generate auto-generated code (defaults, deepcopy and conversion) for Settings group
+#
+
+# Generate defaults
+${BINDIR}/defaulter-gen "$@" \
+	--v 1 --logtostderr \
+	--go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
+	--input-dirs "${SC_PKG}/pkg/apis/settings" \
+	--input-dirs "${SC_PKG}/pkg/apis/settings/v1alpha1" \
+	--extra-peer-dirs "${SC_PKG}/pkg/apis/settings" \
+	--extra-peer-dirs "${SC_PKG}/pkg/apis/settings/v1alpha1" \
+	--output-file-base "zz_generated.defaults"
+# Generate deep copies
+${BINDIR}/deepcopy-gen "$@" \
+	--v 1 --logtostderr \
+	--go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
+	--input-dirs "${SC_PKG}/pkg/apis/settings" \
+	--input-dirs "${SC_PKG}/pkg/apis/settings/v1alpha1" \
+	--bounding-dirs "github.com/kubernetes-incubator/service-catalog" \
+	--output-file-base zz_generated.deepcopy
+# Generate conversions
+${BINDIR}/conversion-gen "$@" \
+	--v 1 --logtostderr \
+	--extra-peer-dirs k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
+	--go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
+	--input-dirs "${SC_PKG}/pkg/apis/settings" \
+	--input-dirs "${SC_PKG}/pkg/apis/settings/v1alpha1" \
+	--output-file-base zz_generated.conversion
+
+# generate openapi for servicecatalog and settings group
 ${BINDIR}/openapi-gen "$@" \
-	 --v 1 --logtostderr \
-	 --go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
-	 --input-dirs "${SC_PKG}/pkg/apis/servicecatalog/v1beta1,k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/version,k8s.io/apimachinery/pkg/runtime" \
-	 --output-package "${SC_PKG}/pkg/openapi"
+	--v 1 --logtostderr \
+	--go-header-file "vendor/github.com/kubernetes/repo-infra/verify/boilerplate/boilerplate.go.txt" \
+	--input-dirs "${SC_PKG}/pkg/apis/servicecatalog/v1beta1,k8s.io/api/core/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/version,k8s.io/apimachinery/pkg/runtime" \ \
+	--input-dirs "${SC_PKG}/pkg/apis/settings/v1alpha1" \
+	--output-package "${SC_PKG}/pkg/openapi"

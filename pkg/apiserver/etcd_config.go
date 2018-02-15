@@ -106,6 +106,7 @@ func (c completedEtcdConfig) NewServer(stopCh <-chan struct{}) (*ServiceCatalogA
 			glog.Warningf("Skipping API group %v because it is not enabled", provider.GroupName())
 			continue
 		} else if err != nil {
+			glog.Errorf("Error initializing storage for provider %v: %v", provider.GroupName(), err)
 			return nil, err
 		}
 

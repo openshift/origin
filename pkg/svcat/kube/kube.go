@@ -17,6 +17,7 @@ limitations under the License.
 package kube
 
 import (
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // Load all client auth plugins for gcp, azure, etc
 	"k8s.io/client-go/tools/clientcmd"
 )
 

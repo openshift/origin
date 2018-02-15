@@ -18,6 +18,7 @@ package scheme
 
 import (
 	servicecatalog "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/install"
+	settings "github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,5 +43,6 @@ func init() {
 // Install registers the API group and adds types to a scheme
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	servicecatalog.Install(groupFactoryRegistry, registry, scheme)
+	settings.Install(groupFactoryRegistry, registry, scheme)
 
 }

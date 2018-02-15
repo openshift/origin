@@ -1,4 +1,0 @@
-cc_library(
-name="foo",
-dict_comprehension={i:i*i for i in range(10)},
-dict={1:1, 2:4, 3:9})

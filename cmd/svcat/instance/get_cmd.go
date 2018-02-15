@@ -40,9 +40,8 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
   svcat get instance wordpress-mysql-instance
   svcat get instance -n ci concourse-postgres-instance
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return getCmd.run(args)
-		},
+		PreRunE: command.PreRunE(getCmd),
+		RunE:    command.RunE(getCmd),
 	}
 	cmd.Flags().StringVarP(
 		&getCmd.ns,
@@ -54,12 +53,19 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
 	return cmd
 }
 
-func (c *getCmd) run(args []string) error {
-	if len(args) == 0 {
+func (c *getCmd) Validate(args []string) error {
+	if len(args) > 0 {
+		c.name = args[0]
+	}
+
+	return nil
+}
+
+func (c *getCmd) Run() error {
+	if c.name == "" {
 		return c.getAll()
 	}
 
-	c.name = args[0]
 	return c.get()
 }
 

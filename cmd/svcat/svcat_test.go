@@ -33,10 +33,36 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/plugin"
 	"github.com/kubernetes-incubator/service-catalog/internal/test"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
 var catalogRequestRegex = regexp.MustCompile("/apis/servicecatalog.k8s.io/v1beta1/(.*)")
+
+func TestCommandValidation(t *testing.T) {
+	testcases := []struct {
+		name      string // Test Name
+		cmd       string // Command to run
+		wantError string // Substring that should be present in the error, empty indicates no error
+	}{
+		{"viper bug workaround: provision", "provision name --class class --plan plan", ""},
+		{"viper bug workaround: bind", "bind name", ""},
+		{"describe broker requires name", "describe broker", "name is required"},
+		{"describe class requires name", "describe class", "name or uuid is required"},
+		{"describe plan requires name", "describe plan", "name or uuid is required"},
+		{"describe instance requires name", "describe instance", "name is required"},
+		{"describe binding requires name", "describe binding", "name is required"},
+		{"unbind requires arg", "unbind", "instance or binding name is required"},
+		{"sync requires names", "sync broker", "name is required"},
+		{"deprovision requires name", "deprovision", "name is required"},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			validateCommand(t, tc.cmd, tc.wantError)
+		})
+	}
+}
 
 func TestCommandOutput(t *testing.T) {
 	testcases := []struct {
@@ -107,10 +133,10 @@ func executeCommand(t *testing.T, cmd string, continueOnErr bool) string {
 	defer os.Remove(kubeconfig)
 
 	// Setup the svcat command
-	svcat := buildRootCommand()
-	args := strings.Split(cmd, " ")
-	args = append(args, "--kubeconfig", kubeconfig)
-	svcat.SetArgs(args)
+	svcat, _, err := buildCommand(cmd, kubeconfig)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
 
 	// Capture all output: stderr and stdout
 	output := &bytes.Buffer{}
@@ -122,6 +148,62 @@ func executeCommand(t *testing.T, cmd string, continueOnErr bool) string {
 	}
 
 	return output.String()
+}
+
+// validateCommand validates a svcat command arguments
+func validateCommand(t *testing.T, cmd string, wantError string) {
+	// Fake the k8s api server
+	apisvr := newAPIServer()
+	defer apisvr.Close()
+
+	// Generate a test kubeconfig pointing at the server
+	kubeconfig, err := writeTestKubeconfig(apisvr.URL)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	defer os.Remove(kubeconfig)
+
+	// Setup the svcat command
+	svcat, targetCmd, err := buildCommand(cmd, kubeconfig)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	// Skip running the actual command because we are only validating
+	targetCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		return nil
+	}
+
+	// Capture all output: stderr and stdout
+	output := &bytes.Buffer{}
+	svcat.SetOutput(output)
+
+	err = svcat.Execute()
+	if wantError == "" {
+		if err != nil {
+			t.Fatalf("%+v", err)
+		}
+	} else {
+		gotError := ""
+		if err != nil {
+			gotError = err.Error()
+		}
+		if !strings.Contains(gotError, wantError) {
+			t.Fatalf("unexpected error \n\nWANT:\n%q\n\nGOT:\n%q\n", wantError, gotError)
+		}
+	}
+}
+
+// buildCommand parses a command string.
+func buildCommand(cmd, kubeconfig string) (rootCmd *cobra.Command, targetCmd *cobra.Command, err error) {
+	rootCmd = buildRootCommand()
+	args := strings.Split(cmd, " ")
+	args = append(args, "--kubeconfig", kubeconfig)
+	rootCmd.SetArgs(args)
+
+	targetCmd, _, err = rootCmd.Find(args)
+
+	return rootCmd, targetCmd, err
 }
 
 func newAPIServer() *httptest.Server {
@@ -138,6 +220,7 @@ func apihandler(w http.ResponseWriter, r *http.Request) {
 	if len(match) == 0 {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("unexpected request %s %s", r.Method, r.RequestURI)))
+		return
 	}
 
 	if r.Method != http.MethodGet {
@@ -145,17 +228,20 @@ func apihandler(w http.ResponseWriter, r *http.Request) {
 		// probably should be an integration test instead
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("unexpected request %s %s", r.Method, r.RequestURI)))
+		return
 	}
 
 	relpath, err := url.PathUnescape(match[1])
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("could not unescape path %s (%s)", match[1], err)))
+		return
 	}
 	_, response, err := test.GetTestdata(filepath.Join("responses", relpath+".json"))
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("unexpected request %s with no matching testdata (%s)", r.RequestURI, err)))
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

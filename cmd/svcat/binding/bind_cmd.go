@@ -47,9 +47,8 @@ func NewBindCmd(cxt *command.Context) *cobra.Command {
   svcat bind wordpress
   svcat bind wordpress-mysql-instance --name wordpress-mysql-binding --secret-name wordpress-mysql-secret
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return bindCmd.run(args)
-		},
+		PreRunE: command.PreRunE(bindCmd),
+		RunE:    command.RunE(bindCmd),
 	}
 	cmd.Flags().StringVarP(
 		&bindCmd.ns,
@@ -72,15 +71,15 @@ func NewBindCmd(cxt *command.Context) *cobra.Command {
 		"",
 		"The name of the secret. Defaults to the name of the instance.",
 	)
-	cmd.Flags().StringArrayVarP(&bindCmd.rawParams, "param", "p", nil,
+	cmd.Flags().StringSliceVarP(&bindCmd.rawParams, "param", "p", nil,
 		"Additional parameter to use when binding the instance, format: NAME=VALUE")
-	cmd.Flags().StringArrayVarP(&bindCmd.rawSecrets, "secret", "s", nil,
+	cmd.Flags().StringSliceVarP(&bindCmd.rawSecrets, "secret", "s", nil,
 		"Additional parameter, whose value is stored in a secret, to use when binding the instance, format: SECRET[KEY]")
 
 	return cmd
 }
 
-func (c *bindCmd) run(args []string) error {
+func (c *bindCmd) Validate(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("instance is required")
 	}
@@ -97,6 +96,10 @@ func (c *bindCmd) run(args []string) error {
 		return fmt.Errorf("invalid --secret value (%s)", err)
 	}
 
+	return nil
+}
+
+func (c *bindCmd) Run() error {
 	return c.bind()
 }
 

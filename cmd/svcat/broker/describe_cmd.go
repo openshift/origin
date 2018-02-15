@@ -41,23 +41,26 @@ func NewDescribeCmd(cxt *command.Context) *cobra.Command {
 		Example: `
   svcat describe broker asb
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return describeCmd.run(args)
-		},
+		PreRunE: command.PreRunE(describeCmd),
+		RunE:    command.RunE(describeCmd),
 	}
 	return cmd
 }
 
-func (c *describeCmd) run(args []string) error {
+func (c *describeCmd) Validate(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("name is required")
 	}
 	c.name = args[0]
 
-	return c.describe()
+	return nil
 }
 
-func (c *describeCmd) describe() error {
+func (c *describeCmd) Run() error {
+	return c.Describe()
+}
+
+func (c *describeCmd) Describe() error {
 	broker, err := c.App.RetrieveBroker(c.name)
 	if err != nil {
 		return err
