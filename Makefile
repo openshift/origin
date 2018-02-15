@@ -31,12 +31,14 @@ JUNIT_REPORT ?= true
 #     package, the build will produce executable files under $(OUT_DIR)/local/bin.
 #     If not specified, "everything" will be built.
 #   GOFLAGS: Extra flags to pass to 'go' when building.
+#   GOGCFLAGS: Additional go compile flags passed to 'go' when building.
 #   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
 #
 # Example:
 #   make
 #   make all
 #   make all WHAT=cmd/oc GOFLAGS=-v
+#   make all GOGCFLAGS="-N -l"
 all build:
 	hack/build-go.sh $(WHAT) $(GOFLAGS)
 .PHONY: all build
