@@ -97,7 +97,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 				// Create templates as defined
 				for _, template := range p.Templates {
-					err := CreateTemplates(oc, c, nsName, template, template.Number, tuning)
+					err := CreateTemplates(oc, c, nsName, template, tuning)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 

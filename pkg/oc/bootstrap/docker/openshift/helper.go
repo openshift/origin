@@ -149,7 +149,7 @@ func NewHelper(dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, i
 }
 
 func (h *Helper) TestPorts(ports []int) error {
-	portData, _, _, err := h.runHelper.New().Image(h.image).
+	_, portData, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
 		HostNetwork().
@@ -208,7 +208,7 @@ func (h *Helper) TestForwardedIP(ip string) error {
 }
 
 func (h *Helper) DetermineNodeHost(hostConfigDir string, names ...string) (string, error) {
-	result, _, _, err := h.runHelper.New().Image(h.image).
+	_, result, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
 		HostNetwork().
@@ -226,7 +226,7 @@ func (h *Helper) ServerIP() (string, error) {
 	if len(h.serverIP) > 0 {
 		return h.serverIP, nil
 	}
-	result, _, _, err := h.runHelper.New().Image(h.image).
+	_, result, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
 		HostNetwork().
@@ -240,7 +240,7 @@ func (h *Helper) ServerIP() (string, error) {
 
 // OtherIPs tries to find other IPs besides the argument IP for the Docker host
 func (h *Helper) OtherIPs(excludeIP string) ([]string, error) {
-	result, _, _, err := h.runHelper.New().Image(h.image).
+	_, result, _, _, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Privileged().
 		HostNetwork().
@@ -342,7 +342,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 			fmt.Sprintf("--hostname=%s", defaultNodeName),
 			fmt.Sprintf("--public-master=https://%s:8443", publicHost),
 		}
-		_, err := h.runHelper.New().Image(h.image).
+		_, _, err := h.runHelper.New().Image(h.image).
 			Privileged().
 			DiscardContainer().
 			HostNetwork().
@@ -651,7 +651,7 @@ func (h *Helper) ServerPrereleaseVersion() (semver.Version, error) {
 		return *h.prereleaseVersion, nil
 	}
 
-	versionText, _, _, err := h.runHelper.New().Image(h.image).
+	_, versionText, _, _, err := h.runHelper.New().Image(h.image).
 		Command("version").
 		DiscardContainer().
 		Output()
@@ -945,7 +945,7 @@ fi
 
 kubelet --help | grep -- "--cgroup-driver"
 `
-	rc, err := h.runHelper.New().Image(h.image).
+	_, rc, err := h.runHelper.New().Image(h.image).
 		DiscardContainer().
 		Entrypoint("/bin/bash").
 		Command("-c", script).

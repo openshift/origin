@@ -1,20 +1,15 @@
 package controller
 
 import (
-	"fmt"
-	"io/ioutil"
 	"path"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcontroller "k8s.io/kubernetes/pkg/controller"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -56,8 +51,6 @@ func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, e
 // OpenshiftControllerConfig is the runtime (non-serializable) config object used to
 // launch the set of openshift (not kube) controllers.
 type OpenshiftControllerConfig struct {
-	ServiceAccountTokenControllerOptions ServiceAccountTokenControllerOptions
-
 	ServiceAccountControllerOptions ServiceAccountControllerOptions
 
 	BuildControllerConfig BuildControllerConfig
@@ -115,62 +108,9 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	return ret, nil
 }
 
-// NewOpenShiftControllerPreStartInitializers returns list of initializers for controllers
-// that needed to be run before any other controller is started.
-// Typically this has to done for the serviceaccount-token controller as it provides
-// tokens to other controllers.
-func (c *OpenshiftControllerConfig) ServiceAccountContentControllerInit() InitFunc {
-	return c.ServiceAccountTokenControllerOptions.RunController
-}
-
 func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftControllerConfig, error) {
 	var err error
 	ret := &OpenshiftControllerConfig{}
-
-	_, loopbackClientConfig, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-
-	ret.ServiceAccountTokenControllerOptions = ServiceAccountTokenControllerOptions{
-		RootClientBuilder: kcontroller.SimpleControllerClientBuilder{
-			ClientConfig: loopbackClientConfig,
-		},
-	}
-	if len(options.ServiceAccountConfig.PrivateKeyFile) > 0 {
-		ret.ServiceAccountTokenControllerOptions.PrivateKey, err = cert.PrivateKeyFromFile(options.ServiceAccountConfig.PrivateKeyFile)
-		if err != nil {
-			return nil, fmt.Errorf("error reading signing key for Service Account Token Manager: %v", err)
-		}
-	}
-	if len(options.ServiceAccountConfig.MasterCA) > 0 {
-		ret.ServiceAccountTokenControllerOptions.RootCA, err = ioutil.ReadFile(options.ServiceAccountConfig.MasterCA)
-		if err != nil {
-			return nil, fmt.Errorf("error reading master ca file for Service Account Token Manager: %s: %v", options.ServiceAccountConfig.MasterCA, err)
-		}
-		if _, err := cert.ParseCertsPEM(ret.ServiceAccountTokenControllerOptions.RootCA); err != nil {
-			return nil, fmt.Errorf("error parsing master ca file for Service Account Token Manager: %s: %v", options.ServiceAccountConfig.MasterCA, err)
-		}
-	}
-	if options.ControllerConfig.ServiceServingCert.Signer != nil && len(options.ControllerConfig.ServiceServingCert.Signer.CertFile) > 0 {
-		certFile := options.ControllerConfig.ServiceServingCert.Signer.CertFile
-		serviceServingCA, err := ioutil.ReadFile(certFile)
-		if err != nil {
-			return nil, fmt.Errorf("error reading ca file for Service Serving Certificate Signer: %s: %v", certFile, err)
-		}
-		if _, err := crypto.CertsFromPEM(serviceServingCA); err != nil {
-			return nil, fmt.Errorf("error parsing ca file for Service Serving Certificate Signer: %s: %v", certFile, err)
-		}
-
-		// if we have a rootCA bundle add that too.  The rootCA will be used when hitting the default master service, since those are signed
-		// using a different CA by default.  The rootCA's key is more closely guarded than ours and if it is compromised, that power could
-		// be used to change the trusted signers for every pod anyway, so we're already effectively trusting it.
-		if len(ret.ServiceAccountTokenControllerOptions.RootCA) > 0 {
-			ret.ServiceAccountTokenControllerOptions.ServiceServingCA = append(ret.ServiceAccountTokenControllerOptions.ServiceServingCA, ret.ServiceAccountTokenControllerOptions.RootCA...)
-			ret.ServiceAccountTokenControllerOptions.ServiceServingCA = append(ret.ServiceAccountTokenControllerOptions.ServiceServingCA, []byte("\n")...)
-		}
-		ret.ServiceAccountTokenControllerOptions.ServiceServingCA = append(ret.ServiceAccountTokenControllerOptions.ServiceServingCA, serviceServingCA...)
-	}
 
 	ret.ServiceAccountControllerOptions = ServiceAccountControllerOptions{
 		ManagedNames: options.ServiceAccountConfig.ManagedNames,

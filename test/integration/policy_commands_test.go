@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -89,8 +90,10 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Check that the removal of the last subject caused the rolebinding to be
+	// removed as well
 	viewers, err = haroldAuthorizationClient.RoleBindings(projectName).Get("view", metav1.GetOptions{})
-	if err != nil {
+	if !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	binding = authorizationinterfaces.NewLocalRoleBindingAdapter(viewers)

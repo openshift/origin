@@ -153,6 +153,8 @@ os::cmd::expect_success "oc adm policy remove-role-from-user admin system:servic
 os::cmd::expect_success_and_not_text 'oc get rolebinding/admin -o jsonpath={.subjects}' 'fake-sa'
 os::cmd::expect_success 'oc adm policy remove-role-from-group cluster-admin system:unauthenticated'
 os::cmd::expect_success 'oc adm policy remove-role-from-user cluster-admin system:no-user'
+os::cmd::expect_failure_and_text 'oc adm policy remove-role-from-user admin ghost' 'error: unable to find target \[ghost\]'
+os::cmd::expect_failure_and_text 'oc adm policy remove-role-from-user admin -z ghost' 'error: unable to find target \[ghost\]'
 os::cmd::expect_success 'oc adm policy remove-group system:unauthenticated'
 os::cmd::expect_success 'oc adm policy remove-user system:no-user'
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-admin system:unauthenticated'

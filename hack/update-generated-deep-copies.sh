@@ -21,8 +21,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing
     github.com/openshift/origin/pkg/image/admission/apis/imagepolicy
     github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/v1
-    github.com/openshift/origin/pkg/image/admission/apis/imagequalify
-    github.com/openshift/origin/pkg/image/admission/apis/imagequalify/v1
     github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission
     github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission/v1
     github.com/openshift/origin/pkg/project/admission/lifecycle/testing

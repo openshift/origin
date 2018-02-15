@@ -60,7 +60,7 @@ func NewHostHelper(dockerHelper *dockerhelper.Helper, image, volumesDir, configD
 
 // CanUseNsenterMounter returns true if the Docker host machine can execute findmnt through nsenter
 func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
-	rc, err := h.runner().
+	_, rc, err := h.runner().
 		Image(h.image).
 		DiscardContainer().
 		Privileged().
@@ -74,7 +74,7 @@ func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
 // for OpenShift volumes
 func (h *HostHelper) EnsureVolumeShare() error {
 	cmd := fmt.Sprintf(ensureVolumeShareCmd, h.volumesDir)
-	rc, err := h.runner().
+	_, rc, err := h.runner().
 		Image(h.image).
 		DiscardContainer().
 		HostPid().
@@ -138,7 +138,7 @@ func (h *HostHelper) UploadFileToContainer(src, dst string) error {
 
 // Hostname retrieves the FQDN of the Docker host machine
 func (h *HostHelper) Hostname() (string, error) {
-	hostname, _, _, err := h.runner().
+	_, hostname, _, _, err := h.runner().
 		Image(h.image).
 		HostNetwork().
 		HostPid().
@@ -168,7 +168,7 @@ func (h *HostHelper) EnsureHostDirectories(createVolumeShare bool) error {
 	}
 	if len(dirs) > 0 {
 		cmd := fmt.Sprintf(cmdEnsureHostDirs, strings.Join(dirs, " "))
-		rc, err := h.runner().
+		_, rc, err := h.runner().
 			Image(h.image).
 			DiscardContainer().
 			Privileged().

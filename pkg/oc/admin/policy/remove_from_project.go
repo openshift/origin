@@ -162,7 +162,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 		oldUsers, oldGroups, oldSAs, oldOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, originalSubjects)
 		oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := sets.NewString(oldUsers...), sets.NewString(oldGroups...), sets.NewString(oldSAs...), sets.NewString(oldOthers...)
 
-		currBinding.Subjects = removeSubjects(currBinding.Subjects, subjectsToRemove)
+		currBinding.Subjects, _ = removeSubjects(currBinding.Subjects, subjectsToRemove)
 		newUsers, newGroups, newSAs, newOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, currBinding.Subjects)
 		newUsersSet, newGroupsSet, newSAsSet, newOtherSet := sets.NewString(newUsers...), sets.NewString(newGroups...), sets.NewString(newSAs...), sets.NewString(newOthers...)
 
@@ -176,7 +176,11 @@ func (o *RemoveFromProjectOptions) Run() error {
 		}
 
 		if !o.DryRun {
-			_, err = o.Client.RoleBindings(o.BindingNamespace).Update(&currBinding)
+			if len(currBinding.Subjects) > 0 {
+				_, err = o.Client.RoleBindings(o.BindingNamespace).Update(&currBinding)
+			} else {
+				err = o.Client.RoleBindings(o.BindingNamespace).Delete(currBinding.Name, &metav1.DeleteOptions{})
+			}
 			if err != nil {
 				return err
 			}

@@ -36,7 +36,7 @@ type ScheduledImageStreamController struct {
 	rateLimiter flowcontrol.RateLimiter
 
 	// scheduler for timely image re-imports
-	scheduler *Scheduler
+	scheduler *scheduler
 }
 
 // Importing is invoked when the controller decides to import a stream in order to push back

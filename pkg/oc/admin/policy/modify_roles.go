@@ -513,6 +513,12 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		if err != nil {
 			return err
 		}
+		// Check that we update the rolebinding for the intended role.
+		if existingRoleBinding.RoleRef.Name != o.RoleName || existingRoleBinding.RoleRef.Namespace != o.RoleNamespace {
+			return fmt.Errorf("rolebinding %s contains role %s in namespace %s, instead of role %s in namespace %s",
+				o.RoleBindingName, existingRoleBinding.RoleRef.Name, existingRoleBinding.RoleRef.Namespace, o.RoleName, o.RoleNamespace)
+		}
+
 		roleBindings = make([]*authorizationapi.RoleBinding, 1)
 		roleBindings[0] = existingRoleBinding
 	} else {
@@ -536,10 +542,16 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups)
 	subjectsToRemove = append(subjectsToRemove, o.Subjects...)
 
+	found := 0
+	cnt := 0
 	if len(o.Output) > 0 {
 		for _, binding := range roleBindings {
-			binding.Subjects = removeSubjects(binding.Subjects, subjectsToRemove)
+			binding.Subjects, cnt = removeSubjects(binding.Subjects, subjectsToRemove)
 			updatedBindings.Items = append(updatedBindings.Items, *binding)
+			found += cnt
+		}
+		if found == 0 {
+			return fmt.Errorf("unable to find target %v", o.Targets)
 		}
 		return o.PrintObj(updatedBindings)
 	}
@@ -549,7 +561,8 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	}
 
 	for _, roleBinding := range roleBindings {
-		roleBinding.Subjects = removeSubjects(roleBinding.Subjects, subjectsToRemove)
+		roleBinding.Subjects, cnt = removeSubjects(roleBinding.Subjects, subjectsToRemove)
+		found += cnt
 
 		if len(roleBinding.Subjects) > 0 {
 			err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
@@ -560,12 +573,16 @@ func (o *RoleModificationOptions) RemoveRole() error {
 			return err
 		}
 	}
+	if found == 0 {
+		return fmt.Errorf("unable to find target %v", o.Targets)
+	}
 
 	return nil
 }
 
-func removeSubjects(haystack, needles []kapi.ObjectReference) []kapi.ObjectReference {
+func removeSubjects(haystack, needles []kapi.ObjectReference) ([]kapi.ObjectReference, int) {
 	newSubjects := []kapi.ObjectReference{}
+	found := 0
 
 existingLoop:
 	for _, existingSubject := range haystack {
@@ -573,6 +590,7 @@ existingLoop:
 			if existingSubject.Kind == toRemove.Kind &&
 				existingSubject.Name == toRemove.Name &&
 				existingSubject.Namespace == toRemove.Namespace {
+				found++
 				continue existingLoop
 
 			}
@@ -581,7 +599,7 @@ existingLoop:
 		newSubjects = append(newSubjects, existingSubject)
 	}
 
-	return newSubjects
+	return newSubjects, found
 }
 
 // prints affirmative output for role modification commands

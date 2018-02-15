@@ -4,9 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	kapiv1 "k8s.io/api/core/v1"
-	"k8s.io/kubernetes/pkg/controller"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
@@ -46,37 +44,6 @@ func (c *ServiceAccountControllerOptions) RunController(ctx ControllerContext) (
 	}
 	go controller.Run(3, ctx.Stop)
 
-	return true, nil
-}
-
-type ServiceAccountTokenControllerOptions struct {
-	RootCA           []byte
-	ServiceServingCA []byte
-	PrivateKey       interface{}
-
-	RootClientBuilder controller.SimpleControllerClientBuilder
-}
-
-func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerContext) (bool, error) {
-	if c.PrivateKey == nil {
-		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
-		return false, nil
-	}
-
-	controller, err := sacontroller.NewTokensController(
-		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
-		ctx.ExternalKubeInformers.Core().V1().Secrets(),
-		c.RootClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountTokensControllerServiceAccountName),
-		sacontroller.TokensControllerOptions{
-			TokenGenerator:   serviceaccount.JWTTokenGenerator(c.PrivateKey),
-			RootCA:           c.RootCA,
-			ServiceServingCA: c.ServiceServingCA,
-		},
-	)
-	if err != nil {
-		return true, nil
-	}
-	go controller.Run(int(ctx.OpenshiftControllerOptions.ServiceAccountTokenOptions.ConcurrentSyncs), ctx.Stop)
 	return true, nil
 }
 

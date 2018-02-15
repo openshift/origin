@@ -92,7 +92,7 @@ func NewScheduledImageStreamController(client imageclient.Interface, informer im
 		listerSynced: informer.Informer().HasSynced,
 	}
 
-	controller.scheduler = NewScheduler(opts.Buckets(), bucketLimiter, controller.syncTimed)
+	controller.scheduler = newScheduler(opts.Buckets(), bucketLimiter, controller.syncTimed)
 
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    controller.addImageStream,

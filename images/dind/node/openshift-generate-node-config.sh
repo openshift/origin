@@ -74,6 +74,8 @@ kubeletArguments:
   cgroups-per-qos: ["false"]
   enforce-node-allocatable: [""]
   fail-swap-on: ["false"]
+  eviction-soft: [""]
+  eviction-hard: [""]
 EOF
 
     if [[ "${OPENSHIFT_CONTAINER_RUNTIME}" != "dockershim" ]]; then

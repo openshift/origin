@@ -37,5 +37,11 @@ os::cmd::expect_success_and_not_text 'oc get users test-user-1' "customlabel=tru
 # test structured and unstructured resources print generically without panic
 os::cmd::expect_success_and_text 'oc get projectrequests -o yaml' 'status: Success'
 os::cmd::expect_success_and_text 'oc get projectrequests,svc,pod -o yaml' 'kind: List'
+# test --wacth does not result in an error when a resource list is served in multiple chunks
+os::cmd::expect_success 'oc create cm cmone'
+os::cmd::expect_success 'oc create cm cmtwo'
+os::cmd::expect_success 'oc create cm cmthree'
+os::cmd::expect_success_and_not_text 'oc get configmap --chunk-size=1 --watch --request-timeout=1s' 'watch is only supported on individual resources'
+os::cmd::expect_success_and_not_text 'oc get configmap --chunk-size=1 --watch-only --request-timeout=1s' 'watch is only supported on individual resources'
 echo "oc get: ok"
 os::test::junit::declare_suite_end

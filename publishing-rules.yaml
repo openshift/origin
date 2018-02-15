@@ -1,0 +1,68 @@
+skip-godeps: true
+rules:
+- destination: kubernetes
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: master
+      dir: vendor/k8s.io/kubernetes
+- destination: kubernetes-gengo
+  branches:
+  - name: openshift-3.9
+    source:
+      branch: master
+      dir: vendor/k8s.io/gengo
+- destination: google-certificate-transparency
+  branches:
+  - name: master
+    source:
+      branch: master
+      dir: vendor/github.com/google/certificate-transparency
+- destination: emicklei-go-restful-swagger12
+  branches:
+  - name: release-1.0.1
+    source:
+      branch: master
+      dir: vendor/github.com/emicklei/go-restful-swagger12
+- destination: cloudflare-cfssl
+  branches:
+  - name: stable-20160905
+    source:
+      branch: master
+      dir: vendor/github.com/cloudflare/cfssl
+- destination: skynetservices-skydns
+  branches:
+  - name: release-2.5.3a
+    source:
+      branch: master
+      dir: vendor/github.com/openshift/skynetservices-skydns
+- destination: onsi-ginkgo
+  branches:
+  - name: release-v1.2.0
+    source:
+      branch: master
+      dir: vendor/github.com/onsi/ginkgo
+- destination: containers-image
+  branches:
+  - name: openshift-3.8
+    source:
+      branch: master
+      dir: vendor/github.com/containers/image
+- destination: opencontainers-runc
+  branches:
+  - name: openshift-3.9
+    source:
+      branch: master
+      dir: vendor/github.com/opencontainers/runc
+- destination: google-cadvisor
+  branches:
+  - name: release-v0.28.3
+    source:
+      branch: master
+      dir: vendor/github.com/google/cadvisor
+- destination: docker-distribution
+  branches:
+  - name: release-2.6.0
+    source:
+      branch: master
+      dir: vendor/github.com/docker/distribution

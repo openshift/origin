@@ -78,7 +78,7 @@ func CheckBearerAuth(r *http.Request) *BearerAuth {
 // getClientAuth checks client basic authentication in params if allowed,
 // otherwise gets it from the header.
 // Sets an error on the response if no auth is present or a server error occurs.
-func getClientAuth(w *Response, r *http.Request, allowQueryParams bool) *BasicAuth {
+func (s Server) getClientAuth(w *Response, r *http.Request, allowQueryParams bool) *BasicAuth {
 
 	if allowQueryParams {
 		// Allow for auth without password
@@ -95,13 +95,11 @@ func getClientAuth(w *Response, r *http.Request, allowQueryParams bool) *BasicAu
 
 	auth, err := CheckBasicAuth(r)
 	if err != nil {
-		w.SetError(E_INVALID_REQUEST, "")
-		w.InternalError = err
+		s.setErrorAndLog(w, E_INVALID_REQUEST, err, "get_client_auth=%s", "check auth error")
 		return nil
 	}
 	if auth == nil {
-		w.SetError(E_INVALID_REQUEST, "")
-		w.InternalError = errors.New("Client authentication not sent")
+		s.setErrorAndLog(w, E_INVALID_REQUEST, errors.New("Client authentication not sent"), "get_client_auth=%s", "client authentication not sent")
 		return nil
 	}
 	return auth

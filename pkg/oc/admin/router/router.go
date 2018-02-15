@@ -233,6 +233,8 @@ type RouterConfig struct {
 
 	// Strict SNI (do not use default cert)
 	StrictSNI bool
+
+	Local bool
 }
 
 const (
@@ -314,6 +316,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.MaxConnections, "max-connections", cfg.MaxConnections, "Specifies the maximum number of concurrent connections. Not supported for F5.")
 	cmd.Flags().StringVar(&cfg.Ciphers, "ciphers", cfg.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
 	cmd.Flags().BoolVar(&cfg.StrictSNI, "strict-sni", cfg.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
+	cmd.Flags().BoolVar(&cfg.Local, "local", cfg.Local, "If true, do not contact the apiserver")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -498,6 +501,10 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	default:
 		return kcmdutil.UsageErrorf(cmd, "You may pass zero or one arguments to provide a name for the router")
 	}
+	if cfg.Local && !cfg.Action.DryRun {
+		return fmt.Errorf("--local cannot be specified without --dry-run")
+	}
+
 	name := cfg.Name
 
 	var defaultOutputErr error
@@ -573,10 +580,6 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
-	kClient, err := f.ClientSet()
-	if err != nil {
-		return fmt.Errorf("error getting client: %v", err)
-	}
 
 	cfg.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	cfg.Action.Out, cfg.Action.ErrOut = out, errout
@@ -586,19 +589,25 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	output := cfg.Action.ShouldPrint()
 	generate := output
-	service, err := kClient.Core().Services(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
-		if !generate {
-			if !errors.IsNotFound(err) {
-				return fmt.Errorf("can't check for existing router %q: %v", name, err)
-			}
-			if !output && cfg.Action.DryRun {
-				return fmt.Errorf("Router %q service does not exist", name)
-			}
-			generate = true
+	if !cfg.Local {
+		kClient, err := f.ClientSet()
+		if err != nil {
+			return fmt.Errorf("error getting client: %v", err)
 		}
-	} else {
-		clusterIP = service.Spec.ClusterIP
+		service, err := kClient.Core().Services(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			if !generate {
+				if !errors.IsNotFound(err) {
+					return fmt.Errorf("can't check for existing router %q: %v", name, err)
+				}
+				if !output && cfg.Action.DryRun {
+					return fmt.Errorf("Router %q service does not exist", name)
+				}
+				generate = true
+			}
+		} else {
+			clusterIP = service.Spec.ClusterIP
+		}
 	}
 
 	if !generate {
@@ -610,17 +619,19 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		return fmt.Errorf("you must specify a service account for the router with --service-account")
 	}
 
-	securityClient, err := f.OpenshiftInternalSecurityClient()
-	if err != nil {
-		return err
-	}
-	if err := validateServiceAccount(securityClient, namespace, cfg.ServiceAccount, cfg.HostNetwork, cfg.HostPorts); err != nil {
-		err = fmt.Errorf("router could not be created; %v", err)
-		if !cfg.Action.ShouldPrint() {
+	if !cfg.Local {
+		securityClient, err := f.OpenshiftInternalSecurityClient()
+		if err != nil {
 			return err
 		}
-		fmt.Fprintf(errout, "error: %v\n", err)
-		defaultOutputErr = kcmdutil.ErrExit
+		if err := validateServiceAccount(securityClient, namespace, cfg.ServiceAccount, cfg.HostNetwork, cfg.HostPorts); err != nil {
+			err = fmt.Errorf("router could not be created; %v", err)
+			if !cfg.Action.ShouldPrint() {
+				return err
+			}
+			fmt.Fprintf(errout, "error: %v\n", err)
+			defaultOutputErr = kcmdutil.ErrExit
+		}
 	}
 
 	// create new router

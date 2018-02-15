@@ -8,12 +8,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -129,6 +131,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 		expectedCpuLimit   resource.Quantity
 		expectedCpuRequest resource.Quantity
 		namespace          *kapi.Namespace
+		namespaceLimits    []*kapi.LimitRange
 	}{
 		{
 			name:               "ignore pods that have no memory limit specified",
@@ -140,6 +143,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 			namespace:          fakeNamespace(true),
 		},
 		{
+			name:               "with namespace limits, ignore pods that have no memory limit specified",
+			config:             testConfig(100, 50, 50),
+			pod:                testBestEffortPod(),
+			expectedMemRequest: resource.MustParse("0"),
+			expectedCpuLimit:   resource.MustParse("0"),
+			expectedCpuRequest: resource.MustParse("0"),
+			namespace:          fakeNamespace(true),
+			namespaceLimits: []*kapi.LimitRange{
+				fakeMinCPULimitRange("567m"),
+				fakeMinCPULimitRange("678m"),
+				fakeMinMemoryLimitRange("700Gi"),
+				fakeMinMemoryLimitRange("456Gi"),
+			},
+		},
+		{
 			name:               "test floor for memory and cpu",
 			config:             testConfig(100, 50, 50),
 			pod:                testPod("1Mi", "0", "0", "0"),
@@ -147,6 +165,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("1m"),
 			expectedCpuRequest: resource.MustParse("1m"),
 			namespace:          fakeNamespace(true),
+		},
+		{
+			name:               "with namespace limits, test floor for memory and cpu",
+			config:             testConfig(100, 50, 50),
+			pod:                testPod("1Mi", "0", "0", "0"),
+			expectedMemRequest: resource.MustParse("456Gi"),
+			expectedCpuLimit:   resource.MustParse("567m"),
+			expectedCpuRequest: resource.MustParse("567m"),
+			namespace:          fakeNamespace(true),
+			namespaceLimits: []*kapi.LimitRange{
+				fakeMinCPULimitRange("567m"),
+				fakeMinCPULimitRange("678m"),
+				fakeMinMemoryLimitRange("700Gi"),
+				fakeMinMemoryLimitRange("456Gi"),
+			},
 		},
 		{
 			name:               "nil config",
@@ -158,6 +191,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 			namespace:          fakeNamespace(true),
 		},
 		{
+			name:               "with namespace limits, nil config",
+			config:             nil,
+			pod:                testPod("1", "1", "1", "1"),
+			expectedMemRequest: resource.MustParse("1"),
+			expectedCpuLimit:   resource.MustParse("1"),
+			expectedCpuRequest: resource.MustParse("1"),
+			namespace:          fakeNamespace(true),
+			namespaceLimits: []*kapi.LimitRange{
+				fakeMinCPULimitRange("567m"),
+				fakeMinCPULimitRange("678m"),
+				fakeMinMemoryLimitRange("700Gi"),
+				fakeMinMemoryLimitRange("456Gi"),
+			},
+		},
+		{
 			name:               "all values are adjusted",
 			config:             testConfig(100, 50, 50),
 			pod:                testPod("1Gi", "0", "2000m", "0"),
@@ -165,6 +213,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("1"),
 			expectedCpuRequest: resource.MustParse("500m"),
 			namespace:          fakeNamespace(true),
+		},
+		{
+			name:               "with namespace limits, all values are adjusted to floor of namespace limits",
+			config:             testConfig(100, 50, 50),
+			pod:                testPod("1Gi", "0", "2000m", "0"),
+			expectedMemRequest: resource.MustParse("456Gi"),
+			expectedCpuLimit:   resource.MustParse("10567m"),
+			expectedCpuRequest: resource.MustParse("10567m"),
+			namespace:          fakeNamespace(true),
+			namespaceLimits: []*kapi.LimitRange{
+				fakeMinCPULimitRange("10567m"),
+				fakeMinCPULimitRange("20678m"),
+				fakeMinMemoryLimitRange("700Gi"),
+				fakeMinMemoryLimitRange("456Gi"),
+			},
 		},
 		{
 			name:               "just requests are adjusted",
@@ -176,6 +239,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 			namespace:          fakeNamespace(true),
 		},
 		{
+			name:               "with namespace limits, all requests are adjusted to floor of namespace limits",
+			config:             testConfig(0, 50, 50),
+			pod:                testPod("10Mi", "0", "50m", "0"),
+			expectedMemRequest: resource.MustParse("456Gi"),
+			expectedCpuLimit:   resource.MustParse("50m"),
+			expectedCpuRequest: resource.MustParse("10567m"),
+			namespace:          fakeNamespace(true),
+			namespaceLimits: []*kapi.LimitRange{
+				fakeMinCPULimitRange("10567m"),
+				fakeMinCPULimitRange("20678m"),
+				fakeMinMemoryLimitRange("700Gi"),
+				fakeMinMemoryLimitRange("456Gi"),
+			},
+		},
+		{
 			name:               "project annotation disables overrides",
 			config:             testConfig(0, 50, 50),
 			pod:                testPod("10Mi", "0", "50m", "0"),
@@ -183,6 +261,21 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("50m"),
 			expectedCpuRequest: resource.MustParse("0"),
 			namespace:          fakeNamespace(false),
+		},
+		{
+			name:               "with namespace limits, project annotation disables overrides",
+			config:             testConfig(0, 50, 50),
+			pod:                testPod("10Mi", "0", "50m", "0"),
+			expectedMemRequest: resource.MustParse("0"),
+			expectedCpuLimit:   resource.MustParse("50m"),
+			expectedCpuRequest: resource.MustParse("0"),
+			namespace:          fakeNamespace(false),
+			namespaceLimits: []*kapi.LimitRange{
+				fakeMinCPULimitRange("10567m"),
+				fakeMinCPULimitRange("20678m"),
+				fakeMinMemoryLimitRange("700Gi"),
+				fakeMinMemoryLimitRange("456Gi"),
+			},
 		},
 		{
 			name:               "large values don't overflow",
@@ -211,6 +304,18 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuRequest: resource.MustParse("250m"),
 			namespace:          fakeNamespace(true),
 		},
+		{
+			name:               "test only containers types are considered with namespace limits",
+			config:             testConfig(100, 50, 50),
+			pod:                testPod("1Gi", "0", "2000m", "0"),
+			expectedMemRequest: resource.MustParse("512Mi"),
+			expectedCpuLimit:   resource.MustParse("1"),
+			expectedCpuRequest: resource.MustParse("500m"),
+			namespace:          fakeNamespace(true),
+			namespaceLimits: []*kapi.LimitRange{
+				fakeMinStorageLimitRange("1567Mi"),
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -218,6 +323,12 @@ func TestLimitRequestAdmission(t *testing.T) {
 		if err != nil {
 			t.Errorf("%s: config de/serialize failed: %v", test.name, err)
 			continue
+		}
+		// Override LimitRanger with limits from test case
+		c.(*clusterResourceOverridePlugin).limitRangesLister = fakeLimitRangeLister{
+			namespaceLister: fakeLimitRangeNamespaceLister{
+				limits: test.namespaceLimits,
+			},
 		}
 		c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
 		attrs := admission.NewAttributesRecord(test.pod, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, fakeUser())
@@ -335,4 +446,51 @@ func testConfig(lc2mr int64, cr2lr int64, mr2lr int64) *clusterresourceoverride.
 		CPURequestToLimitPercent:    cr2lr,
 		MemoryRequestToLimitPercent: mr2lr,
 	}
+}
+
+func fakeMinLimitRange(limitType kapi.LimitType, resourceType kapi.ResourceName, limits ...string) *kapi.LimitRange {
+	r := &kapi.LimitRange{}
+
+	for i := range limits {
+		rl := kapi.ResourceList{}
+		rl[resourceType] = resource.MustParse(limits[i])
+		r.Spec.Limits = append(r.Spec.Limits,
+			kapi.LimitRangeItem{
+				Type: limitType,
+				Min:  rl,
+			},
+		)
+	}
+
+	return r
+}
+
+func fakeMinMemoryLimitRange(limits ...string) *kapi.LimitRange {
+	return fakeMinLimitRange(kapi.LimitTypeContainer, kapi.ResourceMemory, limits...)
+}
+
+func fakeMinCPULimitRange(limits ...string) *kapi.LimitRange {
+	return fakeMinLimitRange(kapi.LimitTypeContainer, kapi.ResourceCPU, limits...)
+}
+
+func fakeMinStorageLimitRange(limits ...string) *kapi.LimitRange {
+	return fakeMinLimitRange(kapi.LimitTypePersistentVolumeClaim, kapi.ResourceStorage, limits...)
+}
+
+type fakeLimitRangeLister struct {
+	internalversion.LimitRangeLister
+	namespaceLister fakeLimitRangeNamespaceLister
+}
+
+type fakeLimitRangeNamespaceLister struct {
+	internalversion.LimitRangeNamespaceLister
+	limits []*kapi.LimitRange
+}
+
+func (f fakeLimitRangeLister) LimitRanges(namespace string) internalversion.LimitRangeNamespaceLister {
+	return f.namespaceLister
+}
+
+func (f fakeLimitRangeNamespaceLister) List(selector labels.Selector) ([]*kapi.LimitRange, error) {
+	return f.limits, nil
 }
