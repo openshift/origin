@@ -49,11 +49,10 @@ var (
 func NewCmdImportImage(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	opts := &ImportImageOptions{}
 	cmd := &cobra.Command{
-		Use:        "import-image IMAGESTREAM[:TAG]",
-		Short:      "Imports images from a Docker registry",
-		Long:       importImageLong,
-		Example:    fmt.Sprintf(importImageExample, fullName),
-		SuggestFor: []string{"image"},
+		Use:     "import-image IMAGESTREAM[:TAG]",
+		Short:   "Imports images from a Docker registry",
+		Long:    importImageLong,
+		Example: fmt.Sprintf(importImageExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(opts.Complete(f, cmd, args, fullName, out, errout))
 			kcmdutil.CheckErr(opts.Validate(cmd))

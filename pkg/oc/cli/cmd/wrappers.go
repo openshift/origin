@@ -480,7 +480,6 @@ func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 	cmd := kcmd.NewCmdRunWithOptions(f, opts, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
-	cmd.SuggestFor = []string{"image"}
 	cmd.Flags().Set("generator", "")
 	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'deploymentconfig/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
 	cmd.Flag("generator").DefValue = ""
