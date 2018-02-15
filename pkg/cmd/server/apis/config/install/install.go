@@ -17,7 +17,6 @@ import (
 	_ "github.com/openshift/origin/pkg/build/controller/build/apis/defaults/install"
 	_ "github.com/openshift/origin/pkg/build/controller/build/apis/overrides/install"
 	_ "github.com/openshift/origin/pkg/image/admission/apis/imagepolicy/install"
-	_ "github.com/openshift/origin/pkg/image/admission/apis/imagequalify/install"
 	_ "github.com/openshift/origin/pkg/ingress/admission/apis/ingressadmission/install"
 	_ "github.com/openshift/origin/pkg/project/admission/apis/requestlimit/install"
 	_ "github.com/openshift/origin/pkg/quota/admission/apis/clusterresourceoverride/install"
