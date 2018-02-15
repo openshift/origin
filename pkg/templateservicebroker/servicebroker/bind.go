@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/util/jsonpath"
+	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/bulk"
@@ -235,36 +236,53 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 		}
 	}
 
+	// end users are not expected to have access to BrokerTemplateInstance
+	// objects; SAR on the TemplateInstance instead.
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "update",
+		Group:     templateapi.GroupName,
+		Resource:  "templateinstances",
+		Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+	}); err != nil {
+		return api.Forbidden(err)
+	}
+
 	// The OSB API requires this function to be idempotent (restartable).  If
 	// any actual change was made, per the spec, StatusCreated is returned, else
 	// StatusOK.
 
 	status := http.StatusCreated
-	for _, id := range brokerTemplateInstance.Spec.BindingIDs {
-		if id == bindingID {
-			status = http.StatusOK
-			break
-		}
-	}
-	if status == http.StatusCreated { // binding not found; create it
-		// end users are not expected to have access to BrokerTemplateInstance
-		// objects; SAR on the TemplateInstance instead.
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
-			Namespace: namespace,
-			Verb:      "update",
-			Group:     templateapi.GroupName,
-			Resource:  "templateinstances",
-			Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
-		}); err != nil {
-			return api.Forbidden(err)
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		for _, id := range brokerTemplateInstance.Spec.BindingIDs {
+			if id == bindingID {
+				status = http.StatusOK
+				return nil
+			}
 		}
 
+		// binding not found; create it
 		brokerTemplateInstance.Spec.BindingIDs = append(brokerTemplateInstance.Spec.BindingIDs, bindingID)
-		brokerTemplateInstance, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
-		if err != nil {
-			return api.InternalServerError(err)
-		}
-	}
 
-	return api.NewResponse(status, &api.BindResponse{Credentials: credentials}, nil)
+		newBrokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
+		switch {
+		case err == nil:
+			brokerTemplateInstance = newBrokerTemplateInstance
+
+		case kerrors.IsConflict(err):
+			var getErr error
+			brokerTemplateInstance, getErr = b.templateclient.BrokerTemplateInstances().Get(brokerTemplateInstance.Name, metav1.GetOptions{})
+			if getErr != nil {
+				err = getErr
+			}
+		}
+		return err
+	})
+	switch {
+	case err == nil:
+		return api.NewResponse(status, &api.BindResponse{Credentials: credentials}, nil)
+	case kerrors.IsConflict(err):
+		return api.NewResponse(http.StatusUnprocessableEntity, &api.ConcurrencyError, nil)
+	}
+	return api.InternalServerError(err)
 }

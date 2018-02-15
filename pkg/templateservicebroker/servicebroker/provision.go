@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/util/retry"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
@@ -173,9 +174,6 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, brokerTem
 func (b *Broker) ensureBrokerTemplateInstanceUIDs(u user.Info, namespace string, brokerTemplateInstance *templateapiv1.BrokerTemplateInstance, secret *kapiv1.Secret, templateInstance *templateapiv1.TemplateInstance, didWork *bool) (*templateapiv1.BrokerTemplateInstance, *api.Response) {
 	glog.V(4).Infof("Template service broker: ensureBrokerTemplateInstanceUIDs")
 
-	brokerTemplateInstance.Spec.Secret.UID = secret.UID
-	brokerTemplateInstance.Spec.TemplateInstance.UID = templateInstance.UID
-
 	// end users are not expected to have access to BrokerTemplateInstance
 	// objects; SAR on the TemplateInstance instead.
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
@@ -188,12 +186,31 @@ func (b *Broker) ensureBrokerTemplateInstanceUIDs(u user.Info, namespace string,
 		return nil, api.Forbidden(err)
 	}
 
-	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
-	if err == nil {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		brokerTemplateInstance.Spec.Secret.UID = secret.UID
+		brokerTemplateInstance.Spec.TemplateInstance.UID = templateInstance.UID
+
+		newBrokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
+		switch {
+		case err == nil:
+			brokerTemplateInstance = newBrokerTemplateInstance
+
+		case kerrors.IsConflict(err):
+			var getErr error
+			brokerTemplateInstance, getErr = b.templateclient.BrokerTemplateInstances().Get(brokerTemplateInstance.Name, metav1.GetOptions{})
+			if getErr != nil {
+				err = getErr
+			}
+		}
+		return err
+	})
+	switch {
+	case err == nil:
 		*didWork = true
 		return brokerTemplateInstance, nil
+	case kerrors.IsConflict(err):
+		return nil, api.NewResponse(http.StatusUnprocessableEntity, &api.ConcurrencyError, nil)
 	}
-
 	return nil, api.InternalServerError(err)
 }
 
