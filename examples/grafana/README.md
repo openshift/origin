@@ -1,22 +1,23 @@
-# grafana-ocp
+# Openshift Grafana Dashboards
 
-This template creates a custom Grafana instance preconfigured to gather Prometheus openshift metrics.
-It is uses OAuth token to login openshift Prometheus.
+This example creates a custom Grafana instance preconfigured to gather Prometheus openshift metrics.
+It uses "OAuth" token to login openshift Prometheus.
 
-# Examples Dashboards
-#### Use node export with Grafana:
-```
-curl -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/dashboards/db" -X POST -d "@./node-exporter-full-dashboard.json"
-```
+## Available Dashboards
+- openshift cluster metrics
+- node exporter metrics
 
-
-## To deploy grafana
-Note: make sure to have openshift prometheus deployed.
+## To run grafana and deploy dashboards
+Note: make sure to have openshift prometheus deployed (possibly, with node exporter).
 (https://github.com/openshift/origin/tree/master/examples/prometheus)
 
-``` ./setup-grafana.sh prometheus ```
+### Run the deployment script
+``` 
+./setup-grafana.sh -n <any_datasorce_name> -a -e
+```
+for more info ```./setup-grafana.sh -h```
 
-## How to use oauth proxy:
+#### Manual deployment for oauth proxy:
 Note: when using oauth make sure your user has permission to browse grafana.
 - add a openshift user htpasswd ```htpasswd -c /etc/origin/master/htpasswd gfadmin```
 - use the HTPasswdPasswordIdentityProvider as described here - https://docs.openshift.com/enterprise/3.0/admin_guide/configuring_authentication.html 
@@ -30,7 +31,7 @@ Note: when using oauth make sure your user has permission to browse grafana.
 - get the grafana url by ```oc get route```
 - discover your openshift dashboard.
 
-### Pull standalone docker grafana instance
+#### Pull standalone docker grafana instance
 to build standalone docker instance see
 https://github.com/mrsiano/grafana-ocp
 
