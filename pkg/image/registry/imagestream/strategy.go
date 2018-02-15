@@ -70,7 +70,7 @@ func (s Strategy) NamespaceScoped() bool {
 func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*imageapi.ImageStream)
 	stream.Status = imageapi.ImageStreamStatus{
-		DockerImageRepository: s.dockerImageRepository(stream),
+		DockerImageRepository: s.dockerImageRepository(stream, false),
 		Tags: make(map[string]imageapi.TagEventList),
 	}
 	stream.Generation = 1
@@ -124,13 +124,13 @@ func (Strategy) AllowUnconditionalUpdate() bool {
 // If stream.DockerImageRepository is set, that value is returned. Otherwise,
 // if a default registry exists, the value returned is of the form
 // <default registry>/<namespace>/<stream name>.
-func (s Strategy) dockerImageRepository(stream *imageapi.ImageStream) string {
+func (s Strategy) dockerImageRepository(stream *imageapi.ImageStream, allowNamespaceDefaulting bool) string {
 	registry, ok := s.registryHostnameRetriever.InternalRegistryHostname()
 	if !ok {
 		return stream.Spec.DockerImageRepository
 	}
 
-	if len(stream.Namespace) == 0 {
+	if len(stream.Namespace) == 0 && allowNamespaceDefaulting {
 		stream.Namespace = metav1.NamespaceDefault
 	}
 	ref := imageapi.DockerImageReference{
@@ -511,7 +511,7 @@ func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	if resetStatus {
 		stream.Status = oldStream.Status
 	}
-	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+	stream.Status.DockerImageRepository = s.dockerImageRepository(stream, true)
 
 	// ensure that users cannot change spec tag generation to any value except 0
 	updateSpecTagGenerationsForUpdate(stream, oldStream)
@@ -549,12 +549,12 @@ func (s Strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object
 func (s Strategy) Decorate(obj runtime.Object) error {
 	switch t := obj.(type) {
 	case *imageapi.ImageStream:
-		t.Status.DockerImageRepository = s.dockerImageRepository(t)
+		t.Status.DockerImageRepository = s.dockerImageRepository(t, true)
 		t.Status.PublicDockerImageRepository = s.publicDockerImageRepository(t)
 	case *imageapi.ImageStreamList:
 		for i := range t.Items {
 			is := &t.Items[i]
-			is.Status.DockerImageRepository = s.dockerImageRepository(is)
+			is.Status.DockerImageRepository = s.dockerImageRepository(is, true)
 			is.Status.PublicDockerImageRepository = s.publicDockerImageRepository(is)
 		}
 	default:
@@ -624,7 +624,7 @@ func (InternalStrategy) Canonicalize(obj runtime.Object) {
 func (s InternalStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*imageapi.ImageStream)
 
-	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+	stream.Status.DockerImageRepository = s.dockerImageRepository(stream, false)
 	stream.Generation = 1
 	for tag, ref := range stream.Spec.Tags {
 		ref.Generation = &stream.Generation

@@ -181,7 +181,7 @@ func TestDockerImageRepository(t *testing.T) {
 	for testName, test := range tests {
 		fakeRegistry := &fakeDefaultRegistry{test.defaultRegistry}
 		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""), &fakeSubjectAccessReviewRegistry{}, &admfake.ImageStreamLimitVerifier{}, nil, nil)
-		value := strategy.dockerImageRepository(test.stream)
+		value := strategy.dockerImageRepository(test.stream, true)
 		if e, a := test.expected, value; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
 		}
