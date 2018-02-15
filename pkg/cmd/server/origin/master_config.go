@@ -160,7 +160,6 @@ func BuildMasterConfig(
 		admission,
 		authenticator,
 		authorizer,
-		informers.GetClientGoKubeInformers(),
 	)
 	if err != nil {
 		return nil, err
