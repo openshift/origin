@@ -43,6 +43,9 @@ global
   stats socket /var/lib/haproxy/run/haproxy.sock mode 600 level admin expose-fd listeners
   stats timeout 2m
 
+  server-state-file global
+  server-state-base /var/lib/haproxy/run/state
+
   # Increase the default request size to be comparable to modern cloud load balancers (ALB: 64kb), affects
   # total memory use when large numbers of connections are open.
   tune.maxrewrite 8192
@@ -83,6 +86,8 @@ global
 
 defaults
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
+
+  load-server-state-from-file global
 
   # Add x-forwarded-for header.
 {{- if ne (env "ROUTER_SYSLOG_ADDRESS") "" }}
@@ -329,6 +334,7 @@ backend be_edge_http:{{$cfgIdx}}
 # Secure backend which requires re-encryption
 backend be_secure:{{$cfgIdx}}
     {{- end }}{{/* end chceck for router type */}}
+  id {{ .InternalID }}
   mode http
   option redispatch
   option forwardfor
@@ -396,7 +402,7 @@ backend be_secure:{{$cfgIdx}}
     {{- if ne $weight 0 }}
       {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{- range $idx, $endpoint := processEndpointsForAlias $cfg $serviceUnit (env "ROUTER_BACKEND_PROCESS_ENDPOINTS" "") }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} cookie {{$endpoint.IdHash}} weight {{$weight}}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} cookie {{$endpoint.IdHash}} weight {{$weight}} id {{$endpoint.InternalID}}
           {{- if (eq $cfg.TLSTermination "reencrypt") }} ssl
             {{- if $cfg.VerifyServiceHostname }} verifyhost {{ $serviceUnit.Hostname }}
             {{- end }}
@@ -423,6 +429,7 @@ backend be_secure:{{$cfgIdx}}
 
 # Secure backend, pass through
 backend be_tcp:{{$cfgIdx}}
+  id {{ .InternalID }}
 {{- if ne (env "ROUTER_SYSLOG_ADDRESS") ""}}
   option tcplog
 {{- end }}

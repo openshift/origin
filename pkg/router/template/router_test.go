@@ -24,23 +24,6 @@ func TestCreateServiceUnit(t *testing.T) {
 	}
 }
 
-// TestDeleteServiceUnit tests that deleted service units no longer exist in state
-func TestDeleteServiceUnit(t *testing.T) {
-	router := NewFakeTemplateRouter()
-	suKey := "ns/test"
-	router.CreateServiceUnit(suKey)
-
-	if _, ok := router.FindServiceUnit(suKey); !ok {
-		t.Errorf("Unable to find serivce unit %s after creation", suKey)
-	}
-
-	router.DeleteServiceUnit(suKey)
-
-	if _, ok := router.FindServiceUnit(suKey); ok {
-		t.Errorf("Service unit %s was found in state after delete", suKey)
-	}
-}
-
 // TestAddEndpoints test adding endpoints to service units
 func TestAddEndpoints(t *testing.T) {
 	router := NewFakeTemplateRouter()
@@ -315,7 +298,7 @@ func TestCreateServiceAliasConfig(t *testing.T) {
 		},
 	}
 
-	config := *router.createServiceAliasConfig(route, "foo")
+	config := *createServiceAliasConfig(route, "foo", router.allowWildcardRoutes, router.defaultDestinationCAPath)
 
 	suName := endpointsKeyFromParts(namespace, serviceName)
 	expectedSUs := map[string]int32{

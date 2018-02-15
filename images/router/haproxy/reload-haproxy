@@ -66,11 +66,14 @@ function haproxyHealthCheck() {
   done
 }
 
+# Preserve server state
+if [[ -S /var/lib/haproxy/run/haproxy.sock && -d /var/lib/haproxy/run/state ]]; then
+  socat /var/lib/haproxy/run/haproxy.sock - <<< "show servers state" > /var/lib/haproxy/run/state/global
+fi
 
 # How many times to retry removal of the iptables rules (if requested at all)
 # It will sleep for 1/2 a second between attempts, so the time is retries / 2 secs
 retries=20
-
 
 # sort the path based map files for the haproxy map_beg function
 for mapfile in "$haproxy_conf_dir"/*.map; do

@@ -9,6 +9,7 @@ func NewFakeTemplateRouter() *templateRouter {
 		serviceUnits:              make(map[string]ServiceUnit),
 		certManager:               fakeCertManager,
 		rateLimitedCommitFunction: nil,
+		uniqueIds:                 make(map[uint32]struct{}),
 	}
 }
 
