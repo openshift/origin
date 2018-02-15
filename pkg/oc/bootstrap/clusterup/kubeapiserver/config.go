@@ -7,11 +7,13 @@ import (
 	"path"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
-	"github.com/openshift/origin/pkg/oc/util/tmputil"
 )
+
+const KubeAPIServerDirName = "oc-cluster-up-kube-apiserver"
 
 type KubeAPIServerStartConfig struct {
 	// MasterImage is the docker image for openshift start master
@@ -30,6 +32,7 @@ func NewKubeAPIServerStartConfig() *KubeAPIServerStartConfig {
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
 func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer) (string, error) {
+
 	fmt.Fprintf(out, "Creating initial OpenShift master configuration\n")
 	createConfigCmd := []string{
 		"start", "master",
@@ -48,11 +51,11 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
 	}
 
-	tempDir, err := tmputil.TempDir("oc-cluster-up-kube-apiserver-")
+	// TODO eliminate the linkage that other tasks have on this particular structure
+	tempDir, err := tmpformac.TempDir(KubeAPIServerDirName)
 	if err != nil {
 		return "", err
 	}
-	// TODO eliminate the linkage that other tasks have on this particular structure
 	masterDir := path.Join(tempDir, "master")
 	if err := os.Mkdir(masterDir, 0755); err != nil {
 		return "", err

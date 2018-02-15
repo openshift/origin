@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/util/tmputil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/homedir"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -390,24 +388,6 @@ func masterHTTPClient(localConfig string) (*http.Client, error) {
 		Transport: transport,
 		Timeout:   10 * time.Second,
 	}, nil
-}
-
-// copyConfig copies the OpenShift configuration directory from the
-// server directory into a local temporary directory.
-func (h *Helper) copyConfig() (string, error) {
-	tempDir, err := tmputil.TempDir("openshift-config")
-	if err != nil {
-		return "", err
-	}
-	glog.V(1).Infof("Copying OpenShift config to local directory %s", tempDir)
-	if err = h.hostHelper.DownloadDirFromContainer(serverConfigPath, tempDir); err != nil {
-		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
-			glog.V(2).Infof("Error removing temporary config dir %s: %v", tempDir, removeErr)
-		}
-		return "", err
-	}
-
-	return tempDir, nil
 }
 
 func (h *Helper) GetNodeConfigFromLocalDir(configDir string) (*configapi.NodeConfig, string, error) {

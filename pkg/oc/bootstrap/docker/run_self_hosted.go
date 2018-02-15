@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/mrunalp/fileutils"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/util/retry"
 
@@ -37,10 +39,12 @@ import (
 	securityclient "github.com/openshift/client-go/security/clientset/versioned"
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/bulk"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubelet"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/staticpods"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -85,19 +89,73 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 			return err
 		}
 	}
-	// TODO allow specifying config. If you specify config for a thing that has prereq, you must also specify all of its prereqs
 
-	masterConfigDir, err := c.makeMasterConfig(out)
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("master-config at %q\n", masterConfigDir)
+	var (
+		masterConfigDir  string
+		nodeConfigDir    string
+		kubeDNSConfigDir string
+		podManifestDir   string
+		err              error
+	)
 
-	nodeConfigDir, kubeDNSConfigDir, err := c.makeNodeConfig(out, masterConfigDir)
-	if err != nil {
-		return err
+	switch {
+	case len(c.HostConfigDir) > 0 && !c.WriteConfig:
+		masterConfigDir = filepath.Join(c.HostConfigDir, kubeapiserver.KubeAPIServerDirName, "master")
+		nodeConfigDir = filepath.Join(c.HostConfigDir, kubelet.NodeConfigDirName)
+		kubeDNSConfigDir = filepath.Join(c.HostConfigDir, kubelet.KubeDNSDirName)
+		podManifestDir = filepath.Join(c.HostConfigDir, kubelet.PodManifestDirName)
+
+	case len(c.HostConfigDir) == 0 && c.WriteConfig:
+		return fmt.Errorf("cannot write a config without a hostconfigdir")
+
+	default:
+		// we need to generate the config
+		masterConfigDir, err = c.makeMasterConfig(out)
+		if err != nil {
+			return err
+		}
+		nodeConfigDir, kubeDNSConfigDir, err = c.makeNodeConfig(out, masterConfigDir)
+		if err != nil {
+			return err
+		}
+		kubeDNSConfigDir, err = c.makeKubeDNSConfig(out, kubeDNSConfigDir)
+		if err != nil {
+			return err
+		}
+		podManifestDir, err = tmpformac.TempDir(kubelet.PodManifestDirName)
+		if err != nil {
+			return err
+		}
+
 	}
-	glog.V(2).Infof("node-config at %q\n", nodeConfigDir)
+	glog.V(2).Infof("master-config at %q, node-config at %q, kube-dns-config: %q", masterConfigDir, nodeConfigDir, kubeDNSConfigDir)
+
+	// if we're supposed to write the config, we'll do that and then exit
+	if c.WriteConfig {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		absHostDir, err := cmdutil.MakeAbs(c.HostConfigDir, cwd)
+		if err != nil {
+			return err
+		}
+		if err := fileutils.CopyDirectory(masterConfigDir, path.Join(absHostDir, kubeapiserver.KubeAPIServerDirName, "master")); err != nil {
+			return err
+		}
+		if err := fileutils.CopyDirectory(nodeConfigDir, path.Join(absHostDir, kubelet.NodeConfigDirName)); err != nil {
+			return err
+		}
+		if err := fileutils.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.KubeDNSDirName)); err != nil {
+			return err
+		}
+		if err := fileutils.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
+			return err
+		}
+
+		fmt.Printf("Wrote config to: %q\n", c.HostConfigDir)
+		return nil
+	}
 
 	kubeletFlags, err := c.makeKubeletFlags(out, nodeConfigDir)
 	if err != nil {
@@ -105,23 +163,17 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 	}
 	glog.V(2).Infof("kubeletflags := %s\n", kubeletFlags)
 
-	kubeletContainerID, err := c.startKubelet(out, masterConfigDir, nodeConfigDir, kubeletFlags)
+	kubeletContainerID, err := c.startKubelet(out, masterConfigDir, nodeConfigDir, podManifestDir, kubeletFlags)
 	if err != nil {
 		return err
 	}
 	glog.V(2).Infof("started kubelet in container %q\n", kubeletContainerID)
 
-	kubeDNSConfigDir, err = c.makeKubeDNSConfig(out, kubeDNSConfigDir)
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("kubedns-config at %q\n", kubeDNSConfigDir)
-
 	substitutions := map[string]string{
 		"/path/to/master/config-dir": masterConfigDir,
 	}
 	for _, staticPodLocation := range staticPodLocations {
-		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, c.PodManifestDir); err != nil {
+		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, podManifestDir); err != nil {
 			return err
 		}
 	}
@@ -219,7 +271,7 @@ func (c *ClientStartConfig) makeNodeConfig(out io.Writer, masterConfigDir string
 	if err != nil {
 		return "", "", fmt.Errorf("error creating node config: %v", err)
 	}
-	kubeDNSConfigDir, err := container.MakeNodeConfig(c.GetDockerClient(out), imageRunningHelper.New(), out)
+	kubeDNSConfigDir, err := container.MakeKubeDNSConfig(c.GetDockerClient(out), imageRunningHelper.New(), out)
 	if err != nil {
 		return "", "", fmt.Errorf("error creating node config: %v", err)
 	}
@@ -259,7 +311,7 @@ func (c *ClientStartConfig) makeKubeDNSConfig(out io.Writer, kubeDNSConfigDir st
 }
 
 // startKubelet returns the container id
-func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfigDir string, kubeletFlags []string) (string, error) {
+func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfigDir, podManifestDir string, kubeletFlags []string) (string, error) {
 	dockerRoot, err := c.DockerHelper().DockerRoot()
 	if err != nil {
 		return "", err
@@ -269,7 +321,7 @@ func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeCon
 	container := kubelet.NewKubeletRunConfig()
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
 	container.ContainerBinds = append(container.ContainerBinds, masterConfigDir+":/etc/origin/master:z")
-	container.ContainerBinds = append(container.ContainerBinds, c.PodManifestDir+":/var/lib/origin/pod-manifests:z")
+	container.ContainerBinds = append(container.ContainerBinds, podManifestDir+":/var/lib/origin/pod-manifests:z")
 	if len(c.HostDataDir) > 0 {
 		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/var/lib/etcd:z", c.HostDataDir))
 	}

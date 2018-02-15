@@ -1,8 +1,7 @@
-package tmputil
+package tmpformac
 
 import (
 	"io/ioutil"
-	"os"
 	"runtime"
 )
 
@@ -10,12 +9,10 @@ import (
 // This is needed in order to allow mounting configuration/certificates into Docker as the Docker
 // for Mac only allows mounting from "/tmp".
 func TempDir(prefix string) (string, error) {
-	var tmpDirFn func() string
 	switch runtime.GOOS {
 	case "darwin":
-		tmpDirFn = func() string { return "/tmp" }
+		return ioutil.TempDir("/tmp", prefix)
 	default:
-		tmpDirFn = os.TempDir
+		return ioutil.TempDir("", prefix)
 	}
-	return ioutil.TempDir(tmpDirFn(), prefix)
 }

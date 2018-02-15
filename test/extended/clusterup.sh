@@ -169,6 +169,10 @@ function os::test::extended::clusterup::hostdirs () {
     else
         base_dir="$(mktemp -d)"
     fi
+
+    # need to set up the config dir with the proper content
+    os::test::extended::clusterup::standard_test --host-config-dir="${BASE_DIR}/config" --write-config
+
     BASE_DIR="${base_dir}" os::test::extended::clusterup::internal::hostdirs ${@}
 }
 
