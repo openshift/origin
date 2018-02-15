@@ -54,6 +54,9 @@ func TestGetClientAuth(t *testing.T) {
 	headerOKAuth := make(http.Header)
 	headerOKAuth.Set("Authorization", goodAuthValue)
 
+	sconfig := NewServerConfig()
+	server := NewServer(sconfig, NewTestingStorage())
+
 	var tests = []struct {
 		header           http.Header
 		url              *url.URL
@@ -86,7 +89,7 @@ func TestGetClientAuth(t *testing.T) {
 		w := new(Response)
 		r := &http.Request{Header: tt.header, URL: tt.url}
 		r.ParseForm()
-		auth := getClientAuth(w, r, tt.allowQueryParams)
+		auth := server.getClientAuth(w, r, tt.allowQueryParams)
 		if tt.expectAuth && auth == nil {
 			t.Errorf("Auth should not be nil for %v", tt)
 		} else if !tt.expectAuth && auth != nil {

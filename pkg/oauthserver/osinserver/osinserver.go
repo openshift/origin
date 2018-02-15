@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/RangelReale/osin"
+	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
@@ -24,12 +25,23 @@ type Server struct {
 	errorHandler ErrorHandler
 }
 
+// Logger captures additional osin server errors
+type Logger struct {
+}
+
+func (l Logger) Printf(format string, v ...interface{}) {
+	if glog.V(2) {
+		glog.ErrorDepth(3, fmt.Sprintf("osin: "+format, v...))
+	}
+}
+
 func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHandler, access AccessHandler, errorHandler ErrorHandler) *Server {
 	server := osin.NewServer(config, storage)
 
 	// Override tokengen to ensure we get valid length tokens
 	server.AuthorizeTokenGen = TokenGen{}
 	server.AccessTokenGen = TokenGen{}
+	server.Logger = Logger{}
 
 	return &Server{
 		config:       config,

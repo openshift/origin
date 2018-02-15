@@ -124,6 +124,10 @@ func (s *Server) HandleAuthorizeRequest(w *Response, r *http.Request) *Authorize
 
 	// must have a valid client
 	ret.Client, err = w.Storage.GetClient(r.Form.Get("client_id"))
+	if err == ErrNotFound {
+		w.SetErrorState(E_UNAUTHORIZED_CLIENT, "", ret.State)
+		return nil
+	}
 	if err != nil {
 		w.SetErrorState(E_SERVER_ERROR, "", ret.State)
 		w.InternalError = err

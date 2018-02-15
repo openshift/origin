@@ -134,7 +134,7 @@ import:
   version: 32a13797442ccb601b11761d74232773c1402d14
 # auth (for sally)
 - package: github.com/RangelReale/osin
-  version: 829186e6c125f77df6d6ae0162a9ba59fad91e2d
+  version: 2dc1b43167692cdc89446b99b98fa9de6bff020f
 # auth (for sally)
 - package: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
