@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
@@ -68,6 +69,8 @@ openshift_deployment_type={{.OSEDeploymentType}}
 
 openshift_logging_image_prefix={{.LoggingImagePrefix}}
 openshift_logging_image_version={{.LoggingImageVersion}}
+openshift_logging_elasticsearch_proxy_image_prefix={{.ESProxyLoggingImagePrefix}}
+openshift_logging_elasticsearch_proxy_image_version={{.ESProxyLoggingImageVersion}}
 openshift_logging_master_public_url={{.MasterPublicURL}}
 
 openshift_logging_install_logging=true
@@ -79,6 +82,7 @@ openshift_logging_elasticseach_storage_type=pvc
 openshift_logging_elasticseach_pvc_size=100G
 
 openshift_logging_kibana_hostname={{.KibanaHostName}}
+__openshift_oc_cluster_up=true
 
 [masters]
 {{.MasterIP}} ansible_connection=local
@@ -91,11 +95,13 @@ openshift_logging_kibana_hostname={{.KibanaHostName}}
 `
 
 type ansibleLoggingInventoryParams struct {
-	Template            string
-	LoggingImagePrefix  string
-	LoggingImageVersion string
-	LoggingNamespace    string
-	KibanaHostName      string
+	Template                   string
+	LoggingImagePrefix         string
+	LoggingImageVersion        string
+	ESProxyLoggingImagePrefix  string
+	ESProxyLoggingImageVersion string
+	LoggingNamespace           string
+	KibanaHostName             string
 }
 
 type ansibleMetricsInventoryParams struct {
@@ -116,21 +122,23 @@ type ansibleInventoryParams struct {
 
 type ansibleRunner struct {
 	*Helper
-	KubeClient     kclient.Interface
-	SecurityClient securityclient.Interface
-	ImageStreams   string
-	Prefix         string
-	Namespace      string
+	KubeClient          kclient.Interface
+	SecurityClient      securityclient.Interface
+	AuthorizationClient authorizationclient.Interface
+	ImageStreams        string
+	Prefix              string
+	Namespace           string
 }
 
-func newAnsibleRunner(h *Helper, kubeClient kclient.Interface, securityClient securityclient.Interface, namespace, imageStreams, prefix string) *ansibleRunner {
+func newAnsibleRunner(h *Helper, kubeClient kclient.Interface, securityClient securityclient.Interface, authorizationClient authorizationclient.Interface, namespace, imageStreams, prefix string) *ansibleRunner {
 	return &ansibleRunner{
-		Helper:         h,
-		KubeClient:     kubeClient,
-		SecurityClient: securityClient,
-		ImageStreams:   imageStreams,
-		Prefix:         prefix,
-		Namespace:      namespace,
+		Helper:              h,
+		KubeClient:          kubeClient,
+		SecurityClient:      securityClient,
+		AuthorizationClient: authorizationClient,
+		ImageStreams:        imageStreams,
+		Prefix:              prefix,
+		Namespace:           namespace,
 	}
 }
 func newAnsibleInventoryParams() ansibleInventoryParams {
@@ -206,6 +214,10 @@ func (r *ansibleRunner) createServiceAccount(namespace string) error {
 	// Add privileged SCC to serviceAccount
 	if err = AddSCCToServiceAccount(r.SecurityClient.Security(), "privileged", serviceAccount.Name, namespace, &bytes.Buffer{}); err != nil {
 		return errors.NewError("cannot add privileged security context constraint to service account").WithCause(err).WithDetails(r.Helper.OriginLog())
+	}
+	// Add cluster-admin to serviceAccount
+	if err = AddClusterRoleToServiceAccount(r.AuthorizationClient.Authorization(), "cluster-admin", serviceAccount.Name, namespace); err != nil {
+		return errors.NewError("cannot add cluster-admin cluster role to service account").WithCause(err).WithDetails(r.Helper.OriginLog())
 	}
 	return nil
 }
