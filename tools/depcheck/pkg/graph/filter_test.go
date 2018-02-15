@@ -1,21 +1,19 @@
-package trace
+package graph
 
 import (
 	"strings"
 	"testing"
 
 	"github.com/gonum/graph/concrete"
-
-	depgraph "github.com/openshift/origin/tools/depcheck/pkg/graph"
 )
 
-type testNode struct {
+type testFilterNode struct {
 	name          string
 	outboundEdges []string
 }
 
-func getVendorNodes() []*testNode {
-	return []*testNode{
+func getVendorNodes() []*testFilterNode {
+	return []*testFilterNode{
 		{
 			name: "github.com/test/repo/vendor/github.com/testvendor/prefix1",
 			outboundEdges: []string{
@@ -57,8 +55,8 @@ func getVendorNodes() []*testNode {
 	}
 }
 
-func getNonVendorNodes() []*testNode {
-	return []*testNode{
+func getNonVendorNodes() []*testFilterNode {
+	return []*testFilterNode{
 		{
 			name: "github.com/test/repo/pkg/prefix1",
 			outboundEdges: []string{
@@ -78,11 +76,11 @@ func getNonVendorNodes() []*testNode {
 	}
 }
 
-func buildTestGraph(nodes []*testNode) (*depgraph.MutableDirectedGraph, error) {
-	g := depgraph.NewMutableDirectedGraph(concrete.NewDirectedGraph())
+func buildTestGraph(nodes []*testFilterNode) (*MutableDirectedGraph, error) {
+	g := NewMutableDirectedGraph(nil)
 
 	for _, n := range nodes {
-		err := g.AddNode(&depgraph.Node{
+		err := g.AddNode(&Node{
 			UniqueName: n.name,
 			Id:         g.NewNodeID(),
 		})
@@ -121,9 +119,9 @@ func TestVendorPackagesCollapsedIntoRepo(t *testing.T) {
 
 	expectedRepoNodeCount := 0
 	for _, n := range g.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
-			t.Fatalf("expected node to be of type *depgraph.Node")
+			t.Fatalf("expected node to be of type *Node")
 		}
 
 		if strings.Contains(node.UniqueName, "/vendor/") {
@@ -148,9 +146,9 @@ func TestVendorPackagesCollapsedIntoRepo(t *testing.T) {
 	actualRepoNodeCount := 0
 	actualVendorNodeCount := 0
 	for _, n := range filteredGraph.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
-			t.Fatalf("expected node to be of type *depgraph.Node")
+			t.Fatalf("expected node to be of type *Node")
 		}
 
 		if strings.Contains(node.UniqueName, "/vendor/") {
@@ -170,9 +168,9 @@ func TestVendorPackagesCollapsedIntoRepo(t *testing.T) {
 
 	// ensure all vendor roots are in the new graph
 	for _, n := range filteredGraph.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
-			t.Fatal("expected node to be of type *depgraph.Node")
+			t.Fatal("expected node to be of type *Node")
 		}
 
 		seen := false
@@ -199,7 +197,7 @@ func TestVendorPackagesCollapsedIntoRepo(t *testing.T) {
 
 	// ensure expected edges exist between nodes
 	for _, n := range filteredGraph.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
 			continue
 		}
@@ -215,9 +213,9 @@ func TestVendorPackagesCollapsedIntoRepo(t *testing.T) {
 		}
 
 		for idx := range expectedNodes {
-			actual, ok := actualNodes[idx].(*depgraph.Node)
+			actual, ok := actualNodes[idx].(*Node)
 			if !ok {
-				t.Fatal("expected node to be of type *depgraph.Node")
+				t.Fatal("expected node to be of type *Node")
 			}
 
 			if expectedNodes[idx] != actual.UniqueName {
@@ -238,9 +236,9 @@ func TestCollapsedGraphPreservesNonVendorNodes(t *testing.T) {
 
 	expectedRepoNodeCount := 0
 	for _, n := range g.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
-			t.Fatalf("expected node to be of type *depgraph.Node")
+			t.Fatalf("expected node to be of type *Node")
 		}
 
 		if strings.Contains(node.UniqueName, "/vendor/") {
@@ -264,9 +262,9 @@ func TestCollapsedGraphPreservesNonVendorNodes(t *testing.T) {
 
 	actualRepoNodeCount := 0
 	for _, n := range g.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
-			t.Fatalf("expected node to be of type *depgraph.Node")
+			t.Fatalf("expected node to be of type *Node")
 		}
 
 		if strings.Contains(node.UniqueName, "/vendor/") {
@@ -292,9 +290,9 @@ func TestCollapsedGraphPreservesNonVendorNodes(t *testing.T) {
 
 	// ensure edges between non-vendor nodes remain intact
 	for _, n := range filteredGraph.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
-			t.Fatalf("expected node to be of type *depgraph.Node")
+			t.Fatalf("expected node to be of type *Node")
 		}
 
 		expectedEdges, exists := expectedOutgoingEdges[node.UniqueName]
@@ -310,9 +308,9 @@ func TestCollapsedGraphPreservesNonVendorNodes(t *testing.T) {
 		for _, expected := range expectedEdges {
 			seen := false
 			for _, n := range actualEdges {
-				actual, ok := n.(*depgraph.Node)
+				actual, ok := n.(*Node)
 				if !ok {
-					t.Fatalf("expected node to be of type *depgraph.Node")
+					t.Fatalf("expected node to be of type *Node")
 				}
 
 				if expected == actual.UniqueName {

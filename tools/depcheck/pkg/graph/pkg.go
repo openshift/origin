@@ -1,13 +1,13 @@
-package trace
+package graph
 
 import (
 	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/gonum/graph/concrete"
+	"github.com/golang/glog"
 
-	depgraph "github.com/openshift/origin/tools/depcheck/pkg/graph"
+	"github.com/gonum/graph/concrete"
 )
 
 var (
@@ -44,8 +44,8 @@ func (p *PackageList) Add(pkg Package) {
 // Any core library dependencies (fmt, strings, etc.) are not added to the graph.
 // Any packages whose import path is contained within a list of "excludes" are not added to the graph.
 // Returns a directed graph and a map of package import paths to node ids, or an error.
-func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDirectedGraph, error) {
-	g := depgraph.NewMutableDirectedGraph(concrete.NewDirectedGraph())
+func BuildGraph(packages *PackageList, roots []string, excludes []string) (*MutableDirectedGraph, error) {
+	g := NewMutableDirectedGraph(roots)
 
 	// contains the subset of packages from the set of given packages (and their immediate dependencies)
 	// that will actually be included in our graph - any packages in the excludes slice, or that do not
@@ -61,7 +61,7 @@ func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDire
 			continue
 		}
 
-		n := &depgraph.Node{
+		n := &Node{
 			Id:         g.NewNodeID(),
 			UniqueName: pkg.ImportPath,
 			LabelName:  labelNameForNode(pkg.ImportPath),
@@ -72,6 +72,13 @@ func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDire
 		}
 
 		filteredPackages = append(filteredPackages, pkg)
+	}
+
+	// validate root names exist
+	for _, nodeName := range roots {
+		if _, exists := g.NodeByName(nodeName); !exists {
+			return nil, fmt.Errorf("no corresponding node found for the root name %q", nodeName)
+		}
 	}
 
 	// add edges
@@ -91,7 +98,11 @@ func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDire
 
 			to, exists := g.NodeByName(dependency)
 			if !exists {
-				return nil, fmt.Errorf("expected child node for dependency %q was not found in graph", dependency)
+				// if a package imports a dependency that we did not visit
+				// while traversing the code tree, ignore it, as it is not
+				// required for the root repository to build.
+				glog.V(1).Infof("Skipping unvisited (missing) dependency %q, which is imported by package %q", dependency, pkg.ImportPath)
+				continue
 			}
 
 			if g.HasEdgeFromTo(from, to) {

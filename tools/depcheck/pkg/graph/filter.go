@@ -1,12 +1,10 @@
-package trace
+package graph
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/gonum/graph/concrete"
-
-	depgraph "github.com/openshift/origin/tools/depcheck/pkg/graph"
 )
 
 // FilterPackages receives a graph and a set of packagePrefixes contained within the graph.
@@ -14,12 +12,12 @@ import (
 // into just that node. Relationships among packagePrefixes are kept: edges originating from
 // packagePrefix subpackages are re-written to originate from the packagePrefix, and edges
 // terminating at packagePrefix subpackages are re-written to terminate at the packagePrefix.
-func FilterPackages(g *depgraph.MutableDirectedGraph, packagePrefixes []string) (*depgraph.MutableDirectedGraph, error) {
-	collapsedGraph := depgraph.NewMutableDirectedGraph(concrete.NewDirectedGraph())
+func FilterPackages(g *MutableDirectedGraph, packagePrefixes []string) (*MutableDirectedGraph, error) {
+	collapsedGraph := NewMutableDirectedGraph(g.rootNodeNames)
 
 	// copy all nodes to new graph
 	for _, n := range g.Nodes() {
-		node, ok := n.(*depgraph.Node)
+		node, ok := n.(*Node)
 		if !ok {
 			continue
 		}
@@ -30,7 +28,7 @@ func FilterPackages(g *depgraph.MutableDirectedGraph, packagePrefixes []string) 
 			continue
 		}
 
-		err := collapsedGraph.AddNode(&depgraph.Node{
+		err := collapsedGraph.AddNode(&Node{
 			UniqueName: collapsedNodeName,
 			Id:         n.ID(),
 			LabelName:  labelNameForNode(collapsedNodeName),
@@ -42,9 +40,9 @@ func FilterPackages(g *depgraph.MutableDirectedGraph, packagePrefixes []string) 
 
 	// add edges to collapsed graph
 	for _, from := range g.Nodes() {
-		node, ok := from.(*depgraph.Node)
+		node, ok := from.(*Node)
 		if !ok {
-			return nil, fmt.Errorf("expected nodes in graph to be of type *depgraph.Node")
+			return nil, fmt.Errorf("expected nodes in graph to be of type *Node")
 		}
 
 		fromNodeName := getFilteredNodeName(packagePrefixes, node.UniqueName)
@@ -54,9 +52,9 @@ func FilterPackages(g *depgraph.MutableDirectedGraph, packagePrefixes []string) 
 		}
 
 		for _, to := range g.From(from) {
-			node, ok := to.(*depgraph.Node)
+			node, ok := to.(*Node)
 			if !ok {
-				return nil, fmt.Errorf("expected nodes in graph to be of type *depgraph.Node")
+				return nil, fmt.Errorf("expected nodes in graph to be of type *Node")
 			}
 
 			toNodeName := getFilteredNodeName(packagePrefixes, node.UniqueName)
