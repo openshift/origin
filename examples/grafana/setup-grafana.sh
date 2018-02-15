@@ -10,7 +10,7 @@ protocol="https://"
 usage() {
 echo "
 USAGE
- setup-grafana.sh <datasource_name> [optional: <graph_granularity> <yaml>]
+ setup-grafana.sh <datasource_name> [optional: <prometheus_namespace> <graph_granularity> <yaml>]
 
  args:
    datasource_name: grafana datasource name
@@ -42,6 +42,7 @@ oc new-project grafana
 oc process -f "${yaml}" |oc create -f -
 oc rollout status deployment/grafana
 oc adm policy add-role-to-user view -z grafana -n "${prometheus_namespace}"
+oc adm pod-network join-projects --to=${prometheus_namespace}
 
 payload="$( mktemp )"
 cat <<EOF >"${payload}"
@@ -50,7 +51,7 @@ cat <<EOF >"${payload}"
 "type": "prometheus",
 "typeLogoUrl": "",
 "access": "proxy",
-"url": "https://$( oc get route prometheus -n "${prometheus_namespace}" -o jsonpath='{.spec.host}' )",
+"url": "https://prometheus",
 "basicAuth": false,
 "withCredentials": false,
 "jsonData": {
@@ -69,5 +70,6 @@ sed -i.bak "s/\${DS_PR}/${datasource_name}/" "${dashboard_file}"
 curl -H "Content-Type: application/json" -u admin:admin "${grafana_host}/api/dashboards/db" -X POST -d "@${dashboard_file}"
 mv "${dashboard_file}.bak" "${dashboard_file}"
 
+rm -f ${payload}
 
 exit 0
