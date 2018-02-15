@@ -103,6 +103,10 @@ func (node *OsdnNode) handleDeleteHostSubnet(obj interface{}) {
 	if hs.HostIP == node.localIP {
 		return
 	}
+	if _, exists := node.hostSubnetMap[string(hs.UID)]; !exists {
+		return
+	}
+
 	delete(node.hostSubnetMap, string(hs.UID))
 	node.DeleteHostSubnetRules(hs)
 
