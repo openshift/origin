@@ -1,5 +1,0 @@
-py_binary(name = "crawlcoverage",
-         srcs = [])  # gratuitous1
-
-py_binary(name = "crawlcoverage2",
-         srcs = [])  # gratuitous2

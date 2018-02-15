@@ -42,9 +42,8 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
   svcat get class mysqldb
   svcat get class --uuid 997b8372-8dac-40ac-ae65-758b4a5075a5
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return getCmd.run(args)
-		},
+		PreRunE: command.PreRunE(getCmd),
+		RunE:    command.RunE(getCmd),
 	}
 	cmd.Flags().BoolVarP(
 		&getCmd.lookupByUUID,
@@ -56,15 +55,21 @@ func NewGetCmd(cxt *command.Context) *cobra.Command {
 	return cmd
 }
 
-func (c *getCmd) run(args []string) error {
-	if len(args) == 0 {
-		return c.getAll()
+func (c *getCmd) Validate(args []string) error {
+	if len(args) > 0 {
+		if c.lookupByUUID {
+			c.uuid = args[0]
+		} else {
+			c.name = args[0]
+		}
 	}
 
-	if c.lookupByUUID {
-		c.uuid = args[0]
-	} else {
-		c.name = args[0]
+	return nil
+}
+
+func (c *getCmd) Run() error {
+	if c.uuid == "" && c.name == "" {
+		return c.getAll()
 	}
 
 	return c.get()

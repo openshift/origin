@@ -14,17 +14,8 @@
 
 FROM golang:GO_VERSION
 
-# Avoid permission issues when glide pulls mercurial repos as root
-RUN printf "[trusted]\nusers = *\n" > /root/.hgrc
-
-# Install glide as root
-ENV GLIDE_VERSION=v0.12.3 \
-    GLIDE_HOME=/go/src/github.com/kubernetes-incubator/service-catalog/.glide
-RUN curl -sSL https://github.com/Masterminds/glide/releases/download/$GLIDE_VERSION/glide-$GLIDE_VERSION-linux-amd64.tar.gz \
-    | tar -vxz -C /usr/local/bin --strip=1
-
 # Install dep as root
-ENV DEP_VERSION=v0.3.2
+ENV DEP_VERSION=v0.4.1
 RUN curl -sSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/$DEP_VERSION/dep-linux-amd64 && \
     chmod +x /usr/local/bin/dep
 

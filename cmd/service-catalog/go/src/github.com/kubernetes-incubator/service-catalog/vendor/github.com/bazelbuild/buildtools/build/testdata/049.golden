@@ -1,9 +1,0 @@
-cc_library(
-    name = "foo",
-    deps = [
-        "yet/another:dep",
-        ":bar",
-        "//some:dep",
-        "//some/other/dep",
-    ],
-)

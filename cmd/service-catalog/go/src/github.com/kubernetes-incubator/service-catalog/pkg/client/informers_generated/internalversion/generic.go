@@ -21,6 +21,7 @@ package internalversion
 import (
 	"fmt"
 	servicecatalog "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
+	settings "github.com/kubernetes-incubator/service-catalog/pkg/apis/settings"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -62,6 +63,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Servicecatalog().InternalVersion().ServiceBindings().Informer()}, nil
 	case servicecatalog.SchemeGroupVersion.WithResource("serviceinstances"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Servicecatalog().InternalVersion().ServiceInstances().Informer()}, nil
+
+		// Group=settings.servicecatalog.k8s.io, Version=internalVersion
+	case settings.SchemeGroupVersion.WithResource("podpresets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Settings().InternalVersion().PodPresets().Informer()}, nil
 
 	}
 

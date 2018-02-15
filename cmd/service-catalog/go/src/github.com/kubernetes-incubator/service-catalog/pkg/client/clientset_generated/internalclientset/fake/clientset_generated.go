@@ -20,6 +20,8 @@ import (
 	clientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset"
 	servicecataloginternalversion "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset/typed/servicecatalog/internalversion"
 	fakeservicecataloginternalversion "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset/typed/servicecatalog/internalversion/fake"
+	settingsinternalversion "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset/typed/settings/internalversion"
+	fakesettingsinternalversion "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset/typed/settings/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -63,4 +65,9 @@ var _ clientset.Interface = &Clientset{}
 // Servicecatalog retrieves the ServicecatalogClient
 func (c *Clientset) Servicecatalog() servicecataloginternalversion.ServicecatalogInterface {
 	return &fakeservicecataloginternalversion.FakeServicecatalog{Fake: &c.Fake}
+}
+
+// Settings retrieves the SettingsClient
+func (c *Clientset) Settings() settingsinternalversion.SettingsInterface {
+	return &fakesettingsinternalversion.FakeSettings{Fake: &c.Fake}
 }

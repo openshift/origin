@@ -82,6 +82,9 @@ items:
     resources: ["secrets"]
     verbs:     ["get","create","update","delete"]
   - apiGroups: [""]
+    resources: ["pods"]
+    verbs:     ["get","list","update", "patch", "watch", "delete", "initialize"]
+  - apiGroups: [""]
     resources: ["namespaces"]
     verbs:     ["get","list","watch"]
   # access to our service-catalog types

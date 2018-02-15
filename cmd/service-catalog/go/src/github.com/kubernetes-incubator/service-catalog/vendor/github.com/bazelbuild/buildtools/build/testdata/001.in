@@ -1,1 +1,0 @@
-cc_test(name="bar",size="small",srcs=["a.cc","b.cc","c.cc"],deps=["//base",":foo","//util:map-util"], data = [ "datum" ], datum = [ "data", ])

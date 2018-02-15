@@ -64,3 +64,17 @@ required = [
 [[constraint]]
   name = "k8s.io/code-generator"
   version = "kubernetes-1.9.1"
+
+[prune]
+  non-go = true
+  go-tests = true
+  unused-packages = true
+
+# Prevent dep from pruning build scripts and codegen templates
+[[prune.project]]
+  name = "github.com/kubernetes/repo-infra"
+  non-go = false
+  go-tests = false
+  unused-packages = false
+
+

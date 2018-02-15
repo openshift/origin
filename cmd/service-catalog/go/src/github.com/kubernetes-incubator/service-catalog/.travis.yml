@@ -5,12 +5,20 @@ services:
 cache:
   directories:
     - $GOPATH/pkg/dep
-script:
-- make verify build build-integration build-e2e test images svcat
-deploy:
-  skip_cleanup: true
-  provider: script
-  script: contrib/travis/deploy.sh
-  on:
-    repo: kubernetes-incubator/service-catalog
-    all_branches: true
+stages:
+  - test
+  - name: deploy
+    if: type != pull_request
+jobs:
+  include:
+    # Test
+    - script: make verify build build-integration build-e2e test images svcat
+    # Deploy
+    - stage: deploy
+      deploy:
+        skip_cleanup: true
+        provider: script
+        script: contrib/travis/deploy.sh
+        on:
+          repo: kubernetes-incubator/service-catalog
+          all_branches: true

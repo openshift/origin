@@ -24,7 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/install"
+	servicecataloginstall "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/install"
+	settingsinstall "github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/install"
 )
 
 var (
@@ -40,7 +41,8 @@ var (
 )
 
 func init() {
-	install.Install(groupFactoryRegistry, Registry, Scheme)
+	servicecataloginstall.Install(groupFactoryRegistry, Registry, Scheme)
+	settingsinstall.Install(groupFactoryRegistry, Registry, Scheme)
 
 	// we need to add the options to empty v1
 	// TODO fix the server code to avoid this

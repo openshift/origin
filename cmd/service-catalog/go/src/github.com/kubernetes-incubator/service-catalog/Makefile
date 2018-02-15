@@ -53,19 +53,13 @@ else
 STAT           = stat -c '%Y %n'
 endif
 
-NEWEST_GO_FILE = $(shell find $(SRC_DIRS) -name \*.go -exec $(STAT) {} \; \
-                   | sort -r | head -n 1 | sed "s/.* //")
-
-NEWEST_E2ETEST_SOURCE = $(shell find test/e2e -name \*.go -exec $(STAT) {} \; \
-                   | sort -r | head -n 1 | sed "s/.* //")
-
 TYPES_FILES    = $(shell find pkg/apis -name types.go)
-GO_VERSION     = 1.9
+GO_VERSION    ?= 1.9
 
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 
-PLATFORM?=linux
-ARCH?=amd64
+PLATFORM ?= linux
+ARCH     ?= amd64
 
 # TODO: Consider using busybox instead of debian
 BASEIMAGE?=gcr.io/google-containers/debian-base-$(ARCH):0.2
@@ -105,9 +99,6 @@ else
 	scBuildImageTarget = .scBuildImage
 endif
 
-# Even though we migrated to dep, it doesn't replace the `glide nv` command
-NON_VENDOR_DIRS = $(shell $(DOCKER_CMD) glide nv)
-
 # This section builds the output binaries.
 # Some will have dedicated targets to make it easier to type, for example
 # "service-catalog" instead of "bin/service-catalog".
@@ -116,15 +107,16 @@ build: .init .generate_files \
 	$(BINDIR)/service-catalog \
 	$(BINDIR)/user-broker
 
+.PHONY: $(BINDIR)/user-broker
 user-broker: $(BINDIR)/user-broker
 $(BINDIR)/user-broker: .init contrib/cmd/user-broker \
 	  $(shell find contrib/cmd/user-broker -type f) \
 	  $(shell find contrib/pkg/broker -type f)
 	$(DOCKER_CMD) $(GO_BUILD) -o $@ $(SC_PKG)/contrib/cmd/user-broker
 
-# We'll rebuild service-catalog if any go file has changed (ie. NEWEST_GO_FILE)
+.PHONY: $(BINDIR)/service-catalog
 service-catalog: $(BINDIR)/service-catalog
-$(BINDIR)/service-catalog: .init .generate_files cmd/service-catalog $(NEWEST_GO_FILE)
+$(BINDIR)/service-catalog: .init .generate_files cmd/service-catalog 
 	$(DOCKER_CMD) $(GO_BUILD) -o $@ $(SC_PKG)/cmd/service-catalog
 
 # This section contains the code generation stuff
@@ -159,7 +151,8 @@ $(BINDIR)/informer-gen: .init
 $(BINDIR)/openapi-gen: vendor/k8s.io/code-generator/cmd/openapi-gen
 	$(DOCKER_CMD) go build -o $@ $(SC_PKG)/$^
 
-$(BINDIR)/e2e.test: .init $(NEWEST_E2ETEST_SOURCE) $(NEWEST_GO_FILE)
+.PHONY: $(BINDIR)/e2e.test
+$(BINDIR)/e2e.test: .init
 	$(DOCKER_CMD) go test -c -o $@ $(SC_PKG)/test/e2e
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
@@ -205,7 +198,7 @@ verify: .init .generate_files verify-generated verify-client-gen verify-vendor
 	   golint --set_exit_status $$i || exit 1; \
 	  done'
 	@#
-	$(DOCKER_CMD) go vet $(NON_VENDOR_DIRS)
+	$(DOCKER_CMD) go vet $(SC_PKG)/...
 	@echo Running repo-infra verify scripts
 	@$(DOCKER_CMD) vendor/github.com/kubernetes/repo-infra/verify/verify-boilerplate.sh --rootdir=. | grep -v generated | grep -v .pkg > .out 2>&1 || true
 	@[ ! -s .out ] || (cat .out && rm .out && false)
@@ -231,7 +224,8 @@ coverage: .init
 	$(DOCKER_CMD) contrib/hack/coverage.sh --html "$(COVERAGE)" \
 	  $(addprefix ./,$(TEST_DIRS))
 
-test: .init build test-unit test-integration test-dep
+.PHONY: test test-unit test-integration test-e2e
+test: .init build test-unit test-integration
 
 # this target checks to see if the go binary is installed on the host
 .PHONY: check-go
@@ -272,11 +266,11 @@ test-e2e: build-e2e
 clean: clean-bin clean-build-image clean-generated clean-coverage
 
 clean-bin:
-	$(DOCKER_CMD) rm -rf $(BINDIR)
+	rm -rf $(BINDIR)
 	rm -f .generate_exes
 
 clean-build-image:
-	$(DOCKER_CMD) rm -rf .pkg
+	rm -rf .pkg
 	rm -f .scBuildImage
 	docker rmi -f scbuildimage > /dev/null 2>&1 || true
 
@@ -310,7 +304,6 @@ images: user-broker-image service-catalog-image
 
 images-all: $(addprefix arch-image-,$(ALL_ARCH))
 arch-image-%:
-	$(MAKE) clean-bin
 	$(MAKE) ARCH=$* build
 	$(MAKE) ARCH=$* images
 
@@ -367,7 +360,6 @@ endif
 
 release-push: $(addprefix release-push-,$(ALL_ARCH))
 release-push-%:
-	$(MAKE) clean-bin
 	$(MAKE) ARCH=$* build
 	$(MAKE) ARCH=$* push
 
@@ -379,7 +371,7 @@ $(BINDIR)/svcat: .init .generate_files cmd/svcat/main.go
 	$(DOCKER_CMD) $(GO_BUILD) -o $@ $(SC_PKG)/cmd/svcat
 
 # Dependency management via dep (https://golang.github.io/dep)
-PHONHY: verify-vendor test-dep
+.PHONY: verify-vendor test-dep
 verify-vendor: .init
 	# Verify that vendor/ is in sync with Gopkg.lock
 	$(DOCKER_CMD) $(BUILD_DIR)/verify-vendor.sh
