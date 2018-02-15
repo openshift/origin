@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 97e5dfa2138cf89cbdcd6b9030c87547b582ebdc
+%global commit d21cbc09228dc37c2f5d4f3aca335c1c282978db
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.41.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.5 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=b1e5ad6 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.42.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.5 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=215eda8 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.42.0%{?dist}
+Release:        0.43.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,84 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Feb 15 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.43.0
+- Revert "Admission plugin: openshift.io/ImageQualify" (sjenning@redhat.com)
+- allow a panic to crash the server after a delay (deads@redhat.com)
+- enable additional osin server error logging (mrogers@redhat.com)
+- bump(*) (mrogers@redhat.com)
+- unexport scheduler and add health warning (jminter@redhat.com)
+- stop scheduler from advancing through empty buckets without accept from
+  ratelimiter (jminter@redhat.com)
+- update osin version in glide.yaml (mrogers@redhat.com)
+- Add remove test with mismatched rolebinding name (simo@redhat.com)
+- Don't call DeleteHostSubnetRules on a replayed Deleted event
+  (danw@redhat.com)
+- add registry.centos.org to default whitelist (bparees@redhat.com)
+- fix typo in HACKING.md (mrogers@redhat.com)
+- move pkg/build/{prune,cmd} into pkg/oc/cli/builds (mfojtik@redhat.com)
+- move pkg/apps/prune to pkg/oc (mfojtik@redhat.com)
+- Bug 1538922 - Fix diagnostics for AggregatedLogging (jwozniak@redhat.com)
+- Refactor minResourceLimits to filter by resourceName parameter
+  (amcdermo@redhat.com)
+- Inject LimitRange lister implementation via plugin configuration
+  (amcdermo@redhat.com)
+- Fix integration tests as CRO will now floor to CPU & Memory limits
+  (amcdermo@redhat.com)
+- Add admission tests for namespace minimums (amcdermo@redhat.com)
+- Do not mutate resource limits below namespace minimums (amcdermo@redhat.com)
+- Delete unused LimitRangerActions (amcdermo@redhat.com)
+- Replace loop index with generation number of istag
+  (nakayamakenjiro@gmail.com)
+- UPSTREAM: 59767: kubelet: check for illegal phase transition
+  (sjenning@redhat.com)
+- add origin test (jvallejo@redhat.com)
+- UPSTREAM: 59506: fix --watch on multiple requests (jvallejo@redhat.com)
+- Fix oc policy remove-user to remove rolebindings too (simo@redhat.com)
+- implements ExistenceChecker intf for deployments and replicasets
+  (jvallejo@redhat.com)
+- add publishing rules for repo synchronization (mfojtik@redhat.com)
+- return containerID from completed pod (deads@redhat.com)
+- complete the cluster up struct in the Complete method (deads@redhat.com)
+- simplify openshift controller manager startup (deads@redhat.com)
+- Make image pruner tolerate since to empty docker image reference
+  (agladkov@redhat.com)
+- JenkinsPipelineStrategy builds should not be pruned on BuildConfig save
+  (cdaley@redhat.com)
+- Update web console template labels (spadgett@redhat.com)
+- generated (deads@redhat.com)
+- add --local flag for adm router and registry (deads@redhat.com)
+- UPSTREAM: 58177: Redesign and implement volume reconstruction work
+  (hchen@redhat.com)
+- Make it clear deprecation apply also for later servers (simo@redhat.com)
+- UPSTREAM: 59350: Do not recycle volumes that are used by pods
+  (jsafrane@redhat.com)
+- cli: fix status for standalone deployment (mfojtik@redhat.com)
+- Fix cleanup of auto egress IPs when deleting a NetNamespace (danw@redhat.com)
+- do initialization steps for cluster up during initialization
+  (deads@redhat.com)
+- UPSTREAM: <carry>: patch the upstream SA token controller and use it
+  (deads@redhat.com)
+- UPSTREAM: 59569: Do not ignore errors from EC2::DescribeVolume in DetachDisk
+  (tsmetana@redhat.com)
+- Re-enable formerly-temporarily-disabled tests, kill some dead code
+  (danw@redhat.com)
+- Multiple template creation (sejug@redhat.com)
+- UPSTREAM: 58439: Fix loading structured admission plugin config
+  (jliggitt@redhat.com)
+- UPSTREAM: 58439: Surface error loading admission plugin config
+  (jliggitt@redhat.com)
+- Add SELinux label to local-storage provisioner (jsafrane@redhat.com)
+- remove-role-from-user outputs error when target was not found
+  (nakayamakenjiro@gmail.com)
+- fix the front proxy CA name (mrogers@redhat.com)
+- Grafna deployment update. (mrsiano@gmail.com)
+- Parametrize local-storage template with image name (jsafrane@redhat.com)
+- UPSTREAM: 58794: Resize mounted volumes (hekumar@redhat.com)
+- Add .NET Core CentOS ImageStreams (tom.deseyn@gmail.com)
+- UPSTREAM: 58685: Fill size attribute for the OpenStack V3 API volumes
+  (tsmetana@redhat.com)
+- Never evict pods on dind nodes (danw@redhat.com)
+
 * Fri Feb 09 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.42.0
 - update oc in build local images (deads@redhat.com)
 - host diagnostics: update master unit names (lmeyer@redhat.com)
