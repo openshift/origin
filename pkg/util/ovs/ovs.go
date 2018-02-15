@@ -15,12 +15,14 @@ import (
 type Interface interface {
 	// AddBridge creates the bridge associated with the interface, optionally setting
 	// properties on it (as with "ovs-vsctl set Bridge ..."). If the bridge already
-	// existed, it will be destroyed and recreated.
+	// exists this errors.
 	AddBridge(properties ...string) error
 
-	// DeleteBridge deletes the bridge associated with the interface. (It is an
-	// error if the bridge does not exist.)
-	DeleteBridge() error
+	// DeleteBridge deletes the bridge associated with the interface. The boolean
+	// that can be passed determines if a bridge not existing is an error. Passing
+	// true will delete bridge --if-exists, passing false will error if the bridge
+	// does not exist.
+	DeleteBridge(ifExists bool) error
 
 	// AddPort adds an interface to the bridge, requesting the indicated port
 	// number, and optionally setting properties on it (as with "ovs-vsctl set
@@ -160,7 +162,7 @@ func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
 }
 
 func (ovsif *ovsExec) AddBridge(properties ...string) error {
-	args := []string{"--if-exists", "del-br", ovsif.bridge, "--", "add-br", ovsif.bridge}
+	args := []string{"add-br", ovsif.bridge}
 	if len(properties) > 0 {
 		args = append(args, "--", "set", "Bridge", ovsif.bridge)
 		args = append(args, properties...)
@@ -169,8 +171,13 @@ func (ovsif *ovsExec) AddBridge(properties ...string) error {
 	return err
 }
 
-func (ovsif *ovsExec) DeleteBridge() error {
-	_, err := ovsif.exec(OVS_VSCTL, "del-br", ovsif.bridge)
+func (ovsif *ovsExec) DeleteBridge(ifExists bool) error {
+	args := []string{"del-br", ovsif.bridge}
+
+	if ifExists {
+		args = append([]string{"--if-exists"}, args...)
+	}
+	_, err := ovsif.exec(OVS_VSCTL, args...)
 	return err
 }
 

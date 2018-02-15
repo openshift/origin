@@ -62,7 +62,11 @@ func (oc *ovsController) AlreadySetUp() bool {
 }
 
 func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway string) error {
-	err := oc.ovs.AddBridge("fail-mode=secure", "protocols=OpenFlow13")
+	err := oc.ovs.DeleteBridge(true)
+	if err != nil {
+		return err
+	}
+	err = oc.ovs.AddBridge("fail-mode=secure", "protocols=OpenFlow13")
 	if err != nil {
 		return err
 	}
