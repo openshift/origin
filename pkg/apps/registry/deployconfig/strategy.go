@@ -93,6 +93,17 @@ func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object
 
 // Canonicalize normalizes the object after validation.
 func (strategy) Canonicalize(obj runtime.Object) {
+	dc := obj.(*appsapi.DeploymentConfig)
+
+	_, found := dc.Spec.Selector[appsapi.DeploymentConfigLabel]
+	if !found {
+		dc.Spec.Selector[appsapi.DeploymentConfigLabel] = dc.Name
+	}
+
+	_, found = dc.Spec.Template.Labels[appsapi.DeploymentConfigLabel]
+	if !found {
+		dc.Spec.Template.Labels[appsapi.DeploymentConfigLabel] = dc.Name
+	}
 }
 
 // Validate validates a new policy.

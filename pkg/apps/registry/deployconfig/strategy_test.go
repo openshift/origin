@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	core "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -24,21 +25,33 @@ func int32ptr(v int32) *int32 {
 
 func TestDeploymentConfigStrategy(t *testing.T) {
 	ctx := apirequest.NewDefaultContext()
+
 	if !CommonStrategy.NamespaceScoped() {
 		t.Errorf("DeploymentConfig is namespace scoped")
 	}
+
 	if CommonStrategy.AllowCreateOnUpdate() {
 		t.Errorf("DeploymentConfig should not allow create on update")
 	}
+
 	deploymentConfig := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec:       appstest.OkDeploymentConfigSpec(),
 	}
+
 	CommonStrategy.PrepareForCreate(ctx, deploymentConfig)
 	errs := CommonStrategy.Validate(ctx, deploymentConfig)
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
+
+	CommonStrategy.Canonicalize(deploymentConfig)
+
+	errs = CommonStrategy.Validate(ctx, deploymentConfig)
+	if len(errs) != 0 {
+		t.Errorf("Unexpected error validating %v", errs)
+	}
+
 	updatedDeploymentConfig := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "default", Generation: 1},
 		Spec:       appstest.OkDeploymentConfigSpec(),
@@ -47,6 +60,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 	if len(errs) == 0 {
 		t.Errorf("Expected error validating")
 	}
+
 	// name must match, and resource version must be provided
 	updatedDeploymentConfig.Name = "foo"
 	updatedDeploymentConfig.ResourceVersion = "1"
@@ -54,6 +68,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
+
 	invalidDeploymentConfig := &appsapi.DeploymentConfig{}
 	errs = CommonStrategy.Validate(ctx, invalidDeploymentConfig)
 	if len(errs) == 0 {
@@ -211,6 +226,101 @@ func TestGroupStrategy_PrepareForCreate(t *testing.T) {
 			errs := GroupStrategy.Validate(ctx, tc.obj)
 			if len(errs) != 0 {
 				t.Errorf("Unexpected error validating DeploymentConfig: %v", errs)
+			}
+		})
+	}
+}
+
+func TestCanonicalize(t *testing.T) {
+	dcName := "test"
+	tt := []struct {
+		obj      *appsapi.DeploymentConfig
+		expected *appsapi.DeploymentConfig
+	}{
+		{
+			obj: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: dcName,
+				},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Template: &core.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+			expected: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: dcName,
+				},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						appsapi.DeploymentConfigLabel: dcName,
+					},
+					Template: &core.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+								appsapi.DeploymentConfigLabel: dcName,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			obj: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: dcName,
+				},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						appsapi.DeploymentConfigLabel: dcName,
+					},
+					Template: &core.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+								appsapi.DeploymentConfigLabel: dcName,
+							},
+						},
+					},
+				},
+			},
+			expected: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: dcName,
+				},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						appsapi.DeploymentConfigLabel: dcName,
+					},
+					Template: &core.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"foo": "bar",
+								appsapi.DeploymentConfigLabel: dcName,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run("", func(t *testing.T) {
+			result := tc.obj.DeepCopy()
+			CommonStrategy.Canonicalize(result)
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("CommonStrategy.Canonicalize failed: %s", diff.ObjectReflectDiff(result, tc.expected))
 			}
 		})
 	}

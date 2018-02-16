@@ -22,12 +22,15 @@ import (
 
 func ValidateDeploymentConfig(config *appsapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
-	allErrs = append(allErrs, ValidateDeploymentConfigSpec(config.Spec)...)
+	allErrs = append(allErrs, ValidateDeploymentConfigSpec(config)...)
 	allErrs = append(allErrs, ValidateDeploymentConfigStatus(config.Status)...)
+
 	return allErrs
 }
 
-func ValidateDeploymentConfigSpec(spec appsapi.DeploymentConfigSpec) field.ErrorList {
+func ValidateDeploymentConfigSpec(config *appsapi.DeploymentConfig) field.ErrorList {
+	spec := config.Spec
+
 	allErrs := field.ErrorList{}
 	specPath := field.NewPath("spec")
 	for i := range spec.Triggers {
@@ -49,18 +52,22 @@ func ValidateDeploymentConfigSpec(spec appsapi.DeploymentConfigSpec) field.Error
 		allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(*spec.RevisionHistoryLimit), specPath.Child("revisionHistoryLimit"))...)
 	}
 	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(spec.MinReadySeconds), specPath.Child("minReadySeconds"))...)
+
 	timeoutSeconds := appsapi.DefaultRollingTimeoutSeconds
 	if spec.Strategy.RollingParams != nil && spec.Strategy.RollingParams.TimeoutSeconds != nil {
 		timeoutSeconds = *(spec.Strategy.RollingParams.TimeoutSeconds)
 	} else if spec.Strategy.RecreateParams != nil && spec.Strategy.RecreateParams.TimeoutSeconds != nil {
 		timeoutSeconds = *(spec.Strategy.RecreateParams.TimeoutSeconds)
 	}
+
 	if timeoutSeconds > 0 && int64(spec.MinReadySeconds) >= timeoutSeconds {
 		allErrs = append(allErrs, field.Invalid(specPath.Child("minReadySeconds"), spec.MinReadySeconds, fmt.Sprintf("must be less than the deployment timeout (%ds)", timeoutSeconds)))
 	}
+
 	if spec.Strategy.ActiveDeadlineSeconds != nil && int64(spec.MinReadySeconds) >= *(spec.Strategy.ActiveDeadlineSeconds) {
 		allErrs = append(allErrs, field.Invalid(specPath.Child("minReadySeconds"), spec.MinReadySeconds, fmt.Sprintf("must be less than activeDeadlineSeconds (%ds - used by the deployer pod)", *(spec.Strategy.ActiveDeadlineSeconds))))
 	}
+
 	if spec.Template == nil {
 		allErrs = append(allErrs, field.Required(specPath.Child("template"), ""))
 	} else {
@@ -68,13 +75,45 @@ func ValidateDeploymentConfigSpec(spec appsapi.DeploymentConfigSpec) field.Error
 		defer setContainerImageNames(spec.Template, originalContainerImageNames)
 		handleEmptyImageReferences(spec.Template, spec.Triggers)
 		allErrs = append(allErrs, validation.ValidatePodTemplateSpecForRC(spec.Template, spec.Selector, spec.Replicas, specPath.Child("template"))...)
+
 	}
+
 	if spec.Replicas < 0 {
 		allErrs = append(allErrs, field.Invalid(specPath.Child("replicas"), spec.Replicas, "replicas cannot be negative"))
 	}
+
 	if len(spec.Selector) == 0 {
 		allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), spec.Selector, "selector cannot be empty"))
+	} else {
+		// Validate reserved selectors
+
+		// DC.Spec.Selector[appsapi.DeploymentConfigLabel] shall always equal to the DC.Name
+		// If left empty Canonicalization will set it to DC.Name
+		deploymentConfigSelector, found := spec.Selector[appsapi.DeploymentConfigLabel]
+		if found && deploymentConfigSelector != config.Name {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), spec.Selector, fmt.Sprintf("can't set restricted selector `%s`", appsapi.DeploymentConfigLabel)))
+		}
+
+		// Same restrictions apply for the corresponding restricted label
+		deploymentConfigLabel, found := spec.Template.Labels[appsapi.DeploymentConfigLabel]
+		if found && deploymentConfigLabel != config.Name {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template.labels"), spec.Template.Labels, fmt.Sprintf("can't set restricted label `%s`", appsapi.DeploymentConfigLabel)))
+		}
+
+		// DC.Spec.Selector[appsapi.DeploymentLabel] shall never be set because it will be always overwritten
+		// with <dcname>-N when DC creates new RC
+		_, found = spec.Selector[appsapi.DeploymentLabel]
+		if found {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("selector"), spec.Selector, fmt.Sprintf("can't set restricted selector `%s`", appsapi.DeploymentLabel)))
+		}
+
+		// You can't set corresponding restricted label as well
+		_, found = spec.Template.Labels[appsapi.DeploymentLabel]
+		if found {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template.labels"), spec.Template.Labels, fmt.Sprintf("can't set restricted label `%s`", appsapi.DeploymentLabel)))
+		}
 	}
+
 	return allErrs
 }
 
@@ -132,7 +171,6 @@ func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []appsa
 			}
 		}
 	}
-
 }
 
 func ValidateDeploymentConfigStatus(status appsapi.DeploymentConfigStatus) field.ErrorList {

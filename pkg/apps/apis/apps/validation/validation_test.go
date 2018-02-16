@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/test"
@@ -911,54 +912,224 @@ func mkintp(i int) *int {
 	return &i
 }
 
-func TestValidateSelectorMatchesPodTemplateLabels(t *testing.T) {
-	tests := map[string]struct {
-		spec        appsapi.DeploymentConfigSpec
-		expectedErr bool
-		errorType   field.ErrorType
-		field       string
+func TestValidateDeploymentConfigSpecSelectors(t *testing.T) {
+	dcName := "test"
+	tt := []struct {
+		dc             *appsapi.DeploymentConfig
+		expectedErrors field.ErrorList
 	}{
-		"valid template labels": {
-			spec: appsapi.DeploymentConfigSpec{
-				Selector: test.OkSelector(),
-				Strategy: test.OkStrategy(),
-				Template: test.OkPodTemplate(),
+		{
+			// valid template labels
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: test.OkPodTemplate(),
+				},
 			},
 		},
-		"invalid template labels": {
-			spec: appsapi.DeploymentConfigSpec{
-				Selector: test.OkSelector(),
-				Strategy: test.OkStrategy(),
-				Template: test.OkPodTemplate(),
+		{
+			// invalid template labels
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: test.OkSelector(),
+					Strategy: test.OkStrategy(),
+					Template: func() *kapi.PodTemplateSpec {
+						t := test.OkPodTemplate()
+						t.Labels["a"] = "c"
+						return t
+					}(),
+				},
 			},
-			expectedErr: true,
-			errorType:   field.ErrorTypeInvalid,
-			field:       "spec.template.metadata.labels",
+			expectedErrors: field.ErrorList{
+				&field.Error{
+					Type:   field.ErrorTypeInvalid,
+					Field:  "spec.template.metadata.labels",
+					Detail: "`selector` does not match template `labels`",
+				},
+			},
+		},
+		{
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						"a": "b",
+						appsapi.DeploymentConfigLabel: dcName,
+					},
+					Strategy: test.OkStrategy(),
+					Template: func() *kapi.PodTemplateSpec {
+						t := test.OkPodTemplate()
+						t.Labels[appsapi.DeploymentConfigLabel] = dcName
+						return t
+					}(),
+				},
+			},
+		},
+		{
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						appsapi.DeploymentConfigLabel: dcName + "anything",
+					},
+					Strategy: test.OkStrategy(),
+					Template: func() *kapi.PodTemplateSpec {
+						t := test.OkPodTemplate()
+						t.Labels = map[string]string{
+							appsapi.DeploymentConfigLabel: dcName + "anything",
+						}
+						return t
+					}(),
+				},
+			},
+			expectedErrors: field.ErrorList{
+				&field.Error{
+					Type:   field.ErrorTypeInvalid,
+					Field:  "spec.selector",
+					Detail: "can't set restricted selector `deploymentconfig`",
+				},
+				&field.Error{
+					Type:   field.ErrorTypeInvalid,
+					Field:  "spec.template.labels",
+					Detail: "can't set restricted label `deploymentconfig`",
+				},
+			},
+		},
+		{
+			// Setting just matching deploymentconfig labels is valid as the restricted and later filled selector will match
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Strategy: test.OkStrategy(),
+					Template: func() *kapi.PodTemplateSpec {
+						t := test.OkPodTemplate()
+						t.Labels = map[string]string{
+							"foo": "bar",
+							appsapi.DeploymentConfigLabel: dcName,
+						}
+						return t
+					}(),
+				},
+			},
+		},
+		{
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Strategy: test.OkStrategy(),
+					Template: func() *kapi.PodTemplateSpec {
+						t := test.OkPodTemplate()
+						t.Labels = map[string]string{
+							"foo": "bar",
+							appsapi.DeploymentConfigLabel: dcName + "anything",
+						}
+						return t
+					}(),
+				},
+			},
+			expectedErrors: field.ErrorList{
+				&field.Error{
+					Type:   field.ErrorTypeInvalid,
+					Field:  "spec.template.labels",
+					Detail: "can't set restricted label `deploymentconfig`",
+				},
+			},
+		},
+		{
+			// Setting deployment: selector is invalid as it changes for every RS by LatestVersion
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						appsapi.DeploymentLabel: dcName,
+					},
+					Strategy: test.OkStrategy(),
+					Template: func() *kapi.PodTemplateSpec {
+						t := test.OkPodTemplate()
+						t.Labels = map[string]string{
+							appsapi.DeploymentLabel: dcName,
+						}
+						return t
+					}(),
+				},
+			},
+			expectedErrors: field.ErrorList{
+				&field.Error{
+					Type:   field.ErrorTypeInvalid,
+					Field:  "spec.selector",
+					Detail: "can't set restricted selector `deployment`",
+				},
+				&field.Error{
+					Type:   field.ErrorTypeInvalid,
+					Field:  "spec.template.labels",
+					Detail: "can't set restricted label `deployment`",
+				},
+			},
+		},
+		{
+			// Setting deployment: label is invalid as it would be overwritten
+			dc: &appsapi.DeploymentConfig{
+				ObjectMeta: metav1.ObjectMeta{Name: dcName},
+				Spec: appsapi.DeploymentConfigSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Strategy: test.OkStrategy(),
+					Template: func() *kapi.PodTemplateSpec {
+						t := test.OkPodTemplate()
+						t.Labels = map[string]string{
+							"foo": "bar",
+							appsapi.DeploymentLabel: dcName,
+						}
+						return t
+					}(),
+				},
+			},
+			expectedErrors: field.ErrorList{
+				&field.Error{
+					Type:   field.ErrorTypeInvalid,
+					Field:  "spec.template.labels",
+					Detail: "can't set restricted label `deployment`",
+				},
+			},
 		},
 	}
 
-	for name, test := range tests {
-		if test.expectedErr {
-			test.spec.Template.Labels["a"] = "c"
-		}
-		errs := ValidateDeploymentConfigSpec(test.spec)
-		if len(errs) == 0 && test.expectedErr {
-			t.Errorf("%s: expected failure", name)
-			continue
-		}
-		if !test.expectedErr {
-			continue
-		}
-		if len(errs) != 1 {
-			t.Errorf("%s: expected one error, got %d", name, len(errs))
-			continue
-		}
-		err := errs[0]
-		if err.Type != test.errorType {
-			t.Errorf("%s: expected error to have type %q, got %q", name, test.errorType, err.Type)
-		}
-		if err.Field != test.field {
-			t.Errorf("%s: expected error to have field %q, got %q", name, test.field, err.Field)
-		}
+	for _, tc := range tt {
+		t.Run("", func(t *testing.T) {
+			t.Logf("dc.Spec.Selector: %#v", tc.dc.Spec.Selector)
+			t.Logf("dc.Spec.Template.Labels: %#v", tc.dc.Spec.Template.Labels)
+
+			errs := ValidateDeploymentConfigSpec(tc.dc)
+			if len(tc.expectedErrors) == 0 && len(errs) != 0 {
+				t.Errorf("expected no error but got: '%v'", errs.ToAggregate())
+				return
+			}
+
+			if len(tc.expectedErrors) != 0 && len(errs) == 0 {
+				t.Errorf("expected errors '%v', got none", tc.expectedErrors.ToAggregate())
+				return
+
+			}
+
+			// Ignore comparing BadValue
+			for i := range errs {
+				errs[i].BadValue = nil
+			}
+
+			if !kapihelper.Semantic.DeepEqual(tc.expectedErrors, errs) {
+				t.Errorf("expected errors:\n  %v\ngot:\n  %v", tc.expectedErrors.ToAggregate(), errs.ToAggregate())
+				return
+			}
+		})
 	}
 }
