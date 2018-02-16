@@ -544,7 +544,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 		simpleMsg, detailedMsg := volumeToMount.GenerateMsg("MountVolume.SetUp succeeded", "")
 		verbosity := glog.Level(1)
 		if isRemount {
-			verbosity = glog.Level(7)
+			verbosity = glog.Level(4)
 		} else {
 			og.recorder.Eventf(volumeToMount.Pod, v1.EventTypeNormal, kevents.SuccessfulMountVolume, simpleMsg)
 		}
@@ -582,7 +582,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 
 func (og *operationGenerator) resizeFileSystem(volumeToMount VolumeToMount, devicePath, deviceMountPath, pluginName string) error {
 	if !utilfeature.DefaultFeatureGate.Enabled(features.ExpandPersistentVolumes) {
-		glog.V(6).Infof("Resizing is not enabled for this volume %s", volumeToMount.VolumeName)
+		glog.V(4).Infof("Resizing is not enabled for this volume %s", volumeToMount.VolumeName)
 		return nil
 	}
 
@@ -1061,7 +1061,7 @@ func (og *operationGenerator) GenerateUnmapDeviceFunc(
 		}
 
 		// The block volume is not referenced from Pods. Release file descriptor lock.
-		glog.V(5).Infof("UnmapDevice: deviceToDetach.DevicePath: %v", deviceToDetach.DevicePath)
+		glog.V(4).Infof("UnmapDevice: deviceToDetach.DevicePath: %v", deviceToDetach.DevicePath)
 		loopPath, err := og.blkUtil.GetLoopDevice(deviceToDetach.DevicePath)
 		if err != nil {
 			glog.Warningf(deviceToDetach.GenerateMsgDetailed("UnmapDevice: Couldn't find loopback device which takes file descriptor lock", fmt.Sprintf("device path: %q", deviceToDetach.DevicePath)))
