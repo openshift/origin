@@ -144,6 +144,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Reason:  "Failed",
 				Message: formatError(err),
 			})
+			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
 		}
 	}
 
@@ -166,6 +167,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Reason:  "Failed",
 				Message: "See InstantiateFailure condition for error message",
 			})
+			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceInstantiateFailure)).Inc()
 
 		} else if ready {
 			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
@@ -173,6 +175,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Status: kapi.ConditionTrue,
 				Reason: "Created",
 			})
+			templateInstanceCompleted.WithLabelValues(string(templateapi.TemplateInstanceReady)).Inc()
 
 		} else {
 			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
