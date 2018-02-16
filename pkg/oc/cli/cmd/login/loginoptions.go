@@ -104,6 +104,13 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	// ensure clientConfig has timeout option
 	if o.RequestTimeout > 0 {
 		clientConfig.Timeout = o.RequestTimeout
+
+		// if a timeout was specified, set a custom transport dial func that mimics the default one
+		// from k8s.io/client-go/transport/cache.go#get but with a custom timeout field.
+		clientConfig.Dial = (&net.Dialer{
+			Timeout:   o.RequestTimeout,
+			KeepAlive: 30 * time.Second,
+		}).Dial
 	}
 
 	// normalize the provided server to a format expected by config
