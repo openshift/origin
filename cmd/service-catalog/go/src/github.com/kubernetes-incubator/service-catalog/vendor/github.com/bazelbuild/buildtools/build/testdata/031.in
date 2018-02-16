@@ -1,9 +1,0 @@
-java_test(
-    name = 'AllTestsCoverage',
-    test_class = INSTRUMENTED_TEST_CLASS,
-    deps = [ ':instrumented_js_runner' ],
-    data = TEST_SOURCES,
-    tags = [ 'local',  # Cannot be run remotely.
-             'manual'  # Don't run coverage automatically.
-            ],
-    size = 'large')

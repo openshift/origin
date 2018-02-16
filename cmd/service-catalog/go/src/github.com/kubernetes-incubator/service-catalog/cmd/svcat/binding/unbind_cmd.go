@@ -32,7 +32,7 @@ type unbindCmd struct {
 
 // NewUnbindCmd builds a "svcat unbind" command
 func NewUnbindCmd(cxt *command.Context) *cobra.Command {
-	unbindCmd := unbindCmd{Context: cxt}
+	unbindCmd := &unbindCmd{Context: cxt}
 	cmd := &cobra.Command{
 		Use:   "unbind INSTANCE_NAME",
 		Short: "Unbinds an instance. When an instance name is specified, all of its bindings are removed, otherwise use --name to remove a specific binding",
@@ -40,9 +40,8 @@ func NewUnbindCmd(cxt *command.Context) *cobra.Command {
   svcat unbind wordpress-mysql-instance
   svcat unbind --name wordpress-mysql-binding
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return unbindCmd.run(args)
-		},
+		PreRunE: command.PreRunE(unbindCmd),
+		RunE:    command.RunE(unbindCmd),
 	}
 
 	cmd.Flags().StringVarP(
@@ -61,15 +60,29 @@ func NewUnbindCmd(cxt *command.Context) *cobra.Command {
 	return cmd
 }
 
-func (c *unbindCmd) run(args []string) error {
+func (c *unbindCmd) Validate(args []string) error {
 	if len(args) == 0 {
 		if c.bindingName == "" {
 			return fmt.Errorf("an instance or binding name is required")
 		}
-
-		return c.App.DeleteBinding(c.ns, c.bindingName)
+	} else {
+		c.instanceName = args[0]
 	}
 
-	c.instanceName = args[0]
+	return nil
+}
+
+func (c *unbindCmd) Run() error {
+	if c.instanceName != "" {
+		return c.unbindInstance()
+	}
+	return c.deleteBinding()
+}
+
+func (c *unbindCmd) deleteBinding() error {
+	return c.App.DeleteBinding(c.ns, c.bindingName)
+}
+
+func (c *unbindCmd) unbindInstance() error {
 	return c.App.Unbind(c.ns, c.instanceName)
 }

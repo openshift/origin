@@ -41,9 +41,8 @@ func NewDescribeCmd(cxt *command.Context) *cobra.Command {
 		Example: `
   svcat describe instance wordpress-mysql-instance
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return describeCmd.run(args)
-		},
+		PreRunE: command.PreRunE(describeCmd),
+		RunE:    command.RunE(describeCmd),
 	}
 	cmd.Flags().StringVarP(
 		&describeCmd.ns,
@@ -62,12 +61,16 @@ func NewDescribeCmd(cxt *command.Context) *cobra.Command {
 	return cmd
 }
 
-func (c *describeCmd) run(args []string) error {
+func (c *describeCmd) Validate(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("name is required")
 	}
 	c.name = args[0]
 
+	return nil
+}
+
+func (c *describeCmd) Run() error {
 	return c.describe()
 }
 

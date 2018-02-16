@@ -47,9 +47,8 @@ func NewProvisionCmd(cxt *command.Context) *cobra.Command {
   svcat provision wordpress-mysql-instance --class mysqldb --plan free -p location=eastus -p sslEnforcement=disabled
   svcat provision wordpress-mysql-instance --class mysqldb --plan free -s mysecret[dbparams]
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return provisionCmd.run(args)
-		},
+		PreRunE: command.PreRunE(provisionCmd),
+		RunE:    command.RunE(provisionCmd),
 	}
 	cmd.Flags().StringVarP(&provisionCmd.ns, "namespace", "n", "default",
 		"The namespace in which to create the instance")
@@ -59,14 +58,14 @@ func NewProvisionCmd(cxt *command.Context) *cobra.Command {
 	cmd.Flags().StringVar(&provisionCmd.planName, "plan", "",
 		"The plan name (Required)")
 	cmd.MarkFlagRequired("plan")
-	cmd.Flags().StringArrayVarP(&provisionCmd.rawParams, "param", "p", nil,
+	cmd.Flags().StringSliceVarP(&provisionCmd.rawParams, "param", "p", nil,
 		"Additional parameter to use when provisioning the service, format: NAME=VALUE")
-	cmd.Flags().StringArrayVarP(&provisionCmd.rawSecrets, "secret", "s", nil,
+	cmd.Flags().StringSliceVarP(&provisionCmd.rawSecrets, "secret", "s", nil,
 		"Additional parameter, whose value is stored in a secret, to use when provisioning the service, format: SECRET[KEY]")
 	return cmd
 }
 
-func (c *provisonCmd) run(args []string) error {
+func (c *provisonCmd) Validate(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("an instance name is required")
 	}
@@ -84,10 +83,14 @@ func (c *provisonCmd) run(args []string) error {
 		return fmt.Errorf("invalid --secret value (%s)", err)
 	}
 
-	return c.provision()
+	return nil
 }
 
-func (c *provisonCmd) provision() error {
+func (c *provisonCmd) Run() error {
+	return c.Provision()
+}
+
+func (c *provisonCmd) Provision() error {
 	instance, err := c.App.Provision(c.ns, c.instanceName, c.className, c.planName, c.params, c.secrets)
 	if err != nil {
 		return err

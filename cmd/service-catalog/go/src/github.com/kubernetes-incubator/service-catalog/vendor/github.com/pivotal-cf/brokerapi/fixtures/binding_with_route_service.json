@@ -1,9 +1,0 @@
-{
-  "credentials": {
-    "host": "127.0.0.1",
-    "port": 3000,
-    "username": "batman",
-    "password": "robin"
-  },
-  "route_service_url": "some-route-url"
-}

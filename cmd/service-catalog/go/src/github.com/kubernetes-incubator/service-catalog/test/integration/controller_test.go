@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -356,6 +357,175 @@ func TestAsyncProvisionWithMultiplePolls(t *testing.T) {
 
 		verifyInstanceCreated(t, ct.client, ct.instance)
 	})
+}
+
+// TestServiceInstanceDeleteWithAsyncUpdateInProgress tests that you can delete
+// an instance during an async update.  That is, if you request a delete during
+// an instance update, the instance will be deleted when the update completes
+// regardless of success or failure.
+func TestServiceInstanceDeleteWithAsyncUpdateInProgress(t *testing.T) {
+
+	cases := []struct {
+		name           string
+		updateSucceeds bool
+	}{
+		{
+			name:           "update succeeds",
+			updateSucceeds: true,
+		},
+		{
+			name:           "update fails",
+			updateSucceeds: false,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var done int32 = 0
+			ct := controllerTest{
+				t:                            t,
+				broker:                       getTestBroker(),
+				instance:                     getTestInstance(),
+				skipVerifyingInstanceSuccess: false,
+				setup: func(ct *controllerTest) {
+					ct.osbClient.UpdateInstanceReaction.(*fakeosb.UpdateInstanceReaction).Response.Async = true
+					ct.osbClient.PollLastOperationReaction = fakeosb.DynamicPollLastOperationReaction(
+						func(_ *osb.LastOperationRequest) (*osb.LastOperationResponse, error) {
+							state := osb.StateInProgress
+							d := atomic.LoadInt32(&done)
+							if d > 0 {
+								if tc.updateSucceeds {
+									state = osb.StateSucceeded
+								} else {
+									state = osb.StateFailed
+								}
+							}
+							return &osb.LastOperationResponse{State: state}, nil
+						})
+				},
+			}
+			ct.run(func(ct *controllerTest) {
+
+				if err := util.WaitForInstanceCondition(ct.client, ct.instance.Namespace, ct.instance.Name,
+					v1beta1.ServiceInstanceCondition{
+						Type:   v1beta1.ServiceInstanceConditionReady,
+						Status: v1beta1.ConditionTrue,
+						Reason: "ProvisionedSuccessfully",
+					}); err != nil {
+					t.Fatalf("error waiting for instance to be ready: %v", err)
+				}
+
+				// add a parameter to the instance for the Update()
+				ct.instance.Spec.Parameters = convertParametersIntoRawExtension(t,
+					map[string]interface{}{
+						"param-key": "new-param-value",
+					})
+
+				_, err := ct.client.ServiceInstances(testNamespace).Update(ct.instance)
+				if err != nil {
+					t.Fatalf("error updating instance: %v", err)
+				}
+
+				if err := util.WaitForInstanceCondition(ct.client, ct.instance.Namespace, ct.instance.Name,
+					v1beta1.ServiceInstanceCondition{
+						Type:   v1beta1.ServiceInstanceConditionReady,
+						Status: v1beta1.ConditionFalse,
+						Reason: "UpdatingInstance",
+					}); err != nil {
+					t.Fatalf("error waiting for instance to be updating asynchronously: %v", err)
+				}
+
+				if err := ct.client.ServiceInstances(ct.instance.Namespace).Delete(ct.instance.Name, &metav1.DeleteOptions{}); err != nil {
+					t.Fatalf("failed to delete instance: %v", err)
+				}
+
+				// notify the thread handling DynamicPollLastOperationReaction that it can end the async op
+				atomic.StoreInt32(&done, 1)
+
+				if err := util.WaitForInstanceToNotExist(ct.client, ct.instance.Namespace, ct.instance.Name); err != nil {
+					t.Fatalf("error waiting for instance to not exist: %v", err)
+				}
+
+				// We deleted the instance above, clear it so test cleanup doesn't fail
+				ct.instance = nil
+			})
+		})
+	}
+}
+
+// TestServiceInstanceDeleteWithAsyncProvisionInProgress tests that you can
+// delete an instance during an async provision.  Verify the instance is deleted
+// when the provisioning completes regardless of success or failure.
+func TestServiceInstanceDeleteWithAsyncProvisionInProgress(t *testing.T) {
+	cases := []struct {
+		name              string
+		provisionSucceeds bool
+	}{
+		{
+			name:              "provision succeeds",
+			provisionSucceeds: true,
+		},
+		{
+			name:              "provision fails",
+			provisionSucceeds: false,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var done int32 = 0
+			ct := controllerTest{
+				t:                            t,
+				broker:                       getTestBroker(),
+				instance:                     getTestInstance(),
+				skipVerifyingInstanceSuccess: true,
+				setup: func(ct *controllerTest) {
+					ct.osbClient.ProvisionReaction.(*fakeosb.ProvisionReaction).Response.Async = true
+					ct.osbClient.PollLastOperationReaction = fakeosb.DynamicPollLastOperationReaction(
+						func(_ *osb.LastOperationRequest) (*osb.LastOperationResponse, error) {
+							state := osb.StateInProgress
+							d := atomic.LoadInt32(&done)
+							if d > 0 {
+								if tc.provisionSucceeds {
+									state = osb.StateSucceeded
+								} else {
+									state = osb.StateFailed
+								}
+							}
+							return &osb.LastOperationResponse{State: state}, nil
+						})
+				},
+			}
+			ct.run(func(ct *controllerTest) {
+				if err := util.WaitForInstanceCondition(ct.client, ct.instance.Namespace, ct.instance.Name,
+					v1beta1.ServiceInstanceCondition{
+						Type:   v1beta1.ServiceInstanceConditionReady,
+						Status: v1beta1.ConditionFalse,
+						Reason: "Provisioning",
+					}); err != nil {
+					t.Fatalf("error waiting for instance to be provisioning asynchronously: %v", err)
+				}
+
+				if err := ct.client.ServiceInstances(ct.instance.Namespace).Delete(ct.instance.Name, &metav1.DeleteOptions{}); err != nil {
+					t.Fatalf("failed to delete instance: %v", err)
+				}
+
+				// notify the thread handling DynamicPollLastOperationReaction that it can end the async op
+				atomic.StoreInt32(&done, 1)
+
+				if err := util.WaitForInstanceToNotExist(ct.client, ct.instance.Namespace, ct.instance.Name); err != nil {
+					t.Fatalf("error waiting for instance to not exist: %v", err)
+				}
+
+				// We deleted the instance above, clear it so test cleanup doesn't fail
+				ct.instance = nil
+			})
+		})
+	}
 }
 
 func getUpdateInstanceResponseByPollCountReactions(numOfResponses int, stateProgressions []fakeosb.UpdateInstanceReaction) fakeosb.DynamicUpdateInstanceReaction {

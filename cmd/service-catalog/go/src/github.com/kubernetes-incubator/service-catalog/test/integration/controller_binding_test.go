@@ -17,9 +17,12 @@ limitations under the License.
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
+
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 
 	// avoid error `servicecatalog/v1beta1 is not enabled`
 	_ "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/install"
@@ -28,6 +31,7 @@ import (
 	fakeosb "github.com/pmorie/go-open-service-broker-client/v2/fake"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
+	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
 )
 
@@ -480,6 +484,41 @@ func TestDeleteServiceBindingFailureRetry(t *testing.T) {
 						StatusCode: 500,
 						Description: strPtr("test error unbinding"),
 					}
+				})
+		},
+	}
+	ct.run(func(_ *controllerTest) {})
+}
+
+// TestDeleteServiceBindingRetry tests whether deletion of a service binding
+// retries after failing an asynchronous unbind.
+func TestDeleteServiceBindingFailureRetryAsync(t *testing.T) {
+	// Enable the AsyncBindingOperations feature
+	utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=true", scfeatures.AsyncBindingOperations))
+	defer utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=false", scfeatures.AsyncBindingOperations))
+
+	hasPollFailed := false
+	ct := &controllerTest{
+		t:        t,
+		broker:   getTestBroker(),
+		instance: getTestInstance(),
+		binding:  getTestBinding(),
+		setup: func(ct *controllerTest) {
+			ct.osbClient.UnbindReaction = fakeosb.DynamicUnbindReaction(
+				func(_ *osb.UnbindRequest) (*osb.UnbindResponse, error) {
+					response := &osb.UnbindResponse{Async: true}
+					if hasPollFailed {
+						response.Async = false
+					}
+					return response, nil
+				})
+
+			ct.osbClient.PollBindingLastOperationReaction = fakeosb.DynamicPollBindingLastOperationReaction(
+				func(_ *osb.BindingLastOperationRequest) (*osb.LastOperationResponse, error) {
+					hasPollFailed = true
+					return &osb.LastOperationResponse{
+						State: osb.StateFailed,
+					}, nil
 				})
 		},
 	}

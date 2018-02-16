@@ -1,7 +1,0 @@
-cc_library(
-    name = "foo",
-    deps = [
-        ":testdata",
-        "//:root",
-    ],
-)

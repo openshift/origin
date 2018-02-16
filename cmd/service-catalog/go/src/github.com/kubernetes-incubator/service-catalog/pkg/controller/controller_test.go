@@ -853,6 +853,26 @@ func getTestServiceBinding() *v1beta1.ServiceBinding {
 	}
 }
 
+// instantiates a yet-to-be-created binding
+func getTestServiceInactiveBinding() *v1beta1.ServiceBinding {
+	return &v1beta1.ServiceBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       testServiceBindingName,
+			Namespace:  testNamespace,
+			Finalizers: []string{v1beta1.FinalizerServiceCatalog},
+			Generation: 1,
+		},
+		Spec: v1beta1.ServiceBindingSpec{
+			ServiceInstanceRef: v1beta1.LocalObjectReference{Name: testServiceInstanceName},
+			ExternalID:         testServiceBindingGUID,
+		},
+		Status: v1beta1.ServiceBindingStatus{
+			Conditions:   []v1beta1.ServiceBindingCondition{},
+			UnbindStatus: v1beta1.ServiceBindingUnbindStatusNotRequired,
+		},
+	}
+}
+
 func getTestServiceBindingUnbinding() *v1beta1.ServiceBinding {
 	binding := &v1beta1.ServiceBinding{
 		ObjectMeta: metav1.ObjectMeta{

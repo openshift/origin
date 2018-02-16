@@ -40,17 +40,23 @@ const (
 	// owner: @mkibbe
 	// alpha: v1.7
 	AsyncBindingOperations utilfeature.Feature = "AsyncBindingOperations"
+
+	// PodPreset controls whether PodPreset resource is enabled or not in the
+	// API server.
+	// owner: @droot
+	// alpha: v0.1.6
+	PodPreset utilfeature.Feature = "PodPreset"
 )
 
 func init() {
 	utilfeature.DefaultFeatureGate.Add(defaultServiceCatalogFeatureGates)
 }
 
-// defaultServiceCatalogFeatureGates consists of all known
-// feature keys that are specific to the service-catalog.
-// To add a new feature, define a key for it above and add it here.
-// The features will be available throughout service-catalog binaries.
+// defaultServiceCatalogFeatureGates consists of all known service catalog specific feature keys.
+// To add a new feature, define a key for it above and add it here. The features will be
+// available throughout service catalog binaries.
 var defaultServiceCatalogFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
+	PodPreset:              {Default: false, PreRelease: utilfeature.Alpha},
 	OriginatingIdentity:    {Default: false, PreRelease: utilfeature.Alpha},
 	AsyncBindingOperations: {Default: false, PreRelease: utilfeature.Alpha},
 }
