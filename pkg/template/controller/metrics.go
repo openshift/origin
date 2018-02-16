@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"time"
+
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/labels"
@@ -8,69 +10,70 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
-var templateInstancesTotal = prometheus.NewGaugeVec(
-	prometheus.GaugeOpts{
-		Name: "openshift_template_instance_total",
-		Help: "Counts TemplateInstance objects",
+var templateInstanceCompleted = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "openshift_template_instance_completed_total",
+		Help: "Counts completed TemplateInstance objects by condition",
 	},
-	nil,
+	[]string{"condition"},
 )
 
-var templateInstanceStatusCondition = prometheus.NewGaugeVec(
-	prometheus.GaugeOpts{
-		Name: "openshift_template_instance_status_condition_total",
-		Help: "Counts TemplateInstance objects by condition type and status",
-	},
-	[]string{"type", "status"},
-)
+func newTemplateInstanceActiveAge() prometheus.Histogram {
+	// We recreate a new Histogram object every time Collect is called.  This is
+	// because we are recording a series of point-in-time observations about the
+	// population of "active" TemplateInstances.  Were we to use a singleton
+	// Histogram, we would only be able to observe TemplateInstances as they
+	// completed, which would add latency in reporting very long-running
+	// TemplateInstances and completely prevent reporting of non-completing
+	// TemplateInstances.
+	//
+	// Effectively, the resulting series is to Histogram what Gauge is to
+	// Counter.  In the resulting series, _count and _sum are not monotonically
+	// increasing (because TemplateInstances are no longer part of the
+	// population once they terminate or are deleted), therefore it is not valid
+	// to use counter functions such as rate() on this series.
 
-var templateInstancesActiveStartTime = prometheus.NewGaugeVec(
-	prometheus.GaugeOpts{
-		Name: "openshift_template_instance_active_start_time_seconds",
-		Help: "Show the start time in unix epoch form of active TemplateInstance objects by namespace and name",
-	},
-	[]string{"namespace", "name"},
-)
+	return prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "openshift_template_instance_active_age_seconds",
+			Help:    "Shows the instantaneous age distribution of active TemplateInstance objects",
+			Buckets: prometheus.LinearBuckets(600, 600, 7),
+		},
+	)
+}
 
 func (c *TemplateInstanceController) Describe(ch chan<- *prometheus.Desc) {
-	templateInstancesTotal.Describe(ch)
-	templateInstanceStatusCondition.Describe(ch)
-	templateInstancesActiveStartTime.Describe(ch)
+	templateInstanceActiveAge := newTemplateInstanceActiveAge()
+
+	templateInstanceCompleted.Describe(ch)
+	templateInstanceActiveAge.Describe(ch)
 }
 
 func (c *TemplateInstanceController) Collect(ch chan<- prometheus.Metric) {
+	templateInstanceCompleted.Collect(ch)
+
+	now := c.clock.Now()
+
 	templateInstances, err := c.lister.List(labels.Everything())
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
 	}
 
-	templateInstancesTotal.Reset()
-	templateInstanceStatusCondition.Reset()
-	templateInstancesActiveStartTime.Reset()
+	templateInstanceActiveAge := newTemplateInstanceActiveAge()
 
-	templateInstancesTotal.WithLabelValues().Set(0)
-
+nextTemplateInstance:
 	for _, templateInstance := range templateInstances {
-		waiting := true
-
-		templateInstancesTotal.WithLabelValues().Inc()
-
 		for _, cond := range templateInstance.Status.Conditions {
-			templateInstanceStatusCondition.WithLabelValues(string(cond.Type), string(cond.Status)).Inc()
-
 			if cond.Status == kapi.ConditionTrue &&
-				(cond.Type == templateapi.TemplateInstanceInstantiateFailure || cond.Type == templateapi.TemplateInstanceReady) {
-				waiting = false
+				(cond.Type == templateapi.TemplateInstanceInstantiateFailure ||
+					cond.Type == templateapi.TemplateInstanceReady) {
+				continue nextTemplateInstance
 			}
 		}
 
-		if waiting {
-			templateInstancesActiveStartTime.WithLabelValues(templateInstance.Namespace, templateInstance.Name).Set(float64(templateInstance.CreationTimestamp.Unix()))
-		}
+		templateInstanceActiveAge.Observe(float64(now.Sub(templateInstance.CreationTimestamp.Time) / time.Second))
 	}
 
-	templateInstancesTotal.Collect(ch)
-	templateInstanceStatusCondition.Collect(ch)
-	templateInstancesActiveStartTime.Collect(ch)
+	templateInstanceActiveAge.Collect(ch)
 }
