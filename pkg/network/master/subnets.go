@@ -23,8 +23,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 	subrange := make(map[common.ClusterNetwork][]string)
 	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error in initializing/fetching subnets: %v", err))
-		return err
+		return fmt.Errorf("error in initializing/fetching subnets: %v", err)
 	}
 	for _, sub := range subnets.Items {
 		if err = master.networkInfo.ValidateNodeIP(sub.HostIP); err != nil {
@@ -55,15 +54,65 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 	}
 	master.subnetAllocatorList = subnetAllocatorList
 
+	err = master.reconcileHostSubnets(subnets.Items)
+	if err != nil {
+		return err
+	}
+
 	master.watchNodes()
 	master.watchSubnets()
+	return nil
+}
+
+// reconcileHostSubnets verifies and corrects the state of the hostsubnets on startup of the master.
+// Because openshift watches on events to keep hostsubnets and nodes in the correct state, missing an event
+// can cause orphaned or unusable hostsubnets to stick around.
+func (master *OsdnMaster) reconcileHostSubnets(hostSubnets []networkapi.HostSubnet) error {
+	nodes, err := master.kClient.Core().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("error in initializing/fetching nodes: %v", err)
+	}
+	nodeUIDmap := make(map[string]string)
+	for _, node := range nodes.Items {
+		nodeUIDmap[node.Name] = string(node.UID)
+	}
+	for _, subnet := range hostSubnets {
+		if len(nodeUIDmap[subnet.Name]) == 0 && len(subnet.Annotations[networkapi.NodeUIDAnnotation]) == 0 {
+			// Subnet belongs to F5, Ignore.
+			continue
+		} else if len(nodeUIDmap[subnet.Name]) > 0 && len(subnet.Annotations[networkapi.NodeUIDAnnotation]) == 0 {
+			// Update path, stamp UID annotation on subnet.
+			if subnet.Annotations == nil {
+				subnet.Annotations = make(map[string]string)
+			}
+			subnet.Annotations[networkapi.NodeUIDAnnotation] = nodeUIDmap[subnet.Name]
+			_, err := master.networkClient.Network().HostSubnets().Update(&subnet)
+			if err != nil {
+				return fmt.Errorf("error updating subnet %v for node %s: %v", subnet, subnet.Name, err)
+			}
+		} else if len(nodeUIDmap[subnet.Name]) == 0 && len(subnet.Annotations[networkapi.NodeUIDAnnotation]) > 0 {
+			// Missed Node event, delete stale subnet.
+			glog.Infof("Setup found no node associated with hostsubnet %s, deleting the hostsubnet", subnet.Name)
+			err := master.networkClient.Network().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{})
+			if err != nil {
+				return fmt.Errorf("error deleting subnet %v: %v", subnet, err)
+			}
+		} else if nodeUIDmap[subnet.Name] != subnet.Annotations[networkapi.NodeUIDAnnotation] {
+			// Missed Node event, node with the same name exists delete stale subnet.
+			glog.Infof("Missed node event, hostsubnet %s has the UID of an incorrect object, deleting the hostsubnet", subnet.Name)
+			err := master.networkClient.Network().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{})
+			if err != nil {
+				return fmt.Errorf("error deleting subnet %v: %v", subnet, err)
+			}
+		}
+	}
 	return nil
 }
 
 // addNode takes the nodeName, a preferred nodeIP and the node's annotations
 // Creates or updates a HostSubnet if needed
 // Returns the IP address used for hostsubnet (either the preferred or one from the otherValidAddresses) and any error
-func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations map[string]string) (string, error) {
+func (master *OsdnMaster) addNode(nodeName string, nodeUID string, nodeIP string, hsAnnotations map[string]string) (string, error) {
 	// Validate node IP before proceeding
 	if err := master.networkInfo.ValidateNodeIP(nodeIP); err != nil {
 		return "", err
@@ -87,6 +136,12 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	}
 
 	// Create new subnet
+	if len(nodeUID) != 0 {
+		if hsAnnotations == nil {
+			hsAnnotations = make(map[string]string)
+		}
+		hsAnnotations[networkapi.NodeUIDAnnotation] = nodeUID
+	}
 	for _, possibleSubnet := range master.subnetAllocatorList {
 		sn, err := possibleSubnet.GetNetwork()
 		if err == netutils.ErrSubnetAllocatorFull {
@@ -211,7 +266,7 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 	// Node status is frequently updated by kubelet, so log only if the above condition is not met
 	glog.V(5).Infof("Watch %s event for Node %q", eventType, node.Name)
 
-	usedNodeIP, err := master.addNode(node.Name, nodeIP, nil)
+	usedNodeIP, err := master.addNode(node.Name, string(node.UID), nodeIP, nil)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error creating subnet for node %s, ip %s: %v", node.Name, nodeIP, err))
 		return
@@ -268,7 +323,7 @@ func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType 
 			utilruntime.HandleError(fmt.Errorf("VNID %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation))
 		}
 	}
-	_, err = master.addNode(hs.Name, hs.HostIP, hsAnnotations)
+	_, err = master.addNode(hs.Name, "", hs.HostIP, hsAnnotations)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error creating subnet for node %s, ip %s: %v", hs.Name, hs.HostIP, err))
 		return
