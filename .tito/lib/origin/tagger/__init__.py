@@ -39,6 +39,6 @@ class OriginTagger(VersionTagger):
         inject_os_git_vars(self.spec_file)
         super(OriginTagger, self)._tag_release()
 
-    def _get_tag_for_version(self, version):
+    def _get_tag_for_version(self, version, release=None):
         return "v{}".format(version)
 # vim:expandtab:autoindent:tabstop=4:shiftwidth=4:filetype=python:textwidth=0:
