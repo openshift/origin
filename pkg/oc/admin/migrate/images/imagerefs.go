@@ -84,7 +84,6 @@ type MigrateImageReferenceOptions struct {
 func NewCmdMigrateImageReferences(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateImageReferenceOptions{
 		ResourceOptions: migrate.ResourceOptions{
-			In:      in,
 			Out:     out,
 			ErrOut:  errout,
 			Include: []string{"imagestream", "image", "secrets"},

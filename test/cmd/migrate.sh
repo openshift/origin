@@ -19,12 +19,15 @@ os::cmd::try_until_not_text 'oc get ns --template "{{ range .items }}{{ if not (
 project="$( oc project -q )"
 
 os::test::junit::declare_suite_start "cmd/migrate/storage"
-os::cmd::expect_success_and_text     'oc adm migrate storage' 'summary \(dry run\)'
-os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2' "migrated \(dry run\): -n ${project} serviceaccounts/deployer"
-os::cmd::expect_success_and_not_text 'oc adm migrate storage --loglevel=2 --include=pods' "migrated \(dry run\): -n ${project} serviceaccounts/deployer"
-os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/\xFF' "migrated \(dry run\): -n default serviceaccounts/deployer"
-os::cmd::expect_success_and_not_text 'oc adm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/deployer' "migrated \(dry run\): -n default serviceaccounts/deployer"
-os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2 --confirm' 'unchanged:'
+os::cmd::expect_success_and_text     'oc adm migrate storage' 'summary'
+os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2' ": -n ${project} serviceaccounts/deployer"
+os::cmd::expect_success_and_not_text 'oc adm migrate storage --loglevel=2 --include=pods' ": -n ${project} serviceaccounts/deployer"
+os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/\xFF' ": -n default serviceaccounts/deployer"
+os::cmd::expect_success_and_not_text 'oc adm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/deployer' ": -n default serviceaccounts/deployer"
+os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2' 'unchanged:'
+os::cmd::expect_success_and_text     'oc adm migrate storage --bandwidth=20' 'summary:'
+os::cmd::expect_success_and_text     'oc adm migrate storage --confirm' 'storage migration does not support dry run, this flag is ignored'
+os::cmd::expect_success_and_text     'oc adm migrate storage -o=yaml' 'storage migration does not support dry run, this flag is ignored'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/migrate/storage_oauthclientauthorizations"
@@ -35,7 +38,7 @@ os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/clientaut
 # Delete client
 os::cmd::expect_success_and_text     'oc delete oauthclient test-oauth-client' 'oauthclient.oauth.openshift.io "test-oauth-client" deleted'
 # Assert that migration/update still works even though the client authorization is no longer valid
-os::cmd::expect_success_and_text 'oc adm migrate storage --loglevel=6 --include=oauthclientauthorizations --confirm' 'PUT.*oauthclientauthorizations/user1:test-oauth-client'
+os::cmd::expect_success_and_text 'oc adm migrate storage --loglevel=6 --include=oauthclientauthorizations' 'PUT.*oauthclientauthorizations/user1:test-oauth-client'
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/migrate/imagereferences"

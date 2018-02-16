@@ -3,13 +3,18 @@ package storage
 import (
 	"fmt"
 	"io"
+	"runtime"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"golang.org/x/time/rate"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -40,28 +45,44 @@ var (
 		result in significant intra-cluster traffic.`)
 
 	internalMigrateStorageExample = templates.Examples(`
-		# Perform a dry-run of updating all objects
+	  # Perform an update of all objects
 	  %[1]s
 
-	  # To actually perform the update, the confirm flag must be appended
-	  %[1]s --confirm
-
 	  # Only migrate pods
-	  %[1]s --include=pods --confirm
+	  %[1]s --include=pods
 
 	  # Only pods that are in namespaces starting with "bar"
-	  %[1]s --include=pods --confirm --from-key=bar/ --to-key=bar/\xFF`)
+	  %[1]s --include=pods --from-key=bar/ --to-key=bar/\xFF`)
+)
+
+const (
+	// longThrottleLatency defines threshold for logging requests. All requests being
+	// throttle for more than longThrottleLatency will be logged.
+	longThrottleLatency = 50 * time.Millisecond
+
+	// 1 MB == 1000 KB
+	mbToKB = 1000
+	// 1 KB == 1000 bytes
+	kbToBytes = 1000
+	// 1 byte == 8 bits
+	// we use a float to avoid truncating on division
+	byteToBits = 8.0
 )
 
 type MigrateAPIStorageOptions struct {
 	migrate.ResourceOptions
+
+	// Total network IO in megabits per second across all workers.
+	// Zero means "no rate limit."
+	bandwidth int
+	// used to enforce bandwidth value
+	limiter *tokenLimiter
 }
 
 // NewCmdMigrateAPIStorage implements a MigrateStorage command
 func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateAPIStorageOptions{
 		ResourceOptions: migrate.ResourceOptions{
-			In:     in,
 			Out:    out,
 			ErrOut: errout,
 
@@ -157,7 +178,7 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 		},
 	}
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s REGISTRY/NAME=REGISTRY/NAME [...]", name),
+		Use:     name, // TODO do something useful here
 		Short:   "Update the stored version of API objects",
 		Long:    internalMigrateStorageLong,
 		Example: fmt.Sprintf(internalMigrateStorageExample, fullName),
@@ -168,19 +189,64 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 		},
 	}
 	options.ResourceOptions.Bind(cmd)
+	flags := cmd.Flags()
+
+	// opt-in to allow parallel execution since we know this command is goroutine safe
+	// storage migration is IO bound so we make sure that we have enough workers to saturate the rate limiter
+	options.Workers = 32 * runtime.NumCPU()
+	// expose a flag to allow rate limiting the workers based on network bandwidth
+	flags.IntVar(&options.bandwidth, "bandwidth", 10,
+		"Average network bandwidth measured in megabits per second (Mbps) to use during storage migration.  Zero means no limit.  This flag is alpha and may change in the future.")
+
+	// remove flags that do not make sense
+	flags.MarkDeprecated("confirm", "storage migration does not support dry run, this flag is ignored")
+	flags.MarkHidden("confirm")
+	flags.MarkDeprecated("output", "storage migration does not support dry run, this flag is ignored")
+	flags.MarkHidden("output")
 
 	return cmd
 }
 
 func (o *MigrateAPIStorageOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string) error {
+	// force unset output, it does not make sense for this command
+	if err := c.Flags().Set("output", ""); err != nil {
+		return err
+	}
+	// force confirm, dry run does not make sense for this command
+	o.Confirm = true
+
 	o.ResourceOptions.SaveFn = o.save
 	if err := o.ResourceOptions.Complete(f, c); err != nil {
 		return err
 	}
+
+	// do not limit the builder as we handle throttling via our own limiter
+	// thus the list calls that the builder makes are never rate limited
+	// we estimate their IO usage in our call to o.limiter.take
+	always := flowcontrol.NewFakeAlwaysRateLimiter()
+	o.Builder.TransformRequests(
+		func(req *rest.Request) {
+			req.Throttle(always)
+		},
+	).
+		// we use info.Client to directly fetch objects
+		// this is just documentation, it does not really change anything because we fetch and decode lists of all objects regardless
+		RequireObject(false)
+
+	// bandwidth < 0 means error
+	// bandwidth == 0 means "no limit", we use a nil check to minimize overhead
+	// bandwidth > 0 means limit accordingly
+	if o.bandwidth > 0 {
+		o.limiter = newTokenLimiter(o.bandwidth, o.Workers)
+	}
+
 	return nil
 }
 
 func (o MigrateAPIStorageOptions) Validate() error {
+	if o.bandwidth < 0 {
+		return fmt.Errorf("invalid value %d for --bandwidth, must be at least 0", o.bandwidth)
+	}
 	return o.ResourceOptions.Validate()
 }
 
@@ -197,10 +263,11 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 	// TODO: add any custom mutations necessary
 	default:
 		// load the body and save it back, without transformation to avoid losing fields
-		get := info.Client.Get().
+		r := info.Client.Get().
 			Resource(info.Mapping.Resource).
 			NamespaceIfScoped(info.Namespace, info.Mapping.Scope.Name() == meta.RESTScopeNameNamespace).
-			Name(info.Name).Do()
+			Name(info.Name)
+		get := r.Do()
 		data, err := get.Raw()
 		if err != nil {
 			// since we have an error, processing the body is safe because we are not going
@@ -209,6 +276,21 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 			// that DefaultRetriable can correctly determine if the error is safe to retry.
 			return migrate.DefaultRetriable(info, get.Error())
 		}
+
+		// a nil limiter means "no limit"
+		if o.limiter != nil {
+			// we have to wait until after the GET to determine how much data we will PUT
+			// thus we need to double the amount to account for both operations
+			// we also need to account for the initial list operation which is roughly another GET per object
+			// thus we can amortize the cost of the list by adding another GET to our calculations
+			// so we have 2 GETs + 1 PUT == 3 * size of data
+			latency := o.limiter.take(3 * len(data))
+			// mimic rest.Request.tryThrottle logging logic
+			if latency > longThrottleLatency {
+				glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, "GET", r.URL().String())
+			}
+		}
+
 		update := info.Client.Put().
 			Resource(info.Mapping.Resource).
 			NamespaceIfScoped(info.Namespace, info.Mapping.Scope.Name() == meta.RESTScopeNameNamespace).
@@ -234,4 +316,46 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 		}
 	}
 	return nil
+}
+
+type tokenLimiter struct {
+	burst       int
+	rateLimiter *rate.Limiter
+	nowFunc     func() time.Time // for unit testing
+}
+
+// take n bytes from the rateLimiter, and sleep if needed
+// return the length of the sleep
+// is goroutine safe
+func (t *tokenLimiter) take(n int) time.Duration {
+	if n <= 0 {
+		return 0
+	}
+	// if n > burst, we need to split the reservation otherwise ReserveN will fail
+	var extra time.Duration
+	for ; n > t.burst; n -= t.burst {
+		extra += t.getDuration(t.burst)
+	}
+	// calculate the remaining sleep time
+	total := t.getDuration(n) + extra
+	time.Sleep(total)
+	return total
+}
+
+func (t *tokenLimiter) getDuration(n int) time.Duration {
+	now := t.nowFunc()
+	reservation := t.rateLimiter.ReserveN(now, n)
+	if !reservation.OK() {
+		// this should never happen but we do not want to hang a worker forever
+		glog.Errorf("unable to get rate limited reservation, burst=%d n=%d limiter=%#v", t.burst, n, *t.rateLimiter)
+		return time.Minute
+	}
+	return reservation.DelayFrom(now)
+}
+
+// rate limit based on bandwidth after conversion to bytes
+// we use a burst value that scales linearly with the number of workers
+func newTokenLimiter(bandwidth, workers int) *tokenLimiter {
+	burst := 100 * kbToBytes * workers // 100 KB of burst per worker
+	return &tokenLimiter{burst: burst, rateLimiter: rate.NewLimiter(rate.Limit(bandwidth*mbToKB*kbToBytes/byteToBits), burst), nowFunc: time.Now}
 }
