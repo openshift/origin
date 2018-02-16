@@ -243,6 +243,14 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 		}
 	}
 
+	if GRPCThreadLimit > 0 {
+		if err := aggregatedAPIServer.GenericAPIServer.AddHealthzChecks(NewGRPCStuckThreads()); err != nil {
+			return err
+		}
+		// We start a separate gofunc that will panic for us because nothing is watching healthz at the moment.
+		PanicOnGRPCStuckThreads(10*time.Second, stopCh)
+	}
+
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
