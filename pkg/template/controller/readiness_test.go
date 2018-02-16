@@ -194,7 +194,7 @@ func TestCheckReadiness(t *testing.T) {
 			groupKind: batch.Kind("Job"),
 			object: &batch.Job{
 				Status: batch.JobStatus{
-					CompletionTime: &metav1.Time{Time: time.Now()},
+					CompletionTime: &metav1.Time{Time: time.Unix(0, 0)},
 				},
 			},
 			expectedReady: true,
