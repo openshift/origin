@@ -50,11 +50,12 @@ func TestMetrics(t *testing.T) {
 		"openshift_build_total{phase=\"Complete\",reason=\"\"} 1",
 		"openshift_build_total{phase=\"Error\",reason=\"\"} 1",
 		"openshift_build_total{phase=\"Failed\",reason=\"ExceededRetryTimeout\"} 1",
-		"# HELP openshift_build_active_time_seconds Shows the last transition time in unix epoch for running builds by namespace, name, and phase",
+		"openshift_build_total{phase=\"New\",reason=\"InvalidOutputReference\"} 1",
+		"# HELP openshift_build_active_time_seconds Shows the last transition time in unix epoch for running builds by namespace, name, phase, and reason",
 		"# TYPE openshift_build_active_time_seconds gauge",
-		"openshift_build_active_time_seconds{name=\"testname1\",namespace=\"testnamespace\",phase=\"New\"} 123",
-		"openshift_build_active_time_seconds{name=\"testname2\",namespace=\"testnamespace\",phase=\"Pending\"} 123",
-		"openshift_build_active_time_seconds{name=\"testname3\",namespace=\"testnamespace\",phase=\"Running\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname1\",namespace=\"testnamespace\",phase=\"New\",reason=\"\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname2\",namespace=\"testnamespace\",phase=\"Pending\",reason=\"\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname3\",namespace=\"testnamespace\",phase=\"Running\",reason=\"\"} 123",
 	}
 	registry := prometheus.NewRegistry()
 
@@ -78,6 +79,12 @@ func TestMetrics(t *testing.T) {
 			Status: buildapi.BuildStatus{
 				Phase:  buildapi.BuildPhaseFailed,
 				Reason: buildapi.StatusReasonExceededRetryTimeout,
+			},
+		},
+		{
+			Status: buildapi.BuildStatus{
+				Phase:  buildapi.BuildPhaseNew,
+				Reason: buildapi.StatusReasonInvalidOutputReference,
 			},
 		},
 		{
