@@ -427,3 +427,84 @@ func TestMatchNote(t *testing.T) {
 		}
 	}
 }
+
+func TestExternalIDs(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		output   map[string]string
+		unparsed []string
+	}{
+		{
+			name:     "one element, no punctuation",
+			input:    `foo=bar`,
+			output:   map[string]string{"foo": "bar"},
+			unparsed: []string{`{foo="bar"}`},
+		},
+		{
+			name:     "one element, with punctuation",
+			input:    `{foo="bar"}`,
+			output:   map[string]string{"foo": "bar"},
+			unparsed: []string{`{foo="bar"}`},
+		},
+		{
+			name:     "two elements, no punctuation",
+			input:    `foo=bar,two=blah`,
+			output:   map[string]string{"foo": "bar", "two": "blah"},
+			unparsed: []string{`{foo="bar",two="blah"}`, `{two="blah",foo="bar"}`},
+		},
+		{
+			name:     "two elements, with punctuation",
+			input:    `{foo="bar", two="blah"}`,
+			output:   map[string]string{"foo": "bar", "two": "blah"},
+			unparsed: []string{`{foo="bar",two="blah"}`, `{two="blah",foo="bar"}`},
+		},
+		{
+			name:   "three elements, one quoted",
+			input:  `foo=bar,two="blah",three=baz`,
+			output: map[string]string{"foo": "bar", "two": "blah", "three": "baz"},
+			unparsed: []string{
+				`{foo="bar",two="blah",three="baz"}`,
+				`{foo="bar",three="baz",two="blah"}`,
+				`{two="blah",foo="bar",three="baz"}`,
+				`{two="blah",three="baz",foo="bar"}`,
+				`{three="baz",foo="bar",two="blah"}`,
+				`{three="baz",two="blah",foo="bar"}`,
+			},
+		},
+		{
+			name:   "missing element",
+			input:  `foo=bar,,three=baz`,
+			output: nil,
+		},
+		{
+			name:   "bad element",
+			input:  `foo=bar,two`,
+			output: nil,
+		},
+	}
+
+	for _, test := range tests {
+		parsed, err := ParseExternalIDs(test.input)
+		if test.output == nil {
+			if err == nil {
+				t.Fatalf("on test %q expected failure but got %#v", test.name, parsed)
+			}
+			continue
+		}
+		if !reflect.DeepEqual(parsed, test.output) {
+			t.Fatalf("on test %q expected %#v but got %#v", test.name, test.output, parsed)
+		}
+		unparsed := UnparseExternalIDs(parsed)
+		found := false
+		for _, check := range test.unparsed {
+			if unparsed == check {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("on test %q unparsed %q was not any of %#v", test.name, unparsed, test.unparsed)
+		}
+	}
+}
