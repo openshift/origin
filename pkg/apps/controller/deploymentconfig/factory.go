@@ -98,19 +98,15 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 
 func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {
 	dc := obj.(*appsapi.DeploymentConfig)
-	glog.V(4).Infof("Adding deployment config %q", dc.Name)
+	glog.V(4).Infof("Adding deployment config %s/%s", dc.Namespace, dc.Name)
 	c.enqueueDeploymentConfig(dc)
 }
 
 func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}) {
-	// A periodic relist will send update events for all known configs.
 	newDc := cur.(*appsapi.DeploymentConfig)
 	oldDc := old.(*appsapi.DeploymentConfig)
-	if newDc.ResourceVersion == oldDc.ResourceVersion {
-		return
-	}
 
-	glog.V(4).Infof("Updating deployment config %q", newDc.Name)
+	glog.V(4).Infof("Updating deployment config %s/%s", oldDc.Namespace, oldDc.Name)
 	c.enqueueDeploymentConfig(newDc)
 }
 
@@ -128,16 +124,17 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 			return
 		}
 	}
-	glog.V(4).Infof("Deleting deployment config %q", dc.Name)
+	glog.V(4).Infof("Deleting deployment config %s/%s", dc.Namespace, dc.Name)
 	c.enqueueDeploymentConfig(dc)
 }
 
 // updateReplicationController figures out which deploymentconfig is managing this replication
 // controller and requeues the deployment config.
 func (c *DeploymentConfigController) updateReplicationController(old, cur interface{}) {
-	// A periodic relist will send update events for all known controllers.
 	curRC := cur.(*v1.ReplicationController)
 	oldRC := old.(*v1.ReplicationController)
+
+	// We can safely ignore periodic re-lists on RCs as we react to periodic re-lists of DCs
 	if curRC.ResourceVersion == oldRC.ResourceVersion {
 		return
 	}

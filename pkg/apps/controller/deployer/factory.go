@@ -103,12 +103,7 @@ func (c *DeploymentController) addReplicationController(obj interface{}) {
 }
 
 func (c *DeploymentController) updateReplicationController(old, cur interface{}) {
-	// A periodic relist will send update events for all known controllers.
 	curRC := cur.(*v1.ReplicationController)
-	oldRC := old.(*v1.ReplicationController)
-	if curRC.ResourceVersion == oldRC.ResourceVersion {
-		return
-	}
 
 	// Filter out all unrelated replication controllers.
 	if !appsutil.IsOwnedByConfig(curRC) {
@@ -119,9 +114,10 @@ func (c *DeploymentController) updateReplicationController(old, cur interface{})
 }
 
 func (c *DeploymentController) updatePod(old, cur interface{}) {
-	// A periodic relist will send update events for all known pods.
 	curPod := cur.(*v1.Pod)
 	oldPod := old.(*v1.Pod)
+
+	// We can safely ignore periodic re-lists on Pods as we react to periodic re-lists of RCs
 	if curPod.ResourceVersion == oldPod.ResourceVersion {
 		return
 	}
