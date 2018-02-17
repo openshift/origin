@@ -40,6 +40,7 @@ oc-adm-create-signer-cert.1
 oc-adm-diagnostics-aggregatedlogging.1
 oc-adm-diagnostics-all.1
 oc-adm-diagnostics-analyzelogs.1
+oc-adm-diagnostics-appcreate.1
 oc-adm-diagnostics-clusterregistry.1
 oc-adm-diagnostics-clusterrolebindings.1
 oc-adm-diagnostics-clusterroles.1
@@ -195,6 +196,7 @@ oc-ex-config.1
 oc-ex-diagnostics-aggregatedlogging.1
 oc-ex-diagnostics-all.1
 oc-ex-diagnostics-analyzelogs.1
+oc-ex-diagnostics-appcreate.1
 oc-ex-diagnostics-clusterregistry.1
 oc-ex-diagnostics-clusterrolebindings.1
 oc-ex-diagnostics-clusterroles.1

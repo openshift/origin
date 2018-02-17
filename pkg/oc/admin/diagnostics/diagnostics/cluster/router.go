@@ -18,6 +18,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstypedclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
@@ -99,7 +100,7 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 	if d.KubeClient == nil || d.DCClient == nil {
 		return false, errors.New("must have kube and os client")
 	}
-	can, err := userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
+	can, err := util.UserCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Namespace: metav1.NamespaceDefault,
 		Verb:      "get",
 		Group:     appsapi.GroupName,

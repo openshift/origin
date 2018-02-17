@@ -17,6 +17,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 )
 
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
@@ -162,7 +163,7 @@ func (d *ClusterRegistry) CanRun() (bool, error) {
 	if d.ImageStreamClient == nil || d.KubeClient == nil {
 		return false, fmt.Errorf("must have kube and os clients")
 	}
-	return userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
+	return util.UserCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Namespace: metav1.NamespaceDefault,
 		Verb:      "get",
 		Group:     kapi.GroupName,
