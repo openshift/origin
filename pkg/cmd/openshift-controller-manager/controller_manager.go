@@ -185,6 +185,7 @@ func newControllerContext(
 		NetworkInformers:        informers.GetNetworkInformers(),
 		QuotaInformers:          informers.GetQuotaInformers(),
 		SecurityInformers:       informers.GetSecurityInformers(),
+		RouteInformers:          informers.GetRouteInformers(),
 		TemplateInformers:       informers.GetTemplateInformers(),
 		GenericResourceInformer: informers.ToGenericInformer(),
 		Stop:             stopCh,

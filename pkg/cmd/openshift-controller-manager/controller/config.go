@@ -63,9 +63,10 @@ type OpenshiftControllerConfig struct {
 
 	ServiceServingCertsControllerOptions ServiceServingCertsControllerOptions
 
-	SDNControllerConfig       SDNControllerConfig
-	UnidlingControllerConfig  UnidlingControllerConfig
-	IngressIPControllerConfig IngressIPControllerConfig
+	SDNControllerConfig            SDNControllerConfig
+	UnidlingControllerConfig       UnidlingControllerConfig
+	IngressIPControllerConfig      IngressIPControllerConfig
+	IngressToRouteControllerConfig IngressToRouteControllerConfig
 
 	ClusterQuotaReconciliationControllerConfig ClusterQuotaReconciliationControllerConfig
 
@@ -98,6 +99,7 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	ret["openshift.io/sdn"] = c.SDNControllerConfig.RunController
 	ret["openshift.io/unidling"] = c.UnidlingControllerConfig.RunController
 	ret["openshift.io/ingress-ip"] = c.IngressIPControllerConfig.RunController
+	ret["openshift.io/ingress-to-route"] = c.IngressToRouteControllerConfig.RunController
 
 	ret["openshift.io/resourcequota"] = RunResourceQuotaManager
 	ret["openshift.io/cluster-quota-reconciliation"] = c.ClusterQuotaReconciliationControllerConfig.RunController
