@@ -53,9 +53,8 @@ func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, 
 		}
 	}
 
-	if err := r.roleClient.ClusterRoles().Delete(name, &metav1.DeleteOptions{}); err != nil {
+	if _, err := r.roleClient.ClusterRoles().Get(name, metav1.GetOptions{}); err != nil {
 		return err
 	}
-
-	return nil
+	return r.roleClient.ClusterRoles().Delete(name, &metav1.DeleteOptions{})
 }
