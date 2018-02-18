@@ -1275,17 +1275,16 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 // Constants used to default createAndStartRouterContainerExtended
 const (
 	defaultBindPortsAfterSync = false
-	defaultEnableIngress      = false
 	defaultNamespaceLabels    = ""
 )
 
 // createAndStartRouterContainer is responsible for deploying the router image in docker.  It assumes that all router images
 // will use a command line flag that can take --master which points to the master url
 func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int) (containerId string, err error) {
-	return createAndStartRouterContainerExtended(dockerCli, masterIp, routerStatsPort, reloadInterval, defaultBindPortsAfterSync, defaultEnableIngress, defaultNamespaceLabels)
+	return createAndStartRouterContainerExtended(dockerCli, masterIp, routerStatsPort, reloadInterval, defaultBindPortsAfterSync, defaultNamespaceLabels)
 }
 
-func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int, bindPortsAfterSync, enableIngress bool, namespaceLabels string) (containerId string, err error) {
+func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int, bindPortsAfterSync bool, namespaceLabels string) (containerId string, err error) {
 	ports := []string{"80", "443"}
 	if routerStatsPort > 0 {
 		ports = append(ports, fmt.Sprintf("%d", routerStatsPort))
@@ -1322,7 +1321,6 @@ func createAndStartRouterContainerExtended(dockerCli *dockerClient.Client, maste
 		fmt.Sprintf("STATS_PASSWORD=%s", statsPassword),
 		fmt.Sprintf("DEFAULT_CERTIFICATE=%s\n%s", defaultCert, defaultKey),
 		fmt.Sprintf("ROUTER_BIND_PORTS_AFTER_SYNC=%s", strconv.FormatBool(bindPortsAfterSync)),
-		fmt.Sprintf("ROUTER_ENABLE_INGRESS=%s", strconv.FormatBool(enableIngress)),
 		fmt.Sprintf("NAMESPACE_LABELS=%s", namespaceLabels),
 	}
 
@@ -1644,7 +1642,7 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 
 	bindPortsAfterSync := true
 	reloadInterval := 1
-	routerId, err := createAndStartRouterContainerExtended(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync, defaultEnableIngress, defaultNamespaceLabels)
+	routerId, err := createAndStartRouterContainerExtended(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync, defaultNamespaceLabels)
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
 	}
@@ -1709,7 +1707,7 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 
 type routerIntegrationTest func(*testing.T, *tr.TestHttpService)
 
-func runRouterTest(t *testing.T, rit routerIntegrationTest, enableIngress bool, namespaceNames *[]string) {
+func runRouterTest(t *testing.T, rit routerIntegrationTest, namespaceNames *[]string) {
 	namespaceLabels, namespaceListResponse := getNamespaceConfig(t, namespaceNames)
 
 	//create a server which will act as a user deployed application that
@@ -1733,7 +1731,7 @@ func runRouterTest(t *testing.T, rit routerIntegrationTest, enableIngress bool, 
 
 	reloadInterval := 1
 	routerId, err := createAndStartRouterContainerExtended(
-		dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, defaultBindPortsAfterSync, enableIngress, namespaceLabels)
+		dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, defaultBindPortsAfterSync, namespaceLabels)
 
 	if err != nil {
 		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
@@ -1894,8 +1892,7 @@ func ingressConfiguredRouter(t *testing.T, fakeMasterAndPod *tr.TestHttpService)
 
 // TestRouterIngress validates that an ingress resource can configure a router to expose a tls route.
 func TestIngressConfiguredRouter(t *testing.T) {
-	enableIngress := true
 	// Enable namespace filtering to allow validation of compatibility with ingress.
 	namespaceNames := []string{defaultNamespace}
-	runRouterTest(t, ingressConfiguredRouter, enableIngress, &namespaceNames)
+	runRouterTest(t, ingressConfiguredRouter, &namespaceNames)
 }

@@ -431,7 +431,7 @@ func (o *TemplateRouterOptions) Run() error {
 	plugin = controller.NewHostAdmitter(plugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, recorder)
 
 	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
-	controller := factory.Create(plugin, false, o.EnableIngress)
+	controller := factory.Create(plugin, false)
 	controller.Run()
 
 	proc.StartReaper()

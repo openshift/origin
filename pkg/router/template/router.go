@@ -21,7 +21,6 @@ import (
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/router/template/limiter"
 )
 
@@ -556,7 +555,7 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 
 // routeKey generates route key. This allows templates to use this key without having to create a separate method
 func routeKey(route *routeapi.Route) string {
-	return routeKeyFromParts(route.Namespace, controller.GetSafeRouteName(route.Name))
+	return routeKeyFromParts(route.Namespace, route.Name)
 }
 
 func routeKeyFromParts(namespace, name string) string {

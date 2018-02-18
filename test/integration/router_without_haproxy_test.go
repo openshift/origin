@@ -378,7 +378,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 	}
 
 	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.Project().Projects(), kc)
-	ctrl := factory.Create(plugin, false, false)
+	ctrl := factory.Create(plugin, false)
 	ctrl.Run()
 
 	return templatePlugin
@@ -411,7 +411,7 @@ func launchRouter(routeclient routeinternalclientset.Interface, projectclient pr
 		return nil
 	})
 	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
-	ctrl := factory.Create(plugin, false, false)
+	ctrl := factory.Create(plugin, false)
 	ctrl.Run()
 
 	return templatePlugin
