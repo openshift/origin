@@ -3,9 +3,12 @@ package templaterouter
 import (
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
+
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 func TestFirstMatch(t *testing.T) {
@@ -406,6 +409,156 @@ func TestSortMapCertConfigData(t *testing.T) {
 		if !strings.HasSuffix(lines[idx], suffix) {
 			t.Errorf("TestSortMapCertConfigData sorted data %s at index %d did not match expectation %s",
 				lines[idx], idx, suffix)
+		}
+	}
+}
+
+func TestGetHTTPAliasesGroupedByHost(t *testing.T) {
+	aliases := map[string]ServiceAliasConfig{
+		"project1:route1": {
+			Host: "example.com",
+			Path: "/",
+		},
+		"project2:route1": {
+			Host: "example.org",
+			Path: "/v1",
+		},
+		"project2:route2": {
+			Host: "example.org",
+			Path: "/v2",
+		},
+		"project3.route3": {
+			Host:           "example.net",
+			TLSTermination: routeapi.TLSTerminationPassthrough,
+		},
+	}
+
+	expected := map[string]map[string]ServiceAliasConfig{
+		"example.com": {
+			"project1:route1": {
+				Host: "example.com",
+				Path: "/",
+			},
+		},
+		"example.org": {
+			"project2:route1": {
+				Host: "example.org",
+				Path: "/v1",
+			},
+			"project2:route2": {
+				Host: "example.org",
+				Path: "/v2",
+			},
+		},
+	}
+
+	result := getHTTPAliasesGroupedByHost(aliases)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("TestGroupAliasesByHost failed. Got %v expected %v", result, expected)
+	}
+}
+
+func TestGetPrimaryAliasKey(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    map[string]ServiceAliasConfig
+		expected string
+	}{
+		{
+			name:     "zero input",
+			input:    make(map[string]ServiceAliasConfig),
+			expected: "",
+		},
+		{
+			name: "Single alias",
+			input: map[string]ServiceAliasConfig{
+				"project2:route1": {
+					Host: "example.org",
+					Path: "/v1",
+				},
+			},
+			expected: "project2:route1",
+		},
+		{
+			name: "Aliases with Edge Termination",
+			input: map[string]ServiceAliasConfig{
+				"project1:route-3": {
+					Host:           "example.com",
+					Path:           "/",
+					TLSTermination: routeapi.TLSTerminationEdge,
+				},
+				"project1:route-1": {
+					Host:           "example.com",
+					Path:           "/path1",
+					TLSTermination: routeapi.TLSTerminationEdge,
+				},
+				"project1:route-2": {
+					Host:           "example.com",
+					Path:           "/path2",
+					TLSTermination: routeapi.TLSTerminationEdge,
+				},
+				"project1:route-4": {
+					Host: "example.com",
+					Path: "/path4",
+				},
+			},
+			expected: "project1:route-3",
+		},
+		{
+			name: "Aliases with Reencrypt Termination",
+			input: map[string]ServiceAliasConfig{
+				"project1:route-3": {
+					Host:           "example.com",
+					Path:           "/",
+					TLSTermination: routeapi.TLSTerminationReencrypt,
+				},
+				"project1:route-1": {
+					Host:           "example.com",
+					Path:           "/path1",
+					TLSTermination: routeapi.TLSTerminationReencrypt,
+				},
+				"project1:route-2": {
+					Host:           "example.com",
+					Path:           "/path2",
+					TLSTermination: routeapi.TLSTerminationReencrypt,
+				},
+				"project1:route-4": {
+					Host: "example.com",
+					Path: "/path4",
+				},
+			},
+			expected: "project1:route-3",
+		},
+		{
+			name: "Non-TLS aliases",
+			input: map[string]ServiceAliasConfig{
+				"project1:route-3": {
+					Host: "example.com",
+					Path: "/",
+				},
+				"project1:route-1": {
+					Host: "example.com",
+					Path: "/path1",
+				},
+				"project1:route-2": {
+					Host: "example.com",
+					Path: "/path2",
+				},
+				"project1:route-4": {
+					Host: "example.com",
+					Path: "/path4",
+				},
+			},
+			expected: "project1:route-4",
+		},
+	}
+
+	for _, test := range testCases {
+		result := getPrimaryAliasKey(test.input)
+
+		if result != test.expected {
+			t.Errorf("getPrimaryAliasKey failed. When testing for %v got %v expected %v", test.name, result, test.expected)
 		}
 	}
 }
