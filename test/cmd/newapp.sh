@@ -502,6 +502,19 @@ os::cmd::expect_success_and_not_text 'oc new-app https://github.com/openshift/ru
 # We permit running new-app against a remote URL which returns a template
 os::cmd::expect_success 'oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/wordpress/template/wordpress-mysql.json --dry-run'
 
+# ensure that --strategy sets the build strategy
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest python~https://github.com/sclorg/django-ex --source-image centos:latest --source-image-path /tmp --strategy source --dry-run -o yaml' 'sourceStrategy'
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest python~https://github.com/sclorg/django-ex --source-image centos:latest --source-image-path /tmp --strategy pipeline --dry-run -o yaml' 'jenkinsPipelineStrategy'
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest python~https://github.com/sclorg/django-ex --source-image centos:latest --source-image-path /tmp --strategy docker --dry-run -o yaml' 'dockerStrategy'
+
+os::cmd::expect_success 'oc create -f examples/image-streams/image-streams-centos7.json'
+os::cmd::try_until_success 'oc get imagestreamtags nodejs:latest'
+# ensure that a build can be created with just image inputs without the --binary flag
+os::cmd::expect_success_and_text 'oc new-build --name sourcetest --source-image centos:latest --source-image-path /tmp --image-stream nodejs --dry-run -o yaml' 'sourceStrategy'
+# ensure that using only image inputs and the --binary flag results in an error
+os::cmd::expect_failure_and_text 'oc new-build --name sourcetest --source-image centos:latest --source-image-path /tmp --image-stream nodejs --binary --dry-run -o yaml' 'specifying binary builds and source repositories at the same time is not allowed'
+os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
+
 # new-app different syntax for new-app functionality
 os::cmd::expect_success 'oc new-project new-app-syntax'
 os::cmd::expect_success 'oc import-image openshift/ruby-20-centos7:latest --confirm'

@@ -107,18 +107,38 @@ func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
 	if err := AddComponentInputsToRefBuilder(b, r, c, g, s, i); err != nil {
 		return nil, err
 	}
+
 	components, repositories, errs := b.Result()
 	if len(errs) > 0 {
 		return nil, kutilerrors.NewAggregate(errs)
+	}
+
+	// Add source components if source-image points to another location
+	// TODO: image sources aren't really "source repositories" and we should probably find another way to
+	// represent them
+	imageComp, repositories, err := AddImageSourceRepository(repositories, r.ImageSourceResolver(), g)
+	if err != nil {
+		return nil, err
 	}
 
 	// TODO: the second half of this method is potentially splittable - each chunk below amends or qualifies
 	// the inputs provided by the user (mostly via flags). c is cleared to prevent it from being used accidentally.
 	c = nil
 
-	// set context dir on all repositories
-	for _, repo := range repositories {
-		repo.SetContextDir(g.ContextDir)
+	// if the --context-dir flag was passed, set the context directory on all repositories
+	if len(g.ContextDir) > 0 && len(repositories) > 0 {
+		glog.V(5).Infof("Setting contextDir on all repositories to %v", g.ContextDir)
+		for _, repo := range repositories {
+			repo.SetContextDir(g.ContextDir)
+		}
+	}
+
+	// if the --strategy flag was passed, set the build strategy on all repositories
+	if g.Strategy != generate.StrategyUnspecified && len(repositories) > 0 {
+		glog.V(5).Infof("Setting build strategy on all repositories to %v", g.Strategy)
+		for _, repo := range repositories {
+			repo.SetStrategy(g.Strategy)
+		}
 	}
 
 	if g.Strategy != generate.StrategyUnspecified && len(repositories) == 0 && !g.BinaryBuild {
@@ -129,15 +149,6 @@ func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
 		return nil, errors.New("specifying binary builds and source repositories at the same time is not allowed")
 	}
 
-	// Add source components if source-image points to another location
-	// TODO: image sources aren't really "source repositories" and we should probably find another way to
-	// represent them
-	var err error
-	var imageComp app.ComponentReference
-	imageComp, repositories, err = AddImageSourceRepository(repositories, r.ImageSourceResolver(), g)
-	if err != nil {
-		return nil, err
-	}
 	componentsIncludingImageComps := components
 	if imageComp != nil {
 		componentsIncludingImageComps = append(components, imageComp)
