@@ -11,4 +11,4 @@ spec:
     endpoints: gluster-cluster
     path: gv0
     readOnly: false
-  persistentVolumeReclaimPolicy: Recycle
+  persistentVolumeReclaimPolicy: Retain
