@@ -62,11 +62,10 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 	}
 
 	cmd := &cobra.Command{
-		Use:        name,
-		Short:      "Remove old completed and failed deployments",
-		Long:       deploymentsLongDesc,
-		Example:    fmt.Sprintf(deploymentsExample, parentName, name),
-		SuggestFor: []string{"deployment", "deployments"},
+		Use:     name,
+		Short:   "Remove old completed and failed deployments",
+		Long:    deploymentsLongDesc,
+		Example: fmt.Sprintf(deploymentsExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
 			kcmdutil.CheckErr(opts.Validate())
