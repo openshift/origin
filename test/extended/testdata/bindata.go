@@ -137,6 +137,7 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
 // test/extended/testdata/imagestream-jenkins-slave-pods.yaml
 // test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
+// test/extended/testdata/ingress.yaml
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
 // test/extended/testdata/jenkins-plugin/build-job-slave.xml
 // test/extended/testdata/jenkins-plugin/build-job.xml
@@ -7227,6 +7228,127 @@ func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataIngressYaml = []byte(`kind: List
+apiVersion: v1
+items:
+# an ingress that should be captured as three routes
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    name: test
+  spec:
+    tls:
+    - hosts:
+      - 3.ingress-test.com
+      secretName: ingress-endpoint-secret
+    rules:
+    - host: 1.ingress-test.com
+      http:
+        paths:
+        - path: /test
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+        - path: /other
+          backend:
+            serviceName: ingress-endpoint-2
+            servicePort: 80
+    - host: 2.ingress-test.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+    - host: 3.ingress-test.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: ingress-endpoint-1
+            servicePort: 80
+# an empty secret
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ingress-endpoint-secret
+  type: kubernetes.io/tls
+  stringData:
+    tls.key: ""
+    tls.crt: ""
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-1
+  spec:
+    selector:
+      app: ingress-endpoint-1
+    ports:
+    - port: 80
+      targetPort: 8080
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-2
+  spec:
+    selector:
+      app: ingress-endpoint-2
+    ports:
+    - port: 80
+      targetPort: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-1
+    labels:
+      app: ingress-endpoint-1
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-2
+    labels:
+      app: ingress-endpoint-2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+`)
+
+func testExtendedTestdataIngressYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataIngressYaml, nil
+}
+
+func testExtendedTestdataIngressYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataIngressYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ingress.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -31457,6 +31579,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json": testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
 	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
 	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
+	"test/extended/testdata/ingress.yaml": testExtendedTestdataIngressYaml,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
 	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
 	"test/extended/testdata/jenkins-plugin/build-job.xml": testExtendedTestdataJenkinsPluginBuildJobXml,
@@ -31952,6 +32075,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"ingress.yaml": &bintree{testExtendedTestdataIngressYaml, map[string]*bintree{}},
 				"jenkins-plugin": &bintree{nil, map[string]*bintree{
 					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
 					"build-job-slave.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobSlaveXml, map[string]*bintree{}},
