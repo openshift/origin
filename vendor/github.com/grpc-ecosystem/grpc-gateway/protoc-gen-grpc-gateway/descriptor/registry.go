@@ -30,6 +30,9 @@ type Registry struct {
 
 	// pkgAliases is a mapping from package aliases to package paths in go which are already taken.
 	pkgAliases map[string]string
+
+	// allowDeleteBody permits http delete methods to have a body
+	allowDeleteBody bool
 }
 
 // NewRegistry returns a new Registry.
@@ -204,7 +207,7 @@ func (r *Registry) AddPkgMap(file, protoPkg string) {
 	r.pkgMap[file] = protoPkg
 }
 
-// SetPrefix registeres the perfix to be added to go package paths generated from proto package names.
+// SetPrefix registers the prefix to be added to go package paths generated from proto package names.
 func (r *Registry) SetPrefix(prefix string) {
 	r.prefix = prefix
 }
@@ -236,6 +239,9 @@ func (r *Registry) goPackagePath(f *descriptor.FileDescriptorProto) string {
 	gopkg := f.Options.GetGoPackage()
 	idx := strings.LastIndex(gopkg, "/")
 	if idx >= 0 {
+		if sc := strings.LastIndex(gopkg, ";"); sc > 0 {
+			gopkg = gopkg[:sc+1-1]
+		}
 		return gopkg
 	}
 
@@ -260,11 +266,25 @@ func (r *Registry) GetAllFQENs() []string {
 	return keys
 }
 
+// SetAllowDeleteBody controls whether http delete methods may have a
+// body or fail loading if encountered.
+func (r *Registry) SetAllowDeleteBody(allow bool) {
+	r.allowDeleteBody = allow
+}
+
+// sanitizePackageName replaces unallowed character in package name
+// with allowed character.
+func sanitizePackageName(pkgName string) string {
+	pkgName = strings.Replace(pkgName, ".", "_", -1)
+	pkgName = strings.Replace(pkgName, "-", "_", -1)
+	return pkgName
+}
+
 // defaultGoPackageName returns the default go package name to be used for go files generated from "f".
 // You might need to use an unique alias for the package when you import it.  Use ReserveGoPackageAlias to get a unique alias.
 func defaultGoPackageName(f *descriptor.FileDescriptorProto) string {
 	name := packageIdentityName(f)
-	return strings.Replace(name, ".", "_", -1)
+	return sanitizePackageName(name)
 }
 
 // packageIdentityName returns the identity of packages.
@@ -275,10 +295,18 @@ func packageIdentityName(f *descriptor.FileDescriptorProto) string {
 		gopkg := f.Options.GetGoPackage()
 		idx := strings.LastIndex(gopkg, "/")
 		if idx < 0 {
-			return gopkg
+			gopkg = gopkg[idx+1:]
 		}
 
-		return gopkg[idx+1:]
+		gopkg = gopkg[idx+1:]
+		// package name is overrided with the string after the
+		// ';' character
+		sc := strings.IndexByte(gopkg, ';')
+		if sc < 0 {
+			return sanitizePackageName(gopkg)
+
+		}
+		return sanitizePackageName(gopkg[sc+1:])
 	}
 
 	if f.Package == nil {

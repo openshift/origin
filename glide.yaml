@@ -93,7 +93,11 @@ import:
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
 # master
 - package: github.com/coreos/etcd
-  version: v3.2.8
+  version: v3.2.16
+- package: google.golang.org/grpc
+  version: v1.7.5
+- package: github.com/grpc-ecosystem/grpc-gateway
+  version: v1.3.0
 # cli
 - package: github.com/gonum/blas
   version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
