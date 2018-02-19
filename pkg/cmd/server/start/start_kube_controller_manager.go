@@ -10,7 +10,7 @@ import (
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 )
 
-func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool) []string {
+func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool, qps float32, burst int) []string {
 	cmdLineArgs := map[string][]string{}
 	if _, ok := cmdLineArgs["controllers"]; !ok {
 		cmdLineArgs["controllers"] = []string{
@@ -37,6 +37,15 @@ func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCA
 	}
 	if _, ok := cmdLineArgs["enable-dynamic-provisioning"]; !ok {
 		cmdLineArgs["enable-dynamic-provisioning"] = []string{strconv.FormatBool(dynamicProvisioningEnabled)}
+	}
+	if _, ok := cmdLineArgs["kube-api-content-type"]; !ok {
+		cmdLineArgs["kube-api-content-type"] = []string{"application/vnd.kubernetes.protobuf"}
+	}
+	if _, ok := cmdLineArgs["kube-api-qps"]; !ok {
+		cmdLineArgs["kube-api-qps"] = []string{fmt.Sprintf("%v", qps)}
+	}
+	if _, ok := cmdLineArgs["kube-api-burst"]; !ok {
+		cmdLineArgs["kube-api-burst"] = []string{fmt.Sprintf("%v", burst)}
 	}
 
 	// disable serving http since we didn't used to expose it
@@ -74,9 +83,9 @@ func computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCA
 	return args
 }
 
-func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool) {
+func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile string, dynamicProvisioningEnabled bool, qps float32, burst int) {
 	cmd := controllerapp.NewControllerManagerCommand()
-	args := computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile, dynamicProvisioningEnabled)
+	args := computeKubeControllerManagerArgs(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, openshiftConfigFile, dynamicProvisioningEnabled, qps, burst)
 	if err := cmd.ParseFlags(args); err != nil {
 		glog.Fatal(err)
 	}

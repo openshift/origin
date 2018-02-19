@@ -425,7 +425,13 @@ func (m *Master) Start() error {
 			KubeExternalClient:         kubeExternal,
 		}
 
-		go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
+		go runEmbeddedScheduler(
+			m.config.MasterClients.OpenShiftLoopbackKubeConfig,
+			m.config.KubernetesMasterConfig.SchedulerConfigFile,
+			privilegedLoopbackConfig.QPS,
+			privilegedLoopbackConfig.Burst,
+			m.config.KubernetesMasterConfig.SchedulerArguments,
+		)
 
 		go func() {
 			kubeControllerConfigShallowCopy := *m.config
@@ -466,6 +472,8 @@ func (m *Master) Start() error {
 				m.config.KubernetesMasterConfig.PodEvictionTimeout,
 				masterConfigFile,
 				m.config.VolumeConfig.DynamicProvisioningEnabled,
+				privilegedLoopbackConfig.QPS,
+				privilegedLoopbackConfig.Burst,
 			)
 		}()
 
