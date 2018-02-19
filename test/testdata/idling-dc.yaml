@@ -6,14 +6,12 @@ spec:
   replicas: 2
   selector:
     app: idling-echo
-    deploymentconfig: idling-echo
   strategy:
     type: Rolling
   template:
     metadata:
       labels:
         app: idling-echo
-        deploymentconfig: idling-echo
     spec:
       containers:
       - image: openshift/origin-base

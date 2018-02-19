@@ -81,7 +81,7 @@ items:
   spec:
     replicas: 1
     selector:
-      deploymentconfig: sinatra-app-example
+      deploymentconfig: sinatra-app-example-a
     strategy:
       resources: {}
       type: Recreate
@@ -89,7 +89,7 @@ items:
       metadata:
         creationTimestamp: null
         labels:
-          deploymentconfig: sinatra-app-example
+          deploymentconfig: sinatra-app-example-a
       spec:
         containers:
         - capabilities: {}
@@ -127,7 +127,7 @@ items:
   spec:
     replicas: 1
     selector:
-      deploymentconfig: sinatra-app-example
+      deploymentconfig: sinatra-app-example-b
     strategy:
       resources: {}
       type: Recreate
@@ -135,7 +135,7 @@ items:
       metadata:
         creationTimestamp: null
         labels:
-          deploymentconfig: sinatra-app-example
+          deploymentconfig: sinatra-app-example-b
       spec:
         containers:
         - capabilities: {}
