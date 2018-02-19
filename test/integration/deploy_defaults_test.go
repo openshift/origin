@@ -92,6 +92,10 @@ func setEssentialDefaults(dc *appsapi.DeploymentConfig) *appsapi.DeploymentConfi
 	}
 	dc.Spec.Template.Spec.SchedulerName = "default-scheduler"
 
+	// Implicit restricted selector set in Canonicalize()
+	dc.Spec.Selector[appsapi.DeploymentConfigLabel] = dc.Name
+	dc.Spec.Template.Labels[appsapi.DeploymentConfigLabel] = dc.Name
+
 	return dc
 }
 
