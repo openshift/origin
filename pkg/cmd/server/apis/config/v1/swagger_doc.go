@@ -612,7 +612,7 @@ var map_OAuthConfig = map[string]string{
 	"":                            "OAuthConfig holds the necessary configuration options for OAuth authentication",
 	"masterCA":                    "MasterCA is the CA for verifying the TLS connection back to the MasterURL.",
 	"masterURL":                   "MasterURL is used for making server-to-server calls to exchange authorization codes for access tokens",
-	"masterPublicURL":             "MasterPublicURL is used for building valid client redirect URLs for external access",
+	"masterPublicURL":             "MasterPublicURL is used for building valid client redirect URLs for internal and external access",
 	"assetPublicURL":              "AssetPublicURL is used for building valid client redirect URLs for external access",
 	"alwaysShowProviderSelection": "AlwaysShowProviderSelection will force the provider selection page to render even when there is only a single provider.",
 	"identityProviders":           "IdentityProviders is an ordered list of ways for a user to identify themselves",
