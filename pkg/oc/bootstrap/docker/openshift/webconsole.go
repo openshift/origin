@@ -21,7 +21,6 @@ import (
 
 const (
 	consoleNamespace             = "openshift-web-console"
-	consoleRBACTemplateName      = "web-console-server-rbac"
 	consoleAPIServerTemplateName = "openshift-web-console"
 	consoleConfigFile            = "install/origin-web-console/console-config.yaml"
 )
@@ -40,10 +39,6 @@ func (h *Helper) InstallWebConsole(f *clientcmd.Factory, imageFormat string, ser
 	// create the namespace if needed.  This is a reserved namespace, so you can't do it with the create project request
 	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: consoleNamespace}}); err != nil && !kapierrors.IsAlreadyExists(err) {
 		return errors.NewError("cannot create web console project").WithCause(err)
-	}
-
-	if err = instantiateTemplate(templateClient.Template(), f, OpenshiftInfraNamespace, consoleRBACTemplateName, consoleNamespace, map[string]string{}, true); err != nil {
-		return errors.NewError("cannot instantiate template service broker permissions").WithCause(err)
 	}
 
 	// read in the config YAML file like the installer

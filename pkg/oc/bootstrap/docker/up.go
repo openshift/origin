@@ -127,7 +127,6 @@ var (
 	// the cluster version.
 	internalCurrentTemplateLocations = map[string]string{
 		"web console server template":       "install/origin-web-console/console-template.yaml",
-		"web console server rbac":           "install/origin-web-console/rbac-template.yaml",
 		"template service broker apiserver": "install/templateservicebroker/apiserver-template.yaml",
 	}
 	// internalPreviousTemplateLocations are templates that will be registered in an internal namespace.
