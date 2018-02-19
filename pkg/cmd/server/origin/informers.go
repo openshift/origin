@@ -1,4 +1,4 @@
-package start
+package origin
 
 import (
 	"time"
@@ -39,6 +39,7 @@ import (
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 type GenericResourceInformer interface {
@@ -215,6 +216,14 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 		templateInformers:      templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod),
 		userInformers:          userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 	}, nil
+}
+
+// AddUserIndexes the API server runs a reverse index on users to groups which requires an index on the group informer
+// this activates the lister/watcher, so we want to do it only in this path
+func (i *informers) AddUserIndexes() error {
+	return i.userInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
+		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+	})
 }
 
 func (i *informers) GetInternalKubeInformers() kinternalinformers.SharedInformerFactory {

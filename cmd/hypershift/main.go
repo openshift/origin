@@ -1,6 +1,7 @@
 package main
 
 import (
+	goflag "flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -8,15 +9,22 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
+	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
 )
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
+
+	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
@@ -48,6 +56,12 @@ func NewHyperShiftCommand() *cobra.Command {
 	startEtcd.Deprecated = "will be removed in 3.10"
 	startEtcd.Hidden = true
 	cmd.AddCommand(startEtcd)
+
+	startOpenShiftAPIServer := openshift_apiserver.NewOpenShiftAPIServerCommand(openshift_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr)
+	cmd.AddCommand(startOpenShiftAPIServer)
+
+	startOpenShiftKubeAPIServer := openshift_kube_apiserver.NewOpenShiftKubeAPIServerServerCommand(openshift_kube_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr)
+	cmd.AddCommand(startOpenShiftKubeAPIServer)
 
 	return cmd
 }

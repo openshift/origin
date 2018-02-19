@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -26,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -84,7 +82,7 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Com
 			kcmdutil.CheckErr(options.Complete())
 			kcmdutil.CheckErr(options.Validate(args))
 
-			startProfiler()
+			origin.StartProfiler()
 
 			if err := options.StartAllInOne(); err != nil {
 				if kerrors.IsInvalid(err) {
@@ -322,18 +320,6 @@ func (o AllInOneOptions) StartAllInOne() error {
 
 	daemon.SdNotify(false, "READY=1")
 	select {}
-}
-
-func startProfiler() {
-	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
-		go func() {
-			runtime.SetBlockProfileRate(1)
-			profilePort := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6060")
-			profileHost := cmdutil.Env("OPENSHIFT_PROFILE_HOST", "127.0.0.1")
-			glog.Infof(fmt.Sprintf("Starting profiling endpoint at http://%s:%s/debug/pprof/", profileHost, profilePort))
-			glog.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", profileHost, profilePort), nil))
-		}()
-	}
 }
 
 func (o AllInOneOptions) IsWriteConfigOnly() bool {

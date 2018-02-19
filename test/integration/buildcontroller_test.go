@@ -21,8 +21,8 @@ import (
 
 	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
-	"github.com/openshift/origin/pkg/cmd/server/start"
 	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
@@ -110,7 +110,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedc
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	informers, err := start.NewInformers(*master)
+	informers, err := origin.NewInformers(*master)
 	if err != nil {
 		t.Fatal(err)
 	}

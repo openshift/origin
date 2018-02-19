@@ -119,7 +119,7 @@ func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTa
 	return openshiftNonAPIServer.GenericAPIServer, nil
 }
 
-func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
+func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (*apiserver.GenericAPIServer, error) {
 	openshiftAPIServerConfig, err := c.newOpenshiftAPIConfig(kubeAPIServerConfig)
 	if err != nil {
 		return nil, err
@@ -148,6 +148,10 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 	}
 	// this sets up the openapi endpoints
 	preparedKubeAPIServer := kubeAPIServer.GenericAPIServer.PrepareRun()
+
+	// this remains here and separate so that you can check both kube and openshift levels
+	// TODO make this is a proxy at some point
+	addOpenshiftVersionRoute(kubeAPIServer.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	return preparedKubeAPIServer.GenericAPIServer, nil
 }
@@ -181,7 +185,7 @@ func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (h
 	}
 	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain,
 		map[string]apiserver.PostStartHookFunc{
-			"oauth.openshift.io-EnsureBootstrapOAuthClients": config.EnsureBootstrapOAuthClients,
+			"oauth.openshift.io-StartOAuthClientsBootstrapping": config.StartOAuthClientsBootstrapping,
 		},
 		nil
 }
@@ -191,7 +195,7 @@ func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarg
 	if err != nil {
 		return nil, err
 	}
-	aggregatorServer, err := createAggregatorServer(aggregatorConfig, delegateAPIServer, c.InternalKubeInformers, apiExtensionsInformers)
+	aggregatorServer, err := createAggregatorServer(aggregatorConfig, delegateAPIServer, apiExtensionsInformers)
 	if err != nil {
 		// we don't need special handling for innerStopCh because the aggregator server doesn't create any go routines
 		return nil, err
@@ -202,6 +206,7 @@ func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarg
 
 // Run launches the OpenShift master by creating a kubernetes master, installing
 // OpenShift APIs into it and then running it.
+// TODO this method only exists to support the old openshift start path.  It should be removed a little ways into 3.10.
 func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	var err error
 	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
@@ -254,6 +259,9 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", ensureDefaultNamespaceServiceAccountRoles)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	for name, fn := range c.additionalPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}
@@ -262,6 +270,97 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	}
 
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
+	var err error
+	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
+	var delegateAPIServer apiserver.DelegationTarget
+	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
+
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+
+	delegateAPIServer = apiserver.EmptyDelegate
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
+	if err != nil {
+		return err
+	}
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	if err != nil {
+		return err
+	}
+
+	// Start the audit backend before any request comes in. This means we cannot turn it into a
+	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
+	if c.AuditBackend != nil {
+		if err := c.AuditBackend.Run(stopCh); err != nil {
+			return fmt.Errorf("failed to run the audit backend: %v", err)
+		}
+	}
+
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", ensureDefaultNamespaceServiceAccountRoles)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	// add post-start hooks
+	for name, fn := range c.additionalPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+	for name, fn := range extraPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+
+	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
+	// TODO rewrite the authenticator and authorizer here to use the webhooks.  I think we'll be able to manage this
+	// using the existing client connections since they'll all point to the kube-apiserver, but some new separation may be required
+	// to handle the distinction between loopback and kube-apiserver
+
+	// the openshift apiserver shouldn't need to host these and they make us crashloop
+	c.kubeAPIServerConfig.GenericConfig.EnableSwaggerUI = false
+	c.kubeAPIServerConfig.GenericConfig.SwaggerConfig = nil
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = openshiftHandlerChain
+
+	openshiftAPIServer, err := c.withOpenshiftAPI(apiserver.EmptyDelegate, *c.kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+
+	// Start the audit backend before any request comes in. This means we cannot turn it into a
+	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
+	if c.AuditBackend != nil {
+		if err := c.AuditBackend.Run(stopCh); err != nil {
+			return fmt.Errorf("failed to run the audit backend: %v", err)
+		}
+	}
+
+	// add post-start hooks
+	openshiftAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
+	openshiftAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	for name, fn := range c.additionalPostStartHooks {
+		openshiftAPIServer.AddPostStartHookOrDie(name, fn)
+	}
+
+	go openshiftAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	return cmdutil.WaitForSuccessfulDial(true, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
@@ -290,7 +389,7 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 
 			// these handlers are all before the normal kube chain
 			handler = translateLegacyScopeImpersonation(handler)
-			handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
+			handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 			// redirects from / to /console if you're using a browser
 			handler = withAssetServerRedirect(handler, webconsolePublicURL)
@@ -304,6 +403,15 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 		},
 		extraPostStartHooks,
 		nil
+}
+
+func openshiftHandlerChain(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
+	// this is the normal kube handler chain
+	handler := apiserver.DefaultBuildHandlerChain(apiHandler, genericConfig)
+
+	handler = withCacheControl(handler, "no-store") // protected endpoints should not be cached
+
+	return handler
 }
 
 // If we know the location of the asset server, redirect to it when / is requested
@@ -386,4 +494,9 @@ func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler,
 		}
 		handler.ServeHTTP(w, req)
 	})
+}
+
+func (c *MasterConfig) startClusterQuotaMapping(context apiserver.PostStartHookContext) error {
+	go c.ClusterQuotaMappingController.Run(5, context.StopCh)
+	return nil
 }
