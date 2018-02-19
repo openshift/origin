@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 881fefc9fbf922dab7a21d35db49dc81b42d14fc
+%global commit a2f28b98f4ed439b0939a16ed17f78ab1ee55ae0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.44.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.5 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=cdad986 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.45.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=094ae26 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.45.0%{?dist}
+Release:        0.46.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,42 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Feb 19 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.46.0
+- masterPublicURL must be both internally and externally accessible
+  (mkhan@redhat.com)
+- restore qps and burst for scheduler and kbue-controller-manageR
+  (deads@redhat.com)
+- the --source-image flag should count as a source input the --strategy flag
+  should override the build strategy in all source repositories
+  (cdaley@redhat.com)
+- Update custom tito tagger for new version (skuznets@redhat.com)
+- Fix periodic reconciliation for DCs (tnozicka@gmail.com)
+- add publishing rules for openshift/kubernetes repo (mfojtik@redhat.com)
+- UPSTREAM: 59923: Rework volume manager log levels (sjenning@redhat.com)
+- UPSTREAM: 59873: Fix DownwardAPI refresh race (sjenning@redhat.com)
+- note some unused reasons; track reasons for all phases; add reason to
+  constant time metric (gmontero@redhat.com)
+- auto-panic and become unhealthy on too many grpc connections
+  (deads@redhat.com)
+- Change rejected routes error message to verbose logging (ichavero@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from b69b4a6c80..b758460ba7 (jaboyd@redhat.com)
+- Revert "Allow insecure path Allow routes to override Redirect routes without
+  breaking the reverse" (jtanenba@redhat.com)
+- preserve namespace on imagestream server-side export (jvallejo@redhat.com)
+- make TSB conformant with respect to multiple parallel operations
+  (jminter@redhat.com)
+- use the normal loopback connection for loopback to the apiserver
+  (deads@redhat.com)
+- automatically remove hostsubnets with no nodes on startup
+  (jtanenba@redhat.com)
+- add an admission decorator that allows skipping some admission checks based
+  on namespace labels (deads@redhat.com)
+- Allow passing -gcflags during build (maszulik@redhat.com)
+- diagnostics: introduce AppCreate (lmeyer@redhat.com)
+- UPSTREAM: 58375: Recheck if transformed data is stale when doing live lookup
+  during update (jliggitt@redhat.com)
+
 * Thu Feb 15 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.45.0
 - 
 
