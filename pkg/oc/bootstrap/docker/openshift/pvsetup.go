@@ -48,7 +48,7 @@ spec:
     - ReadOnlyMany
   hostPath:
     path: ${basedir}/${name}
-  persistentVolumeReclaimPolicy: Recycle
+  persistentVolumeReclaimPolicy: Retain
 EOF
 }
 
