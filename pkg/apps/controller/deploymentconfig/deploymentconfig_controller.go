@@ -85,6 +85,16 @@ type DeploymentConfigController struct {
 // using caches, the provided config MUST be deep-copied beforehand (see work() in factory.go).
 func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) error {
 	glog.V(5).Infof("Reconciling %s/%s", config.Namespace, config.Name)
+
+	migrated, err := c.migrate(config)
+	if err != nil {
+		return fmt.Errorf("failed to migrate DeploymentConfig %s/%s: %v", config.Namespace, config.Name, err)
+	}
+	// If DC was migrated, wait for informer to receive the new version and reconcile then. We can't act on unmigrated DCs.
+	if migrated {
+		return nil
+	}
+
 	// There's nothing to reconcile until the version is nonzero.
 	if appsutil.IsInitialDeployment(config) && !appsutil.HasTrigger(config) {
 		return c.updateStatus(config, []*v1.ReplicationController{}, true)
@@ -329,6 +339,55 @@ func (c *DeploymentConfigController) updateStatus(config *appsapi.DeploymentConf
 		fmt.Sprintf("unavailableReplicas %d->%d, ", config.Status.UnavailableReplicas, newStatus.UnavailableReplicas) +
 		fmt.Sprintf("sequence No: %v->%v", config.Status.ObservedGeneration, newStatus.ObservedGeneration))
 	return nil
+}
+
+// migrate returns true if DC was migrated (modified), false otherwise
+func (c *DeploymentConfigController) migrate(dcReadOnly *appsapi.DeploymentConfig) (bool, error) {
+	var dcCopyOnDemand *appsapi.DeploymentConfig
+	getDc := func() *appsapi.DeploymentConfig {
+		if dcCopyOnDemand == nil {
+			dcCopyOnDemand = dcReadOnly.DeepCopy()
+		}
+		return dcCopyOnDemand
+	}
+
+	/*
+	 * Migrate invalid restricted DC selectors and labels from time before we've added validation 3.9.x
+	 * (https://github.com/openshift/origin/pull/18640)
+	 * TODO: drop in 3.11 (1 full release after validation was added)
+	 */
+	deploymentConfigSelector, found := dcReadOnly.Spec.Selector[appsapi.DeploymentConfigLabel]
+	if found && deploymentConfigSelector != dcReadOnly.Name {
+		getDc().Spec.Selector[appsapi.DeploymentConfigLabel] = dcReadOnly.Name
+	}
+
+	deploymentConfigLabel, found := dcReadOnly.Spec.Template.Labels[appsapi.DeploymentConfigLabel]
+	if found && deploymentConfigLabel != dcReadOnly.Name {
+		getDc().Spec.Template.Labels[appsapi.DeploymentConfigLabel] = dcReadOnly.Name
+	}
+
+	_, found = dcReadOnly.Spec.Selector[appsapi.DeploymentLabel]
+	if found {
+		delete(getDc().Spec.Selector, appsapi.DeploymentLabel)
+	}
+
+	_, found = dcReadOnly.Spec.Template.Labels[appsapi.DeploymentLabel]
+	if found {
+		delete(getDc().Spec.Template.Labels, appsapi.DeploymentLabel)
+	}
+
+	if dcCopyOnDemand != nil {
+		glog.Infof("Migrating DeploymentConfig %s/%s ...", dcCopyOnDemand.Namespace, dcCopyOnDemand.Name)
+		_, err := c.dn.DeploymentConfigs(dcCopyOnDemand.Namespace).Update(dcCopyOnDemand)
+		if err != nil {
+			return true, fmt.Errorf("failed to migrate DeploymentConfig %s/%s: %v", dcCopyOnDemand.Namespace, dcCopyOnDemand.Name, err)
+		}
+
+		glog.V(2).Infof("Successfully migrated DeploymentConfig %s/%s.", dcCopyOnDemand.Namespace, dcCopyOnDemand.Name)
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // cancelRunningRollouts cancels existing rollouts when the latest deployment does not

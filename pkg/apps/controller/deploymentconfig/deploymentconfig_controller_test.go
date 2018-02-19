@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
@@ -27,6 +28,7 @@ import (
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
+	dcregistry "github.com/openshift/origin/pkg/apps/registry/deployconfig"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -583,5 +585,162 @@ func TestCalculateStatus(t *testing.T) {
 		if !reflect.DeepEqual(status, test.expected) {
 			t.Errorf("%s: expected status:\n%+v\ngot status:\n%+v", test.name, test.expected, status)
 		}
+	}
+}
+
+func TestMigrate(t *testing.T) {
+	canonicalDC := appstest.OkDeploymentConfig(1)
+	canonicalDC.Spec.Selector = map[string]string{
+		"app": "myapp",
+		appsapi.DeploymentConfigLabel: canonicalDC.Name,
+	}
+	canonicalDC.Spec.Template.Labels = map[string]string{
+		"app": "myapp",
+		appsapi.DeploymentConfigLabel: canonicalDC.Name,
+	}
+
+	tt := []struct {
+		obj         *appsapi.DeploymentConfig
+		expected    *appsapi.DeploymentConfig
+		expectedErr error
+	}{
+		{
+			obj:      canonicalDC,
+			expected: canonicalDC,
+		},
+		{
+			obj: func() *appsapi.DeploymentConfig {
+				dc := appstest.OkDeploymentConfig(1)
+				dc.Spec.Selector = map[string]string{
+					"app": "myapp",
+				}
+				dc.Spec.Template.Labels = map[string]string{
+					"app": "myapp",
+					appsapi.DeploymentConfigLabel: dc.Name + "invalid",
+				}
+				return dc
+			}(),
+			expected: canonicalDC,
+		},
+		{
+			obj: func() *appsapi.DeploymentConfig {
+				dc := appstest.OkDeploymentConfig(1)
+				dc.Spec.Selector = map[string]string{
+					"app": "myapp",
+					appsapi.DeploymentConfigLabel: dc.Name + "invalid",
+				}
+				dc.Spec.Template.Labels = map[string]string{
+					"app": "myapp",
+					appsapi.DeploymentConfigLabel: dc.Name + "invalid",
+				}
+				return dc
+			}(),
+			expected: canonicalDC,
+		},
+		{
+			obj: func() *appsapi.DeploymentConfig {
+				dc := appstest.OkDeploymentConfig(1)
+				dc.Spec.Selector = map[string]string{
+					"app": "myapp",
+				}
+				dc.Spec.Template.Labels = map[string]string{
+					"app": "myapp",
+				}
+				return dc
+			}(),
+			expected: canonicalDC,
+		},
+	}
+
+	ctx := apirequest.NewDefaultContext()
+
+	appsClient := &appsfake.Clientset{}
+	appsClient.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		dc := action.(clientgotesting.UpdateAction).GetObject().(*appsapi.DeploymentConfig)
+
+		errs := dcregistry.CommonStrategy.Validate(ctx, dc)
+		if len(errs) != 0 {
+			return false, nil, errs.ToAggregate()
+		}
+
+		dcregistry.CommonStrategy.Canonicalize(dc)
+
+		return true, dc, nil
+	})
+	dcInformer := &fakeDeploymentConfigInformer{
+		informer: cache.NewSharedIndexInformer(
+			&cache.ListWatch{
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					return appsClient.Apps().DeploymentConfigs(metav1.NamespaceAll).List(options)
+				},
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					return appsClient.Apps().DeploymentConfigs(metav1.NamespaceAll).Watch(options)
+				},
+			},
+			&appsapi.DeploymentConfig{},
+			10*time.Minute,
+			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		),
+	}
+
+	kubeClient := &fake.Clientset{}
+	kubeInformerFactory := kinformers.NewSharedInformerFactory(kubeClient, 0)
+	rcInformer := kubeInformerFactory.Core().V1().ReplicationControllers()
+
+	codec := legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion)
+
+	dcController := NewDeploymentConfigController(dcInformer, rcInformer, appsClient, kubeClient, codec)
+	dcController.dcStoreSynced = alwaysReady
+	dcController.rcListerSynced = alwaysReady
+
+	for _, tc := range tt {
+		t.Run("", func(t *testing.T) {
+			defer appsClient.ClearActions()
+
+			_, err := dcController.migrate(tc.obj)
+
+			if tc.expectedErr != nil && err == nil {
+				t.Errorf("expected error '%v', got none", tc.expectedErr)
+				return
+			}
+
+			if tc.expectedErr != err {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if err != nil {
+				return
+			}
+
+			var result *appsapi.DeploymentConfig
+			actions := appsClient.Actions()
+			switch len(actions) {
+			case 0:
+				result = tc.obj.DeepCopy()
+
+				errs := dcregistry.CommonStrategy.Validate(ctx, result)
+				if len(errs) != 0 {
+					t.Errorf("unexpected error: %v", errs.ToAggregate())
+				}
+
+				dcregistry.CommonStrategy.Canonicalize(result)
+			case 1:
+				action := actions[0]
+				if action.GetVerb() != "update" {
+					t.Errorf("unexpected action verb: %q", action.GetVerb())
+					return
+				}
+				result = action.(clientgotesting.UpdateAction).GetObject().(*appsapi.DeploymentConfig)
+			default:
+				t.Errorf("unexpected actions: %#v", actions)
+				return
+			}
+
+			if !kapihelper.Semantic.DeepEqual(tc.expected, result) {
+				t.Errorf("expected and real objects differ: %s", diff.ObjectReflectDiff(tc.expected, result))
+				return
+			}
+		})
 	}
 }
