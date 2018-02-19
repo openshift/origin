@@ -27,6 +27,11 @@ os::cmd::expect_success_and_text 'oc set env dc/node --env PASS=x,y=z' 'no longe
 # warning is not printed for variables passed as positional arguments
 os::cmd::expect_success_and_not_text 'oc set env dc/node PASS=x,y=z' 'no longer accepts comma-separated list'
 
+os::cmd::expect_success_and_text 'oc create configmap test-config --from-literal=test-success=good' 'configmap "test-config" created'
+# ensure passing --keys without specifying an object fails
+os::cmd::expect_failure_and_text 'oc set env --keys=test-fail dc/node' 'when specifying --keys, a configmap or secret must be provided with --from'
+os::cmd::expect_success_and_text 'oc set env --keys=test-success --from=configmap/test-config dc/node' 'deploymentconfig "node" updated'
+
 # create a build-config object with the JenkinsPipeline strategy
 os::cmd::expect_success 'oc process -p NAMESPACE=openshift -f examples/jenkins/jenkins-ephemeral-template.json | oc create -f -'
 os::cmd::expect_success "echo 'apiVersion: v1
