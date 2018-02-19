@@ -179,6 +179,7 @@ function os::start::internal::patch_master_config() {
 	oc ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" | \
 	oc ex config patch - --patch="{\"auditConfig\": {\"enabled\": true}}" | \
 	oc ex config patch - --patch="{\"imagePolicyConfig\": {\"maxImagesBulkImportedPerRepository\": ${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-5}}}" | \
+	oc ex config patch - --patch="{\"imagePolicyConfig\": {\"internalRegistryHostname\": \"docker-registry.default.svc.cluster.local:5000\"}}" | \
 	oc ex config patch - --patch="{\"imagePolicyConfig\":{\"allowedRegistriesForImport\":[$(echo "${allowed_registries[@]}" | xargs printf '{"domainName":"%s"},' | sed 's/,$//')]}}" \
 	> "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
