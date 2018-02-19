@@ -4,11 +4,13 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/admission/namespaceconditions"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kinformers "k8s.io/client-go/informers"
@@ -150,7 +152,16 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer)
+	admissionDecorator := namespaceconditions.NamespaceLabelConditions{
+		Delegate: admissionmetrics.WithControllerMetrics,
+
+		NamespaceClient: privilegedLoopbackKubeClientsetExternal.CoreV1(),
+		NamespaceLister: informers.GetExternalKubeInformers().Core().V1().Namespaces().Lister(),
+
+		SkipLevelZeroNames: originadmission.SkipRunLevelZeroPlugins,
+		SkipLevelOneNames:  originadmission.SkipRunLevelOnePlugins,
+	}
+	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer, admissionDecorator.WithNamespaceLabelConditions)
 	if err != nil {
 		return nil, err
 	}
