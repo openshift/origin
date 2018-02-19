@@ -72,13 +72,10 @@ func (fake *ovsFake) AddPort(port string, ofportRequest int, properties ...strin
 		if !strings.HasPrefix(property, "external-ids=") {
 			continue
 		}
-		externalIDs = make(map[string]string, 1)
-		for _, id := range strings.Split(property[13:], ",") {
-			parsed := strings.Split(id, "=")
-			if len(parsed) != 2 {
-				return -1, fmt.Errorf("could not parse external-id %q", id)
-			}
-			externalIDs[parsed[0]] = parsed[1]
+		var err error
+		externalIDs, err = ParseExternalIDs(property[13:])
+		if err != nil {
+			return -1, err
 		}
 	}
 
@@ -150,6 +147,8 @@ func (fake *ovsFake) Find(table, column, condition string) ([]string, error) {
 					results = append(results, portName)
 				} else if column == "ofport" {
 					results = append(results, fmt.Sprintf("%d", portInfo.ofport))
+				} else if column == "external-ids" {
+					results = append(results, UnparseExternalIDs(portInfo.externalIDs))
 				}
 			}
 		}
