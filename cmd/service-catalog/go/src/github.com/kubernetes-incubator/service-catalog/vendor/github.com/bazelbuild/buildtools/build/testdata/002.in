@@ -1,1 +1,0 @@
-cc_test ( name = 'b\"ar\'"' , srcs = [ 'a.cc' , "b.cc" , "c.cc" ] , size = "small" , deps = [ "//base" , ":foo", "//util:map-util", ] )

@@ -38,21 +38,24 @@ func NewDeprovisionCmd(cxt *command.Context) *cobra.Command {
 		Example: `
   svcat deprovision wordpress-mysql-instance
 `,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return deprovisonCmd.run(args)
-		},
+		PreRunE: command.PreRunE(deprovisonCmd),
+		RunE:    command.RunE(deprovisonCmd),
 	}
 	cmd.Flags().StringVarP(&deprovisonCmd.ns, "namespace", "n", "default",
 		"The namespace of the instance")
 	return cmd
 }
 
-func (c *deprovisonCmd) run(args []string) error {
+func (c *deprovisonCmd) Validate(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("name is required")
 	}
 	c.instanceName = args[0]
 
+	return nil
+}
+
+func (c *deprovisonCmd) Run() error {
 	return c.deprovision()
 }
 

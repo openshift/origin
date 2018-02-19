@@ -118,7 +118,6 @@ func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConf
 
 	kubeMasterConfig, err := kubernetes.BuildKubernetesMasterConfig(
 		openshiftConfig.Options,
-		openshiftConfig.RequestContextMapper,
 		openshiftConfig.KubeAdmissionControl,
 		openshiftConfig.Authenticator,
 		openshiftConfig.Authorizer,

@@ -22,6 +22,7 @@ package openapi
 
 import (
 	spec "github.com/go-openapi/spec"
+	resource "k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	common "k8s.io/kube-openapi/pkg/common"
 )
@@ -116,6 +117,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1.ClusterServiceBrokerStatus"),
 							},
 						},
+					},
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,URL:.spec.url",
 					},
 				},
 			},
@@ -304,6 +310,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1.ClusterServiceClassStatus"),
 							},
 						},
+					},
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,EXTERNAL NAME:.spec.externalName,BROKER:.spec.clusterServiceBrokerName,BINDABLE:.spec.bindable,PLAN UPDATABLE:.spec.planUpdatable",
 					},
 				},
 			},
@@ -503,6 +514,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1.ClusterServicePlanStatus"),
 							},
 						},
+					},
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,EXTERNAL NAME:.spec.externalName,BROKER:.spec.clusterServiceBrokerName,CLASS:.spec.clusterServiceClassRef.name",
 					},
 				},
 			},
@@ -812,6 +828,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1.ServiceBindingStatus"),
 							},
 						},
+					},
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,INSTANCE:.spec.instanceRef.name,SECRET:.spec.secretName",
 					},
 				},
 			},
@@ -1184,6 +1205,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1.ServiceInstanceStatus"),
 							},
 						},
+					},
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,CLASS:.spec.clusterServiceClassExternalName,PLAN:.spec.clusterServicePlanExternalName",
 					},
 				},
 			},
@@ -1561,6 +1587,154 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{},
+		},
+		"github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/v1alpha1.PodPreset": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "PodPreset is a policy resource that defines additional runtime requirements for a Pod.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/v1alpha1.PodPresetSpec"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/v1alpha1.PodPresetSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/v1alpha1.PodPresetList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "PodPresetList is a list of PodPreset objects.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/v1alpha1.PodPreset"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/v1alpha1.PodPreset", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/kubernetes-incubator/service-catalog/pkg/apis/settings/v1alpha1.PodPresetSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "PodPresetSpec is a description of a pod preset.",
+					Properties: map[string]spec.Schema{
+						"selector": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Selector is a label query over a set of resources, in this case pods. Required.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+							},
+						},
+						"env": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Env defines the collection of EnvVar to inject into containers.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/api/core/v1.EnvVar"),
+										},
+									},
+								},
+							},
+						},
+						"envFrom": {
+							SchemaProps: spec.SchemaProps{
+								Description: "EnvFrom defines the collection of EnvFromSource to inject into containers.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/api/core/v1.EnvFromSource"),
+										},
+									},
+								},
+							},
+						},
+						"volumes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Volumes defines the collection of Volume to inject into the pod.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/api/core/v1.Volume"),
+										},
+									},
+								},
+							},
+						},
+						"volumeMounts": {
+							SchemaProps: spec.SchemaProps{
+								Description: "VolumeMounts defines the collection of VolumeMount to inject into containers.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/api/core/v1.VolumeMount"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"selector"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 		},
 		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource": {
 			Schema: spec.Schema{
@@ -10129,6 +10303,30 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"k8s.io/api/core/v1.PodAffinityTerm"},
+		},
+		"k8s.io/apimachinery/pkg/api/resource.Quantity": resource.Quantity{}.OpenAPIDefinition(),
+		"k8s.io/apimachinery/pkg/api/resource.int64Amount": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "int64Amount represents a fixed precision numerator and arbitrary scale exponent. It is faster than operations on inf.Dec for values that can be represented as int64.",
+					Properties: map[string]spec.Schema{
+						"value": {
+							SchemaProps: spec.SchemaProps{
+								Type:   []string{"integer"},
+								Format: "int64",
+							},
+						},
+						"scale": {
+							SchemaProps: spec.SchemaProps{
+								Type:   []string{"integer"},
+								Format: "int32",
+							},
+						},
+					},
+					Required: []string{"value", "scale"},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup": {
 			Schema: spec.Schema{

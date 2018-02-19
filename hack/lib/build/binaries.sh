@@ -174,6 +174,7 @@ os::build::internal::build_binaries() {
     local goflags
     # Use eval to preserve embedded quoted strings.
     eval "goflags=(${OS_GOFLAGS:-})"
+    gogcflags="${GOGCFLAGS:-}"
 
     local arg
     for arg; do
@@ -237,6 +238,7 @@ os::build::internal::build_binaries() {
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
           -ldflags="${local_ldflags}" \
           "${goflags[@]:+${goflags[@]}}" \
+          -gcflags "${gogcflags}" \
           "${nonstatics[@]}"
 
         # GOBIN is not supported on cross-compile in Go 1.5+ - move to the correct target

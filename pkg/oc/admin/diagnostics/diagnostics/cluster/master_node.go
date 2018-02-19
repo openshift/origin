@@ -15,6 +15,7 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 )
 
 const masterNotRunningAsANode = `Unable to find a node matching the cluster server IP.
@@ -68,7 +69,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 		}
 	}
 
-	can, err := userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
+	can, err := util.UserCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    kapi.GroupName,
 		Resource: "nodes",

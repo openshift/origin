@@ -917,7 +917,7 @@ type BlockVolumeHandler struct {
 // MountVolumeHandler mount/remount a volume when a volume is attached
 // This method is handler for filesystem volume
 func (f FilesystemVolumeHandler) MountVolumeHandler(waitForAttachTimeout time.Duration, volumeToMount VolumeToMount, actualStateOfWorld ActualStateOfWorldMounterUpdater, isRemount bool, remountingLogStr string) error {
-	glog.V(12).Infof(volumeToMount.GenerateMsgDetailed("Starting operationExecutor.MountVolume", remountingLogStr))
+	glog.V(5).Infof(volumeToMount.GenerateMsgDetailed("Starting operationExecutor.MountVolume", remountingLogStr))
 	err := f.oe.MountVolume(
 		waitForAttachTimeout,
 		volumeToMount,
@@ -929,7 +929,7 @@ func (f FilesystemVolumeHandler) MountVolumeHandler(waitForAttachTimeout time.Du
 // UnmountVolumeHandler unmount a volume if a volume is mounted
 // This method is handler for filesystem volume
 func (f FilesystemVolumeHandler) UnmountVolumeHandler(mountedVolume MountedVolume, actualStateOfWorld ActualStateOfWorldMounterUpdater) error {
-	glog.V(12).Infof(mountedVolume.GenerateMsgDetailed("Starting operationExecutor.UnmountVolume", ""))
+	glog.V(5).Infof(mountedVolume.GenerateMsgDetailed("Starting operationExecutor.UnmountVolume", ""))
 	err := f.oe.UnmountVolume(
 		mountedVolume,
 		actualStateOfWorld)
@@ -939,7 +939,7 @@ func (f FilesystemVolumeHandler) UnmountVolumeHandler(mountedVolume MountedVolum
 // UnmountDeviceHandler unmount and detach a device if a volume isn't referenced
 // This method is handler for filesystem volume
 func (f FilesystemVolumeHandler) UnmountDeviceHandler(attachedVolume AttachedVolume, actualStateOfWorld ActualStateOfWorldMounterUpdater, mounter mount.Interface) error {
-	glog.V(12).Infof(attachedVolume.GenerateMsgDetailed("Starting operationExecutor.UnmountDevice", ""))
+	glog.V(5).Infof(attachedVolume.GenerateMsgDetailed("Starting operationExecutor.UnmountDevice", ""))
 	err := f.oe.UnmountDevice(
 		attachedVolume,
 		actualStateOfWorld,

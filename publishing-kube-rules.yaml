@@ -1,0 +1,50 @@
+skip-godeps: true
+rules:
+- destination: kubernetes-code-generator
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/code-generator
+- destination: kubernetes-apimachinery
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/apimachinery
+- destination: kubernetes-api
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/api
+- destination: kubernetes-client-go
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/client-go
+- destination: kubernetes-metrics
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/metrics
+- destination: kubernetes-apiserver
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/apiserver
+- destination: kubernetes-kube-aggregator
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/kube-aggregator
+- destination: kubernetes-apiextensions-apiserver
+  branches:
+  - name: release-1.9.1
+    source:
+      branch: release-1.9.1
+      dir: staging/src/k8s.io/apiextensions-apiserver

@@ -10,7 +10,7 @@ import (
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 )
 
-func computeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, schedulerArgs map[string][]string) []string {
+func computeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, qps float32, burst int, schedulerArgs map[string][]string) []string {
 	cmdLineArgs := map[string][]string{}
 	// deep-copy the input args to avoid mutation conflict.
 	for k, v := range schedulerArgs {
@@ -22,6 +22,16 @@ func computeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, schedulerA
 	if len(cmdLineArgs["policy-config-file"]) == 0 {
 		cmdLineArgs["policy-config-file"] = []string{schedulerConfigFile}
 	}
+	if _, ok := cmdLineArgs["kube-api-content-type"]; !ok {
+		cmdLineArgs["kube-api-content-type"] = []string{"application/vnd.kubernetes.protobuf"}
+	}
+	if _, ok := cmdLineArgs["kube-api-qps"]; !ok {
+		cmdLineArgs["kube-api-qps"] = []string{fmt.Sprintf("%v", qps)}
+	}
+	if _, ok := cmdLineArgs["kube-api-burst"]; !ok {
+		cmdLineArgs["kube-api-burst"] = []string{fmt.Sprintf("%v", burst)}
+	}
+
 	if _, ok := cmdLineArgs["leader-elect"]; !ok {
 		cmdLineArgs["leader-elect"] = []string{"true"}
 	}
@@ -43,9 +53,9 @@ func computeSchedulerArgs(kubeconfigFile, schedulerConfigFile string, schedulerA
 	return args
 }
 
-func runEmbeddedScheduler(kubeconfigFile, schedulerConfigFile string, cmdLineArgs map[string][]string) {
+func runEmbeddedScheduler(kubeconfigFile, schedulerConfigFile string, qps float32, burst int, cmdLineArgs map[string][]string) {
 	cmd := schedulerapp.NewSchedulerCommand()
-	args := computeSchedulerArgs(kubeconfigFile, schedulerConfigFile, cmdLineArgs)
+	args := computeSchedulerArgs(kubeconfigFile, schedulerConfigFile, qps, burst, cmdLineArgs)
 	if err := cmd.ParseFlags(args); err != nil {
 		glog.Fatal(err)
 	}

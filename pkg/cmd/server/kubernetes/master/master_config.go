@@ -47,7 +47,6 @@ import (
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
-	kubeclientgoinformers "k8s.io/client-go/informers"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -364,7 +363,6 @@ func buildKubeApiserverConfig(
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
-	clientGoInformers kubeclientgoinformers.SharedInformerFactory,
 ) (*master.Config, error) {
 	apiserverOptions, err := BuildKubeAPIserverOptions(masterConfig)
 	if err != nil {
@@ -410,11 +408,6 @@ func buildKubeApiserverConfig(
 	genericConfig.OpenAPIConfig = defaultOpenAPIConfig(masterConfig)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
-	_, loopbackClientConfig, err := configapi.GetInternalKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-	genericConfig.LoopbackClientConfig = loopbackClientConfig
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
 	// I *think* that ApplyTo is doing this for us.
 	if false {
@@ -573,14 +566,13 @@ func BuildKubernetesMasterConfig(
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
-	clientGoInformers kubeclientgoinformers.SharedInformerFactory,
 ) (*master.Config, error) {
 	apiserverConfig, err := buildKubeApiserverConfig(
 		masterConfig,
 		admissionControl,
 		originAuthenticator,
 		kubeAuthorizer,
-		clientGoInformers)
+	)
 	if err != nil {
 		return nil, err
 	}

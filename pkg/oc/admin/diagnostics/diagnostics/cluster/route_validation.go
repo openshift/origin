@@ -13,6 +13,7 @@ import (
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/apis/route/validation"
 	clientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
@@ -52,7 +53,7 @@ func (d *RouteCertificateValidation) CanRun() (bool, error) {
 	if d.RESTConfig == nil || d.SARClient == nil {
 		return false, errors.New("must have Kube client configuration")
 	}
-	can, err := userCan(d.SARClient, &authorization.ResourceAttributes{
+	can, err := util.UserCan(d.SARClient, &authorization.ResourceAttributes{
 		Namespace: metav1.NamespaceAll,
 		Verb:      "get",
 		Group:     routeapi.GroupName,

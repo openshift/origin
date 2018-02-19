@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 )
 
 const (
@@ -68,7 +69,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 	if d.KubeClient == nil {
 		return false, errors.New("must have kube client")
 	}
-	can, err := userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
+	can, err := util.UserCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    kapi.GroupName,
 		Resource: "nodes",

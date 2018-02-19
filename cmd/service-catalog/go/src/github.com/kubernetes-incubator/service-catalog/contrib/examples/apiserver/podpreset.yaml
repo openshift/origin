@@ -1,0 +1,13 @@
+apiVersion: settings.servicecatalog.k8s.io/v1alpha1
+kind: PodPreset
+metadata:
+  name: db-config
+spec:
+  selector:
+    matchLabels:
+      app: command
+  env:
+    - name: DB_HOST
+      value: "localhost"
+    - name: DB_PORT
+      value: "6379"

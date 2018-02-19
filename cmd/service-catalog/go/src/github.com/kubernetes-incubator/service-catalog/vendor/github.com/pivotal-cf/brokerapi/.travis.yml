@@ -1,9 +1,0 @@
-language: go
-
-go:
-  - 1.7.3
-
-install:
-  - go get -v github.com/onsi/ginkgo/ginkgo
-
-script: ginkgo -r

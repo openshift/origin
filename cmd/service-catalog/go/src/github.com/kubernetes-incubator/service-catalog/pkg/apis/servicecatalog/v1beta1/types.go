@@ -27,6 +27,7 @@ import (
 
 // ClusterServiceBroker represents an entity that provides
 // ClusterServiceClasses for use in the service catalog.
+// +k8s:openapi-gen=x-kubernetes-print-columns:custom-columns=NAME:.metadata.name,URL:.spec.url
 type ClusterServiceBroker struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -234,6 +235,7 @@ type ClusterServiceClassList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterServiceClass represents an offering in the service catalog.
+// +k8s:openapi-gen=x-kubernetes-print-columns:custom-columns=NAME:.metadata.name,EXTERNAL NAME:.spec.externalName,BROKER:.spec.clusterServiceBrokerName,BINDABLE:.spec.bindable,PLAN UPDATABLE:.spec.planUpdatable
 type ClusterServiceClass struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -338,6 +340,7 @@ type ClusterServicePlanList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterServicePlan represents a tier of a ServiceClass.
+// +k8s:openapi-gen=x-kubernetes-print-columns:custom-columns=NAME:.metadata.name,EXTERNAL NAME:.spec.externalName,BROKER:.spec.clusterServiceBrokerName,CLASS:.spec.clusterServiceClassRef.name
 type ClusterServicePlan struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -454,6 +457,7 @@ type ExtraValue []string
 // In the future, this will be allowed and will represent the intention that
 // the ServiceInstance should have the plan and/or parameters updated at the
 // ClusterServiceBroker.
+// +k8s:openapi-gen=x-kubernetes-print-columns:custom-columns=NAME:.metadata.name,CLASS:.spec.clusterServiceClassExternalName,PLAN:.spec.clusterServicePlanExternalName
 type ServiceInstance struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -728,6 +732,7 @@ type ServiceBindingList struct {
 
 // ServiceBinding represents a "used by" relationship between an application and an
 // ServiceInstance.
+// +k8s:openapi-gen=x-kubernetes-print-columns:custom-columns=NAME:.metadata.name,INSTANCE:.spec.instanceRef.name,SECRET:.spec.secretName
 type ServiceBinding struct {
 	metav1.TypeMeta `json:",inline"`
 

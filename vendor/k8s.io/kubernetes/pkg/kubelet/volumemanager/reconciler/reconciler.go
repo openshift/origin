@@ -193,7 +193,7 @@ func (rc *reconciler) reconcile() {
 			if rc.controllerAttachDetachEnabled || !volumeToMount.PluginIsAttachable {
 				// Volume is not attached (or doesn't implement attacher), kubelet attach is disabled, wait
 				// for controller to finish attaching volume.
-				glog.V(12).Infof(volumeToMount.GenerateMsgDetailed("Starting operationExecutor.VerifyControllerAttachedVolume", ""))
+				glog.V(5).Infof(volumeToMount.GenerateMsgDetailed("Starting operationExecutor.VerifyControllerAttachedVolume", ""))
 				err := rc.operationExecutor.VerifyControllerAttachedVolume(
 					volumeToMount.VolumeToMount,
 					rc.nodeName,
@@ -216,7 +216,7 @@ func (rc *reconciler) reconcile() {
 					VolumeSpec: volumeToMount.VolumeSpec,
 					NodeName:   rc.nodeName,
 				}
-				glog.V(12).Infof(volumeToAttach.GenerateMsgDetailed("Starting operationExecutor.AttachVolume", ""))
+				glog.V(5).Infof(volumeToAttach.GenerateMsgDetailed("Starting operationExecutor.AttachVolume", ""))
 				err := rc.operationExecutor.AttachVolume(volumeToAttach, rc.actualStateOfWorld)
 				if err != nil &&
 					!nestedpendingoperations.IsAlreadyExists(err) &&
@@ -289,7 +289,7 @@ func (rc *reconciler) reconcile() {
 					glog.Infof(attachedVolume.GenerateMsgDetailed("Volume detached", fmt.Sprintf("DevicePath %q", attachedVolume.DevicePath)))
 				} else {
 					// Only detach if kubelet detach is enabled
-					glog.V(12).Infof(attachedVolume.GenerateMsgDetailed("Starting operationExecutor.DetachVolume", ""))
+					glog.V(5).Infof(attachedVolume.GenerateMsgDetailed("Starting operationExecutor.DetachVolume", ""))
 					err := rc.operationExecutor.DetachVolume(
 						attachedVolume.AttachedVolume, false /* verifySafeToDetach */, rc.actualStateOfWorld)
 					if err != nil &&

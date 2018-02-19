@@ -35,8 +35,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 	g.Describe("when installed to the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
 			const (
-				buildCountQuery  = "openshift_build_total"
-				activeBuildQuery = "openshift_build_active_time_seconds"
+				buildCountQuery = "openshift_build_total"
 			)
 
 			appTemplate := exutil.FixturePath("..", "..", "examples", "jenkins", "application-template.json")
@@ -71,18 +70,11 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			br.AssertSuccess()
 
 			g.By("verifying a service account token is able to query terminal build metrics from the Prometheus API")
+			// note, no longer register a metric if it is zero, so a successful build won't have failed or cancelled metrics
 			terminalTests := map[string][]metricTest{
 				buildCountQuery: {
 					metricTest{
 						labels:           map[string]string{"phase": string(buildapi.BuildPhaseComplete)},
-						greaterThanEqual: true,
-					},
-					metricTest{
-						labels:           map[string]string{"phase": string(buildapi.BuildPhaseCancelled)},
-						greaterThanEqual: true,
-					},
-					metricTest{
-						labels:           map[string]string{"phase": string(buildapi.BuildPhaseFailed)},
 						greaterThanEqual: true,
 					},
 				},
