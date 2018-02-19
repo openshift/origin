@@ -724,11 +724,22 @@ func ValidateIngressIPNetworkCIDR(config *configapi.MasterConfig, fldPath *field
 func ValidateDeprecatedClusterNetworkConfig(config *configapi.MasterConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
-	if len(config.NetworkConfig.ClusterNetworks) > 0 && config.NetworkConfig.DeprecatedHostSubnetLength != config.NetworkConfig.ClusterNetworks[0].HostSubnetLength {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("hostSubnetLength"), config.NetworkConfig.DeprecatedHostSubnetLength, "cannot set hostSubnetLength and clusterNetworks, please use clusterNetworks"))
+	if len(config.NetworkConfig.ClusterNetworks) > 1 {
+		if config.NetworkConfig.DeprecatedHostSubnetLength != 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("hostSubnetLength"), config.NetworkConfig.DeprecatedHostSubnetLength, "cannot set hostSubnetLength and clusterNetworks, please use clusterNetworks"))
+		}
+		if len(config.NetworkConfig.DeprecatedClusterNetworkCIDR) != 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("clusterNetworkCIDR"), config.NetworkConfig.DeprecatedClusterNetworkCIDR, "cannot set clusterNetworkCIDR and clusterNetworks, please use clusterNetworks"))
+		}
+
+	} else if len(config.NetworkConfig.ClusterNetworks) == 1 {
+		if config.NetworkConfig.DeprecatedHostSubnetLength != config.NetworkConfig.ClusterNetworks[0].HostSubnetLength && config.NetworkConfig.DeprecatedHostSubnetLength != 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("hostSubnetLength"), config.NetworkConfig.DeprecatedHostSubnetLength, "cannot set hostSubnetLength and clusterNetworks, please use clusterNetworks"))
+		}
+		if config.NetworkConfig.DeprecatedClusterNetworkCIDR != config.NetworkConfig.ClusterNetworks[0].CIDR && len(config.NetworkConfig.DeprecatedClusterNetworkCIDR) != 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("clusterNetworkCIDR"), config.NetworkConfig.DeprecatedClusterNetworkCIDR, "cannot set clusterNetworkCIDR and clusterNetworks, please use clusterNetworks"))
+		}
 	}
-	if len(config.NetworkConfig.ClusterNetworks) > 0 && config.NetworkConfig.DeprecatedClusterNetworkCIDR != config.NetworkConfig.ClusterNetworks[0].CIDR {
-		validationResults.AddErrors(field.Invalid(fldPath.Child("clusterNetworkCIDR"), config.NetworkConfig.DeprecatedClusterNetworkCIDR, "cannot set clusterNetworkCIDR and clusterNetworks, please use clusterNetworks"))
-	}
+
 	return validationResults
 }

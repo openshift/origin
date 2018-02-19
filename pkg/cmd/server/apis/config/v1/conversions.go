@@ -392,28 +392,14 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 				return err
 			}
-			if len(in.DeprecatedClusterNetworkCIDR) > 0 || in.DeprecatedHostSubnetLength > 0 {
-				if len(out.ClusterNetworks) > 0 {
-					out.ClusterNetworks[0].CIDR = in.DeprecatedClusterNetworkCIDR
-					out.ClusterNetworks[0].HostSubnetLength = in.DeprecatedHostSubnetLength
-				} else {
-					out.ClusterNetworks = []internal.ClusterNetworkEntry{
-						{
-							CIDR:             in.DeprecatedClusterNetworkCIDR,
-							HostSubnetLength: in.DeprecatedHostSubnetLength,
-						},
-					}
+
+			if len(out.ClusterNetworks) == 0 {
+				out.ClusterNetworks = []internal.ClusterNetworkEntry{
+					{
+						CIDR:             in.DeprecatedClusterNetworkCIDR,
+						HostSubnetLength: in.DeprecatedHostSubnetLength,
+					},
 				}
-			}
-			return nil
-		},
-		func(in *internal.MasterNetworkConfig, out *MasterNetworkConfig, s conversion.Scope) error {
-			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-				return err
-			}
-			if len(in.ClusterNetworks) > 0 {
-				out.DeprecatedHostSubnetLength = in.ClusterNetworks[0].HostSubnetLength
-				out.DeprecatedClusterNetworkCIDR = in.ClusterNetworks[0].CIDR
 			}
 			return nil
 		},
