@@ -25,7 +25,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *restclient.Config
 	ServiceAccountMethod      configapi.GrantHandlerType
 
 	// TODO these should all become local eventually
@@ -117,11 +117,11 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	routeClient, err := routeclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	routeClient, err := routeclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	coreV1Client, err := corev1.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	coreV1Client, err := corev1.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}

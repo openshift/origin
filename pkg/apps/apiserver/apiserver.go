@@ -26,7 +26,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *restclient.Config
 	KubeletClientConfig       *kubeletclient.KubeletClientConfig
 
 	// TODO these should all become local eventually
@@ -113,15 +113,15 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, err
 	}
 	// This client is using the core api server client config, since the apps server doesn't host images
-	openshiftInternalImageClient, err := imageclientinternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	openshiftInternalImageClient, err := imageclientinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	kubeExternalClient, err := kclientsetexternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	kubeExternalClient, err := kclientsetexternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
