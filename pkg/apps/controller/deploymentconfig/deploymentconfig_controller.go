@@ -189,7 +189,7 @@ func (c *DeploymentConfigController) Handle(config *appsapi.DeploymentConfig) er
 		if kapierrors.IsAlreadyExists(err) {
 			rc, err := c.rcLister.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 			if err != nil {
-				return fmt.Errorf("error while deploymentConfigController getting the replication controller %s/%s: %v", rc.Namespace, rc.Name, err)
+				return fmt.Errorf("error while deploymentConfigController getting the replication controller %s/%s: %v", deployment.Namespace, deployment.Name, err)
 			}
 			// We need to make sure we own that RC or adopt it if possible
 			isOurs, err := cm.ClaimReplicationController(rc)
