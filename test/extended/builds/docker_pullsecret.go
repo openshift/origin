@@ -2,9 +2,12 @@ package builds
 
 import (
 	"fmt"
+	"os"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -58,6 +61,14 @@ var _ = g.Describe("[Feature:Builds][pullsecret][Conformance] docker build using
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertSuccess()
 
+				ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("image1:latest", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				fmt.Fprintf(os.Stderr, "ist.Name: %s\nist.Image.DockerImageReference: %s\n",
+					ist.Name, ist.Image.DockerImageReference)
+
+				is, err := oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("image1", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				fmt.Fprintf(os.Stderr, "is.DockerImageRepository: %s\n", is.Spec.DockerImageRepository)
 			})
 		})
 	})
