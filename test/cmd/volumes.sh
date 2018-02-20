@@ -63,6 +63,33 @@ os::cmd::expect_failure_and_text 'oc set volume dc/test-deployment-config --add 
 os::cmd::expect_success_and_text 'oc set volume dc/test-deployment-config --add --mount-path=/second --sub-path=foo --overwrite' 'deploymentconfig "test-deployment-config" updated'
 os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].volumeMounts[*].subPath}'" 'foo'
 
+# ensure that we can describe volumes of type ConfigMap
+os::cmd::expect_success " echo 'apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: simple-dc
+  creationTimestamp: null
+  labels:
+    name: test-deployment
+spec:
+  replicas: 1
+  selector:
+    name: test-deployment
+  template:
+    metadata:
+      labels:
+        name: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-ruby-sample
+        name: helloworld
+' | oc create -f -"
+
+os::cmd::expect_success_and_text 'oc get dc simple-dc' 'simple-dc'
+os::cmd::expect_success 'oc create cm cmvol'
+os::cmd::expect_success 'oc set volume dc/simple-dc --add --name=cmvolume --type=configmap --configmap-name=cmvol'
+os::cmd::expect_success_and_text 'oc volume dc/simple-dc' 'configMap/cmvol as cmvolume'
+
 # command alias
 os::cmd::expect_success 'oc volumes --help'
 os::cmd::expect_success 'oc set volumes --help'
