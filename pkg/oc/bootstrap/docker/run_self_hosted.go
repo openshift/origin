@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/mrunalp/fileutils"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/util/retry"
 
@@ -140,16 +139,16 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if err := fileutils.CopyDirectory(masterConfigDir, path.Join(absHostDir, kubeapiserver.KubeAPIServerDirName, "master")); err != nil {
+		if err := CopyDirectory(masterConfigDir, path.Join(absHostDir, kubeapiserver.KubeAPIServerDirName, "master")); err != nil {
 			return err
 		}
-		if err := fileutils.CopyDirectory(nodeConfigDir, path.Join(absHostDir, kubelet.NodeConfigDirName)); err != nil {
+		if err := CopyDirectory(nodeConfigDir, path.Join(absHostDir, kubelet.NodeConfigDirName)); err != nil {
 			return err
 		}
-		if err := fileutils.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.KubeDNSDirName)); err != nil {
+		if err := CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.KubeDNSDirName)); err != nil {
 			return err
 		}
-		if err := fileutils.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
+		if err := CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
 			return err
 		}
 
