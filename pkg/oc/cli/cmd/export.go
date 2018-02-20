@@ -169,14 +169,29 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 			// If object cannot be converted to an external version, ignore error and proceed with
 			// internal version.
 			if converted {
+				var external runtime.Object
+
 				if data, err = runtime.Encode(kapi.Codecs.LegacyCodec(outputVersion), info.Object); err == nil {
-					external, err := runtime.Decode(f.Decoder(false), data)
+					external, err = runtime.Decode(f.Decoder(false), data)
 					if err != nil {
 						errs = append(errs, fmt.Errorf("error: failed to convert resource to external version: %v", err))
 						continue
 					}
-					info.Object = external
+				} else {
+					// fallback encode using the json encoder
+					data, err = runtime.Encode(f.JSONEncoder(), info.Object)
+					if err != nil {
+						return err
+					}
+
+					external, err = runtime.Decode(f.Decoder(false), data)
+					if err != nil {
+						errs = append(errs, fmt.Errorf("error: failed to convert resource to external version: %v", err))
+						continue
+					}
 				}
+
+				info.Object = external
 			}
 
 			newInfos = append(newInfos, info)
@@ -218,7 +233,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	if len(outputFormat) == 0 {
 		outputFormat = "yaml"
 	}
-	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
+	decoders := []runtime.Decoder{unstructured.UnstructuredJSONScheme, f.Decoder(true)}
 	p, err := kprinters.GetStandardPrinter(
 		&kprinters.OutputOptions{
 			FmtType:          outputFormat,
