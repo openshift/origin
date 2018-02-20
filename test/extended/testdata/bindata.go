@@ -25529,7 +25529,7 @@ parameters:
   value: openshift/prometheus:v2.0.0
 - description: The location of the alertmanager image
   name: IMAGE_ALERTMANAGER
-  value: openshift/prometheus-alertmanager:v0.9.1
+  value: openshift/prometheus-alertmanager:v0.13.0
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
   value: openshift/prometheus-alert-buffer:v0.0.2
@@ -25810,7 +25810,7 @@ objects:
 
         - name: alertmanager
           args:
-          - -config.file=/etc/alertmanager/alertmanager.yml
+          - --config.file=/etc/alertmanager/alertmanager.yml
           image: ${IMAGE_ALERTMANAGER}
           imagePullPolicy: IfNotPresent
           ports:
