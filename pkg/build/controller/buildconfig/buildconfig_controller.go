@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -136,7 +137,11 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildapi.BuildConfig) erro
 		} else if buildgenerator.IsFatal(err) || kerrors.IsNotFound(err) || kerrors.IsBadRequest(err) || kerrors.IsForbidden(err) {
 			instantiateErr = fmt.Errorf("gave up on Build for BuildConfig %s due to fatal error: %v", bcDesc(bc), err)
 			utilruntime.HandleError(instantiateErr)
-			c.recorder.Event(bc, kapi.EventTypeWarning, "BuildConfigInstantiateFailed", instantiateErr.Error())
+			// Fixes https://github.com/openshift/origin/issues/16557
+			// Caused by a race condition between the ImageChangeTrigger and BuildConfigChangeTrigger
+			if !strings.Contains(instantiateErr.Error(), "does not match the build request LastVersion(0)") {
+				c.recorder.Event(bc, kapi.EventTypeWarning, "BuildConfigInstantiateFailed", instantiateErr.Error())
+			}
 			return &configControllerFatalError{err.Error()}
 		} else {
 			instantiateErr = fmt.Errorf("error instantiating Build from BuildConfig %s: %v", bcDesc(bc), err)
