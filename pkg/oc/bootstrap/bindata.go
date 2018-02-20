@@ -36,6 +36,13 @@
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
+// install/etcd/etcd.yaml
+// install/kube-apiserver/apiserver.yaml
+// install/kube-controller-manager/kube-controller-manager.yaml
+// install/kube-dns/install.yaml
+// install/kube-proxy/install.yaml
+// install/kube-scheduler/kube-scheduler.yaml
+// install/openshift-controller-manager/install.yaml
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
@@ -15075,6 +15082,533 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installEtcdEtcdYaml = []byte(`kind: Pod
+apiVersion: v1
+metadata:
+  name: master-etcd
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: etcd
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: etcd
+    image: openshift/origin:latest
+    workingDir: /var/lib/etcd
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      #!/bin/sh
+      set -o allexport
+      exec openshift start etcd --config=/etc/origin/master/master-config.yaml
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+       readOnly: true
+     - mountPath: /var/lib/etcd/
+       name: master-data
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-data
+    hostPath:
+      path: /var/lib/etcd`)
+
+func installEtcdEtcdYamlBytes() ([]byte, error) {
+	return _installEtcdEtcdYaml, nil
+}
+
+func installEtcdEtcdYaml() (*asset, error) {
+	bytes, err := installEtcdEtcdYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/etcd/etcd.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installKubeApiserverApiserverYaml = []byte(`kind: Pod
+apiVersion: v1
+metadata:
+  name: master-api
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: api
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: api
+    image: openshift/origin:latest
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      #!/bin/bash
+      set -euo pipefail
+      if [[ -f /etc/origin/master/master.env ]]; then
+        set -o allexport
+        source /etc/origin/master/master.env
+      fi
+      exec openshift start master api --config=/etc/origin/master/master-config.yaml
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+     - mountPath: /etc/origin/cloudprovider/
+       name: master-cloud-provider
+     - mountPath: /var/lib/origin/
+       name: master-data
+    livenessProbe:
+      httpGet:
+        scheme: HTTPS
+        port: 8443
+        path: healthz
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-cloud-provider
+    hostPath:
+      path: /etc/origin/cloudprovider
+  - name: master-data
+    hostPath:
+      path: /var/lib/origin`)
+
+func installKubeApiserverApiserverYamlBytes() ([]byte, error) {
+	return _installKubeApiserverApiserverYaml, nil
+}
+
+func installKubeApiserverApiserverYaml() (*asset, error) {
+	bytes, err := installKubeApiserverApiserverYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/kube-apiserver/apiserver.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installKubeControllerManagerKubeControllerManagerYaml = []byte(`kind: Pod
+apiVersion: v1
+metadata:
+  name: kube-controller-manager
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: controllers
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: controllers
+    image: openshift/origin:latest
+    command: ["hyperkube", "kube-controller-manager"]
+    args:
+    - "--enable-dynamic-provisioning=true"
+    - "--use-service-account-credentials=true"
+    - "--leader-elect-retry-period=3s"
+    - "--leader-elect-resource-lock=configmaps"
+    - "--controllers=*"
+    - "--controllers=-ttl"
+    - "--controllers=-bootstrapsigner"
+    - "--controllers=-tokencleaner"
+    - "--controllers=-horizontalpodautoscaling"
+    - "--pod-eviction-timeout=5m"
+    - "--cluster-signing-key-file="
+    - "--cluster-signing-cert-file="
+    - "--experimental-cluster-signing-duration=720h"
+    - "--root-ca-file=/etc/origin/master/ca-bundle.crt"
+    - "--port=10252"
+    - "--service-account-private-key-file=/etc/origin/master/serviceaccounts.private.key"
+    - "--kubeconfig=/etc/origin/master/openshift-master.kubeconfig"
+    - "--openshift-config=/etc/origin/master/master-config.yaml"
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+     - mountPath: /etc/origin/cloudprovider/
+       name: master-cloud-provider
+    livenessProbe:
+      httpGet:
+        scheme: HTTP
+        port: 10252
+        path: healthz
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-cloud-provider
+    hostPath:
+      path: /etc/origin/cloudprovider`)
+
+func installKubeControllerManagerKubeControllerManagerYamlBytes() ([]byte, error) {
+	return _installKubeControllerManagerKubeControllerManagerYaml, nil
+}
+
+func installKubeControllerManagerKubeControllerManagerYaml() (*asset, error) {
+	bytes, err := installKubeControllerManagerKubeControllerManagerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/kube-controller-manager/kube-controller-manager.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installKubeDnsInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kube-dns
+parameters:
+- name: NAMESPACE
+  value: kube-dns
+- name: IMAGE
+  value: openshift/origin:latest
+- name: LOGLEVEL
+  value: "0"
+- name: KUBEDNS_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+# ok follow the crazy.  For cluster up to work, I need a resolv.conf for my kubelet
+# You can't set a port in a resolv.conf
+# cluster up probably can't bind to the actual 53 on the local system
+# that means creating a pod that DOES NOT RUN ON THE HOST NETWORK and binding 53 there
+# then we create service pointing there
+# but the openshift-controller-manager needs kube-dns
+# so we have to run it as an upstream workload, daemonset sounds good so I can use
+# the same masterconfig
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    labels:
+      k8s-app: kube-dns
+    name: kube-dns
+    namespace: ${NAMESPACE}
+  spec:
+    selector:
+      matchLabels:
+        k8s-app: kube-dns
+    template:
+      metadata:
+        labels:
+          k8s-app: kube-dns
+      spec:
+        serviceAccountName: kube-dns
+        containers:
+        - name: kube-proxy
+          image: ${IMAGE}
+          command: ["openshift", "start", "node"]
+          args:
+          - "--enable=dns"
+          - "--config=/etc/origin/node/node-config.yaml"
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/node/
+             name: node-config
+             readOnly: true
+        volumes:
+        - name: node-config
+          hostPath:
+            path: ${KUBEDNS_CONFIG_HOST_PATH}
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: kube-dns
+    namespace: ${NAMESPACE}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: kube-dns
+    namespace: ${NAMESPACE}
+  spec:
+    clusterIP: 172.30.0.2
+    selector:
+      k8s-app: kube-dns
+    ports:
+    - name: dns-udp
+      port: 53
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      protocol: TCP
+`)
+
+func installKubeDnsInstallYamlBytes() ([]byte, error) {
+	return _installKubeDnsInstallYaml, nil
+}
+
+func installKubeDnsInstallYaml() (*asset, error) {
+	bytes, err := installKubeDnsInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/kube-dns/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installKubeProxyInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kube-proxy
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: kube-proxy
+- name: LOGLEVEL
+  value: "0"
+- name: NODE_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: kube-proxy
+    namespace: ${NAMESPACE}
+
+- kind: ClusterRoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  metadata:
+    name: system:kube-proxy
+  subjects:
+    - kind: ServiceAccount
+      name: kube-proxy
+      namespace: ${NAMESPACE}
+  roleRef:
+    kind: ClusterRole
+    name: system:node-proxier
+    apiGroup: rbac.authorization.k8s.io
+
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    labels:
+      k8s-app: kube-proxy
+    name: kube-proxy
+    namespace: ${NAMESPACE}
+  spec:
+    selector:
+      matchLabels:
+        k8s-app: kube-proxy
+    template:
+      metadata:
+        labels:
+          k8s-app: kube-proxy
+      spec:
+        serviceAccountName: kube-proxy
+        hostNetwork: true
+        containers:
+        - name: kube-proxy
+          image: ${IMAGE}
+          command: ["openshift", "start", "node"]
+          args:
+          - "--enable=proxy"
+          - "--listen=https://0.0.0.0:8444"
+          - "--config=/etc/origin/node/node-config.yaml"
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/node/
+             name: node-config
+             readOnly: true
+        volumes:
+        - name: node-config
+          hostPath:
+            path: ${NODE_CONFIG_HOST_PATH}
+`)
+
+func installKubeProxyInstallYamlBytes() ([]byte, error) {
+	return _installKubeProxyInstallYaml, nil
+}
+
+func installKubeProxyInstallYaml() (*asset, error) {
+	bytes, err := installKubeProxyInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/kube-proxy/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installKubeSchedulerKubeSchedulerYaml = []byte(`kind: Pod
+apiVersion: v1
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: scheduler
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: scheduler
+    image: openshift/origin:latest
+    command: ["hyperkube", "kube-scheduler"]
+    args:
+    - "--leader-elect=true"
+    - "--leader-elect-resource-lock=configmaps"
+    - "--port=10251"
+    - "--kubeconfig=/etc/origin/master/openshift-master.kubeconfig"
+    - "--policy-config-file="
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+     - mountPath: /etc/origin/cloudprovider/
+       name: master-cloud-provider
+    livenessProbe:
+      httpGet:
+        scheme: HTTP
+        port: 10251
+        path: healthz
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-cloud-provider
+    hostPath:
+      path: /etc/origin/cloudprovider`)
+
+func installKubeSchedulerKubeSchedulerYamlBytes() ([]byte, error) {
+	return _installKubeSchedulerKubeSchedulerYaml, nil
+}
+
+func installKubeSchedulerKubeSchedulerYaml() (*asset, error) {
+	bytes, err := installKubeSchedulerKubeSchedulerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/kube-scheduler/kube-scheduler.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftControllerManagerInstallYaml = []byte(`# the openshift controller manager can use a template because the openshift-apiserver will be available first
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-controller-manager
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: openshift-controller-manager
+- name: LOGLEVEL
+  value: "0"
+- name: MASTER_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+# to create the tsb server
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-controller-manager
+    labels:
+      openshift.io/control-plane: "true"
+      openshift.io/component: controllers
+  spec:
+    selector:
+      matchLabels:
+        openshift.io/control-plane: "true"
+        openshift.io/component: controllers
+    template:
+      metadata:
+        name: openshift-controller-manager
+        labels:
+          openshift.io/control-plane: "true"
+          openshift.io/component: controllers
+      spec:
+        serviceAccountName: openshift-controller-manager
+        restartPolicy: Always
+        hostNetwork: true
+        containers:
+        - name: c
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["openshift", "start", "master", "controllers"]
+          args:
+          - "--listen=https://0.0.0.0:8444"
+          - "--config=/etc/origin/master/master-config.yaml"
+          ports:
+          - containerPort: 8444
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/master/
+             name: master-config
+           - mountPath: /etc/origin/cloudprovider/
+             name: master-cloud-provider
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8444
+              scheme: HTTPS
+        # sensitive files still sit on disk for now
+        volumes:
+        - name: master-config
+          hostPath:
+            path: ${MASTER_CONFIG_HOST_PATH}
+        - name: master-cloud-provider
+          hostPath:
+            path: /etc/origin/cloudprovider
+
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-controller-manager
+
+`)
+
+func installOpenshiftControllerManagerInstallYamlBytes() ([]byte, error) {
+	return _installOpenshiftControllerManagerInstallYaml, nil
+}
+
+func installOpenshiftControllerManagerInstallYaml() (*asset, error) {
+	bytes, err := installOpenshiftControllerManagerInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-controller-manager/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installOriginWebConsoleConsoleConfigYaml = []byte(`apiVersion: webconsole.config.openshift.io/v1
 kind: WebConsoleConfiguration
 clusterInfo:
@@ -15850,6 +16384,13 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"install/etcd/etcd.yaml": installEtcdEtcdYaml,
+	"install/kube-apiserver/apiserver.yaml": installKubeApiserverApiserverYaml,
+	"install/kube-controller-manager/kube-controller-manager.yaml": installKubeControllerManagerKubeControllerManagerYaml,
+	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
+	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
+	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
+	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
@@ -15957,6 +16498,27 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 	}},
 	"install": &bintree{nil, map[string]*bintree{
+		"etcd": &bintree{nil, map[string]*bintree{
+			"etcd.yaml": &bintree{installEtcdEtcdYaml, map[string]*bintree{}},
+		}},
+		"kube-apiserver": &bintree{nil, map[string]*bintree{
+			"apiserver.yaml": &bintree{installKubeApiserverApiserverYaml, map[string]*bintree{}},
+		}},
+		"kube-controller-manager": &bintree{nil, map[string]*bintree{
+			"kube-controller-manager.yaml": &bintree{installKubeControllerManagerKubeControllerManagerYaml, map[string]*bintree{}},
+		}},
+		"kube-dns": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installKubeDnsInstallYaml, map[string]*bintree{}},
+		}},
+		"kube-proxy": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installKubeProxyInstallYaml, map[string]*bintree{}},
+		}},
+		"kube-scheduler": &bintree{nil, map[string]*bintree{
+			"kube-scheduler.yaml": &bintree{installKubeSchedulerKubeSchedulerYaml, map[string]*bintree{}},
+		}},
+		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},
+		}},
 		"origin-web-console": &bintree{nil, map[string]*bintree{
 			"console-config.yaml": &bintree{installOriginWebConsoleConsoleConfigYaml, map[string]*bintree{}},
 			"console-template.yaml": &bintree{installOriginWebConsoleConsoleTemplateYaml, map[string]*bintree{}},

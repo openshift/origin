@@ -29,7 +29,6 @@ grep -F %[1]s /rootfs/proc/1/mountinfo | grep shared || nsenter --mount=/rootfs/
 `
 
 	DefaultVolumesDir           = "/var/lib/origin/openshift.local.volumes"
-	DefaultConfigDir            = "/var/lib/origin/openshift.local.config"
 	DefaultPersistentVolumesDir = "/var/lib/origin/openshift.local.pv"
 )
 
@@ -157,9 +156,6 @@ func (h *HostHelper) EnsureHostDirectories(createVolumeShare bool) error {
 	// the default directories. If the user specifies them, then the
 	// user is responsible for ensuring they exist, are mountable, etc.
 	dirs := []string{}
-	if h.configDir == DefaultConfigDir {
-		dirs = append(dirs, path.Join("/rootfs", h.configDir))
-	}
 	if h.volumesDir == DefaultVolumesDir {
 		dirs = append(dirs, path.Join("/rootfs", h.volumesDir))
 	}

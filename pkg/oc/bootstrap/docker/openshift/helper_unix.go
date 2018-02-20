@@ -57,7 +57,7 @@ func SaveSocatPid(pid int) error {
 	return ioutil.WriteFile(SocatPidFile, []byte(strconv.Itoa(pid)), 0644)
 }
 
-func (h *Helper) startSocatTunnel(bindIP string) error {
+func (h *Helper) StartSocatTunnel(bindIP string) error {
 	// Previous process should have been killed with
 	// 'oc cluster down', call again here in case it wasn't
 	err := KillExistingSocat()
