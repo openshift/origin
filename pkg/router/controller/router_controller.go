@@ -277,8 +277,10 @@ func (c *RouterController) Commit() {
 func (c *RouterController) processRoute(eventType watch.EventType, route *routeapi.Route) {
 	glog.V(4).Infof("Processing Route: %s/%s -> %s", route.Namespace, route.Name, route.Spec.To.Name)
 	glog.V(4).Infof("           Alias: %s", route.Spec.Host)
-	glog.V(4).Infof("           Path: %s", route.Spec.Path)
-	glog.V(4).Infof("           Event: %s", eventType)
+	if len(route.Spec.Path) > 0 {
+		glog.V(4).Infof("           Path: %s", route.Spec.Path)
+	}
+	glog.V(4).Infof("           Event: %s rv=%s", eventType, route.ResourceVersion)
 
 	c.RecordNamespaceRoutes(eventType, route)
 	if err := c.Plugin.HandleRoute(eventType, route); err != nil {

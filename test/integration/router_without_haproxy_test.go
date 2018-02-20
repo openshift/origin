@@ -391,8 +391,10 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 		return rateLimitingFunc()
 	})
 
+	tracker := controller.NewSimpleContentionTracker(time.Minute)
+	go tracker.Run(wait.NeverStop)
 	templatePlugin := &templateplugin.TemplatePlugin{Router: r}
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), name, "")
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), name, "", tracker)
 	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
 	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, false, controller.RejectionRecorder(statusPlugin))
 

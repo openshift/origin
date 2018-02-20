@@ -17,6 +17,7 @@ import (
 
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
@@ -404,16 +405,19 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), 10*time.Minute)
+	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), o.ResyncInterval)
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg, svcFetcher)
 	if err != nil {
 		return err
 	}
 
-	var recorder controller.RejectionRecorder = controller.LogRejections
 	var plugin router.Plugin = templatePlugin
+	var recorder controller.RejectionRecorder = controller.LogRejections
 	if o.UpdateStatus {
-		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname)
+		tracker := controller.NewSimpleContentionTracker(o.ResyncInterval / 10)
+		tracker.SetConflictMessage(fmt.Sprintf("The router detected another process is writing conflicting updates to route status with name %q. Please ensure that the configuration of all routers is consistent. Route status will not be updated as long as conflicts are detected.", o.RouterName))
+		go tracker.Run(wait.NeverStop)
+		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname, tracker)
 		recorder = status
 		plugin = status
 	}

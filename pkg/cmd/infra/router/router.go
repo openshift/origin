@@ -137,8 +137,6 @@ func (o *RouterSelection) AdmissionCheck(route *routeapi.Route) error {
 		glog.V(4).Infof("host %s rejected - not in the list of allowed domains", route.Spec.Host)
 		return fmt.Errorf("host not in the allowed list of domains")
 	}
-
-	glog.V(4).Infof("host %s admitted", route.Spec.Host)
 	return nil
 }
 

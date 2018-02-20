@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -228,10 +229,13 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
-	var recorder controller.RejectionRecorder = controller.LogRejections
 	var plugin router.Plugin = f5Plugin
+	var recorder controller.RejectionRecorder = controller.LogRejections
 	if o.UpdateStatus {
-		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname)
+		tracker := controller.NewSimpleContentionTracker(o.ResyncInterval / 10)
+		tracker.SetConflictMessage(fmt.Sprintf("The router detected another process is writing conflicting updates to route status with name %q. Please ensure that the configuration of all routers is consistent. Route status will not be updated as long as conflicts are detected.", o.RouterName))
+		go tracker.Run(wait.NeverStop)
+		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname, tracker)
 		recorder = status
 		plugin = status
 	}
