@@ -155,6 +155,7 @@ func configureTestCluster(t *testing.T, name string, https bool) *EtcdTestServer
 		if err != nil {
 			t.Fatal(err)
 		}
+		m.AuthToken = "simple"
 	} else {
 		cln := newLocalListener(t)
 		m.ClientListeners = []net.Listener{cln}
@@ -169,7 +170,6 @@ func configureTestCluster(t *testing.T, name string, https bool) *EtcdTestServer
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.AuthToken = "simple"
 
 	clusterStr := fmt.Sprintf("%s=http://%s", name, pln.Addr().String())
 	m.InitialPeerURLsMap, err = types.NewURLsMap(clusterStr)
