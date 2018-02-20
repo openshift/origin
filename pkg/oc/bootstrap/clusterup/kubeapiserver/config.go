@@ -18,9 +18,8 @@ const KubeAPIServerDirName = "oc-cluster-up-kube-apiserver"
 type KubeAPIServerStartConfig struct {
 	// MasterImage is the docker image for openshift start master
 	MasterImage string
-	ImageFormat string
-	DNSPort     int
-	PublicHost  string
+
+	Args []string
 }
 
 func NewKubeAPIServerStartConfig() *KubeAPIServerStartConfig {
@@ -32,16 +31,12 @@ func NewKubeAPIServerStartConfig() *KubeAPIServerStartConfig {
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
 func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer) (string, error) {
-
 	fmt.Fprintf(out, "Creating initial OpenShift master configuration\n")
 	createConfigCmd := []string{
 		"start", "master",
-		"--write-config=/var/lib/origin/openshift.local.config",
-		"--master=127.0.0.1",
-		fmt.Sprintf("--images=%s", opt.ImageFormat),
-		fmt.Sprintf("--dns=0.0.0.0:%d", opt.DNSPort),
-		fmt.Sprintf("--public-master=https://%s:8443", opt.PublicHost),
 	}
+	createConfigCmd = append(createConfigCmd, opt.Args...)
+
 	containerId, _, err := imageRunHelper.Image(opt.MasterImage).
 		Privileged().
 		HostNetwork().

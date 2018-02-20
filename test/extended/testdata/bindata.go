@@ -29312,8 +29312,8 @@ spec:
     hostPath:
       path: /path/to/master/config-dir
   - name: master-data
-    hostPath:
-      path: /var/lib/etcd`)
+    ETCD_VOLUME
+`)
 
 func installEtcdEtcdYamlBytes() ([]byte, error) {
 	return _installEtcdEtcdYaml, nil

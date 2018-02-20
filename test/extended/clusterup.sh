@@ -137,7 +137,7 @@ function os::test::extended::clusterup::internal::hostdirs () {
     local config_dir="${BASE_DIR}/config"
     local pv_dir="${BASE_DIR}/pv"
     local volumes_dir="${BASE_DIR}/volumes"
-    os::cmd::expect_success "mkdir -p ${data_dir} ${config_dir} ${pv_dir} ${volumes_dir}"
+    os::cmd::expect_success "mkdir -p ${data_dir} ${pv_dir} ${volumes_dir}"
     local volumes_arg=""
     if [[ "$(uname)" == "Linux" ]]; then
         volumes_arg="--host-volumes-dir=${volumes_dir}"
@@ -151,7 +151,7 @@ function os::test::extended::clusterup::internal::hostdirs () {
         ${@}
 
 	local sudo="${USE_SUDO:+sudo}"
-    os::cmd::expect_success "${sudo} ls ${config_dir}/master/master-config.yaml"
+    os::cmd::expect_success "${sudo} ls ${config_dir}/oc-cluster-up-kube-apiserver/master/master-config.yaml"
     os::cmd::expect_success "${sudo} ls ${pv_dir}/pv0100"
     os::cmd::expect_success "${sudo} ls ${data_dir}/member"
 }
@@ -171,7 +171,13 @@ function os::test::extended::clusterup::hostdirs () {
     fi
 
     # need to set up the config dir with the proper content
-    os::test::extended::clusterup::standard_test --host-config-dir="${BASE_DIR}/config" --write-config
+    oc cluster up \
+        --host-data-dir="${base_dir}/data" \
+        --host-config-dir="${base_dir}/config" \
+        --host-pv-dir="${base_dir}/pv" \
+        --host-volumes-dir="${base_dir}/volumes" \
+        --version="$ORIGIN_COMMIT" \
+        --write-config
 
     BASE_DIR="${base_dir}" os::test::extended::clusterup::internal::hostdirs ${@}
 }
@@ -197,20 +203,50 @@ function os::test::extended::clusterup::service_catalog() {
 
 # Tests creating a cluster with a public hostname
 function os::test::extended::clusterup::publichostname () {
-    os::test::extended::clusterup::standard_test \
+    local base_dir
+    if [[ "$(uname)" == "Darwin" ]]; then
+        base_dir="$(mktemp -d /tmp/clusterup.XXXXXX)"
+    else
+        base_dir="$(mktemp -d)"
+    fi
+
+    # need to set up the config dir with the proper content
+    oc cluster up \
         --public-hostname="myserver.127.0.0.1.nip.io" \
+        --host-config-dir="${base_dir}/config" \
+        --version="$ORIGIN_COMMIT" \
+        --write-config
+
+    BASE_DIR="${base_dir}" os::test::extended::clusterup::standard_test \
+        --public-hostname="myserver.127.0.0.1.nip.io" \
+        --host-config-dir="${base_dir}/config" \
         --version="$ORIGIN_COMMIT" \
         ${@}
-    os::cmd::expect_success_and_text "docker exec origin cat /var/lib/origin/openshift.local.config/master/master-config.yaml" "masterPublicURL.*myserver\.127\.0\.0\.1\.nip\.io"
+    os::cmd::expect_success_and_text "cat ${base_dir}/config/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*myserver\.127\.0\.0\.1\.nip\.io"
 }
 
 # Tests creating a cluster with a numeric public hostname
 function os::test::extended::clusterup::numerichostname () {
+    local base_dir
+    if [[ "$(uname)" == "Darwin" ]]; then
+        base_dir="$(mktemp -d /tmp/clusterup.XXXXXX)"
+    else
+        base_dir="$(mktemp -d)"
+    fi
+
+    # need to set up the config dir with the proper content
+    oc cluster up \
+        --public-hostname="127.0.0.1" \
+        --host-config-dir="${base_dir}/config" \
+        --version="$ORIGIN_COMMIT" \
+        --write-config
+
     os::test::extended::clusterup::standard_test \
         --public-hostname="127.0.0.1" \
+        --host-config-dir="${base_dir}/config" \
         --version="$ORIGIN_COMMIT" \
         ${@}
-    os::cmd::expect_success_and_text "docker exec origin cat /var/lib/origin/openshift.local.config/master/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
+    os::cmd::expect_success_and_text "cat ${base_dir}/config/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
 }
 
 # Tests installation of console components

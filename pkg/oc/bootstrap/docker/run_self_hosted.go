@@ -170,6 +170,11 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 
 	substitutions := map[string]string{
 		"/path/to/master/config-dir": masterConfigDir,
+		"ETCD_VOLUME":                "emptyDir:\n",
+	}
+	if len(c.HostDataDir) > 0 {
+		substitutions["ETCD_VOLUME"] = `hostPath:
+      path: ` + c.HostDataDir + "\n"
 	}
 	for _, staticPodLocation := range staticPodLocations {
 		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, podManifestDir); err != nil {
@@ -232,9 +237,14 @@ func (c *ClientStartConfig) makeMasterConfig(out io.Writer) (string, error) {
 	container := kubeapiserver.NewKubeAPIServerStartConfig()
 	// TODO follow the args pattern of the others
 	container.MasterImage = c.openshiftImage()
-	container.ImageFormat = c.imageFormat()
-	container.DNSPort = c.DNSPort
-	container.PublicHost = publicHost
+	container.Args = []string{
+		"--write-config=/var/lib/origin/openshift.local.config",
+		"--master=127.0.0.1",
+		fmt.Sprintf("--images=%s", c.imageFormat()),
+		fmt.Sprintf("--dns=0.0.0.0:%d", c.DNSPort),
+		fmt.Sprintf("--public-master=https://%s:8443", publicHost),
+		"--etcd-dir=/var/lib/etcd",
+	}
 
 	masterConfigDir, err := container.MakeMasterConfig(c.GetDockerClient(out), imageRunningHelper.New(), out)
 	if err != nil {
@@ -319,7 +329,7 @@ func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeCon
 	imageRunningHelper := run.NewRunHelper(c.DockerHelper())
 	container := kubelet.NewKubeletRunConfig()
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
-	container.ContainerBinds = append(container.ContainerBinds, masterConfigDir+":/etc/origin/master:z")
+	container.ContainerBinds = append(container.ContainerBinds, masterConfigDir+":/var/lib/origin/openshift.local.config/master:z")
 	container.ContainerBinds = append(container.ContainerBinds, podManifestDir+":/var/lib/origin/pod-manifests:z")
 	if len(c.HostDataDir) > 0 {
 		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/var/lib/etcd:z", c.HostDataDir))
@@ -389,13 +399,13 @@ func waitForHealthyKubeAPIServer(clientConfig *rest.Config) error {
 		healthStatus := 0
 		resp := discoveryClient.RESTClient().Get().AbsPath("/healthz").Do().StatusCode(&healthStatus)
 		if resp.Error() != nil {
-			glog.Errorf("Server isn't healthy yet.  Waiting a little while. %v", resp.Error())
+			glog.V(5).Infof("Server isn't healthy yet.  Waiting a little while. %v", resp.Error())
 			return false, nil
 		}
 		content, _ := resp.Raw()
 		healthzContent = string(content)
 		if healthStatus != http.StatusOK {
-			glog.Errorf("Server isn't healthy yet.  Waiting a little while. %v", healthStatus)
+			glog.V(5).Infof("Server isn't healthy yet.  Waiting a little while. %v", healthStatus)
 			return false, nil
 		}
 

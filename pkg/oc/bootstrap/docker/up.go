@@ -551,13 +551,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 	// Create an initial project
 	c.addTask(conditionalTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject, c.ShouldCreateUser))
 
-	// Remove temporary directory
-	c.addTask(simpleTask("Removing temporary directory", c.RemoveTemporaryDirectory))
-
+	// TODO see how to restore this.  The DNS config seems different now since it is in a container.
 	// Check container networking (only when loglevel > 0)
-	if glog.V(1) {
-		c.addTask(simpleTask("Checking container networking", c.CheckContainerNetworking))
-	}
+	//if glog.V(1) {
+	//	c.addTask(simpleTask("Checking container networking", c.CheckContainerNetworking))
+	//}
 
 	// Display server information
 	c.addTask(simpleTask("Server Information", c.ServerInfo))
@@ -1252,11 +1250,6 @@ func (c *ClientStartConfig) CreateProject(out io.Writer) error {
 		return errors.NewError("cannot get logged in user client").WithCause(err)
 	}
 	return openshift.CreateProject(f, initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
-}
-
-// RemoveTemporaryDirectory removes the local configuration directory
-func (c *ClientStartConfig) RemoveTemporaryDirectory(out io.Writer) error {
-	return os.RemoveAll(c.LocalConfigDir)
 }
 
 // ServerInfo displays server information after a successful start
