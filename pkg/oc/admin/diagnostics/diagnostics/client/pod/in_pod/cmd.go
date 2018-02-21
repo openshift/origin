@@ -1,4 +1,4 @@
-package diagnostics
+package in_pod
 
 import (
 	"fmt"
@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
-	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/pod"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
@@ -34,6 +33,8 @@ func (o *PodDiagnosticsOptions) Logger() *log.Logger {
 }
 
 const (
+	InPodDiagnosticRecommendedName = "inpod-poddiagnostic"
+
 	// Standard locations for the secrets mounted in pods
 	StandardMasterCaPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 	StandardTokenPath    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
@@ -106,7 +107,7 @@ func (o PodDiagnosticsOptions) RunDiagnostics() error {
 var (
 	// availablePodDiagnostics contains the names of host diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availablePodDiagnostics = sets.NewString(poddiag.PodCheckDnsName, poddiag.PodCheckAuthName)
+	availablePodDiagnostics = sets.NewString(PodCheckDnsName, PodCheckAuthName)
 )
 
 // buildPodDiagnostics builds host Diagnostic objects based on the host environment.
@@ -122,11 +123,11 @@ func (o PodDiagnosticsOptions) buildPodDiagnostics() ([]types.Diagnostic, error)
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 
-		case poddiag.PodCheckDnsName:
-			diagnostics = append(diagnostics, poddiag.PodCheckDns{})
+		case PodCheckDnsName:
+			diagnostics = append(diagnostics, PodCheckDns{})
 
-		case poddiag.PodCheckAuthName:
-			diagnostics = append(diagnostics, poddiag.PodCheckAuth{
+		case PodCheckAuthName:
+			diagnostics = append(diagnostics, PodCheckAuth{
 				MasterCaPath: StandardMasterCaPath,
 				TokenPath:    StandardTokenPath,
 				MasterUrl:    StandardMasterUrl,
