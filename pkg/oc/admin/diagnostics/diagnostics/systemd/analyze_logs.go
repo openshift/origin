@@ -99,9 +99,13 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 					if err := json.Unmarshal(bytes, &entry); err != nil {
 						r.Debug("DS0003", fmt.Sprintf("Couldn't read the JSON for this log message:\n%s\nGot error %s", string(bytes), errStr(err)))
 					} else {
-						if lineCount > 500 && stampTooOld(entry.TimeStamp, timeLimit) {
-							r.Debug("DS0004", fmt.Sprintf("Stopped reading %s log: timestamp %s too old", unitName, entry.TimeStamp))
-							break // if we've analyzed at least 500 entries, stop when age limit reached (don't scan days of logs)
+						epochns, err := strconv.ParseInt(entry.TimeStamp, 10, 64)
+						if err == nil && time.Unix(epochns/1000000, 0).Before(timeLimit) && lineCount > 500 {
+							r.Debug("DS0005", fmt.Sprintf("Stopped reading %s log: timestamp %s more than 1 hour ago", unitName, time.Unix(epochns/1000000, 0)))
+							break
+						} else if err != nil {
+							r.Warn("DS0004", err, fmt.Sprintf("Find invalid timestamp %s in %s log", entry.TimeStamp, unitName))
+							continue
 						}
 						if unit.StartMatch.MatchString(entry.Message) {
 							break // saw log message for unit startup; don't analyze previous logs
@@ -141,11 +145,4 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 	}
 
 	return r
-}
-
-func stampTooOld(stamp string, timeLimit time.Time) bool {
-	if epochns, err := strconv.ParseInt(stamp, 10, 64); err == nil {
-		return time.Unix(epochns/1000000, 0).Before(timeLimit)
-	}
-	return true // something went wrong, stop looking...
 }
