@@ -14,10 +14,12 @@ import (
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	clustdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster"
 	agldiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/aggregated_logging"
 	appcreate "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/app_create"
+	networkdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -41,6 +43,7 @@ func availableClusterDiagnostics() types.DiagnosticList {
 		&clustdiags.NodeDefinitions{},
 		&clustdiags.RouteCertificateValidation{},
 		&clustdiags.ServiceExternalIPs{},
+		&networkdiags.NetworkDiagnostic{},
 	}
 }
 
@@ -90,6 +93,10 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, err
 	}
+	networkClient, err := networkclient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 
 	diagnostics := []types.Diagnostic{}
 	for _, diagnosticName := range requestedDiagnostics {
@@ -126,6 +133,16 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 			d = &clustdiags.ServiceExternalIPs{MasterConfigFile: o.MasterConfigLocation, KclusterClient: kclusterClient}
 		case clustdiags.RouteCertificateValidationName:
 			d = &clustdiags.RouteCertificateValidation{SARClient: kclusterClient.Authorization(), RESTConfig: config}
+		case networkdiags.NetworkDiagnosticName:
+			nd := o.ParameterizedDiagnostics[diagnosticName].(*networkdiags.NetworkDiagnostic)
+			nd.KubeClient = kclusterClient
+			nd.NetNamespacesClient = networkClient.Network()
+			nd.ClusterNetworkClient = networkClient.Network()
+			nd.ClientFlags = o.ClientFlags
+			nd.Level = o.LogOptions.Level
+			nd.Factory = o.Factory
+			nd.PreventModification = o.PreventModification
+			diagnostics = append(diagnostics, nd)
 		default:
 			return nil, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}

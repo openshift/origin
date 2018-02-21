@@ -1,4 +1,4 @@
-package network
+package in_pod
 
 import (
 	"errors"
@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/network"
 	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 

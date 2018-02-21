@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
 	diagutil "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 )
 
