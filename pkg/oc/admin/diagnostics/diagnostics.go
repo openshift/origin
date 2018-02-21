@@ -16,7 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	clientdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client"
+	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	networkdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
@@ -134,7 +134,7 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	}
 	// add hidden in-pod subcommands
 	cmd.AddCommand(
-		NewCommandPodDiagnostics(clientdiag.InPodDiagnosticRecommendedName, out),
+		poddiag.NewCommandPodDiagnostics(poddiag.InPodDiagnosticRecommendedName, out),
 		NewCommandNetworkPodDiagnostics(networkdiag.InPodNetworkCheckRecommendedName, out),
 	)
 

@@ -7,6 +7,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	clientdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod"
 	networkdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/network"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
@@ -14,7 +15,7 @@ import (
 // availableClientDiagnostics returns definitions of client diagnostics that can be executed
 // during a single run of diagnostics. Add more diagnostics to the list as they are defined.
 func availableClientDiagnostics() types.DiagnosticList {
-	return types.DiagnosticList{clientdiags.ConfigContext{}, &clientdiags.DiagnosticPod{}, &networkdiags.NetworkDiagnostic{}}
+	return types.DiagnosticList{clientdiags.ConfigContext{}, &pod.DiagnosticPod{}, &networkdiags.NetworkDiagnostic{}}
 }
 
 // buildClientDiagnostics builds client Diagnostic objects based on the rawConfig passed in.
@@ -45,8 +46,8 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 					diagnostics = append(diagnostics, diagnostic)
 				}
 			}
-		case clientdiags.DiagnosticPodName:
-			dp := o.ParameterizedDiagnostics[diagnosticName].(*clientdiags.DiagnosticPod)
+		case pod.DiagnosticPodName:
+			dp := o.ParameterizedDiagnostics[diagnosticName].(*pod.DiagnosticPod)
 			dp.KubeClient = kubeClient
 			dp.Namespace = rawConfig.Contexts[rawConfig.CurrentContext].Namespace
 			dp.Level = o.LogOptions.Level

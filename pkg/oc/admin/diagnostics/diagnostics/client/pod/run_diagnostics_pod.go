@@ -1,4 +1,4 @@
-package client
+package pod
 
 import (
 	"bufio"
@@ -15,15 +15,15 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	poddiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/client/pod/in_pod"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
-	InPodDiagnosticRecommendedName = "inpod-poddiagnostic"
-	DiagnosticPodName              = "DiagnosticPod"
-	ImageTemplateParam             = "images"
-	LatestImageParam               = "latest-images"
+	DiagnosticPodName  = "DiagnosticPod"
+	ImageTemplateParam = "images"
+	LatestImageParam   = "latest-images"
 )
 
 // DiagnosticPod is a diagnostic that runs a diagnostic pod and relays the results.
@@ -88,7 +88,7 @@ func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 				{
 					Name:    "pod-diagnostics",
 					Image:   imageName,
-					Command: []string{"oc", "adm", "diagnostics", InPodDiagnosticRecommendedName, "-l", strconv.Itoa(loglevel)},
+					Command: []string{"oc", "adm", "diagnostics", poddiag.InPodDiagnosticRecommendedName, "-l", strconv.Itoa(loglevel)},
 				},
 			},
 		},
