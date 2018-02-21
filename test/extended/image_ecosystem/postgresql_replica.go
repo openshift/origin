@@ -82,9 +82,9 @@ func CreatePostgreSQLReplicationHelpers(c kcoreclient.PodInterface, masterDeploy
 func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 	return func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
-		defer cleanup(oc)
+		defer exutil.RemoveHostPathVolumes(oc)
 
-		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace(), "512Mi", 3)
+		_, err := exutil.SetupHostPathVolumes(oc, "512Mi", 3)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)

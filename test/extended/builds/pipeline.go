@@ -17,6 +17,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -57,7 +58,8 @@ func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI,
 var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 	var (
-		jenkinsTemplatePath           = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		jenkinsEphemeralTemplatePath  = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")
+		jenkinsPersistentTemplatePath = exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-persistent-template.json")
 		nodejsDeclarativePipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "nodejs-sample-pipeline.yaml")
 		mavenSlavePipelinePath        = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "maven-pipeline.yaml")
 		mavenSlaveGradlePipelinePath  = exutil.FixturePath("testdata", "builds", "gradle-pipeline.yaml")
@@ -77,7 +79,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		j                        *jenkins.JenkinsRef
 		dcLogFollow              *exec.Cmd
 		dcLogStdOut, dcLogStdErr *bytes.Buffer
-		setupJenkins             = func() {
+		setupJenkins             = func(jenkinsTemplatePath string) {
 			exutil.DumpDockerInfo()
 			// Deploy Jenkins
 			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
@@ -88,10 +90,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			// an override to use that images stream and test image
 			var licensePrefix, pluginName string
 			useSnapshotImage := false
+
+			// create persistent volumes if running persistent jenkins
+			if jenkinsTemplatePath == jenkinsPersistentTemplatePath {
+				_, err := exutil.SetupNFSBackedPersistentVolume(oc, "2Gi")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
 			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
 			newAppArgs := []string{"-f", jenkinsTemplatePath, "-p", "MEMORY_LIMIT=2Gi"}
 			clientPluginNewAppArgs, useClientPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
 			syncPluginNewAppArgs, useSyncPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
+
 			switch {
 			case useClientPluginSnapshotImage && useSyncPluginSnapshotImage:
 				fmt.Fprintf(g.GinkgoWriter,
@@ -151,7 +161,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipelines with maven slave", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -234,7 +244,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipelines with declarative syntax", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -283,7 +293,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Deleted pipeline strategy buildconfigs", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -330,7 +340,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Sync secret to credential", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -387,7 +397,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using config map slave", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -436,7 +446,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using imagestream slave", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -485,7 +495,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using imagestreamtag slave", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -534,7 +544,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using jenkins-client-plugin", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -585,7 +595,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline with env vars", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -677,7 +687,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	/*g.Context("Orchestration pipeline", func() {
 	g.BeforeEach(func() {
-		setupJenkins()
+		setupJenkins(jenkinsEphemeralTemplatePath)
 
 		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 			ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -719,7 +729,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Blue-green pipeline", func() {
 		g.BeforeEach(func() {
-			setupJenkins()
+			setupJenkins(jenkinsEphemeralTemplatePath)
 
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
@@ -866,6 +876,230 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 			buildAndSwitch("green")
 			buildAndSwitch("blue")
+		})
+	})
+	g.Context("delete jenkins job runs when the associated build is deleted", func() {
+		g.BeforeEach(func() {
+			setupJenkins(jenkinsEphemeralTemplatePath)
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker.Stop()
+			}
+		})
+
+		g.It("should delete a job run when the associated build is deleted", func() {
+			type buildInfo struct {
+				number          int
+				jenkinsBuildURI string
+			}
+			buildNameToBuildInfoMap := make(map[string]buildInfo)
+
+			g.By(fmt.Sprintf("calling oc create -f %q", envVarsPipelinePath))
+			err := oc.Run("new-app").Args("-f", envVarsPipelinePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("starting 5 pipeline builds")
+			for i := 1; i <= 5; i++ {
+				// start the build
+				br, _ := exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
+				br.AssertSuccess()
+
+				// get the build information
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				jenkinsBuildURI, err := url.Parse(build.Annotations[buildapi.BuildJenkinsBuildURIAnnotation])
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "error parsing build uri: %s", err)
+				}
+				buildNameToBuildInfoMap[build.Name] = buildInfo{number: i, jenkinsBuildURI: jenkinsBuildURI.Path}
+			}
+
+			g.By("verifying that jobs exist for the 5 builds")
+			for buildName, buildInfo := range buildNameToBuildInfoMap {
+				_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				_, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
+			}
+
+			g.By("deleting the even numbered builds")
+			for buildName, buildInfo := range buildNameToBuildInfoMap {
+				if buildInfo.number%2 == 0 {
+					fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
+					err := oc.BuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+				}
+			}
+
+			g.By("giving the Jenkins sync plugin enough time to delete the job runs")
+			err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
+				for buildName, buildInfo := range buildNameToBuildInfoMap {
+					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					fmt.Fprintf(g.GinkgoWriter, "Checking %s, status: %v\n", buildName, status)
+					if buildInfo.number%2 == 0 {
+						if status == http.StatusOK {
+							fmt.Fprintf(g.GinkgoWriter, "Jenkins job run exists for %s but shouldn't, retrying ...", buildName)
+							return false, nil
+						}
+					}
+				}
+				return true, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that the correct builds and jobs exist")
+			for buildName, buildInfo := range buildNameToBuildInfoMap {
+				_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if buildInfo.number%2 == 0 {
+					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					o.Expect(err).To(o.HaveOccurred())
+					o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
+				} else {
+					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
+				}
+			}
+		})
+	})
+	g.Context("delete jenkins job runs when jenkins re-establishes communications", func() {
+		g.BeforeEach(func() {
+			setupJenkins(jenkinsPersistentTemplatePath)
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.AfterEach(func() {
+			defer exutil.RemoveNFSBackedPersistentVolume(oc)
+
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker.Stop()
+			}
+		})
+
+		g.It("should delete job runs when the associated build is deleted - jenkins unreachable", func() {
+
+			type buildInfo struct {
+				number          int
+				jenkinsBuildURI string
+			}
+			buildNameToBuildInfoMap := make(map[string]buildInfo)
+
+			g.By(fmt.Sprintf("calling oc create -f %q", envVarsPipelinePath))
+			err := oc.Run("new-app").Args("-f", envVarsPipelinePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("starting 5 pipeline builds")
+			for i := 1; i <= 5; i++ {
+				// start the build
+				br, _ := exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
+				br.AssertSuccess()
+
+				// get the build information
+				build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(fmt.Sprintf("sample-pipeline-withenvs-%d", i), metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				jenkinsBuildURI, err := url.Parse(build.Annotations[buildapi.BuildJenkinsBuildURIAnnotation])
+
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "error parsing build uri: %s", err)
+				}
+				buildNameToBuildInfoMap[build.Name] = buildInfo{number: i, jenkinsBuildURI: jenkinsBuildURI.Path}
+			}
+
+			g.By("verifying that jobs exist for the 5 builds")
+			for buildName, buildInfo := range buildNameToBuildInfoMap {
+				_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				_, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
+			}
+
+			g.By("scaling down jenkins")
+			_, err = oc.Run("scale").Args("dc/jenkins", "--replicas=0").Output()
+
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("deleting the even numbered builds")
+			for buildName, buildInfo := range buildNameToBuildInfoMap {
+				if buildInfo.number%2 == 0 {
+					fmt.Fprintf(g.GinkgoWriter, "Deleting build: %s", buildName)
+					err := oc.BuildClient().Build().Builds(oc.Namespace()).Delete(buildName, &metav1.DeleteOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+				}
+			}
+
+			g.By("scaling up jenkins")
+			_, err = oc.Run("scale").Args("dc/jenkins", "--replicas=1").Output()
+
+			g.By("wait for jenkins to come up")
+			_, err = j.WaitForContent("", 200, 10*time.Minute, "")
+			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
+			}
+
+			g.By("giving the Jenkins sync plugin enough time to delete the job runs")
+			err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
+				for buildName, buildInfo := range buildNameToBuildInfoMap {
+					_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					fmt.Fprintf(g.GinkgoWriter, "Checking %s, status: %v\n", buildName, status)
+					if buildInfo.number%2 == 0 {
+						if status == http.StatusOK {
+							fmt.Fprintf(g.GinkgoWriter, "Jenkins job run exists for %s but shouldn't, retrying ...", buildName)
+							return false, nil
+						}
+					}
+				}
+				return true, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that the correct builds and jobs exist")
+			for buildName, buildInfo := range buildNameToBuildInfoMap {
+				_, status, err := j.GetResource(buildInfo.jenkinsBuildURI)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				fmt.Fprintf(g.GinkgoWriter, "Checking %s, status: %v\n", buildName, status)
+				if buildInfo.number%2 == 0 {
+					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					o.Expect(err).To(o.HaveOccurred())
+					o.Expect(status != http.StatusOK).To(o.BeTrue(), "Jenkins job run exists for %s but shouldn't.", buildName)
+				} else {
+					_, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(status == http.StatusOK).To(o.BeTrue(), "Jenkins job run does not exist for %s but should.", buildName)
+				}
+			}
 		})
 	})
 })
