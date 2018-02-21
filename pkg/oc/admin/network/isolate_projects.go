@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -72,6 +73,10 @@ func (i *IsolateOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
+		if project.Name == kapi.NamespaceDefault {
+			errList = append(errList, fmt.Errorf("network isolation for project %q is forbidden", project.Name))
+			continue
+		}
 		if err = i.Options.UpdatePodNetwork(project.Name, network.IsolatePodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("Network isolation for project %q failed, error: %v", project.Name, err))
 		}
