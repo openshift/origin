@@ -140,7 +140,7 @@ func (vmap *masterVNIDMap) releaseNetID(nsName string) error {
 	// If not, then release the netid
 	if count := vmap.getVNIDCount(netid); count == 0 {
 		if err := vmap.netIDManager.Release(netid); err != nil {
-			return fmt.Errorf("Error while releasing netid %d for namespace %q, %v", netid, nsName, err)
+			return fmt.Errorf("error while releasing netid %d for namespace %q, %v", netid, nsName, err)
 		}
 		glog.Infof("Released netid %d for namespace %q", netid, nsName)
 	} else {

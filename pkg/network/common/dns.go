@@ -110,7 +110,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 	// <domain-name>.		<<ttl from authoritative ns>	IN	A	<IP addr>
 	out, err := d.execer.Command(dig, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
 	if err != nil || len(out) == 0 {
-		return fmt.Errorf("Failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err), false
+		return fmt.Errorf("failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err), false
 	}
 	outStr := strings.Trim(string(out[:]), "\n")
 

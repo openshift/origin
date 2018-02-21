@@ -78,7 +78,7 @@ func (i *IsolateOptions) Run() error {
 			continue
 		}
 		if err = i.Options.UpdatePodNetwork(project.Name, network.IsolatePodNetwork, ""); err != nil {
-			errList = append(errList, fmt.Errorf("Network isolation for project %q failed, error: %v", project.Name, err))
+			errList = append(errList, fmt.Errorf("network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}
 	return kerrors.NewAggregate(errList)

@@ -90,12 +90,12 @@ func (p *ProjectOptions) Validate() error {
 	clusterNetwork, err := p.Oclient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		if kapierrors.IsNotFound(err) {
-			errList = append(errList, errors.New("Managing pod network is only supported for openshift multitenant network plugin"))
+			errList = append(errList, errors.New("managing pod network is only supported for openshift multitenant network plugin"))
 		} else {
-			errList = append(errList, errors.New("Failed to fetch current network plugin info"))
+			errList = append(errList, errors.New("failed to fetch current network plugin info"))
 		}
 	} else if !network.IsOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
-		errList = append(errList, fmt.Errorf("Using plugin: %q, managing pod network is only supported for openshift multitenant network plugin", clusterNetwork.PluginName))
+		errList = append(errList, fmt.Errorf("using plugin: %q, managing pod network is only supported for openshift multitenant network plugin", clusterNetwork.PluginName))
 	}
 
 	return kerrors.NewAggregate(errList)
@@ -140,7 +140,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	}
 
 	if len(projectList) == 0 {
-		return projectList, fmt.Errorf("No projects found")
+		return projectList, fmt.Errorf("no projects found")
 	} else {
 		givenProjectNames := sets.NewString(p.ProjectNames...)
 		foundProjectNames := sets.String{}
@@ -149,7 +149,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 		}
 		skippedProjectNames := givenProjectNames.Difference(foundProjectNames)
 		if skippedProjectNames.Len() > 0 {
-			return projectList, fmt.Errorf("Projects %v not found", strings.Join(skippedProjectNames.List(), ", "))
+			return projectList, fmt.Errorf("projects %v not found", strings.Join(skippedProjectNames.List(), ", "))
 		}
 	}
 	return projectList, nil
