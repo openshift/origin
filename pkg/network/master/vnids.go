@@ -170,6 +170,9 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action network.PodNetworkA
 			return 0, fmt.Errorf("netid not found for namespace %q", joinNsName)
 		}
 	case network.IsolatePodNetwork:
+		if nsName == kapi.NamespaceDefault {
+			return 0, fmt.Errorf("network isolation for namespace %q is not allowed", nsName)
+		}
 		// Check if the given namespace is already isolated
 		if count := vmap.getVNIDCount(oldnetid); count == 1 {
 			return oldnetid, nil
