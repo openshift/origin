@@ -55,7 +55,7 @@ func NewCommandPodDiagnostics(name string, out io.Writer) *cobra.Command {
 		Use:    name,
 		Short:  "Within a pod, run pod diagnostics",
 		Long:   fmt.Sprintf(longPodDiagDescription),
-		Run:    commandRunFunc(o),
+		Run:    util.CommandRunFunc(o),
 		Hidden: true,
 	}
 	cmd.SetOutput(out) // for output re: usage / help
