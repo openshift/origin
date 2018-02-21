@@ -13,7 +13,6 @@ import (
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -120,7 +119,7 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 		Use:   name,
 		Short: "Diagnose common cluster problems",
 		Long:  fmt.Sprintf(longDescription, fullName),
-		Run:   commandRunFunc(o),
+		Run:   util.CommandRunFunc(o),
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 	o.bindCommonFlags(cmd.Flags())
@@ -154,7 +153,7 @@ func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available
 		Use:   name,
 		Short: "Diagnose common cluster problems",
 		Long:  fmt.Sprintf(longDescriptionAll, fullName),
-		Run:   commandRunFunc(o),
+		Run:   util.CommandRunFunc(o),
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 	o.bindCommonFlags(cmd.Flags())
@@ -176,7 +175,7 @@ func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, di
 		Use:     name,
 		Short:   diagnostic.Description(),
 		Long:    fmt.Sprintf(longDescriptionIndividual, diagnostic.Name(), diagnostic.Description()),
-		Run:     commandRunFunc(o),
+		Run:     util.CommandRunFunc(o),
 		Aliases: []string{diagnostic.Name()},
 	}
 	cmd.SetOutput(out) // for output re: usage / help
@@ -192,27 +191,6 @@ func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, di
 		o.bindHostFlags(cmd.Flags())
 	}
 	return cmd
-}
-
-type optionsRunner interface {
-	Logger() *log.Logger
-	Complete(*cobra.Command, []string) error
-	RunDiagnostics() error
-}
-
-// returns a shared function that runs when one of these Commands actually executes
-func commandRunFunc(o optionsRunner) func(c *cobra.Command, args []string) {
-	return func(c *cobra.Command, args []string) {
-		kcmdutil.CheckErr(o.Complete(c, args))
-
-		if err := o.RunDiagnostics(); err != nil {
-			o.Logger().Error("CED3001", fmt.Sprintf("Encountered fatal error while building diagnostics: %s", err.Error()))
-		}
-		o.Logger().Summary()
-		if o.Logger().ErrorsSeen() {
-			os.Exit(1)
-		}
-	}
 }
 
 // returns the logger built according to options (must be Complete()ed)
