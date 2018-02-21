@@ -42,6 +42,12 @@ os::cmd::expect_success 'oc delete all -l app=expose-output'
 os::cmd::expect_success_and_text 'oc new-app mysql --as-test' 'Application is not exposed'
 os::cmd::expect_success 'oc delete all -l app=mysql'
 
+# ensure that oc new-app does not emit a BuildConfigInstantiateFailed event when creating
+# a new application
+os::cmd::expect_success 'oc new-app https://github.com/sclorg/ruby-ex'
+os::cmd::expect_success_and_not_text 'oc describe bc/ruby-ex' 'BuildConfigInstantiateFailed'
+os::cmd::expect_success 'oc delete all -l app=ruby-ex'
+
 # test that imagestream references across imagestreams do not cause an error
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
 os::cmd::expect_success 'oc create -f test/testdata/newapp/imagestream-ref.yaml'

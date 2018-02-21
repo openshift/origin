@@ -361,3 +361,32 @@ func fieldMatches(val, match string, ptype ParseType) bool {
 
 	return false
 }
+
+func ParseExternalIDs(externalIDs string) (map[string]string, error) {
+	ids := make(map[string]string, 1)
+	// Output from "find" and "list" will have braces, but input to "set" won't
+	if externalIDs[0] == '{' && externalIDs[len(externalIDs)-1] == '}' {
+		externalIDs = externalIDs[1 : len(externalIDs)-1]
+	}
+	for _, id := range strings.Split(externalIDs, ",") {
+		parsed := strings.Split(strings.TrimSpace(id), "=")
+		if len(parsed) != 2 {
+			return nil, fmt.Errorf("could not parse external-id %q", id)
+		}
+		key := parsed[0]
+		value := parsed[1]
+		if unquoted, err := strconv.Unquote(value); err == nil {
+			value = unquoted
+		}
+		ids[key] = value
+	}
+	return ids, nil
+}
+
+func UnparseExternalIDs(externalIDs map[string]string) string {
+	ids := []string{}
+	for key, value := range externalIDs {
+		ids = append(ids, key+"="+strconv.Quote(value))
+	}
+	return "{" + strings.Join(ids, ",") + "}"
+}

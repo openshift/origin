@@ -250,11 +250,20 @@ func (ovsif *ovsExec) Set(table, record string, values ...string) error {
 
 // Returns the given column of records that match the condition
 func (ovsif *ovsExec) Find(table, column, condition string) ([]string, error) {
-	output, err := ovsif.exec(OVS_VSCTL, "--no-heading", "--data=bare", "--columns="+column, "find", table, condition)
+	output, err := ovsif.exec(OVS_VSCTL, "--no-heading", "--columns="+column, "find", table, condition)
 	if err != nil {
 		return nil, err
 	}
-	return strings.Fields(output), nil
+	values := strings.Split(output, "\n\n")
+	// We want "bare" values for strings, but we can't pass --bare to ovs-vsctl because
+	// it breaks more complicated types. So try passing each value through Unquote();
+	// if it fails, that means the value wasn't a quoted string, so use it as-is.
+	for i, val := range values {
+		if unquoted, err := strconv.Unquote(val); err == nil {
+			values[i] = unquoted
+		}
+	}
+	return values, nil
 }
 
 func (ovsif *ovsExec) Clear(table, record string, columns ...string) error {

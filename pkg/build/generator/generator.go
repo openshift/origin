@@ -318,7 +318,7 @@ func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.B
 	return g.createBuild(ctx, newBuild)
 }
 
-// checkBuildConfigLastVersion will return an error if the BuildConfig's LastVersion doesn't match the passed in lastVersion
+// checkLastVersion will return an error if the BuildConfig's LastVersion doesn't match the passed in lastVersion
 // when lastVersion is not nil
 func (g *BuildGenerator) checkLastVersion(bc *buildapi.BuildConfig, lastVersion *int64) error {
 	if lastVersion != nil && bc.Status.LastVersion != *lastVersion {
