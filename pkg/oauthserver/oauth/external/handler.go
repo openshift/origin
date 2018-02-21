@@ -63,7 +63,7 @@ func NewExternalOAuthRedirector(provider Provider, state State, redirectURL stri
 
 // AuthenticationRedirect implements oauth.handlers.RedirectAuthHandler
 func (h *Handler) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
-	glog.V(4).Infof("Authentication needed for %v", h)
+	glog.V(4).Infof("Authentication needed for %v", h.provider)
 
 	authReq := h.client.NewAuthorizeRequest(osincli.CODE)
 	h.provider.AddCustomParameters(authReq)
