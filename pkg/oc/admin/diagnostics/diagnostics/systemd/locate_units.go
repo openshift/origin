@@ -38,7 +38,6 @@ func GetSystemdUnits(logger *log.Logger) map[string]types.SystemdUnit {
 		}
 	}
 
-	logger.Debug("DS1003", fmt.Sprintf("Discovered systemd unit: %#v", systemdUnits))
 	return systemdUnits
 }
 
