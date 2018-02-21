@@ -1,4 +1,4 @@
-package diagnostics
+package in_pod
 
 import (
 	"fmt"
@@ -12,11 +12,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
-	networkdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/util"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+)
+
+const (
+	InPodNetworkCheckRecommendedName = "inpod-networkcheck"
 )
 
 // NetworkPodDiagnosticsOptions holds values received from environment variables
@@ -38,7 +41,7 @@ log the results so that the calling diagnostic can report them.
 var (
 	// availableNetworkPodDiagnostics contains the names of network diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableNetworkPodDiagnostics = sets.NewString(networkdiag.CheckNodeNetworkName, networkdiag.CheckPodNetworkName, networkdiag.CheckExternalNetworkName, networkdiag.CheckServiceNetworkName, networkdiag.CollectNetworkInfoName)
+	availableNetworkPodDiagnostics = sets.NewString(CheckNodeNetworkName, CheckPodNetworkName, CheckExternalNetworkName, CheckServiceNetworkName, CollectNetworkInfoName)
 )
 
 // NewCommandNetworkPodDiagnostics is the command for running network diagnostics.
@@ -128,30 +131,30 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 
-		case networkdiag.CheckNodeNetworkName:
-			diagnostics = append(diagnostics, networkdiag.CheckNodeNetwork{
+		case CheckNodeNetworkName:
+			diagnostics = append(diagnostics, CheckNodeNetwork{
 				KubeClient: kubeClient,
 			})
 
-		case networkdiag.CheckPodNetworkName:
-			diagnostics = append(diagnostics, networkdiag.CheckPodNetwork{
+		case CheckPodNetworkName:
+			diagnostics = append(diagnostics, CheckPodNetwork{
 				KubeClient:           kubeClient,
 				NetNamespacesClient:  networkClient.Network(),
 				ClusterNetworkClient: networkClient.Network(),
 			})
 
-		case networkdiag.CheckExternalNetworkName:
-			diagnostics = append(diagnostics, networkdiag.CheckExternalNetwork{})
+		case CheckExternalNetworkName:
+			diagnostics = append(diagnostics, CheckExternalNetwork{})
 
-		case networkdiag.CheckServiceNetworkName:
-			diagnostics = append(diagnostics, networkdiag.CheckServiceNetwork{
+		case CheckServiceNetworkName:
+			diagnostics = append(diagnostics, CheckServiceNetwork{
 				KubeClient:           kubeClient,
 				NetNamespacesClient:  networkClient.Network(),
 				ClusterNetworkClient: networkClient.Network(),
 			})
 
-		case networkdiag.CollectNetworkInfoName:
-			diagnostics = append(diagnostics, networkdiag.CollectNetworkInfo{
+		case CollectNetworkInfoName:
+			diagnostics = append(diagnostics, CollectNetworkInfo{
 				KubeClient: kubeClient,
 			})
 

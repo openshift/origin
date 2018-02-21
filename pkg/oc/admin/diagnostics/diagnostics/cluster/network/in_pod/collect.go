@@ -1,4 +1,4 @@
-package network
+package in_pod
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
