@@ -154,6 +154,30 @@ Returns PLEG (pod lifecycle event generator) latency metrics.  This represents t
 
 ### OpenShift build related queries
 
+> count(openshift_build_active_time_seconds{phase="New",strategy!="JenkinsPipeline",reason!="InvalidOutputReference",reason!="InvalidImageReference",reason!="CannotRetrieveServiceAccount"} < time() - 600)
+
+Returns the number of builds which have not yet started after 10 minutes.  This query filters out
+builds where the fact they have not started could be cited as resulting from user error.  Namely:
+
+* Image references in the BuildConfig are incorrect (pointing to non-existent Images or ImageStreams for example)
+* ServiceAccount references are incorrect (again, pointing to a ServiceAccount which cannot be retrieved by the user submitting the build request)
+* Pipeline strategy builds can often be hung up by conditions in the Jenkins server the user has created which the Build subsystem cannot account for
+
+NOTE:  OpenShift Online monitors builds in a fashion similar to this today.
+
+> sum(rate(openshift_build_total{phase="Error"}[10m])) / sum((rate(openshift_build_total{phase="Complete"}[10m]) + rate(openshift_build_total{phase="Error"}[10m]))) * 100
+
+Calculates the error rate for builds over the last 10 minutes, where the error might indicate issues with the cluster or namespace.  Note, it ignores build in the "Failed" and "Cancelled" phases, as builds typically end up in
+one of those phases as the result of a user choice or error.  Administrators after some experience with their cluster could decide what is an acceptable error rate and monitor when it is exceeded.
+
+> predict_linear(openshift_build_total{phase="Error"}[1h],3600)
+
+Predicts what the error count will be in 1 hour, using last hours data.
+
+> predict_linear(openshift_build_total{phase="Error"}[1h],3600) / (predict_linear(openshift_build_total{phase="Error"}[1h],3600) + predict_linear(openshift_build_total{phase="Completed"}[1h],3600)) * 100
+
+Similar to the two queries above, this query will predict what the error rate will be in one hour based on last hours data.
+
 > count(openshift_build_active_time_seconds{phase="Running"} < time() - 600)
 
 Returns the number of builds that have been running for more than 10 minutes (600 seconds).
