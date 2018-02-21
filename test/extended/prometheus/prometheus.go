@@ -13,7 +13,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
-	apps "k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -318,7 +317,9 @@ func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string
 			fmt.Fprintf(g.GinkgoWriter, "test continuing, but create on the prometheus template resulted in: %#v", err)
 		}
 		tester := e2e.NewStatefulSetTester(oc.AdminKubeClient())
-		tester.WaitForRunningAndReady(1, &apps.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
+		ss, err := oc.AdminKubeClient().AppsV1beta1().StatefulSets("kube-system").Get("prometheus", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		tester.WaitForRunningAndReady(1, ss)
 	}
 
 	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)
