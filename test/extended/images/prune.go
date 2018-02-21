@@ -50,16 +50,22 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 
 	g.Describe("of schema 1", func() {
 		g.JustBeforeEach(func() {
+			var err error
+			isRedeployed := false
 			if *originalAcceptSchema2 {
 				g.By("ensure the registry does not accept schema 2")
-				err := EnsureRegistryAcceptsSchema2(oc, false)
+				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, false)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+			if !isRedeployed {
+				_, err = RedeployRegistry(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if *originalAcceptSchema2 {
-				err := EnsureRegistryAcceptsSchema2(oc, true)
+				_, err := EnsureRegistryAcceptsSchema2(oc, true)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -69,16 +75,22 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 
 	g.Describe("of schema 2", func() {
 		g.JustBeforeEach(func() {
+			var err error
+			isRedeployed := false
 			if !*originalAcceptSchema2 {
 				g.By("ensure the registry accepts schema 2")
-				err := EnsureRegistryAcceptsSchema2(oc, true)
+				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+			if !isRedeployed {
+				_, err = RedeployRegistry(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if !*originalAcceptSchema2 {
-				err := EnsureRegistryAcceptsSchema2(oc, false)
+				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -88,16 +100,22 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 
 	g.Describe("with --prune-registry==false", func() {
 		g.JustBeforeEach(func() {
+			var err error
+			isRedeployed := false
 			if !*originalAcceptSchema2 {
 				g.By("ensure the registry accepts schema 2")
-				err := EnsureRegistryAcceptsSchema2(oc, true)
+				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+			if !isRedeployed {
+				_, err = RedeployRegistry(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if !*originalAcceptSchema2 {
-				err := EnsureRegistryAcceptsSchema2(oc, false)
+				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -107,16 +125,22 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 
 	g.Describe("with default --all flag", func() {
 		g.JustBeforeEach(func() {
+			var err error
+			isRedeployed := false
 			if !*originalAcceptSchema2 {
 				g.By("ensure the registry accepts schema 2")
-				err := EnsureRegistryAcceptsSchema2(oc, true)
+				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+			if !isRedeployed {
+				_, err = RedeployRegistry(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if !*originalAcceptSchema2 {
-				err := EnsureRegistryAcceptsSchema2(oc, false)
+				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -126,16 +150,22 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image prune", func() 
 
 	g.Describe("with --all=false flag", func() {
 		g.JustBeforeEach(func() {
+			var err error
+			isRedeployed := false
 			if !*originalAcceptSchema2 {
 				g.By("ensure the registry accepts schema 2")
-				err := EnsureRegistryAcceptsSchema2(oc, true)
+				isRedeployed, err = EnsureRegistryAcceptsSchema2(oc, true)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+			if !isRedeployed {
+				_, err = RedeployRegistry(oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
 
 		g.AfterEach(func() {
 			if !*originalAcceptSchema2 {
-				err := EnsureRegistryAcceptsSchema2(oc, false)
+				_, err := EnsureRegistryAcceptsSchema2(oc, false)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
