@@ -823,7 +823,7 @@ func transformRunError(err error, baseName, commandName, commandPath string, gro
 
 				See '%[1]s -h' for examples.`, commandPath,
 			),
-			heredoc.Docf(classification.String()),
+			classification.String(),
 			t,
 			t.Errs...,
 		)
