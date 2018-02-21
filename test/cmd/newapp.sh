@@ -351,6 +351,8 @@ os::cmd::expect_failure_and_text 'oc new-app --search winter-is-coming' 'no matc
 os::cmd::expect_failure_and_text 'oc new-app -S mysql --env=FOO=BAR' "can't be used"
 os::cmd::expect_failure_and_text 'oc new-app --search mysql --code=https://github.com/openshift/ruby-hello-world' "can't be used"
 os::cmd::expect_failure_and_text 'oc new-app --search mysql --param=FOO=BAR' "can't be used"
+# check specifying a non-existent template does not cause an index out of range error
+os::cmd::expect_failure_and_not_text 'oc new-app --template foo' 'index out of range'
 
 # set context-dir
 os::cmd::expect_success_and_text 'oc new-app https://github.com/openshift/sti-ruby.git --context-dir="2.3/test/puma-test-app" -o yaml' 'contextDir: 2.3/test/puma-test-app'
