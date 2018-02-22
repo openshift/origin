@@ -258,6 +258,8 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			syntheticNode = appsgraph.FindOrCreateSyntheticDeploymentConfigNode(g, &appsapi.DeploymentConfig{ObjectMeta: syntheticMeta})
 		case r == extensions.Resource("deployments"):
 			syntheticNode = kubegraph.FindOrCreateSyntheticDeploymentNode(g, &extensions.Deployment{ObjectMeta: syntheticMeta})
+		case r == extensions.Resource("replicasets"):
+			syntheticNode = kubegraph.FindOrCreateSyntheticReplicaSetNode(g, &extensions.ReplicaSet{ObjectMeta: syntheticMeta})
 		default:
 			continue
 		}
