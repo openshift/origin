@@ -147,7 +147,7 @@ func resolveServerIP(serverUrl string, fn dnsResolver) ([]string, error) {
 
 func searchNodesForIP(nodes []kapi.Node, ips []string) types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterNodeName)
-	r.Debug("DClu3005", fmt.Sprintf("Seaching for a node with master IP: %s", ips))
+	r.Debug("DClu3005", fmt.Sprintf("Searching for a node with master IP: %s", ips))
 
 	// Loops = # of nodes * number of IPs per node (2 commonly) * # of IPs the
 	// server hostname resolves to. (should usually be 1)

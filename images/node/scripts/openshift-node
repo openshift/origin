@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# This launches the Kubelet by converting the node configuration into kube flags.
+
+set -euo pipefail
+
+if ! [[ -f /etc/origin/node/client-ca.crt ]]; then
+  if [[ -f /etc/origin/node/bootstrap.kubeconfig ]]; then
+    oc config --config=/etc/origin/node/bootstrap.kubeconfig view --raw --minify -o go-template='{{ index .clusters 0 "cluster" "certificate-authority-data" }}' | base64 -d - > /etc/origin/node/client-ca.crt
+  fi
+fi
+config=/etc/origin/node/bootstrap-node-config.yaml
+# TODO: remove when dynamic kubelet config is delivered
+if [[ -f /etc/origin/node/node-config.yaml ]]; then
+  config=/etc/origin/node/node-config.yaml
+fi
+flags=$( /usr/bin/openshift start node --write-flags "--config=${config}" --loglevel=${DEBUG_LOGLEVEL:-2} )
+exec /usr/bin/hyperkube kubelet --v=${DEBUG_LOGLEVEL:-2} ${flags}

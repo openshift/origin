@@ -195,11 +195,11 @@ func (rw *registryWhitelister) AdmitDockerImageReference(ref *imageapi.DockerIma
 	}
 
 	if len(rw.whitelist) == 0 {
-		glog.V(5).Info("registry %q not allowed by empty whitelist", hostname)
+		glog.V(5).Infof("registry %q not allowed by empty whitelist", hostname)
 		return fmt.Errorf("registry %q not allowed by empty whitelist", hostname)
 	}
 
-	glog.V(5).Info("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
+	glog.V(5).Infof("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
 	if len(rw.whitelist) <= showMax {
 		return fmt.Errorf("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
 	}

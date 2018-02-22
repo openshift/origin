@@ -320,25 +320,11 @@ type SerialFileGenerator struct {
 	Serial int64
 }
 
-func NewSerialFileGenerator(serialFile string, createIfNeeded bool) (*SerialFileGenerator, error) {
-	// read serial file
-	var serial int64
-	serialData, err := ioutil.ReadFile(serialFile)
-	if err == nil {
-		serial, _ = strconv.ParseInt(string(serialData), 16, 64)
-	}
-	if os.IsNotExist(err) && createIfNeeded {
-		if err := ioutil.WriteFile(serialFile, []byte("00"), 0644); err != nil {
-			return nil, err
-		}
-		serial = 1
-
-	} else if err != nil {
+func NewSerialFileGenerator(serialFile string) (*SerialFileGenerator, error) {
+	// read serial file, it must already exist
+	serial, err := fileToSerial(serialFile)
+	if err != nil {
 		return nil, err
-	}
-
-	if serial < 1 {
-		serial = 1
 	}
 
 	return &SerialFileGenerator{
@@ -351,6 +337,16 @@ func NewSerialFileGenerator(serialFile string, createIfNeeded bool) (*SerialFile
 func (s *SerialFileGenerator) Next(template *x509.Certificate) (int64, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	// do a best effort check to make sure concurrent external writes are not occurring to the underlying serial file
+	serial, err := fileToSerial(s.SerialFile)
+	if err != nil {
+		return 0, err
+	}
+	if serial != s.Serial {
+		return 0, fmt.Errorf("serial file %s out of sync ram=%d disk=%d", s.SerialFile, s.Serial, serial)
+	}
+
 	next := s.Serial + 1
 	s.Serial = next
 
@@ -359,11 +355,32 @@ func (s *SerialFileGenerator) Next(template *x509.Certificate) (int64, error) {
 	if len(serialText)%2 == 1 {
 		serialText = "0" + serialText
 	}
+	// always add a newline at the end to have a valid file
+	serialText += "\n"
 
 	if err := ioutil.WriteFile(s.SerialFile, []byte(serialText), os.FileMode(0640)); err != nil {
 		return 0, err
 	}
 	return next, nil
+}
+
+func fileToSerial(serialFile string) (int64, error) {
+	serialData, err := ioutil.ReadFile(serialFile)
+	if err != nil {
+		return 0, err
+	}
+
+	// read the file as a single hex number after stripping any whitespace
+	serial, err := strconv.ParseInt(string(bytes.TrimSpace(serialData)), 16, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	if serial < 0 {
+		return 0, fmt.Errorf("invalid negative serial %d in serial file %s", serial, serialFile)
+	}
+
+	return serial, nil
 }
 
 // RandomSerialGenerator returns a serial based on time.Now and the subject
@@ -394,7 +411,7 @@ func GetCA(certFile, keyFile, serialFile string) (*CA, error) {
 
 	var serialGenerator SerialGenerator
 	if len(serialFile) > 0 {
-		serialGenerator, err = NewSerialFileGenerator(serialFile, false)
+		serialGenerator, err = NewSerialFileGenerator(serialFile)
 		if err != nil {
 			return nil, err
 		}
@@ -431,10 +448,11 @@ func MakeCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, er
 
 	var serialGenerator SerialGenerator
 	if len(serialFile) > 0 {
-		if err := ioutil.WriteFile(serialFile, []byte("00"), 0644); err != nil {
+		// create / overwrite the serial file with a zero padded hex value (ending in a newline to have a valid file)
+		if err := ioutil.WriteFile(serialFile, []byte("00\n"), 0644); err != nil {
 			return nil, err
 		}
-		serialGenerator, err = NewSerialFileGenerator(serialFile, false)
+		serialGenerator, err = NewSerialFileGenerator(serialFile)
 		if err != nil {
 			return nil, err
 		}
