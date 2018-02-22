@@ -35,10 +35,10 @@ os::cmd::expect_success_and_text 'oc version' "features: Basic-Auth"
 os::cmd::expect_success_and_text 'openshift version' "openshift ${os_git_regex}"
 os::cmd::expect_success_and_text 'openshift version' "kubernetes ${kube_git_regex}"
 os::cmd::expect_success_and_text 'openshift version' "etcd ${etcd_git_regex}"
-os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${kube_git_regex}"
-os::cmd::expect_success_and_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${os_git_regex}"
-os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${OS_GIT_COMMIT}"
-os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${KUBE_GIT_COMMIT}"
+os::cmd::expect_success_and_text "wget -q --no-check-certificate -O - '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${kube_git_regex}"
+os::cmd::expect_success_and_text "wget -q --no-check-certificate -O - '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${os_git_regex}"
+os::cmd::expect_success_and_not_text "wget -q --no-check-certificate -O - '${API_SCHEME}://${API_HOST}:${API_PORT}/version'" "${OS_GIT_COMMIT}"
+os::cmd::expect_success_and_not_text "wget -q --no-check-certificate -O - '${API_SCHEME}://${API_HOST}:${API_PORT}/version/openshift'" "${KUBE_GIT_COMMIT}"
 
 # variants I know I have to worry about
 # 1. oc (kube and openshift resources)
