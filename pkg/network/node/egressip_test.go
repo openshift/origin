@@ -55,7 +55,7 @@ func TestEgressIP(t *testing.T) {
 	}
 	err = assertFlowChanges(origFlows, flows) // no changes
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	// Assign NetNamespace.EgressIP first, then HostSubnet.EgressIP, with a remote EgressIP
@@ -75,7 +75,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	ns42 := eip.namespacesByVNID[42]
@@ -99,7 +99,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -120,7 +120,7 @@ func TestEgressIP(t *testing.T) {
 	}
 	err = assertFlowChanges(origFlows, flows)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	if eip.nodesByEgressIP["172.17.0.100"] != node3 || eip.nodesByEgressIP["172.17.0.101"] != node3 {
@@ -143,7 +143,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -169,7 +169,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	ns44 := eip.namespacesByVNID[44]
@@ -193,7 +193,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -214,7 +214,7 @@ func TestEgressIP(t *testing.T) {
 	}
 	err = assertFlowChanges(origFlows, flows)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 
 	if eip.nodesByEgressIP["172.17.0.102"] != node4 || eip.nodesByEgressIP["172.17.0.103"] != node4 {
@@ -237,7 +237,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -263,7 +263,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -288,7 +288,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -318,7 +318,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -347,7 +347,7 @@ func TestEgressIP(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 	origFlows = flows
 
@@ -367,7 +367,7 @@ func TestEgressIP(t *testing.T) {
 	}
 	err = assertFlowChanges(origFlows, flows)
 	if err != nil {
-		t.Fatalf("Unexpected flow changes: %v", err)
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 }
 
