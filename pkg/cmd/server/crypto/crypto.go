@@ -327,10 +327,22 @@ func NewSerialFileGenerator(serialFile string) (*SerialFileGenerator, error) {
 		return nil, err
 	}
 
-	return &SerialFileGenerator{
+	generator := &SerialFileGenerator{
 		Serial:     serial,
 		SerialFile: serialFile,
-	}, nil
+	}
+
+	// 0 is unused and 1 is reserved for the CA itself
+	// Thus we need to guarantee that the first external call to SerialFileGenerator.Next returns 2+
+	// meaning that SerialFileGenerator.Serial must not be less than 1 (it is guaranteed to be non-negative)
+	if generator.Serial < 1 {
+		// fake a call to Next so the file stays in sync and Serial is incremented
+		if _, err := generator.Next(&x509.Certificate{}); err != nil {
+			return nil, err
+		}
+	}
+
+	return generator, nil
 }
 
 // Next returns a unique, monotonically increasing serial number and ensures the CA on disk records that value.
