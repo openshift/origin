@@ -57,13 +57,13 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 
 	var kclusterClient kclientset.Interface
 
-	config, kclusterClient, serverUrl, err := o.findClusterClients(rawConfig)
+	config, kclusterClient, rawAdminConfig, err := o.findClusterClients(rawConfig)
+	if err != nil {
+		return nil, err
+	}
 	if config == nil {
 		o.Logger().Notice("CED1002", "Could not configure a client with cluster-admin permissions for the current server, so cluster diagnostics will be skipped")
 		return nil, nil
-	}
-	if err != nil {
-		return nil, err
 	}
 	imageClient, err := imageclient.NewForConfig(config)
 	if err != nil {
@@ -118,6 +118,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case clustdiags.NodeDefinitionsName:
 			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient}
 		case clustdiags.MasterNodeName:
+			serverUrl := rawAdminConfig.Clusters[rawAdminConfig.Contexts[rawAdminConfig.CurrentContext].Cluster].Server
 			d = &clustdiags.MasterNode{KubeClient: kclusterClient, ServerUrl: serverUrl, MasterConfigFile: o.MasterConfigLocation}
 		case clustdiags.ClusterRegistryName:
 			d = &clustdiags.ClusterRegistry{KubeClient: kclusterClient, ImageStreamClient: imageClient.Image(), PreventModification: o.PreventModification}
@@ -141,8 +142,9 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 			nd.ClientFlags = o.ClientFlags
 			nd.Level = o.LogOptions.Level
 			nd.Factory = o.Factory
+			nd.RawConfig = rawAdminConfig
 			nd.PreventModification = o.PreventModification
-			diagnostics = append(diagnostics, nd)
+			d = nd
 		default:
 			return nil, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
@@ -152,84 +154,96 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 }
 
 // attempts to find which context in the config might be a cluster-admin for the server in the current context.
-// returns config for the context chosen, kclusterClient for same, serverUrl of same, and any fatal error
-func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*rest.Config, kclientset.Interface, string, error) {
+// returns openshift client config for the context chosen, kclusterClient and raw config of same, and any fatal error
+func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*rest.Config, kclientset.Interface, *clientcmdapi.Config, error) {
 	if o.ClientClusterContext != "" { // user has specified cluster context to use
 		context, exists := rawConfig.Contexts[o.ClientClusterContext]
 		if !exists {
 			configErr := fmt.Errorf("Specified '%s' as cluster-admin context, but it was not found in your client configuration.", o.ClientClusterContext)
 			o.Logger().Error("CED1003", configErr.Error())
-			return nil, nil, "", configErr
+			return nil, nil, nil, configErr
 		}
-		config, kube, serverUrl, err := o.makeClusterClients(rawConfig, o.ClientClusterContext, context)
-		if err != nil || config == nil {
-			return nil, nil, "", err
-		}
-		return config, kube, serverUrl, nil
+		return o.makeClusterClients(rawConfig, o.ClientClusterContext, context)
 	}
 	currentContext, exists := rawConfig.Contexts[rawConfig.CurrentContext]
 	if !exists { // config specified cluster admin context that doesn't exist; complain and quit
 		configErr := fmt.Errorf("Current context '%s' not found in client configuration; will not attempt cluster diagnostics.", rawConfig.CurrentContext)
 		o.Logger().Error("CED1004", configErr.Error())
-		return nil, nil, "", configErr
+		return nil, nil, nil, configErr
 	}
+
 	// check if current context is already cluster admin
-	config, kube, serverUrl, err := o.makeClusterClients(rawConfig, rawConfig.CurrentContext, currentContext)
+	config, kube, rawAdminConfig, err := o.makeClusterClients(rawConfig, rawConfig.CurrentContext, currentContext)
 	if err == nil && config != nil {
-		return config, kube, serverUrl, nil
+		return config, kube, rawAdminConfig, nil
 	}
+
 	// otherwise, for convenience, search for a context with the same server but with the system:admin user
 	for name, context := range rawConfig.Contexts {
 		if context.Cluster == currentContext.Cluster && name != rawConfig.CurrentContext && strings.HasPrefix(context.AuthInfo, "system:admin/") {
-			config, kube, serverUrl, err := o.makeClusterClients(rawConfig, name, context)
+			config, kube, rawAdminConfig, err := o.makeClusterClients(rawConfig, name, context)
 			if err != nil || config == nil {
 				break // don't try more than one such context, they'll probably fail the same
 			}
-			return config, kube, serverUrl, nil
+			return config, kube, rawAdminConfig, nil
 		}
 	}
-	return nil, nil, "", nil
+	return nil, nil, nil, nil
 }
 
 // makes the client from the specified context and determines whether it is a cluster-admin.
-func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*rest.Config, kclientset.Interface, string, error) {
+func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*rest.Config, kclientset.Interface, *clientcmdapi.Config, error) {
 	overrides := &clientcmd.ConfigOverrides{Context: *context}
 	clientConfig := clientcmd.NewDefaultClientConfig(*rawConfig, overrides)
-	serverUrl := rawConfig.Clusters[context.Cluster].Server
 	factory := osclientcmd.NewFactory(clientConfig)
+
+	// create a config for making openshift clients
 	config, err := factory.ClientConfig()
 	if err != nil {
-		o.Logger().Debug("CED1006", fmt.Sprintf("Error creating client for context '%s':\n%v", contextName, err))
-		return nil, nil, "", nil
+		o.Logger().Debug("CED1006", fmt.Sprintf("Error creating client config for context '%s':\n%v", contextName, err))
+		return nil, nil, nil, nil
 	}
+
+	// create a kube client
+	kubeClient, err := factory.ClientSet()
+	if err != nil {
+		o.Logger().Debug("CED1006", fmt.Sprintf("Error creating kube client for context '%s':\n%v", contextName, err))
+		return nil, nil, nil, nil
+	}
+
 	o.Logger().Debug("CED1005", fmt.Sprintf("Checking if context is cluster-admin: '%s'", contextName))
-	if kubeClient, err := factory.ClientSet(); err != nil {
-		o.Logger().Debug("CED1006", fmt.Sprintf("Error creating client for context '%s':\n%v", contextName, err))
-		return nil, nil, "", nil
-	} else {
-		subjectAccessReview := &authorization.SelfSubjectAccessReview{
-			Spec: authorization.SelfSubjectAccessReviewSpec{
-				ResourceAttributes: &authorization.ResourceAttributes{
-					// if you can do everything, you're the cluster admin.
-					Verb:     "*",
-					Group:    "*",
-					Resource: "*",
-				},
+	subjectAccessReview := &authorization.SelfSubjectAccessReview{
+		Spec: authorization.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorization.ResourceAttributes{
+				// if you can do everything, you're the cluster admin.
+				Verb:     "*",
+				Group:    "*",
+				Resource: "*",
 			},
-		}
-		if resp, err := kubeClient.Authorization().SelfSubjectAccessReviews().Create(subjectAccessReview); err != nil {
-			if regexp.MustCompile(`User "[\w:]+" cannot create \w+ at the cluster scope`).MatchString(err.Error()) {
-				o.Logger().Debug("CED1007", fmt.Sprintf("Context '%s' does not have cluster-admin access:\n%v", contextName, err))
-				return nil, nil, "", nil
-			} else {
-				o.Logger().Error("CED1008", fmt.Sprintf("Unknown error testing cluster-admin access for context '%s':\n%v", contextName, err))
-				return nil, nil, "", err
-			}
-		} else if resp.Status.Allowed {
-			o.Logger().Info("CED1009", fmt.Sprintf("Using context for cluster-admin access: '%s'", contextName))
-			return config, kubeClient, serverUrl, nil
-		}
+		},
 	}
-	o.Logger().Debug("CED1010", fmt.Sprintf("Context does not have cluster-admin access: '%s'", contextName))
-	return nil, nil, "", nil
+	resp, err := kubeClient.Authorization().SelfSubjectAccessReviews().Create(subjectAccessReview)
+	if err != nil && regexp.MustCompile(`User "[\w:]+" cannot create \w+ at the cluster scope`).MatchString(err.Error()) {
+		o.Logger().Debug("CED1007", fmt.Sprintf("Context '%s' does not have cluster-admin access:\n%v", contextName, err))
+		return nil, nil, nil, nil
+	}
+	if err != nil {
+		o.Logger().Error("CED1008", fmt.Sprintf("Unknown error testing cluster-admin access for context '%s':\n%v", contextName, err))
+		return nil, nil, nil, err
+	}
+	if !resp.Status.Allowed {
+		o.Logger().Debug("CED1010", fmt.Sprintf("Context does not have cluster-admin access: '%s'", contextName))
+		return nil, nil, nil, nil
+	}
+
+	o.Logger().Info("CED1009", fmt.Sprintf("Using context for cluster-admin access: '%s'", contextName))
+	adminConfig := rawConfig.DeepCopy()
+	adminConfig.CurrentContext = contextName
+	if err := clientcmdapi.MinifyConfig(adminConfig); err != nil {
+		return nil, nil, nil, err
+	}
+	if err := clientcmdapi.FlattenConfig(adminConfig); err != nil {
+		return nil, nil, nil, err
+	}
+	return config, kubeClient, adminConfig, nil
 }
