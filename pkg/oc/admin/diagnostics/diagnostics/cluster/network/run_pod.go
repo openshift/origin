@@ -16,6 +16,7 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -44,6 +45,7 @@ type NetworkDiagnostic struct {
 	ClientFlags          *flag.FlagSet
 	Level                int
 	Factory              *osclientcmd.Factory
+	RawConfig            *clientcmdapi.Config
 	PreventModification  bool
 	LogDir               string
 	PodImage             string
@@ -112,8 +114,6 @@ func (d *NetworkDiagnostic) CanRun() (bool, error) {
 		return false, errors.New("must have kube client")
 	} else if d.NetNamespacesClient == nil || d.ClusterNetworkClient == nil {
 		return false, errors.New("must have openshift client")
-	} else if _, err := d.getKubeConfig(); err != nil {
-		return false, err
 	}
 	return true, nil
 }
