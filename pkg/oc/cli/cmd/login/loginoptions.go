@@ -34,6 +34,8 @@ import (
 
 const defaultClusterURL = "https://localhost:8443"
 
+const projectsItemsSuppressThreshold = 50
+
 // LoginOptions is a helper for the login and setup process, gathers all information required for a
 // successful login and eventual update of config files.
 // Depending on the Reader present it can be interactive, asking for terminal input in
@@ -317,15 +319,20 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		}
 		o.Project = current.Name
 
-		fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with '%s project <projectname>':\n\n", o.CommandName)
-		for _, p := range projects.List() {
-			if o.Project == p {
-				fmt.Fprintf(o.Out, "  * %s\n", p)
-			} else {
-				fmt.Fprintf(o.Out, "    %s\n", p)
+		// Suppress project listing if the number of projects available to the user is greater than the threshold. Prevents unnecessarily noisy logins on clusters with large numbers of projects
+		if len(projectsItems) > projectsItemsSuppressThreshold {
+			fmt.Fprintf(o.Out, "You have access to %d projects, the list has been suppressed. You can list all projects with '%s projects'\n\n", len(projectsItems), o.CommandName)
+		} else {
+			fmt.Fprintf(o.Out, "You have access to the following projects and can switch between them with '%s project <projectname>':\n\n", o.CommandName)
+			for _, p := range projects.List() {
+				if o.Project == p {
+					fmt.Fprintf(o.Out, "  * %s\n", p)
+				} else {
+					fmt.Fprintf(o.Out, "    %s\n", p)
+				}
 			}
+			fmt.Fprintln(o.Out)
 		}
-		fmt.Fprintln(o.Out)
 		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 	}
 
