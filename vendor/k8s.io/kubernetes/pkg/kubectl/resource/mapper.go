@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -53,6 +54,10 @@ func (m *Mapper) InfoForData(data []byte, source string) (*Info, error) {
 	obj, gvk, err := m.Decode(data, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode %q: %v", source, err)
+	}
+
+	if unstructuredObj, ok := obj.(*unstructured.Unstructured); ok {
+		fixOAPIGroupKind(unstructuredObj.Object, gvk)
 	}
 
 	mapping, err := m.RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -94,6 +99,10 @@ func (m *Mapper) InfoForObject(obj runtime.Object, preferredGVKs []schema.GroupV
 	groupVersionKind := groupVersionKinds[0]
 	if len(groupVersionKinds) > 1 && len(preferredGVKs) > 0 {
 		groupVersionKind = preferredObjectKind(groupVersionKinds, preferredGVKs)
+	}
+
+	if unstructuredObj, ok := obj.(*unstructured.Unstructured); ok {
+		fixOAPIGroupKind(unstructuredObj.Object, &groupVersionKind)
 	}
 
 	mapping, err := m.RESTMapping(groupVersionKind.GroupKind(), groupVersionKind.Version)
