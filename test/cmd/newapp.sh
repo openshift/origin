@@ -48,6 +48,9 @@ os::cmd::expect_success 'oc new-app https://github.com/sclorg/ruby-ex'
 os::cmd::expect_success_and_not_text 'oc describe bc/ruby-ex' 'BuildConfigInstantiateFailed'
 os::cmd::expect_success 'oc delete all -l app=ruby-ex'
 
+# Ensure that an invalid build strategy in a template does not throw a segmentation fault
+os::cmd::expect_success_and_not_text 'oc new-app --file test/testdata/invalid-build-strategy.yaml --dry-run' 'invalid memory address or nil pointer dereference'
+
 # test that imagestream references across imagestreams do not cause an error
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
 os::cmd::expect_success 'oc create -f test/testdata/newapp/imagestream-ref.yaml'

@@ -375,6 +375,8 @@ func SetBuildConfigEnv(buildConfig *buildapi.BuildConfig, env []kapi.EnvVar) {
 		oldEnv = &buildConfig.Spec.Strategy.CustomStrategy.Env
 	case buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
 		oldEnv = &buildConfig.Spec.Strategy.JenkinsPipelineStrategy.Env
+	default:
+		return
 	}
 	*oldEnv = env
 }
@@ -392,6 +394,8 @@ func SetBuildEnv(build *buildapi.Build, env []kapi.EnvVar) {
 		oldEnv = &build.Spec.Strategy.CustomStrategy.Env
 	case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
 		oldEnv = &build.Spec.Strategy.JenkinsPipelineStrategy.Env
+	default:
+		return
 	}
 	*oldEnv = env
 }
