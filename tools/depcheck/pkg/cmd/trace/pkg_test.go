@@ -69,7 +69,30 @@ var pkgs = &PackageList{
 			ImportPath: "github.com/test/repo/unique/unique_vendor_one",
 			Imports:    []string{},
 		},
+
+		// simulate a package that is not brought in through any of the repo entrypoints
+		// ("github.com/test/repo/root" in this case) but exists in the codebase
+		// because another package that is part of its repo is a transitive dependency
+		// of one of the main repo's entrypoints.
+		{
+			Dir:        "/path/to/github.com/test/repo/unique/unique_vendor_two",
+			ImportPath: "github.com/test/repo/unique/unique_vendor_two",
+			Imports: []string{
+				"github.com/test/repo/no/node/should/exist/for/this/pkg",
+			},
+		},
 	},
+}
+
+// pkgsWithNoNodes is a map containing importPaths for packages
+// that are not expected to have a node in the dependency graph
+var pkgsWithNoNodes = map[string]bool{
+	"github.com/test/repo/no/node/should/exist/for/this/pkg": true,
+}
+
+func shouldHaveNode(name string) bool {
+	_, exists := pkgsWithNoNodes[name]
+	return !exists
 }
 
 func TestBuildGraphCreatesExpectedNodesAndEdges(t *testing.T) {
@@ -98,8 +121,16 @@ func TestBuildGraphCreatesExpectedNodesAndEdges(t *testing.T) {
 			}
 
 			to, exists := g.NodeByName(dep)
+			if !shouldHaveNode(dep) {
+				if exists {
+					t.Fatalf("expected node with name %q to not exist", dep)
+				}
+
+				continue
+			}
+
 			if !exists || !g.Has(to) {
-				t.Fatalf("expected node with name ")
+				t.Fatalf("expected node with name %q to exist", dep)
 			}
 
 			if !g.HasEdgeFromTo(from, to) {

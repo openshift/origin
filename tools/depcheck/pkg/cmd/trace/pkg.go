@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"github.com/gonum/graph/concrete"
 
 	depgraph "github.com/openshift/origin/tools/depcheck/pkg/graph"
@@ -91,7 +93,11 @@ func BuildGraph(packages *PackageList, excludes []string) (*depgraph.MutableDire
 
 			to, exists := g.NodeByName(dependency)
 			if !exists {
-				return nil, fmt.Errorf("expected child node for dependency %q was not found in graph", dependency)
+				// if a package imports a dependency that we did not visit
+				// while traversing the code tree, ignore it, as it is not
+				// required for the root repository to build.
+				glog.V(1).Infof("Skipping unvisited (missing) dependency %q, which is imported by package %q", dependency, pkg.ImportPath)
+				continue
 			}
 
 			if g.HasEdgeFromTo(from, to) {
