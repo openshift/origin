@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f167199f98789903d897c498667fdf74ecdbdd60
+%global commit 5634d43f9e68f8a1e8f1f3576670ce7ab34cfbaa
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.46.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=092b7c0 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.47.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=429249a OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.47.0%{?dist}
+Release:        0.48.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,26 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Feb 22 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.48.0
+- Prevent login spam on large clusters (oats87g@gmail.com)
+- Fix govet error - formatting in glog.V(0).Info() call (cdaley@redhat.com)
+- Fixes new-app segmentation fault on invalid build strategy
+  (cdaley@redhat.com)
+- add more graph methods (jvallejo@redhat.com)
+- Add a containerized node script for bootstrap equivalent
+  (ccoleman@redhat.com)
+- The prometheus e2e isn't checking for its pods correctly
+  (ccoleman@redhat.com)
+- Limit logging to provider name (jliggitt@redhat.com)
+- Move stampTooOld into Check function (nakayamakenjiro@gmail.com)
+- Output field of struct of discovered systemd unit (nakayamakenjiro@gmail.com)
+- Fix AnalyzeLogs to provide more clear debug message
+  (nakayamakenjiro@gmail.com)
+- Fix typo Seaching to Searching (nakayamakenjiro@gmail.com)
+- Fixes index out of range error on oc new-app --template foo
+  (cdaley@redhat.com)
+- Correctly handle newlines in SerialFileGenerator (mkhan@redhat.com)
+
 * Tue Feb 20 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.47.0
 - upgrade prometheus alertmanager v0.9.1 -> v0.13.0 (pgier@redhat.com)
 - Fix panic in error printing in DC controller (tnozicka@gmail.com)
