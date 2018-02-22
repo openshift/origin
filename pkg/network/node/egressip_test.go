@@ -271,6 +271,32 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("Unexpected eip state: %#v", eip)
 	}
 
+	// Add namespace EgressIP back again after having removed it...
+	eip.updateNamespaceEgress(44, "172.17.0.102")
+	err = assertNetlinkChange(eip, "claim 172.17.0.102")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	flows, err = ovsif.DumpFlows("")
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=100", "reg0=44", "0x0000002c->pkt_mark", "goto_table:101"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v", err)
+	}
+	origFlows = flows
+
+	ns44 = eip.namespacesByVNID[44]
+	if ns44 == nil || eip.namespacesByEgressIP["172.17.0.102"] != ns44 || eip.nodesByEgressIP["172.17.0.102"] != node4 {
+		t.Fatalf("Unexpected eip state: %#v", eip)
+	}
+
 	// Drop remote node EgressIP
 	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
 	err = assertNoNetlinkChanges(eip)
