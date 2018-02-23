@@ -71,11 +71,8 @@ spec:
                             openshift.withCluster() {
                                 openshift.withProject() {
                                     def builds = openshift.selector("bc", templateName).related('builds')
-                                    // wait up to 5 minutes for the build to complete
-                                    timeout(5) {
-                                        builds.untilEach(1) {
-                                            return (it.object().status.phase == "Complete")
-                                        }
+                                    builds.untilEach(1) {
+                                        return (it.object().status.phase == "Complete")
                                     }
                                 }
                             }
@@ -88,11 +85,8 @@ spec:
                             openshift.withCluster() {
                                 openshift.withProject() {
                                     def rm = openshift.selector("dc", templateName).rollout()
-                                    // wait up to 5 minutes for the deployment to complete
-                                    timeout(5) {
-                                        openshift.selector("dc", templateName).related('pods').untilEach(1) {
-                                            return (it.object().status.phase == "Running")
-                                        }
+                                    openshift.selector("dc", templateName).related('pods').untilEach(1) {
+                                        return (it.object().status.phase == "Running")
                                     }
                                 }
                             }
