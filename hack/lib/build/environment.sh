@@ -112,6 +112,14 @@ function os::build::environment::cleanup() {
   local tmp_volume=$3
   os::log::debug "Recording container information to ${LOG_DIR}/${container}.json"
   docker inspect "${container}" > "${LOG_DIR}/${container}.json"
+  os::log::debug "Current runc information:
+$( sudo /usr/libexec/docker/docker-runc-current list )"
+  os::log::debug "Current runc dir:
+$( sudo tree /run/docker/libcontainerd )"
+  os::log::debug "Process info:
+$( sudo ps -ef | grep docker-runc-current )"
+  os::log::debug "Recording runc container information to ${LOG_DIR}/${container}-config.json"
+  sudo cat "/run/docker/libcontainerd/${container}/config.json" > "${LOG_DIR}/${container}-config.json"
   os::log::debug "Stopping container ${container}"
   docker stop --time=0 "${container}" > /dev/null || true
   if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
