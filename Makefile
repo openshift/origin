@@ -40,7 +40,7 @@ JUNIT_REPORT ?= true
 #   make all WHAT=cmd/oc GOFLAGS=-v
 #   make all GOGCFLAGS="-N -l"
 all build:
-	hack/build-go.sh $(WHAT) $(GOFLAGS)
+	OS_GOFLAGS=$(GOFLAGS) hack/build-go.sh $(WHAT)
 .PHONY: all build
 
 # Build the test binaries.
