@@ -15,13 +15,13 @@ type testFilterNode struct {
 func getVendorNodes() []*testFilterNode {
 	return []*testFilterNode{
 		{
-			name: "github.com/test/repo/vendor/github.com/testvendor/prefix1",
+			name: "github.com/test/repo/vendor/github.com/testvendor/prefix",
 			outboundEdges: []string{
-				"github.com/test/repo/vendor/github.com/testvendor/prefix1/one",
+				"github.com/test/repo/vendor/github.com/testvendor/prefix/one",
 			},
 		},
 		{
-			name: "github.com/test/repo/vendor/github.com/testvendor/prefix1/one",
+			name: "github.com/test/repo/vendor/github.com/testvendor/prefix/one",
 			outboundEdges: []string{
 				"github.com/test/repo/vendor/github.com/testvendor/prefix2/one",
 			},
@@ -58,15 +58,15 @@ func getVendorNodes() []*testFilterNode {
 func getNonVendorNodes() []*testFilterNode {
 	return []*testFilterNode{
 		{
-			name: "github.com/test/repo/pkg/prefix1",
+			name: "github.com/test/repo/pkg/prefix",
 			outboundEdges: []string{
-				"github.com/test/repo/pkg/prefix1/one",
+				"github.com/test/repo/pkg/prefix/one",
 			},
 		},
 		{
-			name: "github.com/test/repo/pkg/prefix1/one",
+			name: "github.com/test/repo/pkg/prefix/one",
 			outboundEdges: []string{
-				"github.com/test/repo/vendor/github.com/testvendor/prefix1",
+				"github.com/test/repo/vendor/github.com/testvendor/prefix",
 			},
 		},
 		{
@@ -132,7 +132,7 @@ func TestVendorPackagesCollapsedIntoRepo(t *testing.T) {
 	}
 
 	vendorRoots := []string{
-		"github.com/test/repo/vendor/github.com/testvendor/prefix1",
+		"github.com/test/repo/vendor/github.com/testvendor/prefix",
 		"github.com/test/repo/vendor/github.com/testvendor/prefix2",
 		"github.com/test/repo/vendor/github.com/google/glog",
 		"github.com/test/repo/vendor/github.com/docker/docker-test-util",
@@ -190,7 +190,7 @@ func TestVendorPackagesCollapsedIntoRepo(t *testing.T) {
 		"github.com/test/repo/vendor/github.com/docker/docker-test-util": {
 			"github.com/test/repo/vendor/github.com/google/glog",
 		},
-		"github.com/test/repo/vendor/github.com/testvendor/prefix1": {
+		"github.com/test/repo/vendor/github.com/testvendor/prefix": {
 			"github.com/test/repo/vendor/github.com/testvendor/prefix2",
 		},
 	}
@@ -249,7 +249,9 @@ func TestCollapsedGraphPreservesNonVendorNodes(t *testing.T) {
 	}
 
 	vendorRoots := []string{
-		"github.com/test/repo/vendor/github.com/testvendor/prefix1",
+		// having this prefix come first tests that "prefix2" does
+		// not end up getting accidentally squashed into "testvendor/prefix"
+		"github.com/test/repo/vendor/github.com/testvendor/prefix",
 		"github.com/test/repo/vendor/github.com/testvendor/prefix2",
 		"github.com/test/repo/vendor/github.com/google/glog",
 		"github.com/test/repo/vendor/github.com/docker/docker-test-util",
@@ -280,11 +282,11 @@ func TestCollapsedGraphPreservesNonVendorNodes(t *testing.T) {
 	}
 
 	expectedOutgoingEdges := map[string][]string{
-		"github.com/test/repo/pkg/prefix1": {
-			"github.com/test/repo/pkg/prefix1/one",
+		"github.com/test/repo/pkg/prefix": {
+			"github.com/test/repo/pkg/prefix/one",
 		},
-		"github.com/test/repo/pkg/prefix1/one": {
-			"github.com/test/repo/vendor/github.com/testvendor/prefix1",
+		"github.com/test/repo/pkg/prefix/one": {
+			"github.com/test/repo/vendor/github.com/testvendor/prefix",
 		},
 	}
 
