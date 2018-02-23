@@ -25529,7 +25529,7 @@ parameters:
   value: openshift/prometheus:v2.0.0
 - description: The location of the alertmanager image
   name: IMAGE_ALERTMANAGER
-  value: openshift/prometheus-alertmanager:v0.13.0
+  value: openshift/prometheus-alertmanager:v0.14.0
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
   value: openshift/prometheus-alert-buffer:v0.0.2
