@@ -616,7 +616,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 // test controller interval), updates the image stream only when there are changes, and if an
 // error occurs writes the error only once (instead of every interval)
 func TestImageStreamImportScheduled(t *testing.T) {
-	written := make(chan struct{}, 1)
+	written := make(chan struct{}, 2)
 	count := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("got %s %s", r.Method, r.URL.Path)
