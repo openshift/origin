@@ -22,7 +22,7 @@ type ContextType struct {
 type ClusterLoaderType struct {
 	Number     int `mapstructure:"num"`
 	Basename   string
-	Labels 	   map[string]string
+	Labels     map[string]string
 	Tuning     string
 	Configmaps map[string]interface{}
 	Secrets    map[string]interface{}
