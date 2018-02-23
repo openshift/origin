@@ -423,14 +423,30 @@ func (bc *BuildController) cancelBuild(build *buildapi.Build) (*buildUpdate, err
 // handleNewBuild will check whether policy allows running the new build and if so, creates a pod
 // for the build and returns an update to move it to the Pending phase
 func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
-	// If a pod was found, and it was created after the build was created, it
-	// means that the build is active and its status should be updated
 	if pod != nil {
-		//TODO: Use a better way to determine whether the pod corresponds to the build (maybe using the owner field)
-		if !pod.CreationTimestamp.Before(&build.CreationTimestamp) {
+		// We're in phase New and a build pod already exists.  If the pod has an
+		// owner reference to the build, we take that to mean that we created
+		// the pod but failed to update the build object afterwards.  In
+		// principle, we should re-run all the handleNewBuild/createBuildPod
+		// logic in this case.  At the moment, however, we short-cut straight to
+		// handleActiveBuild.  This is not ideal because we lose any updates we
+		// meant to make to the build object (apart from advancing the phase).
+		// On the other hand, as the code stands, re-running
+		// handleNewBuild/createBuildPod is also problematic.  The build policy
+		// code is not side-effect free, and the controller logic in general is
+		// dependent on lots of state stored outside of the build object.  The
+		// risk is that were we to re-run handleNewBuild/createBuildPod a second
+		// time, we'd make different decisions to those taken previously.
+		//
+		// TODO: fix this.  One route might be to add an additional phase into
+		// the build FSM: New -> X -> Pending -> Running, where all the pre-work
+		// is done in the transition New->X, and nothing more than the build pod
+		// creation is done in the transition X->Pending.
+		if strategy.HasOwnerReference(pod, build) {
 			return bc.handleActiveBuild(build, pod)
 		}
-		// If a pod was created before the current build, move the build to error
+		// If a pod was not created by the current build, move the build to
+		// error.
 		return transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodExists, buildapi.StatusMessageBuildPodExists), nil
 	}
 
@@ -876,26 +892,34 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 	}
 
 	glog.V(4).Infof("Pod %s/%s for build %s is about to be created", build.Namespace, buildPod.Name, buildDesc(build))
-	if _, err := bc.podClient.Pods(build.Namespace).Create(buildPod); err != nil {
-		if errors.IsAlreadyExists(err) {
-			bc.recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", buildPod.Namespace, buildPod.Name)
-			glog.V(4).Infof("Build pod %s/%s for build %s already exists", build.Namespace, buildPod.Name, buildDesc(build))
-
-			// If the existing pod was created before this build, switch to the Error state.
-			existingPod, err := bc.podClient.Pods(build.Namespace).Get(buildPod.Name, metav1.GetOptions{})
-			if err == nil && existingPod.CreationTimestamp.Before(&build.CreationTimestamp) {
-				update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodExists, buildapi.StatusMessageBuildPodExists)
-				return update, nil
-			}
-			return nil, nil
-		}
+	_, err = bc.podClient.Pods(build.Namespace).Create(buildPod)
+	if err != nil && !errors.IsAlreadyExists(err) {
 		// Log an event if the pod is not created (most likely due to quota denial).
 		bc.recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
 		update.setReason(buildapi.StatusReasonCannotCreateBuildPod)
 		update.setMessage(buildapi.StatusMessageCannotCreateBuildPod)
 		return update, fmt.Errorf("failed to create build pod: %v", err)
+
+	} else if err != nil {
+		bc.recorder.Eventf(build, kapi.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", buildPod.Namespace, buildPod.Name)
+		glog.V(4).Infof("Build pod %s/%s for build %s already exists", build.Namespace, buildPod.Name, buildDesc(build))
+
+		// If the existing pod was not created by this build, switch to the
+		// Error state.
+		existingPod, err := bc.podClient.Pods(build.Namespace).Get(buildPod.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		if !strategy.HasOwnerReference(existingPod, build) {
+			glog.V(4).Infof("Did not recognise pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
+			update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodExists, buildapi.StatusMessageBuildPodExists)
+			return update, nil
+		}
+		glog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
+
+	} else {
+		glog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
 	}
-	glog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
 	update = transitionToPhase(buildapi.BuildPhasePending, "", "")
 
 	if pushSecret != nil {
