@@ -18,7 +18,7 @@
 #      $ docker run -d --privileged openshift/dind
 #
 
-FROM fedora:25
+FROM fedora:27
 
 # Fix 'WARNING: terminal is not fully functional' when TERM=dumb
 ENV TERM=xterm
@@ -49,19 +49,16 @@ RUN systemctl mask\
 RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/;\
  sed -i 's/OOMScoreAdjust=-900//' /etc/systemd/system/dbus.service
 
-# Remove non-english translations for glibc to reduce image size by 100mb.
-# docker-v1.10-migrator is unnecessary for a new docker installation
-# selinux-policy-minimum is unnecessary since selinux won't be enabled
+# Remove non-english translations (by explicitly installing just the English
+# ones) for glibc to reduce image size by 100mb.  Also install various network
+# utils for network debugging.
 RUN dnf -y update && dnf -y install\
  docker\
  glibc-langpack-en\
  iptables\
  openssh-clients\
- openssh-server
-
-# Install network utils for debugging
-# iproute2 tools are already installed.
-RUN dnf -y install tcpdump
+ openssh-server\
+ tcpdump
 
 ## Configure docker
 
