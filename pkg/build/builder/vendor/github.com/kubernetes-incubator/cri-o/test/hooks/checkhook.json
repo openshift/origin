@@ -1,5 +1,0 @@
-{
-    "cmd" : [".*"],
-    "hook" : "HOOKSDIR/checkhook.sh",
-    "stage" : [ "prestart" ]
-}
