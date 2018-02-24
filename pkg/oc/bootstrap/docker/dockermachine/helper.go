@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	dockerclient "github.com/docker/engine-api/client"
+	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"

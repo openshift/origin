@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/docker/docker/api/types/versions"
 	cliconfig "github.com/docker/docker/cli/config"
-	dockerclient "github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types/versions"
+	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

@@ -3,7 +3,7 @@ package dockerhelper
 import (
 	"net"
 
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
 )
 

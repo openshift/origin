@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"

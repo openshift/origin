@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/docker/engine-api/types/container"
+	"github.com/docker/docker/api/types/container"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
