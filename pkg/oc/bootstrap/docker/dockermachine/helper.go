@@ -160,11 +160,10 @@ func Client(name string) (dockerhelper.Interface, error) {
 		}
 	}
 
-	engineAPIClient, err := dockerclient.NewClient(dockerHost, "", httpClient, nil)
+	engineAPIClient, err := dockerclient.NewClient(dockerHost, "1.24", httpClient, nil)
 	if err != nil {
 		return nil, errors.NewError("cannot create Docker engine API client").WithCause(err)
 	}
-
 	return dockerhelper.NewClient(dockerHost, engineAPIClient), nil
 }
 
