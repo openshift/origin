@@ -18,7 +18,7 @@ os::cmd::expect_success_and_not_text \
                                 --overwrite=true" \
     'WARNING: .* is greater than 5 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '00'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '01'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*5)) days" +'%Y')"
@@ -38,7 +38,7 @@ os::cmd::expect_success \
             --signer-key='${CERT_DIR}/ca.key' \
             --signer-serial='${CERT_DIR}/ca.serial.txt'"
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '01'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '02'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 # oc adm ca create-signer-cert should generate certificate with specified number of days and show warning
@@ -50,7 +50,7 @@ os::cmd::expect_success_and_text \
                                 --expire-days=$((365*6))" \
     'WARNING: .* is greater than 5 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '00'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '01'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*6)) days" +'%Y')"
@@ -78,7 +78,7 @@ os::cmd::expect_success_and_not_text \
             --signer-serial='${CERT_DIR}/ca.serial.txt'" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '02'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '03'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
@@ -107,7 +107,7 @@ os::cmd::expect_success_and_text \
             --expire-days=$((365*3))" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '04'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '05'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
@@ -133,7 +133,7 @@ os::cmd::expect_success_and_not_text \
     'WARNING: .* is greater than 2 years'
 
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '05'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '06'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
@@ -155,7 +155,7 @@ os::cmd::expect_success_and_text \
             --expire-days=$((365*3))" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '06'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '07'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
@@ -176,7 +176,7 @@ os::cmd::expect_success_and_not_text \
                                 --key='${CERT_DIR}/example.org.key'" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '07'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '08'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
@@ -197,7 +197,7 @@ os::cmd::expect_success_and_text \
                                 --expire-days=$((365*3))" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '08'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '09'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
