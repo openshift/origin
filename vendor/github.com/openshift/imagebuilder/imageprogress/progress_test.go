@@ -5,7 +5,9 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestReports(t *testing.T) {
@@ -67,30 +69,37 @@ func TestReports(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		pipeIn, pipeOut := io.Pipe()
-		go func() {
-			p := newProgressGenerator(pipeOut)
-			test.gen(p)
-			pipeOut.Close()
-		}()
-		var lastReport report
-		w := newWriter(
-			func(r report) {
-				lastReport = r
-			},
-			func(a report, b report) bool {
-				return true
-			},
-		)
-		w.(*imageProgressWriter).stableThreshhold = 0
-		_, err := io.Copy(w, pipeIn)
-		if err != nil {
-			t.Errorf("%s: unexpected: %v", test.name, err)
-			continue
-		}
-		if !compareReport(lastReport, test.expected) {
-			t.Errorf("%s: unexpected report, got: %v, expected: %v", test.name, lastReport, test.expected)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			pipeIn, pipeOut := io.Pipe()
+			go func() {
+				p := newProgressGenerator(pipeOut)
+				test.gen(p)
+				pipeOut.Close()
+			}()
+			var lock sync.Mutex
+			var lastReport report
+			w := newWriter(
+				func(r report) {
+					lock.Lock()
+					defer lock.Unlock()
+					lastReport = r
+				},
+				func(a report, b report) bool {
+					return true
+				},
+			)
+			w.(*imageProgressWriter).stableThreshhold = 0
+			_, err := io.Copy(w, pipeIn)
+			if err != nil {
+				t.Fatalf("%s: unexpected: %v", test.name, err)
+			}
+			// TODO: remove the goroutine inside of the progress generator or make it sync on close
+			time.Sleep(10 * time.Millisecond)
+			lock.Lock()
+			if !compareReport(lastReport, test.expected) {
+				t.Errorf("%s: unexpected report, got: %v, expected: %v", test.name, lastReport, test.expected)
+			}
+		})
 	}
 }
 
@@ -129,20 +138,22 @@ func TestStableLayerCount(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		w := newWriter(func(report) {}, func(a, b report) bool { return true }).(*imageProgressWriter)
-		w.lastLayerCount = test.lastLayerCount
-		w.layerStatus = map[string]*progressLine{}
-		w.stableThreshhold = test.stableThreshhold
-		for i := 0; i < test.layerStatusCount; i++ {
-			w.layerStatus[strconv.Itoa(i)] = &progressLine{}
-		}
-		var result bool
-		for i := 0; i < test.callCount; i++ {
-			result = w.isStableLayerCount()
-		}
-		if result != test.expectStable {
-			t.Errorf("%s: expected %v, got %v", test.name, test.expectStable, result)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			w := newWriter(func(report) {}, func(a, b report) bool { return true }).(*imageProgressWriter)
+			w.lastLayerCount = test.lastLayerCount
+			w.layerStatus = map[string]*progressLine{}
+			w.stableThreshhold = test.stableThreshhold
+			for i := 0; i < test.layerStatusCount; i++ {
+				w.layerStatus[strconv.Itoa(i)] = &progressLine{}
+			}
+			var result bool
+			for i := 0; i < test.callCount; i++ {
+				result = w.isStableLayerCount()
+			}
+			if result != test.expectStable {
+				t.Errorf("%s: expected %v, got %v", test.name, test.expectStable, result)
+			}
+		})
 	}
 }
 

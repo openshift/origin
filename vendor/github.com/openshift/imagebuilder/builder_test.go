@@ -66,6 +66,15 @@ func TestVolumeSet(t *testing.T) {
 	}
 }
 
+func TestMultiStageParse(t *testing.T) {
+	n, err := ParseFile("dockerclient/testdata/multistage/Dockerfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stages := NewStages(n, NewBuilder(nil))
+	t.Logf("stages: %#v", stages)
+}
+
 func TestRun(t *testing.T) {
 	f, err := os.Open("dockerclient/testdata/Dockerfile.add")
 	if err != nil {
@@ -75,7 +84,7 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b := NewBuilder()
+	b := NewBuilder(nil)
 	from, err := b.From(node)
 	if err != nil {
 		t.Fatal(err)
@@ -322,66 +331,86 @@ func TestBuilder(t *testing.T) {
 				{Src: []string{"file4"}, Dest: "/var/www/", Download: true},
 			},
 		},
+		{
+			Dockerfile: "dockerclient/testdata/multistage/Dockerfile",
+			From:       "busybox",
+			Config: docker.Config{
+				Image:      "busybox",
+				WorkingDir: "/tmp",
+			},
+			ErrFn: func(err error) bool {
+				return err != nil && strings.Contains(err.Error(), "multiple FROM statements are not supported")
+			},
+			Runs: []Run{
+				{Shell: true, Args: []string{"echo foo > bar"}},
+			},
+			Copies: []Copy{
+				{Src: []string{"file"}, Dest: "/var/www/", Download: true},
+				{Src: []string{"file2"}, Dest: "/var/www/", Download: true},
+				{Src: []string{"file4"}, Dest: "/var/www/", Download: true},
+			},
+		},
 	}
 	for i, test := range testCases {
-		data, err := ioutil.ReadFile(test.Dockerfile)
-		if err != nil {
-			t.Errorf("%d: %v", i, err)
-			continue
-		}
-		node, err := ParseDockerfile(bytes.NewBuffer(data))
-		if err != nil {
-			t.Errorf("%d: %v", i, err)
-			continue
-		}
-		b := NewBuilder()
-		b.Args = test.Args
-		from, err := b.From(node)
-		if err != nil {
-			t.Errorf("%d: %v", i, err)
-			continue
-		}
-		if from != test.From {
-			t.Errorf("%d: unexpected FROM: %s", i, from)
-		}
-		if test.Image != nil {
-			if err := b.FromImage(test.Image, node); err != nil {
-				t.Errorf("%d: unexpected error: %v", i, err)
+		t.Run(fmt.Sprintf("%s %d", test.Dockerfile, i), func(t *testing.T) {
+			data, err := ioutil.ReadFile(test.Dockerfile)
+			if err != nil {
+				t.Fatalf("%d: %v", i, err)
 			}
-		}
+			node, err := ParseDockerfile(bytes.NewBuffer(data))
+			if err != nil {
+				t.Fatalf("%d: %v", i, err)
+			}
+			b := NewBuilder(test.Args)
+			from, err := b.From(node)
+			if err != nil {
+				if test.ErrFn == nil || !test.ErrFn(err) {
+					t.Errorf("%d: %v", i, err)
+				}
+				return
+			}
+			if from != test.From {
+				t.Errorf("%d: unexpected FROM: %s", i, from)
+			}
+			if test.Image != nil {
+				if err := b.FromImage(test.Image, node); err != nil {
+					t.Errorf("%d: unexpected error: %v", i, err)
+				}
+			}
 
-		e := &testExecutor{}
-		var lastErr error
-		for j, child := range node.Children {
-			step := b.Step()
-			if err := step.Resolve(child); err != nil {
-				lastErr = fmt.Errorf("%d: %d: %s: resolve: %v", i, j, step.Original, err)
-				break
+			e := &testExecutor{}
+			var lastErr error
+			for j, child := range node.Children {
+				step := b.Step()
+				if err := step.Resolve(child); err != nil {
+					lastErr = fmt.Errorf("%d: %d: %s: resolve: %v", i, j, step.Original, err)
+					break
+				}
+				if err := b.Run(step, e, false); err != nil {
+					lastErr = fmt.Errorf("%d: %d: %s: run: %v", i, j, step.Original, err)
+					break
+				}
 			}
-			if err := b.Run(step, e, false); err != nil {
-				lastErr = fmt.Errorf("%d: %d: %s: run: %v", i, j, step.Original, err)
-				break
+			if lastErr != nil {
+				if test.ErrFn == nil || !test.ErrFn(lastErr) {
+					t.Errorf("%d: unexpected error: %v", i, lastErr)
+				}
+				return
 			}
-		}
-		if lastErr != nil {
-			if test.ErrFn == nil || !test.ErrFn(lastErr) {
-				t.Errorf("%d: unexpected error: %v", i, lastErr)
+			if !reflect.DeepEqual(test.Copies, e.Copies) {
+				t.Errorf("%d: unexpected copies: %#v", i, e.Copies)
 			}
-			continue
-		}
-		if !reflect.DeepEqual(test.Copies, e.Copies) {
-			t.Errorf("%d: unexpected copies: %#v", i, e.Copies)
-		}
-		if !reflect.DeepEqual(test.Runs, e.Runs) {
-			t.Errorf("%d: unexpected runs: %#v", i, e.Runs)
-		}
-		if !reflect.DeepEqual(test.Unrecognized, e.Unrecognized) {
-			t.Errorf("%d: unexpected unrecognized: %#v", i, e.Unrecognized)
-		}
-		lastConfig := b.RunConfig
-		if !reflect.DeepEqual(test.Config, lastConfig) {
-			data, _ := json.Marshal(lastConfig)
-			t.Errorf("%d: unexpected config: %s", i, string(data))
-		}
+			if !reflect.DeepEqual(test.Runs, e.Runs) {
+				t.Errorf("%d: unexpected runs: %#v", i, e.Runs)
+			}
+			if !reflect.DeepEqual(test.Unrecognized, e.Unrecognized) {
+				t.Errorf("%d: unexpected unrecognized: %#v", i, e.Unrecognized)
+			}
+			lastConfig := b.RunConfig
+			if !reflect.DeepEqual(test.Config, lastConfig) {
+				data, _ := json.Marshal(lastConfig)
+				t.Errorf("%d: unexpected config: %s", i, string(data))
+			}
+		})
 	}
 }

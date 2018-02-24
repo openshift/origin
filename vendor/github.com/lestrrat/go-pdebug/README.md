@@ -6,6 +6,10 @@
 
 Utilities for my print debugging fun. YMMV
 
+# WARNING
+
+This repository has been moved to [github.com/lestrrat-go/pdebug](https://github.com/lestrrat-go/pdebug). This repository exists so that libraries pointing to this URL will keep functioning, but this repository will NOT be updated in the future. Please use the new import path.
+
 # Synopsis
 
 ![optimized](https://pbs.twimg.com/media/CbiqhzLUUAIN_7o.png)
