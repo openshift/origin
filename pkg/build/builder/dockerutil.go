@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	enginetypes "github.com/docker/engine-api/types"
+	enginetypes "github.com/docker/docker/api/types"
 	docker "github.com/fsouza/go-dockerclient"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -283,7 +283,8 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 		}
 	}
 	return interrupt.New(nil, releaseFn).Run(func() error {
-		b, node, err := imagebuilder.NewBuilderForFile(filepath.Join(dir, opts.Dockerfile), arguments)
+		b := imagebuilder.NewBuilder(arguments)
+		node, err := imagebuilder.ParseFile(filepath.Join(dir, opts.Dockerfile))
 		if err != nil {
 			return err
 		}
