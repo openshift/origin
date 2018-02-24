@@ -13,6 +13,7 @@ import (
 )
 
 func TestListVolumes(t *testing.T) {
+	t.Parallel()
 	volumesData := `[
 	{
 		"Name": "tardis",
@@ -41,6 +42,7 @@ func TestListVolumes(t *testing.T) {
 }
 
 func TestCreateVolume(t *testing.T) {
+	t.Parallel()
 	body := `{
 		"Name": "tardis",
 		"Driver": "local",
@@ -79,6 +81,7 @@ func TestCreateVolume(t *testing.T) {
 }
 
 func TestInspectVolume(t *testing.T) {
+	t.Parallel()
 	body := `{
 		"Name": "tardis",
 		"Driver": "local",
@@ -110,6 +113,7 @@ func TestInspectVolume(t *testing.T) {
 }
 
 func TestRemoveVolume(t *testing.T) {
+	t.Parallel()
 	name := "test"
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
@@ -128,6 +132,7 @@ func TestRemoveVolume(t *testing.T) {
 }
 
 func TestRemoveVolumeNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such volume", status: http.StatusNotFound})
 	if err := client.RemoveVolume("test:"); err != ErrNoSuchVolume {
 		t.Errorf("RemoveVolume: wrong error. Want %#v. Got %#v.", ErrNoSuchVolume, err)
@@ -135,8 +140,33 @@ func TestRemoveVolumeNotFound(t *testing.T) {
 }
 
 func TestRemoveVolumeInUse(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "volume in use and cannot be removed", status: http.StatusConflict})
 	if err := client.RemoveVolume("test:"); err != ErrVolumeInUse {
 		t.Errorf("RemoveVolume: wrong error. Want %#v. Got %#v.", ErrVolumeInUse, err)
+	}
+}
+
+func TestPruneVolumes(t *testing.T) {
+	t.Parallel()
+	results := `{
+		"VolumesDeleted": [
+			"a", "b", "c"
+		],
+		"SpaceReclaimed": 123
+	}`
+
+	expected := &PruneVolumesResults{}
+	err := json.Unmarshal([]byte(results), expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := newTestClient(&FakeRoundTripper{message: results, status: http.StatusOK})
+	got, err := client.PruneVolumes(PruneVolumesOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("PruneContainers: Expected %#v. Got %#v.", expected, got)
 	}
 }

@@ -2,21 +2,21 @@ package network
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"golang.org/x/net/context"
 
-	"github.com/docker/docker/api/errors"
 	"github.com/docker/docker/api/server/httputils"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/libnetwork"
+	netconst "github.com/docker/libnetwork/datastore"
 	"github.com/docker/libnetwork/networkdb"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -82,6 +82,24 @@ SKIP:
 	return httputils.WriteJSON(w, http.StatusOK, list)
 }
 
+type invalidRequestError struct {
+	cause error
+}
+
+func (e invalidRequestError) Error() string {
+	return e.cause.Error()
+}
+
+func (e invalidRequestError) InvalidParameter() {}
+
+type ambigousResultsError string
+
+func (e ambigousResultsError) Error() string {
+	return "network " + string(e) + " is ambiguous"
+}
+
+func (ambigousResultsError) InvalidParameter() {}
+
 func (n *networkRouter) getNetwork(ctx context.Context, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
 	if err := httputils.ParseForm(r); err != nil {
 		return err
@@ -94,8 +112,7 @@ func (n *networkRouter) getNetwork(ctx context.Context, w http.ResponseWriter, r
 	)
 	if v := r.URL.Query().Get("verbose"); v != "" {
 		if verbose, err = strconv.ParseBool(v); err != nil {
-			err = fmt.Errorf("invalid value for verbose: %s", v)
-			return errors.NewBadRequestError(err)
+			return errors.Wrapf(invalidRequestError{err}, "invalid value for verbose: %s", v)
 		}
 	}
 	scope := r.URL.Query().Get("scope")
@@ -135,6 +152,17 @@ func (n *networkRouter) getNetwork(ctx context.Context, w http.ResponseWriter, r
 		}
 	}
 
+	nwk, err := n.cluster.GetNetwork(term)
+	if err == nil {
+		// If the get network is passed with a specific network ID / partial network ID
+		// or if the get network was passed with a network name and scope as swarm
+		// return the network. Skipped using isMatchingScope because it is true if the scope
+		// is not set which would be case if the client API v1.30
+		if strings.HasPrefix(nwk.ID, term) || (netconst.SwarmScope == scope) {
+			return httputils.WriteJSON(w, http.StatusOK, nwk)
+		}
+	}
+
 	nr, _ := n.cluster.GetNetworks()
 	for _, network := range nr {
 		if network.ID == term && isMatchingScope(network.Scope, scope) {
@@ -165,7 +193,7 @@ func (n *networkRouter) getNetwork(ctx context.Context, w http.ResponseWriter, r
 		}
 	}
 	if len(listByFullName) > 1 {
-		return fmt.Errorf("network %s is ambiguous (%d matches found based on name)", term, len(listByFullName))
+		return errors.Wrapf(ambigousResultsError(term), "%d matches found based on name", len(listByFullName))
 	}
 
 	// Find based on partial ID, returns true only if no duplicates
@@ -175,7 +203,7 @@ func (n *networkRouter) getNetwork(ctx context.Context, w http.ResponseWriter, r
 		}
 	}
 	if len(listByPartialID) > 1 {
-		return fmt.Errorf("network %s is ambiguous (%d matches found based on ID prefix)", term, len(listByPartialID))
+		return errors.Wrapf(ambigousResultsError(term), "%d matches found based on ID prefix", len(listByPartialID))
 	}
 
 	return libnetwork.ErrNoSuchNetwork(term)
@@ -397,7 +425,9 @@ func buildIpamResources(r *types.NetworkResource, nwInfo libnetwork.NetworkInfo)
 		for _, ip4Info := range ipv4Info {
 			iData := network.IPAMConfig{}
 			iData.Subnet = ip4Info.IPAMData.Pool.String()
-			iData.Gateway = ip4Info.IPAMData.Gateway.IP.String()
+			if ip4Info.IPAMData.Gateway != nil {
+				iData.Gateway = ip4Info.IPAMData.Gateway.IP.String()
+			}
 			r.IPAM.Config = append(r.IPAM.Config, iData)
 		}
 	}

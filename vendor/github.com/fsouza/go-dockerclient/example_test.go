@@ -1,4 +1,4 @@
-// Copyright 2014 go-dockerclient authors. All rights reserved.
+// Copyright 2013 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,7 +8,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"time"
 
@@ -47,35 +46,6 @@ func ExampleClient_AttachToContainer() {
 	log.Println(buf.String())
 }
 
-func ExampleClient_CopyFromContainer() {
-	client, err := docker.NewClient("http://localhost:4243")
-	if err != nil {
-		log.Fatal(err)
-	}
-	cid := "a84849"
-	var buf bytes.Buffer
-	filename := "/tmp/output.txt"
-	err = client.CopyFromContainer(docker.CopyFromContainerOptions{
-		Container:    cid,
-		Resource:     filename,
-		OutputStream: &buf,
-	})
-	if err != nil {
-		log.Fatalf("Error while copying from %s: %s\n", cid, err)
-	}
-	content := new(bytes.Buffer)
-	r := bytes.NewReader(buf.Bytes())
-	tr := tar.NewReader(r)
-	tr.Next()
-	if err != nil && err != io.EOF {
-		log.Fatal(err)
-	}
-	if _, err := io.Copy(content, tr); err != nil {
-		log.Fatal(err)
-	}
-	log.Println(buf.String())
-}
-
 func ExampleClient_BuildImage() {
 	client, err := docker.NewClient("http://localhost:4243")
 	if err != nil {
@@ -98,7 +68,7 @@ func ExampleClient_BuildImage() {
 	}
 }
 
-func ExampleClient_ListenEvents() {
+func ExampleClient_AddEventListener() {
 	client, err := docker.NewClient("http://localhost:4243")
 	if err != nil {
 		log.Fatal(err)
@@ -126,7 +96,7 @@ func ExampleClient_ListenEvents() {
 		case msg := <-listener:
 			log.Println(msg)
 		case <-timeout:
-			break
+			return
 		}
 	}
 

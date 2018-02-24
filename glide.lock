@@ -1,5 +1,5 @@
-hash: 8b858c84dc166de0211f19c5e05d7063a6cfa9bdb6882b6d30970c026023a381
-updated: 2018-02-27T11:01:26.042463275-05:00
+hash: 58e07654e8e6397db0563e8117b04e49fcbaa2216fa4b88ef9735e43a629362d
+updated: 2018-02-27T11:13:21.46372568-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -329,7 +329,7 @@ imports:
   - registry/storage/cache/memory
   - uuid
 - name: github.com/docker/docker
-  version: 4f3616fb1c112e206b88cb7a9922bf49067a7756
+  version: b68221c37ee597950364788204546f9c9d0e46a1
   subpackages:
   - api
   - api/types
@@ -351,6 +351,9 @@ imports:
   - builder/dockerfile/parser
   - cli/config
   - client
+  - opts
+  - pkg/archive
+  - pkg/fileutils
   - pkg/homedir
   - pkg/idtools
   - pkg/ioutils
@@ -358,6 +361,8 @@ imports:
   - pkg/jsonmessage
   - pkg/longpath
   - pkg/mount
+  - pkg/pools
+  - pkg/promise
   - pkg/stdcopy
   - pkg/symlink
   - pkg/system
@@ -404,25 +409,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: 3f9370a4738ba8d0ed6eea63582ca6db5eb48032
-  subpackages:
-  - external/github.com/Sirupsen/logrus
-  - external/github.com/docker/docker/opts
-  - external/github.com/docker/docker/pkg/archive
-  - external/github.com/docker/docker/pkg/fileutils
-  - external/github.com/docker/docker/pkg/homedir
-  - external/github.com/docker/docker/pkg/idtools
-  - external/github.com/docker/docker/pkg/ioutils
-  - external/github.com/docker/docker/pkg/longpath
-  - external/github.com/docker/docker/pkg/pools
-  - external/github.com/docker/docker/pkg/promise
-  - external/github.com/docker/docker/pkg/stdcopy
-  - external/github.com/docker/docker/pkg/system
-  - external/github.com/docker/go-units
-  - external/github.com/hashicorp/go-cleanhttp
-  - external/github.com/opencontainers/runc/libcontainer/user
-  - external/golang.org/x/net/context
-  - external/golang.org/x/sys/unix
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 - name: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml

@@ -129,7 +129,7 @@ import:
   version: ~0.6.0
 # builds/cli
 - package: github.com/fsouza/go-dockerclient
-  version: 3f9370a4738ba8d0ed6eea63582ca6db5eb48032
+  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
 # auth (for testing)
 - package: github.com/vjeantet/ldapserver
   version: v1.0
@@ -163,6 +163,9 @@ import:
 # router metrics
 - package: github.com/cockroachdb/cmux
   version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
+# fsouza and to limit dependencies
+- package: github.com/docker/docker
+  version: b68221c37ee597950364788204546f9c9d0e46a1
 
 # why do we have this?
 - package: google.golang.org/appengine

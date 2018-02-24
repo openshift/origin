@@ -2,18 +2,19 @@ package daemon
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/stringid"
 )
 
-// ErrImageDoesNotExist is error returned when no image can be found for a reference.
-type ErrImageDoesNotExist struct {
+// errImageDoesNotExist is error returned when no image can be found for a reference.
+type errImageDoesNotExist struct {
 	ref reference.Reference
 }
 
-func (e ErrImageDoesNotExist) Error() string {
+func (e errImageDoesNotExist) Error() string {
 	ref := e.ref
 	if named, ok := ref.(reference.Named); ok {
 		ref = reference.TagNameOnly(named)
@@ -21,18 +22,20 @@ func (e ErrImageDoesNotExist) Error() string {
 	return fmt.Sprintf("No such image: %s", reference.FamiliarString(ref))
 }
 
+func (e errImageDoesNotExist) NotFound() {}
+
 // GetImageIDAndPlatform returns an image ID and platform corresponding to the image referred to by
 // refOrID.
 func (daemon *Daemon) GetImageIDAndPlatform(refOrID string) (image.ID, string, error) {
 	ref, err := reference.ParseAnyReference(refOrID)
 	if err != nil {
-		return "", "", err
+		return "", "", validationError{err}
 	}
 	namedRef, ok := ref.(reference.Named)
 	if !ok {
 		digested, ok := ref.(reference.Digested)
 		if !ok {
-			return "", "", ErrImageDoesNotExist{ref}
+			return "", "", errImageDoesNotExist{ref}
 		}
 		id := image.IDFromDigest(digested.Digest())
 		for platform := range daemon.stores {
@@ -40,13 +43,20 @@ func (daemon *Daemon) GetImageIDAndPlatform(refOrID string) (image.ID, string, e
 				return id, platform, nil
 			}
 		}
-		return "", "", ErrImageDoesNotExist{ref}
+		return "", "", errImageDoesNotExist{ref}
 	}
 
-	for platform := range daemon.stores {
-		if id, err := daemon.stores[platform].referenceStore.Get(namedRef); err == nil {
-			return image.IDFromDigest(id), platform, nil
+	if digest, err := daemon.referenceStore.Get(namedRef); err == nil {
+		// Search the image stores to get the platform, defaulting to host OS.
+		imagePlatform := runtime.GOOS
+		id := image.IDFromDigest(digest)
+		for platform := range daemon.stores {
+			if img, err := daemon.stores[platform].imageStore.Get(id); err == nil {
+				imagePlatform = img.Platform()
+				break
+			}
 		}
+		return id, imagePlatform, nil
 	}
 
 	// deprecated: repo:shortid https://github.com/docker/docker/pull/799
@@ -54,7 +64,7 @@ func (daemon *Daemon) GetImageIDAndPlatform(refOrID string) (image.ID, string, e
 		if tag := tagged.Tag(); stringid.IsShortID(stringid.TruncateID(tag)) {
 			for platform := range daemon.stores {
 				if id, err := daemon.stores[platform].imageStore.Search(tag); err == nil {
-					for _, storeRef := range daemon.stores[platform].referenceStore.References(id.Digest()) {
+					for _, storeRef := range daemon.referenceStore.References(id.Digest()) {
 						if storeRef.Name() == namedRef.Name() {
 							return id, platform, nil
 						}
@@ -71,7 +81,7 @@ func (daemon *Daemon) GetImageIDAndPlatform(refOrID string) (image.ID, string, e
 		}
 	}
 
-	return "", "", ErrImageDoesNotExist{ref}
+	return "", "", errImageDoesNotExist{ref}
 }
 
 // GetImage returns an image corresponding to the image referred to by refOrID.

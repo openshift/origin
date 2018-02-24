@@ -9,7 +9,7 @@ import (
 
 	"github.com/docker/docker/integration-cli/daemon"
 	"github.com/docker/docker/integration-cli/environment"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
+	"github.com/gotestyourself/gotestyourself/icmd"
 	"github.com/pkg/errors"
 )
 
@@ -226,6 +226,14 @@ func InDir(path string) func(*icmd.Cmd) func() {
 func WithStdout(writer io.Writer) func(*icmd.Cmd) func() {
 	return func(cmd *icmd.Cmd) func() {
 		cmd.Stdout = writer
+		return nil
+	}
+}
+
+// WithStdin sets the standard input reader for the command
+func WithStdin(stdin io.Reader) func(*icmd.Cmd) func() {
+	return func(cmd *icmd.Cmd) func() {
+		cmd.Stdin = stdin
 		return nil
 	}
 }

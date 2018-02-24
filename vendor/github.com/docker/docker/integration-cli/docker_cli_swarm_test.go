@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -23,14 +22,14 @@ import (
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/daemon"
-	"github.com/docker/docker/pkg/testutil"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
-	"github.com/docker/docker/pkg/testutil/tempfile"
 	"github.com/docker/libnetwork/driverapi"
 	"github.com/docker/libnetwork/ipamapi"
 	remoteipam "github.com/docker/libnetwork/ipams/remote/api"
 	"github.com/go-check/check"
+	"github.com/gotestyourself/gotestyourself/fs"
+	"github.com/gotestyourself/gotestyourself/icmd"
 	"github.com/vishvananda/netlink"
+	"golang.org/x/net/context"
 )
 
 func (s *DockerSwarmSuite) TestSwarmUpdate(c *check.C) {
@@ -69,11 +68,11 @@ func (s *DockerSwarmSuite) TestSwarmUpdate(c *check.C) {
 	c.Assert(spec.CAConfig.ExternalCAs[1].CACert, checker.Equals, string(expected))
 
 	// passing an invalid external CA fails
-	tempFile := tempfile.NewTempFile(c, "testfile", "fakecert")
+	tempFile := fs.NewFile(c, "testfile", fs.WithContent("fakecert"))
 	defer tempFile.Remove()
 
 	result := cli.Docker(cli.Args("swarm", "update",
-		"--external-ca", fmt.Sprintf("protocol=cfssl,url=https://something.org,cacert=%s", tempFile.Name())),
+		"--external-ca", fmt.Sprintf("protocol=cfssl,url=https://something.org,cacert=%s", tempFile.Path())),
 		cli.Daemon(d.Daemon))
 	result.Assert(c, icmd.Expected{
 		ExitCode: 125,
@@ -90,11 +89,11 @@ func (s *DockerSwarmSuite) TestSwarmInit(c *check.C) {
 	}
 
 	// passing an invalid external CA fails
-	tempFile := tempfile.NewTempFile(c, "testfile", "fakecert")
+	tempFile := fs.NewFile(c, "testfile", fs.WithContent("fakecert"))
 	defer tempFile.Remove()
 
 	result := cli.Docker(cli.Args("swarm", "init", "--cert-expiry", "30h", "--dispatcher-heartbeat", "11s",
-		"--external-ca", fmt.Sprintf("protocol=cfssl,url=https://somethingelse.org,cacert=%s", tempFile.Name())),
+		"--external-ca", fmt.Sprintf("protocol=cfssl,url=https://somethingelse.org,cacert=%s", tempFile.Path())),
 		cli.Daemon(d.Daemon))
 	result.Assert(c, icmd.Expected{
 		ExitCode: 125,
@@ -467,14 +466,17 @@ func (s *DockerSwarmSuite) TestSwarmIngressNetwork(c *check.C) {
 	d := s.AddDaemon(c, true, true)
 
 	// Ingress network can be removed
-	out, _, err := testutil.RunCommandPipelineWithOutput(
-		exec.Command("echo", "Y"),
-		exec.Command("docker", "-H", d.Sock(), "network", "rm", "ingress"),
-	)
-	c.Assert(err, checker.IsNil, check.Commentf(out))
+	removeNetwork := func(name string) *icmd.Result {
+		return cli.Docker(
+			cli.Args("-H", d.Sock(), "network", "rm", name),
+			cli.WithStdin(strings.NewReader("Y")))
+	}
+
+	result := removeNetwork("ingress")
+	result.Assert(c, icmd.Success)
 
 	// And recreated
-	out, err = d.Cmd("network", "create", "-d", "overlay", "--ingress", "new-ingress")
+	out, err := d.Cmd("network", "create", "-d", "overlay", "--ingress", "new-ingress")
 	c.Assert(err, checker.IsNil, check.Commentf(out))
 
 	// But only one is allowed
@@ -485,21 +487,19 @@ func (s *DockerSwarmSuite) TestSwarmIngressNetwork(c *check.C) {
 	// It cannot be removed if it is being used
 	out, err = d.Cmd("service", "create", "--no-resolve-image", "--name", "srv1", "-p", "9000:8000", "busybox", "top")
 	c.Assert(err, checker.IsNil, check.Commentf(out))
-	out, _, err = testutil.RunCommandPipelineWithOutput(
-		exec.Command("echo", "Y"),
-		exec.Command("docker", "-H", d.Sock(), "network", "rm", "new-ingress"),
-	)
-	c.Assert(err, checker.NotNil)
-	c.Assert(strings.TrimSpace(out), checker.Contains, "ingress network cannot be removed because service")
+
+	result = removeNetwork("new-ingress")
+	result.Assert(c, icmd.Expected{
+		ExitCode: 1,
+		Err:      "ingress network cannot be removed because service",
+	})
 
 	// But it can be removed once no more services depend on it
 	out, err = d.Cmd("service", "update", "--publish-rm", "9000:8000", "srv1")
 	c.Assert(err, checker.IsNil, check.Commentf(out))
-	out, _, err = testutil.RunCommandPipelineWithOutput(
-		exec.Command("echo", "Y"),
-		exec.Command("docker", "-H", d.Sock(), "network", "rm", "new-ingress"),
-	)
-	c.Assert(err, checker.IsNil, check.Commentf(out))
+
+	result = removeNetwork("new-ingress")
+	result.Assert(c, icmd.Success)
 
 	// A service which needs the ingress network cannot be created if no ingress is present
 	out, err = d.Cmd("service", "create", "--no-resolve-image", "--name", "srv2", "-p", "500:500", "busybox", "top")
@@ -520,15 +520,14 @@ func (s *DockerSwarmSuite) TestSwarmCreateServiceWithNoIngressNetwork(c *check.C
 	d := s.AddDaemon(c, true, true)
 
 	// Remove ingress network
-	out, _, err := testutil.RunCommandPipelineWithOutput(
-		exec.Command("echo", "Y"),
-		exec.Command("docker", "-H", d.Sock(), "network", "rm", "ingress"),
-	)
-	c.Assert(err, checker.IsNil, check.Commentf(out))
+	result := cli.Docker(
+		cli.Args("-H", d.Sock(), "network", "rm", "ingress"),
+		cli.WithStdin(strings.NewReader("Y")))
+	result.Assert(c, icmd.Success)
 
 	// Create a overlay network and launch a service on it
 	// Make sure nothing panics because ingress network is missing
-	out, err = d.Cmd("network", "create", "-d", "overlay", "another-network")
+	out, err := d.Cmd("network", "create", "-d", "overlay", "another-network")
 	c.Assert(err, checker.IsNil, check.Commentf(out))
 	out, err = d.Cmd("service", "create", "--no-resolve-image", "--name", "srv4", "--network", "another-network", "busybox", "top")
 	c.Assert(err, checker.IsNil, check.Commentf(out))
@@ -1535,22 +1534,6 @@ func (s *DockerSwarmSuite) TestSwarmManagerAddress(c *check.C) {
 	c.Assert(out, checker.Contains, expectedOutput)
 }
 
-func (s *DockerSwarmSuite) TestSwarmServiceInspectPretty(c *check.C) {
-	d := s.AddDaemon(c, true, true)
-
-	name := "top"
-	out, err := d.Cmd("service", "create", "--no-resolve-image", "--name", name, "--limit-cpu=0.5", "busybox", "top")
-	c.Assert(err, checker.IsNil, check.Commentf(out))
-
-	expectedOutput := `
-Resources:
- Limits:
-  CPU:		0.5`
-	out, err = d.Cmd("service", "inspect", "--pretty", name)
-	c.Assert(err, checker.IsNil, check.Commentf(out))
-	c.Assert(out, checker.Contains, expectedOutput, check.Commentf(out))
-}
-
 func (s *DockerSwarmSuite) TestSwarmNetworkIPAMOptions(c *check.C) {
 	d := s.AddDaemon(c, true, true)
 
@@ -1692,76 +1675,6 @@ func (s *DockerSwarmSuite) TestSwarmNetworkCreateDup(c *check.C) {
 	}
 }
 
-func (s *DockerSwarmSuite) TestSwarmServicePsMultipleServiceIDs(c *check.C) {
-	d := s.AddDaemon(c, true, true)
-
-	name1 := "top1"
-	out, err := d.Cmd("service", "create", "--no-resolve-image", "--detach=true", "--name", name1, "--replicas=3", "busybox", "top")
-	c.Assert(err, checker.IsNil)
-	c.Assert(strings.TrimSpace(out), checker.Not(checker.Equals), "")
-	id1 := strings.TrimSpace(out)
-
-	name2 := "top2"
-	out, err = d.Cmd("service", "create", "--no-resolve-image", "--detach=true", "--name", name2, "--replicas=3", "busybox", "top")
-	c.Assert(err, checker.IsNil)
-	c.Assert(strings.TrimSpace(out), checker.Not(checker.Equals), "")
-	id2 := strings.TrimSpace(out)
-
-	// make sure task has been deployed.
-	waitAndAssert(c, defaultReconciliationTimeout, d.CheckActiveContainerCount, checker.Equals, 6)
-
-	out, err = d.Cmd("service", "ps", name1)
-	c.Assert(err, checker.IsNil)
-	c.Assert(out, checker.Contains, name1+".1")
-	c.Assert(out, checker.Contains, name1+".2")
-	c.Assert(out, checker.Contains, name1+".3")
-	c.Assert(out, checker.Not(checker.Contains), name2+".1")
-	c.Assert(out, checker.Not(checker.Contains), name2+".2")
-	c.Assert(out, checker.Not(checker.Contains), name2+".3")
-
-	out, err = d.Cmd("service", "ps", name1, name2)
-	c.Assert(err, checker.IsNil)
-	c.Assert(out, checker.Contains, name1+".1")
-	c.Assert(out, checker.Contains, name1+".2")
-	c.Assert(out, checker.Contains, name1+".3")
-	c.Assert(out, checker.Contains, name2+".1")
-	c.Assert(out, checker.Contains, name2+".2")
-	c.Assert(out, checker.Contains, name2+".3")
-
-	// Name Prefix
-	out, err = d.Cmd("service", "ps", "to")
-	c.Assert(err, checker.IsNil)
-	c.Assert(out, checker.Contains, name1+".1")
-	c.Assert(out, checker.Contains, name1+".2")
-	c.Assert(out, checker.Contains, name1+".3")
-	c.Assert(out, checker.Contains, name2+".1")
-	c.Assert(out, checker.Contains, name2+".2")
-	c.Assert(out, checker.Contains, name2+".3")
-
-	// Name Prefix (no hit)
-	out, err = d.Cmd("service", "ps", "noname")
-	c.Assert(err, checker.NotNil)
-	c.Assert(out, checker.Contains, "no such services: noname")
-
-	out, err = d.Cmd("service", "ps", id1)
-	c.Assert(err, checker.IsNil)
-	c.Assert(out, checker.Contains, name1+".1")
-	c.Assert(out, checker.Contains, name1+".2")
-	c.Assert(out, checker.Contains, name1+".3")
-	c.Assert(out, checker.Not(checker.Contains), name2+".1")
-	c.Assert(out, checker.Not(checker.Contains), name2+".2")
-	c.Assert(out, checker.Not(checker.Contains), name2+".3")
-
-	out, err = d.Cmd("service", "ps", id1, id2)
-	c.Assert(err, checker.IsNil)
-	c.Assert(out, checker.Contains, name1+".1")
-	c.Assert(out, checker.Contains, name1+".2")
-	c.Assert(out, checker.Contains, name1+".3")
-	c.Assert(out, checker.Contains, name2+".1")
-	c.Assert(out, checker.Contains, name2+".2")
-	c.Assert(out, checker.Contains, name2+".3")
-}
-
 func (s *DockerSwarmSuite) TestSwarmPublishDuplicatePorts(c *check.C) {
 	d := s.AddDaemon(c, true, true)
 
@@ -1845,19 +1758,17 @@ func (s *DockerSwarmSuite) TestNetworkInspectWithDuplicateNames(c *check.C) {
 	d := s.AddDaemon(c, true, true)
 
 	name := "foo"
-	networkCreateRequest := types.NetworkCreateRequest{
-		Name: name,
-		NetworkCreate: types.NetworkCreate{
-			CheckDuplicate: false,
-			Driver:         "bridge",
-		},
+	options := types.NetworkCreate{
+		CheckDuplicate: false,
+		Driver:         "bridge",
 	}
 
-	var n1 types.NetworkCreateResponse
-	status, body, err := d.SockRequest("POST", "/networks/create", networkCreateRequest)
-	c.Assert(err, checker.IsNil, check.Commentf(string(body)))
-	c.Assert(status, checker.Equals, http.StatusCreated, check.Commentf(string(body)))
-	c.Assert(json.Unmarshal(body, &n1), checker.IsNil)
+	cli, err := d.NewClient()
+	c.Assert(err, checker.IsNil)
+	defer cli.Close()
+
+	n1, err := cli.NetworkCreate(context.Background(), name, options)
+	c.Assert(err, checker.IsNil)
 
 	// Full ID always works
 	out, err := d.Cmd("network", "inspect", "--format", "{{.ID}}", n1.ID)
@@ -1869,12 +1780,8 @@ func (s *DockerSwarmSuite) TestNetworkInspectWithDuplicateNames(c *check.C) {
 	c.Assert(err, checker.IsNil, check.Commentf(out))
 	c.Assert(strings.TrimSpace(out), checker.Equals, n1.ID)
 
-	var n2 types.NetworkCreateResponse
-	status, body, err = d.SockRequest("POST", "/networks/create", networkCreateRequest)
-	c.Assert(err, checker.IsNil, check.Commentf(string(body)))
-	c.Assert(status, checker.Equals, http.StatusCreated, check.Commentf(string(body)))
-	c.Assert(json.Unmarshal(body, &n2), checker.IsNil)
-
+	n2, err := cli.NetworkCreate(context.Background(), name, options)
+	c.Assert(err, checker.IsNil)
 	// Full ID always works
 	out, err = d.Cmd("network", "inspect", "--format", "{{.ID}}", n1.ID)
 	c.Assert(err, checker.IsNil, check.Commentf(out))
@@ -1887,18 +1794,16 @@ func (s *DockerSwarmSuite) TestNetworkInspectWithDuplicateNames(c *check.C) {
 	// Name with duplicates
 	out, err = d.Cmd("network", "inspect", "--format", "{{.ID}}", name)
 	c.Assert(err, checker.NotNil, check.Commentf(out))
-	c.Assert(out, checker.Contains, "network foo is ambiguous (2 matches found based on name)")
+	c.Assert(out, checker.Contains, "2 matches found based on name")
 
 	out, err = d.Cmd("network", "rm", n2.ID)
 	c.Assert(err, checker.IsNil, check.Commentf(out))
 
-	// Duplicates with name but with different driver
-	networkCreateRequest.NetworkCreate.Driver = "overlay"
+	// Dupliates with name but with different driver
+	options.Driver = "overlay"
 
-	status, body, err = d.SockRequest("POST", "/networks/create", networkCreateRequest)
-	c.Assert(err, checker.IsNil, check.Commentf(string(body)))
-	c.Assert(status, checker.Equals, http.StatusCreated, check.Commentf(string(body)))
-	c.Assert(json.Unmarshal(body, &n2), checker.IsNil)
+	n2, err = cli.NetworkCreate(context.Background(), name, options)
+	c.Assert(err, checker.IsNil)
 
 	// Full ID always works
 	out, err = d.Cmd("network", "inspect", "--format", "{{.ID}}", n1.ID)
@@ -1912,7 +1817,7 @@ func (s *DockerSwarmSuite) TestNetworkInspectWithDuplicateNames(c *check.C) {
 	// Name with duplicates
 	out, err = d.Cmd("network", "inspect", "--format", "{{.ID}}", name)
 	c.Assert(err, checker.NotNil, check.Commentf(out))
-	c.Assert(out, checker.Contains, "network foo is ambiguous (2 matches found based on name)")
+	c.Assert(out, checker.Contains, "2 matches found based on name")
 }
 
 func (s *DockerSwarmSuite) TestSwarmStopSignal(c *check.C) {
