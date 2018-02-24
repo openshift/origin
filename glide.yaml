@@ -126,9 +126,10 @@ import:
 # networking
 - package: github.com/containernetworking/plugins
   version: ~0.6.0
-# builds/cli
+# builds
 - package: github.com/fsouza/go-dockerclient
-  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
+  repo:    git@github.com:openshift/go-dockerclient
+  version: openshift-3.9
 # auth (for testing)
 - package: github.com/vjeantet/ldapserver
   version: v1.0

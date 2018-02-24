@@ -474,6 +474,9 @@ type BuildImageOptions struct {
 	InactivityTimeout   time.Duration      `qs:"-"`
 	CgroupParent        string             `qs:"cgroupparent"`
 	Context             context.Context
+
+	// CARRY: This flag is only honored on projectatomic/docker builds
+	BuildBinds string `qs:"buildbinds"` // this value must be a json encoded string array, e.g. ["/tmp:/mnt"]
 }
 
 // BuildArg represents arguments that can be passed to the image when building

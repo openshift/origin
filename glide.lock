@@ -1,5 +1,5 @@
-hash: f73cf0878c7cb4191af7ae4f308d9dabb19e4b4435b41b790fb5d16c14967eee
-updated: 2018-02-27T11:18:54.804060472-05:00
+hash: 20a85c17c2b76b0693a6bf86cefc49fb8c685b1ada8949c098c2b5b593163c8d
+updated: 2018-02-27T11:22:58.510133198-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -409,7 +409,8 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/fsouza/go-dockerclient
-  version: da3951ba2e9e02bc0e7642150b3e265aed7e1df3
+  version: 461a63e0851f0ae3c0410b5c93124aacecada593
+  repo: git@github.com:openshift/go-dockerclient
 - name: github.com/getsentry/raven-go
   version: 32a13797442ccb601b11761d74232773c1402d14
 - name: github.com/ghodss/yaml
