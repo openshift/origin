@@ -1,0 +1,13 @@
+# The commit/tag of the release
+commit = "v1.9.3"
+project_name = "CRI-O"
+github_repo = "kubernetes-incubator/cri-o"
+previous = "v1.9.2"
+pre_release = false
+
+preface = """\
+"""
+
+[notes]
+
+[breaking]

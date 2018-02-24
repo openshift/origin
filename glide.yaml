@@ -2,7 +2,6 @@ package: github.com/openshift/origin
 excludeDirs:
 - cmd/cluster-capacity
 - cmd/service-catalog
-- pkg/build/builder
 - openshift.local.config
 - openshift.local.etcd
 - openshift.local.volumes
@@ -166,6 +165,15 @@ import:
 # fsouza and to limit dependencies
 - package: github.com/docker/docker
   version: b68221c37ee597950364788204546f9c9d0e46a1
+# keep us up to date with latest DNS security fixes
+- package: github.com/miekg/dns
+  version: master
+# etcd pins a very old version that has contention issues
+- package: github.com/google/btree
+  version: master
+# retrieve latest version that fixes deadlock on kqueue
+- package: github.com/fsnotify/fsnotify
+  version: v1.4.7
 
 # why do we have this?
 - package: google.golang.org/appengine

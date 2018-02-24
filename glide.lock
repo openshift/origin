@@ -1,5 +1,5 @@
-hash: 58e07654e8e6397db0563e8117b04e49fcbaa2216fa4b88ef9735e43a629362d
-updated: 2018-02-27T11:13:21.46372568-05:00
+hash: f73cf0878c7cb4191af7ae4f308d9dabb19e4b4435b41b790fb5d16c14967eee
+updated: 2018-02-27T11:18:54.804060472-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -674,6 +674,12 @@ imports:
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/kr/pty
   version: f7ee69f31298ecbe5d2b349c711e2547a617d398
+- name: github.com/kubernetes-incubator/cri-o
+  version: 8ea79e755f5f89b132e642015a46d9d291b246ef
+  subpackages:
+  - client
+  - pkg/annotations
+  - types
 - name: github.com/lestrrat/go-jspointer
   version: f4881e611bdbe9fb413a7780721ef8400a1f2341
 - name: github.com/lestrrat/go-jsref
@@ -938,19 +944,37 @@ imports:
 - name: github.com/openshift/imagebuilder
   version: 4574f886e9697b3ea4539d0981cca6dad10afdc4
   subpackages:
+  - dockerclient
   - imageprogress
+  - signal
+  - strslice
 - name: github.com/openshift/source-to-image
   version: f303aa0a25c62e39140b8df130db86debf2064d0
   subpackages:
   - pkg/api
+  - pkg/api/describe
+  - pkg/api/validation
+  - pkg/build
+  - pkg/build/strategies
+  - pkg/build/strategies/layered
+  - pkg/build/strategies/onbuild
+  - pkg/build/strategies/sti
+  - pkg/docker
   - pkg/errors
+  - pkg/ignore
+  - pkg/scm
+  - pkg/scm/downloaders/empty
+  - pkg/scm/downloaders/file
+  - pkg/scm/downloaders/git
   - pkg/scm/git
+  - pkg/scripts
   - pkg/tar
   - pkg/util
   - pkg/util/cmd
   - pkg/util/cygpath
   - pkg/util/fs
   - pkg/util/glog
+  - pkg/util/interrupt
   - pkg/util/status
   - pkg/util/user
 - name: github.com/pborman/uuid

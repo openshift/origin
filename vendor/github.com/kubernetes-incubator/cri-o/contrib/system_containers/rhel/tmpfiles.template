@@ -1,0 +1,5 @@
+d    ${RUN_DIRECTORY}/crio               -        -           -       - -
+d    /etc/crio - - - - -
+Z    /etc/crio - - - - -
+d    ${STATE_DIRECTORY}/origin               -        -           -       - -
+d    ${STATE_DIRECTORY}/kubelet              -        -           -       - -

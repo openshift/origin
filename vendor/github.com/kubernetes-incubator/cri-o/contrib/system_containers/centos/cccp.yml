@@ -1,0 +1,41 @@
+# This is for the purpose of building containers on the CentOS Community Container
+# Pipeline. The containers are built, tested and delivered to registry.centos.org and
+# lifecycled as well. A corresponding entry must exist in the container index itself,
+# located at https://github.com/CentOS/container-index/tree/master/index.d
+# You can know more at the following links:
+# * https://github.com/CentOS/container-pipeline-service/blob/master/README.md
+# * https://github.com/CentOS/container-index/blob/master/README.rst
+# * https://wiki.centos.org/ContainerPipeline
+
+# This will be part of the name of the container. It should match the job-id in index entry
+job-id: cri-o
+
+#the following are optional, can be left blank
+#defaults, where applicable are filled in
+#nulecule-file   : nulecule
+
+# This flag tells the container pipeline to skip user defined tests on their container
+test-skip       : True
+
+# This is path of the script that initiates the user defined tests. It must be able to
+# return an exit code.
+test-script     : null
+
+# This is the path of custom build script.
+build-script    : null
+
+# This is the path of the custom delivery script
+delivery-script : null
+
+# This flag tells the pipeline to deliver this container to docker hub.
+docker-index    : True
+
+# This flag can be used to enable or disable the custom delivery
+custom-delivery : False
+
+# This flag can be used to enable or disable delivery of container to local registry
+local-delivery  : True
+
+Upstreams       :
+        - ref           :
+          url           :

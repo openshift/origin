@@ -1,0 +1,20 @@
+[Unit]
+Description=crio daemon
+After=network.target
+
+[Service]
+Type=notify
+ExecStartPre=/bin/sh $DESTDIR/rootfs/set_mounts.sh
+ExecStart=$EXEC_START
+ExecStop=$EXEC_STOP
+Restart=on-failure
+WorkingDirectory=$DESTDIR
+RuntimeDirectory=${NAME}
+TasksMax=infinity
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

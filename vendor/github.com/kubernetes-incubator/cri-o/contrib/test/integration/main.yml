@@ -1,0 +1,125 @@
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - setup
+  tasks:
+    - name: set up the system
+      include: system.yml
+
+    - name: install Golang tools
+      include: golang.yml
+      vars:
+        version: "1.8.5"
+
+    - name: clone build and install bats
+      include: "build/bats.yml"
+
+    - name: clone build and install cri-tools
+      include: "build/cri-tools.yml"
+      vars:
+        cri_tools_git_version: "b42fc3f364dd48f649d55926c34492beeb9b2e99"
+
+    - name: clone build and install kubernetes
+      include: "build/kubernetes.yml"
+      vars:
+        k8s_git_version: "cri-o-node-e2e-patched-logs"
+        k8s_github_fork: "runcom"
+        crio_socket: "/var/run/crio.sock"
+
+    - name: clone build and install runc
+      include: "build/runc.yml"
+      when: "{{ build_runc | default(True) | bool}}"
+
+    - name: clone build and install networking plugins
+      include: "build/plugins.yml"
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - integration
+    - e2e
+    - node-e2e
+    - critest
+  tasks:
+    - name: clone build and install cri-o
+      include: "build/cri-o.yml"
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - integration
+  tasks:
+    - name: clone build and install cri-tools
+      include: "build/cri-tools.yml"
+      vars:
+        force_clone: True
+        cri_tools_git_version: "240a840375cdabb5860c75c99e8b0d0a776006b4"
+    - name: run cri-o integration tests
+      include: test.yml
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - critest
+  tasks:
+    - name: install Golang tools
+      include: golang.yml
+      vars:
+          version: "1.9.2"
+    - name: setup critest
+      include: "build/cri-tools.yml"
+      vars:
+          force_clone: True
+          cri_tools_git_version: "240a840375cdabb5860c75c99e8b0d0a776006b4"
+    - name: run critest validation and benchmarks
+      include: critest.yml
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - node-e2e
+  tasks:
+    - name: install Golang tools
+      include: golang.yml
+      vars:
+          version: "1.9.2"
+    - name: clone build and install kubernetes
+      include: "build/kubernetes.yml"
+      vars:
+          force_clone: True
+          k8s_git_version: "master"
+          k8s_github_fork: "kubernetes"
+          crio_socket: "/var/run/crio/crio.sock"
+    - name: run k8s node-e2e tests
+      include: node-e2e.yml
+
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/vars.yml"
+  tags:
+    - e2e
+  tasks:
+    - name: install Golang tools
+      include: golang.yml
+      vars:
+          version: "1.9.2"
+    - name: clone build and install kubernetes
+      include: "build/kubernetes.yml"
+      vars:
+          force_clone: True
+          k8s_git_version: "master"
+          k8s_github_fork: "kubernetes"
+          crio_socket: "/var/run/crio/crio.sock"
+    - name: run k8s e2e tests
+      include: e2e.yml
