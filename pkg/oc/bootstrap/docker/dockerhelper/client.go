@@ -8,11 +8,11 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
-	"github.com/docker/engine-api/types/container"
-	"github.com/docker/engine-api/types/network"
 )
 
 const (
@@ -76,7 +76,7 @@ func (c *dockerClient) ContainerList(options types.ContainerListOptions) ([]type
 	return containers, err
 }
 
-func (c *dockerClient) ContainerCreate(config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, name string) (*types.ContainerCreateResponse, error) {
+func (c *dockerClient) ContainerCreate(config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, name string) (*container.ContainerCreateCreatedBody, error) {
 	ctx, cancel := defaultContext()
 	defer cancel()
 	response, err := c.client.ContainerCreate(ctx, config, hostConfig, networkingConfig, name)
@@ -123,7 +123,7 @@ func (c *dockerClient) ContainerLogs(container string, options types.ContainerLo
 func (c *dockerClient) ContainerStart(container string) error {
 	ctx, cancel := defaultContext()
 	defer cancel()
-	err := c.client.ContainerStart(ctx, container)
+	err := c.client.ContainerStart(ctx, container, types.ContainerStartOptions{})
 	if ctxErr := contextError(ctx); ctxErr != nil {
 		return ctxErr
 	}
@@ -133,21 +133,31 @@ func (c *dockerClient) ContainerStart(container string) error {
 func (c *dockerClient) ContainerStop(container string, timeout int) error {
 	ctx, cancel := defaultContext()
 	defer cancel()
-	err := c.client.ContainerStop(ctx, container, timeout)
+	var t *time.Duration
+	if timeout > 0 {
+		duration := time.Duration(timeout) * time.Second
+		t = &duration
+	}
+	err := c.client.ContainerStop(ctx, container, t)
 	if ctxErr := contextError(ctx); ctxErr != nil {
 		return ctxErr
 	}
 	return err
 }
 
-func (c *dockerClient) ContainerWait(container string) (int, error) {
+func (c *dockerClient) ContainerWait(containerID string) (int, error) {
 	ctx, cancel := defaultContext()
 	defer cancel()
-	rc, err := c.client.ContainerWait(ctx, container)
+	rcCh, errCh := c.client.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
 	if ctxErr := contextError(ctx); ctxErr != nil {
 		return 0, ctxErr
 	}
-	return rc, err
+	select {
+	case err := <-errCh:
+		return 0, err
+	case rc := <-rcCh:
+		return int(rc.StatusCode), nil
+	}
 }
 
 func (c *dockerClient) CopyToContainer(container string, dest string, src io.Reader, options types.CopyToContainerOptions) error {
@@ -159,7 +169,7 @@ func (c *dockerClient) CopyFromContainer(container string, src string) (io.ReadC
 	return response, err
 }
 
-func (c *dockerClient) ContainerExecCreate(container string, config types.ExecConfig) (*types.ContainerExecCreateResponse, error) {
+func (c *dockerClient) ContainerExecCreate(container string, config types.ExecConfig) (*types.IDResponse, error) {
 	ctx, cancel := defaultContext()
 	defer cancel()
 	response, err := c.client.ContainerExecCreate(ctx, container, config)
@@ -200,10 +210,10 @@ func (c *dockerClient) ContainerExecInspect(execID string) (*types.ContainerExec
 	return &response, err
 }
 
-func (c *dockerClient) ImageInspectWithRaw(imageID string, getSize bool) (*types.ImageInspect, []byte, error) {
+func (c *dockerClient) ImageInspectWithRaw(imageID string, _ bool) (*types.ImageInspect, []byte, error) {
 	ctx, cancel := defaultContext()
 	defer cancel()
-	image, raw, err := c.client.ImageInspectWithRaw(ctx, imageID, getSize)
+	image, raw, err := c.client.ImageInspectWithRaw(ctx, imageID)
 	if ctxErr := contextError(ctx); ctxErr != nil {
 		return nil, nil, ctxErr
 	}
