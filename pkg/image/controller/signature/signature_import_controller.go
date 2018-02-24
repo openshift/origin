@@ -140,6 +140,11 @@ func (s *SignatureImportController) syncImageSignatures(key string) error {
 		return err
 	}
 
+	if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] == "true" {
+		glog.V(4).Infof("Skipping downloading signatures for image %s because it's a managed image", image.Name)
+		return nil
+	}
+
 	currentSignatures, err := s.fetcher.DownloadImageSignatures(image)
 	if err != nil {
 		glog.V(4).Infof("Failed to fetch image %s signatures: %v", image.Name, err)
