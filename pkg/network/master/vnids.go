@@ -140,7 +140,7 @@ func (vmap *masterVNIDMap) releaseNetID(nsName string) error {
 	// If not, then release the netid
 	if count := vmap.getVNIDCount(netid); count == 0 {
 		if err := vmap.netIDManager.Release(netid); err != nil {
-			return fmt.Errorf("Error while releasing netid %d for namespace %q, %v", netid, nsName, err)
+			return fmt.Errorf("error while releasing netid %d for namespace %q, %v", netid, nsName, err)
 		}
 		glog.Infof("Released netid %d for namespace %q", netid, nsName)
 	} else {
@@ -170,6 +170,9 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action network.PodNetworkA
 			return 0, fmt.Errorf("netid not found for namespace %q", joinNsName)
 		}
 	case network.IsolatePodNetwork:
+		if nsName == kapi.NamespaceDefault {
+			return 0, fmt.Errorf("network isolation for namespace %q is not allowed", nsName)
+		}
 		// Check if the given namespace is already isolated
 		if count := vmap.getVNIDCount(oldnetid); count == 1 {
 			return oldnetid, nil

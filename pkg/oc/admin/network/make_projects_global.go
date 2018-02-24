@@ -74,7 +74,7 @@ func (m *MakeGlobalOptions) Run() error {
 	errList := []error{}
 	for _, project := range projects {
 		if err = m.Options.UpdatePodNetwork(project.Name, network.GlobalPodNetwork, ""); err != nil {
-			errList = append(errList, fmt.Errorf("Removing network isolation for project %q failed, error: %v", project.Name, err))
+			errList = append(errList, fmt.Errorf("removing network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}
 	return kerrors.NewAggregate(errList)

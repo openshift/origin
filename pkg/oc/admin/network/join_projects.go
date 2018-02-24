@@ -92,7 +92,7 @@ func (j *JoinOptions) Run() error {
 	for _, project := range projects {
 		if project.Name != j.joinProjectName {
 			if err = j.Options.UpdatePodNetwork(project.Name, network.JoinPodNetwork, j.joinProjectName); err != nil {
-				errList = append(errList, fmt.Errorf("Project %q failed to join %q, error: %v", project.Name, j.joinProjectName, err))
+				errList = append(errList, fmt.Errorf("project %q failed to join %q, error: %v", project.Name, j.joinProjectName, err))
 			}
 		}
 	}

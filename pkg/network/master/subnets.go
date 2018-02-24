@@ -33,7 +33,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 			glog.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
 			_, subnetIP, err := net.ParseCIDR(sub.Subnet)
 			if err != nil {
-				return fmt.Errorf("Failed to parse network address: %q", sub.Subnet)
+				return fmt.Errorf("failed to parse network address: %q", sub.Subnet)
 			}
 
 			for _, cn := range clusterNetworks {
