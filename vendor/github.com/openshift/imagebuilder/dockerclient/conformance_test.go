@@ -62,7 +62,8 @@ func TestMount(t *testing.T) {
 	e.TransientMounts = []Mount{
 		{SourcePath: "testdata/volume/", DestinationPath: "/tmp/test"},
 	}
-	b, node, err := imagebuilder.NewBuilderForFile("testdata/Dockerfile.mount", nil)
+	b := imagebuilder.NewBuilder(nil)
+	node, err := imagebuilder.ParseFile("testdata/Dockerfile.mount")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +240,8 @@ func TestTransientMount(t *testing.T) {
 
 	out := &bytes.Buffer{}
 	e.Out = out
-	b, node, err := imagebuilder.NewBuilderForReader(bytes.NewBufferString("FROM busybox\nRUN ls /mountdir/subdir\nRUN cat /mountfile\n"), nil)
+	b := imagebuilder.NewBuilder(nil)
+	node, err := imagebuilder.ParseDockerfile(bytes.NewBufferString("FROM busybox\nRUN ls /mountdir/subdir\nRUN cat /mountfile\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +361,7 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 		t.Errorf("%d: can't parse Dockerfile %q: %v", i, input, err)
 		return
 	}
-	from, err := imagebuilder.NewBuilder().From(node)
+	from, err := imagebuilder.NewBuilder(nil).From(node)
 	if err != nil {
 		t.Errorf("%d: can't get base FROM %q: %v", i, input, err)
 		return
@@ -423,7 +425,8 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 			e.Out, e.ErrOut = out, out
 			e.Directory = contextDir
 			e.Tag = nameDirect
-			b, node, err := imagebuilder.NewBuilderForReader(bytes.NewBufferString(testFile), test.Args)
+			b := imagebuilder.NewBuilder(test.Args)
+			node, err := imagebuilder.ParseDockerfile(bytes.NewBufferString(testFile))
 			if err != nil {
 				t.Fatalf("%d: %v", i, err)
 			}
@@ -491,7 +494,8 @@ func conformanceTester(t *testing.T, c *docker.Client, test conformanceTest, i i
 		e.Out, e.ErrOut = out, out
 		e.Directory = contextDir
 		e.Tag = nameDirect
-		b, node, err := imagebuilder.NewBuilderForReader(bytes.NewBuffer(data), test.Args)
+		b := imagebuilder.NewBuilder(test.Args)
+		node, err := imagebuilder.ParseDockerfile(bytes.NewBuffer(data))
 		if err != nil {
 			t.Fatalf("%d: %v", i, err)
 		}

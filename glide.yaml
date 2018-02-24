@@ -172,7 +172,3 @@ import:
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
   version: 47536c89fcc545a87745e1a1573addc439409165
-
-# ours: containers/storage uses it, but oc/bootstrap does too.  pinning to last level
-- package: github.com/docker/engine-api
-  version: dea108d3aa0c67d7162a3fd8aa65f38a430019fd
