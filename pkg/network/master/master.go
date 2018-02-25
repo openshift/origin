@@ -142,24 +142,28 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		return err
 	}
 
-	if err = master.SubnetStartMaster(master.networkInfo.ClusterNetworks); err != nil {
-		return err
+	go master.startSubSystems(networkConfig.NetworkPluginName)
+
+	return nil
+}
+
+func (master *OsdnMaster) startSubSystems(pluginName string) {
+	if err := master.SubnetStartMaster(master.networkInfo.ClusterNetworks); err != nil {
+		glog.Fatalf("failed to start subnet master: %v", err)
 	}
 
-	switch networkConfig.NetworkPluginName {
+	switch pluginName {
 	case network.MultiTenantPluginName:
 		master.vnids = newMasterVNIDMap(true)
-		if err = master.VnidStartMaster(); err != nil {
-			return err
+		if err := master.VnidStartMaster(); err != nil {
+			glog.Fatalf("failed to start vnid master: %v", err)
 		}
 	case network.NetworkPolicyPluginName:
 		master.vnids = newMasterVNIDMap(false)
-		if err = master.VnidStartMaster(); err != nil {
-			return err
+		if err := master.VnidStartMaster(); err != nil {
+			glog.Fatalf("failed to start vnid master: %v", err)
 		}
 	}
-
-	return nil
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
