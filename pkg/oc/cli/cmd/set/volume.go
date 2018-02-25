@@ -906,6 +906,8 @@ func describeVolumeSource(source *kapi.VolumeSource) string {
 		return fmt.Sprintf("Ceph RBD %v type=%s image=%s pool=%s%s", source.RBD.CephMonitors, source.RBD.FSType, source.RBD.RBDImage, source.RBD.RBDPool, sourceAccessMode(source.RBD.ReadOnly))
 	case source.Secret != nil:
 		return fmt.Sprintf("secret/%s", source.Secret.SecretName)
+	case source.ConfigMap != nil:
+		return fmt.Sprintf("configMap/%s", source.ConfigMap.Name)
 	default:
 		return "unknown"
 	}
