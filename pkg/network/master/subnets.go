@@ -231,7 +231,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(origNode *
 
 func (master *OsdnMaster) watchNodes() {
 	funcs := common.InformerFuncs(&kapi.Node{}, master.handleAddOrUpdateNode, master.handleDeleteNode)
-	master.kubeInformers.Core().InternalVersion().Nodes().Informer().AddEventHandler(funcs)
+	master.nodeInformer.Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType watch.EventType) {
@@ -283,7 +283,7 @@ func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 //   node deletion event to trigger HostSubnet deletion in this case.
 func (master *OsdnMaster) watchSubnets() {
 	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, master.handleAddOrUpdateSubnet, master.handleDeleteSubnet)
-	master.networkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
+	master.hostSubnetInformer.Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType watch.EventType) {
