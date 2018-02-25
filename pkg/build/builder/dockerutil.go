@@ -223,6 +223,14 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 		MemorySwap:  opts.Memswap,
 	}
 
+	if len(opts.BuildBinds) > 0 {
+		var s []string
+		if err := json.Unmarshal([]byte(opts.BuildBinds), s); err != nil {
+			return fmt.Errorf("the build bindings were not a valid string array: %v", err)
+		}
+		e.HostConfig.Binds = append(e.HostConfig.Binds, s...)
+	}
+
 	e.Out, e.ErrOut = opts.OutputStream, opts.OutputStream
 
 	// use a keyring
@@ -288,13 +296,19 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 		if err != nil {
 			return err
 		}
-		if err := e.Prepare(b, node, ""); err != nil {
-			return err
+		stages := imagebuilder.NewStages(node, b)
+		var stageExecutor *dockerclient.ClientExecutor
+		for _, stage := range stages {
+			stageExecutor = e.WithName(stage.Name)
+			if err := stageExecutor.Prepare(stage.Builder, stage.Node, ""); err != nil {
+				return err
+			}
+			if err := stageExecutor.Execute(stage.Builder, stage.Node); err != nil {
+				return err
+			}
 		}
-		if err := e.Execute(b, node); err != nil {
-			return err
-		}
-		return e.Commit(b)
+		return stageExecutor.Commit(stages[len(stages)-1].Builder)
+
 	})
 }
 

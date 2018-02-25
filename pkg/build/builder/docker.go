@@ -11,23 +11,21 @@ import (
 	dockercmd "github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	buildapiv1 "github.com/openshift/api/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	builderutil "github.com/openshift/origin/pkg/build/builder/util"
 	"github.com/openshift/origin/pkg/build/builder/util/dockerfile"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-
-	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 )
 
 // defaultDockerfilePath is the default path of the Dockerfile
@@ -86,7 +84,11 @@ func (d *DockerBuilder) Build() error {
 
 	buildTag := randomBuildTag(d.build.Namespace, d.build.Name)
 	dockerfilePath := getDockerfilePath(buildDir, d.build)
-	imageNames := getDockerfileFrom(dockerfilePath)
+
+	imageNames, multiStage, err := findReferencedImages(dockerfilePath)
+	if err != nil {
+		return err
+	}
 	if len(imageNames) == 0 {
 		return fmt.Errorf("no FROM image in Dockerfile")
 	}
@@ -123,6 +125,14 @@ func (d *DockerBuilder) Build() error {
 				return fmt.Errorf("failed to pull image: %v", err)
 			}
 
+		}
+	}
+
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil && multiStage {
+		if s.ImageOptimizationPolicy == nil {
+			policy := buildapiv1.ImageOptimizationSkipLayers
+			s.ImageOptimizationPolicy = &policy
+			glog.V(2).Infof("Detected multi-stage Dockerfile, image will be built with imageOptimizationPolicy set to SkipLayers")
 		}
 	}
 
@@ -365,20 +375,6 @@ func getDockerfilePath(dir string, build *buildapiv1.Build) string {
 	}
 	return dockerfilePath
 }
-func parseDockerfile(dockerfilePath string) (*parser.Node, error) {
-	f, err := os.Open(dockerfilePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	// Parse the Dockerfile.
-	node, err := dockerfile.Parse(f)
-	if err != nil {
-		return nil, err
-	}
-	return node, nil
-}
 
 // replaceLastFrom changes the last FROM instruction of node to point to the
 // base image.
@@ -389,15 +385,10 @@ func replaceLastFrom(node *parser.Node, image string) error {
 	for i := len(node.Children) - 1; i >= 0; i-- {
 		child := node.Children[i]
 		if child != nil && child.Value == dockercmd.From {
-			from, err := dockerfile.From(image)
-			if err != nil {
-				return err
+			if child.Next == nil {
+				child.Next = &parser.Node{}
 			}
-			fromTree, err := dockerfile.Parse(strings.NewReader(from))
-			if err != nil {
-				return err
-			}
-			node.Children[i] = fromTree.Children[0]
+			child.Next.Value = image
 			return nil
 		}
 	}
@@ -463,27 +454,4 @@ func insertEnvAfterFrom(node *parser.Node, env []corev1.EnvVar) error {
 	}
 
 	return nil
-}
-
-// getDockerfilefrom returns all the images behind "FROM" instruction in the dockerfile
-func getDockerfileFrom(dockerfilePath string) []string {
-	var froms []string
-	if "" == dockerfilePath {
-		return froms
-	}
-	node, err := parseDockerfile(dockerfilePath)
-	if err != nil {
-		return froms
-	}
-	for i := 0; i < len(node.Children); i++ {
-		child := node.Children[i]
-		if child == nil || child.Value != dockercmd.From {
-			continue
-		}
-		from := child.Next.Value
-		if len(from) > 0 {
-			froms = append(froms, from)
-		}
-	}
-	return froms
 }
