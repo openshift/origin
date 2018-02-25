@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
@@ -15,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion/network/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	pnetid "github.com/openshift/origin/pkg/network/master/netid"
 )
@@ -75,13 +77,13 @@ func (vmap *masterVNIDMap) isAdminNamespace(nsName string) bool {
 	return false
 }
 
-func (vmap *masterVNIDMap) populateVNIDs(networkClient networkclient.Interface) error {
-	netnsList, err := networkClient.Network().NetNamespaces().List(metav1.ListOptions{})
+func (vmap *masterVNIDMap) populateVNIDs(netNamespaceInformer networkinformers.NetNamespaceInformer) error {
+	netnsList, err := netNamespaceInformer.Lister().List(labels.Everything())
 	if err != nil {
 		return err
 	}
 
-	for _, netns := range netnsList.Items {
+	for _, netns := range netnsList {
 		vmap.setVNID(netns.NetName, netns.NetID)
 
 		// Skip GlobalVNID, not part of netID allocation range
@@ -277,7 +279,7 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 //--------------------- Master methods ----------------------
 
 func (master *OsdnMaster) VnidStartMaster() error {
-	err := master.vnids.populateVNIDs(master.networkClient)
+	err := master.vnids.populateVNIDs(master.netNamespaceInformer)
 	if err != nil {
 		return err
 	}
