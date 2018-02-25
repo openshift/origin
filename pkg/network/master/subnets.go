@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
@@ -20,16 +21,16 @@ import (
 
 func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetwork) error {
 	subrange := make(map[common.ClusterNetwork][]string)
-	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
+	subnets, err := master.hostSubnetInformer.Lister().List(labels.Everything())
 	if err != nil {
 		return fmt.Errorf("error in initializing/fetching subnets: %v", err)
 	}
-	for _, sub := range subnets.Items {
+	for _, sub := range subnets {
 		if err = master.networkInfo.ValidateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
-			utilruntime.HandleError(fmt.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(&sub), err))
+			utilruntime.HandleError(fmt.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(sub), err))
 		} else {
-			glog.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
+			glog.Infof("Found existing HostSubnet %s", common.HostSubnetToString(sub))
 			_, subnetIP, err := net.ParseCIDR(sub.Subnet)
 			if err != nil {
 				return fmt.Errorf("failed to parse network address: %q", sub.Subnet)
@@ -53,7 +54,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 	}
 	master.subnetAllocatorList = subnetAllocatorList
 
-	err = master.reconcileHostSubnets(subnets.Items)
+	err = master.reconcileHostSubnets(subnets)
 	if err != nil {
 		return err
 	}
@@ -66,13 +67,13 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 // reconcileHostSubnets verifies and corrects the state of the hostsubnets on startup of the master.
 // Because openshift watches on events to keep hostsubnets and nodes in the correct state, missing an event
 // can cause orphaned or unusable hostsubnets to stick around.
-func (master *OsdnMaster) reconcileHostSubnets(hostSubnets []networkapi.HostSubnet) error {
-	nodes, err := master.kClient.Core().Nodes().List(metav1.ListOptions{})
+func (master *OsdnMaster) reconcileHostSubnets(hostSubnets []*networkapi.HostSubnet) error {
+	nodes, err := master.nodeInformer.Lister().List(labels.Everything())
 	if err != nil {
 		return fmt.Errorf("error in initializing/fetching nodes: %v", err)
 	}
 	nodeUIDmap := make(map[string]string)
-	for _, node := range nodes.Items {
+	for _, node := range nodes {
 		nodeUIDmap[node.Name] = string(node.UID)
 	}
 	for _, subnet := range hostSubnets {
@@ -81,26 +82,24 @@ func (master *OsdnMaster) reconcileHostSubnets(hostSubnets []networkapi.HostSubn
 			continue
 		} else if len(nodeUIDmap[subnet.Name]) > 0 && len(subnet.Annotations[networkapi.NodeUIDAnnotation]) == 0 {
 			// Update path, stamp UID annotation on subnet.
-			if subnet.Annotations == nil {
-				subnet.Annotations = make(map[string]string)
+			sn := subnet.DeepCopy()
+			if sn.Annotations == nil {
+				sn.Annotations = make(map[string]string)
 			}
-			subnet.Annotations[networkapi.NodeUIDAnnotation] = nodeUIDmap[subnet.Name]
-			_, err := master.networkClient.Network().HostSubnets().Update(&subnet)
-			if err != nil {
-				return fmt.Errorf("error updating subnet %v for node %s: %v", subnet, subnet.Name, err)
+			sn.Annotations[networkapi.NodeUIDAnnotation] = nodeUIDmap[sn.Name]
+			if _, err = master.networkClient.Network().HostSubnets().Update(sn); err != nil {
+				return fmt.Errorf("error updating subnet %v for node %s: %v", sn, sn.Name, err)
 			}
 		} else if len(nodeUIDmap[subnet.Name]) == 0 && len(subnet.Annotations[networkapi.NodeUIDAnnotation]) > 0 {
 			// Missed Node event, delete stale subnet.
 			glog.Infof("Setup found no node associated with hostsubnet %s, deleting the hostsubnet", subnet.Name)
-			err := master.networkClient.Network().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{})
-			if err != nil {
+			if err = master.networkClient.Network().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{}); err != nil {
 				return fmt.Errorf("error deleting subnet %v: %v", subnet, err)
 			}
 		} else if nodeUIDmap[subnet.Name] != subnet.Annotations[networkapi.NodeUIDAnnotation] {
 			// Missed Node event, node with the same name exists delete stale subnet.
 			glog.Infof("Missed node event, hostsubnet %s has the UID of an incorrect object, deleting the hostsubnet", subnet.Name)
-			err := master.networkClient.Network().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{})
-			if err != nil {
+			if err = master.networkClient.Network().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{}); err != nil {
 				return fmt.Errorf("error deleting subnet %v: %v", subnet, err)
 			}
 		}
@@ -170,16 +169,18 @@ func (master *OsdnMaster) addNode(nodeName string, nodeUID string, nodeIP string
 }
 
 func (master *OsdnMaster) deleteNode(nodeName string) error {
-	sub, err := master.networkClient.Network().HostSubnets().Get(nodeName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("error fetching subnet for node %q for deletion: %v", nodeName, err)
+	subInfo := nodeName
+	// If create and delete events for the same node are called in quick succession,
+	// hostsubnet informer cache may not have corresponding item. We fetch the object just for logging.
+	// So if we get the object we will log in detail otherwise will log in brief.
+	if sub, err := master.hostSubnetInformer.Lister().Get(nodeName); err == nil {
+		subInfo = common.HostSubnetToString(sub)
 	}
-	err = master.networkClient.Network().HostSubnets().Delete(nodeName, &metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("error deleting subnet %v for node %q: %v", sub, nodeName, err)
+	if err := master.networkClient.Network().HostSubnets().Delete(nodeName, &metav1.DeleteOptions{}); err != nil {
+		return fmt.Errorf("error deleting subnet for node %q: %v", nodeName, err)
 	}
 
-	glog.Infof("Deleted HostSubnet %s", common.HostSubnetToString(sub))
+	glog.Infof("Deleted HostSubnet %s", subInfo)
 	return nil
 }
 
@@ -198,7 +199,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(origNode *
 		var err error
 
 		if knode != node {
-			knode, err = master.kClient.Core().Nodes().Get(node.Name, metav1.GetOptions{})
+			knode, err = master.nodeInformer.Lister().Get(node.Name)
 			if err != nil {
 				return err
 			}
