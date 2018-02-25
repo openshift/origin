@@ -71,6 +71,7 @@ function start() {
   local wait_for_cluster=$8
   local node_count=$9
   local additional_args=${10}
+  local cluster_ipsec=${11}
 
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
@@ -99,6 +100,7 @@ function start() {
   ${DOCKER_CMD} run --privileged --net=host --rm -v /lib/modules:/lib/modules \
                 openshift/dind-node bash -e -c \
                 '/usr/sbin/modprobe openvswitch;
+                /usr/sbin/modprobe af_key;
                 /usr/sbin/modprobe overlay 2> /dev/null || true;'
 
   # Initialize the cluster config path
@@ -116,6 +118,8 @@ function start() {
     ovn_kubernetes=1
   fi
   echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" >> "${config_root}/dind-env"
+
+  echo "OPENSHIFT_CLUSTER_IPSEC=${cluster_ipsec}" > "${config_root}/openshift-cluster-ipsec"
 
   # Create containers
   start-container "${config_root}" "${deployed_config_root}" "${MASTER_IMAGE}" "${MASTER_NAME}"
@@ -682,6 +686,8 @@ DOCKER_CMD="${DOCKER_CMD:-$DEFAULT_DOCKER_CMD}"
 
 CLUSTER_ID="${OPENSHIFT_CLUSTER_ID:-openshift}"
 
+CLUSTER_IPSEC="${OPENSHIFT_CLUSTER_IPSEC:-no}"
+
 TMPDIR="${TMPDIR:-"/tmp"}"
 CONFIG_BASE="${OPENSHIFT_CONFIG_BASE:-${TMPDIR}/openshift-dind-cluster}"
 CONFIG_ROOT="${OPENSHIFT_CONFIG_ROOT:-${CONFIG_BASE}/${CLUSTER_ID}}"
@@ -788,7 +794,7 @@ case "${1:-""}" in
 
     start "${OS_ROOT}" "${OVN_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
           "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${CONTAINER_RUNTIME}" \
-          "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ADDITIONAL_ARGS}"
+          "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ADDITIONAL_ARGS}" "${CLUSTER_IPSEC}"
     ;;
   add-node)
     WAIT_FOR_CLUSTER=1

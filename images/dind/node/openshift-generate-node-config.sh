@@ -99,6 +99,13 @@ EOF
   # Deploy the node config
   mkdir -p "${deployed_config_path}"
   cp -r "${node_config_path}"/* "${deployed_config_path}/"
+
+  if ! os::util::is-master; then
+    os::util::ensure-ipsec-config "${host}" \
+      "${deployed_config_path}/ca.crt" \
+      "${deployed_config_path}/master-client.crt" \
+      "${deployed_config_path}/master-client.key"
+  fi
 }
 
 ensure-node-config

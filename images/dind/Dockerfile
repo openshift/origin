@@ -57,7 +57,8 @@ RUN dnf -y update && dnf -y install\
  glibc-langpack-en\
  iptables\
  openssh-clients\
- openssh-server
+ openssh-server\
+ libreswan
 
 # Install network utils for debugging
 # iproute2 tools are already installed.
