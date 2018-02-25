@@ -9,14 +9,16 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
+	"github.com/docker/docker/api/types/versions"
 	cliconfig "github.com/docker/docker/cli/config"
-	dockerclient "github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types/versions"
+	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"golang.org/x/net/context"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -722,6 +724,10 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 	if err != nil {
 		return nil, errors.ErrNoDockerClient(err)
 	}
+	// negotiate the correct API version with the server
+	ctx, fn := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer fn()
+	engineAPIClient.NegotiateAPIVersion(ctx)
 	return dockerhelper.NewClient(host, engineAPIClient), nil
 }
 
