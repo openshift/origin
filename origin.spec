@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit deb05a9d63f3d554cfa4c2c549395dd82542942a
+%global commit bbc14faa0ac3bb445f9ddd9d331225fb147ae3cc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.50.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=a7f5eea OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.51.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=5c695ac OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.9.0
-Release:        0.51.0%{?dist}
+Release:        0.52.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -606,6 +606,21 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Feb 25 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.52.0
+- relax aggressive timeouts in declarative pipeline example
+  (gmontero@redhat.com)
+- Skip managed images when importing signatures (obulatov@redhat.com)
+- Debugging improvements to egressip_test.go (danw@redhat.com)
+- Fix reassignment of egress IP after removal, add test (danw@redhat.com)
+- Guarantee that SerialFileGenerator starts at 2 (mkhan@redhat.com)
+- add configmap volume description (jvallejo@redhat.com)
+- Correctly flush stale ovs rules on Node startup (jtanenba@redhat.com)
+- Boring change: Use lowercase for returning user errors (rpenta@redhat.com)
+- oc adm client should forbid isolation for 'default' project
+  (rpenta@redhat.com)
+- SDN master controller should not allow isolation for 'default' project
+  (rpenta@redhat.com)
+
 * Fri Feb 23 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.51.0
 - Add networking team members to OWNERS file (bbennett@redhat.com)
 
