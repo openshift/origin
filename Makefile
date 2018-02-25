@@ -126,7 +126,6 @@ update:
 	$(MAKE) build
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
-	hack/update-generated-swagger-spec.sh
 .PHONY: update
 
 # Update all generated artifacts for the API
@@ -136,7 +135,7 @@ update:
 update-api:
 	hack/update-generated-conversions.sh
 	hack/update-generated-defaulters.sh
-	hack/update-generated-swagger-descriptions.sh
+	hack/update-generated-deep-copies.sh
 	hack/update-generated-openapi.sh
 	$(MAKE) build
 	hack/update-generated-swagger-spec.sh
