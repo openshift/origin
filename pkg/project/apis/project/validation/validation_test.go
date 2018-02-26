@@ -80,6 +80,33 @@ func TestValidateProject(t *testing.T) {
 			numErrs: 0,
 		},
 		{
+			name: "invalid id for create (> 63 characters)",
+			project: projectapi.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "werthtyghyghgfdvfffghjiuyhnjhgfvdddddcfgtytgfredswazsxdeeerfvgtyhbj",
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "invalid id start with dash",
+			project: projectapi.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "-pro",
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "invalid id end wih dash",
+			project: projectapi.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pro-",
+				},
+			},
+			numErrs: 1,
+		},
+		{
 			name: "invalid id internal dots",
 			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
