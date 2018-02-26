@@ -15,6 +15,7 @@ import (
 
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/fileutils"
+	"github.com/docker/docker/pkg/idtools"
 	"github.com/golang/glog"
 )
 
@@ -273,6 +274,7 @@ func archiveFromFile(file string, src, dst string, excludes []string) (io.Reader
 			return
 		}
 		err = FilterArchive(in, pw, func(h *tar.Header, r io.Reader) ([]byte, bool, bool, error) {
+			h.Uid, h.Gid = 0, 0
 			// skip a file if it doesn't match the src
 			isDir := h.Typeflag == tar.TypeDir
 			newName, ok := mapperFn(h.Name, isDir)
@@ -297,9 +299,60 @@ func archiveFromFile(file string, src, dst string, excludes []string) (io.Reader
 	return pr, closers{f.Close, pr.Close}, nil
 }
 
+func archiveFromContainer(in io.Reader, src, dst string, excludes []string) (io.Reader, io.Closer, error) {
+	// TODO: multiple sources also require treating dst as a directory
+	isDestDir := strings.HasSuffix(dst, "/") || path.Base(dst) == "."
+	dst = path.Clean(dst)
+	mapperFn := archivePathMapper("*", dst, isDestDir)
+
+	pm, err := fileutils.NewPatternMatcher(excludes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var srcName string
+	if !strings.HasSuffix(src, "/") && path.Base(src) != "." {
+		srcName = path.Base(src)
+	}
+
+	pr, pw := io.Pipe()
+	go func() {
+		err = FilterArchive(in, pw, func(h *tar.Header, r io.Reader) ([]byte, bool, bool, error) {
+			isDir := h.Typeflag == tar.TypeDir
+			// special case: container output tar has a single file matching the src name
+			if !isDir && h.Name == srcName && !isDestDir {
+				h.Name = dst
+				return nil, false, false, nil
+			}
+			// skip a file if it doesn't match the src
+			newName, ok := mapperFn(h.Name, isDir)
+			if !ok {
+				return nil, false, true, err
+			}
+			if newName == "." {
+				return nil, false, true, nil
+			}
+
+			// skip based on excludes
+			if ok, _ := pm.Matches(h.Name); ok {
+				return nil, false, true, nil
+			}
+
+			glog.V(5).Infof("Filtering archive %s -> %s", h.Name, newName)
+			h.Name = newName
+			// include all files
+			return nil, false, false, nil
+		})
+		pw.CloseWithError(err)
+	}()
+	return pr, pr, nil
+}
+
 func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive.TarOptions {
 	dst = trimLeadingPath(dst)
-	options := &archive.TarOptions{}
+	options := &archive.TarOptions{
+		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
+	}
 	pm, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
 		return options

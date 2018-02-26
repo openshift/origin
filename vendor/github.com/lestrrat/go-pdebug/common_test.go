@@ -29,7 +29,7 @@ func TestPrintf(t *testing.T) {
 			return
 		}
 	} else {
-		if !assert.Equal(t, "", buf.String(), "Simple Printf should be supressed") {
+		if !assert.Equal(t, "", buf.String(), "Simple Printf should be suppressed") {
 			return
 		}
 	}

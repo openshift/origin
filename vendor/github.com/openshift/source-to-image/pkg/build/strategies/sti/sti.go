@@ -741,6 +741,7 @@ func (builder *STI) initPostExecutorSteps() {
 				image:   builder.config.RuntimeImage,
 				builder: builder,
 				docker:  builder.docker,
+				tar:     builder.tar,
 			},
 			&reportSuccessStep{
 				builder: builder,

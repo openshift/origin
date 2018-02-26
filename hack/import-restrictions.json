@@ -397,7 +397,6 @@
       "vendor/github.com/daviddengcn/go-colortext",
       "vendor/github.com/docker/distribution",
       "vendor/github.com/docker/docker",
-      "vendor/github.com/docker/engine-api",
       "vendor/github.com/docker/go-connections",
       "vendor/github.com/docker/go-units",
       "vendor/github.com/evanphx/json-patch",

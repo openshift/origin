@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	dockerapi "github.com/docker/engine-api/client"
-	dockertypes "github.com/docker/engine-api/types"
+	dockertypes "github.com/docker/docker/api/types"
+	dockerapi "github.com/docker/docker/client"
 )
 
 type dockerClient struct {
@@ -64,7 +64,7 @@ func (c *dockerClient) ContainerRemove(id string, opts dockertypes.ContainerRemo
 	return clientErr(ctx, err)
 }
 
-func (c *dockerClient) ImageList(opts dockertypes.ImageListOptions) ([]dockertypes.Image, error) {
+func (c *dockerClient) ImageList(opts dockertypes.ImageListOptions) ([]dockertypes.ImageSummary, error) {
 	ctx, cancel := c.getTimeoutContext()
 	defer cancel()
 	images, err := c.client.ImageList(ctx, opts)

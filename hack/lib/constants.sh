@@ -57,7 +57,7 @@ readonly OS_TEST_TARGETS=(
 readonly OS_GOVET_BLACKLIST=(
 	"pkg/.*/generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
 	"pkg/.*/generated/clientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
-	"pkg/build/vendor/github.com/docker/engine-api/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
+	"pkg/build/vendor/github.com/docker/docker/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"cmd/cluster-capacity/.*"
 	"pkg/build/builder/vendor/.*"
 	"pkg/cmd/server/start/.*"
