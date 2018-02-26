@@ -1,5 +1,5 @@
 hash: 20a85c17c2b76b0693a6bf86cefc49fb8c685b1ada8949c098c2b5b593163c8d
-updated: 2018-02-27T11:22:58.510133198-05:00
+updated: 2018-02-27T11:33:56.964459908-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -675,12 +675,6 @@ imports:
   version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/kr/pty
   version: f7ee69f31298ecbe5d2b349c711e2547a617d398
-- name: github.com/kubernetes-incubator/cri-o
-  version: 8ea79e755f5f89b132e642015a46d9d291b246ef
-  subpackages:
-  - client
-  - pkg/annotations
-  - types
 - name: github.com/lestrrat/go-jspointer
   version: f4881e611bdbe9fb413a7780721ef8400a1f2341
 - name: github.com/lestrrat/go-jsref
@@ -1776,7 +1770,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 15d897549604e78e5923db59999aa604b1b1db80
+  version: 64ec0a217e42d9d9d309ef79d6ba294ba8764e16
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
