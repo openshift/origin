@@ -68,6 +68,9 @@ const (
 	// the services chain
 	kubeServicesChain utiliptables.Chain = "KUBE-SERVICES"
 
+	// the external services chain
+	kubeExternalServicesChain utiliptables.Chain = "KUBE-EXTERNAL-SERVICES"
+
 	// the nodeports chain
 	kubeNodePortsChain utiliptables.Chain = "KUBE-NODEPORTS"
 
@@ -536,7 +539,7 @@ type iptablesJumpChain struct {
 }
 
 var iptablesJumpChains = []iptablesJumpChain{
-	{utiliptables.TableFilter, kubeServicesChain, utiliptables.ChainInput, "kubernetes service portals"},
+	{utiliptables.TableFilter, kubeExternalServicesChain, utiliptables.ChainInput, "kubernetes externally-visible service portals"},
 	{utiliptables.TableFilter, kubeServicesChain, utiliptables.ChainOutput, "kubernetes service portals"},
 	{utiliptables.TableNAT, kubeServicesChain, utiliptables.ChainOutput, "kubernetes service portals"},
 	{utiliptables.TableNAT, kubeServicesChain, utiliptables.ChainPrerouting, "kubernetes service portals"},
@@ -544,11 +547,16 @@ var iptablesJumpChains = []iptablesJumpChain{
 	{utiliptables.TableFilter, kubeForwardChain, utiliptables.ChainForward, "kubernetes forwarding rules"},
 }
 
+var iptablesCleanupOnlyChains = []iptablesJumpChain{
+	// Present in kube 1.6 - 1.9. Removed by #56164 in favor of kubeExternalServicesChain
+	{utiliptables.TableFilter, kubeServicesChain, utiliptables.ChainInput, "kubernetes service portals"},
+}
+
 // CleanupLeftovers removes all iptables rules and chains created by the Proxier
 // It returns true if an error was encountered. Errors are logged.
 func CleanupLeftovers(ipt utiliptables.Interface) (encounteredError bool) {
 	// Unlink our chains
-	for _, chain := range iptablesJumpChains {
+	for _, chain := range append(iptablesJumpChains, iptablesCleanupOnlyChains...) {
 		args := []string{
 			"-m", "comment", "--comment", chain.comment,
 			"-j", string(chain.chain),
@@ -607,7 +615,7 @@ func CleanupLeftovers(ipt utiliptables.Interface) (encounteredError bool) {
 		filterChains := bytes.NewBuffer(nil)
 		filterRules := bytes.NewBuffer(nil)
 		writeLine(filterChains, "*filter")
-		for _, chain := range []utiliptables.Chain{kubeServicesChain, kubeForwardChain} {
+		for _, chain := range []utiliptables.Chain{kubeServicesChain, kubeExternalServicesChain, kubeForwardChain} {
 			if _, found := existingFilterChains[chain]; found {
 				chainString := string(chain)
 				writeLine(filterChains, existingFilterChains[chain])
@@ -1087,7 +1095,7 @@ func (proxier *Proxier) syncProxyRules() {
 
 	// Make sure we keep stats for the top-level chains, if they existed
 	// (which most should have because we created them above).
-	for _, chainName := range []utiliptables.Chain{kubeServicesChain, kubeForwardChain} {
+	for _, chainName := range []utiliptables.Chain{kubeServicesChain, kubeExternalServicesChain, kubeForwardChain} {
 		if chain, ok := existingFilterChains[chainName]; ok {
 			writeLine(proxier.filterChains, chain)
 		} else {
@@ -1252,7 +1260,7 @@ func (proxier *Proxier) syncProxyRules() {
 			// Install ICMP Reject rule in filter table for destination=externalIP and dport=svcport
 			if len(proxier.endpointsMap[svcName]) == 0 {
 				writeLine(proxier.filterRules,
-					"-A", string(kubeServicesChain),
+					"-A", string(kubeExternalServicesChain),
 					"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcNameString),
 					"-m", protocol, "-p", protocol,
 					"-d", fmt.Sprintf("%s/32", externalIP),
@@ -1379,7 +1387,7 @@ func (proxier *Proxier) syncProxyRules() {
 			// chain.
 			if len(proxier.endpointsMap[svcName]) == 0 {
 				writeLine(proxier.filterRules,
-					"-A", string(kubeServicesChain),
+					"-A", string(kubeExternalServicesChain),
 					"-m", "comment", "--comment", fmt.Sprintf(`"%s has no endpoints"`, svcNameString),
 					"-m", "addrtype", "--dst-type", "LOCAL",
 					"-m", protocol, "-p", protocol,

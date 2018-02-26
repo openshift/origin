@@ -798,7 +798,7 @@ func TestExternalIPsReject(t *testing.T) {
 
 	fp.syncProxyRules()
 
-	kubeSvcRules := ipt.GetRules(string(kubeServicesChain))
+	kubeSvcRules := ipt.GetRules(string(kubeExternalServicesChain))
 	if !hasJump(kubeSvcRules, iptablestest.Reject, svcExternalIPs, svcPort) {
 		errorf(fmt.Sprintf("Failed to a %v rule for externalIP %v with no endpoints", iptablestest.Reject, svcPortName), kubeSvcRules, t)
 	}
@@ -831,7 +831,7 @@ func TestNodePortReject(t *testing.T) {
 
 	fp.syncProxyRules()
 
-	kubeSvcRules := ipt.GetRules(string(kubeServicesChain))
+	kubeSvcRules := ipt.GetRules(string(kubeExternalServicesChain))
 	if !hasJump(kubeSvcRules, iptablestest.Reject, svcIP, svcNodePort) {
 		errorf(fmt.Sprintf("Failed to find a %v rule for service %v with no endpoints", iptablestest.Reject, svcPortName), kubeSvcRules, t)
 	}
