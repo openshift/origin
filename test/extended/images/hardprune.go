@@ -36,7 +36,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image hard prune", fu
 
 		readOnly := false
 		acceptSchema2 := true
-		err := ConfigureRegistry(oc,
+		_, err := ConfigureRegistry(oc,
 			RegistryConfiguration{
 				ReadOnly:      &readOnly,
 				AcceptSchema2: &acceptSchema2,
@@ -62,7 +62,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image hard prune", fu
 
 	g.AfterEach(func() {
 		readOnly := false
-		err := ConfigureRegistry(oc,
+		_, err := ConfigureRegistry(oc,
 			RegistryConfiguration{
 				ReadOnly:      &readOnly,
 				AcceptSchema2: originalAcceptSchema2,
@@ -148,7 +148,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial] Image hard prune", fu
 
 		/* TODO: use a persistent storage for the registry to preserve data across re-deployments
 		readOnly := true
-		err = registryutil.ConfigureRegistry(oc, registryutil.RegistryConfiguration{ReadOnly: &readOnly})
+		restarted, err = registryutil.ConfigureRegistry(oc, registryutil.RegistryConfiguration{ReadOnly: &readOnly})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		*/
 
@@ -434,12 +434,12 @@ func LogRegistryPod(oc *exutil.CLI) error {
 
 // ConfigureRegistry re-deploys the registry pod if its configuration doesn't match the desiredState. The
 // function blocks until the registry is ready.
-func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error {
+func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) (bool, error) {
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
 	oc = oc.SetNamespace(metav1.NamespaceDefault).AsAdmin()
 	env, err := oc.Run("env").Args("dc/docker-registry", "--list").Output()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	envOverrides := []string{}
@@ -459,12 +459,12 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error
 	}
 	if len(envOverrides) == 0 {
 		g.By("docker-registry is already in the desired state of configuration")
-		return nil
+		return false, nil
 	}
 
 	dc, err := oc.AppsClient().Apps().DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// log docker-registry pod output before re-deploying
@@ -475,22 +475,60 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error
 
 	err = oc.Run("env").Args(append([]string{"dc/docker-registry"}, envOverrides...)...).Execute()
 	if err != nil {
-		return fmt.Errorf("failed to update registry's environment with %s: %v", &waitForVersion, err)
+		return false, fmt.Errorf("failed to update registry's environment with %s: %v", &waitForVersion, err)
 	}
-	return exutil.WaitForDeploymentConfig(
+	err = exutil.WaitForDeploymentConfig(
 		oc.AdminKubeClient(),
 		oc.AdminAppsClient().Apps(),
 		metav1.NamespaceDefault,
 		"docker-registry",
 		waitForVersion,
 		oc)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func RedeployRegistry(oc *exutil.CLI) (bool, error) {
+	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
+
+	oc = oc.SetNamespace(metav1.NamespaceDefault).AsAdmin()
+
+	dc, err := oc.AppsClient().Apps().DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	// log docker-registry pod output before re-deploying
+	waitForVersion := dc.Status.LatestVersion + 1
+	if err = LogRegistryPod(oc); err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "failed to log registry pod: %v\n", err)
+	}
+
+	_, err = oc.Run("rollout").Args("latest", "dc/docker-registry", "--again=true").Output()
+	if err != nil {
+		return false, err
+	}
+
+	err = exutil.WaitForDeploymentConfig(
+		oc.AdminKubeClient(),
+		oc.AdminAppsClient().Apps(),
+		metav1.NamespaceDefault,
+		"docker-registry",
+		waitForVersion,
+		oc)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // EnsureRegistryAcceptsSchema2 checks whether the registry is configured to accept manifests V2 schema 2 or
 // not. If the result doesn't match given accept argument, registry's deployment config will be updated
 // accordingly and the function will block until the registry have been re-deployed and ready for new
 // requests.
-func EnsureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
+func EnsureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) (bool, error) {
 	return ConfigureRegistry(oc, RegistryConfiguration{AcceptSchema2: &accept})
 }
 
