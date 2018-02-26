@@ -190,29 +190,35 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 // TODO: make upstream kubelet more flexible with overlays and GCE so this
 // condition doesn't get added for network plugins that don't want it, and then
 // we can remove this function.
-func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi.Node) {
+func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(origNode *kapi.Node) {
+	// Informer cache should not be mutated, so get a copy of the object
+	node := origNode.DeepCopy()
 	knode := node
 	cleared := false
 	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
 
 		if knode != node {
-			knode, err = master.kClient.Core().Nodes().Get(node.ObjectMeta.Name, metav1.GetOptions{})
+			knode, err = master.kClient.Core().Nodes().Get(node.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
 		}
 
-		// Let caller modify knode's status, then push to api server.
-		_, condition := GetNodeCondition(&node.Status, kapi.NodeNetworkUnavailable)
-		if condition != nil && condition.Status != kapi.ConditionFalse && condition.Reason == "NoRouteCreated" {
-			condition.Status = kapi.ConditionFalse
-			condition.Reason = "RouteCreated"
-			condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
-			condition.LastTransitionTime = metav1.Now()
-			knode, err = master.kClient.Core().Nodes().UpdateStatus(knode)
-			if err == nil {
-				cleared = true
+		for i := range knode.Status.Conditions {
+			if knode.Status.Conditions[i].Type == kapi.NodeNetworkUnavailable {
+				condition := &knode.Status.Conditions[i]
+				if condition.Status != kapi.ConditionFalse && condition.Reason == "NoRouteCreated" {
+					condition.Status = kapi.ConditionFalse
+					condition.Reason = "RouteCreated"
+					condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
+					condition.LastTransitionTime = metav1.Now()
+
+					if knode, err = master.kClient.Core().Nodes().UpdateStatus(knode); err == nil {
+						cleared = true
+					}
+				}
+				break
 			}
 		}
 		return err
@@ -220,23 +226,8 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 	if resultErr != nil {
 		utilruntime.HandleError(fmt.Errorf("status update failed for local node: %v", resultErr))
 	} else if cleared {
-		glog.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.ObjectMeta.Name)
+		glog.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.Name)
 	}
-}
-
-// TODO remove this and switch to external
-// GetNodeCondition extracts the provided condition from the given status and returns that.
-// Returns nil and -1 if the condition is not present, and the index of the located condition.
-func GetNodeCondition(status *kapi.NodeStatus, conditionType kapi.NodeConditionType) (int, *kapi.NodeCondition) {
-	if status == nil {
-		return -1, nil
-	}
-	for i := range status.Conditions {
-		if status.Conditions[i].Type == conditionType {
-			return i, &status.Conditions[i]
-		}
-	}
-	return -1, nil
 }
 
 func (master *OsdnMaster) watchNodes() {
