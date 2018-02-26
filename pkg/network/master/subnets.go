@@ -249,13 +249,14 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 		utilruntime.HandleError(fmt.Errorf("Node IP is not set for node %s, skipping %s event, node: %v", node.Name, eventType, node))
 		return
 	}
-	master.clearInitialNodeNetworkUnavailableCondition(node)
 
 	if oldNodeIP, ok := master.hostSubnetNodeIPs[node.UID]; ok && (nodeIP == oldNodeIP) {
 		return
 	}
 	// Node status is frequently updated by kubelet, so log only if the above condition is not met
 	glog.V(5).Infof("Watch %s event for Node %q", eventType, node.Name)
+
+	master.clearInitialNodeNetworkUnavailableCondition(node)
 
 	usedNodeIP, err := master.addNode(node.Name, string(node.UID), nodeIP, nil)
 	if err != nil {
