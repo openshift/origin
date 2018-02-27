@@ -607,16 +607,16 @@ os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/p
 os::cmd::expect_code "diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt" 1
 
 # prune a mirror, external image that is no longer referenced
-os::cmd::expect_success "oc import-image nginx --confirm -n cache"
-nginxblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 4096.}}{{.name}},{{end}}{{end}}' "nginx:latest" -n cache | cut -d , -f 1)"
+os::cmd::expect_success "oc import-image fedora --confirm -n cache"
+fedorablob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 4096.}}{{.name}},{{end}}{{end}}' "fedora:latest" -n cache | cut -d , -f 1)"
 # directly hit the image to trigger mirroring in case the layer already exists on disk
-os::cmd::expect_success "curl -H 'Authorization: bearer $(oc sa get-token builder -n cache)' 'http://${DOCKER_REGISTRY}/v2/cache/nginx/blobs/${nginxblob}' 1>/dev/null"
+os::cmd::expect_success "curl -H 'Authorization: bearer $(oc sa get-token builder -n cache)' 'http://${DOCKER_REGISTRY}/v2/cache/fedora/blobs/${fedorablob}' 1>/dev/null"
 # verify the blob exists on disk in the registry due to mirroring under .../blobs/sha256/<2 char prefix>/<sha value>
-os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${nginxblob:7:100}' | grep blobs"
-os::cmd::expect_success "oc delete is nginx -n cache"
+os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${fedorablob:7:100}' | grep blobs"
+os::cmd::expect_success "oc delete is fedora -n cache"
 os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.before.txt'"
 os::cmd::expect_success_and_not_text "oc adm prune images --token='$(oc sa get-token builder -n cache)' --keep-younger-than=0 --confirm --all --registry-url='${DOCKER_REGISTRY}'" 'error'
-os::cmd::expect_failure "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${nginxblob:7:100}' | grep blobs"
+os::cmd::expect_failure "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${fedorablob:7:100}' | grep blobs"
 os::cmd::expect_success "oc exec -p ${registry_pod} du /registry > '${LOG_DIR}/prune-images.after.txt'"
 os::cmd::expect_code "diff '${LOG_DIR}/prune-images.before.txt' '${LOG_DIR}/prune-images.after.txt'" 1
 os::log::info "Validated image pruning"
