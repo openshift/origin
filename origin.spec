@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1693d6f8a5feed7d703e4a7ea5038aa2060f7af1
+%global commit 2de1b9862ab75e1035386ca3b28b82227e985235
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.52.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=9fd41c7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.53.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=2eea434 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.0
+Version:        3.9.1
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,42 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Feb 27 2018 Justin Pierce <jupierce@redhat.com> 3.9.1-1
+- Moving 3.9 to release mode (jupierce@redhat.com)
+- Workaround for #18762 (obulatov@redhat.com)
+- apps: stop dc cancellation flake (mfojtik@redhat.com)
+- UPSTREAM: 60301: Fix Deployment with Recreate strategy not to wait on Pods in
+  terminal phase (mfojtik@redhat.com)
+- UPSTREAM: 60457: tests: e2e: empty msg from channel other than stdout should
+  be non-fatal (sjenning@redhat.com)
+- UPSTREAM: 60306: Only run connection-rejecting rules on new connections
+  (danw@redhat.com)
+- UPSTREAM: 57461: Don't create no-op iptables rules for services with no
+  endpoints (danw@redhat.com)
+- UPSTREAM: 56164: Split out a KUBE-EXTERNAL-SERVICES chain so we don't have to
+  run KUBE-SERVICES from INPUT (danw@redhat.com)
+- UPSTREAM: 57336: Abstract some duplicated code in the iptables proxier
+  (danw@gnome.org)
+- UPSTREAM: 60430: don't use storage cache during apiserver unit test
+  (mfojtik@redhat.com)
+- UPSTREAM: 60299: apiserver: fix testing etcd config for etcd 3.2.16
+  (stefan.schimanski@gmail.com)
+- add tests (jvallejo@redhat.com)
+- add daemonsets to status graph (jvallejo@redhat.com)
+- dind: switch images to Fedora 27 (dcbw@redhat.com)
+- dind: remove CentOS 7 Dockerfile (dcbw@redhat.com)
+- UPSTREAM: 57480: Fix build and test errors from etcd 3.2.13 upgrade
+  (mfojtik@redhat.com)
+- bump(*): update etcd to 3.2.16 and grpc to 1.7.5 (mfojtik@redhat.com)
+- add more project validation (hasha@redhat.com)
+- tags existing deployment nodes as "found" (jvallejo@redhat.com)
+- add more example queries, possible alert queries (gmontero@redhat.com)
+- add strategy type to build metrics (gmontero@redhat.com)
+- UPSTREAM: 59386: Scheduler - not able to read from config file if configmap
+  is not found (ravisantoshgudimetla@gmail.com)
+- Minor cleanups to sdn-cni-plugin (danw@redhat.com)
+- update nginx-config.template (307292795@qq.com)
+
 * Sun Feb 25 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.53.0
 - 
 
