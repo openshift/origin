@@ -1,5 +1,5 @@
-hash: 1360d8b9f1a8f475ada0a321c4ddbe7ad4824f830a4121dc47e0a04535a2d332
-updated: 2018-02-14T15:46:31.627992096-05:00
+hash: 8a470a862eecb96f2c1ad49b191200abd8181529cd5e39f0aa397c0d19d9a1a2
+updated: 2018-02-19T11:07:22.018677+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -94,8 +94,6 @@ imports:
   - quantile
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
-- name: github.com/boltdb/bolt
-  version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
 - name: github.com/certifi/gocertifi
   version: deb3ae2ef2610fde3330947281941c562861188b
 - name: github.com/chai2010/gettext-go
@@ -181,8 +179,10 @@ imports:
   version: 47536c89fcc545a87745e1a1573addc439409165
   subpackages:
   - pkg/homedir
+- name: github.com/coreos/bbolt
+  version: 32c383e75ce054674c53b5a07e55de85332aee14
 - name: github.com/coreos/etcd
-  version: e211fb6de3cb306aee245422e599ac521f6e21f7
+  version: 121edf0467052d55876a817b89875fb39a99bf78
   subpackages:
   - alarm
   - auth
@@ -490,6 +490,7 @@ imports:
   subpackages:
   - jsonpb
   - proto
+  - protoc-gen-go/descriptor
   - ptypes
   - ptypes/any
   - ptypes/duration
@@ -641,7 +642,7 @@ imports:
 - name: github.com/grpc-ecosystem/go-grpc-prometheus
   version: 2500245aa6110c562d17020fb31a2c133d737799
 - name: github.com/grpc-ecosystem/grpc-gateway
-  version: 84398b94e188ee336f307779b57b3aa91af7063c
+  version: 8cc3a55af3bcf171a1c23a90c4df9cf591706104
   subpackages:
   - runtime
   - runtime/internal
@@ -947,6 +948,7 @@ imports:
   - template/clientset/versioned
   - template/clientset/versioned/scheme
   - template/clientset/versioned/typed/template/v1
+  - template/clientset/versioned/typed/template/v1/fake
   - template/informers/externalversions
   - template/informers/externalversions/internalinterfaces
   - template/informers/externalversions/template
@@ -1267,19 +1269,24 @@ imports:
 - name: google.golang.org/genproto
   version: 09f6ed296fc66555a25fe4ce95173148778dfa85
   subpackages:
+  - googleapis/api/annotations
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: d2e1b51f33ff8c5e4a15560ff049d200e83726c5
+  version: 5b3c4e850e90a4cf6a20ebd46c8b32a0a3afcb9e
   subpackages:
+  - balancer
   - codes
+  - connectivity
   - credentials
-  - grpclb/grpc_lb_v1
+  - grpclb/grpc_lb_v1/messages
   - grpclog
+  - health/grpc_health_v1
   - internal
   - keepalive
   - metadata
   - naming
   - peer
+  - resolver
   - stats
   - status
   - tap
@@ -1303,7 +1310,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 78d52114c359511e7d0d5af4fc50148b5392d7b4
+  version: 30a449993d4d38589fa79362431bd9b04644cab5
   repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - admission/v1beta1
@@ -1337,7 +1344,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 910bc45a64fb0fe0846c1ec00fe9f0703ddaa314
+  version: 48f5e87c5f0ae81d3ec5523fd409a702b0c9c3ee
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1369,7 +1376,7 @@ imports:
   - pkg/registry/customresource
   - pkg/registry/customresourcedefinition
 - name: k8s.io/apimachinery
-  version: 7c9cf22bb3b216a520f072212a0ee84c20b0ae0f
+  version: 12746011c32507d61f9ac778e75233a44a2d268a
   repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
   - pkg/api/equality
@@ -1435,7 +1442,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 093dc91208134c6033229e0a502cbd579852f645
+  version: 017dc6a13fdba5ec7b11dd06ef8018266244447a
   repo: git@github.com:openshift/kubernetes-apiserver
   subpackages:
   - pkg/admission
@@ -1544,7 +1551,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 5029a91c3b199abd476215b9930070585c70d62b
+  version: 1502c0d02760ce07bc53f5f4656a4878566b1ef7
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1722,7 +1729,7 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: 517f776cbba8525815ebbd787a53004844479497
+  version: 4a42db67724ec4bf63a6ff162e97543e0e312770
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e
@@ -1732,7 +1739,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 9ef7aa49fa5f75a8fb80b681c06b793f8fafbe1a
+  version: f02af3e9b7d164a6633c2014c9359ee918ff9b65
   repo: git@github.com:openshift/kube-aggregator
   subpackages:
   - pkg/apis/apiregistration
@@ -2515,7 +2522,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: a7339a9902a766bceabf8a52a1ab2a9dc0371703
+  version: ff454b3dae7059eae17d532cc35bfc478e20a88e
   repo: git@github.com:openshift/kubernetes-metrics
   subpackages:
   - pkg/apis/custom_metrics
