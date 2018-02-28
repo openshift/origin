@@ -33,16 +33,20 @@ const (
 )
 
 type OsdnMaster struct {
-	kClient             kclientset.Interface
-	networkClient       networkclient.Interface
-	networkInfo         *common.NetworkInfo
-	subnetAllocatorList []*SubnetAllocator
-	vnids               *masterVNIDMap
+	kClient       kclientset.Interface
+	networkClient networkclient.Interface
+	networkInfo   *common.NetworkInfo
+	vnids         *masterVNIDMap
 
 	nodeInformer         kcoreinformers.NodeInformer
 	namespaceInformer    kcoreinformers.NamespaceInformer
 	hostSubnetInformer   networkinformers.HostSubnetInformer
 	netNamespaceInformer networkinformers.NetNamespaceInformer
+
+	// Used for allocating subnets in order
+	subnetAllocatorList []*SubnetAllocator
+	// Used for clusterNetwork --> subnetAllocator lookup
+	subnetAllocatorMap map[common.ClusterNetwork]*SubnetAllocator
 
 	// Holds Node IP used in creating host subnet for a node
 	hostSubnetNodeIPs map[ktypes.UID]string
@@ -62,7 +66,8 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		hostSubnetInformer:   networkInformers.Network().InternalVersion().HostSubnets(),
 		netNamespaceInformer: networkInformers.Network().InternalVersion().NetNamespaces(),
 
-		hostSubnetNodeIPs: map[ktypes.UID]string{},
+		subnetAllocatorMap: map[common.ClusterNetwork]*SubnetAllocator{},
+		hostSubnetNodeIPs:  map[ktypes.UID]string{},
 	}
 
 	var err error
@@ -166,7 +171,7 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 		glog.Fatalf("failed to sync SDN master informers")
 	}
 
-	if err := master.SubnetStartMaster(master.networkInfo.ClusterNetworks); err != nil {
+	if err := master.startSubnetMaster(); err != nil {
 		glog.Fatalf("failed to start subnet master: %v", err)
 	}
 
