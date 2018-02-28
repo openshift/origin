@@ -13,6 +13,6 @@ import:
 - package: k8s.io/client-go
   version: kubernetes-1.9.1
 - package: github.com/openshift/api
-  version: master
+  version: release-3.9
 - package: github.com/golang/glog
 - package: github.com/spf13/pflag
