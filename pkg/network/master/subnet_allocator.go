@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var ErrSubnetAllocatorFull = fmt.Errorf("No subnets available.")
@@ -24,14 +26,14 @@ type SubnetAllocator struct {
 func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*SubnetAllocator, error) {
 	_, netIP, err := net.ParseCIDR(network)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse network address: %q", network)
+		return nil, fmt.Errorf("failed to parse network address: %q", network)
 	}
 
 	netMaskSize, _ := netIP.Mask.Size()
 	if hostBits == 0 {
-		return nil, fmt.Errorf("Host capacity cannot be zero.")
+		return nil, fmt.Errorf("host capacity cannot be zero.")
 	} else if hostBits > (32 - uint32(netMaskSize)) {
-		return nil, fmt.Errorf("Subnet capacity cannot be larger than number of networks available.")
+		return nil, fmt.Errorf("subnet capacity cannot be larger than number of networks available.")
 	}
 	subnetBits := 32 - uint32(netMaskSize) - hostBits
 
@@ -62,20 +64,7 @@ func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*Subne
 		rightMask = 0
 	}
 
-	amap := make(map[string]bool)
-	for _, netStr := range inUse {
-		_, nIp, err := net.ParseCIDR(netStr)
-		if err != nil {
-			fmt.Println("Failed to parse network address: ", netStr)
-			continue
-		}
-		if !netIP.Contains(nIp.IP) {
-			fmt.Println("Provided subnet doesn't belong to network: ", nIp)
-			continue
-		}
-		amap[nIp.String()] = true
-	}
-	return &SubnetAllocator{
+	sa := &SubnetAllocator{
 		network:    netIP,
 		hostBits:   hostBits,
 		leftShift:  leftShift,
@@ -83,8 +72,33 @@ func NewSubnetAllocator(network string, hostBits uint32, inUse []string) (*Subne
 		rightShift: rightShift,
 		rightMask:  rightMask,
 		next:       0,
-		allocMap:   amap,
-	}, nil
+		allocMap:   make(map[string]bool),
+	}
+	for _, netStr := range inUse {
+		_, ipNet, err := net.ParseCIDR(netStr)
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("failed to parse network address: %s", netStr))
+			continue
+		}
+		if err = sa.AllocateNetwork(ipNet); err != nil {
+			utilruntime.HandleError(err)
+			continue
+		}
+	}
+	return sa, nil
+}
+
+func (sna *SubnetAllocator) AllocateNetwork(ipNet *net.IPNet) error {
+	sna.mutex.Lock()
+	defer sna.mutex.Unlock()
+
+	if !sna.network.Contains(ipNet.IP) {
+		return fmt.Errorf("provided subnet doesn't belong to network: %v", ipNet)
+	}
+	if !sna.allocMap[ipNet.String()] {
+		sna.allocMap[ipNet.String()] = true
+	}
+	return nil
 }
 
 func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
@@ -121,17 +135,17 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 func (sna *SubnetAllocator) ReleaseNetwork(ipnet *net.IPNet) error {
 	sna.mutex.Lock()
 	defer sna.mutex.Unlock()
+
 	if !sna.network.Contains(ipnet.IP) {
-		return fmt.Errorf("Provided subnet %v doesn't belong to the network %v.", ipnet, sna.network)
+		return fmt.Errorf("provided subnet %v doesn't belong to the network %v.", ipnet, sna.network)
 	}
 
 	ipnetStr := ipnet.String()
 	if !sna.allocMap[ipnetStr] {
-		return fmt.Errorf("Provided subnet %v is already available.", ipnet)
+		return fmt.Errorf("provided subnet %v is already available.", ipnet)
+	} else {
+		sna.allocMap[ipnetStr] = false
 	}
-
-	sna.allocMap[ipnetStr] = false
-
 	return nil
 }
 

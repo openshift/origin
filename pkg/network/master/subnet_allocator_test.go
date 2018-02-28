@@ -205,6 +205,59 @@ func TestAllocateSubnetInUse(t *testing.T) {
 	}
 }
 
+func TestAllocateNetwork(t *testing.T) {
+	sna, err := NewSubnetAllocator("10.1.0.0/16", 14, nil)
+	if err != nil {
+		t.Fatal("Failed to initialize IP allocator: ", err)
+	}
+
+	allocSubnets := make([]*net.IPNet, 4)
+	for i := 0; i < 4; i++ {
+		if allocSubnets[i], err = sna.GetNetwork(); err != nil {
+			t.Fatal("Failed to get network: ", err)
+		}
+	}
+
+	if sn, err := sna.GetNetwork(); err == nil {
+		t.Fatalf("Unexpectedly succeeded in getting network (sn=%s)", sn.String())
+	}
+	if err := sna.ReleaseNetwork(allocSubnets[2]); err != nil {
+		t.Fatalf("Failed to release the subnet (allocSubnets[2]=%s): %v", allocSubnets[2].String(), err)
+	}
+	for i := 0; i < 2; i++ {
+		if err := sna.AllocateNetwork(allocSubnets[2]); err != nil {
+			t.Fatalf("Failed to allocate the subnet (allocSubnets[2]=%s): %v", allocSubnets[2].String(), err)
+		}
+	}
+	if sn, err := sna.GetNetwork(); err == nil {
+		t.Fatalf("Unexpectedly succeeded in getting network (sn=%s)", sn.String())
+	}
+
+	// Test subnet does not belong to network
+	var sn *net.IPNet
+	_, sn, err = net.ParseCIDR("10.2.3.4/24")
+	if err != nil {
+		t.Fatal("Failed to parse given network: ", err)
+	}
+	if err := sna.AllocateNetwork(sn); err == nil {
+		t.Fatalf("Unexpectedly succeeded in allocating subnet that doesn't belong to network (sn=%s)", sn.String())
+	}
+
+	// Test AllocateNetwork usage in NewSubnetAllocator
+	var subnetStrs []string
+	for _, sn := range allocSubnets {
+		subnetStrs = append(subnetStrs, sn.String())
+	}
+	var sa *SubnetAllocator
+	sa, err = NewSubnetAllocator("10.1.0.0/16", 14, subnetStrs)
+	if err != nil {
+		t.Fatal("Failed to initialize IP allocator: ", err)
+	}
+	if sn, err = sa.GetNetwork(); err == nil {
+		t.Fatalf("Unexpectedly succeeded in getting network (sn=%s)", sn.String())
+	}
+}
+
 func TestAllocateReleaseSubnet(t *testing.T) {
 	sna, err := NewSubnetAllocator("10.1.0.0/16", 14, nil)
 	if err != nil {
