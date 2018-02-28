@@ -19,9 +19,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	"github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -96,6 +98,32 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 	if errs := bulk.Run(objList, DefaultNamespace); len(errs) > 0 {
 		err = utilerrors.NewAggregate(errs)
 		return errors.NewError("cannot create registry objects").WithCause(err)
+	}
+	return nil
+}
+
+// SetSCC configures default scc for "regular" authenticated users
+func (h *Helper) SetSCC(f *clientcmd.Factory, scc string, check bool, sccopts []string, group string, out, errout io.Writer) error {
+	if check {
+		securityClient, err := f.OpenshiftInternalSecurityClient()
+		if err != nil {
+			return err
+		}
+		// fmt.Printf("Setting the %#v group scc to %#v ...\n", group, scc)
+		err = AddSCCToGroup(securityClient.Security(), scc, group, out)
+		if err != nil {
+			return errors.NewError(fmt.Sprintf("cannot add %#v SCC to the %#v group", scc, group)).WithCause(err).WithDetails(h.OriginLog())
+		}
+		err = RemoveSCCFromGroup(securityClient.Security(), bootstrappolicy.SecurityContextConstraintRestricted, group, out)
+		if err != nil {
+			return errors.NewError(fmt.Sprintf("cannot remove %#v SCC from the %#v group", bootstrappolicy.SecurityContextConstraintRestricted, group)).WithCause(err).WithDetails(h.OriginLog())
+		}
+	} else {
+		fmt.Printf("\n%#v is not a valid scc. Use one of these:\n", scc)
+		for _, opt := range sccopts {
+			fmt.Printf(" - %s\n", opt)
+		}
+		fmt.Printf("\nContinuing with default scc settings.\n\n")
 	}
 	return nil
 }
@@ -239,6 +267,28 @@ func AddSCCToServiceAccount(securityClient securitytypedclient.SecurityContextCo
 		Out: out,
 	}
 	return modifySCC.AddSCC()
+}
+
+func AddSCCToGroup(securityClient securitytypedclient.SecurityContextConstraintsGetter, scc string, group string, out io.Writer) error {
+	modifySCC := policy.SCCModificationOptions{
+		SCCName:      scc,
+		SCCInterface: securityClient.SecurityContextConstraints(),
+		IsGroup:      true,
+		Subjects:     authorization.BuildSubjects([]string{}, []string{group}),
+		Out:          out,
+	}
+	return modifySCC.AddSCC()
+}
+
+func RemoveSCCFromGroup(securityClient securitytypedclient.SecurityContextConstraintsGetter, scc string, group string, out io.Writer) error {
+	modifySCC := policy.SCCModificationOptions{
+		SCCName:      scc,
+		SCCInterface: securityClient.SecurityContextConstraints(),
+		IsGroup:      true,
+		Subjects:     authorization.BuildSubjects([]string{}, []string{group}),
+		Out:          out,
+	}
+	return modifySCC.RemoveSCC()
 }
 
 // catFiles concatenates multiple source files into a single destination file

@@ -288,7 +288,7 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&config.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&config.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
-	flags.StringVar(&config.SecurityContextConstraint, "scc", bootstrappolicy.SecurityContextConstraintsAnyUID, "SCC to assign the developer user in the initial namespace")
+	flags.StringVar(&config.SecurityContextConstraint, "scc", bootstrappolicy.SecurityContextConstraintRestricted, "Default security context constraint for authenticated users")
 }
 
 // Start runs the start tasks ensuring that they are executed in sequence
@@ -532,6 +532,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 		serverVersion, _ := c.OpenShiftHelper().ServerVersion()
 		return clusterVersionIsCurrent(serverVersion) && c.ShouldInitializeData()
 	}))
+
+	// Set scc for authenticated users accordingly
+	if c.SecurityContextConstraint != bootstrappolicy.SecurityContextConstraintRestricted {
+		c.addTask(simpleTask("Setting scc for authenticated users", c.SetSCC))
+	}
 
 	// Login with an initial default user
 	c.addTask(conditionalTask("Login to server", c.Login, c.ShouldCreateUser))
@@ -1095,6 +1100,20 @@ func (c *ClientStartConfig) InstallWebConsole(out io.Writer) error {
 	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
 }
 
+// SetSCC changes the default scc for authenticated users
+func (c *ClientStartConfig) SetSCC(out io.Writer) error {
+	sccopts := []string{}
+	group := "system:authenticated"
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	for _, v := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrappolicy.GetBoostrapSCCAccess(bootstrappolicy.DefaultOpenShiftInfraNamespace)) {
+		sccopts = append(sccopts, v.Name)
+	}
+	return c.OpenShiftHelper().SetSCC(f, c.SecurityContextConstraint, contains(sccopts, c.SecurityContextConstraint), sccopts, group, out, os.Stderr)
+}
+
 // ImportImageStreams imports default image streams into the server
 // TODO: Use streams compiled into oc
 func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
@@ -1157,6 +1176,15 @@ func shouldImportAdminTemplates(v semver.Version) bool {
 
 func useAnsible(v semver.Version) bool {
 	return v.GTE(openshiftVersion36)
+}
+
+func contains(o []string, f string) bool {
+	for _, a := range o {
+		if a == f {
+			return true
+		}
+	}
+	return false
 }
 
 // clusterVersionIsCurrent returns whether the cluster version being
