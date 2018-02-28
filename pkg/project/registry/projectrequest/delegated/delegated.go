@@ -185,6 +185,10 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, createValidati
 
 	// Stop on the first error, since we have to delete the whole project if any item in the template fails
 	stopOnErr := configcmd.AfterFunc(func(_ *resource.Info, err error) bool {
+		// if something already exists, we're probably racing a controller.  Don't die
+		if kapierror.IsAlreadyExists(err) {
+			return false
+		}
 		return err != nil
 	})
 

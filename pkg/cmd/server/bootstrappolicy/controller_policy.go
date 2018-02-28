@@ -34,6 +34,7 @@ const (
 	InfraServiceIngressIPControllerServiceAccountName           = "service-ingress-ip-controller"
 	InfraPersistentVolumeRecyclerControllerServiceAccountName   = "pv-recycler-controller"
 	InfraResourceQuotaControllerServiceAccountName              = "resourcequota-controller"
+	InfraDefaultRoleBindingsControllerServiceAccountName        = "default-rolebindings-controller"
 
 	// template instance controller watches for TemplateInstance object creation
 	// and instantiates templates as a result.
@@ -345,6 +346,20 @@ func init() {
 			rbac.NewRule("get").Groups(kapiGroup).Resources("services", "configmaps").RuleOrDie(),
 			rbac.NewRule("get").Groups(legacyRouteGroup).Resources("routes").RuleOrDie(),
 			rbac.NewRule("get").Groups(routeGroup).Resources("routes").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// the controller needs to be bound to the roles it is going to try to create
+	bindControllerRole(InfraDefaultRoleBindingsControllerServiceAccountName, ImagePullerRoleName)
+	bindControllerRole(InfraDefaultRoleBindingsControllerServiceAccountName, ImageBuilderRoleName)
+	bindControllerRole(InfraDefaultRoleBindingsControllerServiceAccountName, DeployerRoleName)
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraDefaultRoleBindingsControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("create").Groups(rbacGroup).Resources("rolebindings").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch").Groups(rbacGroup).Resources("rolebindings").RuleOrDie(),
 			eventsRule(),
 		},
 	})
