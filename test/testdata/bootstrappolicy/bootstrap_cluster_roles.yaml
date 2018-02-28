@@ -2712,6 +2712,13 @@ items:
     - create
   - apiGroups:
     - ""
+    - build.openshift.io
+    resources:
+    - builds
+    verbs:
+    - delete
+  - apiGroups:
+    - ""
     resources:
     - events
     verbs:
