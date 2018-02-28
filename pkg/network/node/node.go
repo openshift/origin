@@ -48,7 +48,7 @@ import (
 
 const (
 	openshiftCNIFile = "80-openshift-network.conf"
-	hostLocalDataDir = "/var/lib/cni"
+	hostLocalDataDir = "/var/lib/cni/networks"
 )
 
 type osdnPolicy interface {

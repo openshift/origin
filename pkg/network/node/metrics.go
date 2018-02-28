@@ -167,7 +167,7 @@ func updateARPMetrics() {
 
 func updatePodIPMetrics() {
 	numAddrs := 0
-	items, err := ioutil.ReadDir(hostLocalDataDir + "/networks/openshift-sdn/")
+	items, err := ioutil.ReadDir(hostLocalDataDir + "/openshift-sdn/")
 	if err != nil && os.IsNotExist(err) {
 		// Don't log an error if the directory doesn't exist (eg, no pods started yet)
 		return
