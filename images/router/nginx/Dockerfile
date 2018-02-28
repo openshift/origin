@@ -27,5 +27,6 @@ USER 1001
 EXPOSE 80 443
 WORKDIR /var/lib/nginx/conf
 ENV TEMPLATE_FILE=/var/lib/nginx/conf/nginx-config.template \
-    RELOAD_SCRIPT=/var/lib/nginx/reload-nginx
+    RELOAD_SCRIPT=/var/lib/nginx/reload-nginx \
+    WORKING_DIR=/var/lib/nginx/router
 ENTRYPOINT ["/usr/bin/openshift-router"]
