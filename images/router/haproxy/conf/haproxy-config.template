@@ -164,15 +164,7 @@ frontend public
   acl secure_redirect base,map_reg(/var/lib/haproxy/conf/os_route_http_redirect.map) -m found
   redirect scheme https if secure_redirect
 
-  # Check if it is an edge or reencrypt route exposed insecurely.
-  acl route_http_expose base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map) -m found
-  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map)] if route_http_expose
-
-  # map to http backend
-  # Search from most specific to general path (host case).
-  # Note: If no match, haproxy uses the default_backend, no other
-  #       use_backend directives below this will be processed.
-  use_backend be_http:%[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
+  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
 
   default_backend openshift_default
 
@@ -233,17 +225,11 @@ frontend fe_sni
   # before matching, or any requests containing uppercase characters will never match.
   http-request set-header Host %[req.hdr(Host),lower]
 
-  # check re-encrypt backends first - from most specific to general path.
-  acl reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-
-  # Search from most specific to general path (host case).
-  use_backend be_secure:%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
-
-  # map to http backend
+  # map to backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http:%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_edge_reencrypt_be.map)]
 
   default_backend openshift_default
 
@@ -274,17 +260,12 @@ frontend fe_no_sni
   # before matching, or any requests containing uppercase characters will never match.
   http-request set-header Host %[req.hdr(Host),lower]
 
-  # check re-encrypt backends first - path or host based.
-  acl reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
 
-  # Search from most specific to general path (host case).
-  use_backend be_secure:%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
-
-  # map to http backend
+  # map to backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http:%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_edge_reencrypt_be.map)]
 
   default_backend openshift_default
 
@@ -494,37 +475,19 @@ backend be_tcp:{{$cfgIdx}}
 {{     end -}}{{/* end if router allows wildcard routes */}}
 {{ end -}}{{/* end wildcard domain map template */}}
 
+
+
 {{/*
-    os_http_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
-                        by attaching a prefix (be_http:) by use_backend statements if acls are matched.
+    os_http_be.map : contains a mapping of www.example.com -> <service name>. This map is used to discover the correct backend
+                         by attaching a prefix: be_http for http routes
+                                                be_edge_http for edge routes with InsecureEdgeTerminationPolicy Allow
+                                                be_secure for reencrypt routes with InsecureEdgeTerminationPolicy Allow
 */}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" -}}
 {{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_http:{{$idx}}
 {{       end -}}
-{{     end -}}
-{{ end -}}{{/* end http host map template */}}
-
-{{/*
-    os_edge_http_be.map: same as os_http_be.map but allows us to separate tls from non-tls routes to ensure we don't expose
-                            a tls only route on the unsecure port
-*/}}
-{{ define "/var/lib/haproxy/conf/os_edge_http_be.map" -}}
-{{     range $idx, $cfg := .State -}}
-{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
-{{       end -}}
-{{     end -}}
-{{ end -}}{{/* end edge http host map template */}}
-
-{{/*
-    os_route_http_expose.map: contains a mapping of www.example.com -> <service name>.
-    Map is used to also expose edge terminated and reencrypt routes via an insecure scheme
-    (http) if acls match for routes with insecure option set to expose.
-*/}}
-{{ define "/var/lib/haproxy/conf/os_route_http_expose.map" -}}
-{{     range $idx, $cfg := .State -}}
 {{       if and (ne $cfg.Host "") (and (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") (eq $cfg.InsecureEdgeTerminationPolicy "Allow")) -}}
 {{         if (eq $cfg.TLSTermination "edge") -}}
 {{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http:{{$idx}}
@@ -533,7 +496,24 @@ backend be_tcp:{{$cfgIdx}}
 {{         end -}}
 {{       end -}}
 {{     end -}}
-{{ end -}}{{/* end edge and reencrypt expose http host map template */}}
+{{ end -}}
+
+{{/*
+    os_edge_reencrypt_be.map : contains a mapping of www.example.com -> <service name>. This map is similar to os_http_be.map but for tls routes.
+                         by attaching prefix: be_edge_http for edge terminated routes
+                                              be_secure for reencrypt routes
+*/}}
+{{ define "/var/lib/haproxy/conf/os_edge_reencrypt_be.map" -}}
+{{     range $idx, $cfg := .State -}}
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge") -}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http:{{$idx}}
+{{       end -}}
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") -}}
+{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_secure:{{$idx}}
+{{       end -}}
+{{     end -}}
+{{ end -}}{{/* end edge http host map template */}}
+
 
 {{/*
     os_route_http_redirect.map: contains a mapping of www.example.com -> <service name>.
@@ -572,19 +552,6 @@ backend be_tcp:{{$cfgIdx}}
 {{       end -}}
 {{     end -}}
 {{ end -}}{{/* end sni passthrough map template */}}
-
-
-{{/*
-    os_reencrypt.map: marker that the host is configured to use a secure backend, allows the selection of a backend
-                    that does specific checks that avoid mitm attacks: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-ssl
-*/}}
-{{ define "/var/lib/haproxy/conf/os_reencrypt.map" -}}
-{{     range $idx, $cfg := .State -}}
-{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") -}}
-{{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} {{$idx}}
-{{       end -}}
-{{     end -}}
-{{ end -}}{{/* end reencrypt map template */}}
 
 {{/*
     cert_config.map: contains a mapping of <cert-file> -> example.org
