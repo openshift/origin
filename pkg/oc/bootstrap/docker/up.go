@@ -27,6 +27,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
@@ -218,27 +219,28 @@ type CommonStartConfig struct {
 	Out   io.Writer
 	Tasks []task
 
-	HostName                 string
-	LocalConfigDir           string
-	UseExistingConfig        bool
-	Environment              []string
-	ServerLogLevel           int
-	HostVolumesDir           string
-	HostConfigDir            string
-	HostDataDir              string
-	UsePorts                 []int
-	DNSPort                  int
-	ServerIP                 string
-	AdditionalIPs            []string
-	UseNsenterMount          bool
-	PublicHostname           string
-	RoutingSuffix            string
-	HostPersistentVolumesDir string
-	HTTPProxy                string
-	HTTPSProxy               string
-	NoProxy                  []string
-	CACert                   string
-	PVCount                  int
+	HostName                  string
+	LocalConfigDir            string
+	UseExistingConfig         bool
+	Environment               []string
+	ServerLogLevel            int
+	HostVolumesDir            string
+	HostConfigDir             string
+	HostDataDir               string
+	UsePorts                  []int
+	DNSPort                   int
+	ServerIP                  string
+	AdditionalIPs             []string
+	UseNsenterMount           bool
+	PublicHostname            string
+	RoutingSuffix             string
+	HostPersistentVolumesDir  string
+	HTTPProxy                 string
+	HTTPSProxy                string
+	NoProxy                   []string
+	CACert                    string
+	PVCount                   int
+	SecurityContextConstraint string
 
 	dockerClient    dockerhelper.Interface
 	dockerHelper    *dockerhelper.Helper
@@ -286,6 +288,7 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&config.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&config.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
+	flags.StringVar(&config.SecurityContextConstraint, "scc", bootstrappolicy.SecurityContextConstraintsAnyUID, "SCC to assign the developer user in the initial namespace")
 }
 
 // Start runs the start tasks ensuring that they are executed in sequence
@@ -944,25 +947,26 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	}
 
 	opt := &openshift.StartOptions{
-		ServerIP:                 c.ServerIP,
-		AdditionalIPs:            c.AdditionalIPs,
-		RoutingSuffix:            c.RoutingSuffix,
-		UseSharedVolume:          !c.UseNsenterMount,
-		Images:                   c.imageFormat(),
-		HostVolumesDir:           c.HostVolumesDir,
-		HostConfigDir:            c.HostConfigDir,
-		HostDataDir:              c.HostDataDir,
-		HostPersistentVolumesDir: c.HostPersistentVolumesDir,
-		UseExistingConfig:        c.UseExistingConfig,
-		Environment:              c.Environment,
-		LogLevel:                 c.ServerLogLevel,
-		DNSPort:                  c.DNSPort,
-		PortForwarding:           c.PortForwarding,
-		HTTPProxy:                c.HTTPProxy,
-		HTTPSProxy:               c.HTTPSProxy,
-		NoProxy:                  c.NoProxy,
-		DockerRoot:               dockerRoot,
-		ServiceCatalog:           c.ShouldInstallServiceCatalog,
+		ServerIP:                  c.ServerIP,
+		AdditionalIPs:             c.AdditionalIPs,
+		RoutingSuffix:             c.RoutingSuffix,
+		UseSharedVolume:           !c.UseNsenterMount,
+		Images:                    c.imageFormat(),
+		HostVolumesDir:            c.HostVolumesDir,
+		HostConfigDir:             c.HostConfigDir,
+		HostDataDir:               c.HostDataDir,
+		HostPersistentVolumesDir:  c.HostPersistentVolumesDir,
+		UseExistingConfig:         c.UseExistingConfig,
+		Environment:               c.Environment,
+		LogLevel:                  c.ServerLogLevel,
+		DNSPort:                   c.DNSPort,
+		PortForwarding:            c.PortForwarding,
+		HTTPProxy:                 c.HTTPProxy,
+		HTTPSProxy:                c.HTTPSProxy,
+		NoProxy:                   c.NoProxy,
+		DockerRoot:                dockerRoot,
+		ServiceCatalog:            c.ShouldInstallServiceCatalog,
+		SecurityContextConstraint: c.SecurityContextConstraint,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
