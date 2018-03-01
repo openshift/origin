@@ -491,7 +491,7 @@ func (t *BuildResult) dumpRegistryLogs() {
 	// here so we can restore it when done with registry logs
 	savedNamespace := t.Oc.Namespace()
 	oadm := t.Oc.AsAdmin().SetNamespace("default")
-	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since="+since.String()).Output()
+	out, err := oadm.Run("logs").Args("deploy/docker-registry", "--since="+since.String()).Output()
 	if err != nil {
 		e2e.Logf("Error during log retrieval: %+v\n", err)
 	} else {

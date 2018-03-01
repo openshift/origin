@@ -47,10 +47,10 @@ var (
 
 	probeExample = templates.Examples(`
 		# Clear both readiness and liveness probes off all containers
-	  %[1]s probe dc/registry --remove --readiness --liveness
+	  %[1]s probe deploy/docker-registry --remove --readiness --liveness
 
 	  # Set an exec action as a liveness probe to run 'echo ok'
-	  %[1]s probe dc/registry --liveness -- echo ok
+	  %[1]s probe deploy/docker-registry --liveness -- echo ok
 
 	  # Set a readiness probe to try to open a TCP socket on 3306
 	  %[1]s probe rc/mysql --readiness --open-tcp=3306
@@ -59,7 +59,7 @@ var (
 	  %[1]s probe dc/webapp --readiness --get-url=http://:8080/healthz
 
 	  # Set an HTTP readiness probe over HTTPS on 127.0.0.1 for a hostNetwork pod
-	  %[1]s probe dc/router --readiness --get-url=https://127.0.0.1:1936/stats
+	  %[1]s probe deploy/router --readiness --get-url=https://127.0.0.1:1936/stats
 
 	  # Set only the initial-delay-seconds field on all deployments
 	  %[1]s probe dc --all --readiness --initial-delay-seconds=30`)

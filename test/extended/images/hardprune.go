@@ -425,7 +425,7 @@ func LogRegistryPod(oc *exutil.CLI) error {
 
 	ocLocal := *oc
 	ocLocal.SetOutputDir(exutil.ArtifactDirPath())
-	path, err := ocLocal.Run("logs").Args("dc/docker-registry").OutputToFile("pod-" + pod.Name + ".log")
+	path, err := ocLocal.Run("logs").Args("deploy/docker-registry").OutputToFile("pod-" + pod.Name + ".log")
 	if err == nil {
 		fmt.Fprintf(g.GinkgoWriter, "written registry pod log to %s\n", path)
 	}
@@ -437,7 +437,7 @@ func LogRegistryPod(oc *exutil.CLI) error {
 func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error {
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
 	oc = oc.SetNamespace(metav1.NamespaceDefault).AsAdmin()
-	env, err := oc.Run("env").Args("dc/docker-registry", "--list").Output()
+	env, err := oc.Run("env").Args("deploy/docker-registry", "--list").Output()
 	if err != nil {
 		return err
 	}
@@ -473,7 +473,7 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error
 		fmt.Fprintf(g.GinkgoWriter, "failed to log registry pod: %v\n", err)
 	}
 
-	err = oc.Run("env").Args(append([]string{"dc/docker-registry"}, envOverrides...)...).Execute()
+	err = oc.Run("env").Args(append([]string{"deploy/docker-registry"}, envOverrides...)...).Execute()
 	if err != nil {
 		return fmt.Errorf("failed to update registry's environment with %s: %v", &waitForVersion, err)
 	}
@@ -502,7 +502,7 @@ func makeReadonlyEnvValue(on bool) string {
 func GetRegistryStorageSize(oc *exutil.CLI) (int64, error) {
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
 	out, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("rsh").Args(
-		"dc/docker-registry", "du", "--bytes", "--summarize", "/registry/docker/registry").Output()
+		"deploy/docker-registry", "du", "--bytes", "--summarize", "/registry/docker/registry").Output()
 	if err != nil {
 		return 0, err
 	}
@@ -523,7 +523,7 @@ func GetRegistryStorageSize(oc *exutil.CLI) (int64, error) {
 // schema 2.
 func DoesRegistryAcceptSchema2(oc *exutil.CLI) (bool, error) {
 	defer func(ns string) { oc.SetNamespace(ns) }(oc.Namespace())
-	env, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("env").Args("dc/docker-registry", "--list").Output()
+	env, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("env").Args("deploy/docker-registry", "--list").Output()
 	if err != nil {
 		return defaultAcceptSchema2, err
 	}

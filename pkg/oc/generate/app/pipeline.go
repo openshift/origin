@@ -372,6 +372,11 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 			if svc != nil {
 				svcs = append(svcs, svc)
 			}
+		case *extensions.Deployment:
+			svc := addServiceInternal(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Selector.MatchLabels, firstPortOnly)
+			if svc != nil {
+				svcs = append(svcs, svc)
+			}
 		case *extensions.DaemonSet:
 			svc := addServiceInternal(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Template.Labels, firstPortOnly)
 			if svc != nil {

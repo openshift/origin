@@ -323,7 +323,7 @@ os::cmd::expect_success "oc adm policy add-scc-to-user privileged system:service
 os::cmd::expect_success_and_text "oc adm router -o yaml --service-account=router -n default" 'image:.*\-haproxy\-router:'
 os::cmd::expect_success "oc adm router --images='${USE_IMAGES}' --service-account=router -n default"
 os::cmd::expect_success_and_text 'oc adm router -n default' 'service exists'
-os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc get deploy/router -o yaml -n default' 'readinessProbe'
 echo "router: ok"
 os::test::junit::declare_suite_end
 
@@ -345,8 +345,8 @@ os::cmd::expect_success_and_text "oc adm registry -o yaml" 'image:.*\-docker\-re
 os::cmd::expect_success "oc adm registry --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm registry' 'service exists'
 os::cmd::expect_success_and_text 'oc describe svc/docker-registry' 'Session Affinity:\s*ClientIP'
-os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' 'readinessProbe'
-os::cmd::expect_success_and_text 'oc env --list dc/docker-registry' 'REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA=false'
+os::cmd::expect_success_and_text 'oc get deploy/docker-registry -o yaml' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc env --list deploy/docker-registry' 'REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA=false'
 echo "registry: ok"
 os::test::junit::declare_suite_end
 
@@ -355,7 +355,7 @@ workingdir=$(mktemp -d)
 os::cmd::expect_success "oc adm registry -o yaml > ${workingdir}/oadm_registry.yaml"
 os::util::sed "s/5000/6000/g" ${workingdir}/oadm_registry.yaml
 os::cmd::expect_success "oc apply -f ${workingdir}/oadm_registry.yaml"
-os::cmd::expect_success_and_text 'oc get dc/docker-registry -o yaml' '6000'
+os::cmd::expect_success_and_text 'oc get deploy/docker-registry -o yaml' '6000'
 echo "apply: ok"
 os::test::junit::declare_suite_end
 

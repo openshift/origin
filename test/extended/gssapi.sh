@@ -51,7 +51,7 @@ os::start::server
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 os::start::registry
-os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::cmd::expect_success 'oc rollout status deploy/docker-registry'
 
 os::cmd::expect_success 'oc login -u system:admin'
 os::cmd::expect_success "oc new-project ${project_name}"

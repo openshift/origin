@@ -39,7 +39,7 @@ oc login -u system:admin -n default
 oc adm policy add-role-to-group view system:authenticated -n default
 
 os::start::registry
-oc rollout status dc/docker-registry
+oc rollout status deploy/docker-registry
 docker_registry="$( oc get service/docker-registry -n default -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}' )"
 
 os::test::junit::declare_suite_start "extended/cmd"
