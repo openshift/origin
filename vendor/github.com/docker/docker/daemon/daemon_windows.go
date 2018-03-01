@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/Microsoft/hcsshim"
 	"github.com/docker/docker/api/types"
@@ -38,9 +37,6 @@ const (
 	windowsMaxCPUShares  = 10000
 	windowsMinCPUPercent = 1
 	windowsMaxCPUPercent = 100
-	windowsMinCPUCount   = 1
-
-	errInvalidState = syscall.Errno(0x139F)
 )
 
 // Windows has no concept of an execution state directory. So use config.Root here.
@@ -58,22 +54,6 @@ func (daemon *Daemon) parseSecurityOpt(container *container.Container, hostConfi
 
 func parseSecurityOpt(container *container.Container, config *containertypes.HostConfig) error {
 	return nil
-}
-
-func getBlkioReadIOpsDevices(config *containertypes.HostConfig) ([]blkiodev.ThrottleDevice, error) {
-	return nil, nil
-}
-
-func getBlkioWriteIOpsDevices(config *containertypes.HostConfig) ([]blkiodev.ThrottleDevice, error) {
-	return nil, nil
-}
-
-func getBlkioReadBpsDevices(config *containertypes.HostConfig) ([]blkiodev.ThrottleDevice, error) {
-	return nil, nil
-}
-
-func getBlkioWriteBpsDevices(config *containertypes.HostConfig) ([]blkiodev.ThrottleDevice, error) {
-	return nil, nil
 }
 
 func (daemon *Daemon) getLayerInit() func(string) error {
@@ -231,7 +211,8 @@ func verifyPlatformContainerSettings(daemon *Daemon, hostConfig *containertypes.
 
 // reloadPlatform updates configuration with platform specific options
 // and updates the passed attributes
-func (daemon *Daemon) reloadPlatform(config *config.Config, attributes map[string]string) {
+func (daemon *Daemon) reloadPlatform(config *config.Config, attributes map[string]string) error {
+	return nil
 }
 
 // verifyDaemonSettings performs validation of daemon config struct
@@ -519,14 +500,14 @@ func driverOptions(config *config.Config) []nwconfig.Option {
 
 func (daemon *Daemon) stats(c *container.Container) (*types.StatsJSON, error) {
 	if !c.IsRunning() {
-		return nil, errNotRunning{c.ID}
+		return nil, errNotRunning(c.ID)
 	}
 
 	// Obtain the stats from HCS via libcontainerd
 	stats, err := daemon.containerd.Stats(c.ID)
 	if err != nil {
 		if strings.Contains(err.Error(), "container not found") {
-			return nil, errNotFound{c.ID}
+			return nil, containerNotFound(c.ID)
 		}
 		return nil, err
 	}

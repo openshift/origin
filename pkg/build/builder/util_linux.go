@@ -8,10 +8,10 @@ import (
 	"os"
 	"strconv"
 
-	crioclient "github.com/kubernetes-incubator/cri-o/client"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
+
+	"github.com/openshift/origin/pkg/build/builder/crioclient"
 )
 
 // getContainerNetworkConfig determines whether the builder is running as a container
@@ -40,7 +40,7 @@ func getContainerNetworkConfig() (string, string, error) {
 			return "", "", err
 		}
 		pid := strconv.Itoa(info.Pid)
-		resolvConfHostPath := info.CrioAnnotations[annotations.ResolvPath]
+		resolvConfHostPath := info.CrioAnnotations[crioclient.ResolvPath]
 		if len(resolvConfHostPath) == 0 {
 			return "", "", errors.New("/etc/resolv.conf hostpath is empty")
 		}

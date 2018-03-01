@@ -3,7 +3,6 @@ package volume
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -284,12 +283,7 @@ func ParseMountRaw(raw, volumeDriver string) (*MountPoint, error) {
 		return nil, errInvalidMode(mode)
 	}
 
-	if filepath.IsAbs(spec.Source) {
-		spec.Type = mounttypes.TypeBind
-	} else {
-		spec.Type = mounttypes.TypeVolume
-	}
-
+	spec.Type = detectMountType(spec.Source)
 	spec.ReadOnly = !ReadWrite(mode)
 
 	// cannot assume that if a volume driver is passed in that we should set it
@@ -316,7 +310,7 @@ func ParseMountRaw(raw, volumeDriver string) (*MountPoint, error) {
 		mp.Mode = mode
 	}
 	if err != nil {
-		err = fmt.Errorf("%v: %v", errInvalidSpec(raw), err)
+		err = errors.Wrap(err, errInvalidSpec(raw).Error())
 	}
 	return mp, err
 }
@@ -324,7 +318,7 @@ func ParseMountRaw(raw, volumeDriver string) (*MountPoint, error) {
 // ParseMountSpec reads a mount config, validates it, and configures a mountpoint from it.
 func ParseMountSpec(cfg mounttypes.Mount, options ...func(*validateOpts)) (*MountPoint, error) {
 	if err := validateMountConfig(&cfg, options...); err != nil {
-		return nil, err
+		return nil, validationError{err}
 	}
 	mp := &MountPoint{
 		RW:          !cfg.ReadOnly,
@@ -350,7 +344,7 @@ func ParseMountSpec(cfg mounttypes.Mount, options ...func(*validateOpts)) (*Moun
 				mp.CopyData = false
 			}
 		}
-	case mounttypes.TypeBind:
+	case mounttypes.TypeBind, mounttypes.TypeNamedPipe:
 		mp.Source = clean(convertSlash(cfg.Source))
 		if cfg.BindOptions != nil && len(cfg.BindOptions.Propagation) > 0 {
 			mp.Propagation = cfg.BindOptions.Propagation
@@ -366,9 +360,9 @@ func ParseMountSpec(cfg mounttypes.Mount, options ...func(*validateOpts)) (*Moun
 }
 
 func errInvalidMode(mode string) error {
-	return fmt.Errorf("invalid mode: %v", mode)
+	return validationError{errors.Errorf("invalid mode: %v", mode)}
 }
 
 func errInvalidSpec(spec string) error {
-	return fmt.Errorf("invalid volume specification: '%s'", spec)
+	return validationError{errors.Errorf("invalid volume specification: '%s'", spec)}
 }

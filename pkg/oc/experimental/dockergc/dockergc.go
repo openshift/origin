@@ -16,8 +16,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	dockertypes "github.com/docker/engine-api/types"
-	dockerfilters "github.com/docker/engine-api/types/filters"
+	dockertypes "github.com/docker/docker/api/types"
+	dockerfilters "github.com/docker/docker/api/types/filters"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -134,7 +134,7 @@ func (s oldestContainersFirst) Len() int           { return len(s) }
 func (s oldestContainersFirst) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s oldestContainersFirst) Less(i, j int) bool { return s[i].Created < s[j].Created }
 
-type oldestImagesFirst []dockertypes.Image
+type oldestImagesFirst []dockertypes.ImageSummary
 
 func (s oldestImagesFirst) Len() int           { return len(s) }
 func (s oldestImagesFirst) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
@@ -167,7 +167,7 @@ func doGarbageCollection(client *dockerClient, options *dockerGCConfigCmdOptions
 	// conatiners
 	exitedFilter := dockerfilters.NewArgs()
 	exitedFilter.Add("status", "exited")
-	containers, err := client.ContainerList(dockertypes.ContainerListOptions{All: true, Filter: exitedFilter})
+	containers, err := client.ContainerList(dockertypes.ContainerListOptions{All: true, Filters: exitedFilter})
 	if err != nil {
 		return err
 	}

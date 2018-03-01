@@ -3,11 +3,9 @@
 package container
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/docker/docker/api/types"
 	containertypes "github.com/docker/docker/api/types/container"
@@ -19,6 +17,7 @@ import (
 	"github.com/docker/docker/pkg/system"
 	"github.com/docker/docker/volume"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -171,47 +170,47 @@ func (container *Container) HasMountFor(path string) bool {
 	return exists
 }
 
-// UnmountIpcMounts uses the provided unmount function to unmount shm and mqueue if they were mounted
-func (container *Container) UnmountIpcMounts(unmount func(pth string) error) {
-	if container.HostConfig.IpcMode.IsContainer() || container.HostConfig.IpcMode.IsHost() {
-		return
+// UnmountIpcMount uses the provided unmount function to unmount shm if it was mounted
+func (container *Container) UnmountIpcMount(unmount func(pth string) error) error {
+	if container.HasMountFor("/dev/shm") {
+		return nil
 	}
 
-	var warnings []string
-
-	if !container.HasMountFor("/dev/shm") {
-		shmPath, err := container.ShmResourcePath()
-		if err != nil {
-			logrus.Error(err)
-			warnings = append(warnings, err.Error())
-		} else if shmPath != "" {
-			if err := unmount(shmPath); err != nil && !os.IsNotExist(err) {
-				if mounted, mErr := mount.Mounted(shmPath); mounted || mErr != nil {
-					warnings = append(warnings, fmt.Sprintf("failed to umount %s: %v", shmPath, err))
-				}
-			}
-
+	// container.ShmPath should not be used here as it may point
+	// to the host's or other container's /dev/shm
+	shmPath, err := container.ShmResourcePath()
+	if err != nil {
+		return err
+	}
+	if shmPath == "" {
+		return nil
+	}
+	if err = unmount(shmPath); err != nil && !os.IsNotExist(err) {
+		if mounted, mErr := mount.Mounted(shmPath); mounted || mErr != nil {
+			return errors.Wrapf(err, "umount %s", shmPath)
 		}
 	}
-
-	if len(warnings) > 0 {
-		logrus.Warnf("failed to cleanup ipc mounts:\n%v", strings.Join(warnings, "\n"))
-	}
+	return nil
 }
 
 // IpcMounts returns the list of IPC mounts
 func (container *Container) IpcMounts() []Mount {
 	var mounts []Mount
 
-	if !container.HasMountFor("/dev/shm") {
-		label.SetFileLabel(container.ShmPath, container.MountLabel)
-		mounts = append(mounts, Mount{
-			Source:      container.ShmPath,
-			Destination: "/dev/shm",
-			Writable:    true,
-			Propagation: string(volume.DefaultPropagationMode),
-		})
+	if container.HasMountFor("/dev/shm") {
+		return mounts
 	}
+	if container.ShmPath == "" {
+		return mounts
+	}
+
+	label.SetFileLabel(container.ShmPath, container.MountLabel)
+	mounts = append(mounts, Mount{
+		Source:      container.ShmPath,
+		Destination: "/dev/shm",
+		Writable:    true,
+		Propagation: string(volume.DefaultPropagationMode),
+	})
 
 	return mounts
 }
@@ -262,6 +261,14 @@ func (container *Container) ConfigMounts() []Mount {
 	return mounts
 }
 
+type conflictingUpdateOptions string
+
+func (e conflictingUpdateOptions) Error() string {
+	return string(e)
+}
+
+func (e conflictingUpdateOptions) Conflict() {}
+
 // UpdateContainer updates configuration of a container. Callers must hold a Lock on the Container.
 func (container *Container) UpdateContainer(hostConfig *containertypes.HostConfig) error {
 	// update resources of container
@@ -273,16 +280,16 @@ func (container *Container) UpdateContainer(hostConfig *containertypes.HostConfi
 	// once NanoCPU is already set, updating CPUPeriod/CPUQuota will be blocked, and vice versa.
 	// In the following we make sure the intended update (resources) does not conflict with the existing (cResource).
 	if resources.NanoCPUs > 0 && cResources.CPUPeriod > 0 {
-		return fmt.Errorf("Conflicting options: Nano CPUs cannot be updated as CPU Period has already been set")
+		return conflictingUpdateOptions("Conflicting options: Nano CPUs cannot be updated as CPU Period has already been set")
 	}
 	if resources.NanoCPUs > 0 && cResources.CPUQuota > 0 {
-		return fmt.Errorf("Conflicting options: Nano CPUs cannot be updated as CPU Quota has already been set")
+		return conflictingUpdateOptions("Conflicting options: Nano CPUs cannot be updated as CPU Quota has already been set")
 	}
 	if resources.CPUPeriod > 0 && cResources.NanoCPUs > 0 {
-		return fmt.Errorf("Conflicting options: CPU Period cannot be updated as NanoCPUs has already been set")
+		return conflictingUpdateOptions("Conflicting options: CPU Period cannot be updated as NanoCPUs has already been set")
 	}
 	if resources.CPUQuota > 0 && cResources.NanoCPUs > 0 {
-		return fmt.Errorf("Conflicting options: CPU Quota cannot be updated as NanoCPUs has already been set")
+		return conflictingUpdateOptions("Conflicting options: CPU Quota cannot be updated as NanoCPUs has already been set")
 	}
 
 	if resources.BlkioWeight != 0 {
@@ -310,7 +317,7 @@ func (container *Container) UpdateContainer(hostConfig *containertypes.HostConfi
 		// if memory limit smaller than already set memoryswap limit and doesn't
 		// update the memoryswap limit, then error out.
 		if resources.Memory > cResources.MemorySwap && resources.MemorySwap == 0 {
-			return fmt.Errorf("Memory limit should be smaller than already set memoryswap limit, update the memoryswap at the same time")
+			return conflictingUpdateOptions("Memory limit should be smaller than already set memoryswap limit, update the memoryswap at the same time")
 		}
 		cResources.Memory = resources.Memory
 	}
@@ -327,7 +334,7 @@ func (container *Container) UpdateContainer(hostConfig *containertypes.HostConfi
 	// update HostConfig of container
 	if hostConfig.RestartPolicy.Name != "" {
 		if container.HostConfig.AutoRemove && !hostConfig.RestartPolicy.IsNone() {
-			return fmt.Errorf("Restart policy cannot be updated because AutoRemove is enabled for the container")
+			return conflictingUpdateOptions("Restart policy cannot be updated because AutoRemove is enabled for the container")
 		}
 		container.HostConfig.RestartPolicy = hostConfig.RestartPolicy
 	}

@@ -16,8 +16,8 @@ import (
 	"github.com/docker/docker/integration-cli/daemon"
 	"github.com/docker/docker/integration-cli/fixtures/plugin"
 	"github.com/docker/docker/integration-cli/request"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
 	"github.com/go-check/check"
+	"github.com/gotestyourself/gotestyourself/icmd"
 	"golang.org/x/net/context"
 )
 
@@ -462,7 +462,7 @@ enabled: false`, id, name)
 }
 
 func (s *DockerSuite) TestPluginUpgrade(c *check.C) {
-	testRequires(c, DaemonIsLinux, Network, SameHostDaemon, IsAmd64)
+	testRequires(c, DaemonIsLinux, Network, SameHostDaemon, IsAmd64, NotUserNamespace)
 	plugin := "cpuguy83/docker-volume-driver-plugin-local:latest"
 	pluginV2 := "cpuguy83/docker-volume-driver-plugin-local:v2"
 

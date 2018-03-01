@@ -13,6 +13,7 @@ import (
 )
 
 func TestGet(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    []string
 		query    string
@@ -33,6 +34,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    []string
 		query    string
@@ -52,6 +54,7 @@ func TestExists(t *testing.T) {
 }
 
 func TestGetBool(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    string
 		expected bool
@@ -74,6 +77,7 @@ func TestGetBool(t *testing.T) {
 }
 
 func TestSetBool(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    bool
 		expected string
@@ -90,6 +94,7 @@ func TestSetBool(t *testing.T) {
 }
 
 func TestGetInt(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    string
 		expected int
@@ -106,6 +111,7 @@ func TestGetInt(t *testing.T) {
 }
 
 func TestSetInt(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    int
 		expected string
@@ -123,6 +129,7 @@ func TestSetInt(t *testing.T) {
 }
 
 func TestGetInt64(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    string
 		expected int64
@@ -139,6 +146,7 @@ func TestGetInt64(t *testing.T) {
 }
 
 func TestSetInt64(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    int64
 		expected string
@@ -156,6 +164,7 @@ func TestSetInt64(t *testing.T) {
 }
 
 func TestGetJSON(t *testing.T) {
+	t.Parallel()
 	var p struct {
 		Name string `json:"name"`
 		Age  int    `json:"age"`
@@ -175,6 +184,7 @@ func TestGetJSON(t *testing.T) {
 }
 
 func TestGetJSONAbsent(t *testing.T) {
+	t.Parallel()
 	var l []string
 	var env Env
 	err := env.GetJSON("person", &l)
@@ -187,6 +197,7 @@ func TestGetJSONAbsent(t *testing.T) {
 }
 
 func TestGetJSONFailure(t *testing.T) {
+	t.Parallel()
 	var p []string
 	var env Env
 	env.Set("list-person", `{"name":"Gopher","age":5}`)
@@ -197,6 +208,7 @@ func TestGetJSONFailure(t *testing.T) {
 }
 
 func TestSetJSON(t *testing.T) {
+	t.Parallel()
 	var p1 = struct {
 		Name string `json:"name"`
 		Age  int    `json:"age"`
@@ -220,6 +232,7 @@ func TestSetJSON(t *testing.T) {
 }
 
 func TestSetJSONFailure(t *testing.T) {
+	t.Parallel()
 	var env Env
 	err := env.SetJSON("person", unmarshable{})
 	if err == nil {
@@ -231,6 +244,7 @@ func TestSetJSONFailure(t *testing.T) {
 }
 
 func TestGetList(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    string
 		expected []string
@@ -249,6 +263,7 @@ func TestGetList(t *testing.T) {
 }
 
 func TestSetList(t *testing.T) {
+	t.Parallel()
 	list := []string{"a", "b", "c"}
 	var env Env
 	if err := env.SetList("SOME", list); err != nil {
@@ -260,6 +275,7 @@ func TestSetList(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
+	t.Parallel()
 	var env Env
 	env.Set("PATH", "/home/bin:/bin")
 	env.Set("SOMETHING", "/usr/bin")
@@ -273,6 +289,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input       string
 		expectedOut []string
@@ -306,6 +323,7 @@ func TestDecode(t *testing.T) {
 }
 
 func TestSetAuto(t *testing.T) {
+	t.Parallel()
 	buf := bytes.NewBufferString("oi")
 	var tests = []struct {
 		input    interface{}
@@ -327,11 +345,13 @@ func TestSetAuto(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input    []string
 		expected map[string]string
 	}{
 		{[]string{"PATH=/usr/bin:/bin", "PYTHONPATH=/usr/local"}, map[string]string{"PATH": "/usr/bin:/bin", "PYTHONPATH": "/usr/local"}},
+		{[]string{"ENABLE_LOGGING", "PYTHONPATH=/usr/local"}, map[string]string{"ENABLE_LOGGING": "", "PYTHONPATH": "/usr/local"}},
 		{nil, nil},
 	}
 	for _, tt := range tests {

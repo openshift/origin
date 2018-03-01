@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	dockerclient "github.com/docker/engine-api/client"
+	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -160,11 +160,10 @@ func Client(name string) (dockerhelper.Interface, error) {
 		}
 	}
 
-	engineAPIClient, err := dockerclient.NewClient(dockerHost, "", httpClient, nil)
+	engineAPIClient, err := dockerclient.NewClient(dockerHost, "1.24", httpClient, nil)
 	if err != nil {
 		return nil, errors.NewError("cannot create Docker engine API client").WithCause(err)
 	}
-
 	return dockerhelper.NewClient(dockerHost, engineAPIClient), nil
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2015 go-dockerclient authors. All rights reserved.
+// Copyright 2013 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -19,10 +19,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fsouza/go-dockerclient/external/github.com/hashicorp/go-cleanhttp"
+	"golang.org/x/net/context"
 )
 
 func TestNewAPIClient(t *testing.T) {
+	t.Parallel()
 	endpoint := "http://localhost:4243"
 	client, err := NewClient(endpoint)
 	if err != nil {
@@ -31,8 +32,8 @@ func TestNewAPIClient(t *testing.T) {
 	if client.endpoint != endpoint {
 		t.Errorf("Expected endpoint %s. Got %s.", endpoint, client.endpoint)
 	}
-	// test unix socket endpoints
-	endpoint = "unix:///var/run/docker.sock"
+	// test native endpoints
+	endpoint = nativeRealEndpoint
 	client, err = NewClient(endpoint)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +57,7 @@ func newTLSClient(endpoint string) (*Client, error) {
 }
 
 func TestNewTSLAPIClient(t *testing.T) {
+	t.Parallel()
 	endpoint := "https://localhost:4243"
 	client, err := newTLSClient(endpoint)
 	if err != nil {
@@ -73,6 +75,7 @@ func TestNewTSLAPIClient(t *testing.T) {
 }
 
 func TestNewVersionedClient(t *testing.T) {
+	t.Parallel()
 	endpoint := "http://localhost:4243"
 	client, err := NewVersionedClient(endpoint, "1.12")
 	if err != nil {
@@ -90,6 +93,7 @@ func TestNewVersionedClient(t *testing.T) {
 }
 
 func TestNewVersionedClientFromEnv(t *testing.T) {
+	t.Parallel()
 	endpoint := "tcp://localhost:2376"
 	endpointURL := "http://localhost:2376"
 	os.Setenv("DOCKER_HOST", endpoint)
@@ -113,6 +117,7 @@ func TestNewVersionedClientFromEnv(t *testing.T) {
 }
 
 func TestNewVersionedClientFromEnvTLS(t *testing.T) {
+	t.Parallel()
 	endpoint := "tcp://localhost:2376"
 	endpointURL := "https://localhost:2376"
 	base, _ := os.Getwd()
@@ -138,6 +143,7 @@ func TestNewVersionedClientFromEnvTLS(t *testing.T) {
 }
 
 func TestNewTLSVersionedClient(t *testing.T) {
+	t.Parallel()
 	certPath := "testing/data/cert.pem"
 	keyPath := "testing/data/key.pem"
 	caPath := "testing/data/ca.pem"
@@ -157,7 +163,29 @@ func TestNewTLSVersionedClient(t *testing.T) {
 	}
 }
 
+func TestNewTLSVersionedClientNoClientCert(t *testing.T) {
+	t.Parallel()
+	certPath := "testing/data/cert_doesnotexist.pem"
+	keyPath := "testing/data/key_doesnotexist.pem"
+	caPath := "testing/data/ca.pem"
+	endpoint := "https://localhost:4243"
+	client, err := NewVersionedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.endpoint != endpoint {
+		t.Errorf("Expected endpoint %s. Got %s.", endpoint, client.endpoint)
+	}
+	if reqVersion := client.requestedAPIVersion.String(); reqVersion != "1.14" {
+		t.Errorf("Wrong requestAPIVersion. Want %q. Got %q.", "1.14", reqVersion)
+	}
+	if client.SkipServerVersionCheck {
+		t.Error("Expected SkipServerVersionCheck to be false, got true")
+	}
+}
+
 func TestNewTLSVersionedClientInvalidCA(t *testing.T) {
+	t.Parallel()
 	certPath := "testing/data/cert.pem"
 	keyPath := "testing/data/key.pem"
 	caPath := "testing/data/key.pem"
@@ -168,7 +196,20 @@ func TestNewTLSVersionedClientInvalidCA(t *testing.T) {
 	}
 }
 
+func TestNewTLSVersionedClientInvalidCANoClientCert(t *testing.T) {
+	t.Parallel()
+	certPath := "testing/data/cert_doesnotexist.pem"
+	keyPath := "testing/data/key_doesnotexist.pem"
+	caPath := "testing/data/key.pem"
+	endpoint := "https://localhost:4243"
+	_, err := NewVersionedTLSClient(endpoint, certPath, keyPath, caPath, "1.14")
+	if err == nil {
+		t.Errorf("Expected invalid ca at %s", caPath)
+	}
+}
+
 func TestNewClientInvalidEndpoint(t *testing.T) {
+	t.Parallel()
 	cases := []string{
 		"htp://localhost:3243", "http://localhost:a",
 		"", "http://localhost:8080:8383", "http://localhost:65536",
@@ -186,6 +227,7 @@ func TestNewClientInvalidEndpoint(t *testing.T) {
 }
 
 func TestNewClientNoSchemeEndpoint(t *testing.T) {
+	t.Parallel()
 	cases := []string{"localhost", "localhost:8080"}
 	for _, c := range cases {
 		client, err := NewClient(c)
@@ -199,6 +241,7 @@ func TestNewClientNoSchemeEndpoint(t *testing.T) {
 }
 
 func TestNewTLSClient(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		endpoint string
 		expected string
@@ -221,6 +264,7 @@ func TestNewTLSClient(t *testing.T) {
 }
 
 func TestEndpoint(t *testing.T) {
+	t.Parallel()
 	client, err := NewVersionedClient("http://localhost:4243", "1.12")
 	if err != nil {
 		t.Fatal(err)
@@ -231,6 +275,7 @@ func TestEndpoint(t *testing.T) {
 }
 
 func TestGetURL(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		endpoint string
 		path     string
@@ -241,7 +286,7 @@ func TestGetURL(t *testing.T) {
 		{"http://localhost:4243", "/containers/ps", "http://localhost:4243/containers/ps"},
 		{"tcp://localhost:4243", "/containers/ps", "http://localhost:4243/containers/ps"},
 		{"http://localhost:4243/////", "/", "http://localhost:4243/"},
-		{"unix:///var/run/docker.socket", "/containers", "/containers"},
+		{nativeRealEndpoint, "/containers", "/containers"},
 	}
 	for _, tt := range tests {
 		client, _ := NewClient(tt.endpoint)
@@ -254,21 +299,22 @@ func TestGetURL(t *testing.T) {
 	}
 }
 
-func TestGetFakeUnixURL(t *testing.T) {
+func TestGetFakeNativeURL(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		endpoint string
 		path     string
 		expected string
 	}{
-		{"unix://var/run/docker.sock", "/", "http://unix.sock/"},
-		{"unix://var/run/docker.socket", "/", "http://unix.sock/"},
-		{"unix://var/run/docker.sock", "/containers/ps", "http://unix.sock/containers/ps"},
+		{nativeRealEndpoint, "/", "http://unix.sock/"},
+		{nativeRealEndpoint, "/", "http://unix.sock/"},
+		{nativeRealEndpoint, "/containers/ps", "http://unix.sock/containers/ps"},
 	}
 	for _, tt := range tests {
 		client, _ := NewClient(tt.endpoint)
 		client.endpoint = tt.endpoint
 		client.SkipServerVersionCheck = true
-		got := client.getFakeUnixURL(tt.path)
+		got := client.getFakeNativeURL(tt.path)
 		if got != tt.expected {
 			t.Errorf("getURL(%q): Got %s. Want %s.", tt.path, got, tt.expected)
 		}
@@ -276,6 +322,7 @@ func TestGetFakeUnixURL(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
+	t.Parallel()
 	fakeBody := ioutil.NopCloser(bytes.NewBufferString("bad parameter"))
 	resp := &http.Response{
 		StatusCode: 400,
@@ -293,6 +340,7 @@ func TestError(t *testing.T) {
 }
 
 func TestQueryString(t *testing.T) {
+	t.Parallel()
 	v := float32(2.4)
 	f32QueryString := fmt.Sprintf("w=%s&x=10&y=10.35", strconv.FormatFloat(float64(v), 'f', -1, 64))
 	jsonPerson := url.QueryEscape(`{"Name":"gopher","age":4}`)
@@ -324,6 +372,7 @@ func TestQueryString(t *testing.T) {
 }
 
 func TestAPIVersions(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		a                              string
 		b                              string
@@ -371,6 +420,7 @@ func TestAPIVersions(t *testing.T) {
 }
 
 func TestPing(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	err := client.Ping()
@@ -380,6 +430,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestPingFailing(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusInternalServerError}
 	client := newTestClient(fakeRT)
 	err := client.Ping()
@@ -393,6 +444,7 @@ func TestPingFailing(t *testing.T) {
 }
 
 func TestPingFailingWrongStatus(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusAccepted}
 	client := newTestClient(fakeRT)
 	err := client.Ping()
@@ -405,55 +457,351 @@ func TestPingFailingWrongStatus(t *testing.T) {
 	}
 }
 
-func TestPingErrorWithUnixSocket(t *testing.T) {
-	go func() {
-		li, err := net.Listen("unix", "/tmp/echo.sock")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer li.Close()
-		if err != nil {
-			t.Fatalf("Expected to get listener, but failed: %#v", err)
-		}
-
-		fd, err := li.Accept()
-		if err != nil {
-			t.Fatalf("Expected to accept connection, but failed: %#v", err)
-		}
-
-		buf := make([]byte, 512)
-		nr, err := fd.Read(buf)
-
-		// Create invalid response message to trigger error.
-		data := buf[0:nr]
-		for i := 0; i < 10; i++ {
-			data[i] = 63
-		}
-
-		_, err = fd.Write(data)
-		if err != nil {
-			t.Fatalf("Expected to write to socket, but failed: %#v", err)
-		}
-
-		return
-	}()
-
-	// Wait for unix socket to listen
-	time.Sleep(10 * time.Millisecond)
-
-	endpoint := "unix:///tmp/echo.sock"
-	u, _ := parseEndpoint(endpoint, false)
-	client := Client{
-		HTTPClient:             cleanhttp.DefaultClient(),
-		Dialer:                 &net.Dialer{},
-		endpoint:               endpoint,
-		endpointURL:            u,
-		SkipServerVersionCheck: true,
+func TestPingErrorWithNativeClient(t *testing.T) {
+	t.Parallel()
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("aaaaaaaaaaa-invalid-aaaaaaaaaaa"))
+	}))
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	err := client.Ping()
+	defer cleanup()
+	srv.Start()
+	defer srv.Close()
+	endpoint := nativeBadEndpoint
+	client, err := NewClient(endpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = client.Ping()
 	if err == nil {
 		t.Fatal("Expected non nil error, got nil")
+	}
+}
+
+func TestClientStreamTimeoutNotHit(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for i := 0; i < 5; i++ {
+			fmt.Fprintf(w, "%d\n", i)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	err = client.stream("POST", "/image/create", streamOptions{
+		setRawTerminal:    true,
+		stdout:            &w,
+		inactivityTimeout: 300 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "0\n1\n2\n3\n4\n"
+	result := w.String()
+	if result != expected {
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
+	}
+}
+
+func TestClientStreamInactivityTimeout(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for i := 0; i < 5; i++ {
+			fmt.Fprintf(w, "%d\n", i)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	err = client.stream("POST", "/image/create", streamOptions{
+		setRawTerminal:    true,
+		stdout:            &w,
+		inactivityTimeout: 100 * time.Millisecond,
+	})
+	if err != ErrInactivityTimeout {
+		t.Fatalf("expected request canceled error, got: %s", err)
+	}
+	expected := "0\n"
+	result := w.String()
+	if result != expected {
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
+	}
+}
+
+func TestClientStreamContextDeadline(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "abc\n")
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		time.Sleep(500 * time.Millisecond)
+		fmt.Fprint(w, "def\n")
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	err = client.stream("POST", "/image/create", streamOptions{
+		setRawTerminal: true,
+		stdout:         &w,
+		context:        ctx,
+	})
+	if err != context.DeadlineExceeded {
+		t.Fatalf("expected %s, got: %s", context.DeadlineExceeded, err)
+	}
+	expected := "abc\n"
+	result := w.String()
+	if result != expected {
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
+	}
+}
+
+func TestClientStreamContextCancel(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "abc\n")
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		time.Sleep(500 * time.Millisecond)
+		fmt.Fprint(w, "def\n")
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+	}()
+	err = client.stream("POST", "/image/create", streamOptions{
+		setRawTerminal: true,
+		stdout:         &w,
+		context:        ctx,
+	})
+	if err != context.Canceled {
+		t.Fatalf("expected %s, got: %s", context.Canceled, err)
+	}
+	expected := "abc\n"
+	result := w.String()
+	if result != expected {
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
+	}
+}
+
+var mockPullOutput = `{"status":"Pulling from tsuru/static","id":"latest"}
+{"status":"Already exists","progressDetail":{},"id":"a6aa3b66376f"}
+{"status":"Pulling fs layer","progressDetail":{},"id":"106572778bf7"}
+{"status":"Pulling fs layer","progressDetail":{},"id":"bac681833e51"}
+{"status":"Pulling fs layer","progressDetail":{},"id":"7302e23ef08a"}
+{"status":"Downloading","progressDetail":{"current":621,"total":621},"progress":"[==================================================\u003e]    621 B/621 B","id":"bac681833e51"}
+{"status":"Verifying Checksum","progressDetail":{},"id":"bac681833e51"}
+{"status":"Download complete","progressDetail":{},"id":"bac681833e51"}
+{"status":"Downloading","progressDetail":{"current":1854,"total":1854},"progress":"[==================================================\u003e] 1.854 kB/1.854 kB","id":"106572778bf7"}
+{"status":"Verifying Checksum","progressDetail":{},"id":"106572778bf7"}
+{"status":"Download complete","progressDetail":{},"id":"106572778bf7"}
+{"status":"Extracting","progressDetail":{"current":1854,"total":1854},"progress":"[==================================================\u003e] 1.854 kB/1.854 kB","id":"106572778bf7"}
+{"status":"Extracting","progressDetail":{"current":1854,"total":1854},"progress":"[==================================================\u003e] 1.854 kB/1.854 kB","id":"106572778bf7"}
+{"status":"Downloading","progressDetail":{"current":233019,"total":21059403},"progress":"[\u003e                                                  ]   233 kB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Downloading","progressDetail":{"current":462395,"total":21059403},"progress":"[=\u003e                                                 ] 462.4 kB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Downloading","progressDetail":{"current":8490555,"total":21059403},"progress":"[====================\u003e                              ] 8.491 MB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Downloading","progressDetail":{"current":20876859,"total":21059403},"progress":"[=================================================\u003e ] 20.88 MB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Verifying Checksum","progressDetail":{},"id":"7302e23ef08a"}
+{"status":"Download complete","progressDetail":{},"id":"7302e23ef08a"}
+{"status":"Pull complete","progressDetail":{},"id":"106572778bf7"}
+{"status":"Extracting","progressDetail":{"current":621,"total":621},"progress":"[==================================================\u003e]    621 B/621 B","id":"bac681833e51"}
+{"status":"Extracting","progressDetail":{"current":621,"total":621},"progress":"[==================================================\u003e]    621 B/621 B","id":"bac681833e51"}
+{"status":"Pull complete","progressDetail":{},"id":"bac681833e51"}
+{"status":"Extracting","progressDetail":{"current":229376,"total":21059403},"progress":"[\u003e                                                  ] 229.4 kB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Extracting","progressDetail":{"current":458752,"total":21059403},"progress":"[=\u003e                                                 ] 458.8 kB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Extracting","progressDetail":{"current":11239424,"total":21059403},"progress":"[==========================\u003e                        ] 11.24 MB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Extracting","progressDetail":{"current":21059403,"total":21059403},"progress":"[==================================================\u003e] 21.06 MB/21.06 MB","id":"7302e23ef08a"}
+{"status":"Pull complete","progressDetail":{},"id":"7302e23ef08a"}
+{"status":"Digest: sha256:b754472891aa7e33fc0214e3efa988174f2c2289285fcae868b7ec8b6675fc77"}
+{"status":"Status: Downloaded newer image for 192.168.50.4:5000/tsuru/static"}
+`
+
+func TestClientStreamJSONDecode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(mockPullOutput))
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	err = client.stream("POST", "/image/create", streamOptions{
+		stdout:         &w,
+		useJSONDecoder: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := `latest: Pulling from tsuru/static
+a6aa3b66376f: Already exists
+106572778bf7: Pulling fs layer
+bac681833e51: Pulling fs layer
+7302e23ef08a: Pulling fs layer
+bac681833e51: Verifying Checksum
+bac681833e51: Download complete
+106572778bf7: Verifying Checksum
+106572778bf7: Download complete
+7302e23ef08a: Verifying Checksum
+7302e23ef08a: Download complete
+106572778bf7: Pull complete
+bac681833e51: Pull complete
+7302e23ef08a: Pull complete
+Digest: sha256:b754472891aa7e33fc0214e3efa988174f2c2289285fcae868b7ec8b6675fc77
+Status: Downloaded newer image for 192.168.50.4:5000/tsuru/static
+`
+	result := w.String()
+	if result != expected {
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
+	}
+}
+
+type terminalBuffer struct {
+	bytes.Buffer
+}
+
+func (b *terminalBuffer) FD() uintptr {
+	return os.Stdout.Fd()
+}
+
+func (b *terminalBuffer) IsTerminal() bool {
+	return true
+}
+
+func TestClientStreamJSONDecodeWithTerminal(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(mockPullOutput))
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w terminalBuffer
+	err = client.stream("POST", "/image/create", streamOptions{
+		stdout:         &w,
+		useJSONDecoder: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "latest: Pulling from tsuru/static\n\n" +
+		"\x1b[1A\x1b[1K\x1b[K\ra6aa3b66376f: Already exists \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\r106572778bf7: Pulling fs layer \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\rbac681833e51: Pulling fs layer \r\x1b[1B\n" +
+		"\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Pulling fs layer \r\x1b[1B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Downloading [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Verifying Checksum \r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Download complete \r\x1b[2B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Downloading [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Verifying Checksum \r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Download complete \r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Extracting [==================================================>]  1.854kB/1.854kB\r\x1b[3B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [>                                                  ]    233kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [=>                                                 ]  462.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [====================>                              ]  8.491MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Downloading [=================================================> ]  20.88MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Verifying Checksum \r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Download complete \r\x1b[1B\x1b[3A\x1b[1K\x1b[K\r106572778bf7: Pull complete \r\x1b[3B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Extracting [==================================================>]     621B/621B\r\x1b[2B\x1b[2A\x1b[1K\x1b[K\rbac681833e51: Pull complete \r\x1b[2B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [>                                                  ]  229.4kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [=>                                                 ]  458.8kB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [==========================>                        ]  11.24MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Extracting [==================================================>]  21.06MB/21.06MB\r\x1b[1B\x1b[1A\x1b[1K\x1b[K\r7302e23ef08a: Pull complete \r\x1b[1BDigest: sha256:b754472891aa7e33fc0214e3efa988174f2c2289285fcae868b7ec8b6675fc77\n" +
+		"Status: Downloaded newer image for 192.168.50.4:5000/tsuru/static\n"
+	result := w.String()
+	if result != expected {
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
+	}
+}
+
+func TestClientDoContextDeadline(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(500 * time.Millisecond)
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	_, err = client.do("POST", "/image/create", doOptions{
+		context: ctx,
+	})
+	if err != context.DeadlineExceeded {
+		t.Fatalf("expected %s, got: %s", context.DeadlineExceeded, err)
+	}
+}
+
+func TestClientDoContextCancel(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(500 * time.Millisecond)
+	}))
+	client, err := NewClient(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		cancel()
+	}()
+	_, err = client.do("POST", "/image/create", doOptions{
+		context: ctx,
+	})
+	if err != context.Canceled {
+		t.Fatalf("expected %s, got: %s", context.Canceled, err)
+	}
+}
+
+func TestClientStreamTimeoutNativeClient(t *testing.T) {
+	t.Parallel()
+	srv, cleanup, err := newNativeServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for i := 0; i < 5; i++ {
+			fmt.Fprintf(w, "%d\n", i)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	srv.Start()
+	defer srv.Close()
+	client, err := NewClient(nativeProtocol + "://" + srv.Listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var w bytes.Buffer
+	err = client.stream("POST", "/image/create", streamOptions{
+		setRawTerminal:    true,
+		stdout:            &w,
+		inactivityTimeout: 100 * time.Millisecond,
+	})
+	if err != ErrInactivityTimeout {
+		t.Fatalf("expected request canceled error, got: %s", err)
+	}
+	expected := "0\n"
+	result := w.String()
+	if result != expected {
+		t.Fatalf("expected stream result %q, got: %q", expected, result)
 	}
 }
 
@@ -495,8 +843,4 @@ type dumb struct {
 	Y      float64
 	Z      int     `qs:"zee"`
 	Person *person `qs:"p"`
-}
-
-type fakeEndpointURL struct {
-	Scheme string
 }

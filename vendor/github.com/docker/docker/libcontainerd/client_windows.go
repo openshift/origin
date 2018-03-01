@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -15,7 +16,9 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/Microsoft/hcsshim"
+	opengcs "github.com/Microsoft/opengcs/client"
 	"github.com/docker/docker/pkg/sysinfo"
+	"github.com/docker/docker/pkg/system"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -100,8 +103,11 @@ func (clnt *client) Create(containerID string, checkpoint string, checkpointDir 
 	if b, err := json.Marshal(spec); err == nil {
 		logrus.Debugln("libcontainerd: client.Create() with spec", string(b))
 	}
-	osName := spec.Platform.OS
-	if osName == "windows" {
+
+	// spec.Linux must be nil for Windows containers, but spec.Windows will be filled in regardless of container platform.
+	// This is a temporary workaround due to LCOW requiring layer folder paths, which are stored under spec.Windows.
+	// TODO: @darrenstahlmsft fix this once the OCI spec is updated to support layer folder paths for LCOW
+	if spec.Linux == nil {
 		return clnt.createWindows(containerID, checkpoint, checkpointDir, spec, attachStdio, options...)
 	}
 	return clnt.createLinux(containerID, checkpoint, checkpointDir, spec, attachStdio, options...)
@@ -112,9 +118,10 @@ func (clnt *client) createWindows(containerID string, checkpoint string, checkpo
 		SystemType: "Container",
 		Name:       containerID,
 		Owner:      defaultOwner,
-		IgnoreFlushesDuringBoot: false,
+		IgnoreFlushesDuringBoot: spec.Windows.IgnoreFlushesDuringBoot,
 		HostName:                spec.Hostname,
 		HvPartition:             false,
+		Servicing:               spec.Windows.Servicing,
 	}
 
 	if spec.Windows.Resources != nil {
@@ -153,49 +160,43 @@ func (clnt *client) createWindows(containerID string, checkpoint string, checkpo
 		}
 	}
 
-	var layerOpt *LayerOption
-	for _, option := range options {
-		if s, ok := option.(*ServicingOption); ok {
-			configuration.Servicing = s.IsServicing
-			continue
-		}
-		if f, ok := option.(*FlushOption); ok {
-			configuration.IgnoreFlushesDuringBoot = f.IgnoreFlushesDuringBoot
-			continue
-		}
-		if h, ok := option.(*HyperVIsolationOption); ok {
-			configuration.HvPartition = h.IsHyperV
-			continue
-		}
-		if l, ok := option.(*LayerOption); ok {
-			layerOpt = l
-		}
-		if n, ok := option.(*NetworkEndpointsOption); ok {
-			configuration.EndpointList = n.Endpoints
-			configuration.AllowUnqualifiedDNSQuery = n.AllowUnqualifiedDNSQuery
-			if n.DNSSearchList != nil {
-				configuration.DNSSearchList = strings.Join(n.DNSSearchList, ",")
-			}
-			configuration.NetworkSharedContainerName = n.NetworkSharedContainerID
-			continue
-		}
-		if c, ok := option.(*CredentialsOption); ok {
-			configuration.Credentials = c.Credentials
-			continue
-		}
+	if spec.Windows.HyperV != nil {
+		configuration.HvPartition = true
 	}
 
-	// We must have a layer option with at least one path
-	if layerOpt == nil || layerOpt.LayerPaths == nil {
-		return fmt.Errorf("no layer option or paths were supplied to the runtime")
+	if spec.Windows.Network != nil {
+		configuration.EndpointList = spec.Windows.Network.EndpointList
+		configuration.AllowUnqualifiedDNSQuery = spec.Windows.Network.AllowUnqualifiedDNSQuery
+		if spec.Windows.Network.DNSSearchList != nil {
+			configuration.DNSSearchList = strings.Join(spec.Windows.Network.DNSSearchList, ",")
+		}
+		configuration.NetworkSharedContainerName = spec.Windows.Network.NetworkSharedContainerName
 	}
+
+	if cs, ok := spec.Windows.CredentialSpec.(string); ok {
+		configuration.Credentials = cs
+	}
+
+	// We must have least two layers in the spec, the bottom one being a base image,
+	// the top one being the RW layer.
+	if spec.Windows.LayerFolders == nil || len(spec.Windows.LayerFolders) < 2 {
+		return fmt.Errorf("OCI spec is invalid - at least two LayerFolders must be supplied to the runtime")
+	}
+
+	// Strip off the top-most layer as that's passed in separately to HCS
+	configuration.LayerFolderPath = spec.Windows.LayerFolders[len(spec.Windows.LayerFolders)-1]
+	layerFolders := spec.Windows.LayerFolders[:len(spec.Windows.LayerFolders)-1]
 
 	if configuration.HvPartition {
-		// Find the upper-most utility VM image, since the utility VM does not
-		// use layering in RS1.
-		// TODO @swernli/jhowardmsft at some point post RS1 this may be re-locatable.
+		// We don't currently support setting the utility VM image explicitly.
+		// TODO @swernli/jhowardmsft circa RS3/4, this may be re-locatable.
+		if spec.Windows.HyperV.UtilityVMPath != "" {
+			return errors.New("runtime does not support an explicit utility VM path for Hyper-V containers")
+		}
+
+		// Find the upper-most utility VM image.
 		var uvmImagePath string
-		for _, path := range layerOpt.LayerPaths {
+		for _, path := range layerFolders {
 			fullPath := filepath.Join(path, "UtilityVM")
 			_, err := os.Stat(fullPath)
 			if err == nil {
@@ -210,13 +211,24 @@ func (clnt *client) createWindows(containerID string, checkpoint string, checkpo
 			return errors.New("utility VM image could not be found")
 		}
 		configuration.HvRuntime = &hcsshim.HvRuntime{ImagePath: uvmImagePath}
+
+		if spec.Root.Path != "" {
+			return errors.New("OCI spec is invalid - Root.Path must be omitted for a Hyper-V container")
+		}
 	} else {
-		configuration.VolumePath = spec.Root.Path
+		const volumeGUIDRegex = `^\\\\\?\\(Volume)\{{0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}\}\\$`
+		if _, err := regexp.MatchString(volumeGUIDRegex, spec.Root.Path); err != nil {
+			return fmt.Errorf(`OCI spec is invalid - Root.Path '%s' must be a volume GUID path in the format '\\?\Volume{GUID}\'`, spec.Root.Path)
+		}
+		// HCS API requires the trailing backslash to be removed
+		configuration.VolumePath = spec.Root.Path[:len(spec.Root.Path)-1]
 	}
 
-	configuration.LayerFolderPath = layerOpt.LayerFolderPath
+	if spec.Root.Readonly {
+		return errors.New(`OCI spec is invalid - Root.Readonly must not be set on Windows`)
+	}
 
-	for _, layerPath := range layerOpt.LayerPaths {
+	for _, layerPath := range layerFolders {
 		_, filename := filepath.Split(layerPath)
 		g, err := hcsshim.NameToGuid(filename)
 		if err != nil {
@@ -229,20 +241,38 @@ func (clnt *client) createWindows(containerID string, checkpoint string, checkpo
 	}
 
 	// Add the mounts (volumes, bind mounts etc) to the structure
-	mds := make([]hcsshim.MappedDir, len(spec.Mounts))
-	for i, mount := range spec.Mounts {
-		mds[i] = hcsshim.MappedDir{
-			HostPath:      mount.Source,
-			ContainerPath: mount.Destination,
-			ReadOnly:      false,
+	var mds []hcsshim.MappedDir
+	var mps []hcsshim.MappedPipe
+	for _, mount := range spec.Mounts {
+		const pipePrefix = `\\.\pipe\`
+		if mount.Type != "" {
+			return fmt.Errorf("OCI spec is invalid - Mount.Type '%s' must not be set", mount.Type)
 		}
-		for _, o := range mount.Options {
-			if strings.ToLower(o) == "ro" {
-				mds[i].ReadOnly = true
+		if strings.HasPrefix(mount.Destination, pipePrefix) {
+			mp := hcsshim.MappedPipe{
+				HostPath:          mount.Source,
+				ContainerPipeName: mount.Destination[len(pipePrefix):],
 			}
+			mps = append(mps, mp)
+		} else {
+			md := hcsshim.MappedDir{
+				HostPath:      mount.Source,
+				ContainerPath: mount.Destination,
+				ReadOnly:      false,
+			}
+			for _, o := range mount.Options {
+				if strings.ToLower(o) == "ro" {
+					md.ReadOnly = true
+				}
+			}
+			mds = append(mds, md)
 		}
 	}
 	configuration.MappedDirectories = mds
+	if len(mps) > 0 && system.GetOSVersion().Build < 16210 { // replace with Win10 RS3 build number at RTM
+		return errors.New("named pipe mounts are not supported on this version of Windows")
+	}
+	configuration.MappedPipes = mps
 
 	hcsContainer, err := hcsshim.CreateContainer(containerID, configuration)
 	if err != nil {
@@ -261,6 +291,7 @@ func (clnt *client) createWindows(containerID string, checkpoint string, checkpo
 			},
 			processes: make(map[string]*process),
 		},
+		isWindows:    true,
 		ociSpec:      spec,
 		hcsContainer: hcsContainer,
 	}
@@ -289,8 +320,16 @@ func (clnt *client) createWindows(containerID string, checkpoint string, checkpo
 func (clnt *client) createLinux(containerID string, checkpoint string, checkpointDir string, spec specs.Spec, attachStdio StdioCallback, options ...CreateOption) error {
 	logrus.Debugf("libcontainerd: createLinux(): containerId %s ", containerID)
 
-	// TODO @jhowardmsft LCOW Support: This needs to be configurable, not hard-coded.
-	// However, good-enough for the LCOW bring-up.
+	var lcowOpt *LCOWOption
+	for _, option := range options {
+		if lcow, ok := option.(*LCOWOption); ok {
+			lcowOpt = lcow
+		}
+	}
+	if lcowOpt == nil || lcowOpt.Config == nil {
+		return fmt.Errorf("lcow option must be supplied to the runtime")
+	}
+
 	configuration := &hcsshim.ContainerConfig{
 		HvPartition:   true,
 		Name:          containerID,
@@ -298,28 +337,37 @@ func (clnt *client) createLinux(containerID string, checkpoint string, checkpoin
 		ContainerType: "linux",
 		Owner:         defaultOwner,
 		TerminateOnLastHandleClosed: true,
-		HvRuntime: &hcsshim.HvRuntime{
-			ImagePath:       `c:\Program Files\Linux Containers`,
-			LinuxKernelFile: `bootx64.efi`,
-			LinuxInitrdFile: `initrd.img`,
-		},
 	}
 
-	var layerOpt *LayerOption
-	for _, option := range options {
-		if l, ok := option.(*LayerOption); ok {
-			layerOpt = l
+	if lcowOpt.Config.ActualMode == opengcs.ModeActualVhdx {
+		configuration.HvRuntime = &hcsshim.HvRuntime{
+			ImagePath:          lcowOpt.Config.Vhdx,
+			BootSource:         "Vhd",
+			WritableBootSource: true,
+		}
+	} else {
+		configuration.HvRuntime = &hcsshim.HvRuntime{
+			ImagePath:           lcowOpt.Config.KirdPath,
+			LinuxKernelFile:     lcowOpt.Config.KernelFile,
+			LinuxInitrdFile:     lcowOpt.Config.InitrdFile,
+			LinuxBootParameters: lcowOpt.Config.BootParameters,
 		}
 	}
 
-	// We must have a layer option with at least one path
-	if layerOpt == nil || layerOpt.LayerPaths == nil {
-		return fmt.Errorf("no layer option or paths were supplied to the runtime")
+	if spec.Windows == nil {
+		return fmt.Errorf("spec.Windows must not be nil for LCOW containers")
 	}
 
-	// LayerFolderPath (writeable layer) + Layers (Guid + path)
-	configuration.LayerFolderPath = layerOpt.LayerFolderPath
-	for _, layerPath := range layerOpt.LayerPaths {
+	// We must have least one layer in the spec
+	if spec.Windows.LayerFolders == nil || len(spec.Windows.LayerFolders) == 0 {
+		return fmt.Errorf("OCI spec is invalid - at least one LayerFolders must be supplied to the runtime")
+	}
+
+	// Strip off the top-most layer as that's passed in separately to HCS
+	configuration.LayerFolderPath = spec.Windows.LayerFolders[len(spec.Windows.LayerFolders)-1]
+	layerFolders := spec.Windows.LayerFolders[:len(spec.Windows.LayerFolders)-1]
+
+	for _, layerPath := range layerFolders {
 		_, filename := filepath.Split(layerPath)
 		g, err := hcsshim.NameToGuid(filename)
 		if err != nil {
@@ -331,16 +379,13 @@ func (clnt *client) createLinux(containerID string, checkpoint string, checkpoin
 		})
 	}
 
-	for _, option := range options {
-		if n, ok := option.(*NetworkEndpointsOption); ok {
-			configuration.EndpointList = n.Endpoints
-			configuration.AllowUnqualifiedDNSQuery = n.AllowUnqualifiedDNSQuery
-			if n.DNSSearchList != nil {
-				configuration.DNSSearchList = strings.Join(n.DNSSearchList, ",")
-			}
-			configuration.NetworkSharedContainerName = n.NetworkSharedContainerID
-			break
+	if spec.Windows.Network != nil {
+		configuration.EndpointList = spec.Windows.Network.EndpointList
+		configuration.AllowUnqualifiedDNSQuery = spec.Windows.Network.AllowUnqualifiedDNSQuery
+		if spec.Windows.Network.DNSSearchList != nil {
+			configuration.DNSSearchList = strings.Join(spec.Windows.Network.DNSSearchList, ",")
 		}
+		configuration.NetworkSharedContainerName = spec.Windows.Network.NetworkSharedContainerName
 	}
 
 	hcsContainer, err := hcsshim.CreateContainer(containerID, configuration)
@@ -406,8 +451,10 @@ func (clnt *client) AddProcess(ctx context.Context, containerID, processFriendly
 	}
 	if procToAdd.Terminal {
 		createProcessParms.EmulateConsole = true
-		createProcessParms.ConsoleSize[0] = uint(procToAdd.ConsoleSize.Height)
-		createProcessParms.ConsoleSize[1] = uint(procToAdd.ConsoleSize.Width)
+		if procToAdd.ConsoleSize != nil {
+			createProcessParms.ConsoleSize[0] = uint(procToAdd.ConsoleSize.Height)
+			createProcessParms.ConsoleSize[1] = uint(procToAdd.ConsoleSize.Width)
+		}
 	}
 
 	// Take working directory from the process to add if it is defined,
@@ -420,7 +467,7 @@ func (clnt *client) AddProcess(ctx context.Context, containerID, processFriendly
 
 	// Configure the environment for the process
 	createProcessParms.Environment = setupEnvironmentVariables(procToAdd.Env)
-	if container.ociSpec.Platform.OS == "windows" {
+	if container.isWindows {
 		createProcessParms.CommandLine = strings.Join(procToAdd.Args, " ")
 	} else {
 		createProcessParms.CommandArgs = procToAdd.Args
@@ -584,13 +631,8 @@ func (clnt *client) Pause(containerID string) error {
 		return err
 	}
 
-	for _, option := range container.options {
-		if h, ok := option.(*HyperVIsolationOption); ok {
-			if !h.IsHyperV {
-				return errors.New("cannot pause Windows Server Containers")
-			}
-			break
-		}
+	if container.ociSpec.Windows.HyperV == nil {
+		return errors.New("cannot pause Windows Server Containers")
 	}
 
 	err = container.hcsContainer.Pause()
@@ -624,13 +666,9 @@ func (clnt *client) Resume(containerID string) error {
 	}
 
 	// This should never happen, since Windows Server Containers cannot be paused
-	for _, option := range container.options {
-		if h, ok := option.(*HyperVIsolationOption); ok {
-			if !h.IsHyperV {
-				return errors.New("cannot resume Windows Server Containers")
-			}
-			break
-		}
+
+	if container.ociSpec.Windows.HyperV == nil {
+		return errors.New("cannot resume Windows Server Containers")
 	}
 
 	err = container.hcsContainer.Resume()

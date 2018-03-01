@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/docker/pkg/idtools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -263,9 +264,7 @@ func TestCmdStreamGood(t *testing.T) {
 
 func TestUntarPathWithInvalidDest(t *testing.T) {
 	tempFolder, err := ioutil.TempDir("", "docker-archive-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tempFolder)
 	invalidDestFolder := filepath.Join(tempFolder, "invalidDest")
 	// Create a src file
@@ -284,9 +283,7 @@ func TestUntarPathWithInvalidDest(t *testing.T) {
 
 	cmd := exec.Command("sh", "-c", "tar cf "+tarFileU+" "+srcFileU)
 	_, err = cmd.CombinedOutput()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = defaultUntarPath(tarFile, invalidDestFolder)
 	if err == nil {
@@ -308,9 +305,7 @@ func TestUntarPathWithInvalidSrc(t *testing.T) {
 
 func TestUntarPath(t *testing.T) {
 	tmpFolder, err := ioutil.TempDir("", "docker-archive-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpFolder)
 	srcFile := filepath.Join(tmpFolder, "src")
 	tarFile := filepath.Join(tmpFolder, "src.tar")
@@ -331,9 +326,7 @@ func TestUntarPath(t *testing.T) {
 	}
 	cmd := exec.Command("sh", "-c", "tar cf "+tarFileU+" "+srcFileU)
 	_, err = cmd.CombinedOutput()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = defaultUntarPath(tarFile, destFolder)
 	if err != nil {
@@ -728,6 +721,57 @@ func TestTarUntar(t *testing.T) {
 
 		if len(changes) != 1 || changes[0].Path != "/3" {
 			t.Fatalf("Unexpected differences after tarUntar: %v", changes)
+		}
+	}
+}
+
+func TestTarWithOptionsChownOptsAlwaysOverridesIdPair(t *testing.T) {
+	origin, err := ioutil.TempDir("", "docker-test-tar-chown-opt")
+	require.NoError(t, err)
+
+	defer os.RemoveAll(origin)
+	filePath := filepath.Join(origin, "1")
+	err = ioutil.WriteFile(filePath, []byte("hello world"), 0700)
+	require.NoError(t, err)
+
+	idMaps := []idtools.IDMap{
+		0: {
+			ContainerID: 0,
+			HostID:      0,
+			Size:        65536,
+		},
+		1: {
+			ContainerID: 0,
+			HostID:      100000,
+			Size:        65536,
+		},
+	}
+
+	cases := []struct {
+		opts        *TarOptions
+		expectedUID int
+		expectedGID int
+	}{
+		{&TarOptions{ChownOpts: &idtools.IDPair{UID: 1337, GID: 42}}, 1337, 42},
+		{&TarOptions{ChownOpts: &idtools.IDPair{UID: 100001, GID: 100001}, UIDMaps: idMaps, GIDMaps: idMaps}, 100001, 100001},
+		{&TarOptions{ChownOpts: &idtools.IDPair{UID: 0, GID: 0}, NoLchown: false}, 0, 0},
+		{&TarOptions{ChownOpts: &idtools.IDPair{UID: 1, GID: 1}, NoLchown: true}, 1, 1},
+		{&TarOptions{ChownOpts: &idtools.IDPair{UID: 1000, GID: 1000}, NoLchown: true}, 1000, 1000},
+	}
+	for _, testCase := range cases {
+		reader, err := TarWithOptions(filePath, testCase.opts)
+		require.NoError(t, err)
+		tr := tar.NewReader(reader)
+		defer reader.Close()
+		for {
+			hdr, err := tr.Next()
+			if err == io.EOF {
+				// end of tar archive
+				break
+			}
+			require.NoError(t, err)
+			assert.Equal(t, hdr.Uid, testCase.expectedUID, "Uid equals expected value")
+			assert.Equal(t, hdr.Gid, testCase.expectedGID, "Gid equals expected value")
 		}
 	}
 }

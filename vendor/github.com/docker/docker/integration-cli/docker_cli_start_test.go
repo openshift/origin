@@ -7,8 +7,8 @@ import (
 
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
-	icmd "github.com/docker/docker/pkg/testutil/cmd"
 	"github.com/go-check/check"
+	"github.com/gotestyourself/gotestyourself/icmd"
 )
 
 // Regression test for https://github.com/docker/docker/issues/7843
@@ -103,7 +103,7 @@ func (s *DockerSuite) TestStartPausedContainer(c *check.C) {
 	// an error should have been shown that you cannot start paused container
 	c.Assert(err, checker.NotNil, check.Commentf("out: %s", out))
 	// an error should have been shown that you cannot start paused container
-	c.Assert(out, checker.Contains, "Cannot start a paused container, try unpause instead.")
+	c.Assert(out, checker.Contains, "cannot start a paused container, try unpause instead")
 }
 
 func (s *DockerSuite) TestStartMultipleContainers(c *check.C) {

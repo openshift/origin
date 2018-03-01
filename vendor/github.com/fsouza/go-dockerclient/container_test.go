@@ -1,10 +1,11 @@
-// Copyright 2015 go-dockerclient authors. All rights reserved.
+// Copyright 2013 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package docker
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -16,16 +17,16 @@ import (
 	"net/url"
 	"os"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/fsouza/go-dockerclient/external/github.com/hashicorp/go-cleanhttp"
+	"golang.org/x/net/context"
 )
 
 func TestStateString(t *testing.T) {
+	t.Parallel()
 	started := time.Now().Add(-3 * time.Hour)
 	var tests = []struct {
 		input    State
@@ -48,6 +49,7 @@ func TestStateString(t *testing.T) {
 }
 
 func TestStateStateString(t *testing.T) {
+	t.Parallel()
 	started := time.Now().Add(-3 * time.Hour)
 	var tests = []struct {
 		input    State
@@ -68,6 +70,7 @@ func TestStateStateString(t *testing.T) {
 }
 
 func TestListContainers(t *testing.T) {
+	t.Parallel()
 	jsonContainers := `[
      {
              "Id": "8dfafdbc3a40",
@@ -118,6 +121,7 @@ func TestListContainers(t *testing.T) {
 }
 
 func TestListContainersParams(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		input  ListContainersOptions
 		params map[string][]string
@@ -160,6 +164,7 @@ func TestListContainersParams(t *testing.T) {
 }
 
 func TestListContainersFailure(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		status  int
 		message string
@@ -181,6 +186,7 @@ func TestListContainersFailure(t *testing.T) {
 }
 
 func TestInspectContainer(t *testing.T) {
+	t.Parallel()
 	jsonContainer := `{
              "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
              "AppArmorProfile": "Profile",
@@ -289,7 +295,154 @@ func TestInspectContainer(t *testing.T) {
 	}
 }
 
+func TestInspectContainerWithContext(t *testing.T) {
+	t.Parallel()
+	jsonContainer := `{
+             "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
+             "AppArmorProfile": "Profile",
+             "Created": "2013-05-07T14:51:42.087658+02:00",
+             "Path": "date",
+             "Args": [],
+             "Config": {
+                     "Hostname": "4fa6e0f0c678",
+                     "User": "",
+                     "Memory": 17179869184,
+                     "MemorySwap": 34359738368,
+                     "AttachStdin": false,
+                     "AttachStdout": true,
+                     "AttachStderr": true,
+                     "PortSpecs": null,
+                     "Tty": false,
+                     "OpenStdin": false,
+                     "StdinOnce": false,
+                     "Env": null,
+                     "Cmd": [
+                             "date"
+                     ],
+                     "Image": "base",
+                     "Volumes": {},
+                     "VolumesFrom": "",
+                     "SecurityOpt": [
+                         "label:user:USER"
+                      ],
+                      "Ulimits": [
+                          { "Name": "nofile", "Soft": 1024, "Hard": 2048 }
+                      ]
+             },
+             "State": {
+                     "Running": false,
+                     "Pid": 0,
+                     "ExitCode": 0,
+                     "StartedAt": "2013-05-07T14:51:42.087658+02:00",
+                     "Ghost": false
+             },
+             "Node": {
+                  "ID": "4I4E:QR4I:Z733:QEZK:5X44:Q4T7:W2DD:JRDY:KB2O:PODO:Z5SR:XRB6",
+                  "IP": "192.168.99.105",
+                  "Addra": "192.168.99.105:2376",
+                  "Name": "node-01",
+                  "Cpus": 4,
+                  "Memory": 1048436736,
+                  "Labels": {
+                      "executiondriver": "native-0.2",
+                      "kernelversion": "3.18.5-tinycore64",
+                      "operatingsystem": "Boot2Docker 1.5.0 (TCL 5.4); master : a66bce5 - Tue Feb 10 23:31:27 UTC 2015",
+                      "provider": "virtualbox",
+                      "storagedriver": "aufs"
+                  }
+              },
+             "Image": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+             "NetworkSettings": {
+                     "IpAddress": "",
+                     "IpPrefixLen": 0,
+                     "Gateway": "",
+                     "Bridge": "",
+                     "PortMapping": null
+             },
+             "SysInitPath": "/home/kitty/go/src/github.com/dotcloud/docker/bin/docker",
+             "ResolvConfPath": "/etc/resolv.conf",
+             "Volumes": {},
+             "HostConfig": {
+               "Binds": null,
+               "BlkioDeviceReadIOps": [
+                   {
+                       "Path": "/dev/sdb",
+                       "Rate": 100
+                   }
+               ],
+               "BlkioDeviceWriteBps": [
+                   {
+                       "Path": "/dev/sdb",
+                       "Rate": 5000
+                   }
+               ],
+               "ContainerIDFile": "",
+               "LxcConf": [],
+               "Privileged": false,
+               "PortBindings": {
+                 "80/tcp": [
+                   {
+                     "HostIp": "0.0.0.0",
+                     "HostPort": "49153"
+                   }
+                 ]
+               },
+               "Links": null,
+               "PublishAllPorts": false,
+               "CgroupParent": "/mesos",
+               "Memory": 17179869184,
+               "MemorySwap": 34359738368,
+               "GroupAdd": ["fake", "12345"],
+               "OomScoreAdj": 642
+             }
+}`
+	var expected Container
+	err := json.Unmarshal([]byte(jsonContainer), &expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeRT := &FakeRoundTripper{message: jsonContainer, status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	id := "4fa6e0f0c678"
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 1*time.Second)
+	defer cancel()
+
+	inspectError := make(chan error)
+	// Invoke InspectContainer in a goroutine. The response is sent to the 'inspectError'
+	// channel.
+	go func() {
+		container, err := client.InspectContainer(id)
+		if err != nil {
+			inspectError <- err
+			return
+		}
+		if !reflect.DeepEqual(*container, expected) {
+			inspectError <- fmt.Errorf("inspectContainer(%q): Expected %#v. Got %#v", id, expected, container)
+			return
+		}
+		expectedURL, _ := url.Parse(client.getURL("/containers/4fa6e0f0c678/json"))
+		if gotPath := fakeRT.requests[0].URL.Path; gotPath != expectedURL.Path {
+			inspectError <- fmt.Errorf("inspectContainer(%q): Wrong path in request. Want %q. Got %q", id, expectedURL.Path, gotPath)
+			return
+		}
+		// No errors to tbe reported. Send 'nil'
+		inspectError <- nil
+	}()
+	// Wait for either the inspect response or for the context.
+	select {
+	case err := <-inspectError:
+		if err != nil {
+			t.Fatalf("Error inspecting container with context: %v", err)
+		}
+	case <-ctx.Done():
+		// Context was canceled unexpectedly. Report the same.
+		t.Fatalf("Context canceled when waiting for inspect container response: %v", ctx.Err())
+	}
+}
+
 func TestInspectContainerNetwork(t *testing.T) {
+	t.Parallel()
 	jsonContainer := `{
             "Id": "81e1bbe20b5508349e1c804eb08b7b6ca8366751dbea9f578b3ea0773fa66c1c",
             "Created": "2015-11-12T14:54:04.791485659Z",
@@ -461,6 +614,10 @@ func TestInspectContainerNetwork(t *testing.T) {
                 "MacAddress": "",
                 "Networks": {
                     "swl-net": {
+						"Aliases": [
+							"testalias",
+							"81e1bbe20b55"
+						],
                         "NetworkID": "7ea29fc1412292a2d7bba362f9253545fecdfa8ce9a6e37dd10ba8bee7129812",
                         "EndpointID": "683e3092275782a53c3b0968cc7e3a10f23264022ded9cb20490902f96fc5981",
                         "Gateway": "",
@@ -480,6 +637,7 @@ func TestInspectContainerNetwork(t *testing.T) {
 	id := "81e1bbe20b55"
 	expIP := "10.0.0.3"
 	expNetworkID := "7ea29fc1412292a2d7bba362f9253545fecdfa8ce9a6e37dd10ba8bee7129812"
+	expectedAliases := []string{"testalias", "81e1bbe20b55"}
 
 	container, err := client.InspectContainer(id)
 	if err != nil {
@@ -507,6 +665,17 @@ func TestInspectContainerNetwork(t *testing.T) {
 				t.Logf("%s %v", net, networkID)
 			}
 		}
+
+		var aliases []string
+		for _, net := range networks.MapKeys() {
+			if net.Interface().(string) == container.HostConfig.NetworkMode {
+				aliases = networks.MapIndex(net).FieldByName("Aliases").Interface().([]string)
+			}
+		}
+		if !reflect.DeepEqual(aliases, expectedAliases) {
+			t.Errorf("InspectContainerNetworks(%q): Expected Aliases %#v. Got %#v.", id, expectedAliases, aliases)
+		}
+
 		if networkID != expNetworkID {
 			t.Errorf("InspectContainerNetworks(%q): Expected %#v. Got %#v.", id, expNetworkID, networkID)
 		}
@@ -517,6 +686,7 @@ func TestInspectContainerNetwork(t *testing.T) {
 }
 
 func TestInspectContainerNegativeSwap(t *testing.T) {
+	t.Parallel()
 	jsonContainer := `{
              "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
              "Created": "2013-05-07T14:51:42.087658+02:00",
@@ -599,6 +769,7 @@ func TestInspectContainerNegativeSwap(t *testing.T) {
 }
 
 func TestInspectContainerFailure(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "server error", status: 500})
 	expected := Error{Status: 500, Message: "server error"}
 	container, err := client.InspectContainer("abe033")
@@ -611,6 +782,7 @@ func TestInspectContainerFailure(t *testing.T) {
 }
 
 func TestInspectContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: 404})
 	container, err := client.InspectContainer("abe033")
 	if container != nil {
@@ -623,6 +795,7 @@ func TestInspectContainerNotFound(t *testing.T) {
 }
 
 func TestContainerChanges(t *testing.T) {
+	t.Parallel()
 	jsonChanges := `[
      {
              "Path":"/dev",
@@ -659,6 +832,7 @@ func TestContainerChanges(t *testing.T) {
 }
 
 func TestContainerChangesFailure(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "server error", status: 500})
 	expected := Error{Status: 500, Message: "server error"}
 	changes, err := client.ContainerChanges("abe033")
@@ -671,6 +845,7 @@ func TestContainerChangesFailure(t *testing.T) {
 }
 
 func TestContainerChangesNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: 404})
 	changes, err := client.ContainerChanges("abe033")
 	if changes != nil {
@@ -683,6 +858,7 @@ func TestContainerChangesNotFound(t *testing.T) {
 }
 
 func TestCreateContainer(t *testing.T) {
+	t.Parallel()
 	jsonContainer := `{
              "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
 	     "Warnings": []
@@ -720,6 +896,7 @@ func TestCreateContainer(t *testing.T) {
 }
 
 func TestCreateContainerImageNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "No such image", status: http.StatusNotFound})
 	config := Config{AttachStdout: true, AttachStdin: true}
 	container, err := client.CreateContainer(CreateContainerOptions{Config: &config})
@@ -732,6 +909,7 @@ func TestCreateContainerImageNotFound(t *testing.T) {
 }
 
 func TestCreateContainerDuplicateName(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "No such image", status: http.StatusConflict})
 	config := Config{AttachStdout: true, AttachStdin: true}
 	container, err := client.CreateContainer(CreateContainerOptions{Config: &config})
@@ -743,7 +921,23 @@ func TestCreateContainerDuplicateName(t *testing.T) {
 	}
 }
 
+// Workaround for 17.09 bug returning 400 instead of 409.
+// See https://github.com/moby/moby/issues/35021
+func TestCreateContainerDuplicateNameWorkaroundDocker17_09(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(&FakeRoundTripper{message: `{"message":"Conflict. The container name \"/c1\" is already in use by container \"2ce137e165dfca5e087f247b5d05a2311f91ef3da4bb7772168446a1a47e2f68\". You have to remove (or rename) that container to be able to reuse that name."}`, status: http.StatusBadRequest})
+	config := Config{AttachStdout: true, AttachStdin: true}
+	container, err := client.CreateContainer(CreateContainerOptions{Config: &config})
+	if container != nil {
+		t.Errorf("CreateContainer: expected <nil> container, got %#v.", container)
+	}
+	if err != ErrContainerAlreadyExists {
+		t.Errorf("CreateContainer: Wrong error type. Want %#v. Got %#v.", ErrContainerAlreadyExists, err)
+	}
+}
+
 func TestCreateContainerWithHostConfig(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "{}", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	config := Config{}
@@ -765,6 +959,7 @@ func TestCreateContainerWithHostConfig(t *testing.T) {
 }
 
 func TestUpdateContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -795,6 +990,7 @@ func TestUpdateContainer(t *testing.T) {
 }
 
 func TestStartContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -816,7 +1012,36 @@ func TestStartContainer(t *testing.T) {
 	}
 }
 
+func TestStartContainerHostConfigAPI124(t *testing.T) {
+	t.Parallel()
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	client.serverAPIVersion = apiVersion124
+	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
+	err := client.StartContainer(id, &HostConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := fakeRT.requests[0]
+	if req.Method != "POST" {
+		t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
+	}
+	expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/start"))
+	if gotPath := req.URL.Path; gotPath != expectedURL.Path {
+		t.Errorf("StartContainer(%q): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
+	}
+	notAcceptedContentType := "application/json"
+	if contentType := req.Header.Get("Content-Type"); contentType == notAcceptedContentType {
+		t.Errorf("StartContainer(%q): Unepected %q Content-Type in request.", id, contentType)
+	}
+	if req.Body != nil {
+		data, _ := ioutil.ReadAll(req.Body)
+		t.Errorf("StartContainer(%q): Unexpected data sent: %s", id, data)
+	}
+}
+
 func TestStartContainerNilHostConfig(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -843,7 +1068,44 @@ func TestStartContainerNilHostConfig(t *testing.T) {
 	}
 }
 
+func TestStartContainerWithContext(t *testing.T) {
+	t.Parallel()
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 1*time.Second)
+	defer cancel()
+
+	startError := make(chan error)
+	go func() {
+		startError <- client.StartContainerWithContext(id, &HostConfig{}, ctx)
+	}()
+	select {
+	case err := <-startError:
+		if err != nil {
+			t.Fatal(err)
+		}
+		req := fakeRT.requests[0]
+		if req.Method != "POST" {
+			t.Errorf("StartContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
+		}
+		expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/start"))
+		if gotPath := req.URL.Path; gotPath != expectedURL.Path {
+			t.Errorf("StartContainer(%q): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
+		}
+		expectedContentType := "application/json"
+		if contentType := req.Header.Get("Content-Type"); contentType != expectedContentType {
+			t.Errorf("StartContainer(%q): Wrong content-type in request. Want %q. Got %q.", id, expectedContentType, contentType)
+		}
+	case <-ctx.Done():
+		// Context was canceled unexpectedly. Report the same.
+		t.Fatalf("Context canceled when waiting for start container response: %v", ctx.Err())
+	}
+}
+
 func TestStartContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.StartContainer("a2344", &HostConfig{})
 	expected := &NoSuchContainer{ID: "a2344", Err: err.(*NoSuchContainer).Err}
@@ -853,6 +1115,7 @@ func TestStartContainerNotFound(t *testing.T) {
 }
 
 func TestStartContainerAlreadyRunning(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "container already running", status: http.StatusNotModified})
 	err := client.StartContainer("a2334", &HostConfig{})
 	expected := &ContainerAlreadyRunning{ID: "a2334"}
@@ -862,6 +1125,7 @@ func TestStartContainerAlreadyRunning(t *testing.T) {
 }
 
 func TestStopContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -879,7 +1143,40 @@ func TestStopContainer(t *testing.T) {
 	}
 }
 
+func TestStopContainerWithContext(t *testing.T) {
+	t.Parallel()
+	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
+	client := newTestClient(fakeRT)
+	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 1*time.Second)
+	defer cancel()
+
+	stopError := make(chan error)
+	go func() {
+		stopError <- client.StopContainerWithContext(id, 10, ctx)
+	}()
+	select {
+	case err := <-stopError:
+		if err != nil {
+			t.Fatal(err)
+		}
+		req := fakeRT.requests[0]
+		if req.Method != "POST" {
+			t.Errorf("StopContainer(%q, 10): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
+		}
+		expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/stop"))
+		if gotPath := req.URL.Path; gotPath != expectedURL.Path {
+			t.Errorf("StopContainer(%q, 10): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
+		}
+	case <-ctx.Done():
+		// Context was canceled unexpectedly. Report the same.
+		t.Fatalf("Context canceled when waiting for stop container response: %v", ctx.Err())
+	}
+}
+
 func TestStopContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.StopContainer("a2334", 10)
 	expected := &NoSuchContainer{ID: "a2334"}
@@ -889,6 +1186,7 @@ func TestStopContainerNotFound(t *testing.T) {
 }
 
 func TestStopContainerNotRunning(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "container not running", status: http.StatusNotModified})
 	err := client.StopContainer("a2334", 10)
 	expected := &ContainerNotRunning{ID: "a2334"}
@@ -898,6 +1196,7 @@ func TestStopContainerNotRunning(t *testing.T) {
 }
 
 func TestRestartContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -916,6 +1215,7 @@ func TestRestartContainer(t *testing.T) {
 }
 
 func TestRestartContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.RestartContainer("a2334", 10)
 	expected := &NoSuchContainer{ID: "a2334"}
@@ -925,6 +1225,7 @@ func TestRestartContainerNotFound(t *testing.T) {
 }
 
 func TestPauseContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -943,6 +1244,7 @@ func TestPauseContainer(t *testing.T) {
 }
 
 func TestPauseContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.PauseContainer("a2334")
 	expected := &NoSuchContainer{ID: "a2334"}
@@ -952,6 +1254,7 @@ func TestPauseContainerNotFound(t *testing.T) {
 }
 
 func TestUnpauseContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -970,6 +1273,7 @@ func TestUnpauseContainer(t *testing.T) {
 }
 
 func TestUnpauseContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.UnpauseContainer("a2334")
 	expected := &NoSuchContainer{ID: "a2334"}
@@ -979,6 +1283,7 @@ func TestUnpauseContainerNotFound(t *testing.T) {
 }
 
 func TestKillContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -997,6 +1302,7 @@ func TestKillContainer(t *testing.T) {
 }
 
 func TestKillContainerSignal(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusNoContent}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -1014,6 +1320,7 @@ func TestKillContainerSignal(t *testing.T) {
 }
 
 func TestKillContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.KillContainer(KillContainerOptions{ID: "a2334"})
 	expected := &NoSuchContainer{ID: "a2334"}
@@ -1023,6 +1330,7 @@ func TestKillContainerNotFound(t *testing.T) {
 }
 
 func TestRemoveContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -1042,6 +1350,7 @@ func TestRemoveContainer(t *testing.T) {
 }
 
 func TestRemoveContainerRemoveVolumes(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -1059,6 +1368,7 @@ func TestRemoveContainerRemoveVolumes(t *testing.T) {
 }
 
 func TestRemoveContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	err := client.RemoveContainer(RemoveContainerOptions{ID: "a2334"})
 	expected := &NoSuchContainer{ID: "a2334"}
@@ -1068,6 +1378,7 @@ func TestRemoveContainerNotFound(t *testing.T) {
 }
 
 func TestResizeContainerTTY(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -1094,6 +1405,7 @@ func TestResizeContainerTTY(t *testing.T) {
 }
 
 func TestWaitContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: `{"StatusCode": 56}`, status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
@@ -1114,7 +1426,46 @@ func TestWaitContainer(t *testing.T) {
 	}
 }
 
+func TestWaitContainerWithContext(t *testing.T) {
+	t.Parallel()
+	fakeRT := &FakeRoundTripper{message: `{"StatusCode": 56}`, status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	id := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 1*time.Second)
+	defer cancel()
+
+	var status int
+	waitError := make(chan error)
+	go func() {
+		var err error
+		status, err = client.WaitContainerWithContext(id, ctx)
+		waitError <- err
+	}()
+	select {
+	case err := <-waitError:
+		if err != nil {
+			t.Fatal(err)
+		}
+		if status != 56 {
+			t.Errorf("WaitContainer(%q): wrong return. Want 56. Got %d.", id, status)
+		}
+		req := fakeRT.requests[0]
+		if req.Method != "POST" {
+			t.Errorf("WaitContainer(%q): wrong HTTP method. Want %q. Got %q.", id, "POST", req.Method)
+		}
+		expectedURL, _ := url.Parse(client.getURL("/containers/" + id + "/wait"))
+		if gotPath := req.URL.Path; gotPath != expectedURL.Path {
+			t.Errorf("WaitContainer(%q): Wrong path in request. Want %q. Got %q.", id, expectedURL.Path, gotPath)
+		}
+	case <-ctx.Done():
+		// Context was canceled unexpectedly. Report the same.
+		t.Fatalf("Context canceled when waiting for wait container response: %v", ctx.Err())
+	}
+}
+
 func TestWaitContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	_, err := client.WaitContainer("a2334")
 	expected := &NoSuchContainer{ID: "a2334"}
@@ -1124,6 +1475,7 @@ func TestWaitContainerNotFound(t *testing.T) {
 }
 
 func TestCommitContainer(t *testing.T) {
+	t.Parallel()
 	response := `{"Id":"596069db4bf5"}`
 	client := newTestClient(&FakeRoundTripper{message: response, status: http.StatusOK})
 	id := "596069db4bf5"
@@ -1137,6 +1489,7 @@ func TestCommitContainer(t *testing.T) {
 }
 
 func TestCommitContainerParams(t *testing.T) {
+	t.Parallel()
 	cfg := Config{Memory: 67108864}
 	json, _ := json.Marshal(&cfg)
 	var tests = []struct {
@@ -1176,7 +1529,7 @@ func TestCommitContainerParams(t *testing.T) {
 		}
 		if tt.body != nil {
 			if requestBody, err := ioutil.ReadAll(fakeRT.requests[0].Body); err == nil {
-				if bytes.Compare(requestBody, tt.body) != 0 {
+				if !bytes.Equal(requestBody, tt.body) {
 					t.Errorf("Expected body %#v, got %#v", tt.body, requestBody)
 				}
 			} else {
@@ -1188,6 +1541,7 @@ func TestCommitContainerParams(t *testing.T) {
 }
 
 func TestCommitContainerFailure(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusInternalServerError})
 	_, err := client.CommitContainer(CommitContainerOptions{})
 	if err == nil {
@@ -1196,6 +1550,7 @@ func TestCommitContainerFailure(t *testing.T) {
 }
 
 func TestCommitContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	_, err := client.CommitContainer(CommitContainerOptions{})
 	expected := &NoSuchContainer{ID: ""}
@@ -1205,6 +1560,7 @@ func TestCommitContainerNotFound(t *testing.T) {
 }
 
 func TestAttachToContainerLogs(t *testing.T) {
+	t.Parallel()
 	var req http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 19})
@@ -1249,6 +1605,7 @@ func TestAttachToContainerLogs(t *testing.T) {
 }
 
 func TestAttachToContainer(t *testing.T) {
+	t.Parallel()
 	var reader = strings.NewReader("send value")
 	var req http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1288,6 +1645,7 @@ func TestAttachToContainer(t *testing.T) {
 }
 
 func TestAttachToContainerSentinel(t *testing.T) {
+	t.Parallel()
 	var reader = strings.NewReader("send value")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
@@ -1310,15 +1668,18 @@ func TestAttachToContainerSentinel(t *testing.T) {
 		RawTerminal:  true,
 		Success:      success,
 	}
+	errCh := make(chan error)
 	go func() {
-		if err := client.AttachToContainer(opts); err != nil {
-			t.Error(err)
-		}
+		errCh <- client.AttachToContainer(opts)
 	}()
 	success <- <-success
+	if err := <-errCh; err != nil {
+		t.Error(err)
+	}
 }
 
 func TestAttachToContainerNilStdout(t *testing.T) {
+	t.Parallel()
 	var reader = strings.NewReader("send value")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
@@ -1346,6 +1707,7 @@ func TestAttachToContainerNilStdout(t *testing.T) {
 }
 
 func TestAttachToContainerNilStderr(t *testing.T) {
+	t.Parallel()
 	var reader = strings.NewReader("send value")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
@@ -1372,6 +1734,7 @@ func TestAttachToContainerNilStderr(t *testing.T) {
 }
 
 func TestAttachToContainerStdinOnly(t *testing.T) {
+	t.Parallel()
 	var reader = strings.NewReader("send value")
 	serverFinished := make(chan struct{})
 	clientFinished := make(chan struct{})
@@ -1418,6 +1781,7 @@ func TestAttachToContainerStdinOnly(t *testing.T) {
 }
 
 func TestAttachToContainerRawTerminalFalse(t *testing.T) {
+	t.Parallel()
 	input := strings.NewReader("send value")
 	var req http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1435,9 +1799,9 @@ func TestAttachToContainerRawTerminalFalse(t *testing.T) {
 		conn.Write([]byte("hello"))
 		conn.Write([]byte{2, 0, 0, 0, 0, 0, 0, 6})
 		conn.Write([]byte("hello!"))
+		time.Sleep(10 * time.Millisecond)
 		conn.Close()
 	}))
-	defer server.Close()
 	client, _ := NewClient(server.URL)
 	client.SkipServerVersionCheck = true
 	var stdout, stderr bytes.Buffer
@@ -1460,6 +1824,7 @@ func TestAttachToContainerRawTerminalFalse(t *testing.T) {
 		"stream": {"1"},
 	}
 	got := map[string][]string(req.URL.Query())
+	server.Close()
 	if !reflect.DeepEqual(got, expected) {
 		t.Errorf("AttachToContainer: wrong query string. Want %#v. Got %#v.", expected, got)
 	}
@@ -1472,6 +1837,7 @@ func TestAttachToContainerRawTerminalFalse(t *testing.T) {
 }
 
 func TestAttachToContainerWithoutContainer(t *testing.T) {
+	t.Parallel()
 	var client Client
 	err := client.AttachToContainer(AttachToContainerOptions{})
 	expected := &NoSuchContainer{ID: ""}
@@ -1481,6 +1847,7 @@ func TestAttachToContainerWithoutContainer(t *testing.T) {
 }
 
 func TestLogs(t *testing.T) {
+	t.Parallel()
 	var req http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prefix := []byte{1, 0, 0, 0, 0, 0, 0, 19}
@@ -1529,6 +1896,7 @@ func TestLogs(t *testing.T) {
 }
 
 func TestLogsNilStdoutDoesntFail(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prefix := []byte{1, 0, 0, 0, 0, 0, 0, 19}
 		w.Write(prefix)
@@ -1551,6 +1919,7 @@ func TestLogsNilStdoutDoesntFail(t *testing.T) {
 }
 
 func TestLogsNilStderrDoesntFail(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prefix := []byte{2, 0, 0, 0, 0, 0, 0, 19}
 		w.Write(prefix)
@@ -1573,6 +1942,7 @@ func TestLogsNilStderrDoesntFail(t *testing.T) {
 }
 
 func TestLogsSpecifyingTail(t *testing.T) {
+	t.Parallel()
 	var req http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prefix := []byte{1, 0, 0, 0, 0, 0, 0, 19}
@@ -1622,6 +1992,7 @@ func TestLogsSpecifyingTail(t *testing.T) {
 }
 
 func TestLogsRawTerminal(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("something happened!"))
 	}))
@@ -1650,6 +2021,7 @@ func TestLogsRawTerminal(t *testing.T) {
 }
 
 func TestLogsNoContainer(t *testing.T) {
+	t.Parallel()
 	var client Client
 	err := client.Logs(LogsOptions{})
 	expected := &NoSuchContainer{ID: ""}
@@ -1659,6 +2031,7 @@ func TestLogsNoContainer(t *testing.T) {
 }
 
 func TestNoSuchContainerError(t *testing.T) {
+	t.Parallel()
 	var err = &NoSuchContainer{ID: "i345"}
 	expected := "No such container: i345"
 	if got := err.Error(); got != expected {
@@ -1667,6 +2040,7 @@ func TestNoSuchContainerError(t *testing.T) {
 }
 
 func TestNoSuchContainerErrorMessage(t *testing.T) {
+	t.Parallel()
 	var err = &NoSuchContainer{ID: "i345", Err: errors.New("some advanced error info")}
 	expected := "some advanced error info"
 	if got := err.Error(); got != expected {
@@ -1675,6 +2049,7 @@ func TestNoSuchContainerErrorMessage(t *testing.T) {
 }
 
 func TestExportContainer(t *testing.T) {
+	t.Parallel()
 	content := "exported container tar content"
 	out := stdoutMock{bytes.NewBufferString(content)}
 	client := newTestClient(&FakeRoundTripper{status: http.StatusOK})
@@ -1688,40 +2063,7 @@ func TestExportContainer(t *testing.T) {
 	}
 }
 
-func TestExportContainerViaUnixSocket(t *testing.T) {
-	if runtime.GOOS != "darwin" {
-		t.Skip(fmt.Sprintf("skipping test on %s", runtime.GOOS))
-	}
-	content := "exported container tar content"
-	var buf []byte
-	out := bytes.NewBuffer(buf)
-	tempSocket := tempfile("export_socket")
-	defer os.Remove(tempSocket)
-	endpoint := "unix://" + tempSocket
-	u, _ := parseEndpoint(endpoint, false)
-	client := Client{
-		HTTPClient:             cleanhttp.DefaultClient(),
-		Dialer:                 &net.Dialer{},
-		endpoint:               endpoint,
-		endpointURL:            u,
-		SkipServerVersionCheck: true,
-	}
-	listening := make(chan string)
-	done := make(chan int)
-	go runStreamConnServer(t, "unix", tempSocket, listening, done)
-	<-listening // wait for server to start
-	opts := ExportContainerOptions{ID: "4fa6e0f0c678", OutputStream: out}
-	err := client.ExportContainer(opts)
-	<-done // make sure server stopped
-	if err != nil {
-		t.Errorf("ExportContainer: caugh error %#v while exporting container, expected nil", err.Error())
-	}
-	if out.String() != content {
-		t.Errorf("ExportContainer: wrong stdout. Want %#v. Got %#v.", content, out.String())
-	}
-}
-
-func runStreamConnServer(t *testing.T, network, laddr string, listening chan<- string, done chan<- int) {
+func runStreamConnServer(t *testing.T, network, laddr string, listening chan<- string, done chan<- int, containerID string) {
 	defer close(done)
 	l, err := net.Listen(network, laddr)
 	if err != nil {
@@ -1736,8 +2078,17 @@ func runStreamConnServer(t *testing.T, network, laddr string, listening chan<- s
 		t.Logf("Accept failed: %v", err)
 		return
 	}
+	defer c.Close()
+	breader := bufio.NewReader(c)
+	req, err := http.ReadRequest(breader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path := "/containers/" + containerID + "/export"; req.URL.Path != path {
+		t.Errorf("wrong path. Want %q. Got %q", path, req.URL.Path)
+		return
+	}
 	c.Write([]byte("HTTP/1.1 200 OK\n\nexported container tar content"))
-	c.Close()
 }
 
 func tempfile(filename string) string {
@@ -1745,6 +2096,7 @@ func tempfile(filename string) string {
 }
 
 func TestExportContainerNoId(t *testing.T) {
+	t.Parallel()
 	client := Client{}
 	out := stdoutMock{bytes.NewBufferString("")}
 	err := client.ExportContainer(ExportContainerOptions{OutputStream: out})
@@ -1758,6 +2110,7 @@ func TestExportContainerNoId(t *testing.T) {
 }
 
 func TestUploadToContainer(t *testing.T) {
+	t.Parallel()
 	content := "File content"
 	in := stdinMock{bytes.NewBufferString(content)}
 	fakeRT := &FakeRoundTripper{status: http.StatusOK}
@@ -1784,6 +2137,7 @@ func TestUploadToContainer(t *testing.T) {
 }
 
 func TestDownloadFromContainer(t *testing.T) {
+	t.Parallel()
 	filecontent := "File content"
 	client := newTestClient(&FakeRoundTripper{message: filecontent, status: http.StatusOK})
 
@@ -1801,6 +2155,7 @@ func TestDownloadFromContainer(t *testing.T) {
 }
 
 func TestCopyFromContainer(t *testing.T) {
+	t.Parallel()
 	content := "File content"
 	out := stdoutMock{bytes.NewBufferString(content)}
 	client := newTestClient(&FakeRoundTripper{status: http.StatusOK})
@@ -1818,6 +2173,7 @@ func TestCopyFromContainer(t *testing.T) {
 }
 
 func TestCopyFromContainerEmptyContainer(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{status: http.StatusOK})
 	err := client.CopyFromContainer(CopyFromContainerOptions{})
 	_, ok := err.(*NoSuchContainer)
@@ -1826,7 +2182,25 @@ func TestCopyFromContainerEmptyContainer(t *testing.T) {
 	}
 }
 
+func TestCopyFromContainerDockerAPI124(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(&FakeRoundTripper{status: http.StatusOK})
+	client.serverAPIVersion = apiVersion124
+	opts := CopyFromContainerOptions{
+		Container: "a123456",
+	}
+	err := client.CopyFromContainer(opts)
+	if err == nil {
+		t.Fatal("got unexpected <nil> error")
+	}
+	expectedMsg := "go-dockerclient: CopyFromContainer is no longer available in Docker >= 1.12, use DownloadFromContainer instead"
+	if err.Error() != expectedMsg {
+		t.Errorf("wrong error message\nWant %q\nGot  %q", expectedMsg, err.Error())
+	}
+}
+
 func TestPassingNameOptToCreateContainerReturnsItInContainer(t *testing.T) {
+	t.Parallel()
 	jsonContainer := `{
              "Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2",
 	     "Warnings": []
@@ -1845,6 +2219,7 @@ func TestPassingNameOptToCreateContainerReturnsItInContainer(t *testing.T) {
 }
 
 func TestAlwaysRestart(t *testing.T) {
+	t.Parallel()
 	policy := AlwaysRestart()
 	if policy.Name != "always" {
 		t.Errorf("AlwaysRestart(): wrong policy name. Want %q. Got %q", "always", policy.Name)
@@ -1855,6 +2230,7 @@ func TestAlwaysRestart(t *testing.T) {
 }
 
 func TestRestartOnFailure(t *testing.T) {
+	t.Parallel()
 	const retry = 5
 	policy := RestartOnFailure(retry)
 	if policy.Name != "on-failure" {
@@ -1865,7 +2241,19 @@ func TestRestartOnFailure(t *testing.T) {
 	}
 }
 
+func TestRestartUnlessStopped(t *testing.T) {
+	t.Parallel()
+	policy := RestartUnlessStopped()
+	if policy.Name != "unless-stopped" {
+		t.Errorf("RestartUnlessStopped(): wrong policy name. Want %q. Got %q", "unless-stopped", policy.Name)
+	}
+	if policy.MaximumRetryCount != 0 {
+		t.Errorf("RestartUnlessStopped(): wrong MaximumRetryCount. Want 0. Got %d", policy.MaximumRetryCount)
+	}
+}
+
 func TestNeverRestart(t *testing.T) {
+	t.Parallel()
 	policy := NeverRestart()
 	if policy.Name != "no" {
 		t.Errorf("NeverRestart(): wrong policy name. Want %q. Got %q", "always", policy.Name)
@@ -1876,6 +2264,7 @@ func TestNeverRestart(t *testing.T) {
 }
 
 func TestTopContainer(t *testing.T) {
+	t.Parallel()
 	jsonTop := `{
   "Processes": [
     [
@@ -1936,6 +2325,7 @@ func TestTopContainer(t *testing.T) {
 }
 
 func TestTopContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	_, err := client.TopContainer("abef348", "")
 	expected := &NoSuchContainer{ID: "abef348"}
@@ -1945,6 +2335,7 @@ func TestTopContainerNotFound(t *testing.T) {
 }
 
 func TestTopContainerWithPsArgs(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "no such container", status: http.StatusNotFound}
 	client := newTestClient(fakeRT)
 	expectedErr := &NoSuchContainer{ID: "abef348"}
@@ -1957,38 +2348,8 @@ func TestTopContainerWithPsArgs(t *testing.T) {
 	}
 }
 
-func TestStatsTimeout(t *testing.T) {
-	l, err := net.Listen("unix", "/tmp/docker_test.sock")
-	if err != nil {
-		t.Fatal(err)
-	}
-	received := false
-	defer l.Close()
-	go func() {
-		l.Accept()
-		received = true
-		time.Sleep(time.Second)
-	}()
-	client, _ := NewClient("unix:///tmp/docker_test.sock")
-	client.SkipServerVersionCheck = true
-	errC := make(chan error, 1)
-	statsC := make(chan *Stats)
-	done := make(chan bool)
-	go func() {
-		errC <- client.Stats(StatsOptions{"c", statsC, true, done, time.Millisecond * 100})
-		close(errC)
-	}()
-	err = <-errC
-	e, ok := err.(net.Error)
-	if !ok || !e.Timeout() {
-		t.Error("Failed to receive timeout exception")
-	}
-	if !received {
-		t.Fatal("Failed to receive message")
-	}
-}
-
 func TestStats(t *testing.T) {
+	t.Parallel()
 	jsonStats1 := `{
        "read" : "2015-01-08T22:57:31.547920715Z",
        "network" : {
@@ -2260,8 +2621,9 @@ func TestStats(t *testing.T) {
 	errC := make(chan error, 1)
 	statsC := make(chan *Stats)
 	done := make(chan bool)
+	defer close(done)
 	go func() {
-		errC <- client.Stats(StatsOptions{id, statsC, true, done, 0})
+		errC <- client.Stats(StatsOptions{ID: id, Stats: statsC, Stream: true, Done: done})
 		close(errC)
 	}()
 	var resultStats []*Stats
@@ -2295,10 +2657,12 @@ func TestStats(t *testing.T) {
 }
 
 func TestStatsContainerNotFound(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(&FakeRoundTripper{message: "no such container", status: http.StatusNotFound})
 	statsC := make(chan *Stats)
 	done := make(chan bool)
-	err := client.Stats(StatsOptions{"abef348", statsC, true, done, 0})
+	defer close(done)
+	err := client.Stats(StatsOptions{ID: "abef348", Stats: statsC, Stream: true, Done: done})
 	expected := &NoSuchContainer{ID: "abef348"}
 	if !reflect.DeepEqual(err, expected) {
 		t.Errorf("Stats: Wrong error returned. Want %#v. Got %#v.", expected, err)
@@ -2306,6 +2670,7 @@ func TestStatsContainerNotFound(t *testing.T) {
 }
 
 func TestRenameContainer(t *testing.T) {
+	t.Parallel()
 	fakeRT := &FakeRoundTripper{message: "", status: http.StatusOK}
 	client := newTestClient(fakeRT)
 	opts := RenameContainerOptions{ID: "something_old", Name: "something_new"}
@@ -2325,5 +2690,100 @@ func TestRenameContainer(t *testing.T) {
 	actualValues := req.URL.Query()["name"]
 	if len(actualValues) != 1 || expectedValues[0] != actualValues[0] {
 		t.Errorf("RenameContainer: Wrong params in request. Want %q. Got %q.", expectedValues, actualValues)
+	}
+}
+
+// sleepyRoundTripper implements the http.RoundTripper interface. It sleeps
+// for the 'sleep' duration and then returns an error for RoundTrip method.
+type sleepyRoudTripper struct {
+	sleepDuration time.Duration
+}
+
+func (rt *sleepyRoudTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	time.Sleep(rt.sleepDuration)
+	return nil, fmt.Errorf("Can't complete round trip")
+}
+
+func TestInspectContainerWhenContextTimesOut(t *testing.T) {
+	t.Parallel()
+	rt := sleepyRoudTripper{sleepDuration: 200 * time.Millisecond}
+
+	client := newTestClient(&rt)
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 100*time.Millisecond)
+	defer cancel()
+
+	_, err := client.InspectContainerWithContext("id", ctx)
+	if err != context.DeadlineExceeded {
+		t.Errorf("Expected 'DeadlineExceededError', got: %v", err)
+	}
+}
+
+func TestStartContainerWhenContextTimesOut(t *testing.T) {
+	t.Parallel()
+	rt := sleepyRoudTripper{sleepDuration: 200 * time.Millisecond}
+
+	client := newTestClient(&rt)
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 100*time.Millisecond)
+	defer cancel()
+
+	err := client.StartContainerWithContext("id", nil, ctx)
+	if err != context.DeadlineExceeded {
+		t.Errorf("Expected 'DeadlineExceededError', got: %v", err)
+	}
+}
+
+func TestStopContainerWhenContextTimesOut(t *testing.T) {
+	t.Parallel()
+	rt := sleepyRoudTripper{sleepDuration: 200 * time.Millisecond}
+
+	client := newTestClient(&rt)
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 100*time.Millisecond)
+	defer cancel()
+
+	err := client.StopContainerWithContext("id", 10, ctx)
+	if err != context.DeadlineExceeded {
+		t.Errorf("Expected 'DeadlineExceededError', got: %v", err)
+	}
+}
+
+func TestWaitContainerWhenContextTimesOut(t *testing.T) {
+	t.Parallel()
+	rt := sleepyRoudTripper{sleepDuration: 200 * time.Millisecond}
+
+	client := newTestClient(&rt)
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 100*time.Millisecond)
+	defer cancel()
+
+	_, err := client.WaitContainerWithContext("id", ctx)
+	if err != context.DeadlineExceeded {
+		t.Errorf("Expected 'DeadlineExceededError', got: %v", err)
+	}
+}
+
+func TestPruneContainers(t *testing.T) {
+	t.Parallel()
+	results := `{
+		"ContainersDeleted": [
+			"a", "b", "c"
+		],
+		"SpaceReclaimed": 123
+	}`
+
+	expected := &PruneContainersResults{}
+	err := json.Unmarshal([]byte(results), expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := newTestClient(&FakeRoundTripper{message: results, status: http.StatusOK})
+	got, err := client.PruneContainers(PruneContainersOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("PruneContainers: Expected %#v. Got %#v.", expected, got)
 	}
 }
