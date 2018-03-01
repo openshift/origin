@@ -278,8 +278,9 @@ func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) 
 	}
 
 	if ns.assignedIP != "" {
-		eip.deleteEgressIP(egressIP)
-		delete(eip.namespacesByEgressIP, egressIP)
+		oldEgressIP := ns.assignedIP
+		eip.deleteEgressIP(oldEgressIP)
+		delete(eip.namespacesByEgressIP, oldEgressIP)
 		ns.assignedIP = ""
 		ns.nodeIP = ""
 	}

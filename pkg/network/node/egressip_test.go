@@ -170,6 +170,7 @@ func TestEgressIP(t *testing.T) {
 
 	// Assign HostSubnet.EgressIP first, then NetNamespace.EgressIP, with a remote EgressIP
 	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.101", "172.17.0.100"}) // Added .101
+	eip.updateNodeEgress("172.17.0.5", []string{"172.17.0.105"})                 // Added .105
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -179,6 +180,17 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	eip.updateNamespaceEgress(43, "172.17.0.105")
+	err = assertNoNetlinkChanges(eip)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	err = assertOVSChanges(eip, &flows, egressOVSChange{vnid: 43, egress: Remote, remote: "172.17.0.5"})
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// Change NetNamespace.EgressIP
 	eip.updateNamespaceEgress(43, "172.17.0.101")
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
@@ -190,7 +202,7 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	// Assign NetNamespace.EgressIP first, then HostSubnet.EgressIP, with a local EgressIP
-	eip.updateNamespaceEgress(44, "172.17.0.102")
+	eip.updateNamespaceEgress(44, "172.17.0.104")
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -200,8 +212,8 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102"}) // Added .102
-	err = assertNetlinkChange(eip, "claim 172.17.0.102")
+	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102", "172.17.0.104"}) // Added .102, .104
+	err = assertNetlinkChange(eip, "claim 172.17.0.104")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -210,8 +222,24 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	// Change Namespace EgressIP
+	eip.updateNamespaceEgress(44, "172.17.0.102")
+	err = assertNetlinkChange(eip, "release 172.17.0.104")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	err = assertNetlinkChange(eip, "claim 172.17.0.102")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	// The iptables rules change, but not the OVS flow
+	err = assertNoOVSChanges(eip, &flows)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
 	// Assign HostSubnet.EgressIP first, then NetNamespace.EgressIP, with a local EgressIP
-	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102", "172.17.0.103"}) // Added .103
+	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102", "172.17.0.103"}) // Added .103, Dropped .104
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
