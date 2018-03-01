@@ -120,3 +120,25 @@ func WritePlanDetails(w io.Writer, plan *v1beta1.ClusterServicePlan, class *v1be
 
 	t.Render()
 }
+
+// WritePlanSchemas prints the schemas for a single plan.
+func WritePlanSchemas(w io.Writer, plan *v1beta1.ClusterServicePlan) {
+	instanceCreateSchema := plan.Spec.ServiceInstanceCreateParameterSchema
+	instanceUpdateSchema := plan.Spec.ServiceInstanceUpdateParameterSchema
+	bindingCreateSchema := plan.Spec.ServiceBindingCreateParameterSchema
+
+	if instanceCreateSchema != nil {
+		fmt.Fprintln(w, "\nInstance Create Parameter Schema:")
+		writeYAML(w, instanceCreateSchema, 2)
+	}
+
+	if instanceUpdateSchema != nil {
+		fmt.Fprintln(w, "\nInstance Update Parameter Schema:")
+		writeYAML(w, instanceUpdateSchema, 2)
+	}
+
+	if bindingCreateSchema != nil {
+		fmt.Fprintln(w, "\nBinding Create Parameter Schema:")
+		writeYAML(w, bindingCreateSchema, 2)
+	}
+}

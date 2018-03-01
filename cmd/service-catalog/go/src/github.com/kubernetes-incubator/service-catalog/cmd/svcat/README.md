@@ -24,18 +24,26 @@ In order to use svcat, you will need:
 Follow the appropriate instructions for your shell to download svcat. The binary
 can be used by itself, or as kubectl plugin.
 
-## Bash
+## MacOS
 ```
-curl -sLO https://servicecatalogcli.blob.core.windows.net/cli/latest/$(uname -s)/$(uname -m)/svcat
+curl -sLO https://download.svcat.sh/cli/latest/darwin/amd64/svcat
 chmod +x ./svcat
 mv ./svcat /usr/local/bin/
 svcat --version
 ```
 
-## PowerShell
+## Linux
+```
+curl -sLO https://download.svcat.sh/cli/latest/linux/amd64/svcat
+chmod +x ./svcat
+mv ./svcat /usr/local/bin/
+svcat --version
+```
+
+## Windows
 
 ```
-iwr 'https://servicecatalogcli.blob.core.windows.net/cli/latest/Windows/x86_64/svcat.exe' -UseBasicParsing -OutFile svcat.exe
+iwr 'https://download.svcat.sh/cli/latest/windows/amd64/svcat.exe' -UseBasicParsing -OutFile svcat.exe
 mkdir -f ~\bin
 $env:PATH += ";${pwd}\bin"
 svcat --version
@@ -46,9 +54,9 @@ You will need to find a permanent location for it and add it to your PATH.
 
 ## Manual
 1. Download the appropriate binary for your operating system:
-    * macOS: https://servicecatalogcli.blob.core.windows.net/cli/latest/Darwin/x86_64/svcat
-    * Windows: https://servicecatalogcli.blob.core.windows.net/cli/latest/Windows/x86_64/svcat.exe
-    * Linux: https://servicecatalogcli.blob.core.windows.net/cli/latest/Linux/x86_64/svcat
+    * macOS: https://download.svcat.sh/cli/latest/darwin/amd64/svcat
+    * Windows: https://download.svcat.sh/cli/latest/windows/amd64/svcat.exe
+    * Linux: https://download.svcat.sh/cli/latest/linux/amd64/svcat
 1. Make the binary executable.
 1. Move the binary to a directory on your PATH.
 

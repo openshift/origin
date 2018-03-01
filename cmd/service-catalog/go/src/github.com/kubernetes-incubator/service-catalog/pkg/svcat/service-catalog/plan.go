@@ -82,3 +82,31 @@ func (sdk *SDK) RetrievePlansByClass(class *v1beta1.ClusterServiceClass,
 
 	return plans.Items, nil
 }
+
+// RetrievePlanByClassAndPlanNames gets a plan by its class/plan name combination.
+func (sdk *SDK) RetrievePlanByClassAndPlanNames(className, planName string,
+) (*v1beta1.ClusterServicePlan, error) {
+	class, err := sdk.RetrieveClassByName(className)
+	if err != nil {
+		return nil, err
+	}
+
+	planOpts := v1.ListOptions{
+		FieldSelector: fields.AndSelectors(
+			fields.OneTermEqualSelector(FieldServiceClassRef, class.Name),
+			fields.OneTermEqualSelector(FieldExternalPlanName, planName),
+		).String(),
+	}
+	searchResults, err := sdk.ServiceCatalog().ClusterServicePlans().List(planOpts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to search plans by class/plan name '%s/%s' (%s)", className, planName, err)
+	}
+	if len(searchResults.Items) == 0 {
+		return nil, fmt.Errorf("plan not found '%s/%s'", className, planName)
+	}
+	if len(searchResults.Items) > 1 {
+		// Note: Should never occur, as class/plan name combo must be unique
+		return nil, fmt.Errorf("more than one matching plan found for '%s/%s'", className, planName)
+	}
+	return &searchResults.Items[0], nil
+}

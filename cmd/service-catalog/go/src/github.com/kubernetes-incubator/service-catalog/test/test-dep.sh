@@ -21,7 +21,7 @@ result=0
 
 function cleanup() {
     popd
-    rm -r contrib/examples/consumer/vendor
+    git clean ./contrib/examples/consumer/ -xdf
 
     if [[ "${result:-}" != "0" ]]; then
         echo "A downstream consumer of our client library cannot use dep to vendor Service Catalog. You may need to add a constraint to Gopkg.toml to address."
@@ -32,7 +32,9 @@ function cleanup() {
 pushd contrib/examples/consumer
 trap "cleanup" EXIT
 
-dep ensure
+echo "Running dep ensure..."
+dep ensure -v
+echo "Compiling the downstream consumer using the resolved dependencies..."
 go build .
 
 echo "Verified that our Gopkg.toml is sufficient for a downstream consumer of our client library."
