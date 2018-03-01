@@ -11,8 +11,10 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -20,7 +22,7 @@ import (
 
 const changeTimeoutSeconds = 3 * 60
 
-var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift routers", func() {
+var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "scoped-router.yaml")
@@ -32,19 +34,16 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 		if len(imagePrefix) == 0 {
 			imagePrefix = "openshift/origin"
 		}
-		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:router", oc.Username()).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
+		err := oc.AsAdmin().Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should serve the correct routes when scoped to a single namespace and label set", func() {
 			defer func() {
-				// This should be done if the test fails but
-				// for now always dump the logs.
-				// if g.CurrentGinkgoTestDescription().Failed
-				dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				if g.CurrentGinkgoTestDescription().Failed {
+					dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				}
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
@@ -91,10 +90,9 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 
 		g.It("should override the route host with a custom value", func() {
 			defer func() {
-				// This should be done if the test fails but
-				// for now always dump the logs.
-				// if g.CurrentGinkgoTestDescription().Failed
-				dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				if g.CurrentGinkgoTestDescription().Failed {
+					dumpScopedRouterLogs(oc, g.CurrentGinkgoTestDescription().FullTestText)
+				}
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
@@ -142,6 +140,16 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 				err = expectRouteStatusCodeExec(ns, execPodName, routerURL+"/Letter", host, http.StatusOK)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
+
+			g.By("checking that the router reported the correct ingress and override")
+			r, err := oc.RouteClient().Route().Routes(ns).Get("route-1", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			ingress := ingressForName(r, "test-override")
+			o.Expect(ingress).NotTo(o.BeNil())
+			o.Expect(ingress.Host).To(o.Equal(fmt.Sprintf(pattern, "route-1", ns)))
+			status, condition := routeapi.IngressConditionStatus(ingress, routeapi.RouteAdmitted)
+			o.Expect(status).To(o.Equal(kapi.ConditionTrue))
+			o.Expect(condition.LastTransitionTime).NotTo(o.BeNil())
 		})
 	})
 })
@@ -222,4 +230,13 @@ func getAuthenticatedRouteURLViaPod(ns, execPodName, url, host, user, pass strin
 func dumpScopedRouterLogs(oc *exutil.CLI, name string) {
 	log, _ := e2e.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "scoped-router", "router")
 	e2e.Logf("Scoped Router test %s logs:\n %s", name, log)
+}
+
+func ingressForName(r *routeapi.Route, name string) *routeapi.RouteIngress {
+	for i, ingress := range r.Status.Ingress {
+		if ingress.RouterName == name {
+			return &r.Status.Ingress[i]
+		}
+	}
+	return nil
 }
