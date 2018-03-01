@@ -18,6 +18,7 @@ package plan
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/command"
 	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/output"
@@ -98,6 +99,12 @@ func (c *getCmd) get() error {
 	var err error
 	if c.lookupByUUID {
 		plan, err = c.App.RetrievePlanByID(c.uuid)
+	} else if strings.Contains(c.name, "/") {
+		names := strings.Split(c.name, "/")
+		if len(names) != 2 {
+			return fmt.Errorf("failed to parse class/plan name combination '%s'", c.name)
+		}
+		plan, err = c.App.RetrievePlanByClassAndPlanNames(names[0], names[1])
 	} else {
 		plan, err = c.App.RetrievePlanByName(c.name)
 	}
