@@ -29,6 +29,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
@@ -220,27 +221,28 @@ type CommonStartConfig struct {
 	Out   io.Writer
 	Tasks []task
 
-	HostName                 string
-	LocalConfigDir           string
-	UseExistingConfig        bool
-	Environment              []string
-	ServerLogLevel           int
-	HostVolumesDir           string
-	HostConfigDir            string
-	HostDataDir              string
-	UsePorts                 []int
-	DNSPort                  int
-	ServerIP                 string
-	AdditionalIPs            []string
-	UseNsenterMount          bool
-	PublicHostname           string
-	RoutingSuffix            string
-	HostPersistentVolumesDir string
-	HTTPProxy                string
-	HTTPSProxy               string
-	NoProxy                  []string
-	CACert                   string
-	PVCount                  int
+	HostName                  string
+	LocalConfigDir            string
+	UseExistingConfig         bool
+	Environment               []string
+	ServerLogLevel            int
+	HostVolumesDir            string
+	HostConfigDir             string
+	HostDataDir               string
+	UsePorts                  []int
+	DNSPort                   int
+	ServerIP                  string
+	AdditionalIPs             []string
+	UseNsenterMount           bool
+	PublicHostname            string
+	RoutingSuffix             string
+	HostPersistentVolumesDir  string
+	HTTPProxy                 string
+	HTTPSProxy                string
+	NoProxy                   []string
+	CACert                    string
+	PVCount                   int
+	SecurityContextConstraint string
 
 	dockerClient    dockerhelper.Interface
 	dockerHelper    *dockerhelper.Helper
@@ -288,6 +290,7 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&config.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&config.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
+	flags.StringVar(&config.SecurityContextConstraint, "scc", bootstrappolicy.SecurityContextConstraintRestricted, "Default security context constraint for authenticated users")
 }
 
 // Start runs the start tasks ensuring that they are executed in sequence
@@ -531,6 +534,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 		serverVersion, _ := c.OpenShiftHelper().ServerVersion()
 		return clusterVersionIsCurrent(serverVersion) && c.ShouldInitializeData()
 	}))
+
+	// Set scc for authenticated users accordingly
+	if c.SecurityContextConstraint != bootstrappolicy.SecurityContextConstraintRestricted {
+		c.addTask(simpleTask("Setting scc for authenticated users", c.SetSCC))
+	}
 
 	// Login with an initial default user
 	c.addTask(conditionalTask("Login to server", c.Login, c.ShouldCreateUser))
@@ -950,25 +958,26 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	}
 
 	opt := &openshift.StartOptions{
-		ServerIP:                 c.ServerIP,
-		AdditionalIPs:            c.AdditionalIPs,
-		RoutingSuffix:            c.RoutingSuffix,
-		UseSharedVolume:          !c.UseNsenterMount,
-		Images:                   c.imageFormat(),
-		HostVolumesDir:           c.HostVolumesDir,
-		HostConfigDir:            c.HostConfigDir,
-		HostDataDir:              c.HostDataDir,
-		HostPersistentVolumesDir: c.HostPersistentVolumesDir,
-		UseExistingConfig:        c.UseExistingConfig,
-		Environment:              c.Environment,
-		LogLevel:                 c.ServerLogLevel,
-		DNSPort:                  c.DNSPort,
-		PortForwarding:           c.PortForwarding,
-		HTTPProxy:                c.HTTPProxy,
-		HTTPSProxy:               c.HTTPSProxy,
-		NoProxy:                  c.NoProxy,
-		DockerRoot:               dockerRoot,
-		ServiceCatalog:           c.ShouldInstallServiceCatalog,
+		ServerIP:                  c.ServerIP,
+		AdditionalIPs:             c.AdditionalIPs,
+		RoutingSuffix:             c.RoutingSuffix,
+		UseSharedVolume:           !c.UseNsenterMount,
+		Images:                    c.imageFormat(),
+		HostVolumesDir:            c.HostVolumesDir,
+		HostConfigDir:             c.HostConfigDir,
+		HostDataDir:               c.HostDataDir,
+		HostPersistentVolumesDir:  c.HostPersistentVolumesDir,
+		UseExistingConfig:         c.UseExistingConfig,
+		Environment:               c.Environment,
+		LogLevel:                  c.ServerLogLevel,
+		DNSPort:                   c.DNSPort,
+		PortForwarding:            c.PortForwarding,
+		HTTPProxy:                 c.HTTPProxy,
+		HTTPSProxy:                c.HTTPSProxy,
+		NoProxy:                   c.NoProxy,
+		DockerRoot:                dockerRoot,
+		ServiceCatalog:            c.ShouldInstallServiceCatalog,
+		SecurityContextConstraint: c.SecurityContextConstraint,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
@@ -1097,6 +1106,20 @@ func (c *ClientStartConfig) InstallWebConsole(out io.Writer) error {
 	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
 }
 
+// SetSCC changes the default scc for authenticated users
+func (c *ClientStartConfig) SetSCC(out io.Writer) error {
+	sccopts := []string{}
+	group := "system:authenticated"
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	for _, v := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrappolicy.GetBoostrapSCCAccess(bootstrappolicy.DefaultOpenShiftInfraNamespace)) {
+		sccopts = append(sccopts, v.Name)
+	}
+	return c.OpenShiftHelper().SetSCC(f, c.SecurityContextConstraint, contains(sccopts, c.SecurityContextConstraint), sccopts, group, out, os.Stderr)
+}
+
 // ImportImageStreams imports default image streams into the server
 // TODO: Use streams compiled into oc
 func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
@@ -1159,6 +1182,15 @@ func shouldImportAdminTemplates(v semver.Version) bool {
 
 func useAnsible(v semver.Version) bool {
 	return v.GTE(openshiftVersion36)
+}
+
+func contains(o []string, f string) bool {
+	for _, a := range o {
+		if a == f {
+			return true
+		}
+	}
+	return false
 }
 
 // clusterVersionIsCurrent returns whether the cluster version being

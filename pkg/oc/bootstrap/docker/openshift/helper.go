@@ -110,28 +110,29 @@ type Helper struct {
 
 // StartOptions represent the parameters sent to the start command
 type StartOptions struct {
-	ServerIP                 string
-	AdditionalIPs            []string
-	RoutingSuffix            string
-	DNSPort                  int
-	UseSharedVolume          bool
-	Images                   string
-	HostVolumesDir           string
-	HostConfigDir            string
-	HostDataDir              string
-	HostPersistentVolumesDir string
-	UseExistingConfig        bool
-	Environment              []string
-	LogLevel                 int
-	MetricsHost              string
-	LoggingHost              string
-	PortForwarding           bool
-	HTTPProxy                string
-	HTTPSProxy               string
-	NoProxy                  []string
-	KubeconfigContents       string
-	DockerRoot               string
-	ServiceCatalog           bool
+	ServerIP                  string
+	AdditionalIPs             []string
+	RoutingSuffix             string
+	DNSPort                   int
+	UseSharedVolume           bool
+	Images                    string
+	HostVolumesDir            string
+	HostConfigDir             string
+	HostDataDir               string
+	HostPersistentVolumesDir  string
+	UseExistingConfig         bool
+	Environment               []string
+	LogLevel                  int
+	MetricsHost               string
+	LoggingHost               string
+	PortForwarding            bool
+	HTTPProxy                 string
+	HTTPSProxy                string
+	NoProxy                   []string
+	KubeconfigContents        string
+	DockerRoot                string
+	ServiceCatalog            bool
+	SecurityContextConstraint string
 }
 
 // NewHelper creates a new OpenShift helper
