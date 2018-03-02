@@ -128,6 +128,7 @@ func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.
 
 	cmd.Flags().StringArrayVarP(&options.Environment, "environment", "e", options.Environment, "Environment variable to use in the deployment hook pod")
 	cmd.Flags().StringSliceVarP(&options.Volumes, "volumes", "v", options.Volumes, "Volumes from the pod template to use in the deployment hook pod")
+	cmd.Flags().MarkShorthandDeprecated("volumes", "Use --volumes instead.")
 
 	cmd.Flags().String("failure-policy", "ignore", "The failure policy for the deployment hook. Valid values are: abort,retry,ignore")
 
