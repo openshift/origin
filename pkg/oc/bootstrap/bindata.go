@@ -14269,6 +14269,7 @@ objects:
           - -tls-key=/etc/tls/private/tls.key
           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
           - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -skip-auth-regex=^/metrics
           volumeMounts:
           - mountPath: /etc/tls/private
             name: alerts-tls-secret
@@ -14283,9 +14284,6 @@ objects:
           volumeMounts:
           - mountPath: /alert-buffer
             name: alerts-data
-          ports:
-          - containerPort: 9099
-            name: alert-buf
 
         - name: alertmanager-proxy
           image: ${IMAGE_PROXY}
@@ -14320,9 +14318,6 @@ objects:
           - --config.file=/etc/alertmanager/alertmanager.yml
           image: ${IMAGE_ALERTMANAGER}
           imagePullPolicy: IfNotPresent
-          ports:
-          - containerPort: 9093
-            name: web
           volumeMounts:
           - mountPath: /etc/alertmanager
             name: alertmanager-config
@@ -14354,10 +14349,10 @@ objects:
             name: alertmanager
         - name: alertmanager-tls-secret
           secret:
-            secretName: alertmanager-tls  
+            secretName: alertmanager-tls
         - name: alertmanager-proxy-secret
           secret:
-            secretName: alertmanager-proxy         
+            secretName: alertmanager-proxy
 
         - name: alerts-proxy-secrets
           secret:
@@ -14387,7 +14382,7 @@ objects:
             miqTarget: "ContainerNode"
             severity: "HIGH"
             message: "{{$labels.instance}} is down"
-    
+
     recording.rules: |
       groups:
       - name: aggregate_container_resources
