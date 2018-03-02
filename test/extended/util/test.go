@@ -50,9 +50,8 @@ func InitTest() {
 	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
 	ginkgo.BeforeEach(checkSyntheticInput)
 
-	e2e.RegisterCommonFlags()
-	e2e.RegisterClusterFlags()
 	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
+	e2e.ViperizeFlags()
 
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
@@ -122,22 +121,38 @@ func ExecuteTest(t *testing.T, suite string) {
 		r = append(r, reporters.NewJUnitReporter(path.Join(TestContext.ReportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
+	matches := make(map[string]*regexp.Regexp)
+	for label, items := range testMaps {
+		matches[label] = regexp.MustCompile(strings.Join(items, `|`))
+	}
+
 	ginkgo.WalkTests(func(name string, node types.TestNode) {
-		isSerial := serialTestsFilter.MatchString(name)
-		if isSerial {
-			if !strings.Contains(name, "[Serial]") {
-				node.SetText(node.Text() + " [Serial]")
+		labels := ""
+		for {
+			count := 0
+			for label, matcher := range matches {
+				if strings.Contains(name, label) {
+					continue
+				}
+				if matcher.MatchString(name) {
+					count++
+					labels += " " + label
+					name += " " + label
+				}
+			}
+			if count == 0 {
+				break
 			}
 		}
-
 		if !excludedTestsFilter.MatchString(name) {
-			include := conformanceTestsFilter.MatchString(name)
+			isSerial := strings.Contains(name, "[Serial]")
+			isConformance := strings.Contains(name, "[Conformance]")
 			switch {
-			case !include:
-				// do nothing
 			case isSerial:
 				node.SetText(node.Text() + " [Suite:openshift/conformance/serial]")
-			case include:
+			case isConformance:
+				node.SetText(node.Text() + " [Suite:openshift/conformance/parallel/minimal]")
+			default:
 				node.SetText(node.Text() + " [Suite:openshift/conformance/parallel]")
 			}
 		}
@@ -147,6 +162,7 @@ func ExecuteTest(t *testing.T, suite string) {
 		if strings.Contains(node.CodeLocation().FileName, "/kubernetes/test/e2e/") {
 			node.SetText(node.Text() + " [Suite:k8s]")
 		}
+		node.SetText(node.Text() + labels)
 	})
 
 	if quiet {
@@ -244,130 +260,133 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 }
 
 var (
+	testMaps = map[string][]string{
+		// tests that require a local host
+		"[Local]": {
+			// Doesn't work on scaled up clusters
+			`\[Feature:ImagePrune\]`,
+		},
+		// alpha features that are not gated
+		"[Disabled:Alpha]": {
+			`\[Feature:Initializers\]`,                       // admission controller disabled
+			`\[Feature:LocalPersistentVolumes\]`,             // flag gate is off
+			`\[Feature:PodPreemption\]`,                      // flag gate is off
+			`\[Feature:RunAsGroup\]`,                         // flag gate is off
+			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
+			`AdmissionWebhook`,                               // needs to be enabled
+		},
+		// tests for features that are not implemented in openshift
+		"[Disabled:Unimplemented]": {
+			`\[Feature:Networking-IPv6\]`, // openshift-sdn doesn't support yet
+			`Monitoring`,                  // Not installed, should be
+			`Cluster level logging`,       // Not installed yet
+			`Kibana`,                      // Not installed
+			`Ubernetes`,                   // Can't set zone labels today
+			`kube-ui`,                     // Not installed by default
+			`^Kubernetes Dashboard`,       // Not installed by default (also probably slow image pull)
+			`Ingress`,                     // Not enabled yet
+
+			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
+
+			`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
+		},
+		// tests that rely on special configuration that we do not yet support
+		"[Disabled:SpecialConfig]": {
+			`\[Feature:ImageQuota\]`,                    // Quota isn't turned on by default, we should do that and then reenable these tests
+			`\[Feature:Audit\]`,                         // Needs special configuration
+			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
+
+			`kube-dns-autoscaler`,                                                    // Don't run kube-dns
+			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
+			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
+
+			// vSphere tests can be skipped generally
+			`vsphere`,
+			`Cinder`, // requires an OpenStack cluster
+			// See the CanSupport implementation in upstream to determine wether these work.
+			`Ceph RBD`,                              // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
+			`GlusterFS`,                             // May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
+			`Horizontal pod autoscaling`,            // needs heapster
+			`authentication: OpenLDAP`,              // needs separate setup and bucketing for openldap bootstrapping
+			`NodeProblemDetector`,                   // requires a non-master node to run on
+			`Advanced Audit should audit API calls`, // expects to be able to call /logs
+
+			`Metadata Concealment`, // TODO: would be good to use
+
+			`Firewall rule should have correct firewall rules for e2e cluster`, // Upstream-install specific
+		},
+		// tests that are known broken and need to be fixed upstream or in openshift
+		// always add an issue here
+		"[Disabled:Broken]": {
+			`EmptyDir wrapper volumes should not conflict`,                   // uses git volume https://bugzilla.redhat.com/show_bug.cgi?id=1622195
+			`\[Feature:BlockVolume\]`,                                        // directory failure https://bugzilla.redhat.com/show_bug.cgi?id=1622193
+			`\[Feature:Example\]`,                                            // has cleanup issues
+			`mount an API token into pods`,                                   // We add 6 secrets, not 1
+			`ServiceAccounts should ensure a single API token exists`,        // We create lots of secrets
+			`should test kube-proxy`,                                         // needs 2 nodes
+			`unchanging, static URL paths for kubernetes api services`,       // the test needs to exclude URLs that are not part of conformance (/logs)
+			"PersistentVolumes NFS when invoking the Recycle reclaim policy", // failing for some reason
+			`should propagate mounts to the host`,                            // https://github.com/openshift/origin/issues/18931
+			`Simple pod should handle in-cluster config`,                     // kubectl cp is not preserving executable bit
+			`Services should be able to up and down services`,                // we don't have wget installed on nodes
+			`Network should set TCP CLOSE_WAIT timeout`,                      // possibly some difference between ubuntu and fedora
+			`should allow ingress access on one named port`,                  // broken even with network policy on
+
+			`CSI plugin test using CSI driver: hostPath should provision storage`, // hangs waiting for binding, csi-pod doesn't start https://bugzilla.redhat.com/show_bug.cgi?id=1622670
+
+			`\[NodeFeature:Sysctls\]`, // needs SCC support
+
+			`validates that there is no conflict between pods with same hostPort but different hostIP and protocol`, // https://github.com/kubernetes/kubernetes/issues/61018
+
+			`SSH`,                // TRIAGE
+			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
+			`Volumes CephFS`,     // permission denied, selinux?
+
+			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
+		},
+		// tests too slow to be part of conformance
+		"[Slow]": {
+			`\[sig-scalability\]`,                          // disable from the default set for now
+			`should create and stop a working application`, // Inordinately slow tests
+
+			`should ensure that critical pod is scheduled in case there is no resources available`, // should be tagged disruptive, consumes 100% of cluster CPU
+
+			"Pod should avoid to schedule to node that have avoidPod annotation",
+			"Pod should be schedule to node that satisify the PodAffinity",
+			"Pod should be prefer scheduled to node that satisify the NodeAffinity",
+			"Pod should be schedule to node that don't match the PodAntiAffinity terms", // 2m
+
+			"validates that there exists conflict between pods with same hostPort and protocol but one using 0.0.0.0 hostIP", // 5m, really?
+		},
+		// tests that are known flaky
+		"[Flaky]": {
+			`Job should run a job to completion when tasks sometimes fail and are not locally restarted`, // seems flaky, also may require too many resources
+			`openshift mongodb replication creating from a template`,                                     // flaking on deployment
+		},
+		// tests that must be run without competition
+		"[Serial]": {
+			`\[Disruptive\]`,
+			`\[Feature:Performance\]`,            // requires isolation
+			`\[Feature:ManualPerformance\]`,      // requires isolation
+			`\[Feature:HighDensityPerformance\]`, // requires no other namespaces
+
+			`Service endpoints latency`, // requires low latency
+			`Clean up pods on node`,     // schedules up to max pods per node
+			`should allow starting 95 pods per node`,
+
+			`Should be able to support the 1.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
+		},
+	}
+
 	excludedTests = []string{
+		`\[Disabled:.+\]`,
 		`\[Skipped\]`,
 		`\[Slow\]`,
 		`\[Flaky\]`,
-		`\[Disruptive\]`,
 		`\[local\]`,
-
-		// alpha test that shouldn't be run
-		`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`,
-
-		// not enabled in Origin yet
-		//`\[Feature:GarbageCollector\]`,
-
-		// Doesn't work on scaled up clusters
-		`\[Feature:ImagePrune\]`,
-		`\[Feature:ImageMirror\]`,
-		// Quota isn't turned on by default, we should do that and then reenable these tests
-		`\[Feature:ImageQuota\]`,
-		// Currently disabled by default
-		`\[Feature:Initializers\]`,
-		// Needs special configuration
-		`\[Feature:Audit\]`,
-
-		// Depends on external components, may not need yet
-		`Monitoring`,            // Not installed, should be
-		`Cluster level logging`, // Not installed yet
-		`Kibana`,                // Not installed
-		`Ubernetes`,             // Can't set zone labels today
-		`kube-ui`,               // Not installed by default
-		`^Kubernetes Dashboard`, // Not installed by default (also probably slow image pull)
-
-		`\[Feature:Federation\]`,                                       // Not enabled yet
-		`\[Feature:Federation12\]`,                                     // Not enabled yet
-		`Ingress`,                                                      // Not enabled yet
-		`Cinder`,                                                       // requires an OpenStack cluster
-		`should support r/w`,                                           // hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
-		`should check that the kubernetes-dashboard instance is alive`, // we don't create this
-		//		`\[Feature:ManualPerformance\]`,                                // requires /resetMetrics which we don't expose
-
-		// See the CanSupport implementation in upstream to determine wether these work.
-		`Ceph RBD`,           // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
-		`GlusterFS`,          // May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
-		`should support r/w`, // hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
-
-		// Failing because of https://github.com/openshift/origin/issues/12365 against a real cluster
-		//`should allow starting 95 pods per node`,
-
-		// Need fixing
-		`Horizontal pod autoscaling`, // needs heapster
-		//`PersistentVolume`,                                        // https://github.com/openshift/origin/pull/6884 for recycler
-		`mount an API token into pods`,                            // We add 6 secrets, not 1
-		`ServiceAccounts should ensure a single API token exists`, // We create lots of secrets
-		`should test kube-proxy`,                                  // needs 2 nodes
-		`authentication: OpenLDAP`,                                // needs separate setup and bucketing for openldap bootstrapping
-		`NFS`, // no permissions https://github.com/openshift/origin/pull/6884
-		`\[Feature:Example\]`, // has cleanup issues
-		`NodeProblemDetector`, // requires a non-master node to run on
-		//`unchanging, static URL paths for kubernetes api services`, // the test needs to exclude URLs that are not part of conformance (/logs)
-
-		// Needs triage to determine why it is failing
-		`Addon update`, // TRIAGE
-		`SSH`,          // TRIAGE
-		`\[Feature:Upgrade\]`,                                    // TRIAGE
-		`SELinux relabeling`,                                     // https://github.com/openshift/origin/issues/7287
-		`openshift mongodb replication creating from a template`, // flaking on deployment
-		//`Update Demo should do a rolling update of a replication controller`, // this is flaky and needs triaging
-
-		// Test will never work
-		`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
-
-		// Need to relax security restrictions
-		//`validates that InterPod Affinity and AntiAffinity is respected if matching`, // this *may* now be safe
-
-		// Requires too many pods per node for the per core defaults
-		//`should ensure that critical pod is scheduled in case there is no resources available`,
-
-		// Need multiple nodes
-		`validates that InterPodAntiAffinity is respected if matching 2`,
-
-		// Inordinately slow tests
-		`should create and stop a working application`,
-		//`should always delete fast`, // will be uncommented in etcd3
-
-		// We don't install KubeDNS
-		`should check if Kubernetes master services is included in cluster-info`,
-
-		// this tests dns federation configuration via configmap, which we don't support yet
-		`DNS configMap`,
-
-		// this tests the _kube_ downgrade. we don't support that.
-		`\[Feature:Downgrade\]`,
-
-		// upstream flakes
-		`validates resource limits of pods that are allowed to run`, // can't schedule to master due to node label limits, also fiddly
-
-		// TODO undisable:
-		`should provide basic identity`,                         // needs a persistent volume provisioner in single node, host path not working
-		`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
-
-		// slow as sin and twice as ugly (11m each)
-		"Pod should avoid to schedule to node that have avoidPod annotation",
-		"Pod should be schedule to node that satisify the PodAffinity",
-		"Pod should be prefer scheduled to node that satisify the NodeAffinity",
+		`\[Local\]`,
 	}
 	excludedTestsFilter = regexp.MustCompile(strings.Join(excludedTests, `|`))
-
-	// The list of tests to run for the OpenShift conformance suite. Any test
-	// in this group which cannot be run in parallel must be identified with the
-	// [Serial] tag or added to the serialTests filter.
-	conformanceTests       = []string{}
-	conformanceTestsFilter = regexp.MustCompile(strings.Join(conformanceTests, `|`))
-
-	// Identifies any tests that by nature must be run in isolation. Every test in this
-	// category will be given the [Serial] tag if it does not already have it.
-	serialTests = []string{
-		`\[Serial\]`,
-		`\[Disruptive\]`,
-		`\[Feature:ManualPerformance\]`,      // requires isolation
-		`\[Feature:HighDensityPerformance\]`, // requires no other namespaces
-		`Service endpoints latency`,          // requires low latency
-		`Clean up pods on node`,              // schedules up to max pods per node
-		`should allow starting 95 pods per node`,
-	}
-	serialTestsFilter = regexp.MustCompile(strings.Join(serialTests, `|`))
 )
 
 // checkSyntheticInput selects tests based on synthetic skips or focuses
