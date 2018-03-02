@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
@@ -1396,6 +1397,8 @@ func (kl *Kubelet) Run(updates <-chan kubetypes.PodUpdate) {
 
 	// Start the pod lifecycle event generator.
 	kl.pleg.Start()
+
+	go daemon.SdNotify(false, "READY=1")
 	kl.syncLoop(updates, kl)
 }
 
