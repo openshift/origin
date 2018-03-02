@@ -65,6 +65,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		blueGreenPipelinePath         = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		clientPluginPipelinePath      = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
 		envVarsPipelinePath           = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
+		origPipelinePath              = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "samplepipeline.yaml")
 		configMapPodTemplatePath      = exutil.FixturePath("testdata", "config-map-jenkins-slave-pods.yaml")
 		imagestreamPodTemplatePath    = exutil.FixturePath("testdata", "imagestream-jenkins-slave-pods.yaml")
 		imagestreamtagPodTemplatePath = exutil.FixturePath("testdata", "imagestreamtag-jenkins-slave-pods.yaml")
@@ -277,6 +278,53 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			g.By("expecting the openshift-jee-sample service to be deployed and running")
 			_, err = exutil.GetEndpointAddress(oc, "nodejs-mongodb-example")
 			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Context("Deleted pipeline strategy buildconfigs", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker.Stop()
+			}
+		})
+
+		g.It("should not be recreated by the sync plugin", func() {
+			// create the bc
+			g.By(fmt.Sprintf("calling oc new-app -f %q", origPipelinePath))
+			err := oc.Run("new-app").Args("-f", origPipelinePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verify job is in jenkins")
+			_, err = j.WaitForContent("", 200, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("delete pipeline strategy bc %q", origPipelinePath))
+			err = oc.Run("delete").Args("bc", "sample-pipeline").Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verify job is not in jenkins")
+			_, err = j.WaitForContent("", 404, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verify bc is still deleted")
+			err = oc.Run("get").Args("bc", "sample-pipeline").Execute()
+			o.Expect(err).To(o.HaveOccurred())
 		})
 	})
 
