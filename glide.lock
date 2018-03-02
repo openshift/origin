@@ -1,5 +1,5 @@
 hash: 20a85c17c2b76b0693a6bf86cefc49fb8c685b1ada8949c098c2b5b593163c8d
-updated: 2018-02-27T11:33:56.964459908-05:00
+updated: 2018-03-02T13:43:24.333863067-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -718,7 +718,7 @@ imports:
 - name: github.com/Microsoft/hcsshim
   version: 6ea7fe54f719d95721e7d9b26ac0add224c9b923
 - name: github.com/miekg/dns
-  version: 5364553f1ee9cddc7ac8b62dce148309c386695b
+  version: 906238edc6eb0ddface4a1923f6d41ef2a5ca59b
 - name: github.com/mindprince/gonvml
   version: fee913ce8fb235edf54739d259ca0ecc226c7b8a
 - name: github.com/mistifyio/go-zfs
@@ -816,7 +816,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 0d921e363e951d89f583292c60d013c318df64dc
+  version: dca24d1902afee9d2be02425a2d7c9f910063631
   subpackages:
   - apps/v1
   - authorization/v1
@@ -937,14 +937,14 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 4574f886e9697b3ea4539d0981cca6dad10afdc4
+  version: acdc8e0044b99a8ca4bc5c746c758efa4c911a6b
   subpackages:
   - dockerclient
   - imageprogress
   - signal
   - strslice
 - name: github.com/openshift/source-to-image
-  version: f303aa0a25c62e39140b8df130db86debf2064d0
+  version: 58bf2c5afa2cc27da637f6525153850b9fdcf041
   subpackages:
   - pkg/api
   - pkg/api/describe
@@ -1305,7 +1305,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 30a449993d4d38589fa79362431bd9b04644cab5
+  version: 79ce43999155a2f5bf26f286dee6a9239f834c95
   repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - admission/v1beta1
@@ -1339,7 +1339,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 188eb0a15833d14a678b1078b11fc8ee4ceb8eae
+  version: 3ca90c9ce97f3c851730f57fd86dcb6a9cfd19e0
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1371,7 +1371,7 @@ imports:
   - pkg/registry/customresource
   - pkg/registry/customresourcedefinition
 - name: k8s.io/apimachinery
-  version: 12746011c32507d61f9ac778e75233a44a2d268a
+  version: 62308fa0fafb5e6a7cc2a5ac6da61490de497fdd
   repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
   - pkg/api/equality
@@ -1437,7 +1437,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 017dc6a13fdba5ec7b11dd06ef8018266244447a
+  version: 5776c1e6ce98cfea496a41b27f214276e6d82f61
   repo: git@github.com:openshift/kubernetes-apiserver
   subpackages:
   - pkg/admission
@@ -1546,7 +1546,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 1502c0d02760ce07bc53f5f4656a4878566b1ef7
+  version: ef1842bd1cfad649d7d6bbc921a86f1a13228490
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1734,7 +1734,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: f02af3e9b7d164a6633c2014c9359ee918ff9b65
+  version: 38f8dfe32662f1de8a86227dc9bdacdf434f87a1
   repo: git@github.com:openshift/kube-aggregator
   subpackages:
   - pkg/apis/apiregistration
@@ -1770,7 +1770,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 64ec0a217e42d9d9d309ef79d6ba294ba8764e16
+  version: 9ddaf73b2087eb14aeabbf15092d72fc6c4227f0
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
