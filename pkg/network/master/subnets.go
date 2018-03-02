@@ -334,7 +334,7 @@ func (master *OsdnMaster) handleDeleteSubnet(obj interface{}) {
 	hs := obj.(*networkapi.HostSubnet)
 	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
 
-	if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; !ok {
+	if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; ok {
 		return
 	}
 
