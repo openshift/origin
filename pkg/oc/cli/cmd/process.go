@@ -88,10 +88,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	}
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
-	params := cmd.Flags().StringArrayP("value", "v", nil, "Specify a key-value pair (eg. -v FOO=BAR) to set/override a parameter value in the template.")
-	cmd.Flags().MarkDeprecated("value", "Use -p, --param instead.")
-	cmd.Flags().MarkHidden("value")
-	cmd.Flags().StringArrayVarP(params, "param", "p", nil, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
+	cmd.Flags().StringArrayP("param", "p", nil, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
 	cmd.Flags().StringArray("param-file", []string{}, "File containing template parameter values to set/override in the template.")
 	cmd.MarkFlagFilename("param-file")
 	cmd.Flags().Bool("ignore-unknown-parameters", false, "If true, will not stop processing if a provided parameter does not exist in the template.")
@@ -133,7 +130,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	}
 
 	local := kcmdutil.GetFlagBool(cmd, "local")
-	if cmd.Flag("value").Changed || cmd.Flag("param").Changed {
+	if cmd.Flag("param").Changed {
 		flagValues := getFlagStringArray(cmd, "param")
 		cmdutil.WarnAboutCommaSeparation(errout, flagValues, "--param")
 		templateParams = append(templateParams, flagValues...)
@@ -158,7 +155,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	}
 
 	if kcmdutil.GetFlagBool(cmd, "parameters") {
-		for _, flag := range []string{"value", "param", "labels", "output", "output-version", "raw", "template"} {
+		for _, flag := range []string{"param", "labels", "output", "output-version", "raw", "template"} {
 			if f := cmd.Flags().Lookup(flag); f != nil && f.Changed {
 				return kcmdutil.UsageErrorf(cmd, "The --parameters flag does not process the template, can't be used with --%v", flag)
 			}

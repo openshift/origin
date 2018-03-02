@@ -21,6 +21,7 @@ os::cmd::expect_success_and_text "oc debug dc/test-deployment-config --keep-live
 os::cmd::expect_success_and_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" '\- /bin/env'
 os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'stdinOnce'
 os::cmd::expect_success_and_text "oc debug -t dc/test-deployment-config -o yaml" 'tty'
+os::cmd::expect_success_and_text "oc debug --v=8 -t dc/test-deployment-config -o yaml" "Response Headers"
 os::cmd::expect_success_and_not_text "oc debug --tty=false dc/test-deployment-config -o yaml" 'tty'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'stdin'
 os::cmd::expect_success_and_not_text "oc debug dc/test-deployment-config -o yaml -- /bin/env" 'tty'
