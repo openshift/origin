@@ -1,0 +1,53 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: kube-controller-manager
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: controllers
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: controllers
+    image: openshift/origin:latest
+    command: ["hyperkube", "kube-controller-manager"]
+    args:
+    - "--enable-dynamic-provisioning=true"
+    - "--use-service-account-credentials=true"
+    - "--leader-elect-retry-period=3s"
+    - "--leader-elect-resource-lock=configmaps"
+    - "--controllers=*"
+    - "--controllers=-ttl"
+    - "--controllers=-bootstrapsigner"
+    - "--controllers=-tokencleaner"
+    - "--controllers=-horizontalpodautoscaling"
+    - "--pod-eviction-timeout=5m"
+    - "--cluster-signing-key-file="
+    - "--cluster-signing-cert-file="
+    - "--experimental-cluster-signing-duration=720h"
+    - "--root-ca-file=/etc/origin/master/ca-bundle.crt"
+    - "--port=10252"
+    - "--service-account-private-key-file=/etc/origin/master/serviceaccounts.private.key"
+    - "--kubeconfig=/etc/origin/master/openshift-master.kubeconfig"
+    - "--openshift-config=/etc/origin/master/master-config.yaml"
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+     - mountPath: /etc/origin/cloudprovider/
+       name: master-cloud-provider
+    livenessProbe:
+      httpGet:
+        scheme: HTTP
+        port: 10252
+        path: healthz
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-cloud-provider
+    hostPath:
+      path: /etc/origin/cloudprovider

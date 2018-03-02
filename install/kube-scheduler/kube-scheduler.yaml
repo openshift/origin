@@ -1,0 +1,40 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: scheduler
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: scheduler
+    image: openshift/origin:latest
+    command: ["hyperkube", "kube-scheduler"]
+    args:
+    - "--leader-elect=true"
+    - "--leader-elect-resource-lock=configmaps"
+    - "--port=10251"
+    - "--kubeconfig=/etc/origin/master/openshift-master.kubeconfig"
+    - "--policy-config-file="
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+     - mountPath: /etc/origin/cloudprovider/
+       name: master-cloud-provider
+    livenessProbe:
+      httpGet:
+        scheme: HTTP
+        port: 10251
+        path: healthz
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-cloud-provider
+    hostPath:
+      path: /etc/origin/cloudprovider

@@ -7,9 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
-	"github.com/golang/glog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
@@ -63,6 +62,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 	registryJSON, stdErr, err := h.execHelper.Command("oc", "adm", "registry",
 		"--dry-run",
 		"--output=json",
+		"--local",
 		fmt.Sprintf("--images=%s", images),
 		fmt.Sprintf("--mount-host=%s", path.Join(pvDir, "registry"))).Output()
 
@@ -101,7 +101,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 }
 
 // InstallRouter installs a default router on the OpenShift server
-func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
+func (h *Helper) InstallRouter(imageRunHelper *run.Runner, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcRouter, metav1.GetOptions{})
 	if err == nil {
 		// Router service already exists, nothing to do
@@ -173,26 +173,57 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 		return errors.NewError("cannot create aggregate router cert").WithCause(err)
 	}
 
-	err = h.hostHelper.UploadFileToContainer(filepath.Join(masterDir, "router.pem"), routerCertPath)
-	if err != nil {
-		return errors.NewError("cannot upload router cert to origin container").WithCause(err)
-	}
-
-	_, stdErr, err := h.execHelper.Command("oc", "adm", "router",
+	flags := []string{
+		"adm", "router",
+		"--dry-run",
+		"--output=json",
+		"--local",
 		"--host-ports=true",
 		fmt.Sprintf("--host-network=%v", !portForwarding),
 		fmt.Sprintf("--images=%s", images),
-		fmt.Sprintf("--default-cert=%s", routerCertPath)).Output()
-
+		fmt.Sprintf("--default-cert=%s", routerCertPath),
+	}
+	_, routerJSON, stdErr, _, err := imageRunHelper.Image(ocImage).
+		Privileged().
+		DiscardContainer().
+		HostNetwork().
+		HostPid().
+		Bind(masterDir + ":" + masterConfigDir).
+		Entrypoint("oc").
+		Command(flags...).Output()
 	if err != nil {
-		// In origin v1.3.1, the 'oc adm router' command exits with an error
-		// about an existing router service account. However, the router is
-		// created successfully.
-		if strings.Contains(stdErr, "error: serviceaccounts \"router\" already exists") {
-			glog.V(2).Infof("ignoring error about existing router service account")
-		} else {
-			return errors.NewError("error creating router").WithCause(err)
+		return errors.NewError("cannot generate router resources").WithCause(err).WithDetails(stdErr)
+	}
+
+	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), []byte(routerJSON))
+	if err != nil {
+		return errors.NewError("cannot decode registry JSON output").WithCause(err).WithDetails(routerJSON)
+	}
+	objList := obj.(*kapi.List)
+
+	if errs := runtime.DecodeList(objList.Items, legacyscheme.Codecs.UniversalDecoder()); len(errs) > 0 {
+		return errors.NewError("cannot decode registry objects").WithCause(utilerrors.NewAggregate(errs))
+	}
+
+	// Create objects
+	mapper := clientcmd.ResourceMapper(f)
+	bulk := &configcmd.Bulk{
+		Mapper: mapper,
+		Op:     configcmd.Create,
+	}
+	if errs := bulk.Run(objList, DefaultNamespace); len(errs) > 0 {
+		filteredErrs := []error{}
+		for _, err := range errs {
+			if apierrors.IsAlreadyExists(err) {
+				continue
+			}
+			filteredErrs = append(filteredErrs, err)
 		}
+		if len(filteredErrs) == 0 {
+			return nil
+		}
+		err = utilerrors.NewAggregate(filteredErrs)
+		return errors.NewError("cannot create router object").WithCause(err)
 	}
 
 	return nil

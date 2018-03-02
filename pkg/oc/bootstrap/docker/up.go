@@ -16,6 +16,7 @@ import (
 	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/util/tmputil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -37,6 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -173,6 +175,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(config.Complete(f, c, out))
 			kcmdutil.CheckErr(config.Validate(out, errout))
+			kcmdutil.CheckErr(config.CommonStartConfig.Check(out))
 			if err := config.Start(out); err != nil {
 				fmt.Fprintf(errout, "%s\n", err.Error())
 				os.Exit(1)
@@ -225,6 +228,7 @@ type CommonStartConfig struct {
 	UseExistingConfig        bool
 	Environment              []string
 	ServerLogLevel           int
+	PodManifestDir           string
 	HostVolumesDir           string
 	HostConfigDir            string
 	HostDataDir              string
@@ -312,10 +316,15 @@ func (c *CommonStartConfig) Start(out io.Writer) error {
 // ClientStartConfig is the configuration for the client start command
 type ClientStartConfig struct {
 	CommonStartConfig
+
+	RunLikeRealEnvironments bool
 }
 
 func (config *ClientStartConfig) Bind(flags *pflag.FlagSet) {
 	config.CommonStartConfig.Bind(flags)
+
+	flags.BoolVar(&config.RunLikeRealEnvironments, "for-real", config.RunLikeRealEnvironments, "run like a real environment runs")
+	flags.MarkHidden("for-real")
 }
 
 func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
@@ -325,6 +334,14 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 	// do some defaulting
 	if len(c.ImageVersion) == 0 {
 		c.ImageVersion = defaultImageVersion()
+	}
+
+	if len(c.PodManifestDir) == 0 {
+		var err error
+		c.PodManifestDir, err = tmputil.TempDir("oc-cluster-up-pod-manifest-")
+		if err != nil {
+			return err
+		}
 	}
 
 	// do some struct initialization next
@@ -339,8 +356,7 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 			c.DockerMachine = defaultDockerMachineName
 		}
 
-		taskName := "Create Docker machine"
-		taskPrinter.StartTask(taskName)
+		taskPrinter.StartTask("Create Docker machine")
 		fmt.Fprintf(out, "Creating docker-machine %s\n", c.DockerMachine)
 		if err := CreateDockerMachine(c.DockerMachine); err != nil {
 			return taskPrinter.ToError(err)
@@ -380,14 +396,6 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 		}
 		taskPrinter.Success()
 	}
-
-	// Check for an OpenShift container. If one exists and is running, exit.
-	// If one exists but not running, delete it.
-	taskPrinter.StartTask("Checking for existing OpenShift container")
-	if err := c.CheckExistingOpenShiftContainer(out); err != nil {
-		return taskPrinter.ToError(err)
-	}
-	taskPrinter.Success()
 
 	// Ensure that the OpenShift Docker image is available.
 	// If not present, pull it.
@@ -467,14 +475,33 @@ func (c *CommonStartConfig) Validate() error {
 	return nil
 }
 
+// Check is a spot to do NON-MUTATING, preflight checks. Over time, we should try to move our non-mutating checks out of
+// Complete and into Check.
+func (c *CommonStartConfig) Check(out io.Writer) error {
+	// used for some pretty printing
+	taskPrinter := NewTaskPrinter(getDetailedOut(out))
+
+	// Check for an OpenShift container. If one exists and is running, exit.
+	// If one exists but not running, delete it.
+	taskPrinter.StartTask("Checking for existing OpenShift container")
+	if err := checkExistingOpenShiftContainer(c.DockerHelper(), out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+	taskPrinter.Success()
+
+	return nil
+}
+
 // Complete initializes fields based on command parameters and execution environment
 func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
 	if err := c.CommonStartConfig.Complete(f, cmd, out); err != nil {
 		return err
 	}
 
-	// Create an OpenShift configuration and start a container that uses it.
-	c.addTask(simpleTask("Starting OpenShift container", c.StartOpenShift))
+	if !c.RunLikeRealEnvironments {
+		// Create an OpenShift configuration and start a container that uses it.
+		c.addTask(simpleTask("Starting OpenShift container", c.StartOpenShift))
+	}
 
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
 	c.addTask(conditionalTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs, c.ShouldInitializeData))
@@ -577,6 +604,12 @@ func getDetailedOut(out io.Writer) io.Writer {
 func (c *ClientStartConfig) Start(out io.Writer) error {
 	fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
 
+	if c.RunLikeRealEnvironments {
+		if err := c.StartSelfHosted(out); err != nil {
+			return err
+		}
+	}
+
 	detailedOut := getDetailedOut(out)
 	taskPrinter := NewTaskPrinter(detailedOut)
 	startError := func() error {
@@ -591,7 +624,8 @@ func (c *ClientStartConfig) Start(out io.Writer) error {
 			}
 			err := task.fn(w)
 			if err != nil {
-				return taskPrinter.ToError(err)
+				taskPrinter.Failure(err)
+				return err
 			}
 			taskPrinter.Success()
 		}
@@ -731,19 +765,19 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 	return dockerhelper.NewClient(host, engineAPIClient), nil
 }
 
-// CheckExistingOpenShiftContainer checks the state of an OpenShift container.
+// checkExistingOpenShiftContainer checks the state of an OpenShift container.
 // If one is already running, it throws an error.
 // If one exists, it removes it so a new one can be created.
-func (c *CommonStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error {
-	container, running, err := c.DockerHelper().GetContainerState(openshift.OpenShiftContainer)
+func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper, out io.Writer) error {
+	container, running, err := dockerHelper.GetContainerState(openshift.OpenShiftContainer)
 	if err != nil {
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
 	if running {
-		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", strings.Join(cmdutil.SiblingCommand(c.command, "down"), " "))
+		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", "oc cluster down")
 	}
 	if container != nil {
-		err = c.DockerHelper().RemoveContainer(openshift.OpenShiftContainer)
+		err = dockerHelper.RemoveContainer(openshift.OpenShiftContainer)
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
@@ -1028,7 +1062,14 @@ func (c *ClientStartConfig) CheckContainerNetworking(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	networkErr := <-c.containerNetworkErr
+	var networkErr error
+	if c.containerNetworkErr != nil {
+		// TODO this branch should die.  Side effecty as all get out
+		networkErr = <-c.containerNetworkErr
+	} else {
+		networkErr = c.OpenShiftHelper().TestContainerNetworking(serverIP)
+	}
+
 	if networkErr != nil {
 		return errors.NewError("containers cannot communicate with the OpenShift master").
 			WithDetails("The cluster was started. However, the container networking test failed.").
@@ -1067,7 +1108,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
+	return c.OpenShiftHelper().InstallRouter(run.NewRunHelper(c.DockerHelper()).New(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
 }
 
 // InstallWebConsole installs the OpenShift web console on the server
