@@ -325,6 +325,7 @@ readonly OS_ALL_IMAGES=(
   openshift/origin-f5-router
   openshift/origin-egress-router
   openshift/origin-egress-http-proxy
+  openshift/origin-egress-dns-proxy
   openshift/origin-recycler
   openshift/origin-cluster-capacity
   openshift/origin-service-catalog
@@ -366,6 +367,7 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}"                       images/origin ) &
   ( os::build::image "${tag_prefix}-egress-router"         images/egress/router ) &
   ( os::build::image "${tag_prefix}-egress-http-proxy"     images/egress/http-proxy ) &
+  ( os::build::image "${tag_prefix}-egress-dns-proxy"      images/egress/dns-proxy ) &
   ( os::build::image "${tag_prefix}-federation"            images/federation ) &
 
   for i in `jobs -p`; do wait $i; done
