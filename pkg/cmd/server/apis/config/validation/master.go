@@ -242,7 +242,7 @@ func ValidateAuditConfig(config configapi.AuditConfig, fldPath *field.Path) Vali
 		} else {
 			policyConfiguration, ok := config.PolicyConfiguration.(*auditinternal.Policy)
 			if !ok {
-				validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, "must be of type audit/v1alpha1.Policy"))
+				validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, "must be of type audit/v1beta1.Policy"))
 			} else {
 				if err := auditvalidation.ValidatePolicy(policyConfiguration); err != nil {
 					validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, err.ToAggregate().Error()))
