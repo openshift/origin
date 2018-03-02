@@ -120,6 +120,7 @@ func init() {
 		Rules: []rbac.PolicyRule{
 			rbac.NewRule("get", "list", "watch").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs").RuleOrDie(),
 			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate").RuleOrDie(),
+			rbac.NewRule("delete").Groups(buildGroup, legacyBuildGroup).Resources("builds").RuleOrDie(),
 			eventsRule(),
 		},
 	})
