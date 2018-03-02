@@ -14574,6 +14574,21 @@ objects:
           action: keep
           regex: openshift-template-service-broker;apiserver;https
 
+      # Scrape config for the service catalog
+      - job_name: 'openshift-service-catalog'
+        scheme: http
+
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - kube-service-catalog
+
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: keep
+          regex: controller-manager-(.+)
+
       alerting:
         alertmanagers:
         - scheme: http
@@ -14985,6 +15000,8 @@ objects:
           - service-catalog
           args:
           - controller-manager
+          - --port
+          - "8080"
           - -v
           - "5"
           - --leader-election-namespace
@@ -15017,19 +15034,6 @@ objects:
             - key: tls.crt
               path: apiserver.crt
             secretName: apiserver-ssl
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: controller-manager
-  spec:
-    ports:
-    - port: 6443
-      protocol: TCP
-      targetPort: 6443
-    selector:
-      app: controller-manager
-    sessionAffinity: None
-    type: ClusterIP
 
 parameters:
 - description: CORS allowed origin for the API server, if you need to specify multiple modify the Deployment after creation
