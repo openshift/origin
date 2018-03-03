@@ -29,12 +29,12 @@ const (
 // TemplatePlugin implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type TemplatePlugin struct {
-	Router         routerInterface
+	Router         RouterInterface
 	IncludeUDP     bool
 	ServiceFetcher ServiceLookup
 }
 
-func newDefaultTemplatePlugin(router routerInterface, includeUDP bool, lookupSvc ServiceLookup) *TemplatePlugin {
+func newDefaultTemplatePlugin(router RouterInterface, includeUDP bool, lookupSvc ServiceLookup) *TemplatePlugin {
 	return &TemplatePlugin{
 		Router:         router,
 		IncludeUDP:     includeUDP,
@@ -62,10 +62,11 @@ type TemplatePluginConfig struct {
 	MaxConnections           string
 	Ciphers                  string
 	StrictSNI                bool
+	DynamicConfigManager     ConfigManager
 }
 
-// routerInterface controls the interaction of the plugin with the underlying router implementation
-type routerInterface interface {
+// RouterInterface controls the interaction of the plugin with the underlying router implementation
+type RouterInterface interface {
 	// Mutative operations in this interface do not return errors.
 	// The only error state for these methods is when an unknown
 	// frontend key is used; all call sites make certain the frontend
@@ -156,6 +157,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		allowWildcardRoutes:      cfg.AllowWildcardRoutes,
 		peerEndpointsKey:         peerKey,
 		bindPortsAfterSync:       cfg.BindPortsAfterSync,
+		dynamicConfigManager:     cfg.DynamicConfigManager,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
 	return newDefaultTemplatePlugin(router, cfg.IncludeUDP, lookupSvc), err

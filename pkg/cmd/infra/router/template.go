@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -31,6 +32,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	routelisters "github.com/openshift/origin/pkg/route/generated/listers/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
@@ -38,6 +40,7 @@ import (
 	"github.com/openshift/origin/pkg/router/metrics"
 	"github.com/openshift/origin/pkg/router/metrics/haproxy"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
+	haproxyconfigmanager "github.com/openshift/origin/pkg/router/template/configmanager/haproxy"
 	"github.com/openshift/origin/pkg/util/proc"
 	"github.com/openshift/origin/pkg/util/writerlease"
 	"github.com/openshift/origin/pkg/version"
@@ -45,6 +48,10 @@ import (
 
 // defaultReloadInterval is how often to do reloads in seconds.
 const defaultReloadInterval = 5
+
+// defaultCommitInterval is how often (in seconds) to commit the "in-memory"
+// router changes made using the dynamic configuration manager.
+const defaultCommitInterval = 60 * 60
 
 var routerLong = templates.LongDesc(`
 	Start a router
@@ -85,6 +92,18 @@ type TemplateRouter struct {
 	Ciphers                  string
 	StrictSNI                bool
 	MetricsType              string
+
+	TemplateRouterConfigManager
+}
+
+type TemplateRouterConfigManager struct {
+	ConfigManagerName           string
+	ConfigManagerConnectionInfo string
+	CommitInterval              time.Duration
+	BlueprintRouteNamespace     string
+	BlueprintRoutePoolSize      int
+	DynamicServerPrefix         string
+	MaxDynamicServers           int
 }
 
 // isTrue here has the same logic as the function within package pkg/router/template
@@ -93,14 +112,14 @@ func isTrue(s string) bool {
 	return v
 }
 
-// reloadInterval returns how often to run the router reloads. The interval
-// value is based on an environment variable or the default.
-func reloadInterval() time.Duration {
-	interval := util.Env("RELOAD_INTERVAL", fmt.Sprintf("%vs", defaultReloadInterval))
+// getIntervalFromEnv returns a interval value based on an environment
+// variable or the default.
+func getIntervalFromEnv(name string, defaultValSecs int) time.Duration {
+	interval := util.Env(name, fmt.Sprintf("%vs", defaultValSecs))
 	value, err := time.ParseDuration(interval)
 	if err != nil {
-		glog.Warningf("Invalid RELOAD_INTERVAL %q, using default value %v ...", interval, defaultReloadInterval)
-		value = time.Duration(defaultReloadInterval * time.Second)
+		glog.Warningf("Invalid %q %q, using default value %v ...", name, interval, defaultValSecs)
+		value = time.Duration(time.Duration(defaultValSecs) * time.Second)
 	}
 	return value
 }
@@ -113,12 +132,19 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.DefaultDestinationCAPath, "default-destination-ca-path", util.Env("DEFAULT_DESTINATION_CA_PATH", "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"), "A path to a PEM file containing the default CA bundle to use with re-encrypt routes. This CA should sign for certificates in the Kubernetes DNS space (service.namespace.svc).")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
-	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
+	flag.DurationVar(&o.ReloadInterval, "interval", getIntervalFromEnv("RELOAD_INTERVAL", defaultReloadInterval), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
 	flag.StringVar(&o.Ciphers, "ciphers", util.Env("ROUTER_CIPHERS", ""), "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list.")
 	flag.BoolVar(&o.StrictSNI, "strict-sni", isTrue(util.Env("ROUTER_STRICT_SNI", "")), "Use strict-sni bind processing (do not use default cert).")
 	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
+	flag.StringVar(&o.ConfigManagerName, "config-manager", util.Env("ROUTER_CONFIG_MANAGER", ""), "Specifies the manager to use for dynamically configuring changes with the underlying router. Supports 'haproxy-manager'.")
+	flag.StringVar(&o.ConfigManagerConnectionInfo, "config-manager-connection-info", "", "Specifies connection information for the dynamic configuration manager.")
+	flag.DurationVar(&o.CommitInterval, "commit-interval", getIntervalFromEnv("COMMIT_INTERVAL", defaultCommitInterval), "Controls how often to commit (to the actual config) all the changes made using the router specific dynamic configuration manager.")
+	flag.StringVar(&o.BlueprintRouteNamespace, "blueprint-route-namespace", util.Env("ROUTER_BLUEPRINT_ROUTE_NAMESPACE", ""), "Specifies the namespace which contains the routes that serve as blueprints for the dynamic configuration manager.")
+	flag.IntVar(&o.BlueprintRoutePoolSize, "blueprint-route-pool-size", int(util.EnvInt("ROUTER_BLUEPRINT_ROUTE_POOL_SIZE", 10, 1)), "Specifies the size of the pre-allocated pool for each route blueprint managed by the router specific dynamic configuration manager. This can be overriden by an annotation router.openshift.io/pool-size on an individual route.")
+	flag.StringVar(&o.DynamicServerPrefix, "dynamic-server-prefix", util.Env("ROUTER_DYNAMIC_SERVER_PREFIX", ""), "Specifies the prefix for dynamic servers added to router backends. These dynamic servers are handled by the router specific dynamic configuration manager.")
+	flag.IntVar(&o.MaxDynamicServers, "max-dynamic-servers", int(util.EnvInt("ROUTER_MAX_DYNAMIC_SERVERS", 5, 1)), "Specifies the maximum number of dynamic servers added to a route for use by the router specific dynamic configuration manager.")
 }
 
 type RouterStats struct {
@@ -210,6 +236,10 @@ func (o *TemplateRouterOptions) Complete() error {
 
 	if nsecs := int(o.ReloadInterval.Seconds()); nsecs < 1 {
 		return fmt.Errorf("invalid reload interval: %v - must be a positive duration", nsecs)
+	}
+
+	if nsecs := int(o.CommitInterval.Seconds()); nsecs < 1 {
+		return fmt.Errorf("invalid dynamic configuration manager commit interval: %v - must be a positive duration", nsecs)
 	}
 
 	return o.RouterSelection.Complete()
@@ -384,6 +414,46 @@ func (o *TemplateRouterOptions) Run() error {
 		reloadCallbacks = append(reloadCallbacks, collector.CollectNow)
 	}
 
+	kc, err := o.Config.Clients()
+	if err != nil {
+		return err
+	}
+	config, _, err := o.Config.KubeConfig()
+	if err != nil {
+		return err
+	}
+	routeclient, err := routeinternalclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	projectclient, err := projectinternalclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	var cfgManager templateplugin.ConfigManager
+	if o.ConfigManagerName == "haproxy-manager" {
+		blueprintRoutes, err := o.blueprintRoutes(routeclient)
+		if err != nil {
+			return err
+		}
+
+		uri := o.ConfigManagerConnectionInfo
+		if len(o.ConfigManagerConnectionInfo) == 0 {
+			uri = "unix:///var/lib/haproxy/run/haproxy.sock"
+		}
+
+		cmopts := templateplugin.ConfigManagerOptions{
+			ConnectionInfo:         uri,
+			CommitInterval:         o.CommitInterval,
+			BlueprintRoutes:        blueprintRoutes,
+			BlueprintRoutePoolSize: o.BlueprintRoutePoolSize,
+			DynamicServerPrefix:    o.DynamicServerPrefix,
+			MaxDynamicServers:      o.MaxDynamicServers,
+		}
+		cfgManager = haproxyconfigmanager.NewHAProxyConfigManager(cmopts)
+	}
+
 	pluginCfg := templateplugin.TemplatePluginConfig{
 		WorkingDir:               o.WorkingDir,
 		TemplatePath:             o.TemplateFile,
@@ -404,23 +474,7 @@ func (o *TemplateRouterOptions) Run() error {
 		MaxConnections:           o.MaxConnections,
 		Ciphers:                  o.Ciphers,
 		StrictSNI:                o.StrictSNI,
-	}
-
-	kc, err := o.Config.Clients()
-	if err != nil {
-		return err
-	}
-	config, _, err := o.Config.KubeConfig()
-	if err != nil {
-		return err
-	}
-	routeclient, err := routeinternalclientset.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-	projectclient, err := projectinternalclientset.NewForConfig(config)
-	if err != nil {
-		return err
+		DynamicConfigManager:     cfgManager,
 	}
 
 	svcFetcher := templateplugin.NewListWatchServiceLookup(kc.Core(), o.ResyncInterval, o.Namespace)
@@ -456,7 +510,36 @@ func (o *TemplateRouterOptions) Run() error {
 	controller := factory.Create(plugin, false)
 	controller.Run()
 
+	if blueprintPlugin != nil {
+		// f is like factory but filters the routes based on the
+		// blueprint route namespace and label selector (if any).
+		f := o.RouterSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
+		f.LabelSelector = o.BlueprintRouteLabelSelector
+		f.Namespace = o.BlueprintRouteNamespace
+		f.ResyncInterval = o.ResyncInterval
+		c := f.Create(blueprintPlugin, false)
+		c.Run()
+	}
+
 	proc.StartReaper()
 
 	select {}
+}
+
+// blueprintRoutes returns all the routes in the blueprint namespace.
+func (o *TemplateRouterOptions) blueprintRoutes(routeclient *routeinternalclientset.Clientset) ([]*routeapi.Route, error) {
+	blueprints := make([]*routeapi.Route, 0)
+	if len(o.BlueprintRouteNamespace) == 0 {
+		return blueprints, nil
+	}
+
+	routeList, err := routeclient.Route().Routes(o.BlueprintRouteNamespace).List(metav1.ListOptions{})
+	if err != nil {
+		return blueprints, err
+	}
+	for _, r := range routeList.Items {
+		blueprints = append(blueprints, r.DeepCopy())
+	}
+
+	return blueprints, nil
 }

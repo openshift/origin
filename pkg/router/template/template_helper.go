@@ -119,6 +119,22 @@ func genCertificateHostName(hostname string, wildcard bool) string {
 	return templateutil.GenCertificateHostName(hostname, wildcard)
 }
 
+// Generates the backend name prefix based on the termination.
+func GenBackendNamePrefix(termination routeapi.TLSTerminationType) string {
+	prefix := "be_http"
+
+	switch termination {
+	case routeapi.TLSTerminationEdge:
+		prefix = "be_edge_http"
+	case routeapi.TLSTerminationReencrypt:
+		prefix = "be_secure"
+	case routeapi.TLSTerminationPassthrough:
+		prefix = "be_tcp"
+	}
+
+	return prefix
+}
+
 // processEndpointsForAlias returns the list of endpoints for the given route's service
 // action argument further processes the list e.g. shuffle
 // The default action is in-order traversal of internal data structure that stores
@@ -262,6 +278,7 @@ var helperFunctions = template.FuncMap{
 	"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 	"generateRouteRegexp":        generateRouteRegexp,        //generates a regular expression matching the route hosts (and paths)
 	"genCertificateHostName":     genCertificateHostName,     //generates host name to use for serving/matching certificates
+	"genBackendNamePrefix":       GenBackendNamePrefix,       //generates the prefix for the backend name
 
 	"isTrue":     isTrue,     //determines if a given variable is a true value
 	"firstMatch": firstMatch, //anchors provided regular expression and evaluates against given strings, returns the first matched string or ""
