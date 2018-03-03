@@ -1,0 +1,72 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kube-proxy
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: kube-proxy
+- name: LOGLEVEL
+  value: "0"
+- name: NODE_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: kube-proxy
+    namespace: ${NAMESPACE}
+
+- kind: ClusterRoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  metadata:
+    name: system:kube-proxy
+  subjects:
+    - kind: ServiceAccount
+      name: kube-proxy
+      namespace: ${NAMESPACE}
+  roleRef:
+    kind: ClusterRole
+    name: system:node-proxier
+    apiGroup: rbac.authorization.k8s.io
+
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    labels:
+      k8s-app: kube-proxy
+    name: kube-proxy
+    namespace: ${NAMESPACE}
+  spec:
+    selector:
+      matchLabels:
+        k8s-app: kube-proxy
+    template:
+      metadata:
+        labels:
+          k8s-app: kube-proxy
+      spec:
+        serviceAccountName: kube-proxy
+        hostNetwork: true
+        containers:
+        - name: kube-proxy
+          image: ${IMAGE}
+          command: ["openshift", "start", "node"]
+          args:
+          - "--enable=proxy"
+          - "--listen=https://0.0.0.0:8444"
+          - "--config=/etc/origin/node/node-config.yaml"
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/node/
+             name: node-config
+             readOnly: true
+        volumes:
+        - name: node-config
+          hostPath:
+            path: ${NODE_CONFIG_HOST_PATH}

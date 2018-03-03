@@ -16,7 +16,6 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
@@ -161,7 +160,7 @@ func (r *ansibleRunner) uploadInventoryToHost(inventoryTemplate string, params a
 		return "", err
 	}
 	glog.V(1).Infof("Wrote inventory to local file: %s", file.Name())
-	dest := fmt.Sprintf("%s/%s.inventory", host.DefaultConfigDir, r.Prefix)
+	dest := fmt.Sprintf("%s/%s.inventory", "/var/lib/origin/openshift.local.config", r.Prefix)
 	glog.V(1).Infof("Uploading file %s to host destination: %s", file.Name(), dest)
 	err = r.Helper.hostHelper.UploadFileToContainer(file.Name(), dest)
 	if err != nil {

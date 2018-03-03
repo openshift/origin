@@ -1,0 +1,82 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kube-dns
+parameters:
+- name: NAMESPACE
+  value: kube-dns
+- name: IMAGE
+  value: openshift/origin:latest
+- name: LOGLEVEL
+  value: "0"
+- name: KUBEDNS_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+# ok follow the crazy.  For cluster up to work, I need a resolv.conf for my kubelet
+# You can't set a port in a resolv.conf
+# cluster up probably can't bind to the actual 53 on the local system
+# that means creating a pod that DOES NOT RUN ON THE HOST NETWORK and binding 53 there
+# then we create service pointing there
+# but the openshift-controller-manager needs kube-dns
+# so we have to run it as an upstream workload, daemonset sounds good so I can use
+# the same masterconfig
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    labels:
+      k8s-app: kube-dns
+    name: kube-dns
+    namespace: ${NAMESPACE}
+  spec:
+    selector:
+      matchLabels:
+        k8s-app: kube-dns
+    template:
+      metadata:
+        labels:
+          k8s-app: kube-dns
+      spec:
+        serviceAccountName: kube-dns
+        containers:
+        - name: kube-proxy
+          image: ${IMAGE}
+          command: ["openshift", "start", "node"]
+          args:
+          - "--enable=dns"
+          - "--config=/etc/origin/node/node-config.yaml"
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/node/
+             name: node-config
+             readOnly: true
+        volumes:
+        - name: node-config
+          hostPath:
+            path: ${KUBEDNS_CONFIG_HOST_PATH}
+
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: kube-dns
+    namespace: ${NAMESPACE}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: kube-dns
+    namespace: ${NAMESPACE}
+  spec:
+    clusterIP: 172.30.0.2
+    selector:
+      k8s-app: kube-dns
+    ports:
+    - name: dns-udp
+      port: 53
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      protocol: TCP

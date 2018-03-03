@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
@@ -173,6 +174,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(config.Complete(f, c, out))
 			kcmdutil.CheckErr(config.Validate(out, errout))
+			kcmdutil.CheckErr(config.CommonStartConfig.Check(out))
 			if err := config.Start(out); err != nil {
 				fmt.Fprintf(errout, "%s\n", err.Error())
 				os.Exit(1)
@@ -227,6 +229,7 @@ type CommonStartConfig struct {
 	ServerLogLevel           int
 	HostVolumesDir           string
 	HostConfigDir            string
+	WriteConfig              bool
 	HostDataDir              string
 	UsePorts                 []int
 	DNSPort                  int
@@ -275,7 +278,8 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
 	flags.BoolVar(&config.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
-	flags.StringVar(&config.HostConfigDir, "host-config-dir", host.DefaultConfigDir, "Directory on Docker host for OpenShift configuration")
+	flags.StringVar(&config.HostConfigDir, "host-config-dir", config.HostConfigDir, "Directory on Docker host for OpenShift configuration")
+	flags.BoolVar(&config.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
 	flags.StringVar(&config.HostVolumesDir, "host-volumes-dir", host.DefaultVolumesDir, "Directory on Docker host for OpenShift volumes")
 	flags.StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
 	flags.StringVar(&config.HostPersistentVolumesDir, "host-pv-dir", host.DefaultPersistentVolumesDir, "Directory on host for OpenShift persistent volumes")
@@ -339,8 +343,7 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 			c.DockerMachine = defaultDockerMachineName
 		}
 
-		taskName := "Create Docker machine"
-		taskPrinter.StartTask(taskName)
+		taskPrinter.StartTask("Create Docker machine")
 		fmt.Fprintf(out, "Creating docker-machine %s\n", c.DockerMachine)
 		if err := CreateDockerMachine(c.DockerMachine); err != nil {
 			return taskPrinter.ToError(err)
@@ -380,14 +383,6 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 		}
 		taskPrinter.Success()
 	}
-
-	// Check for an OpenShift container. If one exists and is running, exit.
-	// If one exists but not running, delete it.
-	taskPrinter.StartTask("Checking for existing OpenShift container")
-	if err := c.CheckExistingOpenShiftContainer(out); err != nil {
-		return taskPrinter.ToError(err)
-	}
-	taskPrinter.Success()
 
 	// Ensure that the OpenShift Docker image is available.
 	// If not present, pull it.
@@ -456,6 +451,11 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 	}
 	taskPrinter.Success()
 
+	// this used to be done in the openshift start method, but its mutating state.
+	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
+		c.updateNoProxy()
+	}
+
 	return nil
 }
 
@@ -467,14 +467,28 @@ func (c *CommonStartConfig) Validate() error {
 	return nil
 }
 
+// Check is a spot to do NON-MUTATING, preflight checks. Over time, we should try to move our non-mutating checks out of
+// Complete and into Check.
+func (c *CommonStartConfig) Check(out io.Writer) error {
+	// used for some pretty printing
+	taskPrinter := NewTaskPrinter(getDetailedOut(out))
+
+	// Check for an OpenShift container. If one exists and is running, exit.
+	// If one exists but not running, delete it.
+	taskPrinter.StartTask("Checking for existing OpenShift container")
+	if err := checkExistingOpenShiftContainer(c.DockerHelper(), out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+	taskPrinter.Success()
+
+	return nil
+}
+
 // Complete initializes fields based on command parameters and execution environment
 func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
 	if err := c.CommonStartConfig.Complete(f, cmd, out); err != nil {
 		return err
 	}
-
-	// Create an OpenShift configuration and start a container that uses it.
-	c.addTask(simpleTask("Starting OpenShift container", c.StartOpenShift))
 
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
 	c.addTask(conditionalTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs, c.ShouldInitializeData))
@@ -538,13 +552,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 	// Create an initial project
 	c.addTask(conditionalTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject, c.ShouldCreateUser))
 
-	// Remove temporary directory
-	c.addTask(simpleTask("Removing temporary directory", c.RemoveTemporaryDirectory))
-
+	// TODO see how to restore this.  The DNS config seems different now since it is in a container.
 	// Check container networking (only when loglevel > 0)
-	if glog.V(1) {
-		c.addTask(simpleTask("Checking container networking", c.CheckContainerNetworking))
-	}
+	//if glog.V(1) {
+	//	c.addTask(simpleTask("Checking container networking", c.CheckContainerNetworking))
+	//}
 
 	// Display server information
 	c.addTask(simpleTask("Server Information", c.ServerInfo))
@@ -577,6 +589,22 @@ func getDetailedOut(out io.Writer) io.Writer {
 func (c *ClientStartConfig) Start(out io.Writer) error {
 	fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
 
+	if c.PortForwarding {
+		if err := c.OpenShiftHelper().StartSocatTunnel(c.ServerIP); err != nil {
+			return err
+		}
+	}
+
+	if err := c.StartSelfHosted(out); err != nil {
+		return err
+	}
+	if c.WriteConfig {
+		return nil
+	}
+	if err := c.PostClusterStartupMutations(out); err != nil {
+		return err
+	}
+
 	detailedOut := getDetailedOut(out)
 	taskPrinter := NewTaskPrinter(detailedOut)
 	startError := func() error {
@@ -591,7 +619,8 @@ func (c *ClientStartConfig) Start(out io.Writer) error {
 			}
 			err := task.fn(w)
 			if err != nil {
-				return taskPrinter.ToError(err)
+				taskPrinter.Failure(err)
+				return err
 			}
 			taskPrinter.Success()
 		}
@@ -731,19 +760,19 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 	return dockerhelper.NewClient(host, engineAPIClient), nil
 }
 
-// CheckExistingOpenShiftContainer checks the state of an OpenShift container.
+// checkExistingOpenShiftContainer checks the state of an OpenShift container.
 // If one is already running, it throws an error.
 // If one exists, it removes it so a new one can be created.
-func (c *CommonStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error {
-	container, running, err := c.DockerHelper().GetContainerState(openshift.OpenShiftContainer)
+func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper, out io.Writer) error {
+	container, running, err := dockerHelper.GetContainerState(openshift.OpenShiftContainer)
 	if err != nil {
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
 	if running {
-		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", strings.Join(cmdutil.SiblingCommand(c.command, "down"), " "))
+		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", "oc cluster down")
 	}
 	if container != nil {
-		err = c.DockerHelper().RemoveContainer(openshift.OpenShiftContainer)
+		err = dockerHelper.RemoveContainer(openshift.OpenShiftContainer)
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
@@ -921,7 +950,7 @@ func (c *CommonStartConfig) DetermineServerIP(out io.Writer) error {
 }
 
 // updateNoProxy will add some default values to the NO_PROXY setting if they are not present
-func (c *ClientStartConfig) updateNoProxy() {
+func (c *CommonStartConfig) updateNoProxy() {
 	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.RegistryServiceIP, openshift.ServiceCatalogServiceIP, "172.30.0.0/8"}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
@@ -936,62 +965,7 @@ func (c *ClientStartConfig) updateNoProxy() {
 	}
 }
 
-// StartOpenShift starts the OpenShift container
-func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
-	var err error
-
-	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
-		c.updateNoProxy()
-	}
-
-	dockerRoot, err := c.DockerHelper().DockerRoot()
-	if err != nil {
-		return err
-	}
-
-	opt := &openshift.StartOptions{
-		ServerIP:                 c.ServerIP,
-		AdditionalIPs:            c.AdditionalIPs,
-		RoutingSuffix:            c.RoutingSuffix,
-		UseSharedVolume:          !c.UseNsenterMount,
-		Images:                   c.imageFormat(),
-		HostVolumesDir:           c.HostVolumesDir,
-		HostConfigDir:            c.HostConfigDir,
-		HostDataDir:              c.HostDataDir,
-		HostPersistentVolumesDir: c.HostPersistentVolumesDir,
-		UseExistingConfig:        c.UseExistingConfig,
-		Environment:              c.Environment,
-		LogLevel:                 c.ServerLogLevel,
-		DNSPort:                  c.DNSPort,
-		PortForwarding:           c.PortForwarding,
-		HTTPProxy:                c.HTTPProxy,
-		HTTPSProxy:               c.HTTPSProxy,
-		NoProxy:                  c.NoProxy,
-		DockerRoot:               dockerRoot,
-		ServiceCatalog:           c.ShouldInstallServiceCatalog,
-	}
-	if c.ShouldInstallMetrics {
-		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
-	}
-	if c.ShouldInstallLogging {
-		opt.LoggingHost = openshift.LoggingHost(c.RoutingSuffix, c.ServerIP)
-	}
-	c.LocalConfigDir, err = c.OpenShiftHelper().Start(opt, out)
-	if err != nil {
-		return err
-	}
-
-	serverIP, err := c.OpenShiftHelper().ServerIP()
-	if err != nil {
-		return err
-	}
-
-	// Start a container networking test
-	c.containerNetworkErr = make(chan error)
-	go func() {
-		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking(serverIP)
-	}()
-
+func (c *ClientStartConfig) PostClusterStartupMutations(out io.Writer) error {
 	// Setup persistent storage
 	_, kClient, err := c.Clients()
 	if err != nil {
@@ -1022,13 +996,19 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	}
 	return nil
 }
-
 func (c *ClientStartConfig) CheckContainerNetworking(out io.Writer) error {
 	serverIP, err := c.OpenShiftHelper().ServerIP()
 	if err != nil {
 		return err
 	}
-	networkErr := <-c.containerNetworkErr
+	var networkErr error
+	if c.containerNetworkErr != nil {
+		// TODO this branch should die.  Side effecty as all get out
+		networkErr = <-c.containerNetworkErr
+	} else {
+		networkErr = c.OpenShiftHelper().TestContainerNetworking(serverIP)
+	}
+
 	if networkErr != nil {
 		return errors.NewError("containers cannot communicate with the OpenShift master").
 			WithDetails("The cluster was started. However, the container networking test failed.").
@@ -1067,7 +1047,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
+	return c.OpenShiftHelper().InstallRouter(run.NewRunHelper(c.DockerHelper()).New(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
 }
 
 // InstallWebConsole installs the OpenShift web console on the server
@@ -1275,11 +1255,6 @@ func (c *ClientStartConfig) CreateProject(out io.Writer) error {
 		return errors.NewError("cannot get logged in user client").WithCause(err)
 	}
 	return openshift.CreateProject(f, initialProjectName, initialProjectDisplay, initialProjectDesc, "oc", out)
-}
-
-// RemoveTemporaryDirectory removes the local configuration directory
-func (c *ClientStartConfig) RemoveTemporaryDirectory(out io.Writer) error {
-	return os.RemoveAll(c.LocalConfigDir)
 }
 
 // ServerInfo displays server information after a successful start

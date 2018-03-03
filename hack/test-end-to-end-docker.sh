@@ -60,9 +60,19 @@ os::log::info "oc version:        `oc version`"
 os::log::info "Using images:							${USE_IMAGES}"
 
 os::log::info "Starting OpenShift containerized server"
+CLUSTERUP_DIR="${BASETMPDIR}"/cluster-up
+mkdir "${CLUSTERUP_DIR}"
 oc cluster up --server-loglevel=4 --version="${TAG}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
+        --host-volumes-dir="${VOLUME_DIR}" \
+        --host-config-dir="${CLUSTERUP_DIR}" \
+        --write-config
+oc cluster up --server-loglevel=4 --version="${TAG}" \
+        --host-config-dir="${CLUSTERUP_DIR}" \
+        --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}"
+
+MASTER_CONFIG_DIR="${CLUSTERUP_DIR}/oc-cluster-up-kube-apiserver/master"
 
 os::test::junit::declare_suite_start "setup/start-oc_cluster_up"
 os::cmd::try_until_success "oc cluster status" "$((5*TIME_MIN))" "10"
