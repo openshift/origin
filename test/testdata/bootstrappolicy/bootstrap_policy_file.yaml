@@ -2964,6 +2964,14 @@ items:
     - create
   - apiGroups:
     - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - builds
+    verbs:
+    - delete
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
