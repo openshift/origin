@@ -329,9 +329,6 @@ var (
 		`should create and stop a working application`,
 		//`should always delete fast`, // will be uncommented in etcd3
 
-		// tested by networking.sh and requires the environment that script sets up
-		`\[networking\] OVS`,
-
 		// We don't install KubeDNS
 		`should check if Kubernetes master services is included in cluster-info`,
 
