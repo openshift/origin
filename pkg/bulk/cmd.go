@@ -20,7 +20,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -153,7 +152,7 @@ func ClientMapperFromConfig(config *rest.Config) resource.ClientMapperFunc {
 			return rest.RESTClientFor(&configCopy)
 		}
 
-		if err := unversioned.SetKubernetesDefaults(&configCopy); err != nil {
+		if err := rest.SetKubernetesDefaults(&configCopy); err != nil {
 			return nil, err
 		}
 		gvk := mapping.GroupVersionKind
