@@ -56,6 +56,10 @@ func (p *ExtendedValidator) HandleRoute(eventType watch.EventType, route *routea
 	if ok && reflect.DeepEqual(old.Spec, route.Spec) {
 		// Route spec was unchanged and it is already marked in
 		// error, we don't need to do anything more.
+		p.plugin.HandleRoute(watch.Deleted, route)
+		if eventType == watch.Deleted {
+			delete(p.invalidRoutes, routeName)
+		}
 		return fmt.Errorf("invalid route configuration")
 	}
 
@@ -67,6 +71,7 @@ func (p *ExtendedValidator) HandleRoute(eventType watch.EventType, route *routea
 		glog.Errorf("Skipping route %s due to invalid configuration: %s", routeName, errmsg)
 
 		p.recorder.RecordRouteRejection(route, "ExtendedValidationFailed", errmsg)
+		p.plugin.HandleRoute(watch.Deleted, route)
 		return fmt.Errorf("invalid route configuration")
 	}
 
