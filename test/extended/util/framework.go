@@ -256,7 +256,7 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 		}
 
 		dumpContainer := func(container *kapiv1.Container) {
-			depOutput, err := oc.AsAdmin().Run("logs").Args("pod/"+pod.Name, "-c", container.Name).Output()
+			depOutput, err := oc.AsAdmin().Run("logs").WithoutNamespace().Args("pod/"+pod.Name, "-c", container.Name, "-n", pod.Namespace).Output()
 			if err == nil {
 				e2e.Logf("Log for pod %q/%q\n---->\n%s\n<----end of log for %[1]q/%[2]q\n", pod.Name, container.Name, depOutput)
 			} else {
