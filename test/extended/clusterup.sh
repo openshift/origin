@@ -6,6 +6,16 @@ os::util::ensure::built_binary_exists 'oc'
 os::util::environment::use_sudo
 os::util::environment::setup_time_vars
 
+function cleanup() {
+    return_code=$?
+    os::test::junit::generate_report
+    os::cleanup::all
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
+
+
 function os::test::extended::clusterup::run_test () {
     local test="${1}"
     local funcname="os::test::extended::clusterup::${test}"
@@ -341,7 +351,7 @@ readonly extra_args=(
     #"--loglevel=5"  # can't be empty, so pass something benign
 
     # Test the code being delivered
-    "--loglevel=5 --version=${ORIGIN_COMMIT}"
+    "--loglevel=5 --server-loglevel=5 --version=${ORIGIN_COMMIT}"
 
 )
 tests=("${1:-"${default_tests[@]}"}")
