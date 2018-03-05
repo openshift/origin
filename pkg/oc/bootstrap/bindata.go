@@ -5210,7 +5210,8 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
+	  "haproxy.router.openshift.io/timeout": "2m"
         }
       },
       "spec": {
@@ -5274,7 +5275,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                 "name": "jenkins",
                 "image": " ",
                 "readinessProbe": {
-                  "timeoutSeconds": 3,
+                  "timeoutSeconds": 240,
                   "initialDelaySeconds": 3,
                   "httpGet": {
                     "path": "/login",
@@ -5282,7 +5283,8 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
+                    "timeoutSeconds": 240,
+		    "periodSeconds": 360,  
                     "initialDelaySeconds": 420,
                     "failureThreshold" : 30,
                     "httpGet": {
@@ -5512,7 +5514,8 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
+	  "haproxy.router.openshift.io/timeout": "2m"
         }
       },
       "spec": {
@@ -5593,7 +5596,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                 "name": "jenkins",
                 "image": " ",
                 "readinessProbe": {
-                  "timeoutSeconds": 3,
+                  "timeoutSeconds": 240,
                   "initialDelaySeconds": 3,
                   "httpGet": {
                     "path": "/login",
@@ -5601,7 +5604,8 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
+                    "timeoutSeconds": 240,
+		    "periodSeconds": 360,  
                     "initialDelaySeconds": 420,
                     "failureThreshold" : 30,
                     "httpGet": {
