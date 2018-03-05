@@ -193,11 +193,11 @@ function os::test::extended::clusterup::service_catalog() {
     # this is only to allow for the retrieval of the TSB service IP, not actual use of the TSB endpoints
     os::cmd::expect_success "oc policy add-role-to-user view developer -n openshift-template-service-broker"
     os::cmd::expect_success "oc login -u developer"
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-persistent -n openshift -o template --template '{{.metadata.uid}}'` ./provision.sh"
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./provision.sh"
     os::cmd::try_until_text "oc get pods" "jenkins-1-deploy" $(( 2*minute )) 1
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-persistent -n openshift -o template --template '{{.metadata.uid}}'` ./bind.sh"
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-persistent -n openshift -o template --template '{{.metadata.uid}}'` ./unbind.sh"
-    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-persistent -n openshift -o template --template '{{.metadata.uid}}'` ./deprovision.sh"
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./bind.sh"
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./unbind.sh"
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/templateservicebroker/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./deprovision.sh"
     os::cmd::try_until_text "oc get pods" "Terminating" $(( 2*minute )) 1
 }
 
