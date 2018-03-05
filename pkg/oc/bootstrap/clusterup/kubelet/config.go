@@ -2,11 +2,10 @@ package kubelet
 
 import (
 	"fmt"
-	"io"
 	"os"
+	"path"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
@@ -34,19 +33,21 @@ func NewNodeStartConfig() *NodeStartConfig {
 
 }
 
-func (opt NodeStartConfig) MakeKubeDNSConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer) (string, error) {
-	return opt.makeConfig(dockerClient, imageRunHelper, out, KubeDNSDirName)
+func (opt NodeStartConfig) MakeKubeDNSConfig(dockerClient dockerhelper.Interface, basedir string) (string, error) {
+	return opt.makeConfig(dockerClient, KubeDNSDirName, basedir)
 }
 
-func (opt NodeStartConfig) MakeNodeConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer) (string, error) {
-	return opt.makeConfig(dockerClient, imageRunHelper, out, NodeConfigDirName)
+func (opt NodeStartConfig) MakeNodeConfig(dockerClient dockerhelper.Interface, basedir string) (string, error) {
+	return opt.makeConfig(dockerClient, NodeConfigDirName, basedir)
 }
 
 // Start starts the OpenShift master as a Docker container
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
-func (opt NodeStartConfig) makeConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer, componentName string) (string, error) {
-	fmt.Fprintf(out, "Creating initial OpenShift node configuration\n")
+func (opt NodeStartConfig) makeConfig(dockerClient dockerhelper.Interface, componentName string, basedir string) (string, error) {
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+
+	glog.Infof("Creating initial OpenShift %q configuration", componentName)
 	createConfigCmd := []string{
 		"adm", "create-node-config",
 		fmt.Sprintf("--node-dir=%s", "/var/lib/origin/openshift.local.config"),
@@ -64,10 +65,7 @@ func (opt NodeStartConfig) makeConfig(dockerClient dockerhelper.Interface, image
 		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
 	}
 
-	nodeConfigDir, err := tmpformac.TempDir(componentName)
-	if err != nil {
-		return "", err
-	}
+	nodeConfigDir := path.Join(basedir, componentName)
 	glog.V(1).Infof("Copying OpenShift node config to local directory %s", nodeConfigDir)
 	if err = dockerhelper.DownloadDirFromContainer(dockerClient, containerId, "/var/lib/origin/openshift.local.config", nodeConfigDir); err != nil {
 		if removeErr := os.RemoveAll(nodeConfigDir); removeErr != nil {

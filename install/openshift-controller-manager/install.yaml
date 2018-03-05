@@ -1,4 +1,3 @@
-# the openshift controller manager can use a template because the openshift-apiserver will be available first
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -47,6 +46,7 @@ objects:
           args:
           - "--listen=https://0.0.0.0:8444"
           - "--config=/etc/origin/master/master-config.yaml"
+          - "--loglevel=${LOGLEVEL}"
           ports:
           - containerPort: 8444
           securityContext:

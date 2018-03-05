@@ -6,9 +6,10 @@ import (
 	"path"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Start starts the OpenShift master as a Docker container

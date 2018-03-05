@@ -1,9 +1,8 @@
 package kubelet
 
 import (
-	"fmt"
-	"io"
-
+	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -22,14 +21,16 @@ func NewKubeletStartFlags() *KubeletStartFlags {
 }
 
 // MakeKubeletFlags returns the flags to start the kubelet
-func (opt KubeletStartFlags) MakeKubeletFlags(imageRunHelper *run.Runner, out io.Writer) (string, error) {
+func (opt KubeletStartFlags) MakeKubeletFlags(dockerClient dockerhelper.Interface) (string, error) {
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+
 	binds := append(opt.ContainerBinds)
 	env := append(opt.Environment)
 	if opt.UseSharedVolume {
 		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
 	}
 
-	fmt.Fprintf(out, "Creating initial OpenShift node configuration\n")
+	glog.Infof("Creating initial kubelet flags\n")
 	createFlagsCmd := []string{
 		"start", "node",
 		"--write-flags",

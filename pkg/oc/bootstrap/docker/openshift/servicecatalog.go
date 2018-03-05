@@ -8,17 +8,17 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	aggregatorapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
-	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
+	aggregatorapiv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
+	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/registry/rbac/reconciliation"
-
-	"github.com/openshift/origin/pkg/cmd/util/variable"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
 const (
@@ -98,7 +98,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return errors.NewError(fmt.Sprintf("failed to retrieve client config: %v", err))
 	}
 
-	aggregatorclient, err := aggregatorclient.NewForConfig(clientConfig)
+	aggregatorClient, err := aggregatorclient.NewForConfig(clientConfig)
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("failed to create an api aggregation registration client: %v", err))
 	}
@@ -108,14 +108,14 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return errors.NewError(fmt.Sprintf("failed to read the service certificate signer CA bundle: %v", err))
 	}
 
-	sc := &aggregatorapi.APIService{
-		Spec: aggregatorapi.APIServiceSpec{
+	sc := &aggregatorapiv1beta1.APIService{
+		Spec: aggregatorapiv1beta1.APIServiceSpec{
 			CABundle:             serviceCA,
 			Version:              "v1beta1",
 			Group:                "servicecatalog.k8s.io",
 			GroupPriorityMinimum: 200,
 			VersionPriority:      20,
-			Service: &aggregatorapi.ServiceReference{
+			Service: &aggregatorapiv1beta1.ServiceReference{
 				Name:      "apiserver",
 				Namespace: catalogNamespace,
 			},
@@ -123,9 +123,16 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	}
 	sc.Name = "v1beta1.servicecatalog.k8s.io"
 
-	_, err = aggregatorclient.APIServices().Create(sc)
+	_, err = aggregatorClient.ApiregistrationV1beta1().APIServices().Create(sc)
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("failed to register service catalog with api aggregator: %v", err))
+	}
+
+	err = componentinstall.WaitForAPI(clientConfig, func(apiService aggregatorapiv1beta1.APIService) bool {
+		return apiService.Name == "v1beta1.servicecatalog.k8s.io"
+	})
+	if err != nil {
+		return err
 	}
 
 	return nil

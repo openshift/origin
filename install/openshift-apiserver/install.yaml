@@ -1,0 +1,264 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-apiserver
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: openshift-apiserver
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_APISERVER_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-apiserver
+    labels:
+      openshift.io/control-plane: "true"
+      openshift.io/component: api
+  spec:
+    selector:
+      matchLabels:
+        openshift.io/control-plane: "true"
+        openshift.io/component: api
+    template:
+      metadata:
+        name: openshift-apiserver
+        labels:
+          openshift.io/control-plane: "true"
+          openshift.io/component: api
+      spec:
+        serviceAccountName: openshift-apiserver
+        restartPolicy: Always
+        hostNetwork: true
+        containers:
+        - name: apiserver
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ADDITIONAL_ALLOWED_REGISTRIES
+            value: registry.centos.org
+          command: ["hypershift", "openshift-apiserver"]
+          args:
+          - "--config=/etc/origin/master/master-config.yaml"
+          - "-v=${LOGLEVEL}"
+          ports:
+          - containerPort: 8445
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/master/
+             name: master-config
+           - mountPath: /etc/origin/cloudprovider/
+             name: master-cloud-provider
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8445
+              scheme: HTTPS
+        # sensitive files still sit on disk for now
+        volumes:
+        - name: master-config
+          hostPath:
+            path: ${OPENSHIFT_APISERVER_CONFIG_HOST_PATH}
+        - name: master-cloud-provider
+          hostPath:
+            path: /etc/origin/cloudprovider
+
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-apiserver
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${NAMESPACE}
+    name: api
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+  spec:
+    selector:
+      openshift.io/component: api
+    ports:
+    - name: https
+      port: 443
+      targetPort: 8445
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.apps.openshift.io
+  spec:
+    group: apps.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.authorization.openshift.io
+  spec:
+    group: authorization.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.build.openshift.io
+  spec:
+    group: build.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.image.openshift.io
+  spec:
+    group: image.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.network.openshift.io
+  spec:
+    group: network.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.oauth.openshift.io
+  spec:
+    group: oauth.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.project.openshift.io
+  spec:
+    group: project.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.quota.openshift.io
+  spec:
+    group: quota.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.route.openshift.io
+  spec:
+    group: route.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.security.openshift.io
+  spec:
+    group: security.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.template.openshift.io
+  spec:
+    group: template.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.user.openshift.io
+  spec:
+    group: user.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
