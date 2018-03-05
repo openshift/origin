@@ -26,7 +26,8 @@
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
+          "haproxy.router.openshift.io/timeout": "2m"
         }
       },
       "spec": {
@@ -90,7 +91,7 @@
                 "name": "jenkins",
                 "image": " ",
                 "readinessProbe": {
-                  "timeoutSeconds": 3,
+                  "timeoutSeconds": 240,
                   "initialDelaySeconds": 3,
                   "httpGet": {
                     "path": "/login",
@@ -98,9 +99,10 @@
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
+                    "timeoutSeconds": 240,
+                    "periodSeconds": 360,  
                     "initialDelaySeconds": 420,
-                    "failureThreshold" : 30,
+                    "failureThreshold" : 2,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080
