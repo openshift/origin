@@ -239,6 +239,9 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 			return ns, err
 		}
 		addRoleToE2EServiceAccounts(authorizationClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+
+		// in practice too many kube tests ignore scheduling constraints
+		allowAllNodeScheduling(c, ns.Name)
 	}
 
 	// some tests assume they can schedule to all nodes
