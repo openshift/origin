@@ -1,6 +1,4 @@
-// +build windows
-
-package docker
+package tmpformac
 
 import (
 	"io"

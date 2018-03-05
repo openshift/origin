@@ -139,16 +139,16 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if err := CopyDirectory(masterConfigDir, path.Join(absHostDir, kubeapiserver.KubeAPIServerDirName, "master")); err != nil {
+		if err := tmpformac.CopyDirectory(masterConfigDir, path.Join(absHostDir, kubeapiserver.KubeAPIServerDirName, "master")); err != nil {
 			return err
 		}
-		if err := CopyDirectory(nodeConfigDir, path.Join(absHostDir, kubelet.NodeConfigDirName)); err != nil {
+		if err := tmpformac.CopyDirectory(nodeConfigDir, path.Join(absHostDir, kubelet.NodeConfigDirName)); err != nil {
 			return err
 		}
-		if err := CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.KubeDNSDirName)); err != nil {
+		if err := tmpformac.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.KubeDNSDirName)); err != nil {
 			return err
 		}
-		if err := CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
+		if err := tmpformac.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
 			return err
 		}
 
