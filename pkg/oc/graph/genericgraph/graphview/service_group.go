@@ -22,6 +22,7 @@ type ServiceGroup struct {
 	DeploymentConfigPipelines []DeploymentConfigPipeline
 	ReplicationControllers    []ReplicationController
 	ReplicaSets               []ReplicaSet
+	DaemonSets                []DaemonSet
 	Deployments               []Deployment
 	StatefulSets              []StatefulSet
 
@@ -32,6 +33,7 @@ type ServiceGroup struct {
 	FulfillingRCs          []*kubegraph.ReplicationControllerNode
 	FulfillingRSs          []*kubegraph.ReplicaSetNode
 	FulfillingPods         []*kubegraph.PodNode
+	FulfillingDSs          []*kubegraph.DaemonSetNode
 
 	ExposingRoutes []*routegraph.RouteNode
 }
@@ -79,6 +81,8 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 			service.FulfillingStatefulSets = append(service.FulfillingStatefulSets, castContainer)
 		case *kubegraph.DeploymentNode:
 			service.FulfillingDeployments = append(service.FulfillingDeployments, castContainer)
+		case *kubegraph.DaemonSetNode:
+			service.FulfillingDSs = append(service.FulfillingDSs, castContainer)
 		default:
 			utilruntime.HandleError(fmt.Errorf("unrecognized container: %v (%T)", castContainer, castContainer))
 		}
@@ -115,6 +119,13 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 
 		covered.Insert(rsCovers.List()...)
 		service.ReplicaSets = append(service.ReplicaSets, rsView)
+	}
+
+	for _, fulfillingDS := range service.FulfillingDSs {
+		dsView, dsCovers := NewDaemonSet(g, fulfillingDS)
+
+		covered.Insert(dsCovers.List()...)
+		service.DaemonSets = append(service.DaemonSets, dsView)
 	}
 
 	for _, fulfillingStatefulSet := range service.FulfillingStatefulSets {
