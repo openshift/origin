@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -31,6 +33,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/oc/bootstrap"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockermachine"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -505,18 +509,7 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 	}))
 
 	// Import default image streams
-	c.addTask(conditionalTask("Importing image streams", c.ImportImageStreams, c.ShouldInitializeData))
-
-	// Import templates
-	c.addTask(conditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData))
-
-	// Import internal templates
-	c.addTask(conditionalTask("Importing internal templates", c.ImportInternalTemplates, c.ShouldInitializeData))
-
-	// Import logging templates
-	c.addTask(conditionalTask("Importing logging templates", c.ImportLoggingTemplates, func() bool {
-		return c.ShouldInstallLogging && c.ShouldInitializeData()
-	}))
+	c.addTask(conditionalTask("Importing image streams", c.ImportInitialObjects, c.ShouldInitializeData))
 
 	// Install logging
 	c.addTask(conditionalTask("Installing logging", c.InstallLogging, func() bool {
@@ -1034,7 +1027,7 @@ func (c *ClientStartConfig) InstallRegistry(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRegistry(kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.HostPersistentVolumesDir, out, os.Stderr)
+	return c.OpenShiftHelper().InstallRegistry(run.NewRunHelper(c.DockerHelper()).New(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, c.imageFormat(), c.HostPersistentVolumesDir, out, os.Stderr)
 }
 
 // InstallRouter installs a default router on the server
@@ -1077,64 +1070,24 @@ func (c *ClientStartConfig) InstallWebConsole(out io.Writer) error {
 	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
 }
 
-// ImportImageStreams imports default image streams into the server
-// TODO: Use streams compiled into oc
-func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
-	imageStreamLocations := map[string]string{
-		c.ImageStreams: imageStreams[c.ImageStreams],
-	}
-	return c.importObjects(out, openshift.OpenshiftNamespace, imageStreamLocations)
-}
+func (c *ClientStartConfig) ImportInitialObjects(out io.Writer) error {
+	componentsToInstall := []componentinstall.Component{}
+	componentsToInstall = append(componentsToInstall,
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftNamespace, map[string]string{
+			c.ImageStreams: imageStreams[c.ImageStreams],
+		})...)
+	componentsToInstall = append(componentsToInstall,
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftNamespace, templateLocations)...)
+	componentsToInstall = append(componentsToInstall,
+		c.makeObjectImportInstallationComponentsOrDie(out, "kube-system", adminTemplateLocations)...)
+	componentsToInstall = append(componentsToInstall,
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, internalTemplateLocations)...)
+	componentsToInstall = append(componentsToInstall,
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, internalCurrentTemplateLocations)...)
+	componentsToInstall = append(componentsToInstall,
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, loggingTemplateLocations)...)
 
-// ImportTemplates imports default templates into the server
-// TODO: Use templates compiled into oc
-func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
-	if err := c.importObjects(out, openshift.OpenshiftNamespace, templateLocations); err != nil {
-		return err
-	}
-	version, err := c.OpenShiftHelper().ServerVersion()
-	if err != nil {
-		return err
-	}
-	if shouldImportAdminTemplates(version) {
-		return c.importObjects(out, "kube-system", adminTemplateLocations)
-	}
-	return nil
-}
-
-// ImportInternalTemplates imports internal system templates into the server
-func (c *ClientStartConfig) ImportInternalTemplates(out io.Writer) error {
-	if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, internalTemplateLocations); err != nil {
-		return err
-	}
-	version, err := c.OpenShiftHelper().ServerVersion()
-	if err != nil {
-		return err
-	}
-	if clusterVersionIsCurrent(version) {
-		glog.V(2).Infof("Importing templates for latest version")
-		if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, internalCurrentTemplateLocations); err != nil {
-			return err
-		}
-	} else {
-		glog.V(2).Infof("Importing templates for previous version")
-		if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, internalPreviousTemplateLocations); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// ImportLoggingTemplates imports service catalog templates into the server
-func (c *ClientStartConfig) ImportLoggingTemplates(out io.Writer) error {
-	if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, loggingTemplateLocations); err != nil {
-		return err
-	}
-	return nil
-}
-
-func shouldImportAdminTemplates(v semver.Version) bool {
-	return v.GTE(openshiftVersion36)
+	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(out))
 }
 
 func useAnsible(v semver.Version) bool {
@@ -1230,16 +1183,22 @@ func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
 	if !version.GT(openshiftVersion37) {
 		imageTemplate = fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
 	}
-	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, imageTemplate, c.ServerLogLevel)
+
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+	if err != nil {
+		return err
+	}
+
+	return c.OpenShiftHelper().InstallTemplateServiceBroker(clusterAdminKubeConfig, f, imageTemplate, c.ServerLogLevel)
 }
 
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
 func (c *ClientStartConfig) RegisterTemplateServiceBroker(out io.Writer) error {
-	f, err := c.Factory()
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().RegisterTemplateServiceBroker(f, c.LocalConfigDir)
+	return c.OpenShiftHelper().RegisterTemplateServiceBroker(clusterAdminKubeConfig, c.LocalConfigDir)
 }
 
 // Login logs into the new server and sets up a default user and project
@@ -1389,19 +1348,32 @@ func (c *CommonStartConfig) DockerHelper() *dockerhelper.Helper {
 	return c.dockerHelper
 }
 
-func (c *ClientStartConfig) importObjects(out io.Writer, namespace string, locations map[string]string) error {
-	f, err := c.Factory()
+func (c *ClientStartConfig) makeObjectImportInstallationComponents(out io.Writer, namespace string, locations map[string]string) ([]componentinstall.Component, error) {
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	componentsToInstall := []componentinstall.Component{}
 	for name, location := range locations {
-		glog.V(2).Infof("Importing %s from %s", name, location)
-		err = openshift.ImportObjects(f, namespace, location)
-		if err != nil {
-			return errors.NewError("cannot import %s", name).WithCause(err).WithDetails(c.OpenShiftHelper().OriginLog())
-		}
+		componentsToInstall = append(componentsToInstall, componentinstall.List{
+			ComponentName: namespace + "/" + name,
+			Image:         c.openshiftImage(),
+			Namespace:     namespace,
+			KubeConfig:    clusterAdminKubeConfig,
+			List:          bootstrap.MustAsset(location),
+		})
 	}
-	return nil
+
+	return componentsToInstall, nil
+}
+
+func (c *ClientStartConfig) makeObjectImportInstallationComponentsOrDie(out io.Writer, namespace string, locations map[string]string) []componentinstall.Component {
+	componentsToInstall, err := c.makeObjectImportInstallationComponents(out, namespace, locations)
+	if err != nil {
+		panic(err)
+	}
+	return componentsToInstall
 }
 
 func (c *CommonStartConfig) openshiftImage() string {
