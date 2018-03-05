@@ -797,11 +797,11 @@ func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpoli
 	// when a policy file is defined we enable the advanced auditing
 	if auditConfig.PolicyConfiguration != nil || len(auditConfig.PolicyFile) > 0 {
 		// policy configuration
-		if auditConfig.PolicyConfiguration == nil {
-			p, _ := auditpolicy.LoadPolicyFromFile(auditConfig.PolicyFile)
+		if auditConfig.PolicyConfiguration != nil {
+			p := auditConfig.PolicyConfiguration.(*auditinternal.Policy)
 			policyChecker = auditpolicy.NewChecker(p)
 		} else if len(auditConfig.PolicyFile) > 0 {
-			p := auditConfig.PolicyConfiguration.(*auditinternal.Policy)
+			p, _ := auditpolicy.LoadPolicyFromFile(auditConfig.PolicyFile)
 			policyChecker = auditpolicy.NewChecker(p)
 		}
 
