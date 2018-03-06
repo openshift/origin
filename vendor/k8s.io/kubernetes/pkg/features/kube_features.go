@@ -115,6 +115,13 @@ const (
 	//
 	// New local storage types to support local storage capacity isolation
 	LocalStorageCapacityIsolation utilfeature.Feature = "LocalStorageCapacityIsolation"
+
+	// owner: @saad-ali
+	// ga
+	//
+	// Allow mounting a subpath of a volume in a container
+	// Do not remove this feature gate even though it's GA
+	VolumeSubpath utilfeature.Feature = "VolumeSubpath"
 )
 
 func init() {
@@ -138,6 +145,7 @@ var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureS
 	RotateKubeletClientCertificate:              {Default: false, PreRelease: utilfeature.Alpha},
 	PersistentLocalVolumes:                      {Default: false, PreRelease: utilfeature.Alpha},
 	LocalStorageCapacityIsolation:               {Default: false, PreRelease: utilfeature.Alpha},
+	VolumeSubpath:                               {Default: true, PreRelease: utilfeature.GA},
 
 	// inherited features from generic apiserver, relisted here to get a conflict if it is changed
 	// unintentionally on either side:
