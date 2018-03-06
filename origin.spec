@@ -9,7 +9,7 @@
 %global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 
 # docker_version is the version of docker requires by packages
-%global docker_version 1.12
+%global docker_version 1.13
 # openvswitch_version is the version of openvswitch requires by packages
 %global openvswitch_version 2.6.1
 # this is the version we obsolete up to. The packaging changed for Origin
