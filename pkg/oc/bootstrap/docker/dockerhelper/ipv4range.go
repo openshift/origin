@@ -103,7 +103,7 @@ func fromCIDR(ipnet *net.IPNet) IPV4Range {
 	// The upper bound can be calculated by adding
 	// the inverse of the mask to the lower bound.
 	ones, _ := ipnet.Mask.Size()
-	toAdd := 0XFFFFFFFF >> uint32(ones)
+	toAdd := ^uint32(0) >> uint32(ones)
 	upper := uint32(lower) + uint32(toAdd)
 	return IPV4Range{lower, ipv4(upper)}
 }
