@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 82b8f992e0a7f5024cc51106aa9b470836a39927
+%global commit e7110083d5f464db79c0a713668476bcbd24c3da
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.1 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=1 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=a403ff3 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.2 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=2 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=d1ade6a OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -66,7 +66,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.9.2
+Version:        3.9.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -606,6 +606,26 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Mar 06 2018 Justin Pierce <jupierce@redhat.com> 3.9.3-1
+- Allow all nodes to run upstream kube tests (jpeeler@redhat.com)
+- adjust jenkins template setting to account for effects of constrained default
+  max heap (gmontero@redhat.com)
+- UPSTREAM: 59365: Fix StatefulSet set-based selector bug (tnozicka@gmail.com)
+- Fix handleDeleteSubnet() to release network from subnet allocator.
+  (rpenta@redhat.com)
+- audit doesn't respect embedded config (deads@redhat.com)
+- Remove Service Catalog Controller Manager service (marko.luksa@gmail.com)
+- Configure Service Catalog Controller Manager to bind to port 8080
+  (marko.luksa@gmail.com)
+- UPSTREAM: 54530: api: validate container phase transitions
+  (sjenning@redhat.com)
+- UPSTREAM: 60342: Fix nested volume mounts for read-only API data volumes
+  (joesmith@redhat.com)
+- UPSTREAM: 59170: Fix kubelet PVC stale metrics (jsafrane@redhat.com)
+- Fixes: cannot prune builds on buildConfig change (cdaley@redhat.com)
+- bump(*) (deads@redhat.com)
+- pin dependencies for 3.9 (deads@redhat.com)
+
 * Fri Mar 02 2018 Justin Pierce <jupierce@redhat.com> 3.9.2-1
 - 
 
