@@ -496,6 +496,9 @@ type AuditConfig struct {
 	Enabled bool
 	// All requests coming to the apiserver will be logged to this file.
 	AuditFilePath string
+	// This field is used to hold actual value of the AuditFilePath as entered
+	// by the user for validation.
+	InternalAuditFilePath string
 	// Maximum number of days to retain old log files based on the timestamp encoded in their filename.
 	MaximumFileRetentionDays int
 	// Maximum number of old log files to retain.
