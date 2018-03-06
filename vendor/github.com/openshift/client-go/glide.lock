@@ -1,5 +1,5 @@
-hash: 0c13cb9e8a1931681c1b6625e0f425c0576457608abd9cd96dba0c4db77abeb7
-updated: 2018-02-02T14:02:31.101119569-05:00
+hash: 943e094cdfd1c414e2bde9c3fbbaa6ffac2e4347cbef406da27a1b2e0246c3d3
+updated: 2018-02-27T12:37:28.230373136-05:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -25,7 +25,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
   version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
@@ -67,7 +67,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/openshift/api
-  version: 7ed662e65c669e569547533a8cb1684c4a22ef4c
+  version: 0d921e363e951d89f583292c60d013c318df64dc
   subpackages:
   - apps/v1
   - authorization/v1
@@ -210,17 +210,22 @@ imports:
   - rest
   - rest/watch
   - testing
+  - tools/auth
   - tools/cache
+  - tools/clientcmd
   - tools/clientcmd/api
+  - tools/clientcmd/api/latest
+  - tools/clientcmd/api/v1
   - tools/metrics
   - tools/pager
   - transport
   - util/buffer
   - util/cert
   - util/flowcontrol
+  - util/homedir
   - util/integer
 - name: k8s.io/code-generator
-  version: 00f8f55a7115062d42706483402f806cd6eaffec
+  version: 0402727f763dbaf945685fe5b7fd5aa81d92f2ea
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: c2e273a26d3fc59b60cf6de2fb80eace7402de6e

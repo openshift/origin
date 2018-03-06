@@ -1,5 +1,5 @@
-hash: 8a470a862eecb96f2c1ad49b191200abd8181529cd5e39f0aa397c0d19d9a1a2
-updated: 2018-02-19T11:07:22.018677+01:00
+hash: 12a6b90f5033f90f3f2c6601d01d7a3947b3b0c35bfa5187f0df2e09b511edb1
+updated: 2018-02-28T08:28:24.709125924-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -682,7 +682,6 @@ imports:
   version: e47cf1f2e83a02443d7115c54f838be8ee959644
   subpackages:
   - client
-  - client/v2
   - models
   - pkg/escape
 - name: github.com/JeffAshton/win_pdh
@@ -796,8 +795,6 @@ imports:
   version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
   subpackages:
   - format
-  - gstruct
-  - gstruct/errors
   - internal/assertion
   - internal/asyncassertion
   - internal/oraclematcher
@@ -862,7 +859,7 @@ imports:
   - template/v1
   - user/v1
 - name: github.com/openshift/client-go
-  version: 2984d09fd660358a074693faa5d2dc527088acd3
+  version: 1fa528d3be060e4c7178eb69e76d37cf7e699e3c
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/scheme
@@ -1080,8 +1077,6 @@ imports:
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
   version: f62e98d28ab7ad31d707ba837a966378465c7b57
-  subpackages:
-  - doc
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
@@ -1239,7 +1234,6 @@ imports:
   version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
   - container/intsets
-  - go/vcs
 - name: google.golang.org/api
   version: 654f863362977d69086620b5f72f13e911da2410
   subpackages:
@@ -1251,9 +1245,6 @@ imports:
   - gensupport
   - googleapi
   - googleapi/internal/uritemplates
-  - logging/v2beta1
-  - monitoring/v3
-  - pubsub/v1
 - name: google.golang.org/appengine
   version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
@@ -1310,7 +1301,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/api
-  version: 30a449993d4d38589fa79362431bd9b04644cab5
+  version: 4a80308ab64deb462259d3d96a1d7825f0bb875e
   repo: git@github.com:openshift/kubernetes-api
   subpackages:
   - admission/v1beta1
@@ -1344,7 +1335,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 48f5e87c5f0ae81d3ec5523fd409a702b0c9c3ee
+  version: 8cdd78b7e067060cf564be740dd58e77f0e861c3
   repo: git@github.com:openshift/kubernetes-apiextensions-apiserver
   subpackages:
   - pkg/apis/apiextensions
@@ -1376,7 +1367,7 @@ imports:
   - pkg/registry/customresource
   - pkg/registry/customresourcedefinition
 - name: k8s.io/apimachinery
-  version: 12746011c32507d61f9ac778e75233a44a2d268a
+  version: b6fcf44e3f3db22881a94b089a171fad73b30b19
   repo: git@github.com:openshift/kubernetes-apimachinery
   subpackages:
   - pkg/api/equality
@@ -1442,7 +1433,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 017dc6a13fdba5ec7b11dd06ef8018266244447a
+  version: fbcb407558281c12d3f4eca5cb3b2819de1000d0
   repo: git@github.com:openshift/kubernetes-apiserver
   subpackages:
   - pkg/admission
@@ -1551,7 +1542,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 1502c0d02760ce07bc53f5f4656a4878566b1ef7
+  version: 2ef70d1cd65223642ac2963c201823e01fc725b9
   repo: git@github.com:openshift/kubernetes-client-go
   subpackages:
   - discovery
@@ -1739,7 +1730,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: f02af3e9b7d164a6633c2014c9359ee918ff9b65
+  version: 7d63ec809118514cf7bd8ca10db7424330fcd1f5
   repo: git@github.com:openshift/kube-aggregator
   subpackages:
   - pkg/apis/apiregistration
@@ -1775,7 +1766,7 @@ imports:
   - pkg/util/proto
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 8dc544f6e1da99dae381327c12d31e1623f7beae
+  version: 62ce2f21c50a1ca3992fa9f76b18d4638fbe218a
   repo: git@github.com:openshift/kubernetes
   subpackages:
   - cmd/genutils
