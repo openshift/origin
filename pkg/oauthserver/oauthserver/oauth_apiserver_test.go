@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )
 

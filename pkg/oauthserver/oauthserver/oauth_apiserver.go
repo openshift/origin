@@ -23,12 +23,12 @@ import (
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
 
 var (
@@ -140,7 +140,7 @@ type ExtraOAuthConfig struct {
 	EventsClient corev1.EventInterface
 
 	// RouteClient provides a client for OpenShift routes API.
-	RouteClient routeclient.Interface
+	RouteClient routeclient.RouteV1Interface
 
 	UserClient                userclient.UserInterface
 	IdentityClient            userclient.IdentityInterface

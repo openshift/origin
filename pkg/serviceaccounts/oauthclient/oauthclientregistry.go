@@ -22,10 +22,10 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
+	routeapi "github.com/openshift/api/route/v1"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 )
 
 const (
@@ -431,7 +431,7 @@ func isRouteIngressValid(routeIngress *routeapi.RouteIngress) bool {
 		return false
 	}
 	for _, condition := range routeIngress.Conditions {
-		if condition.Type == routeapi.RouteAdmitted && condition.Status == kapi.ConditionTrue {
+		if condition.Type == routeapi.RouteAdmitted && condition.Status == corev1.ConditionTrue {
 			return true
 		}
 	}
