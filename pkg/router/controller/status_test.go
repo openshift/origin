@@ -16,7 +16,29 @@ import (
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
+	"github.com/openshift/origin/pkg/util/writerlease"
 )
+
+type noopLease struct{}
+
+func (_ noopLease) Wait() bool {
+	panic("not implemented")
+}
+
+func (_ noopLease) WaitUntil(t time.Duration) (leader bool, ok bool) {
+	panic("not implemented")
+}
+
+func (_ noopLease) Try(key string, fn writerlease.WorkFunc) {
+	fn()
+}
+
+func (_ noopLease) Extend(key string) {
+}
+
+func (_ noopLease) Remove(key string) {
+	panic("not implemented")
+}
 
 type fakePlugin struct {
 	t     watch.EventType
@@ -81,7 +103,7 @@ func TestStatusNoOp(t *testing.T) {
 	p := &fakePlugin{}
 	c := fake.NewSimpleClientset()
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "a.b.c.d", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "a.b.c.d", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -149,7 +171,7 @@ func TestStatusResetsHost(t *testing.T) {
 	p := &fakePlugin{}
 	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -186,7 +208,7 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 		return true, nil, errors.NewForbidden(kapi.Resource("Route"), "route1", nil)
 	})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -222,7 +244,7 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
 	})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -251,7 +273,7 @@ func TestStatusRecordRejection(t *testing.T) {
 	p := &fakePlugin{}
 	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -281,7 +303,7 @@ func TestStatusRecordRejectionNoChange(t *testing.T) {
 	p := &fakePlugin{}
 	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -316,7 +338,7 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 	p := &fakePlugin{}
 	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -361,7 +383,7 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 	p := &fakePlugin{}
 	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -417,7 +439,7 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
 	})
 	tracker := &fakeTracker{}
-	admitter := NewStatusAdmitter(p, c.Route(), "test", "", tracker)
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "", noopLease{}, tracker)
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -465,7 +487,7 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	nowFn = func() metav1.Time { return now1 }
 	c1 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker1 := &fakeTracker{}
-	admitter1 := NewStatusAdmitter(p, c1.Route(), "test", "", tracker1)
+	admitter1 := NewStatusAdmitter(p, c1.Route(), "test", "", noopLease{}, tracker1)
 	err := admitter1.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -482,7 +504,7 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	nowFn = func() metav1.Time { return now2 }
 	c2 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	tracker2 := &fakeTracker{}
-	admitter2 := NewStatusAdmitter(p, c2.Route(), "test", "", tracker2)
+	admitter2 := NewStatusAdmitter(p, c2.Route(), "test", "", noopLease{}, tracker2)
 	outObj1.Spec.Host = "route1.test-new.local"
 	err = admitter2.HandleRoute(watch.Added, outObj1)
 
@@ -527,7 +549,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 		return false, nil, nil
 	})
 	tracker := &fakeTracker{}
-	admitter1 := NewStatusAdmitter(p, c1.Route(), "test2", "", tracker)
+	admitter1 := NewStatusAdmitter(p, c1.Route(), "test2", "", noopLease{}, tracker)
 	err := admitter1.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route2.test-new.local"},
@@ -674,10 +696,10 @@ func TestProtractedStatusFightBetweenRouters(t *testing.T) {
 	// NB: contention period is 1 minute
 	t1, t2, t3, t4 := NewSimpleContentionTracker(time.Minute), NewSimpleContentionTracker(time.Minute), NewSimpleContentionTracker(time.Minute), NewSimpleContentionTracker(time.Minute)
 
-	oldAdmitter1 := NewStatusAdmitter(p, nil, "test", "", t1)
-	oldAdmitter2 := NewStatusAdmitter(p, nil, "test", "", t2)
-	newAdmitter1 := NewStatusAdmitter(p, nil, "test", "", t3)
-	newAdmitter2 := NewStatusAdmitter(p, nil, "test", "", t4)
+	oldAdmitter1 := NewStatusAdmitter(p, nil, "test", "", noopLease{}, t1)
+	oldAdmitter2 := NewStatusAdmitter(p, nil, "test", "", noopLease{}, t2)
+	newAdmitter1 := NewStatusAdmitter(p, nil, "test", "", noopLease{}, t3)
+	newAdmitter2 := NewStatusAdmitter(p, nil, "test", "", noopLease{}, t4)
 
 	t.Logf("Setup up the two 'old' routers")
 	currObj := makePass(t, oldHost, oldAdmitter1, initObj, true, false)

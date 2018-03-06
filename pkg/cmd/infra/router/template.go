@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/origin/pkg/router/metrics/haproxy"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
+	"github.com/openshift/origin/pkg/util/writerlease"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -414,10 +415,12 @@ func (o *TemplateRouterOptions) Run() error {
 	var plugin router.Plugin = templatePlugin
 	var recorder controller.RejectionRecorder = controller.LogRejections
 	if o.UpdateStatus {
+		lease := writerlease.New(time.Minute, 3*time.Second)
+		go lease.Run(wait.NeverStop)
 		tracker := controller.NewSimpleContentionTracker(o.ResyncInterval / 10)
 		tracker.SetConflictMessage(fmt.Sprintf("The router detected another process is writing conflicting updates to route status with name %q. Please ensure that the configuration of all routers is consistent. Route status will not be updated as long as conflicts are detected.", o.RouterName))
 		go tracker.Run(wait.NeverStop)
-		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname, tracker)
+		status := controller.NewStatusAdmitter(plugin, routeclient.Route(), o.RouterName, o.RouterCanonicalHostname, lease, tracker)
 		recorder = status
 		plugin = status
 	}

@@ -25,6 +25,7 @@ import (
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/ratelimiter"
+	"github.com/openshift/origin/pkg/util/writerlease"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -393,8 +394,10 @@ func initializeRouterPlugins(routeclient routeinternalclientset.Interface, proje
 
 	tracker := controller.NewSimpleContentionTracker(time.Minute)
 	go tracker.Run(wait.NeverStop)
+	lease := writerlease.New(time.Minute, 3*time.Second)
+	go lease.Run(wait.NeverStop)
 	templatePlugin := &templateplugin.TemplatePlugin{Router: r}
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), name, "", tracker)
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient.Route(), name, "", lease, tracker)
 	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
 	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, false, controller.RejectionRecorder(statusPlugin))
 
