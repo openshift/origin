@@ -809,7 +809,7 @@ func (s *awsSdkEC2) DescribeVolumes(request *ec2.DescribeVolumesInput) ([]*ec2.V
 
 		if err != nil {
 			recordAwsMetric("describe_volume", 0, err)
-			return nil, fmt.Errorf("error listing AWS volumes: %q", err)
+			return nil, err
 		}
 
 		results = append(results, response.Volumes...)
@@ -1670,6 +1670,20 @@ func newAWSDisk(aws *Cloud, name KubernetesVolumeID) (*awsDisk, error) {
 	return disk, nil
 }
 
+// Helper function for describeVolume callers. Tries to retype given error to AWS error
+// and returns true in case the AWS error is "InvalidVolume.NotFound", false otherwise
+func isAWSErrorVolumeNotFound(err error) bool {
+	if err != nil {
+		if awsError, ok := err.(awserr.Error); ok {
+			// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html
+			if awsError.Code() == "InvalidVolume.NotFound" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Gets the full information about this volume from the EC2 API
 func (d *awsDisk) describeVolume() (*ec2.Volume, error) {
 	volumeID := d.awsID
@@ -1680,13 +1694,13 @@ func (d *awsDisk) describeVolume() (*ec2.Volume, error) {
 
 	volumes, err := d.ec2.DescribeVolumes(request)
 	if err != nil {
-		return nil, fmt.Errorf("error querying ec2 for volume %q: %q", volumeID, err)
+		return nil, err
 	}
 	if len(volumes) == 0 {
-		return nil, fmt.Errorf("no volumes found for volume %q", volumeID)
+		return nil, fmt.Errorf("no volumes found")
 	}
 	if len(volumes) > 1 {
-		return nil, fmt.Errorf("multiple volumes found for volume %q", volumeID)
+		return nil, fmt.Errorf("multiple volumes found")
 	}
 	return volumes[0], nil
 }
@@ -1839,10 +1853,10 @@ func (d *awsDisk) deleteVolume() (bool, error) {
 	request := &ec2.DeleteVolumeInput{VolumeId: d.awsID.awsString()}
 	_, err := d.ec2.DeleteVolume(request)
 	if err != nil {
+		if isAWSErrorVolumeNotFound(err) {
+			return false, nil
+		}
 		if awsError, ok := err.(awserr.Error); ok {
-			if awsError.Code() == "InvalidVolume.NotFound" {
-				return false, nil
-			}
 			if awsError.Code() == "VolumeInUse" {
 				return false, volume.NewDeletedVolumeInUseError(err.Error())
 			}
@@ -2208,6 +2222,10 @@ func (c *Cloud) DeleteDisk(volumeName KubernetesVolumeID) (bool, error) {
 	}
 	available, err := c.checkIfAvailable(awsDisk, "deleting", "")
 	if err != nil {
+		if isAWSErrorVolumeNotFound(err) {
+			glog.V(2).Infof("Volume %s not found when deleting it, assuming it's deleted", awsDisk.awsID)
+			return false, nil
+		}
 		glog.Error(err)
 	}
 
