@@ -173,6 +173,24 @@ func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) V
 func ValidateMasterAuthConfig(config configapi.MasterAuthConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
+	for _, wta := range config.WebhookTokenAuthenticators {
+		configFile := fldPath.Child("webhookTokenAuthenticators", "ConfigFile")
+		if len(wta.ConfigFile) == 0 {
+			validationResults.AddErrors(field.Required(configFile, ""))
+		} else {
+			validationResults.AddErrors(ValidateFile(wta.ConfigFile, configFile)...)
+		}
+
+		cacheTTL := fldPath.Child("webhookTokenAuthenticators", "cacheTTL")
+		if len(wta.CacheTTL) == 0 {
+			validationResults.AddErrors(field.Required(cacheTTL, ""))
+		} else if ttl, err := time.ParseDuration(wta.CacheTTL); err != nil {
+			validationResults.AddErrors(field.Invalid(cacheTTL, wta.CacheTTL, fmt.Sprintf("%v", err)))
+		} else if ttl < 0 {
+			validationResults.AddErrors(field.Invalid(cacheTTL, wta.CacheTTL, "cannot be less than zero"))
+		}
+	}
+
 	if config.RequestHeader == nil {
 		return validationResults
 	}

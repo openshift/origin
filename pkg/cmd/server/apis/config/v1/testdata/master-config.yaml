@@ -28,6 +28,7 @@ auditConfig:
   webHookMode: ""
 authConfig:
   requestHeader: null
+  webhookTokenAuthenticators: null
 controllerConfig:
   controllers:
   - '*'
