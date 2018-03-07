@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -119,6 +120,7 @@ func TestCertManager(t *testing.T) {
 	}
 
 	for k, tc := range testCases {
+		certManager.Commit()
 		fakeCertWriter.clear()
 		err := certManager.WriteCertificatesForConfig(tc.cfg)
 		if err != nil {
@@ -133,14 +135,31 @@ func TestCertManager(t *testing.T) {
 			t.Errorf("Unexpected number of adds for %s occurred. Expected: %d Got: %d", k, len(tc.expectedAdds), len(fakeCertWriter.addedCerts))
 		}
 
+		if 0 != len(fakeCertWriter.deletedCerts) {
+			t.Errorf("Unexpected number of deletes prior to certManager.Commit() for %s occurred. Expected: 0 Got: %d", k, len(fakeCertWriter.deletedCerts))
+		}
+
+		err = certManager.Commit()
+		if err != nil {
+			t.Fatalf("Unexpected error committing certs for service alias config for %s.  Config: %v, err: %v", k, tc.cfg, err)
+		}
+
+		if len(tc.expectedAdds) != len(fakeCertWriter.addedCerts) {
+			t.Errorf("Unexpected number of adds for %s occurred. Expected: %d Got: %d", k, len(tc.expectedAdds), len(fakeCertWriter.addedCerts))
+		}
+
 		if len(tc.expectedDeletes) != len(fakeCertWriter.deletedCerts) {
 			t.Errorf("Unexpected number of deletes for %s occurred. Expected: %d Got: %d", k, len(tc.expectedDeletes), len(fakeCertWriter.deletedCerts))
 		}
 
+		sort.Strings(tc.expectedAdds)
+		sort.Strings(fakeCertWriter.addedCerts)
 		if !reflect.DeepEqual(tc.expectedAdds, fakeCertWriter.addedCerts) {
 			t.Errorf("Unexpected adds for %s, wanted: %v, got %v", k, tc.expectedAdds, fakeCertWriter.addedCerts)
 		}
 
+		sort.Strings(tc.expectedDeletes)
+		sort.Strings(fakeCertWriter.deletedCerts)
 		if !reflect.DeepEqual(tc.expectedDeletes, fakeCertWriter.deletedCerts) {
 			t.Errorf("Unexpected deletes for %s, wanted: %v, got %v", k, tc.expectedDeletes, fakeCertWriter.deletedCerts)
 		}
