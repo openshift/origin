@@ -39,7 +39,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig          *restclient.Config
+	KubeAPIServerClientConfig          *restclient.Config
 	LimitVerifier                      imageadmission.LimitVerifier
 	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
 	AllowedRegistriesForImport         *configapi.AllowedRegistries
@@ -133,11 +133,11 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
 	}
 
-	coreClient, err := coreclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	coreClient, err := coreclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	authorizationClient, err := authorizationclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}

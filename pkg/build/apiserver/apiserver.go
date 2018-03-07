@@ -32,7 +32,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *restclient.Config
 	KubeletClientConfig       *kubeletclient.KubeletClientConfig
 
 	// TODO these should all become local eventually
@@ -111,11 +111,11 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	kubeExternalClient, err := kclientsetexternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	kubeExternalClient, err := kclientsetexternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	imageClient, err := imageclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	imageClient, err := imageclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}

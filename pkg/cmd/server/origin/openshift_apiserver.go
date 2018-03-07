@@ -19,6 +19,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -76,9 +77,10 @@ import (
 )
 
 type OpenshiftAPIExtraConfig struct {
-	KubeClientInternal    kclientsetinternal.Interface
-	KubeletClientConfig   *kubeletclient.KubeletClientConfig
-	KubeInternalInformers kinternalinformers.SharedInformerFactory
+	KubeAPIServerClientConfig *restclient.Config
+	KubeClientInternal        kclientsetinternal.Interface
+	KubeletClientConfig       *kubeletclient.KubeletClientConfig
+	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
 	SecurityInformers securityinformer.SharedInformerFactory
@@ -225,7 +227,7 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 	cfg := &oappsapiserver.AppsServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: oappsapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -250,7 +252,7 @@ func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericap
 	cfg := &authorizationapiserver.AuthorizationAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: authorizationapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
 			RuleResolver:              c.ExtraConfig.RuleResolver,
 			SubjectLocator:            c.ExtraConfig.SubjectLocator,
@@ -281,7 +283,7 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 	cfg := &buildapiserver.BuildServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: buildapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -306,7 +308,7 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 	cfg := &imageapiserver.ImageAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: imageapiserver.ExtraConfig{
-			CoreAPIServerClientConfig:          c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig:          c.ExtraConfig.KubeAPIServerClientConfig,
 			LimitVerifier:                      c.ExtraConfig.LimitVerifier,
 			RegistryHostnameRetriever:          c.ExtraConfig.RegistryHostnameRetriever,
 			AllowedRegistriesForImport:         c.ExtraConfig.AllowedRegistriesForImport,
@@ -357,7 +359,7 @@ func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.
 	cfg := &oauthapiserver.OAuthAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: oauthapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			ServiceAccountMethod:      c.ExtraConfig.ServiceAccountMethod,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -382,7 +384,7 @@ func (c *completedConfig) withProjectAPIServer(delegateAPIServer genericapiserve
 	cfg := &projectapiserver.ProjectAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: projectapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
 			ProjectAuthorizationCache: c.ExtraConfig.ProjectAuthorizationCache,
 			ProjectCache:              c.ExtraConfig.ProjectCache,
@@ -437,7 +439,7 @@ func (c *completedConfig) withRouteAPIServer(delegateAPIServer genericapiserver.
 	cfg := &routeapiserver.RouteAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: routeapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			RouteAllocator:            c.ExtraConfig.RouteAllocator,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -462,7 +464,7 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 	cfg := &securityapiserver.SecurityAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: securityapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
 			// so we have to have it special cased here to point to the right spot.
 			SCCStorage:            c.ExtraConfig.SCCStorage,
@@ -491,7 +493,7 @@ func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserv
 	cfg := &templateapiserver.TemplateConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: templateapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			Codecs:   legacyscheme.Codecs,
 			Registry: legacyscheme.Registry,
 			Scheme:   legacyscheme.Scheme,

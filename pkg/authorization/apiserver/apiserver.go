@@ -31,7 +31,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *restclient.Config
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	RuleResolver              rbacregistryvalidation.AuthorizationRuleResolver
 	SubjectLocator            rbac.SubjectLocator
@@ -110,7 +110,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	rbacClient, err := rbacclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	rbacClient, err := rbacclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}

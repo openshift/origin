@@ -48,6 +48,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &apiserver.RecommendedConfig{Config: genericConfig},
 		ExtraConfig: OpenshiftAPIExtraConfig{
+			KubeAPIServerClientConfig:          &c.PrivilegedLoopbackClientConfig,
 			KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
 			KubeletClientConfig:                c.KubeletClientConfig,
 			KubeInternalInformers:              c.InternalKubeInformers,

@@ -27,7 +27,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *restclient.Config
 	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 	ProjectCache              *projectcache.ProjectCache
@@ -109,19 +109,19 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	projectClient, err := projectclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	projectClient, err := projectclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	templateClient, err := templateclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	templateClient, err := templateclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	authorizationClient, err := authorizationclient.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	authorizationClient, err := authorizationclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		projectClient.Project(),
 		templateClient,
 		authorizationClient.SubjectAccessReviews(),
-		c.GenericConfig.LoopbackClientConfig,
+		c.ExtraConfig.KubeAPIServerClientConfig,
 		c.ExtraConfig.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
 	)
 
