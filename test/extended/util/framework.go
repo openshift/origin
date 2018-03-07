@@ -373,6 +373,7 @@ func VarSubOnFile(srcFile string, destFile string, vars map[string]string) error
 // StartBuild executes OC start-build with the specified arguments. StdOut and StdErr from the process
 // are returned as separate strings.
 func StartBuild(oc *CLI, args ...string) (stdout, stderr string, err error) {
+	args = append(args, "--build-loglevel=5")
 	stdout, stderr, err = oc.Run("start-build").Args(args...).Outputs()
 	e2e.Logf("\n\nstart-build output with args %v:\nError>%v\nStdOut>\n%s\nStdErr>\n%s\n\n", args, err, stdout, stderr)
 	return stdout, stderr, err
