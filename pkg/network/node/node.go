@@ -473,7 +473,7 @@ func (node *OsdnNode) watchServices() {
 
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {
 	serv := obj.(*kapi.Service)
-	// Ignore headless services
+	// Ignore headless/external services
 	if !kapihelper.IsServiceIPSet(serv) {
 		return
 	}
@@ -499,6 +499,11 @@ func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventTyp
 
 func (node *OsdnNode) handleDeleteService(obj interface{}) {
 	serv := obj.(*kapi.Service)
+	// Ignore headless/external services
+	if !kapihelper.IsServiceIPSet(serv) {
+		return
+	}
+
 	glog.V(5).Infof("Watch %s event for Service %q", watch.Deleted, serv.Name)
 	node.DeleteServiceRules(serv)
 }
