@@ -48,9 +48,10 @@ a URL to access the management console for your cluster.
 
 1. Install Docker with your platform's package manager.
 2. Configure the Docker daemon with an insecure registry parameter of `172.30.0.0/16`
-   - In RHEL and Fedora, edit the `/etc/sysconfig/docker` file and add or uncomment the following line:
+   - In RHEL and Fedora, edit the `/etc/containers/registries.conf` file and add the following lines:
      ```
-     INSECURE_REGISTRY='--insecure-registry 172.30.0.0/16'
+     [registries.insecure]
+     registries = ['172.30.0.0/16']
      ```
      or edit the `/etc/docker/daemon.json` file and add the following:
      ```json

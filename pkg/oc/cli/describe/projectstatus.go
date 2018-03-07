@@ -98,6 +98,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.KubeClient.Autoscaling()},
 		&deploymentLoader{namespace: namespace, lister: d.KubeClient.Extensions()},
 		&replicasetLoader{namespace: namespace, lister: d.KubeClient.Extensions()},
+		&daemonsetLoader{namespace: namespace, lister: d.KubeClient.Extensions()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.BuildClient},
@@ -203,6 +204,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	standaloneDeployments, coveredByDeployments := graphview.AllDeployments(g, coveredNodes)
 	coveredNodes.Insert(coveredByDeployments.List()...)
 
+	standaloneStatefulSets, coveredByStatefulSets := graphview.AllStatefulSets(g, coveredNodes)
+	coveredNodes.Insert(coveredByStatefulSets.List()...)
+
 	standaloneRCs, coveredByRCs := graphview.AllReplicationControllers(g, coveredNodes)
 	coveredNodes.Insert(coveredByRCs.List()...)
 
@@ -211,6 +215,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	standaloneImages, coveredByImages := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
 	coveredNodes.Insert(coveredByImages.List()...)
+
+	standaloneDaemonSets, coveredByDaemonSets := graphview.AllDaemonSets(g, coveredNodes)
+	coveredNodes.Insert(coveredByDaemonSets.List()...)
 
 	standalonePods, coveredByPods := graphview.AllPods(g, coveredNodes)
 	coveredNodes.Insert(coveredByPods.List()...)
@@ -318,6 +325,15 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			})...)
 		}
 
+		for _, standaloneStatefulSet := range standaloneStatefulSets {
+			if !standaloneStatefulSet.StatefulSet.Found() {
+				continue
+			}
+
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeStatefulSetInServiceGroup(f, standaloneStatefulSet)...)
+		}
+
 		for _, standaloneImage := range standaloneImages {
 			fmt.Fprintln(out)
 			lines := describeStandaloneBuildGroup(f, standaloneImage, namespace)
@@ -341,6 +357,15 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeRSInServiceGroup(f, standaloneRS.RS)...)
+		}
+
+		for _, standaloneDaemonSet := range standaloneDaemonSets {
+			if !standaloneDaemonSet.DaemonSet.Found() {
+				continue
+			}
+
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeDaemonSetInServiceGroup(f, standaloneDaemonSet)...)
 		}
 
 		monopods, err := filterBoringPods(standalonePods)
@@ -586,6 +611,9 @@ func (f namespacedFormatter) ResourceName(obj interface{}) string {
 	case *kubegraph.PersistentVolumeClaimNode:
 		return namespaceNameWithType("pvc", t.PersistentVolumeClaim.Name, t.PersistentVolumeClaim.Namespace, f.currentNamespace, f.hideNamespace)
 
+	case *kubegraph.DaemonSetNode:
+		return namespaceNameWithType("daemonset", t.DaemonSet.Name, t.DaemonSet.Namespace, f.currentNamespace, f.hideNamespace)
+
 	case *imagegraph.ImageStreamNode:
 		return namespaceNameWithType("is", t.ImageStream.Name, t.ImageStream.Namespace, f.currentNamespace, f.hideNamespace)
 	case *imagegraph.ImageStreamTagNode:
@@ -720,6 +748,42 @@ func describeStatefulSetInServiceGroup(f formatter, node graphview.StatefulSet) 
 		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
 	}
 	lines = append(lines, describeStatefulSetStatus(node.StatefulSet.StatefulSet))
+	return lines
+}
+
+func describeDaemonSetInServiceGroup(f formatter, node graphview.DaemonSet) []string {
+	local := namespacedFormatter{currentNamespace: node.DaemonSet.DaemonSet.Namespace}
+	includeLastPass := false
+
+	if len(node.Images) == 1 {
+		format := "%s manages %s %s"
+		lines := []string{fmt.Sprintf(format, f.ResourceName(node.DaemonSet), describeImageInPipeline(local, node.Images[0], node.DaemonSet.DaemonSet.Namespace), "")}
+		if len(lines[0]) > 120 && strings.Contains(lines[0], " <- ") {
+			segments := strings.SplitN(lines[0], " <- ", 2)
+			lines[0] = segments[0] + " <-"
+			lines = append(lines, segments[1])
+		}
+
+		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(node.Images[0].Build, node.Images[0].LastSuccessfulBuild, node.Images[0].LastUnsuccessfulBuild, node.Images[0].ActiveBuilds, node.Images[0].DestinationResolved, includeLastPass)...)...)
+		lines = append(lines, describeDaemonSetStatus(node.DaemonSet.DaemonSet))
+		return lines
+	}
+
+	images := []string{}
+	for _, container := range node.DaemonSet.DaemonSet.Spec.Template.Spec.Containers {
+		images = append(images, container.Image)
+	}
+	imagesWithoutTriggers := ""
+	if len(node.Images) == 0 {
+		imagesWithoutTriggers = strings.Join(images, ",")
+	}
+	format := "%s manages %s"
+	lines := []string{fmt.Sprintf(format, f.ResourceName(node.DaemonSet), imagesWithoutTriggers)}
+	for _, image := range node.Images {
+		lines = append(lines, describeImageInPipeline(local, image, node.DaemonSet.DaemonSet.Namespace))
+		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
+	}
+	lines = append(lines, describeDaemonSetStatus(node.DaemonSet.DaemonSet))
 	return lines
 }
 
@@ -1282,6 +1346,12 @@ func describeStatefulSetStatus(p *kapps.StatefulSet) string {
 	return fmt.Sprintf("created %s ago%s", timeAt, describePodSummaryInline(int32(p.Status.Replicas), int32(p.Status.Replicas), int32(p.Spec.Replicas), false, 0))
 }
 
+func describeDaemonSetStatus(ds *kapisext.DaemonSet) string {
+	timeAt := strings.ToLower(formatRelativeTime(ds.CreationTimestamp.Time))
+	replicaSetRevision := ds.Generation
+	return fmt.Sprintf("generation #%d running for %s%s", replicaSetRevision, timeAt, describePodSummaryInline(ds.Status.NumberReady, ds.Status.NumberAvailable, ds.Status.DesiredNumberScheduled, false, 0))
+}
+
 func describeRCStatus(rc *kapi.ReplicationController) string {
 	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
 	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, 0))
@@ -1585,6 +1655,30 @@ func (l *deploymentLoader) Load() error {
 func (l *deploymentLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		kubegraph.EnsureDeploymentNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type daemonsetLoader struct {
+	namespace string
+	lister    kapisextclient.DaemonSetsGetter
+	items     []kapisext.DaemonSet
+}
+
+func (l *daemonsetLoader) Load() error {
+	list, err := l.lister.DaemonSets(l.namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *daemonsetLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureDaemonSetNode(g, &l.items[i])
 	}
 
 	return nil

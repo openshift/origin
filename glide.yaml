@@ -2,7 +2,6 @@ package: github.com/openshift/origin
 excludeDirs:
 - cmd/cluster-capacity
 - cmd/service-catalog
-- pkg/build/builder
 - openshift.local.config
 - openshift.local.etcd
 - openshift.local.volumes
@@ -93,7 +92,11 @@ import:
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
 # master
 - package: github.com/coreos/etcd
-  version: v3.2.8
+  version: v3.2.16
+- package: google.golang.org/grpc
+  version: v1.7.5
+- package: github.com/grpc-ecosystem/grpc-gateway
+  version: v1.3.0
 # cli
 - package: github.com/gonum/blas
   version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
@@ -123,9 +126,10 @@ import:
 # networking
 - package: github.com/containernetworking/plugins
   version: ~0.6.0
-# builds/cli
+# builds
 - package: github.com/fsouza/go-dockerclient
-  version: 3f9370a4738ba8d0ed6eea63582ca6db5eb48032
+  repo:    git@github.com:openshift/go-dockerclient
+  version: openshift-3.9
 # auth (for testing)
 - package: github.com/vjeantet/ldapserver
   version: v1.0
@@ -159,6 +163,18 @@ import:
 # router metrics
 - package: github.com/cockroachdb/cmux
   version: b64f5908f4945f4b11ed4a0a9d3cc1e23350866d
+# fsouza and to limit dependencies
+- package: github.com/docker/docker
+  version: b68221c37ee597950364788204546f9c9d0e46a1
+# keep us up to date with latest DNS security fixes
+- package: github.com/miekg/dns
+  version: master
+# etcd pins a very old version that has contention issues
+- package: github.com/google/btree
+  version: master
+# retrieve latest version that fixes deadlock on kqueue
+- package: github.com/fsnotify/fsnotify
+  version: v1.4.7
 
 # why do we have this?
 - package: google.golang.org/appengine
@@ -168,7 +184,3 @@ import:
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
   version: 47536c89fcc545a87745e1a1573addc439409165
-
-# ours: containers/storage uses it, but oc/bootstrap does too.  pinning to last level
-- package: github.com/docker/engine-api
-  version: dea108d3aa0c67d7162a3fd8aa65f38a430019fd

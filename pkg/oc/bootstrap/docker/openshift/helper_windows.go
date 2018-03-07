@@ -18,6 +18,6 @@ func SaveSocatPid(pid int) error {
 	return nil
 }
 
-func (h *Helper) startSocatTunnel(string) error {
+func (h *Helper) StartSocatTunnel(string) error {
 	return fmt.Errorf("socat tunnel not supported on windows")
 }

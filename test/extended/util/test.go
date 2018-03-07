@@ -239,6 +239,9 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 			return ns, err
 		}
 		addRoleToE2EServiceAccounts(authorizationClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+
+		// in practice too many kube tests ignore scheduling constraints
+		allowAllNodeScheduling(c, ns.Name)
 	}
 
 	// some tests assume they can schedule to all nodes
@@ -328,9 +331,6 @@ var (
 		// Inordinately slow tests
 		`should create and stop a working application`,
 		//`should always delete fast`, // will be uncommented in etcd3
-
-		// tested by networking.sh and requires the environment that script sets up
-		`\[networking\] OVS`,
 
 		// We don't install KubeDNS
 		`should check if Kubernetes master services is included in cluster-info`,

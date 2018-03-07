@@ -3,9 +3,11 @@ package networking
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
@@ -252,12 +254,42 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	return savedErr
 }
 
+var cachedNetworkPluginName *string
+
+func networkPluginName() string {
+	if cachedNetworkPluginName == nil {
+		// We don't use testexutil.NewCLI() here because it can't be called from BeforeEach()
+		out, err := exec.Command(
+			"oc", "--config="+testexutil.KubeConfigPath(),
+			"get", "clusternetwork", "default",
+			"--template={{.pluginName}}",
+		).CombinedOutput()
+		pluginName := string(out)
+		if err != nil {
+			e2e.Logf("Could not check network plugin name: %v. Assuming a non-OpenShift plugin", err)
+			pluginName = ""
+		}
+		cachedNetworkPluginName = &pluginName
+	}
+	return *cachedNetworkPluginName
+}
+
 func pluginIsolatesNamespaces() bool {
-	return os.Getenv("NETWORKING_E2E_ISOLATION") == "true"
+	if os.Getenv("NETWORKING_E2E_ISOLATION") == "true" {
+		return true
+	}
+	// Assume that only the OpenShift SDN "multitenant" plugin isolates by default
+	return networkPluginName() == network.MultiTenantPluginName
 }
 
 func pluginImplementsNetworkPolicy() bool {
-	return os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true"
+	if os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "false" {
+		return false
+	}
+	// Assume that all plugins except the OpenShift SDN "subnet" and "multitenant"
+	// plugins implement NetworkPolicy
+	return networkPluginName() != network.SingleTenantPluginName &&
+		networkPluginName() != network.MultiTenantPluginName
 }
 
 func makeNamespaceGlobal(ns *corev1.Namespace) {
@@ -364,7 +396,7 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", ip, 10*time.Second)
 }
 
-func InSingleTenantContext(body func()) {
+func InNonIsolatingContext(body func()) {
 	Context("when using a plugin that does not isolate namespaces by default", func() {
 		BeforeEach(func() {
 			if pluginIsolatesNamespaces() {
@@ -376,7 +408,7 @@ func InSingleTenantContext(body func()) {
 	})
 }
 
-func InMultiTenantContext(body func()) {
+func InIsolatingContext(body func()) {
 	Context("when using a plugin that isolates namespaces by default", func() {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {

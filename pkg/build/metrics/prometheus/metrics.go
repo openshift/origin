@@ -23,14 +23,14 @@ const (
 var (
 	buildCountDesc = prometheus.NewDesc(
 		buildCountQuery,
-		"Counts builds by phase and reason",
-		[]string{"phase", "reason"},
+		"Counts builds by phase, reason, and strategy",
+		[]string{"phase", "reason", "strategy"},
 		nil,
 	)
 	activeBuildDesc = prometheus.NewDesc(
 		activeBuildQuery,
-		"Shows the last transition time in unix epoch for running builds by namespace, name, phase, and reason",
-		[]string{"namespace", "name", "phase", "reason"},
+		"Shows the last transition time in unix epoch for running builds by namespace, name, phase, reason, and strategy",
+		[]string{"namespace", "name", "phase", "reason", "strategy"},
 		nil,
 	)
 	bc             = buildCollector{}
@@ -69,8 +69,9 @@ func (bc *buildCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 type collectKey struct {
-	phase  string
-	reason string
+	phase    string
+	reason   string
+	strategy string
 }
 
 // Collect implements the prometheus.Collector interface.
@@ -91,18 +92,18 @@ func (bc *buildCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	for key, count := range counts {
-		addCountGauge(ch, buildCountDesc, key.phase, key.reason, float64(count))
+		addCountGauge(ch, buildCountDesc, key.phase, key.reason, key.strategy, float64(count))
 	}
 }
 
-func addCountGauge(ch chan<- prometheus.Metric, desc *prometheus.Desc, phase, reason string, v float64) {
-	lv := []string{phase, reason}
+func addCountGauge(ch chan<- prometheus.Metric, desc *prometheus.Desc, phase, reason, strategy string, v float64) {
+	lv := []string{phase, reason, strategy}
 	ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, v, lv...)
 }
 
-func addTimeGauge(ch chan<- prometheus.Metric, b *buildapi.Build, time *metav1.Time, desc *prometheus.Desc, phase string, reason string) {
+func addTimeGauge(ch chan<- prometheus.Metric, b *buildapi.Build, time *metav1.Time, desc *prometheus.Desc, phase string, reason string, strategy string) {
 	if time != nil {
-		lv := []string{b.ObjectMeta.Namespace, b.ObjectMeta.Name, phase, reason}
+		lv := []string{b.ObjectMeta.Namespace, b.ObjectMeta.Name, phase, reason, strategy}
 		ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(time.Unix()), lv...)
 	}
 }
@@ -110,18 +111,19 @@ func addTimeGauge(ch chan<- prometheus.Metric, b *buildapi.Build, time *metav1.T
 func (bc *buildCollector) collectBuild(ch chan<- prometheus.Metric, b *buildapi.Build) (key collectKey) {
 
 	r := string(b.Status.Reason)
-	key = collectKey{reason: r}
+	s := buildapi.StrategyType(b.Spec.Strategy)
+	key = collectKey{reason: r, strategy: s}
 	switch b.Status.Phase {
 	// remember, new and pending builds don't have a start time
 	case buildapi.BuildPhaseNew:
 		key.phase = newPhase
-		addTimeGauge(ch, b, &b.CreationTimestamp, activeBuildDesc, newPhase, r)
+		addTimeGauge(ch, b, &b.CreationTimestamp, activeBuildDesc, newPhase, r, s)
 	case buildapi.BuildPhasePending:
 		key.phase = pendingPhase
-		addTimeGauge(ch, b, &b.CreationTimestamp, activeBuildDesc, pendingPhase, r)
+		addTimeGauge(ch, b, &b.CreationTimestamp, activeBuildDesc, pendingPhase, r, s)
 	case buildapi.BuildPhaseRunning:
 		key.phase = runningPhase
-		addTimeGauge(ch, b, b.Status.StartTimestamp, activeBuildDesc, runningPhase, r)
+		addTimeGauge(ch, b, b.Status.StartTimestamp, activeBuildDesc, runningPhase, r, s)
 	case buildapi.BuildPhaseFailed:
 		key.phase = failedPhase
 	case buildapi.BuildPhaseError:

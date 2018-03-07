@@ -14,6 +14,7 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -146,7 +147,7 @@ func (options *NodeOptions) Run(c *cobra.Command, errout io.Writer, args []strin
 	kcmdutil.CheckErr(options.Complete(c))
 	kcmdutil.CheckErr(options.Validate(args))
 
-	startProfiler()
+	origin.StartProfiler()
 
 	if err := options.StartNode(); err != nil {
 		if kerrors.IsInvalid(err) {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
@@ -57,7 +58,7 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 		&FakeDocker{
 			errPushImage: config.errPushImage,
 		},
-		"unix:///var/run/docker.sock",
+		"unix:///var/run/docker2.sock",
 		client.Build().Builds(""),
 		makeBuild(),
 		testStiBuilderFactory{
@@ -72,6 +73,10 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 func makeBuild() *buildapiv1.Build {
 	t := true
 	return &buildapiv1.Build{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "build-1",
+			Namespace: "ns",
+		},
 		Spec: buildapiv1.BuildSpec{
 			CommonSpec: buildapiv1.CommonSpec{
 				Source: buildapiv1.BuildSource{},

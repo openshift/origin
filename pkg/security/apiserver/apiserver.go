@@ -23,7 +23,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *restclient.Config
 	// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
 	// so we have to have it special cased here to point to the right spot.
 	SCCStorage            *sccstorage.REST
@@ -104,7 +104,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.CoreAPIServerClientConfig)
+	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -36,7 +36,7 @@ var cacheExcludedPathPrefixes = []string{
 }
 
 // cacheControlFilter sets the Cache-Control header to the specified value.
-func cacheControlFilter(handler http.Handler, value string) http.Handler {
+func withCacheControl(handler http.Handler, value string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if _, ok := w.Header()["Cache-Control"]; ok {
 			handler.ServeHTTP(w, req)

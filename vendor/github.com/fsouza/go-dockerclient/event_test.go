@@ -11,17 +11,20 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestEventListeners(t *testing.T) {
+	t.Parallel()
 	testEventListeners("TestEventListeners", t, httptest.NewServer, NewClient)
 }
 
 func TestTLSEventListeners(t *testing.T) {
+	t.Parallel()
 	testEventListeners("TestTLSEventListeners", t, func(handler http.Handler) *httptest.Server {
 		server := httptest.NewUnstartedServer(handler)
 
@@ -61,7 +64,17 @@ func testEventListeners(testName string, t *testing.T, buildServer func(http.Han
 {"status":"destroy","id":"dfdf82bd3881","from":"base:latest","time":1374067970}
 {"Action":"create","Actor":{"Attributes":{"HAProxyMode":"http","HealthCheck":"HttpGet","HealthCheckArgs":"http://127.0.0.1:39051/status/check","ServicePort_8080":"17801","image":"datanerd.us/siteeng/sample-app-go:latest","name":"sample-app-client-go-69818c1223ddb5"},"ID":"a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16"},"Type":"container","from":"datanerd.us/siteeng/sample-app-go:latest","id":"a925eaf4084d5c3bcf337b2abb05f566ebb94276dff34f6effb00d8ecd380e16","status":"create","time":1459133932,"timeNano":1459133932961735842}`
 
-	wantResponse := []*APIEvents{
+	server := buildServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rsc := bufio.NewScanner(strings.NewReader(response))
+		for rsc.Scan() {
+			w.Write(rsc.Bytes())
+			w.(http.Flusher).Flush()
+			time.Sleep(10 * time.Millisecond)
+		}
+	}))
+	defer server.Close()
+
+	wantedEvents := []APIEvents{
 		{
 			Action: "pull",
 			Type:   "image",
@@ -213,15 +226,6 @@ func testEventListeners(testName string, t *testing.T, buildServer func(http.Han
 			},
 		},
 	}
-	server := buildServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rsc := bufio.NewScanner(strings.NewReader(response))
-		for rsc.Scan() {
-			w.Write([]byte(rsc.Text()))
-			w.(http.Flusher).Flush()
-			time.Sleep(10 * time.Millisecond)
-		}
-	}))
-	defer server.Close()
 
 	client, err := buildClient(server.URL)
 	if err != nil {
@@ -229,10 +233,9 @@ func testEventListeners(testName string, t *testing.T, buildServer func(http.Han
 	}
 	client.SkipServerVersionCheck = true
 
-	listener := make(chan *APIEvents, 10)
+	listener := make(chan *APIEvents, len(wantedEvents)+1)
 	defer func() {
-		time.Sleep(10 * time.Millisecond)
-		if err := client.RemoveEventListener(listener); err != nil {
+		if err = client.RemoveEventListener(listener); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -242,17 +245,59 @@ func testEventListeners(testName string, t *testing.T, buildServer func(http.Han
 		t.Errorf("Failed to add event listener: %s", err)
 	}
 
-	timeout := time.After(1 * time.Second)
+	timeout := time.After(5 * time.Second)
+	events := make([]APIEvents, 0, len(wantedEvents))
 
-	for i := 0; i < 9; i++ {
+loop:
+	for i := range wantedEvents {
 		select {
-		case msg := <-listener:
-			t.Logf("%d: Received: %v", i, msg)
-			if !reflect.DeepEqual(msg, wantResponse[i]) {
-				t.Fatalf("%d: wanted: %#v\n got: %#v", i, wantResponse[i], msg)
+		case msg, ok := <-listener:
+			if !ok {
+				break loop
 			}
+			events = append(events, *msg)
 		case <-timeout:
-			t.Fatalf("%s timed out waiting on events", testName)
+			t.Fatalf("%s: timed out waiting on events after %d events", testName, i)
 		}
 	}
+	cmpr := cmp.Comparer(func(e1, e2 APIEvents) bool {
+		return e1.Action == e2.Action && e1.Actor.ID == e2.Actor.ID
+	})
+	if dff := cmp.Diff(events, wantedEvents, cmpr); dff != "" {
+		t.Errorf("wrong events:\n%s", dff)
+	}
+}
+
+func TestEventListenerReAdding(t *testing.T) {
+	t.Parallel()
+	endChan := make(chan bool)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-endChan
+	}))
+
+	client, err := NewClient(server.URL)
+	if err != nil {
+		t.Errorf("Failed to create client: %s", err)
+	}
+
+	listener := make(chan *APIEvents, 10)
+	if err := client.AddEventListener(listener); err != nil {
+		t.Errorf("Failed to add event listener: %s", err)
+	}
+
+	// Make sure eventHijack() is started with the current eventMonitoringState.
+	time.Sleep(10 * time.Millisecond)
+
+	if err := client.RemoveEventListener(listener); err != nil {
+		t.Errorf("Failed to remove event listener: %s", err)
+	}
+
+	if err := client.AddEventListener(listener); err != nil {
+		t.Errorf("Failed to add event listener: %s", err)
+	}
+
+	endChan <- true
+
+	// Give the goroutine of the first eventHijack() time to handle the EOF.
+	time.Sleep(10 * time.Millisecond)
 }

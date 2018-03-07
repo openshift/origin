@@ -111,7 +111,7 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/ca-registration",
 	"/healthz/poststarthook/generic-apiserver-start-informers",
 	"/healthz/poststarthook/kube-apiserver-autoregistration",
-	"/healthz/poststarthook/oauth.openshift.io-EnsureBootstrapOAuthClients",
+	"/healthz/poststarthook/oauth.openshift.io-StartOAuthClientsBootstrapping",
 	"/healthz/poststarthook/openshift.io-AdmissionInit",
 	"/healthz/poststarthook/openshift.io-StartInformers",
 	"/healthz/poststarthook/project.openshift.io-projectauthorizationcache",

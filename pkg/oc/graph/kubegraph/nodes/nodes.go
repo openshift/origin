@@ -229,7 +229,7 @@ func EnsureStatefulSetNode(g osgraph.MutableUniqueGraph, statefulSet *kapps.Stat
 	node := osgraph.EnsureUnique(g,
 		nodeName,
 		func(node osgraph.Node) graph.Node {
-			return &StatefulSetNode{node, statefulSet, false}
+			return &StatefulSetNode{node, statefulSet, true}
 		},
 	).(*StatefulSetNode)
 
@@ -259,7 +259,7 @@ func EnsureDeploymentNode(g osgraph.MutableUniqueGraph, deployment *extensions.D
 	node := osgraph.EnsureUnique(g,
 		nodeName,
 		func(node osgraph.Node) graph.Node {
-			return &DeploymentNode{Node: node, Deployment: deployment}
+			return &DeploymentNode{Node: node, Deployment: deployment, IsFound: true}
 		},
 	).(*DeploymentNode)
 

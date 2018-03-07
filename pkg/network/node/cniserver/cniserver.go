@@ -73,6 +73,8 @@ type CNIRequest struct {
 	Env map[string]string `json:"env,omitempty"`
 	// CNI configuration passed via stdin to the CNI plugin
 	Config []byte `json:"config,omitempty"`
+	// Host side of the veth pair (for an ADD command)
+	HostVeth string `json:"hostVeth,omitempty"`
 }
 
 // Request structure built from CNIRequest which is passed to the
@@ -246,9 +248,9 @@ func cniRequestToPodRequest(r *http.Request) (*PodRequest, error) {
 		return nil, fmt.Errorf("missing CNI_NETNS")
 	}
 
-	req.HostVeth, ok = cr.Env["OSDN_HOSTVETH"]
-	if !ok && req.Command == CNI_ADD {
-		return nil, fmt.Errorf("missing OSDN_HOSTVETH")
+	req.HostVeth = cr.HostVeth
+	if req.HostVeth == "" && req.Command == CNI_ADD {
+		return nil, fmt.Errorf("missing HostVeth")
 	}
 
 	cniArgs, err := gatherCNIArgs(cr.Env)

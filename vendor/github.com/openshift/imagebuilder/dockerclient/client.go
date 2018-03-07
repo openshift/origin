@@ -35,6 +35,11 @@ type Mount struct {
 
 // ClientExecutor can run Docker builds from a Docker client.
 type ClientExecutor struct {
+	// Name is an optional name for this executor.
+	Name string
+	// Named is a map of other named executors.
+	Named map[string]*ClientExecutor
+
 	// TempDir is the temporary directory to use for storing file
 	// contents. If unset, the default temporary directory for the
 	// system will be used.
@@ -127,6 +132,35 @@ func (e *ClientExecutor) DefaultExcludes() error {
 	return nil
 }
 
+// WithName creates a new child executor that will be used whenever a COPY statement
+// uses --from=NAME.
+func (e *ClientExecutor) WithName(name string) *ClientExecutor {
+	if e.Named == nil {
+		e.Named = make(map[string]*ClientExecutor)
+		e.Deferred = append([]func() error{func() error {
+			var errs []error
+			for _, named := range e.Named {
+				errs = append(errs, named.Release()...)
+			}
+			if len(errs) > 0 {
+				return fmt.Errorf("%v", errs)
+			}
+			return nil
+		}}, e.Deferred...)
+	}
+
+	copied := *e
+	copied.Name = name
+	copied.Container = nil
+	copied.Deferred = nil
+	copied.Image = nil
+	copied.Volumes = nil
+
+	child := &copied
+	e.Named[name] = child
+	return child
+}
+
 // Build is a helper method to perform a Docker build against the
 // provided Docker client. It will load the image if not specified,
 // create a container if one does not already exist, and start a
@@ -180,8 +214,12 @@ func (e *ClientExecutor) Prepare(b *imagebuilder.Builder, node *parser.Node, fro
 	}
 
 	b.RunConfig.Image = from
-	e.LogFn("FROM %s", from)
-	glog.V(4).Infof("step: FROM %s", from)
+	if len(e.Name) > 0 {
+		e.LogFn("FROM %s as %s", from, e.Name)
+	} else {
+		e.LogFn("FROM %s", from)
+	}
+	glog.V(4).Infof("step: FROM %s as %s", from, e.Name)
 
 	b.Excludes = e.Excludes
 
@@ -615,7 +653,14 @@ func (e *ClientExecutor) CopyContainer(container *docker.Container, excludes []s
 		// TODO: reuse source
 		for _, src := range c.Src {
 			glog.V(4).Infof("Archiving %s %t", src, c.Download)
-			r, closer, err := e.Archive(c.FromFS, src, c.Dest, c.Download, excludes)
+			var r io.Reader
+			var closer io.Closer
+			var err error
+			if len(c.From) > 0 {
+				r, closer, err = e.archiveFromContainer(c.From, src, c.Dest)
+			} else {
+				r, closer, err = e.Archive(c.FromFS, src, c.Dest, c.Download, excludes)
+			}
 			if err != nil {
 				return err
 			}
@@ -646,6 +691,47 @@ func (c closers) Close() error {
 		}
 	}
 	return lastErr
+}
+
+func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.Reader, io.Closer, error) {
+	var containerID string
+	if other, ok := e.Named[from]; ok {
+		if other.Container == nil {
+			return nil, nil, fmt.Errorf("the stage %q has not been built yet", from)
+		}
+		containerID = other.Container.ID
+	} else {
+		glog.V(5).Infof("Creating a container temporarily for image input from %q in %s", from, src)
+		_, err := e.LoadImage(from)
+		if err != nil {
+			return nil, nil, err
+		}
+		c, err := e.Client.CreateContainer(docker.CreateContainerOptions{
+			Config: &docker.Config{
+				Image: from,
+			},
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		containerID = c.ID
+		e.Deferred = append([]func() error{func() error { return e.removeContainer(containerID) }}, e.Deferred...)
+	}
+
+	pr, pw := io.Pipe()
+	ar, arclose, err := archiveFromContainer(pr, src, dst, nil)
+	if err != nil {
+		pr.Close()
+		return nil, nil, err
+	}
+	go func() {
+		err := e.Client.DownloadFromContainer(containerID, docker.DownloadFromContainerOptions{
+			OutputStream: pw,
+			Path:         src,
+		})
+		pw.CloseWithError(err)
+	}()
+	return ar, closers{pr.Close, arclose.Close}, nil
 }
 
 // TODO: this does not support decompressing nested archives for ADD (when the source is a compressed file)

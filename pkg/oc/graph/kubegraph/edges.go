@@ -137,6 +137,8 @@ func AddAllManagedByControllerPodEdges(g osgraph.MutableUniqueGraph) {
 		case *kubegraph.StatefulSetNode:
 			// TODO: refactor to handle expanded selectors (along with ReplicaSets and Deployments)
 			AddManagedByControllerPodEdges(g, cast, cast.StatefulSet.Namespace, cast.StatefulSet.Spec.Selector.MatchLabels)
+		case *kubegraph.DaemonSetNode:
+			AddManagedByControllerPodEdges(g, cast, cast.DaemonSet.Namespace, cast.DaemonSet.Spec.Selector.MatchLabels)
 		}
 	}
 }
@@ -258,6 +260,8 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			syntheticNode = appsgraph.FindOrCreateSyntheticDeploymentConfigNode(g, &appsapi.DeploymentConfig{ObjectMeta: syntheticMeta})
 		case r == extensions.Resource("deployments"):
 			syntheticNode = kubegraph.FindOrCreateSyntheticDeploymentNode(g, &extensions.Deployment{ObjectMeta: syntheticMeta})
+		case r == extensions.Resource("replicasets"):
+			syntheticNode = kubegraph.FindOrCreateSyntheticReplicaSetNode(g, &extensions.ReplicaSet{ObjectMeta: syntheticMeta})
 		default:
 			continue
 		}

@@ -19,7 +19,7 @@ import (
 )
 
 type ExtraConfig struct {
-	CoreAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *restclient.Config
 	RouteAllocator            *routeallocationcontroller.RouteAllocationController
 
 	// TODO these should all become local eventually
@@ -96,7 +96,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	authorizationClient, err := authorizationclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}

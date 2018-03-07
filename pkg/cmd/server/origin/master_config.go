@@ -28,7 +28,9 @@ import (
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
+	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originadmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
@@ -41,6 +43,7 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
@@ -100,12 +103,17 @@ type InformerAccess interface {
 	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
 	GetExternalKubeInformers() kinformers.SharedInformerFactory
 	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
+	GetAppInformers() appinformer.SharedInformerFactory
 	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
+	GetBuildInformers() buildinformer.SharedInformerFactory
 	GetImageInformers() imageinformer.SharedInformerFactory
 	GetOauthInformers() oauthinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
 	GetUserInformers() userinformer.SharedInformerFactory
+	GetTemplateInformers() templateinformer.SharedInformerFactory
+	ToGenericInformer() GenericResourceInformer
+
 	Start(stopCh <-chan struct{})
 }
 

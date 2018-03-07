@@ -9,4 +9,4 @@ do
     umount -lR $i
 done
 
-exec /usr/local/bin/origin-node-run.sh
+exec /usr/local/bin/openshift-node

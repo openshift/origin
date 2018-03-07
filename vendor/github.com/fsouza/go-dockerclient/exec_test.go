@@ -1,4 +1,4 @@
-// Copyright 2015 go-dockerclient authors. All rights reserved.
+// Copyright 2014 go-dockerclient authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package docker
 import (
 	"bytes"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestExecCreate(t *testing.T) {
+	t.Parallel()
 	jsonContainer := `{"Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"}`
 	var expected struct{ ID string }
 	err := json.Unmarshal([]byte(jsonContainer), &expected)
@@ -56,7 +58,70 @@ func TestExecCreate(t *testing.T) {
 	}
 }
 
+func TestExecCreateWithEnvErr(t *testing.T) {
+	t.Parallel()
+	jsonContainer := `{"Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"}`
+	var expected struct{ ID string }
+	err := json.Unmarshal([]byte(jsonContainer), &expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeRT := &FakeRoundTripper{message: jsonContainer, status: http.StatusOK}
+	client := newTestClient(fakeRT)
+	config := CreateExecOptions{
+		Container:    "test",
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: false,
+		Tty:          false,
+		Env:          []string{"foo=bar"},
+		Cmd:          []string{"touch", "/tmp/file"},
+		User:         "a-user",
+	}
+	_, err = client.CreateExec(config)
+	if err == nil || err.Error() != "exec configuration Env is only supported in API#1.25 and above" {
+		t.Error("CreateExec: options contain Env for unsupported api version")
+	}
+}
+
+func TestExecCreateWithEnv(t *testing.T) {
+	t.Parallel()
+	jsonContainer := `{"Id": "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"}`
+	var expected struct{ ID string }
+	err := json.Unmarshal([]byte(jsonContainer), &expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeRT := &FakeRoundTripper{message: jsonContainer, status: http.StatusOK}
+	endpoint := "http://localhost:4243"
+	u, _ := parseEndpoint("http://localhost:4243", false)
+	testAPIVersion, _ := NewAPIVersion("1.25")
+	client := Client{
+		HTTPClient:             &http.Client{Transport: fakeRT},
+		Dialer:                 &net.Dialer{},
+		endpoint:               endpoint,
+		endpointURL:            u,
+		SkipServerVersionCheck: true,
+		serverAPIVersion:       testAPIVersion,
+	}
+	config := CreateExecOptions{
+		Container:    "test",
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: false,
+		Tty:          false,
+		Env:          []string{"foo=bar"},
+		Cmd:          []string{"touch", "/tmp/file"},
+		User:         "a-user",
+	}
+	_, err = client.CreateExec(config)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestExecStartDetached(t *testing.T) {
+	t.Parallel()
 	execID := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
 	fakeRT := &FakeRoundTripper{status: http.StatusOK}
 	client := newTestClient(fakeRT)
@@ -114,6 +179,7 @@ func TestExecStartAndAttach(t *testing.T) {
 }
 
 func TestExecResize(t *testing.T) {
+	t.Parallel()
 	execID := "4fa6e0f0c6786287e131c3852c58a2e01cc697a68231826813597e4994f1d6e2"
 	fakeRT := &FakeRoundTripper{status: http.StatusOK}
 	client := newTestClient(fakeRT)
@@ -132,109 +198,27 @@ func TestExecResize(t *testing.T) {
 }
 
 func TestExecInspect(t *testing.T) {
+	t.Parallel()
 	jsonExec := `{
-	  "ID": "32adfeeec34250f9530ce1dafd40c6233832315e065ea6b362d745e2f63cde0e",
-	  "Running": true,
-	  "ExitCode": 0,
-	  "ProcessConfig": {
-	    "privileged": false,
-	    "user": "",
-	    "tty": true,
-	    "entrypoint": "bash",
-	    "arguments": []
-	  },
-	  "OpenStdin": true,
+	  "CanRemove": false,
+	  "ContainerID": "b53ee82b53a40c7dca428523e34f741f3abc51d9f297a14ff874bf761b995126",
+	  "DetachKeys": "",
+	  "ExitCode": 2,
+	  "ID": "f33bbfb39f5b142420f4759b2348913bd4a8d1a6d7fd56499cb41a1bb91d7b3b",
 	  "OpenStderr": true,
+	  "OpenStdin": true,
 	  "OpenStdout": true,
-	  "Container": {
-	    "State": {
-	      "Running": true,
-	      "Paused": false,
-	      "Restarting": false,
-	      "OOMKilled": false,
-	      "Pid": 29392,
-	      "ExitCode": 0,
-	      "Error": "",
-	      "StartedAt": "2015-01-21T17:08:59.634662178Z",
-	      "FinishedAt": "0001-01-01T00:00:00Z"
-	    },
-	    "ID": "922cd0568714763dc725b24b7c9801016b2a3de68e2a1dc989bf5abf07740521",
-	    "Created": "2015-01-21T17:08:59.46407212Z",
-	    "Path": "/bin/bash",
-	    "Args": [
-	      "-lc",
-	      "tsuru_unit_agent http://192.168.50.4:8080 689b30e0ab3adce374346de2e72512138e0e8b75 gtest /var/lib/tsuru/start && tail -f /dev/null"
+	  "ProcessConfig": {
+	    "arguments": [
+	      "-c",
+	      "exit 2"
 	    ],
-	    "Config": {
-	      "Hostname": "922cd0568714",
-	      "Domainname": "",
-	      "User": "ubuntu",
-	      "Memory": 0,
-	      "MemorySwap": 0,
-	      "CpuShares": 100,
-	      "Cpuset": "",
-	      "AttachStdin": false,
-	      "AttachStdout": false,
-	      "AttachStderr": false,
-	      "PortSpecs": null,
-	      "ExposedPorts": {
-	        "8888/tcp": {}
-	      },
-	      "Tty": false,
-	      "OpenStdin": false,
-	      "StdinOnce": false,
-	      "Env": [
-	        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-	      ],
-	      "Cmd": [
-	        "/bin/bash",
-	        "-lc",
-	        "tsuru_unit_agent http://192.168.50.4:8080 689b30e0ab3adce374346de2e72512138e0e8b75 gtest /var/lib/tsuru/start && tail -f /dev/null"
-	      ],
-	      "Image": "tsuru/app-gtest",
-	      "Volumes": null,
-	      "WorkingDir": "",
-	      "Entrypoint": null,
-	      "NetworkDisabled": false,
-	      "MacAddress": "",
-	      "OnBuild": null
-	    },
-	    "Image": "a88060b8b54fde0f7168c86742d0ce83b80f3f10925d85c98fdad9ed00bef544",
-	    "NetworkSettings": {
-	      "IPAddress": "172.17.0.8",
-	      "IPPrefixLen": 16,
-	      "MacAddress": "02:42:ac:11:00:08",
-	      "LinkLocalIPv6Address": "fe80::42:acff:fe11:8",
-	      "LinkLocalIPv6PrefixLen": 64,
-	      "GlobalIPv6Address": "",
-	      "GlobalIPv6PrefixLen": 0,
-	      "Gateway": "172.17.42.1",
-	      "IPv6Gateway": "",
-	      "Bridge": "docker0",
-	      "PortMapping": null,
-	      "Ports": {
-	        "8888/tcp": [
-	          {
-	            "HostIp": "0.0.0.0",
-	            "HostPort": "49156"
-	          }
-	        ]
-	      }
-	    },
-	    "ResolvConfPath": "/var/lib/docker/containers/922cd0568714763dc725b24b7c9801016b2a3de68e2a1dc989bf5abf07740521/resolv.conf",
-	    "HostnamePath": "/var/lib/docker/containers/922cd0568714763dc725b24b7c9801016b2a3de68e2a1dc989bf5abf07740521/hostname",
-	    "HostsPath": "/var/lib/docker/containers/922cd0568714763dc725b24b7c9801016b2a3de68e2a1dc989bf5abf07740521/hosts",
-	    "Name": "/c7e43b72288ee9d0270a",
-	    "Driver": "aufs",
-	    "ExecDriver": "native-0.2",
-	    "MountLabel": "",
-	    "ProcessLabel": "",
-	    "AppArmorProfile": "",
-	    "RestartCount": 0,
-	    "UpdateDns": false,
-	    "Volumes": {},
-	    "VolumesRW": {}
-	  }
+	    "entrypoint": "sh",
+	    "privileged": false,
+	    "tty": true,
+	    "user": "1000"
+	  },
+	  "Running": false
 	}`
 	var expected ExecInspect
 	err := json.Unmarshal([]byte(jsonExec), &expected)
@@ -243,7 +227,7 @@ func TestExecInspect(t *testing.T) {
 	}
 	fakeRT := &FakeRoundTripper{message: jsonExec, status: http.StatusOK}
 	client := newTestClient(fakeRT)
-	expectedID := "32adfeeec34250f9530ce1dafd40c6233832315e065ea6b362d745e2f63cde0e"
+	expectedID := "b53ee82b53a40c7dca428523e34f741f3abc51d9f297a14ff874bf761b995126"
 	execObj, err := client.InspectExec(expectedID)
 	if err != nil {
 		t.Fatal(err)

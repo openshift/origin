@@ -513,3 +513,15 @@ func writeJSONToDisk(result TestResult, path string) error {
 	err := ioutil.WriteFile(path, resultJSON, 0644)
 	return err
 }
+
+func SetNamespaceLabels(c kclientset.Interface, name string, labels map[string]string) (*kapiv1.Namespace, error) {
+	if len(labels) == 0 {
+		return nil, nil
+	}
+	ns, err := c.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	ns.Labels = labels
+	return c.CoreV1().Namespaces().Update(ns)
+}

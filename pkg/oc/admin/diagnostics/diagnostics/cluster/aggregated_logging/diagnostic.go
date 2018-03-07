@@ -163,17 +163,22 @@ func (d *AggregatedLogging) Complete(logger *log.Logger) error {
 				d.Debug("AGL0032", fmt.Sprintf("Project %q not found", project))
 				continue
 			}
-			return fmt.Errorf("failed fetching one of the default logging projects %q: %v", project, err)
+			d.Error("AGL0034", err, fmt.Sprintf("Fetching project %q returned with error", project))
+			return nil
 		}
 
 		d.Debug("AGL0033", fmt.Sprintf("Found default logging project %q", project))
 		d.Project = project
 		return nil
 	}
-	return fmt.Errorf("default logging project not found, use '--%s' to specify logging project", flagLoggingProject)
+	//tried to complete here but no known logging project exists, will be checked in CanRun()
+	return nil
 }
 
 func (d *AggregatedLogging) CanRun() (bool, error) {
+	if len(d.Project) == 0 {
+		return false, errors.New("Logging project does not exist")
+	}
 	if d.OAuthClientClient == nil || d.ProjectClient == nil || d.RouteClient == nil || d.CRBClient == nil || d.DCClient == nil {
 		return false, errors.New("Config must include a cluster-admin context to run this diagnostic")
 	}

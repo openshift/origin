@@ -42,6 +42,7 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
 readonly OS_CROSS_COMPILE_TARGETS=(
+  cmd/hypershift
   cmd/openshift
   cmd/oc
   cmd/oadm
@@ -57,7 +58,7 @@ readonly OS_TEST_TARGETS=(
 readonly OS_GOVET_BLACKLIST=(
 	"pkg/.*/generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
 	"pkg/.*/generated/clientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/client-go/testing.Fake"
-	"pkg/build/vendor/github.com/docker/engine-api/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
+	"pkg/build/vendor/github.com/docker/docker/client/hijack.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"cmd/cluster-capacity/.*"
 	"pkg/build/builder/vendor/.*"
 	"pkg/cmd/server/start/.*"
@@ -325,6 +326,7 @@ readonly OS_ALL_IMAGES=(
   openshift/origin-f5-router
   openshift/origin-egress-router
   openshift/origin-egress-http-proxy
+  openshift/origin-egress-dns-proxy
   openshift/origin-recycler
   openshift/origin-cluster-capacity
   openshift/origin-service-catalog
@@ -366,6 +368,7 @@ function os::build::images() {
   ( os::build::image "${tag_prefix}"                       images/origin ) &
   ( os::build::image "${tag_prefix}-egress-router"         images/egress/router ) &
   ( os::build::image "${tag_prefix}-egress-http-proxy"     images/egress/http-proxy ) &
+  ( os::build::image "${tag_prefix}-egress-dns-proxy"      images/egress/dns-proxy ) &
   ( os::build::image "${tag_prefix}-federation"            images/federation ) &
 
   for i in `jobs -p`; do wait $i; done

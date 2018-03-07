@@ -60,7 +60,7 @@ DEFAULT_BUNDLES=(
 	dynbinary
 
 	test-unit
-	test-integration-cli
+	test-integration
 	test-docker-py
 
 	cross
@@ -71,7 +71,7 @@ VERSION=$(< ./VERSION)
 ! BUILDTIME=$(date -u -d "@${SOURCE_DATE_EPOCH:-$(date +%s)}" --rfc-3339 ns 2> /dev/null | sed -e 's/ /T/')
 if [ "$DOCKER_GITCOMMIT" ]; then
 	GITCOMMIT="$DOCKER_GITCOMMIT"
-elif command -v git &> /dev/null && [ -d .git ] && git rev-parse &> /dev/null; then
+elif command -v git &> /dev/null && [ -e .git ] && git rev-parse &> /dev/null; then
 	GITCOMMIT=$(git rev-parse --short HEAD)
 	if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
 		GITCOMMIT="$GITCOMMIT-unsupported"
@@ -130,7 +130,7 @@ fi
 # functionality.
 if \
 	command -v gcc &> /dev/null \
-	&& ! ( echo -e  '#include <libdevmapper.h>\nint main() { dm_task_deferred_remove(NULL); }'| gcc -xc - -o /dev/null -ldevmapper &> /dev/null ) \
+	&& ! ( echo -e  '#include <libdevmapper.h>\nint main() { dm_task_deferred_remove(NULL); }'| gcc -xc - -o /dev/null $(pkg-config --libs devmapper) &> /dev/null ) \
 ; then
 	DOCKER_BUILDTAGS+=' libdm_no_deferred_remove'
 fi

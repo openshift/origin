@@ -44,18 +44,18 @@ func TestMetrics(t *testing.T) {
 	// went per line vs. a block of expected test in case assumptions on ordering are subverted, as well as defer on
 	// getting newlines right
 	expectedResponse := []string{
-		"# HELP openshift_build_total Counts builds by phase and reason",
+		"# HELP openshift_build_total Counts builds by phase, reason, and strategy",
 		"# TYPE openshift_build_total gauge",
-		"openshift_build_total{phase=\"Cancelled\",reason=\"\"} 1",
-		"openshift_build_total{phase=\"Complete\",reason=\"\"} 1",
-		"openshift_build_total{phase=\"Error\",reason=\"\"} 1",
-		"openshift_build_total{phase=\"Failed\",reason=\"ExceededRetryTimeout\"} 1",
-		"openshift_build_total{phase=\"New\",reason=\"InvalidOutputReference\"} 1",
-		"# HELP openshift_build_active_time_seconds Shows the last transition time in unix epoch for running builds by namespace, name, phase, and reason",
+		"openshift_build_total{phase=\"Cancelled\",reason=\"\",strategy=\"\"} 1",
+		"openshift_build_total{phase=\"Complete\",reason=\"\",strategy=\"\"} 1",
+		"openshift_build_total{phase=\"Error\",reason=\"\",strategy=\"\"} 1",
+		"openshift_build_total{phase=\"Failed\",reason=\"ExceededRetryTimeout\",strategy=\"\"} 1",
+		"openshift_build_total{phase=\"New\",reason=\"InvalidOutputReference\",strategy=\"\"} 1",
+		"# HELP openshift_build_active_time_seconds Shows the last transition time in unix epoch for running builds by namespace, name, phase, reason, and strategy",
 		"# TYPE openshift_build_active_time_seconds gauge",
-		"openshift_build_active_time_seconds{name=\"testname1\",namespace=\"testnamespace\",phase=\"New\",reason=\"\"} 123",
-		"openshift_build_active_time_seconds{name=\"testname2\",namespace=\"testnamespace\",phase=\"Pending\",reason=\"\"} 123",
-		"openshift_build_active_time_seconds{name=\"testname3\",namespace=\"testnamespace\",phase=\"Running\",reason=\"\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname1\",namespace=\"testnamespace\",phase=\"New\",reason=\"\",strategy=\"\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname2\",namespace=\"testnamespace\",phase=\"Pending\",reason=\"\",strategy=\"\"} 123",
+		"openshift_build_active_time_seconds{name=\"testname3\",namespace=\"testnamespace\",phase=\"Running\",reason=\"\",strategy=\"\"} 123",
 	}
 	registry := prometheus.NewRegistry()
 

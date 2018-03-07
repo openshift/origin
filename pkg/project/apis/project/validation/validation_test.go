@@ -15,6 +15,7 @@ func TestValidateProject(t *testing.T) {
 		name    string
 		project projectapi.Project
 		numErrs int
+		errText string
 	}{
 		{
 			name: "missing id",
@@ -78,6 +79,33 @@ func TestValidateProject(t *testing.T) {
 				},
 			},
 			numErrs: 0,
+		},
+		{
+			name: "invalid id for create (> 63 characters)",
+			project: projectapi.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "werthtyghyghgfdvfffghjiuyhnjhgfvdddddcfgtytgfredswazsxdeeerfvgtyhbj",
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "invalid id start with dash",
+			project: projectapi.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "-pro",
+				},
+			},
+			numErrs: 1,
+		},
+		{
+			name: "invalid id end wih dash",
+			project: projectapi.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pro-",
+				},
+			},
+			numErrs: 1,
 		},
 		{
 			name: "invalid id internal dots",
@@ -145,12 +173,32 @@ func TestValidateProject(t *testing.T) {
 			// Should fail because infra and $test doesn't satisfy the format
 			numErrs: 1,
 		},
+		{
+			name: "valid node selector",
+			project: projectapi.Project{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "",
+					Annotations: map[string]string{
+						projectapi.ProjectNodeSelector: "env,qa",
+					},
+				},
+			},
+			// Should fail because ProjectNodeSelector is invalid
+			errText: `nodeSelector: Invalid value: "env,qa": must be a valid label selector`,
+			numErrs: 1,
+		},
 	}
 
 	for _, tc := range testCases {
 		errs := ValidateProject(&tc.project)
 		if len(errs) != tc.numErrs {
 			t.Errorf("Unexpected error list for case %q: %+v", tc.name, errs)
+		}
+		for _, v := range errs {
+			if tc.errText != "" && (tc.errText != string(v.Error())) {
+				t.Errorf("Unexpected error text %q for %q", string(v.Error()), tc.errText)
+			}
 		}
 	}
 

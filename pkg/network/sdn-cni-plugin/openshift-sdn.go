@@ -95,7 +95,7 @@ func (p *cniPlugin) doCNI(url string, req *cniserver.CNIRequest) ([]byte, error)
 // Send the ADD command environment and config to the CNI server, returning
 // the IPAM result to the caller
 func (p *cniPlugin) doCNIServerAdd(req *cniserver.CNIRequest, hostVeth string) (types.Result, error) {
-	req.Env["OSDN_HOSTVETH"] = hostVeth
+	req.HostVeth = hostVeth
 	body, err := p.doCNI("http://dummy/", req)
 	if err != nil {
 		return nil, err
@@ -117,20 +117,14 @@ func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
 
 func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	req := newCNIRequest(args)
-	ifname := req.Env["CNI_IFNAME"]
-	netns := req.Env["CNI_NETNS"]
-	if ifname == "" || netns == "" {
-		return fmt.Errorf("CNI request did not include required environment variables")
-	}
-
 	config, err := cniserver.ReadConfig(cniserver.CNIServerConfigFilePath)
 	if err != nil {
 		return err
 	}
 
 	var hostVeth, contVeth net.Interface
-	err = ns.WithNetNSPath(netns, func(hostNS ns.NetNS) error {
-		hostVeth, contVeth, err = ip.SetupVeth(ifname, int(config.MTU), hostNS)
+	err = ns.WithNetNSPath(args.Netns, func(hostNS ns.NetNS) error {
+		hostVeth, contVeth, err = ip.SetupVeth(args.IfName, int(config.MTU), hostNS)
 		if err != nil {
 			return fmt.Errorf("failed to create container veth: %v", err)
 		}
@@ -163,20 +157,19 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	// The only interface we report is the pod interface.
 	result030.Interfaces = []*current.Interface{
 		{
-			Name:    ifname,
+			Name:    args.IfName,
 			Mac:     contVeth.HardwareAddr.String(),
-			Sandbox: netns,
+			Sandbox: args.Netns,
 		},
 	}
-	index := 0
-	result030.IPs[0].Interface = &index
+	result030.IPs[0].Interface = current.Int(0)
 
-	err = ns.WithNetNSPath(netns, func(ns.NetNS) error {
+	err = ns.WithNetNSPath(args.Netns, func(ns.NetNS) error {
 		// Set up eth0
-		if err := ip.SetHWAddrByIP(ifname, result030.IPs[0].Address.IP, nil); err != nil {
+		if err := ip.SetHWAddrByIP(args.IfName, result030.IPs[0].Address.IP, nil); err != nil {
 			return fmt.Errorf("failed to set pod interface MAC address: %v", err)
 		}
-		if err := ipam.ConfigureIface(ifname, result030); err != nil {
+		if err := ipam.ConfigureIface(args.IfName, result030); err != nil {
 			return fmt.Errorf("failed to configure container IPAM: %v", err)
 		}
 

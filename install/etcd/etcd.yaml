@@ -1,0 +1,35 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: master-etcd
+  namespace: kube-system
+  labels:
+    openshift.io/control-plane: "true"
+    openshift.io/component: etcd
+spec:
+  restartPolicy: Always
+  hostNetwork: true
+  containers:
+  - name: etcd
+    image: openshift/origin:latest
+    workingDir: /var/lib/etcd
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      #!/bin/sh
+      set -o allexport
+      exec openshift start etcd --config=/etc/origin/master/master-config.yaml
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+       readOnly: true
+     - mountPath: /var/lib/etcd/
+       name: master-data
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /path/to/master/config-dir
+  - name: master-data
+    ETCD_VOLUME

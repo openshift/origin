@@ -24,6 +24,15 @@ type RejectionRecorder interface {
 	RecordRouteRejection(route *routeapi.Route, reason, message string)
 }
 
+// LogRejections writes rejection messages to the log.
+var LogRejections = logRecorder{}
+
+type logRecorder struct{}
+
+func (logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
+	glog.V(3).Infof("Rejected route %s in namespace %s: %s: %s", route.Name, route.Namespace, reason, message)
+}
+
 // StatusAdmitter ensures routes added to the plugin have status set.
 type StatusAdmitter struct {
 	plugin                  router.Plugin

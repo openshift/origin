@@ -7,18 +7,11 @@ import (
 	"path/filepath"
 
 	"github.com/docker/docker/libcontainerd"
-	"github.com/docker/docker/pkg/system"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 )
 
 var defaultDaemonConfigFile = ""
-
-// currentUserIsOwner checks whether the current user is the owner of the given
-// file.
-func currentUserIsOwner(f string) bool {
-	return false
-}
 
 // setDefaultUmask doesn't do anything on windows
 func setDefaultUmask() error {
@@ -61,8 +54,8 @@ func (cli *DaemonCli) setupConfigReloadTrap() {
 		sa := windows.SecurityAttributes{
 			Length: 0,
 		}
-		ev := "Global\\docker-daemon-config-" + fmt.Sprint(os.Getpid())
-		if h, _ := system.CreateEvent(&sa, false, false, ev); h != 0 {
+		ev, _ := windows.UTF16PtrFromString("Global\\docker-daemon-config-" + fmt.Sprint(os.Getpid()))
+		if h, _ := windows.CreateEvent(&sa, 0, 0, ev); h != 0 {
 			logrus.Debugf("Config reload - waiting signal at %s", ev)
 			for {
 				windows.WaitForSingleObject(h, windows.INFINITE)

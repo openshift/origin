@@ -19,6 +19,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -76,9 +77,10 @@ import (
 )
 
 type OpenshiftAPIExtraConfig struct {
-	KubeClientInternal    kclientsetinternal.Interface
-	KubeletClientConfig   *kubeletclient.KubeletClientConfig
-	KubeInternalInformers kinternalinformers.SharedInformerFactory
+	KubeAPIServerClientConfig *restclient.Config
+	KubeClientInternal        kclientsetinternal.Interface
+	KubeletClientConfig       *kubeletclient.KubeletClientConfig
+	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
 	SecurityInformers securityinformer.SharedInformerFactory
@@ -225,7 +227,7 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 	cfg := &oappsapiserver.AppsServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: oappsapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -250,7 +252,7 @@ func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericap
 	cfg := &authorizationapiserver.AuthorizationAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: authorizationapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
 			RuleResolver:              c.ExtraConfig.RuleResolver,
 			SubjectLocator:            c.ExtraConfig.SubjectLocator,
@@ -281,7 +283,7 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 	cfg := &buildapiserver.BuildServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: buildapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeletClientConfig:       c.ExtraConfig.KubeletClientConfig,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -306,7 +308,7 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 	cfg := &imageapiserver.ImageAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: imageapiserver.ExtraConfig{
-			CoreAPIServerClientConfig:          c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig:          c.ExtraConfig.KubeAPIServerClientConfig,
 			LimitVerifier:                      c.ExtraConfig.LimitVerifier,
 			RegistryHostnameRetriever:          c.ExtraConfig.RegistryHostnameRetriever,
 			AllowedRegistriesForImport:         c.ExtraConfig.AllowedRegistriesForImport,
@@ -357,7 +359,7 @@ func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.
 	cfg := &oauthapiserver.OAuthAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: oauthapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			ServiceAccountMethod:      c.ExtraConfig.ServiceAccountMethod,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -382,7 +384,7 @@ func (c *completedConfig) withProjectAPIServer(delegateAPIServer genericapiserve
 	cfg := &projectapiserver.ProjectAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: projectapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
 			ProjectAuthorizationCache: c.ExtraConfig.ProjectAuthorizationCache,
 			ProjectCache:              c.ExtraConfig.ProjectCache,
@@ -437,7 +439,7 @@ func (c *completedConfig) withRouteAPIServer(delegateAPIServer genericapiserver.
 	cfg := &routeapiserver.RouteAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: routeapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			RouteAllocator:            c.ExtraConfig.RouteAllocator,
 			Codecs:                    legacyscheme.Codecs,
 			Registry:                  legacyscheme.Registry,
@@ -462,7 +464,7 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 	cfg := &securityapiserver.SecurityAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: securityapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
 			// so we have to have it special cased here to point to the right spot.
 			SCCStorage:            c.ExtraConfig.SCCStorage,
@@ -491,7 +493,7 @@ func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserv
 	cfg := &templateapiserver.TemplateConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
 		ExtraConfig: templateapiserver.ExtraConfig{
-			CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			Codecs:   legacyscheme.Codecs,
 			Registry: legacyscheme.Registry,
 			Scheme:   legacyscheme.Scheme,
@@ -590,18 +592,15 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 
 	// this remains a non-healthz endpoint so that you can be healthy without being ready.
-	initReadinessCheckRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, "/healthz/ready", c.ExtraConfig.ProjectAuthorizationCache.ReadyForAccess)
+	addReadinessCheckRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, "/healthz/ready", c.ExtraConfig.ProjectAuthorizationCache.ReadyForAccess)
 
 	// this remains here and separate so that you can check both kube and openshift levels
-	initOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
+	addOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	// register our poststarthooks
-	s.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
-	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", c.ensureDefaultNamespaceServiceAccountRoles)
-	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", c.ensureOpenShiftInfraNamespace)
 
 	return s, nil
 }
@@ -627,7 +626,7 @@ func apiLegacyV1(all map[string]rest.Storage) *genericapiserver.APIGroupInfo {
 }
 
 // initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
-func initReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, readyFunc func() bool) {
+func addReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, readyFunc func() bool) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
 		if readyFunc() {
 			w.WriteHeader(http.StatusOK)
@@ -640,7 +639,7 @@ func initReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, ready
 }
 
 // initVersionRoute initializes an HTTP endpoint for the server's version information.
-func initOpenshiftVersionRoute(container *restful.Container, path string) {
+func addOpenshiftVersionRoute(container *restful.Container, path string) {
 	// Build version info once
 	versionInfo, err := json.MarshalIndent(version.Get(), "", "  ")
 	if err != nil {
@@ -667,11 +666,6 @@ func writeJSON(resp *restful.Response, json []byte) {
 	resp.ResponseWriter.Header().Set("Content-Type", "application/json")
 	resp.ResponseWriter.WriteHeader(http.StatusOK)
 	resp.ResponseWriter.Write(json)
-}
-
-func (c *completedConfig) startClusterQuotaMapping(context genericapiserver.PostStartHookContext) error {
-	go c.ExtraConfig.ClusterQuotaMappingController.Run(5, context.StopCh)
-	return nil
 }
 
 func (c *completedConfig) startProjectCache(context genericapiserver.PostStartHookContext) error {
@@ -721,7 +715,7 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 }
 
 // ensureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
-func (c *completedConfig) ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
+func ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
 	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
 
 	ensureNamespaceServiceAccountRoleBindings(context, ns)
@@ -751,7 +745,7 @@ func (c *completedConfig) ensureOpenShiftInfraNamespace(context genericapiserver
 }
 
 // ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
-func (c *completedConfig) ensureDefaultNamespaceServiceAccountRoles(context genericapiserver.PostStartHookContext) error {
+func ensureDefaultNamespaceServiceAccountRoles(context genericapiserver.PostStartHookContext) error {
 	ensureNamespaceServiceAccountRoleBindings(context, metav1.NamespaceDefault)
 	return nil
 }

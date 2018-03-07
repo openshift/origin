@@ -433,6 +433,32 @@ func TestProjectStatus(t *testing.T) {
 			},
 			Time: mustParseTime("2016-04-07T04:12:25Z"),
 		},
+		"standalone daemonset": {
+			File: "rollingupdate-daemonset.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"daemonset/bind manages gcr.io/google-containers/pause:2.0",
+				"generation #0 running for about a minute",
+			},
+			Time: mustParseTime("2016-04-07T04:12:25Z"),
+		},
+		"hpa non-missing scaleref": {
+			File: "hpa-with-scale-ref.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"deployment/ruby-deploy deploys istag/ruby-deploy:latest",
+			},
+		},
 	}
 	oldTimeFn := timeNowFn
 	defer func() { timeNowFn = oldTimeFn }()

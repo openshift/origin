@@ -394,6 +394,13 @@ func (r *templateRouter) writeConfig() error {
 		r.state[k] = cfg
 	}
 
+	glog.V(4).Infof("Committing router certificate manager changes...")
+	if err := r.certManager.Commit(); err != nil {
+		return fmt.Errorf("error committing certificate changes: %v", err)
+	}
+
+	glog.V(4).Infof("Router certificate manager config committed")
+
 	for path, template := range r.templates {
 		file, err := os.Create(path)
 		if err != nil {

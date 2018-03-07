@@ -32,13 +32,13 @@ import (
 	"github.com/docker/docker/daemon"
 	"github.com/docker/docker/daemon/cluster"
 	"github.com/docker/docker/daemon/config"
+	"github.com/docker/docker/daemon/listeners"
 	"github.com/docker/docker/daemon/logger"
 	"github.com/docker/docker/dockerversion"
 	"github.com/docker/docker/libcontainerd"
 	dopts "github.com/docker/docker/opts"
 	"github.com/docker/docker/pkg/authorization"
 	"github.com/docker/docker/pkg/jsonlog"
-	"github.com/docker/docker/pkg/listeners"
 	"github.com/docker/docker/pkg/pidfile"
 	"github.com/docker/docker/pkg/plugingetter"
 	"github.com/docker/docker/pkg/signal"
@@ -96,6 +96,7 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 	logrus.SetFormatter(&logrus.TextFormatter{
 		TimestampFormat: jsonlog.RFC3339NanoFixed,
 		DisableColors:   cli.Config.RawLogs,
+		FullTimestamp:   true,
 	})
 
 	if err := setDefaultUmask(); err != nil {
@@ -205,7 +206,7 @@ func (cli *DaemonCli) start(opts *daemonOptions) (err error) {
 	signal.Trap(func() {
 		cli.stop()
 		<-stopc // wait for daemonCli.start() to return
-	})
+	}, logrus.StandardLogger())
 
 	// Notify that the API is active, but before daemon is set up.
 	preNotifySystem()
@@ -452,7 +453,7 @@ func loadDaemonCliConfig(opts *daemonOptions) (*config.Config, error) {
 		c, err := config.MergeDaemonConfigurations(conf, flags, opts.configFile)
 		if err != nil {
 			if flags.Changed("config-file") || !os.IsNotExist(err) {
-				return nil, fmt.Errorf("unable to configure the Docker daemon with file %s: %v\n", opts.configFile, err)
+				return nil, fmt.Errorf("unable to configure the Docker daemon with file %s: %v", opts.configFile, err)
 			}
 		}
 		// the merged configuration can be nil if the config file didn't exist.

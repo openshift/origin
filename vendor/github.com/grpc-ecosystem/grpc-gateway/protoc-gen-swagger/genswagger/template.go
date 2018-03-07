@@ -4,21 +4,132 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/golang/protobuf/proto"
 	pbdescriptor "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
+	swagger_options "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 )
 
+func listEnumNames(enum *descriptor.Enum) (names []string) {
+	for _, value := range enum.GetValue() {
+		names = append(names, value.GetName())
+	}
+	return names
+}
+
+func getEnumDefault(enum *descriptor.Enum) string {
+	for _, value := range enum.GetValue() {
+		if value.GetNumber() == 0 {
+			return value.GetName()
+		}
+	}
+	return ""
+}
+
+// messageToQueryParameters converts a message to a list of swagger query parameters.
+func messageToQueryParameters(message *descriptor.Message, reg *descriptor.Registry, pathParams []descriptor.Parameter) (params []swaggerParameterObject, err error) {
+	for _, field := range message.Fields {
+		p, err := queryParams(message, field, "", reg, pathParams)
+		if err != nil {
+			return nil, err
+		}
+		params = append(params, p...)
+	}
+	return params, nil
+}
+
+// queryParams converts a field to a list of swagger query parameters recuresively.
+func queryParams(message *descriptor.Message, field *descriptor.Field, prefix string, reg *descriptor.Registry, pathParams []descriptor.Parameter) (params []swaggerParameterObject, err error) {
+	// make sure the parameter is not already listed as a path parameter
+	for _, pathParam := range pathParams {
+		if pathParam.Target == field {
+			return nil, nil
+		}
+	}
+	schema := schemaOfField(field, reg)
+	fieldType := field.GetTypeName()
+	if message.File != nil {
+		comments := fieldProtoComments(reg, message, field)
+		if err := updateSwaggerDataFromComments(&schema, comments); err != nil {
+			return nil, err
+		}
+	}
+
+	isEnum := field.GetType() == pbdescriptor.FieldDescriptorProto_TYPE_ENUM
+	items := schema.Items
+	if schema.Type != "" || isEnum {
+		if schema.Type == "object" {
+			return nil, nil // TODO: currently, mapping object in query parameter is not supported
+		}
+		if items != nil && (items.Type == "" || items.Type == "object") && !isEnum {
+			return nil, nil // TODO: currently, mapping object in query parameter is not supported
+		}
+		desc := schema.Description
+		if schema.Title != "" { // merge title because title of parameter object will be ignored
+			desc = strings.TrimSpace(schema.Title + ". " + schema.Description)
+		}
+		param := swaggerParameterObject{
+			Name:        prefix + field.GetName(),
+			Description: desc,
+			In:          "query",
+			Type:        schema.Type,
+			Items:       schema.Items,
+			Format:      schema.Format,
+		}
+		if isEnum {
+			enum, err := reg.LookupEnum("", fieldType)
+			if err != nil {
+				return nil, fmt.Errorf("unknown enum type %s", fieldType)
+			}
+			if items != nil { // array
+				param.Items = &swaggerItemsObject{
+					Type: "string",
+					Enum: listEnumNames(enum),
+				}
+			} else {
+				param.Type = "string"
+				param.Enum = listEnumNames(enum)
+				param.Default = getEnumDefault(enum)
+			}
+			valueComments := enumValueProtoComments(reg, enum)
+			if valueComments != "" {
+				param.Description = strings.TrimLeft(param.Description+"\n\n "+valueComments, "\n")
+			}
+		}
+		return []swaggerParameterObject{param}, nil
+	}
+
+	// nested type, recurse
+	msg, err := reg.LookupMsg("", fieldType)
+	if err != nil {
+		return nil, fmt.Errorf("unknown message type %s", fieldType)
+	}
+	for _, nestedField := range msg.Fields {
+		p, err := queryParams(msg, nestedField, prefix+field.GetName()+".", reg, pathParams)
+		if err != nil {
+			return nil, err
+		}
+		params = append(params, p...)
+	}
+	return params, nil
+}
+
 // findServicesMessagesAndEnumerations discovers all messages and enums defined in the RPC methods of the service.
-func findServicesMessagesAndEnumerations(s []*descriptor.Service, reg *descriptor.Registry, m messageMap, e enumMap) {
+func findServicesMessagesAndEnumerations(s []*descriptor.Service, reg *descriptor.Registry, m messageMap, e enumMap, refs refMap) {
 	for _, svc := range s {
 		for _, meth := range svc.Methods {
-			m[fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg)] = meth.RequestType
-			findNestedMessagesAndEnumerations(meth.RequestType, reg, m, e)
+			// Request may be fully included in query
+			if _, ok := refs[fmt.Sprintf("#/definitions/%s", fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg))]; ok {
+				m[fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg)] = meth.RequestType
+				findNestedMessagesAndEnumerations(meth.RequestType, reg, m, e)
+			}
 			m[fullyQualifiedNameToSwaggerName(meth.ResponseType.FQMN(), reg)] = meth.ResponseType
 			findNestedMessagesAndEnumerations(meth.ResponseType, reg, m, e)
 		}
@@ -62,23 +173,39 @@ func renderMessagesAsDefinition(messages messageMap, d swaggerDefinitionsObject,
 			schemaCore: schemaCore{
 				Type: "object",
 			},
-			Properties: make(map[string]swaggerSchemaObject),
 		}
 		msgComments := protoComments(reg, msg.File, msg.Outers, "MessageType", int32(msg.Index))
 		if err := updateSwaggerDataFromComments(&schema, msgComments); err != nil {
 			panic(err)
 		}
+		opts, err := extractSchemaOptionFromMessageDescriptor(msg.DescriptorProto)
+		if err != nil {
+			panic(err)
+		}
+		if opts != nil {
+			if opts.ExternalDocs != nil {
+				if schema.ExternalDocs == nil {
+					schema.ExternalDocs = &swaggerExternalDocumentationObject{}
+				}
+				if opts.ExternalDocs.Description != "" {
+					schema.ExternalDocs.Description = opts.ExternalDocs.Description
+				}
+				if opts.ExternalDocs.Url != "" {
+					schema.ExternalDocs.URL = opts.ExternalDocs.Url
+				}
+			}
 
-		for i, f := range msg.Fields {
+			// TODO(ivucica): add remaining fields of schema object
+		}
+
+		for _, f := range msg.Fields {
 			fieldValue := schemaOfField(f, reg)
-
-			fieldProtoPath := protoPathIndex(reflect.TypeOf((*pbdescriptor.DescriptorProto)(nil)), "Field")
-			fieldProtoComments := protoComments(reg, msg.File, msg.Outers, "MessageType", int32(msg.Index), fieldProtoPath, int32(i))
-			if err := updateSwaggerDataFromComments(&fieldValue, fieldProtoComments); err != nil {
+			comments := fieldProtoComments(reg, msg, f)
+			if err := updateSwaggerDataFromComments(&fieldValue, comments); err != nil {
 				panic(err)
 			}
 
-			schema.Properties[f.GetName()] = fieldValue
+			schema.Properties = append(schema.Properties, keyVal{f.GetName(), fieldValue})
 		}
 		d[fullyQualifiedNameToSwaggerName(msg.FQMN(), reg)] = schema
 	}
@@ -131,9 +258,9 @@ func schemaOfField(f *descriptor.Field, reg *descriptor.Registry) swaggerSchemaO
 	case array:
 		return swaggerSchemaObject{
 			schemaCore: schemaCore{
-				Type: "array",
+				Type:  "array",
+				Items: (*swaggerItemsObject)(&core),
 			},
-			Items: (*swaggerItemsObject)(&core),
 		}
 	case object:
 		return swaggerSchemaObject{
@@ -176,7 +303,8 @@ func primitiveSchema(t pbdescriptor.FieldDescriptorProto_Type) (ftype, format st
 	case pbdescriptor.FieldDescriptorProto_TYPE_BOOL:
 		return "boolean", "boolean", true
 	case pbdescriptor.FieldDescriptorProto_TYPE_STRING:
-		return "string", "string", true
+		// NOTE: in swagger specifition, format should be empty on string type
+		return "string", "", true
 	case pbdescriptor.FieldDescriptorProto_TYPE_BYTES:
 		return "string", "byte", true
 	case pbdescriptor.FieldDescriptorProto_TYPE_UINT32:
@@ -197,35 +325,22 @@ func primitiveSchema(t pbdescriptor.FieldDescriptorProto_Type) (ftype, format st
 
 // renderEnumerationsAsDefinition inserts enums into the definitions object.
 func renderEnumerationsAsDefinition(enums enumMap, d swaggerDefinitionsObject, reg *descriptor.Registry) {
-	valueProtoPath := protoPathIndex(reflect.TypeOf((*pbdescriptor.EnumDescriptorProto)(nil)), "Value")
 	for _, enum := range enums {
 		enumComments := protoComments(reg, enum.File, enum.Outers, "EnumType", int32(enum.Index))
 
-		var enumNames []string
 		// it may be necessary to sort the result of the GetValue function.
-		var defaultValue string
-		var valueDescriptions []string
-		for valueIdx, value := range enum.GetValue() {
-			enumNames = append(enumNames, value.GetName())
-			if defaultValue == "" && value.GetNumber() == 0 {
-				defaultValue = value.GetName()
-			}
-
-			valueDescription := protoComments(reg, enum.File, enum.Outers, "EnumType", int32(enum.Index), valueProtoPath, int32(valueIdx))
-			if valueDescription != "" {
-				valueDescriptions = append(valueDescriptions, value.GetName()+": "+valueDescription)
-			}
-		}
-
-		if len(valueDescriptions) > 0 {
-			enumComments += "\n\n - " + strings.Join(valueDescriptions, "\n - ")
+		enumNames := listEnumNames(enum)
+		defaultValue := getEnumDefault(enum)
+		valueComments := enumValueProtoComments(reg, enum)
+		if valueComments != "" {
+			enumComments = strings.TrimLeft(enumComments+"\n\n "+valueComments, "\n")
 		}
 		enumSchemaObject := swaggerSchemaObject{
 			schemaCore: schemaCore{
-				Type: "string",
+				Type:    "string",
+				Enum:    enumNames,
+				Default: defaultValue,
 			},
-			Enum:    enumNames,
-			Default: defaultValue,
 		}
 		if err := updateSwaggerDataFromComments(&enumSchemaObject, enumComments); err != nil {
 			panic(err)
@@ -237,8 +352,20 @@ func renderEnumerationsAsDefinition(enums enumMap, d swaggerDefinitionsObject, r
 
 // Take in a FQMN or FQEN and return a swagger safe version of the FQMN
 func fullyQualifiedNameToSwaggerName(fqn string, reg *descriptor.Registry) string {
-	return resolveFullyQualifiedNameToSwaggerName(fqn, append(reg.GetAllFQMNs(), reg.GetAllFQENs()...))
+	registriesSeenMutex.Lock()
+	defer registriesSeenMutex.Unlock()
+	if mapping, present := registriesSeen[reg]; present {
+		return mapping[fqn]
+	}
+	mapping := resolveFullyQualifiedNameToSwaggerNames(append(reg.GetAllFQMNs(), reg.GetAllFQENs()...))
+	registriesSeen[reg] = mapping
+	return mapping[fqn]
 }
+
+// registriesSeen is used to memoise calls to resolveFullyQualifiedNameToSwaggerNames so
+// we don't repeat it unnecessarily, since it can take some time.
+var registriesSeen = map[*descriptor.Registry]map[string]string{}
+var registriesSeenMutex sync.Mutex
 
 // Take the names of every proto and "uniq-ify" them. The idea is to produce a
 // set of names that meet a couple of conditions. They must be stable, they
@@ -247,7 +374,7 @@ func fullyQualifiedNameToSwaggerName(fqn string, reg *descriptor.Registry) strin
 // This likely could be made better. This will always generate the same names
 // but may not always produce optimal names. This is a reasonably close
 // approximation of what they should look like in most cases.
-func resolveFullyQualifiedNameToSwaggerName(fqn string, messages []string) string {
+func resolveFullyQualifiedNameToSwaggerNames(messages []string) map[string]string {
 	packagesByDepth := make(map[int][][]string)
 	uniqueNames := make(map[string]string)
 
@@ -287,7 +414,7 @@ func resolveFullyQualifiedNameToSwaggerName(fqn string, messages []string) strin
 			}
 		}
 	}
-	return uniqueNames[fqn]
+	return uniqueNames
 }
 
 // Swagger expects paths of the form /path/{string_value} but grpc-gateway paths are expected to be of the form /path/{string_value=strprefix/*}. This should reformat it correctly.
@@ -342,11 +469,11 @@ func templateToSwaggerPath(path string) string {
 	return strings.Join(parts, "/")
 }
 
-func renderServices(services []*descriptor.Service, paths swaggerPathsObject, reg *descriptor.Registry) error {
+func renderServices(services []*descriptor.Service, paths swaggerPathsObject, reg *descriptor.Registry, refs refMap) error {
 	// Correctness of svcIdx and methIdx depends on 'services' containing the services in the same order as the 'file.Service' array.
 	for svcIdx, svc := range services {
 		for methIdx, meth := range svc.Methods {
-			for _, b := range meth.Bindings {
+			for bIdx, b := range meth.Bindings {
 				// Iterate over all the swagger parameters
 				parameters := swaggerParametersObject{}
 				for _, parameter := range b.PathParams {
@@ -386,7 +513,7 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 							},
 						}
 					} else {
-						lastField := b.Body.FieldPath[len(b.Body.FieldPath) - 1]
+						lastField := b.Body.FieldPath[len(b.Body.FieldPath)-1]
 						schema = schemaOfField(lastField.Target, reg)
 					}
 
@@ -399,8 +526,15 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 						Description: desc,
 						In:          "body",
 						Required:    true,
-						Schema: &schema,
+						Schema:      &schema,
 					})
+				} else if b.HTTPMethod == "GET" {
+					// add the parameters to the query string
+					queryParams, err := messageToQueryParameters(meth.RequestType, reg, b.PathParams)
+					if err != nil {
+						return err
+					}
+					parameters = append(parameters, queryParams...)
 				}
 
 				pathItemObject, ok := paths[templateToSwaggerPath(b.PathTmpl.Template)]
@@ -414,9 +548,8 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 					desc += "(streaming responses)"
 				}
 				operationObject := &swaggerOperationObject{
-					Tags:        []string{svc.GetName()},
-					OperationID: fmt.Sprintf("%s", meth.GetName()),
-					Parameters:  parameters,
+					Tags:       []string{svc.GetName()},
+					Parameters: parameters,
 					Responses: swaggerResponsesObject{
 						"200": swaggerResponseObject{
 							Description: desc,
@@ -428,9 +561,45 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 						},
 					},
 				}
+				if bIdx == 0 {
+					operationObject.OperationID = fmt.Sprintf("%s", meth.GetName())
+				} else {
+					// OperationID must be unique in an OpenAPI v2 definition.
+					operationObject.OperationID = fmt.Sprintf("%s%d", meth.GetName(), bIdx+1)
+				}
+
+				// Fill reference map with referenced request messages
+				for _, param := range operationObject.Parameters {
+					if param.Schema != nil && param.Schema.Ref != "" {
+						refs[param.Schema.Ref] = struct{}{}
+					}
+				}
+
 				methComments := protoComments(reg, svc.File, nil, "Service", int32(svcIdx), methProtoPath, int32(methIdx))
 				if err := updateSwaggerDataFromComments(operationObject, methComments); err != nil {
 					panic(err)
+				}
+
+				opts, err := extractOperationOptionFromMethodDescriptor(meth.MethodDescriptorProto)
+				if opts != nil {
+					if err != nil {
+						panic(err)
+					}
+					if opts.ExternalDocs != nil {
+						if operationObject.ExternalDocs == nil {
+							operationObject.ExternalDocs = &swaggerExternalDocumentationObject{}
+						}
+						if opts.ExternalDocs.Description != "" {
+							operationObject.ExternalDocs.Description = opts.ExternalDocs.Description
+						}
+						if opts.ExternalDocs.Url != "" {
+							operationObject.ExternalDocs.URL = opts.ExternalDocs.Url
+						}
+					}
+					// TODO(ivucica): this would be better supported by looking whether the method is deprecated in the proto file
+					operationObject.Deprecated = opts.Deprecated
+
+					// TODO(ivucica): add remaining fields of operation object
 				}
 
 				switch b.HTTPMethod {
@@ -445,6 +614,9 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 					break
 				case "PUT":
 					pathItemObject.Put = operationObject
+					break
+				case "PATCH":
+					pathItemObject.Patch = operationObject
 					break
 				}
 				paths[templateToSwaggerPath(b.PathTmpl.Template)] = pathItemObject
@@ -476,13 +648,16 @@ func applyTemplate(p param) (string, error) {
 
 	// Loops through all the services and their exposed GET/POST/PUT/DELETE definitions
 	// and create entries for all of them.
-	renderServices(p.Services, s.Paths, p.reg)
+	refs := refMap{}
+	if err := renderServices(p.Services, s.Paths, p.reg, refs); err != nil {
+		panic(err)
+	}
 
 	// Find all the service's messages and enumerations that are defined (recursively) and then
 	// write their request and response types out as definition objects.
 	m := messageMap{}
 	e := enumMap{}
-	findServicesMessagesAndEnumerations(p.Services, p.reg, m, e)
+	findServicesMessagesAndEnumerations(p.Services, p.reg, m, e, refs)
 	renderMessagesAsDefinition(m, s.Definitions, p.reg)
 	renderEnumerationsAsDefinition(e, s.Definitions, p.reg)
 
@@ -491,6 +666,73 @@ func applyTemplate(p param) (string, error) {
 	packageComments := protoComments(p.reg, p.File, nil, "Package", packageProtoPath)
 	if err := updateSwaggerDataFromComments(&s, packageComments); err != nil {
 		panic(err)
+	}
+
+	// There may be additional options in the swagger option in the proto.
+	spb, err := extractSwaggerOptionFromFileDescriptor(p.FileDescriptorProto)
+	if err != nil {
+		panic(err)
+	}
+	if spb != nil {
+		if spb.Swagger != "" {
+			s.Swagger = spb.Swagger
+		}
+		if spb.Info != nil {
+			if spb.Info.Title != "" {
+				s.Info.Title = spb.Info.Title
+			}
+			if spb.Info.Version != "" {
+				s.Info.Version = spb.Info.Version
+			}
+			if spb.Info.Contact != nil {
+				if s.Info.Contact == nil {
+					s.Info.Contact = &swaggerContactObject{}
+				}
+				if spb.Info.Contact.Name != "" {
+					s.Info.Contact.Name = spb.Info.Contact.Name
+				}
+				if spb.Info.Contact.Url != "" {
+					s.Info.Contact.URL = spb.Info.Contact.Url
+				}
+				if spb.Info.Contact.Email != "" {
+					s.Info.Contact.Email = spb.Info.Contact.Email
+				}
+			}
+		}
+		if spb.Host != "" {
+			s.Host = spb.Host
+		}
+		if spb.BasePath != "" {
+			s.BasePath = spb.BasePath
+		}
+		if len(spb.Schemes) > 0 {
+			s.Schemes = make([]string, len(spb.Schemes))
+			for i, scheme := range spb.Schemes {
+				s.Schemes[i] = strings.ToLower(scheme.String())
+			}
+		}
+		if len(spb.Consumes) > 0 {
+			s.Consumes = make([]string, len(spb.Consumes))
+			copy(s.Consumes, spb.Consumes)
+		}
+		if len(spb.Produces) > 0 {
+			s.Produces = make([]string, len(spb.Produces))
+			copy(s.Produces, spb.Produces)
+		}
+		if spb.ExternalDocs != nil {
+			if s.ExternalDocs == nil {
+				s.ExternalDocs = &swaggerExternalDocumentationObject{}
+			}
+			if spb.ExternalDocs.Description != "" {
+				s.ExternalDocs.Description = spb.ExternalDocs.Description
+			}
+			if spb.ExternalDocs.Url != "" {
+				s.ExternalDocs.URL = spb.ExternalDocs.Url
+			}
+		}
+
+		// Additional fields on the OpenAPI v2 spec's "Swagger" object
+		// should be added here, once supported in the proto.
 	}
 
 	// We now have rendered the entire swagger object. Write the bytes out to a
@@ -505,9 +747,9 @@ func applyTemplate(p param) (string, error) {
 // updateSwaggerDataFromComments updates a Swagger object based on a comment
 // from the proto file.
 //
-// First paragraph of a comment is used for summary. Remaining paragraphs of a
-// comment are used for description. If 'Summary' field is not present on the
-// passed swaggerObject, the summary and description are joined by \n\n.
+// First paragraph of a comment is used for summary. Remaining paragraphs of
+// a comment are used for description. If 'Summary' field is not present on
+// the passed swaggerObject, the summary and description are joined by \n\n.
 //
 // If there is a field named 'Info', its 'Summary' and 'Description' fields
 // will be updated instead.
@@ -537,17 +779,15 @@ func updateSwaggerDataFromComments(swaggerObject interface{}, comment string) er
 		usingTitle = true
 	}
 
+	paragraphs := strings.Split(comment, "\n\n")
+
 	// If there is a summary (or summary-equivalent), use the first
 	// paragraph as summary, and the rest as description.
 	if summaryValue.CanSet() {
-		paragraphs := strings.Split(comment, "\n\n")
-
 		summary := strings.TrimSpace(paragraphs[0])
 		description := strings.TrimSpace(strings.Join(paragraphs[1:], "\n\n"))
-		if !usingTitle || summary == "" || summary[len(summary)-1] != '.' {
-			if len(summary) > 0 {
-				summaryValue.Set(reflect.ValueOf(summary))
-			}
+		if !usingTitle || (len(summary) > 0 && summary[len(summary)-1] != '.') {
+			summaryValue.Set(reflect.ValueOf(summary))
 			if len(description) > 0 {
 				if !descriptionValue.CanSet() {
 					return fmt.Errorf("Encountered object type with a summary, but no description")
@@ -561,22 +801,43 @@ func updateSwaggerDataFromComments(swaggerObject interface{}, comment string) er
 	// There was no summary field on the swaggerObject. Try to apply the
 	// whole comment into description.
 	if descriptionValue.CanSet() {
-		descriptionValue.Set(reflect.ValueOf(comment))
+		descriptionValue.Set(reflect.ValueOf(strings.Join(paragraphs, "\n\n")))
 		return nil
 	}
 
-	return fmt.Errorf("No description nor summary property.")
+	return fmt.Errorf("no description nor summary property")
+}
+
+func fieldProtoComments(reg *descriptor.Registry, msg *descriptor.Message, field *descriptor.Field) string {
+	protoPath := protoPathIndex(reflect.TypeOf((*pbdescriptor.DescriptorProto)(nil)), "Field")
+	for i, f := range msg.Fields {
+		if f == field {
+			return protoComments(reg, msg.File, msg.Outers, "MessageType", int32(msg.Index), protoPath, int32(i))
+		}
+	}
+	return ""
+}
+
+func enumValueProtoComments(reg *descriptor.Registry, enum *descriptor.Enum) string {
+	protoPath := protoPathIndex(reflect.TypeOf((*pbdescriptor.EnumDescriptorProto)(nil)), "Value")
+	var comments []string
+	for idx, value := range enum.GetValue() {
+		name := value.GetName()
+		str := protoComments(reg, enum.File, enum.Outers, "EnumType", int32(enum.Index), protoPath, int32(idx))
+		if str != "" {
+			comments = append(comments, name+": "+str)
+		}
+	}
+	if len(comments) > 0 {
+		return "- " + strings.Join(comments, "\n - ")
+	}
+	return ""
 }
 
 func protoComments(reg *descriptor.Registry, file *descriptor.File, outers []string, typeName string, typeIndex int32, fieldPaths ...int32) string {
 	if file.SourceCodeInfo == nil {
-		// Curious! A file without any source code info.
-		// This could be a test that's providing incomplete
-		// descriptor.File information.
-		//
-		// We could simply return no comments, but panic
-		// could make debugging easier.
-		panic("descriptor.File should not contain nil SourceCodeInfo")
+		fmt.Fprintln(os.Stderr, "descriptor.File should not contain nil SourceCodeInfo")
+		return ""
 	}
 
 	outerPaths := make([]int32, len(outers))
@@ -693,16 +954,76 @@ func isProtoPathMatches(paths []int32, outerPaths []int32, typeName string, type
 func protoPathIndex(descriptorType reflect.Type, what string) int32 {
 	field, ok := descriptorType.Elem().FieldByName(what)
 	if !ok {
-		panic(fmt.Errorf("Could not find protobuf descriptor type id for %s.", what))
+		panic(fmt.Errorf("could not find protobuf descriptor type id for %s", what))
 	}
 	pbtag := field.Tag.Get("protobuf")
 	if pbtag == "" {
-		panic(fmt.Errorf("No Go tag 'protobuf' on protobuf descriptor for %s.", what))
+		panic(fmt.Errorf("no Go tag 'protobuf' on protobuf descriptor for %s", what))
 	}
 	path, err := strconv.Atoi(strings.Split(pbtag, ",")[1])
 	if err != nil {
-		panic(fmt.Errorf("Protobuf descriptor id for %s cannot be converted to a number: %s", what, err.Error()))
+		panic(fmt.Errorf("protobuf descriptor id for %s cannot be converted to a number: %s", what, err.Error()))
 	}
 
 	return int32(path)
+}
+
+// extractOperationOptionFromMethodDescriptor extracts the message of type
+// swagger_options.Operation from a given proto method's descriptor.
+func extractOperationOptionFromMethodDescriptor(meth *pbdescriptor.MethodDescriptorProto) (*swagger_options.Operation, error) {
+	if meth.Options == nil {
+		return nil, nil
+	}
+	if !proto.HasExtension(meth.Options, swagger_options.E_Openapiv2Operation) {
+		return nil, nil
+	}
+	ext, err := proto.GetExtension(meth.Options, swagger_options.E_Openapiv2Operation)
+	if err != nil {
+		return nil, err
+	}
+	opts, ok := ext.(*swagger_options.Operation)
+	if !ok {
+		return nil, fmt.Errorf("extension is %T; want an Operation", ext)
+	}
+	return opts, nil
+}
+
+// extractSchemaOptionFromMessageDescriptor extracts the message of type
+// swagger_options.Schema from a given proto message's descriptor.
+func extractSchemaOptionFromMessageDescriptor(msg *pbdescriptor.DescriptorProto) (*swagger_options.Schema, error) {
+	if msg.Options == nil {
+		return nil, nil
+	}
+	if !proto.HasExtension(msg.Options, swagger_options.E_Openapiv2Schema) {
+		return nil, nil
+	}
+	ext, err := proto.GetExtension(msg.Options, swagger_options.E_Openapiv2Schema)
+	if err != nil {
+		return nil, err
+	}
+	opts, ok := ext.(*swagger_options.Schema)
+	if !ok {
+		return nil, fmt.Errorf("extension is %T; want a Schema", ext)
+	}
+	return opts, nil
+}
+
+// extractSwaggerOptionFromFileDescriptor extracts the message of type
+// swagger_options.Swagger from a given proto method's descriptor.
+func extractSwaggerOptionFromFileDescriptor(file *pbdescriptor.FileDescriptorProto) (*swagger_options.Swagger, error) {
+	if file.Options == nil {
+		return nil, nil
+	}
+	if !proto.HasExtension(file.Options, swagger_options.E_Openapiv2Swagger) {
+		return nil, nil
+	}
+	ext, err := proto.GetExtension(file.Options, swagger_options.E_Openapiv2Swagger)
+	if err != nil {
+		return nil, err
+	}
+	opts, ok := ext.(*swagger_options.Swagger)
+	if !ok {
+		return nil, fmt.Errorf("extension is %T; want a Swagger object", ext)
+	}
+	return opts, nil
 }

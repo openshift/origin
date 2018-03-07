@@ -240,6 +240,57 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 		})
 
+		g.It("should prune builds after a buildConfig change", func() {
+
+			g.By("creating test failed build config")
+			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("patching the build config to leave 5 builds")
+			err = oc.Run("patch").Args("bc/myphp", "-p", `{"spec":{"failedBuildsHistoryLimit": 5}}`).Execute()
+
+			g.By("starting and canceling three test builds")
+			for i := 1; i < 4; i++ {
+				_, _, _ = exutil.StartBuild(oc, "myphp")
+				err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
+			}
+
+			g.By("patching the build config to leave 1 build")
+			err = oc.Run("patch").Args("bc/myphp", "-p", `{"spec":{"failedBuildsHistoryLimit": 1}}`).Execute()
+
+			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			var builds *buildapi.BuildList
+
+			g.By("waiting up to one minute for pruning to complete")
+			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					return false, err
+				}
+				if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+					fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+					return true, nil
+				}
+				return false, nil
+			})
+
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			passed := false
+			if int32(len(builds.Items)) == 1 || int32(len(builds.Items)) == 2 {
+				passed = true
+			}
+			o.Expect(passed).To(o.BeTrue(), "there should be 1-2 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+		})
+
 		g.It("[Conformance] buildconfigs should have a default history limit set when created via the group api", func() {
 
 			g.By("creating a build config with the group api")

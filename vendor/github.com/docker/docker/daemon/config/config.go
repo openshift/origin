@@ -502,7 +502,7 @@ func Validate(config *Config) error {
 		}
 	}
 
-	if _, err := opts.ParseGenericResources(config.NodeGenericResources); err != nil {
+	if _, err := ParseGenericResources(config.NodeGenericResources); err != nil {
 		return err
 	}
 
@@ -511,6 +511,11 @@ func Validate(config *Config) error {
 		if _, ok := runtimes[defaultRuntime]; !ok {
 			return fmt.Errorf("specified default runtime '%s' does not exist", defaultRuntime)
 		}
+	}
+
+	// validate platform-specific settings
+	if err := config.ValidatePlatformConfig(); err != nil {
+		return err
 	}
 
 	return nil
