@@ -244,11 +244,6 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		allowAllNodeScheduling(c, ns.Name)
 	}
 
-	// some tests assume they can schedule to all nodes
-	if testNameContains("Granular Checks: Pods") {
-		allowAllNodeScheduling(c, ns.Name)
-	}
-
 	return ns, err
 }
 
