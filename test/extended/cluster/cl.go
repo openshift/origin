@@ -79,6 +79,11 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				err := oc.Run("new-project").Args(nsName).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
+				// label namespace nsName
+				if p.Labels != nil {
+					_, err = SetNamespaceLabels(c, nsName, p.Labels)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
 				namespaces = append(namespaces, nsName)
 
 				// Create config maps
