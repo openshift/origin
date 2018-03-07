@@ -28,7 +28,7 @@ type sccAdapter interface {
 }
 
 type clusterRoleBindingsAdapter interface {
-	getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error)
+	listClusterRoleBindings() (*authapi.ClusterRoleBindingList, error)
 }
 
 //deploymentConfigAdapter is an abstraction to retrieve resource for validating dcs
