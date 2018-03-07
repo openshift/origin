@@ -246,7 +246,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("Unexpected eip state: %#v", eip)
 	}
 
-	// Drop namespace EgressIP
+	// Drop namespace EgressIP (local)
 	eip.deleteNamespaceEgress(44)
 	err = assertNetlinkChange(eip, "release 172.17.0.102")
 	if err != nil {
@@ -294,6 +294,57 @@ func TestEgressIP(t *testing.T) {
 
 	ns44 = eip.namespacesByVNID[44]
 	if ns44 == nil || eip.namespacesByEgressIP["172.17.0.102"] != ns44 || eip.nodesByEgressIP["172.17.0.102"] != node4 {
+		t.Fatalf("Unexpected eip state: %#v", eip)
+	}
+
+	// Drop namespace EgressIP (remote)
+	eip.deleteNamespaceEgress(42)
+	err = assertNoNetlinkChanges(eip)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	flows, err = ovsif.DumpFlows("")
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:  flowRemoved,
+			match: []string{"table=100", "reg0=42", "172.17.0.3->tun_dst"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
+	}
+	origFlows = flows
+
+	if eip.namespacesByVNID[42] != nil || eip.namespacesByEgressIP["172.17.0.100"] != nil || eip.nodesByEgressIP["172.17.0.100"] != node3 {
+		t.Fatalf("Unexpected eip state: %#v", eip)
+	}
+
+	// Add namespace EgressIP back again after having removed it...
+	eip.updateNamespaceEgress(42, "172.17.0.100")
+	err = assertNoNetlinkChanges(eip)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	flows, err = ovsif.DumpFlows("")
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows,
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=100", "reg0=42", "172.17.0.3->tun_dst"},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
+	}
+	origFlows = flows
+
+	ns42 = eip.namespacesByVNID[42]
+	if ns42 == nil || eip.namespacesByEgressIP["172.17.0.100"] != ns42 || eip.nodesByEgressIP["172.17.0.100"] != node3 {
 		t.Fatalf("Unexpected eip state: %#v", eip)
 	}
 

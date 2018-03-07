@@ -213,8 +213,8 @@ func (eip *egressIPWatcher) deleteEgressIP(egressIP string) {
 		if err := eip.releaseEgressIP(egressIP, mark); err != nil {
 			utilruntime.HandleError(fmt.Errorf("Error releasing Egress IP %q: %v", egressIP, err))
 		}
-		node.assignedIPs.Delete(egressIP)
 	}
+	node.assignedIPs.Delete(egressIP)
 
 	if ns.assignedIP == egressIP {
 		ns.assignedIP = ""
