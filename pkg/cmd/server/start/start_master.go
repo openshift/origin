@@ -13,17 +13,11 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	"github.com/spf13/cobra"
-	"k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/record"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	clientgoclientset "k8s.io/client-go/kubernetes"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/leaderelection"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -35,13 +29,10 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
-	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/version"
@@ -378,49 +369,9 @@ func (m *Master) Start() error {
 
 	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
 	if controllersEnabled {
-		openshiftControllerInformers, err := origin.NewInformers(*m.config)
+		_, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
-		}
-
-		_, config, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-		if err != nil {
-			return err
-		}
-		clientGoKubeExternal, err := clientgoclientset.NewForConfig(config)
-		if err != nil {
-			return err
-		}
-
-		// you can't double run healthz, so only do this next bit if we aren't starting the API
-		if !m.api {
-			glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
-			if len(m.config.DisabledFeatures) > 0 {
-				glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
-			}
-
-			if err := origincontrollers.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
-				return err
-			}
-		}
-
-		kubeExternal, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-		if err != nil {
-			return err
-		}
-
-		// TODO refactor this controller so that it no longer relies on direct etcd access
-		// these restoptions are used to directly access small keysets on etcd that do NOT overlap with access
-		// by the main API server, so we aren't paying a large cost for the separation.
-		restOptsGetter, err := originrest.StorageOptions(*m.config)
-		if err != nil {
-			return err
-		}
-		allocationController := origin.SecurityAllocationController{
-			SecurityAllocator:          m.config.ProjectConfig.SecurityAllocator,
-			OpenshiftRESTOptionsGetter: restOptsGetter,
-			ExternalKubeInformers:      openshiftControllerInformers.GetExternalKubeInformers(),
-			KubeExternalClient:         kubeExternal,
 		}
 
 		go runEmbeddedScheduler(
@@ -475,61 +426,15 @@ func (m *Master) Start() error {
 			)
 		}()
 
-		originControllerManager := func(stopCh <-chan struct{}) {
-			if err := waitForHealthyAPIServer(kubeExternal.Discovery().RESTClient()); err != nil {
-				glog.Fatal(err)
+		if m.api {
+			if err := openshift_controller_manager.RunOpenShiftControllerManagerCombined(m.config); err != nil {
+				return err
 			}
-
-			openshiftControllerOptions, err := getOpenshiftControllerOptions(m.config.KubernetesMasterConfig.ControllerArguments)
-			if err != nil {
-				glog.Fatal(err)
+		} else {
+			if err := openshift_controller_manager.RunOpenShiftControllerManager(m.config); err != nil {
+				return err
 			}
-
-			informersStarted := make(chan struct{})
-			controllerContext := newControllerContext(openshiftControllerOptions, m.config.ControllerConfig.Controllers, privilegedLoopbackConfig, kubeExternal, openshiftControllerInformers, stopCh, informersStarted)
-			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
-				glog.Fatal(err)
-			}
-
-			openshiftControllerInformers.Start(stopCh)
-			close(informersStarted)
 		}
-
-		eventBroadcaster := record.NewBroadcaster()
-		eventBroadcaster.StartLogging(glog.Infof)
-		eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeExternal.CoreV1().RESTClient()).Events("")})
-		eventRecorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "openshift-controller-manager"})
-		id, err := os.Hostname()
-		if err != nil {
-			return err
-		}
-		openshiftLeaderElectionArgs, err := getLeaderElectionOptions(m.config.KubernetesMasterConfig.ControllerArguments)
-		if err != nil {
-			return err
-		}
-		rl, err := resourcelock.New(openshiftLeaderElectionArgs.ResourceLock,
-			"kube-system",
-			"openshift-master-controllers", // this matches what ansible used to set
-			kubeExternal.CoreV1(),
-			resourcelock.ResourceLockConfig{
-				Identity:      id,
-				EventRecorder: eventRecorder,
-			})
-		if err != nil {
-			return err
-		}
-		go leaderelection.RunOrDie(leaderelection.LeaderElectionConfig{
-			Lock:          rl,
-			LeaseDuration: openshiftLeaderElectionArgs.LeaseDuration.Duration,
-			RenewDeadline: openshiftLeaderElectionArgs.RenewDeadline.Duration,
-			RetryPeriod:   openshiftLeaderElectionArgs.RetryPeriod.Duration,
-			Callbacks: leaderelection.LeaderCallbacks{
-				OnStartedLeading: originControllerManager,
-				OnStoppedLeading: func() {
-					glog.Fatalf("leaderelection lost")
-				},
-			},
-		})
 	}
 
 	if m.api {
@@ -605,68 +510,6 @@ func testEtcdConnectivity(etcdClientInfo configapi.EtcdConnectionInfo) error {
 	}
 
 	return nil
-}
-
-// startControllers launches the controllers
-// allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, controllerContext origincontrollers.ControllerContext) error {
-	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(options)
-	if err != nil {
-		return err
-	}
-
-	//  the service account passed for the recyclable volume plugins needs to exist.  We want to do this via the init function, but its a kube init function
-	// for the rebase, create that service account here
-	// TODO make this a lot cleaner
-	if _, err := controllerContext.ClientBuilder.Client(bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName); err != nil {
-		return err
-	}
-
-	allocationController.RunSecurityAllocationController()
-
-	openshiftControllerInitializers, err := openshiftControllerConfig.GetControllerInitializers()
-	if err != nil {
-		return err
-	}
-
-	excludedControllers := getExcludedControllers(options)
-
-	for controllerName, initFn := range openshiftControllerInitializers {
-		// TODO remove this.  Only call one to start to prove the principle
-		if excludedControllers.Has(controllerName) {
-			glog.Warningf("%q is skipped", controllerName)
-			continue
-		}
-		if !controllerContext.IsControllerEnabled(controllerName) {
-			glog.Warningf("%q is disabled", controllerName)
-			continue
-		}
-
-		glog.V(1).Infof("Starting %q", controllerName)
-		started, err := initFn(controllerContext)
-		if err != nil {
-			glog.Fatalf("Error starting %q (%v)", controllerName, err)
-			return err
-		}
-		if !started {
-			glog.Warningf("Skipping %q", controllerName)
-			continue
-		}
-		glog.Infof("Started %q", controllerName)
-	}
-
-	glog.Infof("Started Origin Controllers")
-
-	return nil
-}
-
-func getExcludedControllers(options configapi.MasterConfig) sets.String {
-	excludedControllers := sets.NewString()
-	if !configapi.IsBuildEnabled(&options) {
-		excludedControllers.Insert("openshift.io/build")
-		excludedControllers.Insert("openshift.io/build-config-change")
-	}
-	return excludedControllers
 }
 
 func (o MasterOptions) IsWriteConfigOnly() bool {
