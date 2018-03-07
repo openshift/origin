@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1693d6f8a5feed7d703e4a7ea5038aa2060f7af1
+%global commit f491655d03a7cf02576fe236e9ebe38716dc172c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.52.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=9fd41c7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.8 ETCD_GIT_COMMIT=e211fb6
+%global os_git_vars OS_GIT_MINOR=9+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.9.0-0.53.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=345e27e OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.0.0%{?dist}
+Release:        0.1.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -607,6 +607,129 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Mar 07 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.1.0
+- diagnostics: missing logging project shouldn't be fatal error
+  (jwozniak@redhat.com)
+- Allow all nodes to run upstream kube tests (jpeeler@redhat.com)
+- add separate kube-apiserver and openshift-apiserver commands
+  (deads@redhat.com)
+- add hypershift command (deads@redhat.com)
+- Update path to registries file (dzuccare@redhat.com)
+- Add enj to completions OWNERS (mkhan@redhat.com)
+- Add migrate command for legacy HPAs (sross@redhat.com)
+- use the correct loopback connection (deads@redhat.com)
+- UPSTREAM: 57202: Fix format string in describers (jsafrane@redhat.com)
+- Fix golang check so that it performs arithemtic comparison
+  (maszulik@redhat.com)
+- Fix handleDeleteSubnet() to release network from subnet allocator.
+  (rpenta@redhat.com)
+- UPSTREAM: 59365: Fix StatefulSet set-based selector bug (tnozicka@gmail.com)
+- UPSTREAM: 54530: api: validate container phase transitions
+  (sjenning@redhat.com)
+- Preserve router metrics across restarts (ccoleman@redhat.com)
+- Fixes: cannot prune builds on buildConfig change (cdaley@redhat.com)
+- Fix initContainer name lookup for ImageChange trigger
+  (alexandre.lossent@cern.ch)
+- Add an e2e test for a router that does not update status
+  (ccoleman@redhat.com)
+- Make updating status on the router optional (ccoleman@redhat.com)
+- Switch system container to running kubelet (ccoleman@redhat.com)
+- sdn: fix CNI IPAM data dir (dcbw@redhat.com)
+- exclude some namespaces in run levels based on name (deads@redhat.com)
+- Adding 3.10 releaser (jupierce@redhat.com)
+- Master is now tracking 3.10 (jupierce@redhat.com)
+- Branch for v3.10 (ccoleman@redhat.com)
+- add ext test for pipeline bc deletion behavior (gmontero@redhat.com)
+- UPSTREAM: 60289: fix freespace for image GC (sjenning@redhat.com)
+- bump(*): Remove cri-o dependency (ccoleman@redhat.com)
+- Remove dependency on cri-o package (ccoleman@redhat.com)
+- bump(github.com/fsouza/go-dockerclient): Move a carry into a fork
+  (ccoleman@redhat.com)
+- bump(*): Move pkg/build/builder remaining dependency (ccoleman@redhat.com)
+- Change local build prefix (ccoleman@redhat.com)
+- Update builder with more modern docker/docker/api (ccoleman@redhat.com)
+- Remove carried dependencies outside of build (ccoleman@redhat.com)
+- bump(*): update github.com/docker/docker, github.com/fsouza/go-dockerclient
+  (ccoleman@redhat.com)
+- bump(*): remove github.com/docker/engine-api (ccoleman@redhat.com)
+- Use negotiation with the newer docker client API (ccoleman@redhat.com)
+- Remove remaining use of docker/engine-api (ccoleman@redhat.com)
+- UPSTREAM: 60342: Fix nested volume mounts for read-only API data volumes
+  (joesmith@redhat.com)
+- Workaround for #18762 (obulatov@redhat.com)
+- Wipe off registry cache (agladkov@redhat.com)
+- apps: stop dc cancellation flake (mfojtik@redhat.com)
+- UPSTREAM: 60301: Fix Deployment with Recreate strategy not to wait on Pods in
+  terminal phase (mfojtik@redhat.com)
+- Add an error text check for project validation (xiaocwan@redhat.com)
+- UPSTREAM: 60457: tests: e2e: empty msg from channel other than stdout should
+  be non-fatal (sjenning@redhat.com)
+- UPSTREAM: 60306: Only run connection-rejecting rules on new connections
+  (danw@redhat.com)
+- UPSTREAM: 57461: Don't create no-op iptables rules for services with no
+  endpoints (danw@redhat.com)
+- UPSTREAM: 56164: Split out a KUBE-EXTERNAL-SERVICES chain so we don't have to
+  run KUBE-SERVICES from INPUT (danw@redhat.com)
+- UPSTREAM: 57336: Abstract some duplicated code in the iptables proxier
+  (danw@gnome.org)
+- UPSTREAM: 60430: don't use storage cache during apiserver unit test
+  (mfojtik@redhat.com)
+- UPSTREAM: 60299: apiserver: fix testing etcd config for etcd 3.2.16
+  (stefan.schimanski@gmail.com)
+- audit doesn't respect embedded config (deads@redhat.com)
+- add tests (jvallejo@redhat.com)
+- add daemonsets to status graph (jvallejo@redhat.com)
+- dind: switch images to Fedora 27 (dcbw@redhat.com)
+- dind: remove CentOS 7 Dockerfile (dcbw@redhat.com)
+- Go fmt on utils.go and context.go (hongkailiu@users.noreply.github.com)
+- UPSTREAM: 57480: Fix build and test errors from etcd 3.2.13 upgrade
+  (mfojtik@redhat.com)
+- bump(*): update etcd to 3.2.16 and grpc to 1.7.5 (mfojtik@redhat.com)
+- add more project validation (hasha@redhat.com)
+- Prometheus should scrape the router by default (ccoleman@redhat.com)
+- Router should expose metrics via service serving cert (ccoleman@redhat.com)
+- tags existing deployment nodes as "found" (jvallejo@redhat.com)
+- add more example queries, possible alert queries (gmontero@redhat.com)
+- add strategy type to build metrics (gmontero@redhat.com)
+- write config before using config (deads@redhat.com)
+- add windows support (jvallejo@redhat.com)
+- cluster up: support --host-config-dir (mfojtik@redhat.com)
+- only start cluster up using separate processes (deads@redhat.com)
+- handle mac os snowflakes (mfojtik@redhat.com)
+- generated (deads@redhat.com)
+- start kubelet for static pods (deads@redhat.com)
+- explicitly reject updates to non-spec imagestreamtags (bparees@redhat.com)
+- Use ^uint32(0) instead of 0XFFFFFFFF (nakayamakenjiro@gmail.com)
+- UPSTREAM: 59170: Fix kubelet PVC stale metrics (jsafrane@redhat.com)
+- Added test cases for dns proxy egress router mode (rpenta@redhat.com)
+- Egress router setup for dns proxy mode (rpenta@redhat.com)
+- Support for DNS names in egress routes (rpenta@redhat.com)
+- Cleanup comments, log delete failed message as a warning and fix exported
+  names as per @{pravisankar,Miciah,knobunc} review comments.
+  (smitram@gmail.com)
+- When a router is reloaded after a batch of route/ingress changes are
+  committed, haproxy sometimes fail to reload. This can happen if a new request
+  to delete a route (and so delete the associated certificates) is processed
+  when the haproxy router is reloading. The router does recover on subsequent
+  reloads when the config changes are actually processed. The change here
+  defers the deletes till commit time and ensures we only delete the
+  certificates for the routes that are being processed as part of the current
+  batchset. (smitram@gmail.com)
+- Figure out networking tests to run based on plugin (danw@redhat.com)
+- Rename InSingleTenantContext()/InMultiTenantContext() in network tests
+  (danw@redhat.com)
+- Drop DEFAULT_SKIP_LIST from test/extended/networking.sh (danw@redhat.com)
+- Remove stray references to old OVS extended networking test (danw@redhat.com)
+- UPSTREAM: 59386: Scheduler - not able to read from config file if configmap
+  is not found (ravisantoshgudimetla@gmail.com)
+- Minor cleanups to sdn-cni-plugin (danw@redhat.com)
+- UPSTREAM: 59316: Exit if no client cert is available for 5m
+  (ccoleman@redhat.com)
+- Label the projects created by cluster-loader
+  (hongkailiu@users.noreply.github.com)
+- update nginx-config.template (307292795@qq.com)
+- Updating CONTRIBUTING.adoc (sprashant87@gmail.com)
+
 * Sun Feb 25 2018 Justin Pierce <jupierce@redhat.com> 3.9.0-0.53.0
 - 
 
