@@ -4,13 +4,15 @@ setoauth=0
 node_exporter=0
 datasource_name=''
 prometheus_namespace=''
+sa_reader=''
 graph_granularity=''
 yaml=''
 protocol="https://"
 
-while getopts 'n:p:g:y:ae' flag; do
+while getopts 'n:s:p:g:y:ae' flag; do
   case "${flag}" in
     n) datasource_name="${OPTARG}" ;;
+    s) sa_reader="${OPTARG}" ;;
     p) prometheus_namespace="${OPTARG}" ;;
     g) graph_granularity="${OPTARG}" ;;
     y) yaml="${OPTARG}" ;;
@@ -23,10 +25,11 @@ done
 usage() {
 echo "
 USAGE
- setup-grafana.sh -n <datasource_name> -a [optional: -p <prometheus_namespace> -g <graph_granularity> -y <yaml> -e]
+ setup-grafana.sh -n <datasource_name> -a [optional: -p <prometheus_namespace> -s <prometheus_serviceaccount> -g <graph_granularity> -y <yaml> -e]
 
  switches:
    -n: grafana datasource name
+   -s: prometheus serviceaccount name
    -p: existing prometheus name e.g openshift-metrics
    -g: specifiy granularity
    -y: specifies the grafana yaml
@@ -65,6 +68,7 @@ mv "${dashboard_file}.bak" "${dashboard_file}"
 }
 
 [[ -n ${datasource_name} ]] || usage
+[[ -n ${sa_reader} ]] || sa_reader="prometheus"
 [[ -n ${prometheus_namespace} ]] || get::namespace
 [[ -n ${graph_granularity} ]]  || graph_granularity="2m"
 [[ -n ${yaml} ]] || yaml="grafana.yaml"
@@ -87,7 +91,7 @@ cat <<EOF >"${payload}"
 "withCredentials": false,
 "jsonData": {
     "tlsSkipVerify":true,
-    "token":"$( oc sa get-token grafana )"
+    "token":"$( oc sa get-token "${sa_reader}" -n "${prometheus_namespace}" )"
 }
 }
 EOF
