@@ -263,6 +263,11 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 		imageStream.Spec.Tags = map[string]imageapi.TagReference{}
 	}
 	tagRef, exists := imageStream.Spec.Tags[tag]
+
+	if !exists && istag.Tag == nil {
+		return nil, false, kapierrors.NewBadRequest(fmt.Sprintf("imagestreamtag %s is not a spec tag in imagestream %s/%s, cannot be updated", tag, imageStream.Namespace, imageStream.Name))
+	}
+
 	// if the caller set tag, override the spec tag
 	if istag.Tag != nil {
 		tagRef = *istag.Tag
