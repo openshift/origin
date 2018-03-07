@@ -171,7 +171,7 @@ func (rc *reconciler) reconcile() {
 				glog.Errorf(mountedVolume.GenerateErrorDetailed(fmt.Sprintf("operationExecutor.NewVolumeHandler for UnmountVolume failed"), err).Error())
 				continue
 			}
-			err = volumeHandler.UnmountVolumeHandler(mountedVolume.MountedVolume, rc.actualStateOfWorld)
+			err = volumeHandler.UnmountVolumeHandler(mountedVolume.MountedVolume, rc.actualStateOfWorld, rc.kubeletPodsDir)
 			if err != nil &&
 				!nestedpendingoperations.IsAlreadyExists(err) &&
 				!exponentialbackoff.IsExponentialBackoff(err) {
@@ -410,7 +410,7 @@ func (rc *reconciler) cleanupMounts(volume podVolume) {
 	}
 	// TODO: Currently cleanupMounts only includes UnmountVolume operation. In the next PR, we will add
 	// to unmount both volume and device in the same routine.
-	err = volumeHandler.UnmountVolumeHandler(mountedVolume, rc.actualStateOfWorld)
+	err = volumeHandler.UnmountVolumeHandler(mountedVolume, rc.actualStateOfWorld, rc.kubeletPodsDir)
 	if err != nil {
 		glog.Errorf(mountedVolume.GenerateErrorDetailed(fmt.Sprintf("volumeHandler.UnmountVolumeHandler for UnmountVolume failed"), err).Error())
 		return
