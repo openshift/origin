@@ -590,18 +590,15 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 
 	// this remains a non-healthz endpoint so that you can be healthy without being ready.
-	initReadinessCheckRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, "/healthz/ready", c.ExtraConfig.ProjectAuthorizationCache.ReadyForAccess)
+	addReadinessCheckRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, "/healthz/ready", c.ExtraConfig.ProjectAuthorizationCache.ReadyForAccess)
 
 	// this remains here and separate so that you can check both kube and openshift levels
-	initOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
+	addOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	// register our poststarthooks
-	s.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
-	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", c.ensureDefaultNamespaceServiceAccountRoles)
-	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", c.ensureOpenShiftInfraNamespace)
 
 	return s, nil
 }
@@ -627,7 +624,7 @@ func apiLegacyV1(all map[string]rest.Storage) *genericapiserver.APIGroupInfo {
 }
 
 // initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
-func initReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, readyFunc func() bool) {
+func addReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, readyFunc func() bool) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
 		if readyFunc() {
 			w.WriteHeader(http.StatusOK)
@@ -640,7 +637,7 @@ func initReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, ready
 }
 
 // initVersionRoute initializes an HTTP endpoint for the server's version information.
-func initOpenshiftVersionRoute(container *restful.Container, path string) {
+func addOpenshiftVersionRoute(container *restful.Container, path string) {
 	// Build version info once
 	versionInfo, err := json.MarshalIndent(version.Get(), "", "  ")
 	if err != nil {
@@ -667,11 +664,6 @@ func writeJSON(resp *restful.Response, json []byte) {
 	resp.ResponseWriter.Header().Set("Content-Type", "application/json")
 	resp.ResponseWriter.WriteHeader(http.StatusOK)
 	resp.ResponseWriter.Write(json)
-}
-
-func (c *completedConfig) startClusterQuotaMapping(context genericapiserver.PostStartHookContext) error {
-	go c.ExtraConfig.ClusterQuotaMappingController.Run(5, context.StopCh)
-	return nil
 }
 
 func (c *completedConfig) startProjectCache(context genericapiserver.PostStartHookContext) error {
@@ -721,7 +713,7 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 }
 
 // ensureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
-func (c *completedConfig) ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
+func ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
 	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
 
 	ensureNamespaceServiceAccountRoleBindings(context, ns)
@@ -751,7 +743,7 @@ func (c *completedConfig) ensureOpenShiftInfraNamespace(context genericapiserver
 }
 
 // ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
-func (c *completedConfig) ensureDefaultNamespaceServiceAccountRoles(context genericapiserver.PostStartHookContext) error {
+func ensureDefaultNamespaceServiceAccountRoles(context genericapiserver.PostStartHookContext) error {
 	ensureNamespaceServiceAccountRoleBindings(context, metav1.NamespaceDefault)
 	return nil
 }

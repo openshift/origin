@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/pborman/uuid"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/features"
@@ -225,39 +228,49 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 // TODO, this moves to the `apiserver.go` when we have it for this group
 // TODO TODO, this actually looks a lot like a controller or an add-on manager style thing.  Seems like we'd want to do this outside
 // EnsureBootstrapOAuthClients creates or updates the bootstrap oauth clients that openshift relies upon.
-func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver.PostStartHookContext) error {
-	webConsoleClient := oauthapi.OAuthClient{
-		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
-		Secret:                "",
-		RespondWithChallenges: false,
-		RedirectURIs:          c.ExtraOAuthConfig.AssetPublicAddresses,
-		GrantMethod:           oauthapi.GrantHandlerAuto,
-	}
-	if err := ensureOAuthClient(webConsoleClient, c.ExtraOAuthConfig.OAuthClientClient, true, false); err != nil {
-		return err
-	}
+func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiserver.PostStartHookContext) error {
+	// the TODO above still applies, but this makes it possible for this poststarthook to do its job with a split kubeapiserver and not run forever
+	go func() {
+		wait.PollUntil(1*time.Second, func() (done bool, err error) {
+			webConsoleClient := oauthapi.OAuthClient{
+				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
+				Secret:                "",
+				RespondWithChallenges: false,
+				RedirectURIs:          c.ExtraOAuthConfig.AssetPublicAddresses,
+				GrantMethod:           oauthapi.GrantHandlerAuto,
+			}
+			if err := ensureOAuthClient(webConsoleClient, c.ExtraOAuthConfig.OAuthClientClient, true, false); err != nil {
+				utilruntime.HandleError(err)
+				return false, nil
+			}
 
-	browserClient := oauthapi.OAuthClient{
-		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
-		Secret:                uuid.New(),
-		RespondWithChallenges: false,
-		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
-		GrantMethod:           oauthapi.GrantHandlerAuto,
-	}
-	if err := ensureOAuthClient(browserClient, c.ExtraOAuthConfig.OAuthClientClient, true, true); err != nil {
-		return err
-	}
+			browserClient := oauthapi.OAuthClient{
+				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
+				Secret:                uuid.New(),
+				RespondWithChallenges: false,
+				RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenDisplayURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
+				GrantMethod:           oauthapi.GrantHandlerAuto,
+			}
+			if err := ensureOAuthClient(browserClient, c.ExtraOAuthConfig.OAuthClientClient, true, true); err != nil {
+				utilruntime.HandleError(err)
+				return false, nil
+			}
 
-	cliClient := oauthapi.OAuthClient{
-		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
-		Secret:                "",
-		RespondWithChallenges: true,
-		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
-		GrantMethod:           oauthapi.GrantHandlerAuto,
-	}
-	if err := ensureOAuthClient(cliClient, c.ExtraOAuthConfig.OAuthClientClient, false, false); err != nil {
-		return err
-	}
+			cliClient := oauthapi.OAuthClient{
+				ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
+				Secret:                "",
+				RespondWithChallenges: true,
+				RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenImplicitURL(c.ExtraOAuthConfig.Options.MasterPublicURL)},
+				GrantMethod:           oauthapi.GrantHandlerAuto,
+			}
+			if err := ensureOAuthClient(cliClient, c.ExtraOAuthConfig.OAuthClientClient, false, false); err != nil {
+				utilruntime.HandleError(err)
+				return false, nil
+			}
+
+			return true, nil
+		}, context.StopCh)
+	}()
 
 	return nil
 }

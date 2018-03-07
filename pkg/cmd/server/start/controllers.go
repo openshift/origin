@@ -18,6 +18,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
@@ -27,7 +28,7 @@ func newControllerContext(
 	enabledControllers []string,
 	privilegedLoopbackConfig *rest.Config,
 	kubeExternal kclientsetexternal.Interface,
-	informers *informers,
+	informers origin.InformerAccess,
 	stopCh <-chan struct{},
 	informersStarted chan struct{},
 ) origincontrollers.ControllerContext {
@@ -53,15 +54,15 @@ func newControllerContext(
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		InternalKubeInformers:   informers.internalKubeInformers,
+		InternalKubeInformers:   informers.GetInternalKubeInformers(),
 		ExternalKubeInformers:   informers.GetExternalKubeInformers(),
-		AppInformers:            informers.appInformers,
-		AuthorizationInformers:  informers.authorizationInformers,
-		BuildInformers:          informers.buildInformers,
-		ImageInformers:          informers.imageInformers,
-		QuotaInformers:          informers.quotaInformers,
-		SecurityInformers:       informers.securityInformers,
-		TemplateInformers:       informers.templateInformers,
+		AppInformers:            informers.GetAppInformers(),
+		AuthorizationInformers:  informers.GetAuthorizationInformers(),
+		BuildInformers:          informers.GetBuildInformers(),
+		ImageInformers:          informers.GetImageInformers(),
+		QuotaInformers:          informers.GetQuotaInformers(),
+		SecurityInformers:       informers.GetSecurityInformers(),
+		TemplateInformers:       informers.GetTemplateInformers(),
 		GenericResourceInformer: informers.ToGenericInformer(),
 		Stop:             stopCh,
 		InformersStarted: informersStarted,

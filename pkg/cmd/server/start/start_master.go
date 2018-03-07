@@ -22,7 +22,6 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
@@ -45,7 +44,6 @@ import (
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -96,7 +94,7 @@ func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Comma
 			kcmdutil.CheckErr(options.Complete())
 			kcmdutil.CheckErr(options.Validate(args))
 
-			startProfiler()
+			origin.StartProfiler()
 
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
@@ -380,7 +378,7 @@ func (m *Master) Start() error {
 
 	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
 	if controllersEnabled {
-		openshiftControllerInformers, err := NewInformers(*m.config)
+		openshiftControllerInformers, err := origin.NewInformers(*m.config)
 		if err != nil {
 			return err
 		}
@@ -537,16 +535,11 @@ func (m *Master) Start() error {
 	if m.api {
 		// informers are shared amongst all the various api components we build
 		// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
-		informers, err := NewInformers(*m.config)
+		informers, err := origin.NewInformers(*m.config)
 		if err != nil {
 			return err
 		}
-		// the API server runs a reverse index on users to groups which requires an index on the group informer
-		// this activates the lister/watcher, so we want to do it only in this path
-		err = informers.userInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
-			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
-		})
-		if err != nil {
+		if err := informers.AddUserIndexes(); err != nil {
 			return err
 		}
 

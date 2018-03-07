@@ -276,7 +276,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc oadm openshift template-service-broker
+for bin in oc oadm openshift hypershift template-service-broker
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -398,6 +398,7 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %license LICENSE
 %{_bindir}/openshift
 %{_bindir}/hyperkube
+%{_bindir}/hypershift
 %{_bindir}/openshift-deploy
 %{_bindir}/openshift-f5-router
 %{_bindir}/openshift-recycle

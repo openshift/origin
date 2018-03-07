@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/origin"
 )
 
 var controllersLong = templates.LongDesc(`
@@ -51,7 +52,7 @@ func NewCommandStartMasterControllers(name, basename string, out, errout io.Writ
 				return
 			}
 
-			startProfiler()
+			origin.StartProfiler()
 
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
