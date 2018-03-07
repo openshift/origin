@@ -65,7 +65,7 @@ func TestValidateClusterServicePlan(t *testing.T) {
 			name: "bad name",
 			servicePlan: func() *servicecatalog.ClusterServicePlan {
 				s := validClusterServicePlan()
-				s.Name = "X"
+				s.Name = "#"
 				return s
 			}(),
 			valid: false,
@@ -74,10 +74,28 @@ func TestValidateClusterServicePlan(t *testing.T) {
 			name: "bad externalName",
 			servicePlan: func() *servicecatalog.ClusterServicePlan {
 				s := validClusterServicePlan()
-				s.Spec.ExternalName = "X"
+				s.Spec.ExternalName = "#"
 				return s
 			}(),
 			valid: false,
+		},
+		{
+			name: "mixed case Name",
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
+				s.Name = "abcXYZ"
+				return s
+			}(),
+			valid: true,
+		},
+		{
+			name: "mixed case externalName",
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
+				s.Spec.ExternalName = "abcXYZ"
+				return s
+			}(),
+			valid: true,
 		},
 		{
 			name: "missing clusterServiceBrokerName",
@@ -107,6 +125,9 @@ func TestValidateClusterServicePlan(t *testing.T) {
 			valid: false,
 		},
 		{
+			// Note this is NOT due to the spec, this is due to
+			// a Kubernetes limitation. So, technically this restriction
+			// could cause a valid Broker to not work against Kube.
 			name: "external id too long",
 			servicePlan: func() *servicecatalog.ClusterServicePlan {
 				s := validClusterServicePlan()

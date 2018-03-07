@@ -119,6 +119,50 @@ func TestValidateServiceBinding(t *testing.T) {
 			valid: false,
 		},
 		{
+			name: "valid parametersFrom",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{
+						{SecretKeyRef: &servicecatalog.SecretKeyReference{Name: "test-key-name", Key: "test-key"}}}
+				return b
+			}(),
+			valid: true,
+		},
+		{
+			name: "missing key reference in parametersFrom",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{{SecretKeyRef: nil}}
+				return b
+			}(),
+			valid: false,
+		},
+		{
+			name: "key name is missing in parametersFrom",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{
+						{SecretKeyRef: &servicecatalog.SecretKeyReference{Name: "", Key: "test-key"}}}
+				return b
+			}(),
+			valid: false,
+		},
+		{
+			name: "key is missing in parametersFrom",
+			binding: func() *servicecatalog.ServiceBinding {
+				b := validServiceBinding()
+				b.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{
+						{SecretKeyRef: &servicecatalog.SecretKeyReference{Name: "test-key-name", Key: ""}}}
+				return b
+			}(),
+			valid: false,
+		},
+
+		{
 			name:    "valid with in-progress bind",
 			binding: validServiceBindingWithInProgressBind(),
 			valid:   true,

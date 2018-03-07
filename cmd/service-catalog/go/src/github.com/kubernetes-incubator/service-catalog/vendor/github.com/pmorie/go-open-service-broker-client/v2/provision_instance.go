@@ -32,7 +32,7 @@ func (c *client) ProvisionInstance(r *ProvisionRequest) (*ProvisionResponse, err
 
 	params := map[string]string{}
 	if r.AcceptsIncomplete {
-		params[asyncQueryParamKey] = "true"
+		params[AcceptsIncomplete] = "true"
 	}
 
 	requestBody := &provisionRequestBody{
