@@ -132,6 +132,17 @@ os::log::info "Restore configured to enable mirroring"
 
 registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template '{{range .items}}{{if not .metadata.deletionTimestamp}}{{.metadata.name}}{{end}}{{end}}')"
 
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+os::cmd::expect_success_and_text "echo -n a | oc exec -i -n default ${registry_pod} cat" "a"
+
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
 os::log::info "Logging in as a regular user (e2e-user:pass) with project 'test'..."
