@@ -10,6 +10,7 @@ import (
 	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
 	"k8s.io/apiserver/pkg/apis/audit"
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
+	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
@@ -40,6 +41,7 @@ func AddToScheme(scheme *runtime.Scheme) {
 	// policy file inside master-config.yaml
 	audit.AddToScheme(scheme)
 	auditv1alpha1.AddToScheme(scheme)
+	auditv1beta1.AddToScheme(scheme)
 	apiserver.AddToScheme(scheme)
 	apiserverv1alpha1.AddToScheme(scheme)
 }
