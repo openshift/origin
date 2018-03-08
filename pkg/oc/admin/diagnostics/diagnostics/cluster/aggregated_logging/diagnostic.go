@@ -86,8 +86,8 @@ func (d *AggregatedLogging) getScc(name string) (*securityapi.SecurityContextCon
 	return d.SCCClient.SecurityContextConstraints().Get(name, metav1.GetOptions{})
 }
 
-func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error) {
-	return d.CRBClient.ClusterRoleBindings().Get(name, metav1.GetOptions{})
+func (d *AggregatedLogging) listClusterRoleBindings() (*authapi.ClusterRoleBindingList, error) {
+	return d.CRBClient.ClusterRoleBindings().List(metav1.ListOptions{})
 }
 
 func (d *AggregatedLogging) routes(project string, options metav1.ListOptions) (*routesapi.RouteList, error) {

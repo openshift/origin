@@ -13,20 +13,21 @@ import (
 
 type fakeRoleBindingDiagnostic struct {
 	fakeDiagnostic
-	fakeClusterRoleBinding authapi.ClusterRoleBinding
+	fakeClusterRoleBindingList authapi.ClusterRoleBindingList
 }
 
 func newFakeRoleBindingDiagnostic(t *testing.T) *fakeRoleBindingDiagnostic {
 	return &fakeRoleBindingDiagnostic{
-		fakeDiagnostic: *newFakeDiagnostic(t),
+		fakeDiagnostic:             *newFakeDiagnostic(t),
+		fakeClusterRoleBindingList: authapi.ClusterRoleBindingList{},
 	}
 }
 
-func (f *fakeRoleBindingDiagnostic) getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error) {
+func (f *fakeRoleBindingDiagnostic) listClusterRoleBindings() (*authapi.ClusterRoleBindingList, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
-	return &f.fakeClusterRoleBinding, nil
+	return &f.fakeClusterRoleBindingList, nil
 }
 func (f *fakeRoleBindingDiagnostic) addBinding(name string, namespace string) {
 	ref := kapi.ObjectReference{
@@ -34,7 +35,14 @@ func (f *fakeRoleBindingDiagnostic) addBinding(name string, namespace string) {
 		Kind:      rbac.ServiceAccountKind,
 		Namespace: namespace,
 	}
-	f.fakeClusterRoleBinding.Subjects = append(f.fakeClusterRoleBinding.Subjects, ref)
+	if len(f.fakeClusterRoleBindingList.Items) == 0 {
+		f.fakeClusterRoleBindingList.Items = append(f.fakeClusterRoleBindingList.Items, authapi.ClusterRoleBinding{
+			RoleRef: kapi.ObjectReference{
+				Name: clusterReaderRoleBindingRoleName,
+			},
+		})
+	}
+	f.fakeClusterRoleBindingList.Items[0].Subjects = append(f.fakeClusterRoleBindingList.Items[0].Subjects, ref)
 }
 
 // Test error when client error

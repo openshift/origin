@@ -7,7 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
-const clusterReaderRoleBindingName = "cluster-readers"
+const clusterReaderRoleBindingRoleName = "cluster-reader"
 
 var clusterReaderRoleBindingNames = sets.NewString(fluentdServiceAccountName)
 
@@ -22,15 +22,20 @@ the following:
 
 func checkClusterRoleBindings(r diagnosticReporter, adapter clusterRoleBindingsAdapter, project string) {
 	r.Debug("AGL0600", "Checking ClusterRoleBindings...")
-	crb, err := adapter.getClusterRoleBinding(clusterReaderRoleBindingName)
+	crbs, err := adapter.listClusterRoleBindings()
 	if err != nil {
 		r.Error("AGL0605", err, fmt.Sprintf("There was an error while trying to retrieve the ClusterRoleBindings for the logging stack: %s", err))
 		return
 	}
 	boundServiceAccounts := sets.NewString()
-	for _, subject := range crb.Subjects {
-		if subject.Kind == rbac.ServiceAccountKind && subject.Namespace == project {
-			boundServiceAccounts.Insert(subject.Name)
+	for _, crb := range crbs.Items {
+		if crb.RoleRef.Name != clusterReaderRoleBindingRoleName {
+			continue
+		}
+		for _, subject := range crb.Subjects {
+			if subject.Kind == rbac.ServiceAccountKind && subject.Namespace == project {
+				boundServiceAccounts.Insert(subject.Name)
+			}
 		}
 	}
 	for _, name := range clusterReaderRoleBindingNames.List() {
