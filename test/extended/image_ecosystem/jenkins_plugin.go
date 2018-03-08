@@ -256,13 +256,18 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				data := j.ReadJenkinsJob("build-job.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				jmon := j.StartJob(jobName)
-				jmon.Await(10 * time.Minute)
+				err := jmon.Await(10 * time.Minute)
+				if err != nil {
+					logs, _ := j.GetLastJobConsoleLogs(jobName)
+					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// the build and deployment is by far the most time consuming portion of the test jenkins job;
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-				err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -303,13 +308,18 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				data := j.ReadJenkinsJob("build-job-slave.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				jmon := j.StartJob(jobName)
-				jmon.Await(10 * time.Minute)
+				err := jmon.Await(10 * time.Minute)
+				if err != nil {
+					logs, _ := j.GetLastJobConsoleLogs(jobName)
+					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// the build and deployment is by far the most time consuming portion of the test jenkins job;
 				// we leverage some of the openshift utilities for waiting for the deployment before we poll
 				// jenkins for the successful job completion
 				g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-				err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend", 1, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "frontend-prod", 1, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -337,7 +347,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				jobsToRun := []apiObjJob{{"test-create-obj", true}, {"test-delete-obj", false}, {"test-create-obj", true}, {"test-delete-obj-labels", false}, {"test-create-obj", true}, {"test-delete-obj-keys", false}}
 				for _, job := range jobsToRun {
 					jmon := j.StartJob(job.jobName)
-					jmon.Await(10 * time.Minute)
+					err := jmon.Await(10 * time.Minute)
+					if err != nil {
+						logs, _ := j.GetLastJobConsoleLogs(job.jobName)
+						ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+					}
+					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("get build console logs and see if succeeded")
 					logs, err := j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s/lastBuild/consoleText", job.jobName)
@@ -357,7 +372,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				data := j.ReadJenkinsJob("build-with-env-job.xml", oc.Namespace())
 				j.CreateItem(jobName, data)
 				jmon := j.StartJob(jobName)
-				jmon.Await(10 * time.Minute)
+				err := jmon.Await(10 * time.Minute)
+				if err != nil {
+					logs, _ := j.GetLastJobConsoleLogs(jobName)
+					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				logs, err := j.GetLastJobConsoleLogs(jobName)
 				ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
@@ -396,6 +416,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				j.CreateItem(jobName, data)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
+				if err != nil {
+					logs, _ := j.GetLastJobConsoleLogs(jobName)
+					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
@@ -439,6 +463,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				j.CreateItem(jobName, data)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
+				if err != nil {
+					logs, _ := j.GetLastJobConsoleLogs(jobName)
+					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				log, err := j.GetLastJobConsoleLogs(jobName)
@@ -509,6 +537,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				j.CreateItem(jobName, data)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
+				if err != nil {
+					logs, _ := j.GetLastJobConsoleLogs(jobName)
+					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				log, err := j.GetLastJobConsoleLogs(jobName)
@@ -597,6 +629,10 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 				j.CreateItem(jobName, data)
 				monitor := j.StartJob(jobName)
 				err = monitor.Await(10 * time.Minute)
+				if err != nil {
+					logs, _ := j.GetLastJobConsoleLogs(jobName)
+					ginkgolog("\n\nJenkins logs>\n%s\n\n", logs)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				time.Sleep(10 * time.Second)
