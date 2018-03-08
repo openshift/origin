@@ -10,7 +10,7 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/network/in_pod/util"
 )
 
 const (

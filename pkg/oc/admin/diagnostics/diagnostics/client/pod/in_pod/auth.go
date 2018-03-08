@@ -1,4 +1,4 @@
-package pod
+package in_pod
 
 import (
 	"crypto/tls"
