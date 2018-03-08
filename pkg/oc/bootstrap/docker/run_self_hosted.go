@@ -237,7 +237,7 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		c.openshiftImage(),
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
-		c.GetDockerClient(c.Out),
+		c.GetDockerClient(),
 	)
 	if err != nil {
 		return err
@@ -259,7 +259,7 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		c.openshiftImage(),
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
-		c.GetDockerClient(c.Out),
+		c.GetDockerClient(),
 	)
 	if err != nil {
 		return err
@@ -289,7 +289,7 @@ func (c *ClientStartConfig) makeMasterConfig(out io.Writer) (string, error) {
 		"--etcd-dir=/var/lib/etcd",
 	}
 
-	masterConfigDir, err := container.MakeMasterConfig(c.GetDockerClient(out), c.BaseTempDir)
+	masterConfigDir, err := container.MakeMasterConfig(c.GetDockerClient(), c.BaseTempDir)
 	if err != nil {
 		return "", fmt.Errorf("error creating master config: %v", err)
 	}
@@ -318,11 +318,11 @@ func (c *ClientStartConfig) makeNodeConfig(out io.Writer, masterConfigDir string
 		fmt.Sprintf("--volume-dir=%s", c.HostVolumesDir),
 	}
 
-	nodeConfigDir, err := container.MakeNodeConfig(c.GetDockerClient(out), c.BaseTempDir)
+	nodeConfigDir, err := container.MakeNodeConfig(c.GetDockerClient(), c.BaseTempDir)
 	if err != nil {
 		return "", "", fmt.Errorf("error creating node config: %v", err)
 	}
-	kubeDNSConfigDir, err := container.MakeKubeDNSConfig(c.GetDockerClient(out), c.BaseTempDir)
+	kubeDNSConfigDir, err := container.MakeKubeDNSConfig(c.GetDockerClient(), c.BaseTempDir)
 	if err != nil {
 		return "", "", fmt.Errorf("error creating node config: %v", err)
 	}
@@ -339,7 +339,7 @@ func (c *ClientStartConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string
 	container.Environment = c.Environment
 	container.UseSharedVolume = !c.UseNsenterMount
 
-	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient(out))
+	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient())
 	if err != nil {
 		return nil, fmt.Errorf("error creating node config: %v", err)
 	}

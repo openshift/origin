@@ -23,7 +23,6 @@ import (
 
 const (
 	catalogNamespace        = "kube-service-catalog"
-	catalogService          = "service-catalog"
 	catalogTemplate         = "service-catalog"
 	ServiceCatalogServiceIP = "172.30.1.2"
 )

@@ -20,7 +20,6 @@ import (
 )
 
 const (
-	defaultAnsibleImageUser        = "root"
 	defaultOpenshiftAnsibleImage   = "ansible"
 	deploymentTypeOrigin           = "origin"
 	deploymentTypeOCP              = "openshift-enterprise"

@@ -205,22 +205,6 @@ func AddClusterRole(authorizationClient authorizationtypedclient.ClusterRoleBind
 	return addClusterReaderRole.AddRole()
 }
 
-func AddRoleToServiceAccount(authorizationClient authorizationtypedclient.RoleBindingsGetter, role, sa, namespace string) error {
-	roleBindingAccessor := policy.NewLocalRoleBindingAccessor(namespace, authorizationClient)
-	addRole := policy.RoleModificationOptions{
-		RoleName:            role,
-		RoleBindingAccessor: roleBindingAccessor,
-		Subjects: []kapi.ObjectReference{
-			{
-				Namespace: namespace,
-				Name:      sa,
-				Kind:      "ServiceAccount",
-			},
-		},
-	}
-	return addRole.AddRole()
-}
-
 func AddSCCToServiceAccount(securityClient securitytypedclient.SecurityContextConstraintsGetter, scc, sa, namespace string, out io.Writer) error {
 	modifySCC := policy.SCCModificationOptions{
 		SCCName:      scc,
