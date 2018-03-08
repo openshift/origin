@@ -131,7 +131,6 @@ oc-autoscale.1
 oc-build-logs.1
 oc-cancel-build.1
 oc-cluster-down.1
-oc-cluster-join.1
 oc-cluster-status.1
 oc-cluster-up.1
 oc-cluster.1
