@@ -208,7 +208,6 @@ type CommonStartConfig struct {
 	Image                       string
 	ImageStreams                string
 	DockerMachine               string
-	ShouldCreateDockerMachine   bool
 	SkipRegistryCheck           bool
 	ShouldInstallMetrics        bool
 	ShouldInstallLogging        bool
@@ -269,7 +268,6 @@ func (c *CommonStartConfig) addTask(t task) {
 }
 
 func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
-	flags.BoolVar(&config.ShouldCreateDockerMachine, "create-machine", false, "Create a Docker machine if one doesn't exist")
 	flags.StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
 	flags.StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
 	flags.StringVar(&config.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
@@ -357,21 +355,6 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 
 	// used for some pretty printing
 	taskPrinter := NewTaskPrinter(getDetailedOut(out))
-
-	// create a docker machine if we need one
-	if c.ShouldCreateDockerMachine {
-		// this default only gets set if we need to create a dockermachine.
-		if len(c.DockerMachine) == 0 {
-			c.DockerMachine = defaultDockerMachineName
-		}
-
-		taskPrinter.StartTask("Create Docker machine")
-		fmt.Fprintf(out, "Creating docker-machine %s\n", c.DockerMachine)
-		if err := CreateDockerMachine(c.DockerMachine); err != nil {
-			return taskPrinter.ToError(err)
-		}
-		taskPrinter.Success()
-	}
 
 	// Get a Docker client.
 	// If a Docker machine was specified, make sure that the machine is running.
@@ -645,15 +628,8 @@ func defaultPortForwarding() bool {
 	return runtime.GOOS == "darwin" && len(os.Getenv("DOCKER_HOST")) == 0
 }
 
-const defaultDockerMachineName = "openshift"
-
 func defaultImageVersion() string {
 	return variable.OverrideVersion.LastSemanticVersion()
-}
-
-// CreateDockerMachine will create a new Docker machine to run OpenShift
-func CreateDockerMachine(dockerMachineName string) error {
-	return dockermachine.NewBuilder().Name(dockerMachineName).Create()
 }
 
 // checkOpenShiftClient ensures that the client can be configured
@@ -1073,7 +1049,7 @@ func (c *ClientStartConfig) ImportInitialObjects(out io.Writer) error {
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, loggingTemplateLocations)...)
 
-	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(out))
+	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient())
 }
 
 // InstallLogging will start the installation of logging components
