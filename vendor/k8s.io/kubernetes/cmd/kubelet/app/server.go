@@ -32,6 +32,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
@@ -571,6 +572,9 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies) (err error) {
 	if s.RunOnce {
 		return nil
 	}
+
+	// If systemd is used, notify it that we have started
+	go daemon.SdNotify(false, "READY=1")
 
 	<-done
 	return nil
