@@ -3,6 +3,7 @@ package openshift
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 
 	"github.com/blang/semver"
 
@@ -37,6 +38,10 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion se
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
 
 	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
 	if err == nil {
@@ -58,10 +63,24 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion se
 	params.OSERelease = imageVersion
 	params.LoggingImagePrefix = fmt.Sprintf("%s-", imagePrefix)
 	params.LoggingImageVersion = imageVersion
+
+	//HACK: for auth-proxy image in dockerhub registry
+	// - it doesn't follow the same release pattern as every other openshift image
+	//   https://hub.docker.com/r/openshift/oauth-proxy/tags/
+	// - in other registries, it does follow the release pattern
+	//   https://access.redhat.com/containers/?tab=overview#/registry.access.redhat.com/openshift3/oauth-proxy
+	if match, _ := regexp.MatchString("(docker.io/)?openshift/origin-", params.LoggingImagePrefix); match == true {
+		params.ESProxyLoggingImagePrefix = "docker.io/openshift/"
+		params.ESProxyLoggingImageVersion = "v1.1.0"
+	} else {
+		params.ESProxyLoggingImagePrefix = params.LoggingImagePrefix
+		params.ESProxyLoggingImageVersion = params.LoggingImageVersion
+	}
+
 	params.LoggingNamespace = loggingNamespace
 	params.KibanaHostName = loggerHost
 
-	runner := newAnsibleRunner(h, kubeClient, securityClient, loggingNamespace, imageStreams, "logging")
+	runner := newAnsibleRunner(h, kubeClient, securityClient, authorizationClient, loggingNamespace, imageStreams, "logging")
 
 	//run logging playbook
 	return runner.RunPlaybook(params, getLoggingPlaybook(serverVersion), hostConfigDir, imagePrefix, imageVersion)

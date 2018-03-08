@@ -38,6 +38,10 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverVersion se
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
 
 	_, err = kubeClient.Core().Services(infraNamespace).Get(svcMetrics, metav1.GetOptions{})
 	if err == nil {
@@ -58,7 +62,7 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverVersion se
 	params.HawkularHostName = hostName
 	params.MetricsResolution = "10s"
 
-	runner := newAnsibleRunner(h, kubeClient, securityClient, infraNamespace, imageStreams, "metrics")
+	runner := newAnsibleRunner(h, kubeClient, securityClient, authorizationClient, infraNamespace, imageStreams, "metrics")
 
 	//run playbook
 	return runner.RunPlaybook(params, getMetricsPlaybook(serverVersion), hostConfigDir, imagePrefix, imageVersion)
