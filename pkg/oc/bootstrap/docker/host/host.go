@@ -56,7 +56,7 @@ func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
 		Bind("/:/rootfs:ro").
 		Entrypoint("/bin/bash").
 		Command("-c", cmdTestNsenterMount).Run()
-	return err == nil && rc == 0, nil
+	return err == nil && rc == 0, err
 }
 
 // EnsureVolumeShare ensures that the host Docker machine has a shared directory that can be used
