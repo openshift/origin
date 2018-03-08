@@ -19,6 +19,7 @@ import (
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
@@ -41,6 +42,7 @@ type ControllerContext struct {
 	AppInformers            appinformer.SharedInformerFactory
 	BuildInformers          buildinformer.SharedInformerFactory
 	ImageInformers          imageinformer.SharedInformerFactory
+	NetworkInformers        networkinformer.SharedInformerFactory
 	TemplateInformers       templateinformer.SharedInformerFactory
 	QuotaInformers          quotainformer.SharedInformerFactory
 	AuthorizationInformers  authorizationinformer.SharedInformerFactory

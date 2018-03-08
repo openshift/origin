@@ -15,8 +15,6 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/golang/glog"
-	networkclient "github.com/openshift/client-go/network/clientset/versioned"
-	networkinformer "github.com/openshift/client-go/network/informers/externalversions"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	routeinformer "github.com/openshift/client-go/route/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
@@ -31,6 +29,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	networkinformer "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	oauthinformer "github.com/openshift/origin/pkg/oauth/generated/informers/internalversion"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
