@@ -29,11 +29,12 @@ func (e *runError) Details() string {
 	fmt.Fprintf(out, "Image: %s\n", e.config.Image)
 	fmt.Fprintf(out, "Entrypoint: %v\n", e.config.Entrypoint)
 	fmt.Fprintf(out, "Command: %v\n", e.config.Cmd)
-	if len(e.stdOut) > 0 {
-		errors.PrintLog(out, "Output", e.stdOut)
-	}
-	if len(e.stdErr) > 0 {
-		errors.PrintLog(out, "Error Output", e.stdErr)
-	}
+	// TODO maybe we will re-introduce this, but we're starting to record the container logs in a tempdir, so I doubt it
+	//if len(e.stdOut) > 0 {
+	//	errors.PrintLog(out, "Output", e.stdOut)
+	//}
+	//if len(e.stdErr) > 0 {
+	//	errors.PrintLog(out, "Error Output", e.stdErr)
+	//}
 	return out.String()
 }

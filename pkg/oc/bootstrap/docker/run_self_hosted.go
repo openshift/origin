@@ -34,7 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/staticpods"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
-	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 
 	// install our apis into the legacy scheme
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -124,15 +123,15 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		openshiftAPIServerConfigDir, err = c.makeOpenShiftAPIServerConfig(out, masterConfigDir)
+		openshiftAPIServerConfigDir, err = c.makeOpenShiftAPIServerConfig(masterConfigDir)
 		if err != nil {
 			return err
 		}
-		nodeConfigDir, kubeDNSConfigDir, err = c.makeNodeConfig(out, masterConfigDir)
+		nodeConfigDir, kubeDNSConfigDir, err = c.makeNodeConfig(masterConfigDir)
 		if err != nil {
 			return err
 		}
-		kubeDNSConfigDir, err = c.makeKubeDNSConfig(out, kubeDNSConfigDir)
+		kubeDNSConfigDir, err = c.makeKubeDNSConfig(kubeDNSConfigDir)
 		if err != nil {
 			return err
 		}
@@ -238,6 +237,7 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
+		path.Join(c.BaseTempDir, "logs"),
 	)
 	if err != nil {
 		return err
@@ -260,6 +260,7 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
+		path.Join(c.BaseTempDir, "logs"),
 	)
 	if err != nil {
 		return err
@@ -298,7 +299,7 @@ func (c *ClientStartConfig) makeMasterConfig(out io.Writer) (string, error) {
 }
 
 // makeNodeConfig returns the directory where a generated nodeconfig lives
-func (c *ClientStartConfig) makeNodeConfig(out io.Writer, masterConfigDir string) (string, string, error) {
+func (c *ClientStartConfig) makeNodeConfig(masterConfigDir string) (string, string, error) {
 	defaultNodeName := "localhost"
 
 	container := kubelet.NewNodeStartConfig()
@@ -324,7 +325,7 @@ func (c *ClientStartConfig) makeNodeConfig(out io.Writer, masterConfigDir string
 	}
 	kubeDNSConfigDir, err := container.MakeKubeDNSConfig(c.GetDockerClient(), c.BaseTempDir)
 	if err != nil {
-		return "", "", fmt.Errorf("error creating node config: %v", err)
+		return "", "", fmt.Errorf("error creating dns config: %v", err)
 	}
 
 	return nodeConfigDir, kubeDNSConfigDir, nil
@@ -339,7 +340,7 @@ func (c *ClientStartConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string
 	container.Environment = c.Environment
 	container.UseSharedVolume = !c.UseNsenterMount
 
-	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient())
+	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient(), c.BaseTempDir)
 	if err != nil {
 		return nil, fmt.Errorf("error creating node config: %v", err)
 	}
@@ -356,14 +357,14 @@ func (c *ClientStartConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string
 
 // makeKubeDNSConfig mutates some pieces of the kubedns dir.
 // TODO This should be building the whole thing eventually
-func (c *ClientStartConfig) makeKubeDNSConfig(out io.Writer, kubeDNSConfigDir string) (string, error) {
-	return kubelet.MutateKubeDNSConfig(kubeDNSConfigDir, out)
+func (c *ClientStartConfig) makeKubeDNSConfig(kubeDNSConfigDir string) (string, error) {
+	return kubelet.MutateKubeDNSConfig(kubeDNSConfigDir)
 }
 
 // makeKubeDNSConfig mutates some pieces of the kubedns dir.
 // TODO This should be building the whole thing eventually
-func (c *ClientStartConfig) makeOpenShiftAPIServerConfig(out io.Writer, masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, out, c.BaseTempDir)
+func (c *ClientStartConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
+	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.BaseTempDir)
 }
 
 // startKubelet returns the container id
@@ -381,7 +382,6 @@ func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeCon
 		}
 	}
 
-	imageRunningHelper := run.NewRunHelper(c.DockerHelper())
 	container := kubelet.NewKubeletRunConfig()
 	container.Environment = c.Environment
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
@@ -425,7 +425,7 @@ func (c *ClientStartConfig) startKubelet(out io.Writer, masterConfigDir, nodeCon
 	container.Args = append(container.Args, "--cluster-dns=172.30.0.2")
 	glog.V(1).Info(strings.Join(container.Args, " "))
 
-	kubeletContainerID, err := container.RunKubelet(imageRunningHelper.New())
+	kubeletContainerID, err := container.StartKubelet(c.DockerHelper().Client(), c.BaseTempDir)
 	if err != nil {
 		return "", fmt.Errorf("error creating node config: %v", err)
 	}
