@@ -23,6 +23,8 @@ items:
         serviceAccountName: dockergc
         containers:
         - image: openshift/origin:latest
+          command:
+          - "/usr/bin/oc"
           args:
           - "ex"
           - "dockergc"
