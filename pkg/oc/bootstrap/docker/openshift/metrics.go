@@ -56,9 +56,6 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverVersion se
 	return runner.RunPlaybook(params, getMetricsPlaybook(serverVersion), hostConfigDir, imagePrefix, imageVersion)
 }
 
-func MetricsHost(routingSuffix, serverIP string) string {
-	if len(routingSuffix) > 0 {
-		return fmt.Sprintf("hawkular-metrics-openshift-infra.%s", routingSuffix)
-	}
-	return fmt.Sprintf("hawkular-metrics-openshift-infra.%s.nip.io", serverIP)
+func MetricsHost(routingSuffix string) string {
+	return fmt.Sprintf("hawkular-metrics-openshift-infra.%s", routingSuffix)
 }

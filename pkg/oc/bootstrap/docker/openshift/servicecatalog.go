@@ -137,9 +137,6 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	return nil
 }
 
-func CatalogHost(routingSuffix, serverIP string) string {
-	if len(routingSuffix) > 0 {
-		return fmt.Sprintf("apiserver-service-catalog.%s", routingSuffix)
-	}
-	return fmt.Sprintf("apiserver-service-catalog.%s.nip.io", serverIP)
+func CatalogHost(routingSuffix string) string {
+	return fmt.Sprintf("apiserver-service-catalog.%s", routingSuffix)
 }

@@ -60,9 +60,6 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverVersion se
 	return runner.RunPlaybook(params, getLoggingPlaybook(serverVersion), hostConfigDir, imagePrefix, imageVersion)
 }
 
-func LoggingHost(routingSuffix, serverIP string) string {
-	if len(routingSuffix) > 0 {
-		return fmt.Sprintf("kibana-logging.%s", routingSuffix)
-	}
-	return fmt.Sprintf("kibana-logging.%s.nip.io", serverIP)
+func LoggingHost(routingSuffix string) string {
+	return fmt.Sprintf("kibana-logging.%s", routingSuffix)
 }

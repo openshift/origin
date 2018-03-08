@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 )
 
-func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (string, error) {
+func MakeOpenShiftAPIServerConfig(existingMasterConfig string, routingSuffix, basedir string) (string, error) {
 	configDir := path.Join(basedir, OpenShiftAPIServerDirName)
 	glog.V(1).Infof("Copying kube-apiserver config to local directory %s", configDir)
 	if err := tmpformac.CopyDirectory(existingMasterConfig, configDir); err != nil {
@@ -32,6 +32,9 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (
 	}
 	masterconfig := configObj.(*configapi.MasterConfig)
 	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8445"
+
+	// hardcode the route suffix to the old default.  If anyone wants to change it, they can modify their config.
+	masterconfig.RoutingConfig.Subdomain = routingSuffix
 
 	configBytes, err := runtime.Encode(configapilatest.Codec, masterconfig)
 	if err != nil {

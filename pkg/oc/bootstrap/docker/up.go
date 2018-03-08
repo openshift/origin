@@ -347,6 +347,9 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 	}
 	glog.V(3).Infof("Using %q as primary server IP and %q as additional IPs", c.ServerIP, strings.Join(c.AdditionalIPs, ","))
 	taskPrinter.Success()
+	if len(c.RoutingSuffix) == 0 {
+		c.RoutingSuffix = c.ServerIP + ".nip.io"
+	}
 
 	// this used to be done in the openshift start method, but its mutating state.
 	if len(c.HTTPProxy) > 0 || len(c.HTTPSProxy) > 0 {
@@ -924,12 +927,12 @@ func (c *ClusterUpConfig) InstallWebConsole(out io.Writer) error {
 
 	metricsURL := ""
 	if c.ShouldInstallMetrics {
-		metricsURL = fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
+		metricsURL = fmt.Sprintf("https://%s/hawkular/metrics", openshift.MetricsHost(c.RoutingSuffix))
 	}
 
 	loggingURL := ""
 	if c.ShouldInstallLogging {
-		loggingURL = fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix, c.ServerIP))
+		loggingURL = fmt.Sprintf("https://%s", openshift.LoggingHost(c.RoutingSuffix))
 	}
 
 	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
@@ -968,7 +971,7 @@ func (c *ClusterUpConfig) InstallLogging(out io.Writer) error {
 		serverVersion,
 		c.ServerIP,
 		publicMaster,
-		openshift.LoggingHost(c.RoutingSuffix, c.ServerIP),
+		openshift.LoggingHost(c.RoutingSuffix),
 		c.Image,
 		c.ImageVersion,
 		c.HostConfigDir,
@@ -990,7 +993,7 @@ func (c *ClusterUpConfig) InstallMetrics(out io.Writer) error {
 		serverVersion,
 		c.ServerIP,
 		publicMaster,
-		openshift.MetricsHost(c.RoutingSuffix, c.ServerIP),
+		openshift.MetricsHost(c.RoutingSuffix),
 		c.Image,
 		c.ImageVersion,
 		c.HostConfigDir,
@@ -1007,7 +1010,7 @@ func (c *ClusterUpConfig) InstallServiceCatalog(out io.Writer) error {
 	if len(publicMaster) == 0 {
 		publicMaster = c.ServerIP
 	}
-	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP), c.imageFormat())
+	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix), c.imageFormat())
 }
 
 // InstallTemplateServiceBroker will start the installation of template service broker
@@ -1060,12 +1063,12 @@ func (c *ClusterUpConfig) ServerInfo(out io.Writer) {
 	metricsInfo := ""
 	if c.ShouldInstallMetrics && c.ShouldInitializeData() {
 		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
-			"    https://%s/hawkular/metrics\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
+			"    https://%s/hawkular/metrics\n\n", openshift.MetricsHost(c.RoutingSuffix))
 	}
 	loggingInfo := ""
 	if c.ShouldInstallLogging && c.ShouldInitializeData() {
 		loggingInfo = fmt.Sprintf("The kibana logging UI is available at:\n"+
-			"    https://%s\n\n", openshift.LoggingHost(c.RoutingSuffix, c.ServerIP))
+			"    https://%s\n\n", openshift.LoggingHost(c.RoutingSuffix))
 	}
 	masterURL := c.OpenShiftHelper().Master(c.ServerIP)
 	if len(c.PublicHostname) > 0 {
