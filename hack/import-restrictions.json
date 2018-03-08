@@ -359,29 +359,25 @@
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
 
-      "github.com/openshift/origin/pkg/oauthserver",
-      "github.com/openshift/origin/pkg/route/generated"
+      "github.com/openshift/origin/pkg/oauthserver"
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
-      "github.com/openshift/origin/pkg/util/http/links",
       "github.com/openshift/origin/pkg/authorization/authorizer/scope",
       "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
       "github.com/openshift/origin/pkg/oauth/scope",
       "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization",
-      "github.com/openshift/origin/pkg/cmd/server/apis/config",
-      "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
-      "github.com/openshift/origin/pkg/cmd/util",
-      "github.com/openshift/origin/pkg/serviceaccounts/oauthclient",
       "github.com/openshift/origin/pkg/oauth/registry/oauthclient",
-      "github.com/openshift/origin/pkg/authorization/authorizer/scope",
-      "github.com/openshift/origin/pkg/user/registry/test",
       "github.com/openshift/origin/pkg/oauth/util",
-      "github.com/openshift/origin/pkg/api/install",
+      "github.com/openshift/origin/pkg/cmd/server/apis/config",
+      "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
+      "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
+      "github.com/openshift/origin/pkg/serviceaccounts/oauthclient",
       "github.com/openshift/origin/pkg/user/apis/user/v1",
       "github.com/openshift/origin/pkg/user/apis/user",
       "github.com/openshift/origin/pkg/user/registry/test",
       "github.com/openshift/origin/pkg/user/registry/useridentitymapping",
+      "github.com/openshift/origin/pkg/util/http/links",
       "github.com/openshift/origin/pkg/util/httprequest"
     ]
   },

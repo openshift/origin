@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
@@ -11,7 +12,6 @@ import (
 type Node struct {
 	Id         int
 	UniqueName string
-	LabelName  string
 	Color      string
 }
 
@@ -20,7 +20,7 @@ func (n Node) ID() int {
 }
 
 func (n Node) String() string {
-	return n.LabelName
+	return labelNameForNode(n.UniqueName)
 }
 
 // DOTAttributes implements an attribute getter for the DOT encoding
@@ -31,9 +31,19 @@ func (n Node) DOTAttributes() []dot.Attribute {
 	}
 
 	return []dot.Attribute{
-		{Key: "label", Value: fmt.Sprintf("%q", n.LabelName)},
+		{Key: "label", Value: fmt.Sprintf("%q", n)},
 		{Key: "color", Value: color},
 	}
+}
+
+// labelNameForNode trims vendored paths of their full /vendor/ path
+func labelNameForNode(importPath string) string {
+	segs := strings.Split(importPath, "/vendor/")
+	if len(segs) > 1 {
+		return segs[1]
+	}
+
+	return importPath
 }
 
 func NewMutableDirectedGraph(roots []string) *MutableDirectedGraph {

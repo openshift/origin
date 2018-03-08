@@ -31,7 +31,6 @@ func FilterPackages(g *MutableDirectedGraph, packagePrefixes []string) (*Mutable
 		err := collapsedGraph.AddNode(&Node{
 			UniqueName: collapsedNodeName,
 			Id:         n.ID(),
-			LabelName:  labelNameForNode(collapsedNodeName),
 		})
 		if err != nil {
 			return nil, err
@@ -83,7 +82,15 @@ func FilterPackages(g *MutableDirectedGraph, packagePrefixes []string) (*Mutable
 
 func getFilteredNodeName(collapsedPrefixes []string, packageName string) string {
 	for _, prefix := range collapsedPrefixes {
-		if strings.HasPrefix(packageName, prefix) {
+		// ensure that each prefix ends in a slash
+		// otherwise, we will incorrectly squash packages
+		// like "api" and "apimachinery" into eachother.
+		prefixWithSlash := prefix
+		if string(prefix[len(prefix)-1]) != "/" {
+			prefixWithSlash = prefixWithSlash + "/"
+		}
+
+		if strings.HasPrefix(packageName+"/", prefixWithSlash) {
 			return prefix
 		}
 	}

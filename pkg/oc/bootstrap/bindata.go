@@ -5217,7 +5217,8 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
+          "haproxy.router.openshift.io/timeout": "2m"
         }
       },
       "spec": {
@@ -5281,7 +5282,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                 "name": "jenkins",
                 "image": " ",
                 "readinessProbe": {
-                  "timeoutSeconds": 3,
+                  "timeoutSeconds": 240,
                   "initialDelaySeconds": 3,
                   "httpGet": {
                     "path": "/login",
@@ -5289,9 +5290,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
+                    "timeoutSeconds": 240,
+                    "periodSeconds": 360,  
                     "initialDelaySeconds": 420,
-                    "failureThreshold" : 30,
+                    "failureThreshold" : 2,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080
@@ -5519,7 +5521,8 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
         "annotations": {
-          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
+          "haproxy.router.openshift.io/timeout": "2m"
         }
       },
       "spec": {
@@ -5600,7 +5603,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                 "name": "jenkins",
                 "image": " ",
                 "readinessProbe": {
-                  "timeoutSeconds": 3,
+                  "timeoutSeconds": 240,
                   "initialDelaySeconds": 3,
                   "httpGet": {
                     "path": "/login",
@@ -5608,9 +5611,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                   }
                 },
                 "livenessProbe": {
-                    "timeoutSeconds": 3,
+                    "timeoutSeconds": 240,
+                    "periodSeconds": 360,  
                     "initialDelaySeconds": 420,
-                    "failureThreshold" : 30,
+                    "failureThreshold" : 2,
                     "httpGet": {
                         "path": "/login",
                         "port": 8080
@@ -13982,7 +13986,7 @@ parameters:
   value: openshift/prometheus:v2.0.0
 - description: The location of the alertmanager image
   name: IMAGE_ALERTMANAGER
-  value: openshift/prometheus-alertmanager:v0.13.0
+  value: openshift/prometheus-alertmanager:v0.14.0
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
   value: openshift/prometheus-alert-buffer:v0.0.2
@@ -14245,6 +14249,20 @@ objects:
           - --web.listen-address=localhost:9090
           image: ${IMAGE_PROMETHEUS}
           imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - |-
+                set -euo pipefail;
+                touch /tmp/prometheusconfig.hash;
+                if [[ $(find /etc/prometheus -type f | sort | xargs md5sum | md5sum) != $(cat /tmp/prometheusconfig.hash) ]]; then
+                  find /etc/prometheus -type f | sort | xargs md5sum | md5sum > /tmp/prometheusconfig.hash;
+                  kill -HUP 1;
+                fi
+            initialDelaySeconds: 60
+            periodSeconds: 60
           volumeMounts:
           - mountPath: /etc/prometheus
             name: prometheus-config
@@ -14276,6 +14294,7 @@ objects:
           - -tls-key=/etc/tls/private/tls.key
           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
           - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -skip-auth-regex=^/metrics
           volumeMounts:
           - mountPath: /etc/tls/private
             name: alerts-tls-secret
@@ -14290,9 +14309,6 @@ objects:
           volumeMounts:
           - mountPath: /alert-buffer
             name: alerts-data
-          ports:
-          - containerPort: 9099
-            name: alert-buf
 
         - name: alertmanager-proxy
           image: ${IMAGE_PROXY}
@@ -14327,9 +14343,6 @@ objects:
           - --config.file=/etc/alertmanager/alertmanager.yml
           image: ${IMAGE_ALERTMANAGER}
           imagePullPolicy: IfNotPresent
-          ports:
-          - containerPort: 9093
-            name: web
           volumeMounts:
           - mountPath: /etc/alertmanager
             name: alertmanager-config
@@ -14361,10 +14374,10 @@ objects:
             name: alertmanager
         - name: alertmanager-tls-secret
           secret:
-            secretName: alertmanager-tls  
+            secretName: alertmanager-tls
         - name: alertmanager-proxy-secret
           secret:
-            secretName: alertmanager-proxy         
+            secretName: alertmanager-proxy
 
         - name: alerts-proxy-secrets
           secret:
@@ -14394,7 +14407,7 @@ objects:
             miqTarget: "ContainerNode"
             severity: "HIGH"
             message: "{{$labels.instance}} is down"
-    
+
     recording.rules: |
       groups:
       - name: aggregate_container_resources

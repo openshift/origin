@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"net"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -212,9 +213,13 @@ func ValidateAuditConfig(config configapi.AuditConfig, fldPath *field.Path) Vali
 		return validationResults
 	}
 
+	// TODO (soltysh): both of these should be turned into errors in 3.11
 	if len(config.AuditFilePath) == 0 {
 		// for backwards compatibility reasons we can't error this out
-		validationResults.AddWarnings(field.Required(fldPath.Child("auditFilePath"), "audit can not be logged to a separate file"))
+		validationResults.AddWarnings(field.Required(fldPath.Child("auditFilePath"), "audit needs to be logged to a separate file"))
+	} else if !filepath.IsAbs(config.InternalAuditFilePath) {
+		// for backwards compatibility reasons we can't error this out
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("auditFilePath"), config.InternalAuditFilePath, "must be absolute path"))
 	}
 	if config.MaximumFileRetentionDays < 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("maximumFileRetentionDays"), config.MaximumFileRetentionDays, "must be greater than or equal to 0"))
@@ -242,7 +247,7 @@ func ValidateAuditConfig(config configapi.AuditConfig, fldPath *field.Path) Vali
 		} else {
 			policyConfiguration, ok := config.PolicyConfiguration.(*auditinternal.Policy)
 			if !ok {
-				validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, "must be of type audit/v1alpha1.Policy"))
+				validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, "must be of type audit/v1beta1.Policy"))
 			} else {
 				if err := auditvalidation.ValidatePolicy(policyConfiguration); err != nil {
 					validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, err.ToAggregate().Error()))

@@ -588,11 +588,46 @@ func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info, expir
 	return GetTLSCertificateConfig(certFile, keyFile)
 }
 
+type sortedForDER []string
+
+func (s sortedForDER) Len() int {
+	return len(s)
+}
+func (s sortedForDER) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s sortedForDER) Less(i, j int) bool {
+	l1 := len(s[i])
+	l2 := len(s[j])
+	if l1 == l2 {
+		return s[i] < s[j]
+	}
+	return l1 < l2
+}
+
 func userToSubject(u user.Info) pkix.Name {
+	// Ok we are going to order groups in a peculiar way here to workaround a
+	// 2 bugs, 1 in golang (https://github.com/golang/go/issues/24254) which
+	// incorrectly encodes Multivalued RDNs and another in GNUTLS clients
+	// which are too picky (https://gitlab.com/gnutls/gnutls/issues/403)
+	// and try to "correct" this issue when reading client certs.
+	//
+	// This workaround should be killed once Golang's pkix module is fixed to
+	// generate a correct DER encoding.
+	//
+	// The workaround relies on the fact that the first octect that differs
+	// between the encoding of two group RDNs will end up being the encoded
+	// length which is directly related to the group name's length. So we'll
+	// sort such that shortest names come first.
+	ugroups := u.GetGroups()
+	groups := make([]string, len(ugroups))
+	copy(groups, ugroups)
+	sort.Sort(sortedForDER(groups))
+
 	return pkix.Name{
 		CommonName:   u.GetName(),
 		SerialNumber: u.GetUID(),
-		Organization: u.GetGroups(),
+		Organization: groups,
 	}
 }
 

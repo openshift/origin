@@ -248,18 +248,22 @@ func (h *Runner) runWithOutput() (string, string, string, int, error) {
 		}()
 	}
 
+	if err := h.copy(id); err != nil {
+		return id, "", "", 0, err
+	}
+
 	glog.V(5).Infof("Starting container %q", id)
 	err = h.startContainer(id)
 	if err != nil {
 		glog.V(2).Infof("Error occurred starting container %q: %v", id, err)
-		return "", "", "", 0, err
+		return id, "", "", 0, err
 	}
 
 	glog.V(5).Infof("Waiting for container %q", id)
 	rc, err := h.client.ContainerWait(id)
 	if err != nil {
 		glog.V(2).Infof("Error occurred waiting for container %q: %v", id, err)
-		return "", "", "", 0, err
+		return id, "", "", 0, err
 	}
 	glog.V(5).Infof("Done waiting for container %q, rc=%d", id, rc)
 
@@ -272,7 +276,7 @@ func (h *Runner) runWithOutput() (string, string, string, int, error) {
 	err = h.client.ContainerLogs(id, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true}, stdOut, stdErr)
 	if err != nil {
 		glog.V(2).Infof("Error occurred while reading logs: %v", err)
-		return "", "", "", 0, err
+		return id, "", "", 0, err
 	}
 	glog.V(5).Infof("Done reading logs from container %q", id)
 

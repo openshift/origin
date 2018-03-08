@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -376,18 +375,6 @@ func (h *Helper) healthzReadyURL(ip string) string {
 
 func (h *Helper) Master(ip string) string {
 	return fmt.Sprintf("https://%s:8443", ip)
-}
-
-func masterHTTPClient(localConfig string) (*http.Client, error) {
-	caCert := filepath.Join(localConfig, "master", "ca.crt")
-	transport, err := cmdutil.TransportFor(caCert, "", "")
-	if err != nil {
-		return nil, err
-	}
-	return &http.Client{
-		Transport: transport,
-		Timeout:   10 * time.Second,
-	}, nil
 }
 
 func (h *Helper) GetNodeConfigFromLocalDir(configDir string) (*configapi.NodeConfig, string, error) {

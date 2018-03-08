@@ -18,6 +18,8 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	apiinstall "github.com/openshift/origin/pkg/api/install"
+	apilegacy "github.com/openshift/origin/pkg/api/legacy"
 	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
 	apiregistration "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -25,6 +27,8 @@ import (
 
 func init() {
 	apiregistration.Install(scheme.GroupFactoryRegistry, scheme.Registry, scheme.Scheme)
+	apiinstall.InstallAll(scheme.Scheme, scheme.GroupFactoryRegistry, scheme.Registry)
+	apilegacy.LegacyInstallAll(scheme.Scheme, scheme.Registry)
 }
 
 func main() {
@@ -134,7 +138,7 @@ func getKey(client *clientv3.Client, key string) error {
 		fmt.Println(gvk)
 		err = encoder.Encode(obj, os.Stdout)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "WARN: unable to decode %s: %v\n", kv.Key, err)
+			fmt.Fprintf(os.Stderr, "WARN: unable to encode %s: %v\n", kv.Key, err)
 			continue
 		}
 	}

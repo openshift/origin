@@ -1,83 +1,97 @@
 package graph
 
 import (
-	"strings"
 	"testing"
 )
 
-var pkgs = &PackageList{
-	Packages: []Package{
-		{
-			Dir:        "/path/to/github.com/test/repo/root",
-			ImportPath: "github.com/test/repo/root",
-			Imports: []string{
-				"github.com/test/repo/pkg/one",
-			},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/pkg/one",
-			ImportPath: "github.com/test/repo/pkg/one",
-			Imports: []string{
-				"github.com/test/repo/pkg/two",
-				"github.com/test/repo/pkg/three",
-				"github.com/test/repo/pkg/depends_on_fmt",
-			},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/pkg/two",
-			ImportPath: "github.com/test/repo/pkg/two",
-			Imports: []string{
-				"github.com/test/repo/vendor/github.com/testvendor/vendor_one",
-			},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/pkg/three",
-			ImportPath: "github.com/test/repo/pkg/three",
-			Imports: []string{
-				"github.com/test/repo/shared/shared_one",
-			},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/pkg/depends_on_fmt",
-			ImportPath: "github.com/test/repo/pkg/depends_on_fmt",
-			Imports: []string{
-				"fmt",
-				"github.com/test/repo/unique/unique_nonvendored_one",
-			},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/unique/unique_nonvendored_one",
-			ImportPath: "github.com/test/repo/unique/unique_nonvendored_one",
-			Imports:    []string{},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/shared/shared_one",
-			ImportPath: "github.com/test/repo/shared/shared_one",
-			Imports:    []string{},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/vendor/github.com/testvendor/vendor_one",
-			ImportPath: "github.com/test/repo/vendor/github.com/testvendor/vendor_one",
-			Imports: []string{
-				"github.com/test/repo/unique/unique_vendor_one",
-				"github.com/test/repo/shared/shared_one",
-			},
-		},
-		{
-			Dir:        "/path/to/github.com/test/repo/unique/unique_vendor_one",
-			ImportPath: "github.com/test/repo/unique/unique_vendor_one",
-			Imports:    []string{},
-		},
+type TestPackageList struct {
+	*PackageList
+}
 
-		// simulate a package that is not brought in through any of the repo entrypoints
-		// ("github.com/test/repo/root" in this case) but exists in the codebase
-		// because another package that is part of its repo is a transitive dependency
-		// of one of the main repo's entrypoints.
-		{
-			Dir:        "/path/to/github.com/test/repo/unique/unique_vendor_two",
-			ImportPath: "github.com/test/repo/unique/unique_vendor_two",
-			Imports: []string{
-				"github.com/test/repo/no/node/should/exist/for/this/pkg",
+func (p *TestPackageList) ImportPaths() []string {
+	importPaths := []string{}
+	for _, pkg := range p.PackageList.Packages {
+		importPaths = append(importPaths, pkg.ImportPath)
+	}
+
+	return importPaths
+}
+
+var pkgs = &TestPackageList{
+	&PackageList{
+		Packages: []Package{
+			{
+				Dir:        "/path/to/github.com/test/repo/root",
+				ImportPath: "github.com/test/repo/root",
+				Imports: []string{
+					"github.com/test/repo/pkg/one",
+				},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/pkg/one",
+				ImportPath: "github.com/test/repo/pkg/one",
+				Imports: []string{
+					"github.com/test/repo/pkg/two",
+					"github.com/test/repo/pkg/three",
+					"github.com/test/repo/pkg/depends_on_fmt",
+				},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/pkg/two",
+				ImportPath: "github.com/test/repo/pkg/two",
+				Imports: []string{
+					"github.com/test/repo/vendor/github.com/testvendor/vendor_one",
+				},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/pkg/three",
+				ImportPath: "github.com/test/repo/pkg/three",
+				Imports: []string{
+					"github.com/test/repo/shared/shared_one",
+				},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/pkg/depends_on_fmt",
+				ImportPath: "github.com/test/repo/pkg/depends_on_fmt",
+				Imports: []string{
+					"fmt",
+					"github.com/test/repo/unique/unique_nonvendored_one",
+				},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/unique/unique_nonvendored_one",
+				ImportPath: "github.com/test/repo/unique/unique_nonvendored_one",
+				Imports:    []string{},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/shared/shared_one",
+				ImportPath: "github.com/test/repo/shared/shared_one",
+				Imports:    []string{},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/vendor/github.com/testvendor/vendor_one",
+				ImportPath: "github.com/test/repo/vendor/github.com/testvendor/vendor_one",
+				Imports: []string{
+					"github.com/test/repo/unique/unique_vendor_one",
+					"github.com/test/repo/shared/shared_one",
+				},
+			},
+			{
+				Dir:        "/path/to/github.com/test/repo/unique/unique_vendor_one",
+				ImportPath: "github.com/test/repo/unique/unique_vendor_one",
+				Imports:    []string{},
+			},
+
+			// simulate a package that is not brought in through any of the repo entrypoints
+			// ("github.com/test/repo/root" in this case) but exists in the codebase
+			// because another package that is part of its repo is a transitive dependency
+			// of one of the main repo's entrypoints.
+			{
+				Dir:        "/path/to/github.com/test/repo/unique/unique_vendor_two",
+				ImportPath: "github.com/test/repo/unique/unique_vendor_two",
+				Imports: []string{
+					"github.com/test/repo/no/node/should/exist/for/this/pkg",
+				},
 			},
 		},
 	},
@@ -99,7 +113,12 @@ func TestBuildGraphCreatesExpectedNodesAndEdges(t *testing.T) {
 		"fmt": true,
 	}
 
-	g, err := BuildGraph(pkgs, []string{"github.com/test/repo/root"}, []string{})
+	opts := GraphOptions{
+		Packages: pkgs.PackageList,
+		Roots:    pkgs.ImportPaths(),
+	}
+
+	g, err := opts.BuildGraph()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,26 +158,19 @@ func TestBuildGraphCreatesExpectedNodesAndEdges(t *testing.T) {
 	}
 }
 
-func TestBuildGraphErrorsOnMissingRoot(t *testing.T) {
-	_, err := BuildGraph(pkgs, []string{"invalid/root/import/path"}, []string{})
-	if err == nil {
-		t.Fatalf("expecting error, but saw none")
-	}
-
-	expected := "no corresponding node found for the root name"
-	actual := err.Error()
-	if !strings.Contains(actual, expected) {
-		t.Fatalf("unexpected error message. Expecting %q but saw %q", expected, actual)
-	}
-}
-
 func TestBuildGraphExcludesNodes(t *testing.T) {
 	excludes := []string{
 		"github.com/test/repo/pkg/three",
 		"github.com/test/repo/pkg/depends_on_fmt",
 	}
 
-	g, err := BuildGraph(pkgs, nil, excludes)
+	opts := GraphOptions{
+		Packages: pkgs.PackageList,
+		Roots:    pkgs.ImportPaths(),
+		Excludes: excludes,
+	}
+
+	g, err := opts.BuildGraph()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -179,33 +191,40 @@ func TestBuildGraphExcludesNodes(t *testing.T) {
 }
 
 func TestPackagesWithInvalidPathsAreOmitted(t *testing.T) {
-	pkgList := &PackageList{
-		Packages: []Package{
-			{
-				Dir:        "/path/to/github.com/test/repo/invalid",
-				ImportPath: "invalid/import/path1",
-				Imports: []string{
-					"fmt",
-					"invalid.import.path2",
-					"invalid.import.path3",
+	pkgList := &TestPackageList{
+		&PackageList{
+			Packages: []Package{
+				{
+					Dir:        "/path/to/github.com/test/repo/invalid",
+					ImportPath: "invalid/import/path1",
+					Imports: []string{
+						"fmt",
+						"invalid.import.path2",
+						"invalid.import.path3",
+					},
 				},
-			},
-			{
-				Dir:        "/path/to/github.com/test/repo/invalid",
-				ImportPath: "invalid.import.path2",
-				Imports: []string{
-					"net",
-					"encoding/json",
+				{
+					Dir:        "/path/to/github.com/test/repo/invalid",
+					ImportPath: "invalid.import.path2",
+					Imports: []string{
+						"net",
+						"encoding/json",
+					},
 				},
-			},
-			{
-				Dir:        "/path/to/github.com/test/repo/invalid",
-				ImportPath: "invalid3",
+				{
+					Dir:        "/path/to/github.com/test/repo/invalid",
+					ImportPath: "invalid3",
+				},
 			},
 		},
 	}
 
-	g, err := BuildGraph(pkgList, nil, []string{})
+	opts := GraphOptions{
+		Packages: pkgList.PackageList,
+		Roots:    pkgList.ImportPaths(),
+	}
+
+	g, err := opts.BuildGraph()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -216,18 +235,25 @@ func TestPackagesWithInvalidPathsAreOmitted(t *testing.T) {
 }
 
 func TestLabelNamesForVendoredNodes(t *testing.T) {
-	pkgList := &PackageList{
-		Packages: []Package{
-			{
-				Dir:        "/path/to/github.com/test/repo/vendor/github.com/testvendor/vendor_one",
-				ImportPath: "github.com/test/repo/vendor/github.com/testvendor/vendor_one",
+	pkgList := &TestPackageList{
+		&PackageList{
+			Packages: []Package{
+				{
+					Dir:        "/path/to/github.com/test/repo/vendor/github.com/testvendor/vendor_one",
+					ImportPath: "github.com/test/repo/vendor/github.com/testvendor/vendor_one",
+				},
 			},
 		},
 	}
 
 	expectedLabelName := "github.com/testvendor/vendor_one"
 
-	g, err := BuildGraph(pkgList, nil, []string{})
+	opts := GraphOptions{
+		Packages: pkgList.PackageList,
+		Roots:    pkgList.ImportPaths(),
+	}
+
+	g, err := opts.BuildGraph()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -241,7 +267,8 @@ func TestLabelNamesForVendoredNodes(t *testing.T) {
 		t.Fatalf("expected node %v to be of type *depgraph.Node", node)
 	}
 
-	if node.LabelName != expectedLabelName {
-		t.Fatalf("expected node label name to be %q but was %q", expectedLabelName, node.LabelName)
+	actualLabelName := labelNameForNode(node.UniqueName)
+	if actualLabelName != expectedLabelName {
+		t.Fatalf("expected node label name to be %q but was %q", expectedLabelName, actualLabelName)
 	}
 }

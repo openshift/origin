@@ -8,17 +8,15 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/golang/glog"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	configcmd "github.com/openshift/origin/pkg/bulk"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -37,7 +35,7 @@ const (
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, pvDir string, out, errout io.Writer) error {
+func (h *Helper) InstallRegistry(imageRunHelper *run.Runner, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, pvDir string, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -56,47 +54,47 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
+	masterDir := filepath.Join(configDir, "master")
+
 	// Obtain registry markup. The reason it is not created outright is because
 	// we need to modify the ClusterIP of the registry service. The command doesn't
 	// have an option to set it.
-	registryJSON, stdErr, err := h.execHelper.Command("oc", "adm", "registry",
-		"--dry-run",
-		"--output=json",
-		"--local",
+	stdOut, stdErr, err := h.execHelper.Command().Output()
+
+	flags := []string{
+		"adm",
+		"registry",
+		"--loglevel=8",
+		"--config=" + masterConfigDir + "/admin.kubeconfig",
 		fmt.Sprintf("--images=%s", images),
-		fmt.Sprintf("--mount-host=%s", path.Join(pvDir, "registry"))).Output()
+		fmt.Sprintf("--mount-host=%s", path.Join(pvDir, "registry")),
+	}
+	_, _, err = imageRunHelper.Image(ocImage).
+		Privileged().
+		DiscardContainer().
+		HostNetwork().
+		HostPid().
+		Bind(masterDir + ":" + masterConfigDir).
+		Entrypoint("oc").
+		Command(flags...).Run()
 
 	if err != nil {
+		glog.Error(stdOut)
 		return errors.NewError("cannot generate registry resources").WithCause(err).WithDetails(stdErr)
 	}
 
-	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), []byte(registryJSON))
-	if err != nil {
-		return errors.NewError("cannot decode registry JSON output").WithCause(err).WithDetails(registryJSON)
+	svc, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
+	if err == nil {
+		return err
 	}
-	objList := obj.(*kapi.List)
-
-	if errs := runtime.DecodeList(objList.Items, legacyscheme.Codecs.UniversalDecoder()); len(errs) > 0 {
-		return errors.NewError("cannot decode registry objects").WithCause(utilerrors.NewAggregate(errs))
+	svc.Spec.ClusterIP = RegistryServiceIP
+	if err := kubeClient.Core().Services(DefaultNamespace).Delete(svc.Name, nil); err == nil {
+		return err
 	}
-
-	// Update the ClusterIP on the Docker registry service definition
-	for _, item := range objList.Items {
-		if svc, ok := item.(*kapi.Service); ok {
-			svc.Spec.ClusterIP = RegistryServiceIP
-		}
+	if _, err := kubeClient.Core().Services(DefaultNamespace).Create(svc); err == nil {
+		return err
 	}
 
-	// Create objects
-	mapper := clientcmd.ResourceMapper(f)
-	bulk := &configcmd.Bulk{
-		Mapper: mapper,
-		Op:     configcmd.Create,
-	}
-	if errs := bulk.Run(objList, DefaultNamespace); len(errs) > 0 {
-		err = utilerrors.NewAggregate(errs)
-		return errors.NewError("cannot create registry objects").WithCause(err)
-	}
 	return nil
 }
 
@@ -175,55 +173,23 @@ func (h *Helper) InstallRouter(imageRunHelper *run.Runner, ocImage string, kubeC
 
 	flags := []string{
 		"adm", "router",
-		"--dry-run",
-		"--output=json",
-		"--local",
 		"--host-ports=true",
+		"--loglevel=8",
+		"--config=" + masterConfigDir + "/admin.kubeconfig",
 		fmt.Sprintf("--host-network=%v", !portForwarding),
 		fmt.Sprintf("--images=%s", images),
 		fmt.Sprintf("--default-cert=%s", routerCertPath),
 	}
-	_, routerJSON, stdErr, _, err := imageRunHelper.Image(ocImage).
+	_, _, err = imageRunHelper.Image(ocImage).
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
 		HostPid().
 		Bind(masterDir + ":" + masterConfigDir).
 		Entrypoint("oc").
-		Command(flags...).Output()
+		Command(flags...).Run()
 	if err != nil {
-		return errors.NewError("cannot generate router resources").WithCause(err).WithDetails(stdErr)
-	}
-
-	obj, err := runtime.Decode(legacyscheme.Codecs.UniversalDecoder(), []byte(routerJSON))
-	if err != nil {
-		return errors.NewError("cannot decode registry JSON output").WithCause(err).WithDetails(routerJSON)
-	}
-	objList := obj.(*kapi.List)
-
-	if errs := runtime.DecodeList(objList.Items, legacyscheme.Codecs.UniversalDecoder()); len(errs) > 0 {
-		return errors.NewError("cannot decode registry objects").WithCause(utilerrors.NewAggregate(errs))
-	}
-
-	// Create objects
-	mapper := clientcmd.ResourceMapper(f)
-	bulk := &configcmd.Bulk{
-		Mapper: mapper,
-		Op:     configcmd.Create,
-	}
-	if errs := bulk.Run(objList, DefaultNamespace); len(errs) > 0 {
-		filteredErrs := []error{}
-		for _, err := range errs {
-			if apierrors.IsAlreadyExists(err) {
-				continue
-			}
-			filteredErrs = append(filteredErrs, err)
-		}
-		if len(filteredErrs) == 0 {
-			return nil
-		}
-		err = utilerrors.NewAggregate(filteredErrs)
-		return errors.NewError("cannot create router object").WithCause(err)
+		return errors.NewError("cannot generate router resources").WithCause(err)
 	}
 
 	return nil

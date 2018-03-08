@@ -27,6 +27,7 @@ os::cmd::expect_success_and_text 'oc get all' "svc/testsvc2"
 # test tuples of same and different resource kinds (tuples of same resource kind should not return prefixed items).
 os::cmd::expect_success_and_not_text 'oc get svc/testsvc1 svc/testsvc2' "svc/testsvc1"
 os::cmd::expect_success_and_text 'oc get svc/testsvc1 is/testimg1' "svc/testsvc1"
+os::cmd::expect_success_and_text 'oc get --v=8 svc/testsvc1 is/testimg1' "round_trippers.go"
 # specific resources should not have their kind prefixed
 os::cmd::expect_success_and_text 'oc get svc' "testsvc1"
 # test --show-labels displays labels for users

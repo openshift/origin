@@ -7,10 +7,10 @@ import (
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 
+	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
 
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
