@@ -80,26 +80,33 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 
 	// Apply default resources
 	defaultResources := b.config.Resources
+	allContainers := make([]*v1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
 	for i := range pod.Spec.Containers {
-		podEnv := &pod.Spec.Containers[i].Env
-		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.config.Env), podEnv, false)
+		allContainers = append(allContainers, &pod.Spec.Containers[i])
+	}
+	for i := range pod.Spec.InitContainers {
+		allContainers = append(allContainers, &pod.Spec.InitContainers[i])
+	}
 
-		if pod.Spec.Containers[i].Resources.Limits == nil {
-			pod.Spec.Containers[i].Resources.Limits = v1.ResourceList{}
+	for _, c := range allContainers {
+		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.config.Env), &c.Env, false)
+
+		if c.Resources.Limits == nil {
+			c.Resources.Limits = v1.ResourceList{}
 		}
 		for name, value := range defaultResources.Limits {
-			if _, ok := pod.Spec.Containers[i].Resources.Limits[v1.ResourceName(name)]; !ok {
+			if _, ok := c.Resources.Limits[v1.ResourceName(name)]; !ok {
 				glog.V(5).Infof("Setting default resource limit %s for pod %s/%s to %v", name, pod.Namespace, pod.Name, value)
-				pod.Spec.Containers[i].Resources.Limits[v1.ResourceName(name)] = value
+				c.Resources.Limits[v1.ResourceName(name)] = value
 			}
 		}
-		if pod.Spec.Containers[i].Resources.Requests == nil {
-			pod.Spec.Containers[i].Resources.Requests = v1.ResourceList{}
+		if c.Resources.Requests == nil {
+			c.Resources.Requests = v1.ResourceList{}
 		}
 		for name, value := range defaultResources.Requests {
-			if _, ok := pod.Spec.Containers[i].Resources.Requests[v1.ResourceName(name)]; !ok {
+			if _, ok := c.Resources.Requests[v1.ResourceName(name)]; !ok {
 				glog.V(5).Infof("Setting default resource request %s for pod %s/%s to %v", name, pod.Namespace, pod.Name, value)
-				pod.Spec.Containers[i].Resources.Requests[v1.ResourceName(name)] = value
+				c.Resources.Requests[v1.ResourceName(name)] = value
 			}
 		}
 	}
