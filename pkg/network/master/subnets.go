@@ -2,7 +2,6 @@ package master
 
 import (
 	"fmt"
-	"net"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -26,30 +25,6 @@ func (master *OsdnMaster) startSubnetMaster() error {
 
 	master.watchNodes()
 	master.watchSubnets()
-
-	return nil
-}
-
-func (master *OsdnMaster) initSubnetAllocators() error {
-	for _, cn := range master.networkInfo.ClusterNetworks {
-		sa, err := NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, nil)
-		if err != nil {
-			return err
-		}
-		master.subnetAllocatorList = append(master.subnetAllocatorList, sa)
-		master.subnetAllocatorMap[cn] = sa
-	}
-
-	// Populate subnet allocator
-	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	for _, sn := range subnets.Items {
-		if err := master.markAllocatedNetwork(sn.Subnet); err != nil {
-			utilruntime.HandleError(err)
-		}
-	}
 
 	return nil
 }
@@ -141,30 +116,13 @@ func (master *OsdnMaster) addNode(nodeName string, nodeUID string, nodeIP string
 	}
 	sub, err = master.networkClient.Network().HostSubnets().Create(sub)
 	if err != nil {
-		master.releaseNetwork(network)
-		return "", fmt.Errorf("error allocating node: %s", nodeName)
+		if er := master.releaseNetwork(network); er != nil {
+			utilruntime.HandleError(er)
+		}
+		return "", fmt.Errorf("error allocating subnet for node %q: %v", nodeName, err)
 	}
 	glog.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
 	return nodeIP, nil
-}
-
-func (master *OsdnMaster) allocateNetwork(nodeName string) (string, error) {
-	var sn *net.IPNet
-	var err error
-
-	for _, possibleSubnet := range master.subnetAllocatorList {
-		sn, err = possibleSubnet.GetNetwork()
-		if err == ErrSubnetAllocatorFull {
-			// Current subnet exhausted, check the next one
-			continue
-		} else if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Error allocating network from subnet: %v", possibleSubnet))
-			continue
-		} else {
-			return sn.String(), nil
-		}
-	}
-	return "", fmt.Errorf("error allocating network for node %s: %v", nodeName, err)
 }
 
 func (master *OsdnMaster) deleteNode(nodeName string) error {
@@ -180,27 +138,6 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 	}
 
 	glog.Infof("Deleted HostSubnet %s", subInfo)
-	return nil
-}
-
-func (master *OsdnMaster) markAllocatedNetwork(subnet string) error {
-	_, subnetIP, err := net.ParseCIDR(subnet)
-	if err != nil {
-		return fmt.Errorf("failed to parse network address: %q", subnet)
-	}
-
-	for _, cn := range master.networkInfo.ClusterNetworks {
-		if cn.ClusterCIDR.Contains(subnetIP.IP) {
-			sa, ok := master.subnetAllocatorMap[cn]
-			if !ok || sa == nil {
-				return fmt.Errorf("subnet allocator not found for cluster network: %v", cn)
-			}
-			if err = sa.AllocateNetwork(subnetIP); err != nil {
-				return err
-			}
-			break
-		}
-	}
 	return nil
 }
 
@@ -294,29 +231,8 @@ func (master *OsdnMaster) handleDeleteSubnet(obj interface{}) {
 		return
 	}
 
-	master.releaseNetwork(hs.Subnet)
-}
-
-func (master *OsdnMaster) releaseNetwork(subnet string) {
-	_, ipnet, err := net.ParseCIDR(subnet)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error parsing subnet %q: %v", subnet, err))
-		return
-	}
-
-	for _, cn := range master.networkInfo.ClusterNetworks {
-		if cn.ClusterCIDR.Contains(ipnet.IP) {
-			sa, ok := master.subnetAllocatorMap[cn]
-			if !ok || sa == nil {
-				utilruntime.HandleError(fmt.Errorf("Subnet allocator not found for cluster network: %v", cn))
-				return
-			}
-			if err = sa.ReleaseNetwork(ipnet); err != nil {
-				utilruntime.HandleError(fmt.Errorf("Failed to release subnet %q: %v", subnet, err))
-				return
-			}
-			break
-		}
+	if err := master.releaseNetwork(hs.Subnet); err != nil {
+		utilruntime.HandleError(err)
 	}
 }
 

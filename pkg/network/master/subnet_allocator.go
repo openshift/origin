@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
@@ -157,4 +158,89 @@ func Uint32ToIP(u uint32) net.IP {
 	ip := make([]byte, 4)
 	binary.BigEndian.PutUint32(ip, u)
 	return net.IPv4(ip[0], ip[1], ip[2], ip[3])
+}
+
+//--------------------- Master methods ----------------------
+
+func (master *OsdnMaster) initSubnetAllocators() error {
+	for _, cn := range master.networkInfo.ClusterNetworks {
+		sa, err := NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, nil)
+		if err != nil {
+			return err
+		}
+		master.subnetAllocatorList = append(master.subnetAllocatorList, sa)
+		master.subnetAllocatorMap[cn] = sa
+	}
+
+	// Populate subnet allocator
+	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, sn := range subnets.Items {
+		if err := master.markAllocatedNetwork(sn.Subnet); err != nil {
+			utilruntime.HandleError(err)
+		}
+	}
+
+	return nil
+}
+
+func (master *OsdnMaster) markAllocatedNetwork(subnet string) error {
+	sa, ipnet, err := master.getSubnetAllocator(subnet)
+	if err != nil {
+		return err
+	}
+	if err = sa.AllocateNetwork(ipnet); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (master *OsdnMaster) allocateNetwork(nodeName string) (string, error) {
+	var sn *net.IPNet
+	var err error
+
+	for _, possibleSubnet := range master.subnetAllocatorList {
+		sn, err = possibleSubnet.GetNetwork()
+		if err == ErrSubnetAllocatorFull {
+			// Current subnet exhausted, check the next one
+			continue
+		} else if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Error allocating network from subnet: %v", possibleSubnet))
+			continue
+		} else {
+			return sn.String(), nil
+		}
+	}
+	return "", fmt.Errorf("error allocating network for node %s: %v", nodeName, err)
+}
+
+func (master *OsdnMaster) releaseNetwork(subnet string) error {
+	sa, ipnet, err := master.getSubnetAllocator(subnet)
+	if err != nil {
+		return err
+	}
+	if err = sa.ReleaseNetwork(ipnet); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (master *OsdnMaster) getSubnetAllocator(subnet string) (*SubnetAllocator, *net.IPNet, error) {
+	_, ipnet, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing subnet %q: %v", subnet, err)
+	}
+
+	for _, cn := range master.networkInfo.ClusterNetworks {
+		if cn.ClusterCIDR.Contains(ipnet.IP) {
+			sa, ok := master.subnetAllocatorMap[cn]
+			if !ok || sa == nil {
+				return nil, nil, fmt.Errorf("subnet allocator not found for cluster network: %v", cn)
+			}
+			return sa, ipnet, nil
+		}
+	}
+	return nil, nil, fmt.Errorf("subnet %q not found in the cluster networks: %v", subnet, master.networkInfo.ClusterNetworks)
 }
