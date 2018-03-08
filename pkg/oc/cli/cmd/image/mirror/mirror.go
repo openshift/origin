@@ -632,7 +632,7 @@ func processManifestList(ctx apirequest.Context, srcDigest godigest.Digest, srcM
 		}
 
 		for i, manifest := range t.Manifests {
-			childManifest, err := manifests.Get(ctx, manifest.Digest, distribution.WithTag(manifestlist.MediaTypeManifestList), distribution.WithTag(schema2.MediaTypeManifest))
+			childManifest, err := manifests.Get(ctx, manifest.Digest, distribution.WithManifestMediaTypes([]string{manifestlist.MediaTypeManifestList, schema2.MediaTypeManifest}))
 			if err != nil {
 				return nil, nil, "", fmt.Errorf("unable to retrieve source image %s manifest #%d from manifest list: %v", ref, i+1, err)
 			}
