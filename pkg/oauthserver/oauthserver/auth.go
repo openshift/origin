@@ -23,12 +23,12 @@ import (
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/retry"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/passwordchallenger"
@@ -81,10 +81,10 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 	mux.Handle("/", handler)
 
 	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(
-		c.ExtraOAuthConfig.KubeClient.Core(),
-		c.ExtraOAuthConfig.KubeClient.Core(),
+		c.ExtraOAuthConfig.KubeClient.CoreV1(),
+		c.ExtraOAuthConfig.KubeClient.CoreV1(),
 		c.ExtraOAuthConfig.EventsClient,
-		c.ExtraOAuthConfig.RouteClient.Route(),
+		c.ExtraOAuthConfig.RouteClient,
 		c.ExtraOAuthConfig.OAuthClientClient,
 		oauthapi.GrantHandlerType(c.ExtraOAuthConfig.Options.GrantConfig.ServiceAccountMethod),
 	)
@@ -165,7 +165,7 @@ func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
 	}
 
 	if len(*c.ExtraOAuthConfig.Options.MasterCA) > 0 {
-		rootCAs, err := cmdutil.CertPoolFromFile(*c.ExtraOAuthConfig.Options.MasterCA)
+		rootCAs, err := cert.NewPool(*c.ExtraOAuthConfig.Options.MasterCA)
 		if err != nil {
 			return nil, err
 		}
@@ -473,7 +473,7 @@ func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.Identity
 		return github.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.Organizations, provider.Teams), nil
 
 	case (*configapi.GitLabIdentityProvider):
-		transport, err := cmdutil.TransportFor(provider.CA, "", "")
+		transport, err := transportFor(provider.CA, "", "")
 		if err != nil {
 			return nil, err
 		}
@@ -491,7 +491,7 @@ func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.Identity
 		return google.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.HostedDomain)
 
 	case (*configapi.OpenIDIdentityProvider):
-		transport, err := cmdutil.TransportFor(provider.CA, "", "")
+		transport, err := transportFor(provider.CA, "", "")
 		if err != nil {
 			return nil, err
 		}
@@ -586,7 +586,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 		if len(connectionInfo.URL) == 0 {
 			return nil, fmt.Errorf("URL is required for BasicAuthPasswordIdentityProvider")
 		}
-		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
+		transport, err := transportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("Error building BasicAuthPasswordIdentityProvider client: %v", err)
 		}
@@ -597,7 +597,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.
 		if len(connectionInfo.URL) == 0 {
 			return nil, fmt.Errorf("URL is required for KeystonePasswordIdentityProvider")
 		}
-		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
+		transport, err := transportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("Error building KeystonePasswordIdentityProvider client: %v", err)
 		}
@@ -697,4 +697,38 @@ func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then stri
 
 	http.Redirect(w, req, then, http.StatusFound)
 	return true, nil
+}
+
+// transportFor returns an http.Transport for the given ca and client cert (which may be empty strings)
+func transportFor(ca string, certFile string, keyFile string) (http.RoundTripper, error) {
+	if len(ca) == 0 && len(certFile) == 0 && len(keyFile) == 0 {
+		return http.DefaultTransport, nil
+	}
+
+	if (len(certFile) == 0) != (len(keyFile) == 0) {
+		return nil, errors.New("certFile and keyFile must be specified together")
+	}
+
+	// Copy default transport
+	transport := knet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: &tls.Config{},
+	})
+
+	if len(ca) != 0 {
+		roots, err := cert.NewPool(ca)
+		if err != nil {
+			return nil, fmt.Errorf("error loading cert pool from ca file %s: %v", ca, err)
+		}
+		transport.TLSClientConfig.RootCAs = roots
+	}
+
+	if len(certFile) != 0 {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return nil, fmt.Errorf("error loading x509 keypair from cert file %s and key file %s: %v", certFile, keyFile, err)
+		}
+		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	return transport, nil
 }

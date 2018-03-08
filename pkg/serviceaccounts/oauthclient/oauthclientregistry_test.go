@@ -15,13 +15,12 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	oauthapiv1 "github.com/openshift/api/oauth/v1"
+	routeapi "github.com/openshift/api/route/v1"
+	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routefake "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 )
 
 var (
@@ -30,8 +29,8 @@ var (
 	serviceAccountsResource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "serviceaccounts"}
 	secretsResource         = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
 	secretKind              = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"}
-	routesResource          = schema.GroupVersionResource{Group: "route.openshift.io", Version: "", Resource: "routes"}
-	routeClientKind         = schema.GroupVersionKind{Group: "route.openshift.io", Version: "", Kind: "Route"}
+	routesResource          = schema.GroupVersionResource{Group: "route.openshift.io", Version: "v1", Resource: "routes"}
+	routeClientKind         = schema.GroupVersionKind{Group: "route.openshift.io", Version: "v1", Kind: "Route"}
 )
 
 func TestGetClient(t *testing.T) {
@@ -1260,5 +1259,5 @@ func buildRedirectObjectReferenceString(kind, name, group string) string {
 }
 
 func buildValidRouteIngressCondition() []routeapi.RouteIngressCondition {
-	return []routeapi.RouteIngressCondition{{Type: routeapi.RouteAdmitted, Status: kapi.ConditionTrue}}
+	return []routeapi.RouteIngressCondition{{Type: routeapi.RouteAdmitted, Status: corev1.ConditionTrue}}
 }
