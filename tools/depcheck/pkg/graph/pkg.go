@@ -1,13 +1,12 @@
 package graph
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
 	"regexp"
-	"strings"
-
-	"github.com/golang/glog"
-
-	"github.com/gonum/graph/concrete"
 )
 
 var (
@@ -40,103 +39,50 @@ func (p *PackageList) Add(pkg Package) {
 	p.Packages = append(p.Packages, pkg)
 }
 
-// BuildGraph receives a list of Go packages and constructs a dependency graph from it.
-// Any core library dependencies (fmt, strings, etc.) are not added to the graph.
-// Any packages whose import path is contained within a list of "excludes" are not added to the graph.
-// Returns a directed graph and a map of package import paths to node ids, or an error.
-func BuildGraph(packages *PackageList, roots []string, excludes []string) (*MutableDirectedGraph, error) {
-	g := NewMutableDirectedGraph(roots)
+// getPackageMetadata receives a set of go import paths and execs "go list"
+// using each path as an entrypoint.
+// Returns a PackageList containing dependency and importPath data for each package.
+func getPackageMetadata(entrypoints []string) (*PackageList, error) {
+	args := []string{"list", "--json"}
+	golist := exec.Command("go", append(args, entrypoints...)...)
 
-	// contains the subset of packages from the set of given packages (and their immediate dependencies)
-	// that will actually be included in our graph - any packages in the excludes slice, or that do not
-	// do not match the baseRepoRegex pattern will be filtered out from this collection.
-	filteredPackages := []Package{}
+	r, w := io.Pipe()
+	golist.Stdout = w
+	golist.Stderr = os.Stderr
 
-	// add nodes to graph
-	for _, pkg := range packages.Packages {
-		if isExcludedPath(pkg.ImportPath, excludes) {
-			continue
-		}
-		if !isValidPackagePath(pkg.ImportPath) {
-			continue
-		}
+	done := make(chan bool)
 
-		n := &Node{
-			Id:         g.NewNodeID(),
-			UniqueName: pkg.ImportPath,
-			LabelName:  labelNameForNode(pkg.ImportPath),
-		}
-		err := g.AddNode(n)
-		if err != nil {
-			return nil, err
-		}
-
-		filteredPackages = append(filteredPackages, pkg)
-	}
-
-	// validate root names exist
-	for _, nodeName := range roots {
-		if _, exists := g.NodeByName(nodeName); !exists {
-			return nil, fmt.Errorf("no corresponding node found for the root name %q", nodeName)
-		}
-	}
-
-	// add edges
-	for _, pkg := range filteredPackages {
-		from, exists := g.NodeByName(pkg.ImportPath)
-		if !exists {
-			return nil, fmt.Errorf("expected node for package %q was not found in graph", pkg.ImportPath)
-		}
-
-		for _, dependency := range append(pkg.Imports, pkg.TestImports...) {
-			if isExcludedPath(dependency, excludes) {
-				continue
+	pkgs := &PackageList{}
+	go func(list *PackageList) {
+		decoder := json.NewDecoder(r)
+		for {
+			var pkg Package
+			err := decoder.Decode(&pkg)
+			if err == io.EOF {
+				break
 			}
-			if !isValidPackagePath(dependency) {
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 				continue
 			}
 
-			to, exists := g.NodeByName(dependency)
-			if !exists {
-				// if a package imports a dependency that we did not visit
-				// while traversing the code tree, ignore it, as it is not
-				// required for the root repository to build.
-				glog.V(1).Infof("Skipping unvisited (missing) dependency %q, which is imported by package %q", dependency, pkg.ImportPath)
-				continue
-			}
-
-			if g.HasEdgeFromTo(from, to) {
-				continue
-			}
-
-			g.SetEdge(concrete.Edge{
-				F: from,
-				T: to,
-			}, 0)
+			list.Add(pkg)
 		}
+
+		close(done)
+	}(pkgs)
+
+	if err := golist.Run(); err != nil {
+		w.Close()
+		return nil, err
 	}
+	w.Close()
 
-	return g, nil
-}
+	// wait for the goroutine to finish to ensure that all
+	// packages have been parsed and added before returning
+	<-done
 
-func isExcludedPath(path string, excludes []string) bool {
-	for _, exclude := range excludes {
-		if strings.HasPrefix(path, exclude) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// labelNameForNode trims vendored paths of their full /vendor/ path
-func labelNameForNode(importPath string) string {
-	segs := strings.Split(importPath, "/vendor/")
-	if len(segs) > 1 {
-		return segs[1]
-	}
-
-	return importPath
+	return pkgs, nil
 }
 
 func isValidPackagePath(path string) bool {
