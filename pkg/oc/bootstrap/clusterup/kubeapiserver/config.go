@@ -1,19 +1,17 @@
 package kubeapiserver
 
 import (
-	"fmt"
-	"io"
 	"os"
 	"path"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
 
 const KubeAPIServerDirName = "oc-cluster-up-kube-apiserver"
+const OpenShiftAPIServerDirName = "oc-cluster-up-openshift-apiserver"
 
 type KubeAPIServerStartConfig struct {
 	// MasterImage is the docker image for openshift start master
@@ -30,8 +28,10 @@ func NewKubeAPIServerStartConfig() *KubeAPIServerStartConfig {
 // Start starts the OpenShift master as a Docker container
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
-func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.Interface, imageRunHelper *run.Runner, out io.Writer) (string, error) {
-	fmt.Fprintf(out, "Creating initial OpenShift master configuration\n")
+func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.Interface, basedir string) (string, error) {
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+
+	glog.Infof("Creating initial OpenShift master configuration")
 	createConfigCmd := []string{
 		"start", "master",
 	}
@@ -47,12 +47,9 @@ func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.I
 	}
 
 	// TODO eliminate the linkage that other tasks have on this particular structure
-	tempDir, err := tmpformac.TempDir(KubeAPIServerDirName)
-	if err != nil {
-		return "", err
-	}
+	tempDir := path.Join(basedir, KubeAPIServerDirName)
 	masterDir := path.Join(tempDir, "master")
-	if err := os.Mkdir(masterDir, 0755); err != nil {
+	if err := os.MkdirAll(masterDir, 0755); err != nil {
 		return "", err
 	}
 	glog.V(1).Infof("Copying OpenShift config to local directory %s", tempDir)

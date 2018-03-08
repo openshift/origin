@@ -42,6 +42,7 @@
 // install/kube-dns/install.yaml
 // install/kube-proxy/install.yaml
 // install/kube-scheduler/kube-scheduler.yaml
+// install/openshift-apiserver/install.yaml
 // install/openshift-controller-manager/install.yaml
 // install/origin-web-console/console-config.yaml
 // install/origin-web-console/console-template.yaml
@@ -15246,7 +15247,7 @@ spec:
         set -o allexport
         source /etc/origin/master/master.env
       fi
-      exec openshift start master api --config=/etc/origin/master/master-config.yaml
+      exec hypershift openshift-kube-apiserver --config=/etc/origin/master/master-config.yaml
     securityContext:
       privileged: true
     volumeMounts:
@@ -15600,8 +15601,288 @@ func installKubeSchedulerKubeSchedulerYaml() (*asset, error) {
 	return a, nil
 }
 
-var _installOpenshiftControllerManagerInstallYaml = []byte(`# the openshift controller manager can use a template because the openshift-apiserver will be available first
-apiVersion: template.openshift.io/v1
+var _installOpenshiftApiserverInstallYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: openshift-apiserver
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: NAMESPACE
+  value: openshift-apiserver
+- name: LOGLEVEL
+  value: "0"
+- name: OPENSHIFT_APISERVER_CONFIG_HOST_PATH
+- name: NODE_SELECTOR
+  value: "{}"
+objects:
+
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-apiserver
+    labels:
+      openshift.io/control-plane: "true"
+      openshift.io/component: api
+  spec:
+    selector:
+      matchLabels:
+        openshift.io/control-plane: "true"
+        openshift.io/component: api
+    template:
+      metadata:
+        name: openshift-apiserver
+        labels:
+          openshift.io/control-plane: "true"
+          openshift.io/component: api
+      spec:
+        serviceAccountName: openshift-apiserver
+        restartPolicy: Always
+        hostNetwork: true
+        containers:
+        - name: apiserver
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ADDITIONAL_ALLOWED_REGISTRIES
+            value: registry.centos.org
+          command: ["hypershift", "openshift-apiserver"]
+          args:
+          - "--config=/etc/origin/master/master-config.yaml"
+          - "-v=${LOGLEVEL}"
+          ports:
+          - containerPort: 8445
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+           - mountPath: /etc/origin/master/
+             name: master-config
+           - mountPath: /etc/origin/cloudprovider/
+             name: master-cloud-provider
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8445
+              scheme: HTTPS
+        # sensitive files still sit on disk for now
+        volumes:
+        - name: master-config
+          hostPath:
+            path: ${OPENSHIFT_APISERVER_CONFIG_HOST_PATH}
+        - name: master-cloud-provider
+          hostPath:
+            path: /etc/origin/cloudprovider
+
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: openshift-apiserver
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${NAMESPACE}
+    name: api
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+  spec:
+    selector:
+      openshift.io/component: api
+    ports:
+    - name: https
+      port: 443
+      targetPort: 8445
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.apps.openshift.io
+  spec:
+    group: apps.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.authorization.openshift.io
+  spec:
+    group: authorization.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.build.openshift.io
+  spec:
+    group: build.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.image.openshift.io
+  spec:
+    group: image.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.network.openshift.io
+  spec:
+    group: network.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.oauth.openshift.io
+  spec:
+    group: oauth.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.project.openshift.io
+  spec:
+    group: project.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.quota.openshift.io
+  spec:
+    group: quota.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.route.openshift.io
+  spec:
+    group: route.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.security.openshift.io
+  spec:
+    group: security.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.template.openshift.io
+  spec:
+    group: template.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+
+- apiVersion: apiregistration.k8s.io/v1beta1
+  kind: APIService
+  metadata:
+    name: v1.user.openshift.io
+  spec:
+    group: user.openshift.io
+    version: v1
+    service:
+      namespace: openshift-apiserver
+      name: api
+    insecureSkipTLSVerify: true
+    groupPriorityMinimum: 9900
+    versionPriority: 15
+`)
+
+func installOpenshiftApiserverInstallYamlBytes() ([]byte, error) {
+	return _installOpenshiftApiserverInstallYaml, nil
+}
+
+func installOpenshiftApiserverInstallYaml() (*asset, error) {
+	bytes, err := installOpenshiftApiserverInstallYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/openshift-apiserver/install.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installOpenshiftControllerManagerInstallYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: openshift-controller-manager
@@ -15649,6 +15930,7 @@ objects:
           args:
           - "--listen=https://0.0.0.0:8444"
           - "--config=/etc/origin/master/master-config.yaml"
+          - "--loglevel=${LOGLEVEL}"
           ports:
           - containerPort: 8444
           securityContext:
@@ -16479,6 +16761,7 @@ var _bindata = map[string]func() (*asset, error){
 	"install/kube-dns/install.yaml": installKubeDnsInstallYaml,
 	"install/kube-proxy/install.yaml": installKubeProxyInstallYaml,
 	"install/kube-scheduler/kube-scheduler.yaml": installKubeSchedulerKubeSchedulerYaml,
+	"install/openshift-apiserver/install.yaml": installOpenshiftApiserverInstallYaml,
 	"install/openshift-controller-manager/install.yaml": installOpenshiftControllerManagerInstallYaml,
 	"install/origin-web-console/console-config.yaml": installOriginWebConsoleConsoleConfigYaml,
 	"install/origin-web-console/console-template.yaml": installOriginWebConsoleConsoleTemplateYaml,
@@ -16604,6 +16887,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"kube-scheduler": &bintree{nil, map[string]*bintree{
 			"kube-scheduler.yaml": &bintree{installKubeSchedulerKubeSchedulerYaml, map[string]*bintree{}},
+		}},
+		"openshift-apiserver": &bintree{nil, map[string]*bintree{
+			"install.yaml": &bintree{installOpenshiftApiserverInstallYaml, map[string]*bintree{}},
 		}},
 		"openshift-controller-manager": &bintree{nil, map[string]*bintree{
 			"install.yaml": &bintree{installOpenshiftControllerManagerInstallYaml, map[string]*bintree{}},

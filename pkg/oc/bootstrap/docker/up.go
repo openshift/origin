@@ -18,6 +18,7 @@ import (
 	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -26,6 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -180,7 +183,7 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 			kcmdutil.CheckErr(config.Validate(out, errout))
 			kcmdutil.CheckErr(config.CommonStartConfig.Check(out))
 			if err := config.Start(out); err != nil {
-				fmt.Fprintf(errout, "%s\n", err.Error())
+				PrintError(err, errout)
 				os.Exit(1)
 			}
 		},
@@ -226,6 +229,10 @@ type CommonStartConfig struct {
 	Out   io.Writer
 	Tasks []task
 
+	// BaseTempDir is the directory to use as the root for temp directories
+	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
+	// doing crazy thing like dirtying /var on the host (that does weird stuff)
+	BaseTempDir              string
 	HostName                 string
 	LocalConfigDir           string
 	UseExistingConfig        bool
@@ -284,9 +291,9 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&config.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
 	flags.StringVar(&config.HostConfigDir, "host-config-dir", config.HostConfigDir, "Directory on Docker host for OpenShift configuration")
 	flags.BoolVar(&config.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
-	flags.StringVar(&config.HostVolumesDir, "host-volumes-dir", host.DefaultVolumesDir, "Directory on Docker host for OpenShift volumes")
+	flags.StringVar(&config.HostVolumesDir, "host-volumes-dir", config.HostVolumesDir, "Directory on Docker host for OpenShift volumes")
 	flags.StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
-	flags.StringVar(&config.HostPersistentVolumesDir, "host-pv-dir", host.DefaultPersistentVolumesDir, "Directory on host for OpenShift persistent volumes")
+	flags.StringVar(&config.HostPersistentVolumesDir, "host-pv-dir", config.HostPersistentVolumesDir, "Directory on host for OpenShift persistent volumes")
 	flags.BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	flags.StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
@@ -327,12 +334,34 @@ func (config *ClientStartConfig) Bind(flags *pflag.FlagSet) {
 }
 
 func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
+	// TODO: remove this when we move to container/apply based component installation
+	aggregatorinstall.Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
+
 	c.originalFactory = f
 	c.command = cmd
 
 	// do some defaulting
 	if len(c.ImageVersion) == 0 {
 		c.ImageVersion = defaultImageVersion()
+	}
+	if len(c.BaseTempDir) == 0 {
+		var err error
+		c.BaseTempDir, err = tmpformac.TempDir("", "oc-cluster-up-")
+		if err != nil {
+			return err
+		}
+	}
+	if len(c.HostVolumesDir) == 0 {
+		c.HostVolumesDir = path.Join(c.BaseTempDir, "openshift.local.volumes")
+		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+			return err
+		}
+	}
+	if len(c.HostPersistentVolumesDir) == 0 {
+		c.HostPersistentVolumesDir = path.Join(c.BaseTempDir, "openshift.local.pv")
+		if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
+			return err
+		}
 	}
 
 	// do some struct initialization next
@@ -544,12 +573,6 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 
 	// Create an initial project
 	c.addTask(conditionalTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject, c.ShouldCreateUser))
-
-	// TODO see how to restore this.  The DNS config seems different now since it is in a container.
-	// Check container networking (only when loglevel > 0)
-	//if glog.V(1) {
-	//	c.addTask(simpleTask("Checking container networking", c.CheckContainerNetworking))
-	//}
 
 	// Display server information
 	c.addTask(simpleTask("Server Information", c.ServerInfo))
@@ -986,29 +1009,6 @@ func (c *ClientStartConfig) PostClusterStartupMutations(out io.Writer) error {
 	err = c.OpenShiftHelper().SetupPersistentStorage(authorizationClient.Authorization(), kClient, securityClient, c.HostPersistentVolumesDir, c.HostPersistentVolumesDir)
 	if err != nil {
 		return err
-	}
-	return nil
-}
-func (c *ClientStartConfig) CheckContainerNetworking(out io.Writer) error {
-	serverIP, err := c.OpenShiftHelper().ServerIP()
-	if err != nil {
-		return err
-	}
-	var networkErr error
-	if c.containerNetworkErr != nil {
-		// TODO this branch should die.  Side effecty as all get out
-		networkErr = <-c.containerNetworkErr
-	} else {
-		networkErr = c.OpenShiftHelper().TestContainerNetworking(serverIP)
-	}
-
-	if networkErr != nil {
-		return errors.NewError("containers cannot communicate with the OpenShift master").
-			WithDetails("The cluster was started. However, the container networking test failed.").
-			WithSolution(
-				fmt.Sprintf("Ensure that access to ports tcp/8443, udp/53 and udp/8053 is allowed on %s.\n"+
-					"You may need to open these ports on your machine's firewall.", serverIP)).
-			WithCause(networkErr)
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrorutils "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/discovery"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -33,11 +34,11 @@ func instantiateTemplate(client templateclient.TemplateInterface, clientFactory 
 		return err
 	}
 
-	discoveryClient, err := clientFactory.DiscoveryClient()
-	if err != nil {
-		return errors.NewError("cannot process template %s/%s", templateNamespace, templateName).WithCause(err)
-	}
 	clientConfig, err := clientFactory.ClientConfig()
+	if err != nil {
+		return err
+	}
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
