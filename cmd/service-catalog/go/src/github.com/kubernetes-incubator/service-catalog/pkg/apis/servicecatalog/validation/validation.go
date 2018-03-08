@@ -17,6 +17,8 @@ limitations under the License.
 package validation
 
 import (
+	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"regexp"
 )
 
@@ -24,4 +26,23 @@ var hexademicalStringRegexp = regexp.MustCompile("^[[:xdigit:]]*$")
 
 func stringIsHexadecimal(s string) bool {
 	return hexademicalStringRegexp.MatchString(s)
+}
+
+func validateParametersFromSource(parametersFrom []sc.ParametersFromSource, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	for _, paramsFrom := range parametersFrom {
+		if paramsFrom.SecretKeyRef != nil {
+			if paramsFrom.SecretKeyRef.Name == "" {
+				allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom.secretKeyRef.name"), "name is required"))
+			}
+			if paramsFrom.SecretKeyRef.Key == "" {
+				allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom.secretKeyRef.key"), "key is required"))
+			}
+		} else {
+			allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom"), "source must not be empty if present"))
+		}
+	}
+
+	return allErrs
 }

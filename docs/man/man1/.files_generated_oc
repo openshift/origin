@@ -72,6 +72,7 @@ oc-adm-manage-node.1
 oc-adm-migrate-authorization.1
 oc-adm-migrate-etcd-ttl.1
 oc-adm-migrate-image-references.1
+oc-adm-migrate-legacy-hpa.1
 oc-adm-migrate-storage.1
 oc-adm-migrate.1
 oc-adm-new-project.1

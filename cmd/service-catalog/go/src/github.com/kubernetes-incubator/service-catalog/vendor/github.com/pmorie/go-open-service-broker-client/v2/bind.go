@@ -47,7 +47,7 @@ func (c *client) Bind(r *BindRequest) (*BindResponse, error) {
 
 	params := map[string]string{}
 	if r.AcceptsIncomplete {
-		params[asyncQueryParamKey] = "true"
+		params[AcceptsIncomplete] = "true"
 	}
 
 	requestBody := &bindRequestBody{
