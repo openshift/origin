@@ -31,6 +31,14 @@ func (node *OsdnNode) getRuntimeService() (kubeletapi.RuntimeService, error) {
 				// Wait longer
 				return false, nil
 			}
+
+			// Ensure the runtime is actually alive; gRPC may create the client but
+			// it may not be responding to requests yet
+			if _, err := runtimeService.ListPodSandbox(&kruntimeapi.PodSandboxFilter{}); err != nil {
+				// Wait longer
+				return false, nil
+			}
+
 			node.runtimeService = runtimeService
 			return true, nil
 		})
