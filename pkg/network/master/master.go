@@ -178,13 +178,12 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 	switch pluginName {
 	case network.MultiTenantPluginName:
 		master.vnids = newMasterVNIDMap(true)
-		if err := master.VnidStartMaster(); err != nil {
-			glog.Fatalf("failed to start vnid master: %v", err)
-		}
 	case network.NetworkPolicyPluginName:
 		master.vnids = newMasterVNIDMap(false)
-		if err := master.VnidStartMaster(); err != nil {
-			glog.Fatalf("failed to start vnid master: %v", err)
+	}
+	if master.vnids != nil {
+		if err := master.startVNIDMaster(); err != nil {
+			glog.Fatalf("failed to start VNID master: %v", err)
 		}
 	}
 }

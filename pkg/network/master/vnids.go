@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
@@ -16,7 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion/network/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	pnetid "github.com/openshift/origin/pkg/network/master/netid"
 )
@@ -77,26 +75,17 @@ func (vmap *masterVNIDMap) isAdminNamespace(nsName string) bool {
 	return false
 }
 
-func (vmap *masterVNIDMap) populateVNIDs(netNamespaceInformer networkinformers.NetNamespaceInformer) error {
-	netnsList, err := netNamespaceInformer.Lister().List(labels.Everything())
-	if err != nil {
-		return err
+func (vmap *masterVNIDMap) markAllocatedNetID(netid uint32) error {
+	// Skip GlobalVNID, not part of netID allocation range
+	if netid == network.GlobalVNID {
+		return nil
 	}
 
-	for _, netns := range netnsList {
-		vmap.setVNID(netns.NetName, netns.NetID)
-
-		// Skip GlobalVNID, not part of netID allocation range
-		if netns.NetID == network.GlobalVNID {
-			continue
-		}
-
-		switch err := vmap.netIDManager.Allocate(netns.NetID); err {
-		case nil: // Expected normal case
-		case pnetid.ErrAllocated: // Expected when project networks are joined
-		default:
-			return fmt.Errorf("unable to allocate netid %d: %v", netns.NetID, err)
-		}
+	switch err := vmap.netIDManager.Allocate(netid); err {
+	case nil: // Expected normal case
+	case pnetid.ErrAllocated: // Expected when project networks are joined
+	default:
+		return fmt.Errorf("unable to allocate netid %d: %v", netid, err)
 	}
 	return nil
 }
@@ -222,9 +211,10 @@ func (vmap *masterVNIDMap) assignVNID(networkClient networkclient.Interface, nsN
 			NetName:    nsName,
 			NetID:      netid,
 		}
-		_, err := networkClient.Network().NetNamespaces().Create(netns)
-		if err != nil {
-			vmap.releaseNetID(nsName)
+		if _, err := networkClient.Network().NetNamespaces().Create(netns); err != nil {
+			if er := vmap.releaseNetID(nsName); er != nil {
+				utilruntime.HandleError(er)
+			}
 			return err
 		}
 	}
@@ -278,14 +268,30 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 
 //--------------------- Master methods ----------------------
 
-func (master *OsdnMaster) VnidStartMaster() error {
-	err := master.vnids.populateVNIDs(master.netNamespaceInformer)
-	if err != nil {
+func (master *OsdnMaster) startVNIDMaster() error {
+	if err := master.initNetIDAllocator(); err != nil {
 		return err
 	}
 
 	master.watchNamespaces()
 	master.watchNetNamespaces()
+
+	return nil
+}
+
+func (master *OsdnMaster) initNetIDAllocator() error {
+	netnsList, err := master.networkClient.Network().NetNamespaces().List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, netns := range netnsList.Items {
+		if err := master.vnids.markAllocatedNetID(netns.NetID); err != nil {
+			utilruntime.HandleError(err)
+		}
+		master.vnids.setVNID(netns.Name, netns.NetID)
+	}
+
 	return nil
 }
 
@@ -297,6 +303,7 @@ func (master *OsdnMaster) watchNamespaces() {
 func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
 	ns := obj.(*kapi.Namespace)
 	glog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
+
 	if err := master.vnids.assignVNID(master.networkClient, ns.Name); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error assigning netid: %v", err))
 	}
@@ -319,8 +326,7 @@ func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, even
 	netns := obj.(*networkapi.NetNamespace)
 	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
 
-	err := master.vnids.updateVNID(master.networkClient, netns)
-	if err != nil {
+	if err := master.vnids.updateVNID(master.networkClient, netns); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error updating netid: %v", err))
 	}
 }
