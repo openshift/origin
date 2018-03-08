@@ -30,7 +30,6 @@ const (
 	lastOperationURLFmt        = "%s/v2/service_instances/%s/last_operation"
 	bindingLastOperationURLFmt = "%s/v2/service_instances/%s/service_bindings/%s/last_operation"
 	bindingURLFmt              = "%s/v2/service_instances/%s/service_bindings/%s"
-	asyncQueryParamKey         = "accepts_incomplete"
 )
 
 // NewClient is a CreateFunc for creating a new functional Client and
@@ -64,6 +63,7 @@ func NewClient(config *ClientConfiguration) (Client, error) {
 		URL:                 strings.TrimRight(config.URL, "/"),
 		APIVersion:          config.APIVersion,
 		EnableAlphaFeatures: config.EnableAlphaFeatures,
+		Verbose:             config.Verbose,
 		httpClient:          httpClient,
 	}
 	c.doRequestFunc = c.doRequest
@@ -204,16 +204,26 @@ func (c *client) unmarshalResponse(response *http.Response, obj interface{}) err
 // response.
 func (c *client) handleFailureResponse(response *http.Response) error {
 	glog.Info("handling failure responses")
-	brokerResponse := &failureResponseBody{}
-	if err := c.unmarshalResponse(response, brokerResponse); err != nil {
-		return HTTPStatusCodeError{StatusCode: response.StatusCode, ResponseError: err}
+
+	httpErr := HTTPStatusCodeError{
+		StatusCode: response.StatusCode,
 	}
 
-	return HTTPStatusCodeError{
-		StatusCode:   response.StatusCode,
-		ErrorMessage: brokerResponse.Err,
-		Description:  brokerResponse.Description,
+	brokerResponse := make(map[string]interface{})
+	if err := c.unmarshalResponse(response, &brokerResponse); err != nil {
+		httpErr.ResponseError = err
+		return httpErr
 	}
+
+	if errorMessage, ok := brokerResponse["error"].(string); ok {
+		httpErr.ErrorMessage = &errorMessage
+	}
+
+	if description, ok := brokerResponse["description"].(string); ok {
+		httpErr.Description = &description
+	}
+
+	return httpErr
 }
 
 func buildOriginatingIdentityHeaderValue(i *OriginatingIdentity) (string, error) {

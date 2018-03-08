@@ -1,6 +1,6 @@
 # Default values for Service Catalog
 # service-catalog image to use
-image: quay.io/kubernetes-service-catalog/service-catalog:v0.1.8
+image: quay.io/kubernetes-service-catalog/service-catalog:v0.1.9
 # imagePullPolicy for the service-catalog; valid values are "IfNotPresent",
 # "Never", and "Always"
 imagePullPolicy: Always
@@ -56,6 +56,18 @@ apiserver:
       useEmbedded: true
       # etcd URL(s); override this if NOT using embedded etcd
       servers: http://localhost:2379
+      # etcd persistence options IF using embedded etcd
+      persistence:
+        enabled: false
+        ## If defined, storageClassName: <storageClass>
+        ## If set to "-", storageClassName: "", which disables dynamic provisioning
+        ## If undefined (the default) or set to null, no storageClassName spec is
+        ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+        ##   GKE, AWS & OpenStack)
+        ##
+        # storageClass: "-"
+        accessMode: ReadWriteOnce
+        size: 4Gi
   # Log level; valid values are in the range 0 - 10
   verbosity: 10
   auth:

@@ -160,6 +160,49 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid: false,
 		},
 		{
+			name: "valid parametersFrom",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{
+						{SecretKeyRef: &servicecatalog.SecretKeyReference{Name: "test-key-name", Key: "test-key"}}}
+				return i
+			}(),
+			valid: true,
+		},
+		{
+			name: "missing key reference in parametersFrom",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{{SecretKeyRef: nil}}
+				return i
+			}(),
+			valid: false,
+		},
+		{
+			name: "key name is missing in parametersFrom",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{
+						{SecretKeyRef: &servicecatalog.SecretKeyReference{Name: "", Key: "test-key"}}}
+				return i
+			}(),
+			valid: false,
+		},
+		{
+			name: "key is missing in parametersFrom",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ParametersFrom =
+					[]servicecatalog.ParametersFromSource{
+						{SecretKeyRef: &servicecatalog.SecretKeyReference{Name: "test-key-name", Key: ""}}}
+				return i
+			}(),
+			valid: false,
+		},
+		{
 			name:     "valid with in-progress provision",
 			instance: validServiceInstanceWithInProgressProvision(),
 			valid:    true,

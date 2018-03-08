@@ -1,0 +1,27 @@
+  Name:          premium                               
+  Description:   Premium plan                          
+  UUID:          cc0d7529-18e8-416d-8946-6f7456acd589  
+  Status:        Active                                
+  Free:          false                                 
+  Class:         user-provided-service                 
+
+Instances:
+No instances defined
+
+Instance Create Parameter Schema:
+  properties:
+    testInstanceProperty:
+      description: A test instance property.
+      type: string
+  required:
+  - testInstanceProperty
+  type: object
+
+Binding Create Parameter Schema:
+  properties:
+    testBindingProperty:
+      description: A test binding property.
+      type: string
+  required:
+  - testBindingProperty
+  type: object

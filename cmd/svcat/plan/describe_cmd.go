@@ -18,6 +18,7 @@ package plan
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/command"
 	"github.com/kubernetes-incubator/service-catalog/cmd/svcat/output"
@@ -29,6 +30,7 @@ type describeCmd struct {
 	*command.Context
 	traverse     bool
 	lookupByUUID bool
+	showSchemas  bool
 	uuid         string
 	name         string
 }
@@ -61,6 +63,13 @@ func NewDescribeCmd(cxt *command.Context) *cobra.Command {
 		false,
 		"Whether or not to get the class by UUID (the default is by name)",
 	)
+	cmd.Flags().BoolVarP(
+		&describeCmd.showSchemas,
+		"show-schemas",
+		"",
+		true,
+		"Whether or not to show instance and binding parameter schemas",
+	)
 	return cmd
 }
 
@@ -87,6 +96,12 @@ func (c *describeCmd) describe() error {
 	var err error
 	if c.lookupByUUID {
 		plan, err = c.App.RetrievePlanByID(c.uuid)
+	} else if strings.Contains(c.name, "/") {
+		names := strings.Split(c.name, "/")
+		if len(names) != 2 {
+			return fmt.Errorf("failed to parse class/plan name combination '%s'", c.name)
+		}
+		plan, err = c.App.RetrievePlanByClassAndPlanNames(names[0], names[1])
 	} else {
 		plan, err = c.App.RetrievePlanByName(c.name)
 	}
@@ -115,6 +130,10 @@ func (c *describeCmd) describe() error {
 		}
 		output.WriteParentClass(c.Output, class)
 		output.WriteParentBroker(c.Output, broker)
+	}
+
+	if c.showSchemas {
+		output.WritePlanSchemas(c.Output, plan)
 	}
 
 	return nil
