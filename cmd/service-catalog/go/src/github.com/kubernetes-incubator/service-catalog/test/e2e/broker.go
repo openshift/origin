@@ -69,7 +69,7 @@ var _ = framework.ServiceCatalogDescribe("ClusterServiceBroker", func() {
 	It("should become ready", func() {
 		By("Creating a Broker")
 
-		url := "http://test-broker." + f.Namespace.Name + ".svc.cluster.local"
+		url := "http://" + brokerName + "." + f.Namespace.Name + ".svc.cluster.local"
 		broker, err := f.ServiceCatalogClientSet.ServicecatalogV1beta1().ClusterServiceBrokers().Create(newTestBroker(brokerName, url))
 		Expect(err).NotTo(HaveOccurred())
 		By("Waiting for Broker to be ready")

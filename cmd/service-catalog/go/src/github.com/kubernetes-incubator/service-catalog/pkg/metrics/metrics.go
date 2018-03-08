@@ -74,11 +74,11 @@ var (
 	)
 )
 
-func register() {
+func register(registry *prometheus.Registry) {
 	registerMetrics.Do(func() {
-		prometheus.MustRegister(BrokerServiceClassCount)
-		prometheus.MustRegister(BrokerServicePlanCount)
-		prometheus.MustRegister(OSBRequestCount)
+		registry.MustRegister(BrokerServiceClassCount)
+		registry.MustRegister(BrokerServicePlanCount)
+		registry.MustRegister(OSBRequestCount)
 	})
 }
 
@@ -86,7 +86,8 @@ func register() {
 // objects with Prometheus and installs the Prometheus http handler at the
 // default context.
 func RegisterMetricsAndInstallHandler(m *http.ServeMux) {
-	register()
-	m.Handle("/metrics", promhttp.Handler())
-	glog.V(4).Info("Registered /metrics with promhttp")
+	registry := prometheus.NewRegistry()
+	register(registry)
+	m.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
+	glog.V(4).Info("Registered /metrics with prometheus")
 }
