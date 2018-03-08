@@ -62,6 +62,11 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 	node := obj.(*kapi.Node)
 	glog.V(5).Infof("Watch %s event for Node %q", watch.Deleted, node.Name)
+
+	if _, exists := master.hostSubnetNodeIPs[node.UID]; !exists {
+		return
+	}
+
 	delete(master.hostSubnetNodeIPs, node.UID)
 
 	if err := master.deleteNode(node.Name); err != nil {
