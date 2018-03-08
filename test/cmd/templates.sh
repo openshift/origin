@@ -155,8 +155,6 @@ os::cmd::expect_failure_and_text 'oc process name1 name2' 'template name must be
 # fail to pass a filename or template by name
 os::cmd::expect_failure_and_text 'oc process' 'Must pass a filename or name of stored template'
 # can't ask for parameters and try process the template (include tests for deprecated -v/--value)
-os::cmd::expect_failure_and_text 'oc process template-name --parameters --value=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value'
-os::cmd::expect_failure_and_text 'oc process template-name --parameters -v someval' '\-\-parameters flag does not process the template, can.t be used with \-\-value'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --param=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -p someval' '\-\-parameters flag does not process the template, can.t be used with \-\-param'
 os::cmd::expect_failure_and_text 'oc process template-name --parameters --labels=someval' '\-\-parameters flag does not process the template, can.t be used with \-\-labels'
@@ -169,11 +167,8 @@ os::cmd::expect_failure_and_text 'oc process template-name --parameters --templa
 os::cmd::expect_failure_and_text 'oc process template-name --parameters -t someval' '\-\-parameters flag does not process the template, can.t be used with \-\-template'
 # providing a value more than once should fail (include tests for deprecated -v/--value)
 os::cmd::expect_failure_and_text 'oc process template-name key=value key=value' 'provided more than once: key'
-os::cmd::expect_failure_and_text 'oc process template-name --value=key=value --value=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name --param=key=value --param=key=value' 'provided more than once: key'
-os::cmd::expect_failure_and_text 'oc process template-name key=value --value=key=value' 'provided more than once: key'
 os::cmd::expect_failure_and_text 'oc process template-name key=value --param=key=value' 'provided more than once: key'
-os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --value=key=value --value=other=baz' 'provided more than once: key, other'
 os::cmd::expect_failure_and_text 'oc process template-name key=value other=foo --param=key=value --param=other=baz' 'provided more than once: key, other'
 required_params="${OS_ROOT}/test/testdata/template_required_params.yaml"
 # providing something other than a template is not OK
@@ -181,13 +176,11 @@ os::cmd::expect_failure_and_text "oc process -f '${OS_ROOT}/test/testdata/basic-
 # not providing required parameter should fail
 os::cmd::expect_failure_and_text "oc process -f '${required_params}'" 'parameter required_param is required and must be specified'
 # not providing an optional param is OK
-os::cmd::expect_success "oc process -f '${required_params}' --value=required_param=someval"
-os::cmd::expect_success "oc process -f '${required_params}' -v required_param=someval"
 os::cmd::expect_success "oc process -f '${required_params}' --param=required_param=someval"
 os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval | oc create -f -"
 # parameters with multiple equal signs are OK
 os::cmd::expect_success "oc process -f '${required_params}' required_param=someval=moreval | oc create -f -"
-os::cmd::expect_success "oc process -f '${required_params}' -v required_param=someval=moreval2 | oc create -f -"
+os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval=moreval2 | oc create -f -"
 os::cmd::expect_success "oc process -f '${required_params}' -p required_param=someval=moreval3 | oc create -f -"
 # we should have overwritten the template param
 os::cmd::expect_success_and_text 'oc get user someval -o jsonpath={.metadata.name}' 'someval'
@@ -195,28 +188,20 @@ os::cmd::expect_success_and_text 'oc get user someval=moreval -o jsonpath={.meta
 os::cmd::expect_success_and_text 'oc get user someval=moreval2 -o jsonpath={.metadata.name}' 'someval=moreval2'
 os::cmd::expect_success_and_text 'oc get user someval=moreval3 -o jsonpath={.metadata.name}' 'someval=moreval3'
 # providing a value not in the template should fail
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=other_param=otherval" 'unknown parameter name "other_param"'
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --param=other_param=otherval" 'unknown parameter name "other_param"'
 # failure on values fails the entire call
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --value=optional_param" 'invalid parameter assignment in'
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --param=optional_param" 'invalid parameter assignment in'
 # failure on labels fails the entire call
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=required_param=someval --labels======" 'error parsing labels'
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=required_param=someval --labels======" 'error parsing labels'
 # values are not split on commas, required parameter is not recognized
-os::cmd::expect_failure_and_text "oc process -f '${required_params}' --value=optional_param=a,required_param=b" 'parameter required_param is required and must be specified'
 os::cmd::expect_failure_and_text "oc process -f '${required_params}' --param=optional_param=a,required_param=b" 'parameter required_param is required and must be specified'
 # warning is printed iff --value/--param looks like two k-v pairs separated by comma
-os::cmd::expect_success_and_text "oc process -f '${required_params}' --value=required_param=a,b=c,d" 'no longer accepts comma-separated list'
-os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --value=required_param=a_b_c_d" 'no longer accepts comma-separated list'
-os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --value=required_param=a,b,c,d" 'no longer accepts comma-separated list'
 os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param=a,b=c,d" 'no longer accepts comma-separated list'
 os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --param=required_param=a_b_c_d" 'no longer accepts comma-separated list'
 os::cmd::expect_success_and_not_text "oc process -f '${required_params}' --param=required_param=a,b,c,d" 'no longer accepts comma-separated list'
 # warning is not printed for template values passed as positional arguments
 os::cmd::expect_success_and_not_text "oc process -f '${required_params}' required_param=a,b=c,d" 'no longer accepts comma-separated list'
 # set template parameter to contents of file
-os::cmd::expect_success_and_text "oc process -f '${required_params}' --value=required_param='`cat ${OS_ROOT}/test/testdata/multiline.txt`'" 'also,with=commas'
 os::cmd::expect_success_and_text "oc process -f '${required_params}' --param=required_param='`cat ${OS_ROOT}/test/testdata/multiline.txt`'" 'also,with=commas'
 echo "process: ok"
 os::test::junit::declare_suite_end
