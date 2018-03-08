@@ -528,6 +528,85 @@ func TestServiceInstanceDeleteWithAsyncProvisionInProgress(t *testing.T) {
 	}
 }
 
+// TestServiceBindingDeleteWithAsyncBindInProgress tests that you can delete a
+// binding during an async bind operation.  Verify the binding is deleted when
+// the bind operation completes regardless of success or failure.
+func TestServiceBindingDeleteWithAsyncBindInProgress(t *testing.T) {
+	cases := []struct {
+		name         string
+		bindSucceeds bool
+	}{
+		{
+			name:         "bind succeeds",
+			bindSucceeds: true,
+		},
+		{
+			name:         "bind fails",
+			bindSucceeds: false,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Enable the AsyncBindingOperations feature
+			utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=true", scfeatures.AsyncBindingOperations))
+			defer utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=false", scfeatures.AsyncBindingOperations))
+
+			var done int32 = 0
+			ct := controllerTest{
+				t:                           t,
+				broker:                      getTestBroker(),
+				instance:                    getTestInstance(),
+				binding:                     getTestBinding(),
+				skipVerifyingBindingSuccess: true,
+				setup: func(ct *controllerTest) {
+					ct.osbClient.BindReaction.(*fakeosb.BindReaction).Response.Async = true
+					ct.osbClient.PollBindingLastOperationReaction = fakeosb.DynamicPollBindingLastOperationReaction(
+						func(_ *osb.BindingLastOperationRequest) (*osb.LastOperationResponse, error) {
+							state := osb.StateInProgress
+							d := atomic.LoadInt32(&done)
+							if d > 0 {
+								if tc.bindSucceeds {
+									state = osb.StateSucceeded
+								} else {
+									state = osb.StateFailed
+								}
+							}
+							return &osb.LastOperationResponse{State: state}, nil
+						})
+				},
+			}
+			ct.run(func(ct *controllerTest) {
+				if _, err := util.WaitForBindingCondition(ct.client, ct.binding.Namespace, ct.binding.Name,
+					v1beta1.ServiceBindingCondition{
+						Type:   v1beta1.ServiceBindingConditionReady,
+						Status: v1beta1.ConditionFalse,
+						Reason: "Binding",
+					}); err != nil {
+					t.Fatalf("error waiting for binding to be created asynchronously: %v", err)
+				}
+
+				if err := ct.client.ServiceBindings(ct.binding.Namespace).Delete(ct.binding.Name, &metav1.DeleteOptions{}); err != nil {
+					t.Fatalf("failed to delete binding: %v", err)
+				}
+
+				// notify the thread handling DynamicPollLastOperationReaction that it can end the async op
+				atomic.StoreInt32(&done, 1)
+
+				if err := util.WaitForBindingToNotExist(ct.client, ct.binding.Namespace, ct.binding.Name); err != nil {
+					t.Fatalf("error waiting for binding to not exist: %v", err)
+				}
+
+				// We deleted the binding above, clear it so test cleanup doesn't fail
+				ct.binding = nil
+			})
+		})
+	}
+}
+
 func getUpdateInstanceResponseByPollCountReactions(numOfResponses int, stateProgressions []fakeosb.UpdateInstanceReaction) fakeosb.DynamicUpdateInstanceReaction {
 	numberOfPolls := 0
 	numberOfStates := len(stateProgressions)

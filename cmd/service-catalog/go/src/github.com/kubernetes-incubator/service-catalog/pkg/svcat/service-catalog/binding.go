@@ -99,11 +99,9 @@ func (sdk *SDK) Bind(namespace, bindingName, instanceName, secretName string,
 
 // Unbind deletes all bindings associated to an instance.
 func (sdk *SDK) Unbind(ns, instanceName string) error {
-	instance := &v1beta1.ServiceInstance{
-		ObjectMeta: v1.ObjectMeta{
-			Namespace: ns,
-			Name:      instanceName,
-		},
+	instance, err := sdk.RetrieveInstance(ns, instanceName)
+	if err != nil {
+		return err
 	}
 	bindings, err := sdk.RetrieveBindingsByInstance(instance)
 	if err != nil {

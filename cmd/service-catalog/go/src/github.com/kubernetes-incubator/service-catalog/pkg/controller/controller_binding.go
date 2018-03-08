@@ -672,6 +672,17 @@ func clearServiceBindingCurrentOperation(toUpdate *v1beta1.ServiceBinding) {
 	toUpdate.Status.OrphanMitigationInProgress = false
 }
 
+// rollbackBindingReconciledGenerationOnDeletion resets the ReconciledGeneration
+// if a deletion was performed while an async bind is running.
+// TODO: rework saving off current generation as the start of the async
+// operation, see PR 1708/Issue 1587.
+func rollbackBindingReconciledGenerationOnDeletion(binding *v1beta1.ServiceBinding, currentReconciledGeneration int64) {
+	if binding.DeletionTimestamp != nil {
+		glog.V(4).Infof("Not updating ReconciledGeneration after async operation because there is a deletion pending.")
+		binding.Status.ReconciledGeneration = currentReconciledGeneration
+	}
+}
+
 func (c *controller) requeueServiceBindingForPoll(key string) error {
 	c.bindingQueue.Add(key)
 
@@ -1129,7 +1140,9 @@ func (c *controller) processServiceBindingOperationError(binding *v1beta1.Servic
 // injected in the cluster.
 func (c *controller) processBindSuccess(binding *v1beta1.ServiceBinding) error {
 	setServiceBindingCondition(binding, v1beta1.ServiceBindingConditionReady, v1beta1.ConditionTrue, successInjectedBindResultReason, successInjectedBindResultMessage)
+	currentReconciledGeneration := binding.Status.ReconciledGeneration
 	clearServiceBindingCurrentOperation(binding)
+	rollbackBindingReconciledGenerationOnDeletion(binding, currentReconciledGeneration)
 
 	if _, err := c.updateServiceBindingStatus(binding); err != nil {
 		return err
@@ -1142,6 +1155,7 @@ func (c *controller) processBindSuccess(binding *v1beta1.ServiceBinding) error {
 // processBindFailure handles the logging and updating of a ServiceBinding that
 // hit a terminal failure during bind reconciliation.
 func (c *controller) processBindFailure(binding *v1beta1.ServiceBinding, readyCond, failedCond *v1beta1.ServiceBindingCondition, shouldMitigateOrphan bool) error {
+	currentReconciledGeneration := binding.Status.ReconciledGeneration
 	if readyCond != nil {
 		c.recorder.Event(binding, corev1.EventTypeWarning, readyCond.Reason, readyCond.Message)
 		setServiceBindingCondition(binding, readyCond.Type, readyCond.Status, readyCond.Reason, readyCond.Message)
@@ -1161,6 +1175,7 @@ func (c *controller) processBindFailure(binding *v1beta1.ServiceBinding, readyCo
 		binding.Status.OperationStartTime = nil
 	} else {
 		clearServiceBindingCurrentOperation(binding)
+		rollbackBindingReconciledGenerationOnDeletion(binding, currentReconciledGeneration)
 	}
 
 	if _, err := c.updateServiceBindingStatus(binding); err != nil {

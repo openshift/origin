@@ -118,7 +118,6 @@ func (c *openServiceBrokerClient) GetCatalog() (*brokerapi.Catalog, error) {
 		return nil, err
 	}
 
-	req.SetBasicAuth(c.username, c.password)
 	resp, err := c.Do(req)
 	if err != nil {
 		glog.Errorf("Failed to fetch catalog %q from %s: response: %v error: %#v", c.name, catalogURL, resp, err)

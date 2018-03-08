@@ -495,7 +495,7 @@ func convertCatalog(in *osb.CatalogResponse) ([]*v1beta1.ClusterServiceClass, []
 		}
 
 		if utilfeature.DefaultFeatureGate.Enabled(scfeatures.AsyncBindingOperations) {
-			serviceClasses[i].Spec.BindingRetrievable = svc.BindingRetrievable
+			serviceClasses[i].Spec.BindingRetrievable = svc.BindingsRetrievable
 		}
 
 		if svc.Metadata != nil {

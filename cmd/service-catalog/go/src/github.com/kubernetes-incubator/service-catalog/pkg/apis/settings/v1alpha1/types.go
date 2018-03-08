@@ -65,7 +65,7 @@ type PodPresetSpec struct {
 type PodPresetList struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
-	metav1.ListMeta `json:"metadata, omitempty"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []PodPreset `json:"items"`
 }

@@ -1,4 +1,11 @@
 language: generic
+env:
+  - GO_VERSION=1.9
+  - GO_VERSION=rc
+matrix:
+  allow_failures:
+    - env: GO_VERSION=rc
+  fast_finish: true
 sudo: required
 services:
 - docker
@@ -9,10 +16,29 @@ stages:
   - test
   - name: deploy
     if: type != pull_request
+before_install:
+  - |
+      if [[ -z "$TRAVIS_COMMIT_RANGE" ]]; then
+          # Builds triggered by initial commit of a new branch.
+          DOCS_ONLY=0
+      else
+          DOCS_REGEX='(OWNERS|LICENSE)|(\.md$)|(^docs/)'
+          [[ -z "$(git diff --name-only $TRAVIS_COMMIT_RANGE | grep -vE $DOCS_REGEX)" ]]
+          DOCS_ONLY=$?
+      fi
+# Test
+script:
+  - |
+    if (( $DOCS_ONLY == 0 )); then
+      echo "Running verify-docs"
+      make verify-docs
+    else
+      echo "Running full build"
+      make verify build build-integration build-e2e test images svcat-all
+    fi
 jobs:
   include:
-    # Test
-    - script: make verify build build-integration build-e2e test images svcat
+    # Test is implicit from the build matrix
     # Deploy
     - stage: deploy
       deploy:

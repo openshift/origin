@@ -8,6 +8,7 @@ Table of Contents
 - [Building](#building)
 - [Testing](#testing)
 - [Advanced Build Steps](#advanced-build-steps)
+- [Dependency Management](#dependency-management)
 - [Deploying to Kubernetes](#deploying-to-kubernetes)
 - [Demo walkthrough](#demo-walkthrough)
 
@@ -146,7 +147,7 @@ git remote -v
 ## Building
 
 First `cd` to the root of the cloned repository tree.
-To build the service-catalog:
+To build the service-catalog server components:
 
     $ make build
 
@@ -154,6 +155,10 @@ The above will build all executables and place them in the `bin` directory. This
 is done within a Docker container-- meaning you do not need to have all of the
 necessary tooling installed on your host (such as a golang compiler or dep).
 Building outside the container is possible, but not officially supported.
+
+To build the service-catalog client, `svcat`:
+
+    $ make svcat
 
 Note, this will do the basic build of the service catalog. There are more
 more [advanced build steps](#advanced-build-steps) below as well.
@@ -262,6 +267,29 @@ The images are tagged with the current Git commit SHA:
 
     $ docker images
 
+### svcat targets
+These are targets for the service-catalog client, `svcat`:
+
+* `make svcat-all` builds all supported client platforms (darwin, linux, windows).
+* `make svcat-for-X` builds a specific platform.
+* `make svcat` builds for the current dev's platform.
+* `make svcat-publish` compiles everything and uploads the binaries.
+
+The same tags are used for both client and server. The cli uses the format that 
+always includes a tag, so that it's clear which release you are "closest" to, 
+e.g. v1.2.3 for official releases and v1.2.3-2-gabc123 for untagged commits.
+
+### Deploying Releases
+
+* Merge to master - A docker image for the server is pushed to [quay.io/kubernetes-service-catalog/service-catalog](http://quay.io/kubernetes-service-catalog/service-catalog),
+  tagged with the abbreviated commit hash. Nothing is deployed for the client, `svcat`.
+* Tag a commit on master with vX.Y.Z - A docker image for the server is pushed,
+  tagged with the version, e.g. vX.Y.Z. The client binaries are published to 
+  https://download.svcat.sh/cli/latest/OS/ARCH/svcat and https://download.svcat.sh/cli/VERSION/OS/ARCH/svcat.
+
+The idea behind "latest" link is that we can provide a permanent link to the most recent stable release of `svcat`. 
+If someone wants to install a unreleased version, they must build it locally.
+
 ----
 
 ## Deploying to Kubernetes
@@ -296,6 +324,41 @@ the data in the etcd server container.
 If you choose third party resources storage, the helm chart will not launch an
 etcd server, but will instead instruct the API server to store all resources in
 the Kubernetes cluster as third party resources.
+
+## Dependency Management
+We use [dep](https://golang.github.io/dep) to manage our dependencies. We commit the resulting
+vendor directory to ensure repeatable builds and isolation from upstream source disruptions.
+Because vendor is committed, you do not need to interact with dep unless you are
+changing dependencies.
+
+* Gopkg.toml - the dep manifest, this is intended to be hand-edited and contains a set of
+constraints and other rules for dep to apply when selecting appropriate versions of dependencies.
+* Gopkg.lock - the dep lockfile, do not edit because it is a generated file.
+* vendor/ - the source of all of our dependencies. Commit changes to this directory in a 
+separate commit from any other changes (including to the Gopkg files) so that it's easier to 
+review your pull request.
+
+If you use VS Code, we recommend installing the [dep extension](https://marketplace.visualstudio.com/items?itemName=carolynvs.dep).
+It provides snippets and improved highlighting that makes it easier to work with dep.
+
+### Selecting the version for a dependency
+* Use released versions of a dependency, for example v1.2.3.
+* Use the master branch when a dependency does not tag releases, or we require an unreleased change.
+* Include an explanatory comment with a link to any relevant issues anytime a dependency is
+  pinned to a specific revision in Gopkg.toml.
+
+### Add a new dependency
+1. Run `dep ensure -add github.com/example/project/pkg/foo`. This adds a constraint to Gopkg.toml,
+and downloads the dependency to vendor/.
+1. Import the package in the code and use it.
+1. Run `dep ensure -v` to sync Gopkg.lock and vendor/ with your changes.
+
+### Change the version of a dependency
+1. Edit Gopkg.toml and update the version for the project. If the project is not in
+Gopkg.toml already, add a constraint for it and set the version.
+1. Run `dep ensure -v` to sync Gopkg.lock and vendor/ with the updated version.
+
+[Watch a screencast](https://youtu.be/yvL66s_hQ94)
 
 ## Demo walkthrough
 

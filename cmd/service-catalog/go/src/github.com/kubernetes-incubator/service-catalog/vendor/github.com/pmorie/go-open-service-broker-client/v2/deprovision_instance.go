@@ -13,11 +13,11 @@ func (c *client) DeprovisionInstance(r *DeprovisionRequest) (*DeprovisionRespons
 	fullURL := fmt.Sprintf(serviceInstanceURLFmt, c.URL, r.InstanceID)
 
 	params := map[string]string{
-		serviceIDKey: string(r.ServiceID),
-		planIDKey:    string(r.PlanID),
+		VarKeyServiceID: string(r.ServiceID),
+		VarKeyPlanID:    string(r.PlanID),
 	}
 	if r.AcceptsIncomplete {
-		params[asyncQueryParamKey] = "true"
+		params[AcceptsIncomplete] = "true"
 	}
 
 	response, err := c.prepareAndDo(http.MethodDelete, fullURL, params, nil, r.OriginatingIdentity)
