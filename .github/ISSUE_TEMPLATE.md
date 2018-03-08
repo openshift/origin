@@ -1,6 +1,7 @@
 <!--
-Note that this is the issue tracker for OpenShift Origin.
+While we do track and fix bugs reported here, you will likely find better response times and less likelyhood of your bug report falling through the cracks if you file it at https://bugzilla.redhat.com/enter_bug.cgi?product=OpenShift%20Container%20Platform
 
+If you really would prefer to use github issues note that this is the issue tracker for OpenShift Origin.
 OpenShift Installer issues should be reported at https://github.com/openshift/openshift-ansible/issues
 Management Console issues are collected at https://github.com/openshift/origin-web-console/issues
 Documentation issues are better reported at https://github.com/openshift/openshift-docs/issues
