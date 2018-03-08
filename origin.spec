@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9acc4818cd02c0617018240e11b6ae63b87379ff
+%global commit b0347d31433e08e88ede23dfd0d004451ab880e6
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.3.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=c439ebd OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.4.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=22f159f OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.4.0%{?dist}
+Release:        0.5.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -607,6 +607,50 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Mar 08 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.5.0
+- UPSTREAM: 60654: notify systemd on kubelet start (ccoleman@redhat.com)
+- UPSTREAM: docker/docker: 36517: ensure hijackedConn implements CloseWrite
+  function (jminter@redhat.com)
+- Don't try to delete (nonexistent) OVS flows for headless/external services
+  (danw@redhat.com)
+- Update etcdhelper with new api layout (maszulik@redhat.com)
+- Expose --v in oc (maszulik@redhat.com)
+- clip more dependencies from oauthserver (deads@redhat.com)
+- add trace command (jvallejo@redhat.com)
+- Warn when AuditFilePath is relative (maszulik@redhat.com)
+- Additional audit tests (maszulik@redhat.com)
+- add some debug to old jenkins plugin tests (gmontero@redhat.com)
+- Reorder Groups in Cert Subjects (simo@redhat.com)
+- install cluster up pieces using containers (deads@redhat.com)
+- UPSTREAM: 60490: Volume deletion should be idempotent (jsafrane@redhat.com)
+- add negative check for new-app (hasha@redhat.com)
+- sdn: wait until container runtime is actually ready before using it
+  (dcbw@redhat.com)
+- nest daemonsets under their services (jvallejo@redhat.com)
+- Allow all node scheduling for more tests (decarr@redhat.com)
+- Add README.md for etcdhelper (maszulik@redhat.com)
+- adjust jenkins template setting to account for effects of constrained default
+  max heap (gmontero@redhat.com)
+- do the file copy for containers consistent (deads@redhat.com)
+- make directory copying generic (deads@redhat.com)
+- add server logs and container logs to extended cluster up results
+  (deads@redhat.com)
+- Rearrange egressip internals, add duplication tests (danw@redhat.com)
+- examples/prometheus: fix failing prometheus service discovery scrapes
+  (pgier@redhat.com)
+- Register audit/v1beta1 for master config (maszulik@redhat.com)
+- Fix egressip handling when a NetNamespace is updated (danw@redhat.com)
+- Have multiple egress IP ovscontroller methods rather than one confusing one
+  (danw@redhat.com)
+- egressip_test updates (danw@redhat.com)
+- Add assertOVSChanges helper to egressip_test (danw@redhat.com)
+- fix manifestlist mirroring (bparees@redhat.com)
+- Upgrade Prometheus AlertManager to v0.14.0 (spasquie@redhat.com)
+- Remove invalid SuggestFor from prune deployments (nakayamakenjiro@gmail.com)
+- diagnostics: AggregatedLogging ClusterRoleBindings false negative fix
+  (jwozniak@redhat.com)
+- Prometheus config reload livenessprobe (aweiteka@redhat.com)
+
 * Wed Mar 07 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.4.0
 - 
 
