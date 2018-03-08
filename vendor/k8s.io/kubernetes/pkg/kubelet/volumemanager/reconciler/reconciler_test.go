@@ -933,8 +933,7 @@ func Test_GenerateUnmapDeviceFunc_Plugin_Not_Found(t *testing.T) {
 				false, /* checkNodeCapabilitiesBeforeMount */
 				nil))
 			var mounter mount.Interface
-			plugins := volumetesting.NewFakeFileVolumePlugin()
-			deviceToDetach := operationexecutor.AttachedVolume{VolumeSpec: &volume.Spec{}, PluginName: plugins[0].GetPluginName()}
+			deviceToDetach := operationexecutor.AttachedVolume{VolumeSpec: &volume.Spec{}}
 			err := oex.UnmapDevice(deviceToDetach, asw, mounter)
 			// Assert
 			if assert.Error(t, err) {
@@ -950,7 +949,7 @@ func waitForMount(
 	volumeName v1.UniqueVolumeName,
 	asw cache.ActualStateOfWorld) {
 	err := retryWithExponentialBackOff(
-		time.Duration(500*time.Millisecond),
+		time.Duration(5*time.Millisecond),
 		func() (bool, error) {
 			mountedVolumes := asw.GetMountedVolumes()
 			for _, mountedVolume := range mountedVolumes {
@@ -974,7 +973,7 @@ func waitForDetach(
 	volumeName v1.UniqueVolumeName,
 	asw cache.ActualStateOfWorld) {
 	err := retryWithExponentialBackOff(
-		time.Duration(500*time.Millisecond),
+		time.Duration(5*time.Millisecond),
 		func() (bool, error) {
 			if asw.VolumeExists(volumeName) {
 				return false, nil
