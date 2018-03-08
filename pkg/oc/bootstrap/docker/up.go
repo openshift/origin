@@ -139,12 +139,6 @@ var (
 		"template service broker apiserver": "install/templateservicebroker/apiserver-template.yaml",
 	}
 
-	// loggingTemplateLocations are templates that will be registered in an internal namespace
-	// when logging is requested
-	loggingTemplateLocations = map[string]string{
-		"logging": "examples/logging/logging-deployer.yaml",
-	}
-
 	adminTemplateLocations = map[string]string{
 		"prometheus":          "examples/prometheus/prometheus.yaml",
 		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
@@ -1046,8 +1040,6 @@ func (c *ClientStartConfig) ImportInitialObjects(out io.Writer) error {
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, internalTemplateLocations)...)
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, internalCurrentTemplateLocations)...)
-	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, loggingTemplateLocations)...)
 
 	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient())
 }
