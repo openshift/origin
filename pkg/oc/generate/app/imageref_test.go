@@ -208,7 +208,7 @@ func TestImageRefDeployableContainerPorts(t *testing.T) {
 		if test.noConfig {
 			imageRef.Info.Config = nil
 		}
-		container, _, err := imageRef.DeployableContainer()
+		container, _, err := imageRef.DeployableContainer(false)
 		if err != nil && !test.expectError {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue

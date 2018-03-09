@@ -196,23 +196,23 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 				"                 Create a secret with your git credentials and use 'set build-secret' to assign it to the build config.\n")
 		}
 	}
-	if pipeline.Deployment != nil {
-		if pipeline.Deployment.AsTest {
-			if len(pipeline.Deployment.Images) > 1 {
-				fmt.Fprintf(out, "    * This image will be test deployed as part of deployment config %q\n", pipeline.Deployment.Name)
+	if pipeline.DeploymentConfig != nil {
+		if pipeline.DeploymentConfig.AsTest {
+			if len(pipeline.DeploymentConfig.Images) > 1 {
+				fmt.Fprintf(out, "    * This image will be test deployed as part of deployment config %q\n", pipeline.DeploymentConfig.Name)
 			} else {
-				fmt.Fprintf(out, "    * This image will be test deployed in deployment config %q\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "    * This image will be test deployed in deployment config %q\n", pipeline.DeploymentConfig.Name)
 			}
 		} else {
-			if len(pipeline.Deployment.Images) > 1 {
-				fmt.Fprintf(out, "    * This image will be deployed as part of deployment config %q\n", pipeline.Deployment.Name)
+			if len(pipeline.DeploymentConfig.Images) > 1 {
+				fmt.Fprintf(out, "    * This image will be deployed as part of deployment config %q\n", pipeline.DeploymentConfig.Name)
 			} else {
-				fmt.Fprintf(out, "    * This image will be deployed in deployment config %q\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "    * This image will be deployed in deployment config %q\n", pipeline.DeploymentConfig.Name)
 			}
 		}
 	}
 	if match != nil && match.Image != nil {
-		if pipeline.Deployment != nil {
+		if pipeline.DeploymentConfig != nil {
 			ports := sets.NewString()
 			if match.Image.Config != nil {
 				for k := range match.Image.Config.ExposedPorts {
@@ -222,20 +222,20 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 			switch len(ports) {
 			case 0:
 				fmt.Fprintf(out, "    * The image does not expose any ports - if you want to load balance or send traffic to this component\n")
-				fmt.Fprintf(out, "      you will need to create a service with 'expose dc/%s --port=[port]' later\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "      you will need to create a service with 'expose dc/%s --port=[port]' later\n", pipeline.DeploymentConfig.Name)
 			default:
 				orderedPorts := ports.List()
 				sort.Sort(sort.StringSlice(orderedPorts))
 				if len(orderedPorts) == 1 {
-					fmt.Fprintf(out, "    * Port %s will be load balanced by service %q\n", orderedPorts[0], pipeline.Deployment.Name)
+					fmt.Fprintf(out, "    * Port %s will be load balanced by service %q\n", orderedPorts[0], pipeline.DeploymentConfig.Name)
 				} else {
-					fmt.Fprintf(out, "    * Ports %s will be load balanced by service %q\n", strings.Join(orderedPorts, ", "), pipeline.Deployment.Name)
+					fmt.Fprintf(out, "    * Ports %s will be load balanced by service %q\n", strings.Join(orderedPorts, ", "), pipeline.DeploymentConfig.Name)
 				}
-				fmt.Fprintf(out, "      * Other containers can access this service through the hostname %q\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "      * Other containers can access this service through the hostname %q\n", pipeline.DeploymentConfig.Name)
 			}
 			if hasEmptyDir(match.Image) {
 				fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
-				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.DeploymentConfig.Name)
 			}
 			if hasRootUser(match.Image) {
 				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", match.Name)

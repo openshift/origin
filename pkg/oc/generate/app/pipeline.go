@@ -160,19 +160,20 @@ type Pipeline struct {
 	Name string
 	From string
 
-	InputImage *ImageRef
-	Build      *BuildRef
-	Image      *ImageRef
-	Deployment *DeploymentConfigRef
-	Labels     map[string]string
+	InputImage       *ImageRef
+	Build            *BuildRef
+	Image            *ImageRef
+	DeploymentConfig *DeploymentConfigRef
+	Deployment       *DeploymentRef
+	Labels           map[string]string
 }
 
-// NeedsDeployment sets the pipeline for deployment.
-func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, asTest bool) error {
-	if p.Deployment != nil {
+// NeedsDeploymentConfig sets the pipeline for deployment.
+func (p *Pipeline) NeedsDeploymentConfig(env Environment, labels map[string]string, asTest bool) error {
+	if p.DeploymentConfig != nil {
 		return nil
 	}
-	p.Deployment = &DeploymentConfigRef{
+	p.DeploymentConfig = &DeploymentConfigRef{
 		Name: p.Name,
 		Images: []*ImageRef{
 			p.Image,
@@ -180,6 +181,21 @@ func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, as
 		Env:    env,
 		Labels: labels,
 		AsTest: asTest,
+	}
+	return nil
+}
+
+func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string) error {
+	if p.Deployment != nil {
+		return nil
+	}
+	p.Deployment = &DeploymentRef{
+		Name: p.Name,
+		Images: []*ImageRef{
+			p.Image,
+		},
+		Env:    env,
+		Labels: labels,
 	}
 	return nil
 }
@@ -232,13 +248,22 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 			}
 		}
 	}
-	if p.Deployment != nil && accept.Accept(p.Deployment) {
-		dc, err := p.Deployment.DeploymentConfig()
+	if p.DeploymentConfig != nil && accept.Accept(p.DeploymentConfig) {
+		dc, err := p.DeploymentConfig.DeploymentConfig()
 		if err != nil {
 			return nil, err
 		}
 		if objectAccept.Accept(dc) {
 			objects = append(objects, dc)
+		}
+	}
+	if p.Deployment != nil && accept.Accept(p.Deployment) {
+		d, err := p.Deployment.Deployment()
+		if err != nil {
+			return nil, err
+		}
+		if objectAccept.Accept(d) {
+			objects = append(objects, d)
 		}
 	}
 	return objects, nil
@@ -251,15 +276,15 @@ type PipelineGroup []*Pipeline
 func (g PipelineGroup) Reduce() error {
 	var deployment *DeploymentConfigRef
 	for _, p := range g {
-		if p.Deployment == nil || p.Deployment == deployment {
+		if p.DeploymentConfig == nil || p.DeploymentConfig == deployment {
 			continue
 		}
 		if deployment == nil {
-			deployment = p.Deployment
+			deployment = p.DeploymentConfig
 		} else {
-			deployment.Images = append(deployment.Images, p.Deployment.Images...)
-			deployment.Env = NewEnvironment(deployment.Env, p.Deployment.Env)
-			p.Deployment = deployment
+			deployment.Images = append(deployment.Images, p.DeploymentConfig.Images...)
+			deployment.Env = NewEnvironment(deployment.Env, p.DeploymentConfig.Env)
+			p.DeploymentConfig = deployment
 		}
 	}
 	return nil

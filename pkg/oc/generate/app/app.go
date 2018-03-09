@@ -3,6 +3,7 @@ package app
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -11,15 +12,20 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
+	"k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/validation/field"
 
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/git"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/oc/generate"
 	"github.com/openshift/origin/pkg/util"
 
@@ -313,6 +319,122 @@ type DeploymentConfigRef struct {
 	PostHook *DeploymentHook
 }
 
+// DeploymentRef is a reference to a deployment
+type DeploymentRef struct {
+	Name   string
+	Images []*ImageRef
+	Env    Environment
+	Labels map[string]string
+}
+
+func (r *DeploymentRef) Deployment() (*v1.Deployment, error) {
+	if len(r.Name) == 0 {
+		suggestions := NameSuggestions{}
+		for i := range r.Images {
+			suggestions = append(suggestions, r.Images[i])
+		}
+		name, ok := suggestions.SuggestName()
+		if !ok {
+			return nil, fmt.Errorf("unable to suggest a name for this DeploymentConfig")
+		}
+		r.Name = name
+	}
+
+	selector := map[string]string{
+		"deployment": r.Name,
+	}
+	if len(r.Labels) > 0 {
+		if err := util.MergeInto(selector, r.Labels, 0); err != nil {
+			return nil, err
+		}
+	}
+
+	template := corev1.PodSpec{}
+	imageTriggers := []appsapi.DeploymentTriggerPolicy{}
+	for i := range r.Images {
+		// TODO: Convert triggers to annotation triggers
+		c, triggers, err := r.Images[i].DeployableContainer(true)
+		if err != nil {
+			return nil, err
+		}
+		imageTriggers = append(imageTriggers, triggers...)
+		v1Container := corev1.Container{}
+		if err := legacyscheme.Scheme.Convert(c, &v1Container, nil); err != nil {
+			return nil, err
+		}
+		template.Containers = append(template.Containers, v1Container)
+	}
+
+	var envVars []corev1.EnvVar
+	for _, e := range r.Env.List() {
+		// TODO: Add ValueFrom?
+		envVars = append(envVars, corev1.EnvVar{Name: e.Name, Value: e.Value})
+	}
+
+	for i := range template.Containers {
+		template.Containers[i].Env = append(template.Containers[i].Env, envVars...)
+	}
+
+	replicas := int32(1)
+
+	d := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: r.Name,
+		},
+		Spec: v1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: selector,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: selector,
+				},
+				Spec: template,
+			},
+			Strategy: v1.DeploymentStrategy{
+				Type: v1.RollingUpdateDeploymentStrategyType,
+			},
+		},
+	}
+
+	// Transform deployment config triggers to deployment annotation triggers.
+	if len(imageTriggers) > 0 {
+		path := field.NewPath("spec", "template", "spec")
+		triggers := []triggerapi.ObjectFieldTrigger{}
+		for _, t := range imageTriggers {
+			for _, containerName := range t.ImageChangeParams.ContainerNames {
+				trigger := triggerapi.ObjectFieldTrigger{
+					From: triggerapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Name:      t.ImageChangeParams.From.Name,
+						Namespace: t.ImageChangeParams.From.Namespace,
+					},
+					FieldPath: fmt.Sprintf(path.Child("containers").String()+"[?(@.name==\"%s\")].image", containerName),
+					Paused:    false,
+				}
+				triggers = append(triggers, trigger)
+			}
+		}
+		out, err := json.Marshal(triggers)
+		if err != nil {
+			return nil, err
+		}
+		a := d.GetAnnotations()
+		if a == nil {
+			a = make(map[string]string)
+		}
+		a[triggerapi.TriggerAnnotationKey] = string(out)
+		// This annotation will be cleared up by trigger controller when the deployment is resumed
+		// after the images are available.
+		a[triggerapi.TriggerResumeKey] = "true"
+		// Pause deployment to handle initial rollout.
+		d.Spec.Paused = true
+		d.SetAnnotations(a)
+	}
+	return d, nil
+}
+
 // DeploymentConfig creates a deploymentConfig resource from the deployment configuration reference
 //
 // TODO: take a pod template spec as argument
@@ -347,7 +469,7 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*appsapi.DeploymentConfig, err
 
 	template := kapi.PodSpec{}
 	for i := range r.Images {
-		c, containerTriggers, err := r.Images[i].DeployableContainer()
+		c, containerTriggers, err := r.Images[i].DeployableContainer(false)
 		if err != nil {
 			return nil, err
 		}

@@ -270,12 +270,12 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 			break
 		}
 
-		if err := pipeline.NeedsDeployment(nil, nil, false); err != nil {
+		if err := pipeline.NeedsDeploymentConfig(nil, nil, false); err != nil {
 			return nil, err
 		}
 
 		if cmd, ok := appJSON.Scripts["postdeploy"]; ok && primaryFormation == component {
-			pipeline.Deployment.PostHook = &app.DeploymentHook{Shell: cmd}
+			pipeline.DeploymentConfig.PostHook = &app.DeploymentHook{Shell: cmd}
 			delete(appJSON.Scripts, "postdeploy")
 		}
 

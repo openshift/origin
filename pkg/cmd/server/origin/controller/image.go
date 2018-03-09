@@ -12,13 +12,16 @@ import (
 	kbatchv2alpha1 "k8s.io/api/batch/v2alpha1"
 	kapiv1 "k8s.io/api/core/v1"
 	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/util/retry"
 
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	imagesignaturecontroller "github.com/openshift/origin/pkg/image/controller/signature"
 	imagetriggercontroller "github.com/openshift/origin/pkg/image/controller/trigger"
@@ -51,6 +54,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	kclient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 
 	updater := podSpecUpdater{kclient}
+	resumer := objectResumer{kclient}
 	bcInstantiator := buildclient.NewClientBuildConfigInstantiatorClient(buildClient)
 	broadcaster := imagetriggercontroller.NewTriggerEventBroadcaster(kv1core.New(kclient.CoreV1().RESTClient()))
 
@@ -78,7 +82,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer(),
 			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
-			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
+			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Resumer: resumer},
 		})
 	}
 	if !c.HasDaemonSetsEnabled {
@@ -116,6 +120,29 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	).Run(5, ctx.Stop)
 
 	return true, nil
+}
+
+type objectResumer struct {
+	kclient kclientsetexternal.Interface
+}
+
+func (r objectResumer) Resume(obj runtime.Object) error {
+	switch t := obj.(type) {
+	case *kextensionsv1beta1.Deployment:
+		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			d, err := r.kclient.Extensions().Deployments(t.Namespace).Get(t.Name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			d.Spec.Paused = false
+			delete(d.Annotations, triggerapi.TriggerResumeKey)
+			_, err = r.kclient.Extensions().Deployments(t.Namespace).Update(d)
+			return err
+		})
+		return retryErr
+	default:
+		return fmt.Errorf("unrecognized object - no resume possible for %T", obj)
+	}
 }
 
 type podSpecUpdater struct {

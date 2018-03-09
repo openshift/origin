@@ -870,6 +870,7 @@ func TestNewAppRunAll(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
 			test.config.Deploy = true
+			test.config.DeployConfig = true
 			test.config.ImageClient = &NewAppFakeImageClient{
 				proxy: test.config.ImageClient,
 			}
@@ -1868,6 +1869,7 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 	for _, test := range tests {
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
 		test.config.Deploy = true
+		test.config.DeployConfig = true
 		res, err := test.config.Run()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
