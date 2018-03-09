@@ -184,9 +184,13 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		DefaultReplenishmentSyncPeriod: 12 * time.Hour,
 	}
 
-	// TODO this goes away with a truly generic autoscaler
+	// TODO: this goes away when we can get rid of the legacy Heapster metrics client
+	useRESTClientsOption := options.KubernetesMasterConfig.ControllerArguments["horizontal-pod-autoscaler-use-rest-clients"]
 	ret.HorizontalPodAutoscalerControllerConfig = HorizontalPodAutoscalerControllerConfig{
 		HeapsterNamespace: options.PolicyConfig.OpenShiftInfrastructureNamespace,
+		// TODO: we may want to turn this into a proper option, but if Heapster support just
+		// goes away, it's a bit of a moot point.
+		UseRESTClients: len(useRESTClientsOption) > 0 && useRESTClientsOption[len(useRESTClientsOption)-1] == "true",
 	}
 
 	return ret, nil
