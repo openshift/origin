@@ -195,24 +195,6 @@ EOF
     exit 2
   fi
 
-  # Travis continuous build uses a head go release that doesn't report
-  # a version number, so we skip this check on Travis.  It's unnecessary
-  # there anyway.
-  if [[ "${TRAVIS:-}" != "true" ]]; then
-    local go_version
-    go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.4" ]]; then
-      cat <<EOF
-
-Detected go version: ${go_version[*]}.
-S2I requires go version 1.4 or greater.
-Please install Go version 1.4 or later.
-
-EOF
-      exit 2
-    fi
-  fi
-
   # For any tools that expect this to be set (it is default in golang 1.6),
   # force vendor experiment.
   export GO15VENDOREXPERIMENT=1

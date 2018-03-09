@@ -11,6 +11,7 @@ import (
 
 	kpath "k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -194,6 +195,23 @@ func validateSource(input *buildapi.BuildSource, isCustomStrategy, isDockerStrat
 		for i, image := range input.Images {
 			allErrs = append(allErrs, validateImageSource(image, fldPath.Child("images").Index(i))...)
 		}
+		// validate that no duplicate image sources exist, all other checks happen in validateImageSource
+		var set sets.String
+		for i, image := range input.Images {
+			for j, name := range image.As {
+				if len(name) == 0 {
+					continue
+				}
+				if set.Has(name) {
+					allErrs = append(allErrs, field.Duplicate(fldPath.Child("images").Index(i).Child("as").Index(j), name))
+					continue
+				}
+				if set == nil {
+					set = sets.NewString()
+				}
+				set.Insert(name)
+			}
+		}
 	}
 	if isJenkinsPipelineStrategyFromRepo && input.Git == nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("git"), "", "must be set when using Jenkins Pipeline strategy with Jenkinsfile from a git repo"))
@@ -281,12 +299,18 @@ func validateImageSource(imageSource buildapi.ImageSource, fldPath *field.Path) 
 	if imageSource.PullSecret != nil {
 		allErrs = append(allErrs, validateSecretRef(imageSource.PullSecret, fldPath.Child("pullSecret"))...)
 	}
-	if len(imageSource.Paths) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath.Child("paths"), ""))
+	if len(imageSource.Paths) == 0 && len(imageSource.As) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("paths"), "must specify 'paths' or 'as'"))
+		allErrs = append(allErrs, field.Required(fldPath.Child("as"), "must specify 'paths' or 'as'"))
 	}
 	for i, path := range imageSource.Paths {
 		allErrs = append(allErrs, validateImageSourcePath(path, fldPath.Child("paths").Index(i))...)
-
+	}
+	for i, name := range imageSource.As {
+		if len(name) == 0 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("as").Index(i), name, "must not be empty"))
+			continue
+		}
 	}
 	return allErrs
 }

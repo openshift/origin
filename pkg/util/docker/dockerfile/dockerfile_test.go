@@ -1,7 +1,6 @@
 package dockerfile
 
 import (
-	"bytes"
 	"reflect"
 	"strings"
 	"testing"
@@ -9,107 +8,6 @@ import (
 	"github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
 )
-
-// TestParseTreeToDockerfile tests calling ParseTreeToDockerfile with multiple
-// valid inputs.
-func TestParseTreeToDockerfile(t *testing.T) {
-	testCases := map[string]struct {
-		in   string
-		want string
-	}{
-		"empty input": {
-			in:   ``,
-			want: ``,
-		},
-		"only comments": {
-			in: `# This is a comment
-# and this is another comment
-	# while this is an indented comment`,
-			want: ``,
-		},
-		"simple Dockerfile": {
-			in: `FROM scratch
-LABEL version=1.0
-FROM busybox
-ENV PATH=/bin
-`,
-			want: `FROM scratch
-LABEL version=1.0
-FROM busybox
-ENV PATH=/bin
-`,
-		},
-		"Dockerfile with comments": {
-			in: `# This is a Dockerfile
-FROM scratch
-LABEL version=1.0
-# Here we start building a second image
-FROM busybox
-ENV PATH=/bin
-`,
-			want: `FROM scratch
-LABEL version=1.0
-FROM busybox
-ENV PATH=/bin
-`,
-		},
-		"all Dockerfile instructions": {
-			in: `FROM busybox:latest
-MAINTAINER nobody@example.com
-ONBUILD ADD . /app/src
-ONBUILD RUN echo "Hello universe!"
-LABEL version=1.0
-EXPOSE 8080
-VOLUME /var/run/www
-ENV PATH=/bin
-ADD file /home/
-COPY dir/ /tmp/
-RUN echo "Hello world!"
-ENTRYPOINT /bin/sh
-CMD ["-c", "env"]
-USER 1001
-WORKDIR /home
-`,
-			want: `FROM busybox:latest
-MAINTAINER nobody@example.com
-ONBUILD ADD . /app/src
-ONBUILD RUN echo "Hello universe!"
-LABEL version=1.0
-EXPOSE 8080
-VOLUME /var/run/www
-ENV PATH=/bin
-ADD file /home/
-COPY dir/ /tmp/
-RUN echo "Hello world!"
-ENTRYPOINT /bin/sh
-CMD ["-c", "env"]
-USER 1001
-WORKDIR /home
-`,
-		},
-	}
-	for name, tc := range testCases {
-		node, err := parser.Parse(strings.NewReader(tc.in))
-		if err != nil {
-			t.Errorf("%s: parse error: %v", name, err)
-			continue
-		}
-		got := ParseTreeToDockerfile(node.AST)
-		want := []byte(tc.want)
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("ParseTreeToDockerfile: %s:\ngot:\n%swant:\n%s", name, got, want)
-		}
-	}
-}
-
-// TestParseTreeToDockerfileNilNode tests calling ParseTreeToDockerfile with a
-// nil *parser.Node.
-func TestParseTreeToDockerfileNilNode(t *testing.T) {
-	got := ParseTreeToDockerfile(nil)
-	if got != nil {
-		t.Errorf("ParseTreeToDockerfile(nil) = %#v; want nil", got)
-	}
-}
 
 // TestFindAll tests calling FindAll with multiple values of cmd.
 func TestFindAll(t *testing.T) {
@@ -221,8 +119,8 @@ ENV PATH=/bin
 			t.Errorf("InsertInstructions: %s: parse error: %v", name, err)
 			continue
 		}
-		if !bytes.Equal(ParseTreeToDockerfile(got.AST), ParseTreeToDockerfile(want.AST)) {
-			t.Errorf("InsertInstructions: %s: got %#v; want %#v", name, got, want)
+		if !reflect.DeepEqual(got.AST.Dump(), want.AST.Dump()) {
+			t.Errorf("InsertInstructions: %s: got %s, want %s", name, got.AST.Dump(), want.AST.Dump())
 		}
 	}
 }

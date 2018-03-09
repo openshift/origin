@@ -137,6 +137,9 @@ func ExtractImageContent(ctx context.Context, dockerClient DockerClient, dir str
 	}
 	// extract source from an Image if specified
 	for i, image := range build.Spec.Source.Images {
+		if len(image.Paths) == 0 {
+			continue
+		}
 		imageSecretIndex := i
 		if image.PullSecret == nil {
 			imageSecretIndex = -1
