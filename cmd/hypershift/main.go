@@ -15,6 +15,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
@@ -62,6 +63,9 @@ func NewHyperShiftCommand() *cobra.Command {
 
 	startOpenShiftKubeAPIServer := openshift_kube_apiserver.NewOpenShiftKubeAPIServerServerCommand(openshift_kube_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftKubeAPIServer)
+
+	startOpenShiftControllerManager := openshift_controller_manager.NewOpenShiftControllerManagerCommand(openshift_controller_manager.RecommendedStartControllerManagerName, "hypershift", os.Stdout, os.Stderr)
+	cmd.AddCommand(startOpenShiftControllerManager)
 
 	return cmd
 }
