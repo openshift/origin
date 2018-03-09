@@ -14,13 +14,7 @@ import (
 
 const (
 	cmdTestNsenterMount = "nsenter --mount=/rootfs/proc/1/ns/mnt findmnt"
-	cmdEnsureHostDirs   = `#/bin/bash
-for dir in %s; do
-  if [ ! -d "${dir}" ]; then
-    mkdir -p "${dir}"
-  fi
-done
-`
+
 	ensureVolumeShareCmd = `#/bin/bash
 nsenter --mount=/rootfs/proc/1/ns/mnt mkdir -p %[1]s
 grep -F %[1]s /rootfs/proc/1/mountinfo || nsenter --mount=/rootfs/proc/1/ns/mnt mount -o bind %[1]s %[1]s
@@ -85,28 +79,6 @@ func (h *HostHelper) EnsureVolumeShare() error {
 
 func (h *HostHelper) defaultBinds() []string {
 	return []string{fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", h.configDir)}
-}
-
-// DownloadDirFromContainer copies a set of files from the Docker host to the local file system
-func (h *HostHelper) DownloadDirFromContainer(sourceDir, destDir string) error {
-	container, err := h.runner().
-		Image(h.image).
-		Bind(h.defaultBinds()...).
-		Entrypoint("/bin/true").
-		Create()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		errors.LogError(h.client.ContainerRemove(container, types.ContainerRemoveOptions{}))
-	}()
-	err = dockerhelper.DownloadDirFromContainer(h.client, container, sourceDir, destDir)
-	if err != nil {
-		glog.V(4).Infof("An error occurred downloading the directory: %v", err)
-	} else {
-		glog.V(4).Infof("Successfully downloaded directory.")
-	}
-	return err
 }
 
 // UploadFileToContainer copies a local file to the Docker host

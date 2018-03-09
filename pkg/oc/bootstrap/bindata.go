@@ -32,7 +32,6 @@
 // examples/quickstarts/nodejs-mongodb.json
 // examples/quickstarts/rails-postgresql-persistent.json
 // examples/quickstarts/rails-postgresql.json
-// examples/logging/logging-deployer.yaml
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
@@ -49,7 +48,6 @@
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
-// install/templateservicebroker/previous/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
 // pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml
 // DO NOT EDIT!
@@ -13488,352 +13486,6 @@ func examplesQuickstartsRailsPostgresqlJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesLoggingLoggingDeployerYaml = []byte(`apiVersion: "v1"
-kind: "List"
-items:
--
-  apiVersion: "v1"
-  kind: "Template"
-  metadata:
-    name: logging-deployer-account-template
-    annotations:
-      description: "Template for creating the deployer account and roles needed for the aggregated logging deployer. Create as cluster-admin."
-      tags: "infrastructure"
-  objects:
-  -
-    apiVersion: v1
-    kind: ServiceAccount
-    name: logging-deployer
-    metadata:
-      name: logging-deployer
-      labels:
-        logging-infra: deployer
-        provider: openshift
-        component: deployer
-  -
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: aggregated-logging-kibana
-  -
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: aggregated-logging-elasticsearch
-  -
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: aggregated-logging-fluentd
-  -
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: aggregated-logging-curator
-  - apiVersion: v1
-    kind: ClusterRole
-    metadata:
-      annotations:
-        authorization.openshift.io/system-only: "true"
-      name: oauth-editor
-    rules:
-    - resources:
-      - oauthclients
-      verbs:
-      - create
-      - delete
-  - apiVersion: v1
-    kind: ClusterRole
-    metadata:
-      annotations:
-        authorization.openshift.io/system-only: "true"
-      name: daemonset-admin
-    rules:
-    - resources:
-      - daemonsets
-      apiGroups:
-      - extensions
-      verbs:
-      - create
-      - get
-      - list
-      - watch
-      - delete
-      - update
-  -
-    apiVersion: v1
-    kind: RoleBinding
-    metadata:
-      name: logging-deployer-edit-role
-    roleRef:
-      kind: ClusterRole
-      name: edit
-    subjects:
-    - kind: ServiceAccount
-      name: logging-deployer
-  -
-    apiVersion: v1
-    kind: RoleBinding
-    metadata:
-      name: logging-deployer-dsadmin-role
-    roleRef:
-      kind: ClusterRole
-      name: daemonset-admin
-    subjects:
-    - kind: ServiceAccount
-      name: logging-deployer
--
-  apiVersion: "v1"
-  kind: "Template"
-  metadata:
-    name: logging-deployer-template
-    annotations:
-      description: "Template for running the aggregated logging deployer in a pod. Requires empowered 'logging-deployer' service account."
-      tags: "infrastructure"
-  labels:
-    logging-infra: deployer
-    provider: openshift
-  objects:
-  -
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      generateName: logging-deployer-
-    spec:
-      containers:
-      - image: ${IMAGE_PREFIX}logging-deployer:${IMAGE_VERSION}
-        imagePullPolicy: Always
-        name: deployer
-        volumeMounts:
-        - name: empty
-          mountPath: /etc/deploy
-        env:
-          - name: PROJECT
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          - name: IMAGE_PREFIX
-            value: ${IMAGE_PREFIX}
-          - name: IMAGE_VERSION
-            value: ${IMAGE_VERSION}
-          - name: IMAGE_PULL_SECRET
-            value: ${IMAGE_PULL_SECRET}
-          - name: INSECURE_REGISTRY
-            value: ${INSECURE_REGISTRY}
-          - name: ENABLE_OPS_CLUSTER
-            value: ${ENABLE_OPS_CLUSTER}
-          - name: KIBANA_HOSTNAME
-            value: ${KIBANA_HOSTNAME}
-          - name: KIBANA_OPS_HOSTNAME
-            value: ${KIBANA_OPS_HOSTNAME}
-          - name: PUBLIC_MASTER_URL
-            value: ${PUBLIC_MASTER_URL}
-          - name: MASTER_URL
-            value: ${MASTER_URL}
-          - name: ES_INSTANCE_RAM
-            value: ${ES_INSTANCE_RAM}
-          - name: ES_PVC_SIZE
-            value: ${ES_PVC_SIZE}
-          - name: ES_PVC_PREFIX
-            value: ${ES_PVC_PREFIX}
-          - name: ES_PVC_DYNAMIC
-            value: ${ES_PVC_DYNAMIC}
-          - name: ES_CLUSTER_SIZE
-            value: ${ES_CLUSTER_SIZE}
-          - name: ES_NODE_QUORUM
-            value: ${ES_NODE_QUORUM}
-          - name: ES_RECOVER_AFTER_NODES
-            value: ${ES_RECOVER_AFTER_NODES}
-          - name: ES_RECOVER_EXPECTED_NODES
-            value: ${ES_RECOVER_EXPECTED_NODES}
-          - name: ES_RECOVER_AFTER_TIME
-            value: ${ES_RECOVER_AFTER_TIME}
-          - name: ES_OPS_INSTANCE_RAM
-            value: ${ES_OPS_INSTANCE_RAM}
-          - name: ES_OPS_PVC_SIZE
-            value: ${ES_OPS_PVC_SIZE}
-          - name: ES_OPS_PVC_PREFIX
-            value: ${ES_OPS_PVC_PREFIX}
-          - name: ES_OPS_PVC_DYNAMIC
-            value: ${ES_OPS_PVC_DYNAMIC}
-          - name: ES_OPS_CLUSTER_SIZE
-            value: ${ES_OPS_CLUSTER_SIZE}
-          - name: ES_OPS_NODE_QUORUM
-            value: ${ES_OPS_NODE_QUORUM}
-          - name: ES_OPS_RECOVER_AFTER_NODES
-            value: ${ES_OPS_RECOVER_AFTER_NODES}
-          - name: ES_OPS_RECOVER_EXPECTED_NODES
-            value: ${ES_OPS_RECOVER_EXPECTED_NODES}
-          - name: ES_OPS_RECOVER_AFTER_TIME
-            value: ${ES_OPS_RECOVER_AFTER_TIME}
-          - name: FLUENTD_NODESELECTOR
-            value: ${FLUENTD_NODESELECTOR}
-          - name: ES_NODESELECTOR
-            value: ${ES_NODESELECTOR}
-          - name: ES_OPS_NODESELECTOR
-            value: ${ES_OPS_NODESELECTOR}
-          - name: KIBANA_NODESELECTOR
-            value: ${KIBANA_NODESELECTOR}
-          - name: KIBANA_OPS_NODESELECTOR
-            value: ${KIBANA_OPS_NODESELECTOR}
-          - name: CURATOR_NODESELECTOR
-            value: ${CURATOR_NODESELECTOR}
-          - name: CURATOR_OPS_NODESELECTOR
-            value: ${CURATOR_OPS_NODESELECTOR}
-          - name: MODE
-            value: ${MODE}
-      dnsPolicy: ClusterFirst
-      restartPolicy: Never
-      serviceAccount: logging-deployer
-      volumes:
-      - name: empty
-        emptyDir: {}
-  parameters:
-  -
-    description: "The mode that the deployer runs in."
-    name: MODE
-    value: "install"
-  -
-    description: 'Specify prefix for logging components; e.g. for "openshift/origin-logging-deployer:v1.1", set prefix "openshift/origin-"'
-    name: IMAGE_PREFIX
-    value: "docker.io/openshift/origin-"
-  -
-    description: 'Specify version for logging components; e.g. for "openshift/origin-logging-deployer:v1.1", set version "v1.1"'
-    name: IMAGE_VERSION
-    value: "latest"
-  -
-    description: "(Deprecated) Specify the name of an existing pull secret to be used for pulling component images from an authenticated registry."
-    name: IMAGE_PULL_SECRET
-  -
-    description: "(Deprecated) Allow the registry for logging component images to be non-secure (not secured with a certificate signed by a known CA)"
-    name: INSECURE_REGISTRY
-    value: "false"
-  -
-    description: "(Deprecated) If true, set up to use a second ES cluster for ops logs."
-    name: ENABLE_OPS_CLUSTER
-    value: "false"
-  -
-    description: "(Deprecated) External hostname where clients will reach kibana"
-    name: KIBANA_HOSTNAME
-    value: "kibana.example.com"
-  -
-    description: "(Deprecated) External hostname at which admins will visit the ops Kibana."
-    name: KIBANA_OPS_HOSTNAME
-    value: kibana-ops.example.com
-  -
-    description: "(Deprecated) External URL for the master, for OAuth purposes"
-    name: PUBLIC_MASTER_URL
-    value: "https://localhost:8443"
-  -
-    description: "(Deprecated) Internal URL for the master, for authentication retrieval"
-    name: MASTER_URL
-    value: "https://kubernetes.default.svc.cluster.local"
-  -
-    description: "(Deprecated) How many instances of ElasticSearch to deploy."
-    name: ES_CLUSTER_SIZE
-    value: "1"
-  -
-    description: "(Deprecated) Amount of RAM to reserve per ElasticSearch instance."
-    name: ES_INSTANCE_RAM
-    value: "8G"
-  -
-    description: "(Deprecated) Size of the PersistentVolumeClaim to create per ElasticSearch instance, e.g. 100G. If empty, no PVCs will be created and emptyDir volumes are used instead."
-    name: ES_PVC_SIZE
-  -
-    description: "(Deprecated) Prefix for the names of PersistentVolumeClaims to be created; a number will be appended per instance. If they don't already exist, they will be created with size ES_PVC_SIZE."
-    name: ES_PVC_PREFIX
-    value: "logging-es-"
-  -
-    description: '(Deprecated) Set to "true" to request dynamic provisioning (if enabled for your cluster) of a PersistentVolume for the ES PVC. '
-    name: ES_PVC_DYNAMIC
-  -
-    description: "(Deprecated) Number of nodes required to elect a master (ES minimum_master_nodes). By default, derived from ES_CLUSTER_SIZE / 2 + 1."
-    name: ES_NODE_QUORUM
-  -
-    description: "(Deprecated) Number of nodes required to be present before the cluster will recover from a full restart. By default, one fewer than ES_CLUSTER_SIZE."
-    name: ES_RECOVER_AFTER_NODES
-  -
-    description: "(Deprecated) Number of nodes desired to be present before the cluster will recover from a full restart. By default, ES_CLUSTER_SIZE."
-    name: ES_RECOVER_EXPECTED_NODES
-  -
-    description: "(Deprecated) Timeout for *expected* nodes to be present when cluster is recovering from a full restart."
-    name: ES_RECOVER_AFTER_TIME
-    value: "5m"
-  -
-    description: "(Deprecated) How many ops instances of ElasticSearch to deploy. By default, ES_CLUSTER_SIZE."
-    name: ES_OPS_CLUSTER_SIZE
-  -
-    description: "(Deprecated) Amount of RAM to reserve per ops ElasticSearch instance."
-    name: ES_OPS_INSTANCE_RAM
-    value: "8G"
-  -
-    description: "(Deprecated) Size of the PersistentVolumeClaim to create per ElasticSearch ops instance, e.g. 100G. If empty, no PVCs will be created and emptyDir volumes are used instead."
-    name: ES_OPS_PVC_SIZE
-  -
-    description: "(Deprecated) Prefix for the names of PersistentVolumeClaims to be created; a number will be appended per instance. If they don't already exist, they will be created with size ES_OPS_PVC_SIZE."
-    name: ES_OPS_PVC_PREFIX
-    value: "logging-es-ops-"
-  -
-    description: '(Deprecated) Set to "true" to request dynamic provisioning (if enabled for your cluster) of a PersistentVolume for the ES ops PVC. '
-    name: ES_OPS_PVC_DYNAMIC
-  -
-    description: "(Deprecated) Number of ops nodes required to elect a master (ES minimum_master_nodes). By default, derived from ES_CLUSTER_SIZE / 2 + 1."
-    name: ES_OPS_NODE_QUORUM
-  -
-    description: "(Deprecated) Number of ops nodes required to be present before the cluster will recover from a full restart. By default, one fewer than ES_OPS_CLUSTER_SIZE."
-    name: ES_OPS_RECOVER_AFTER_NODES
-  -
-    description: "(Deprecated) Number of ops nodes desired to be present before the cluster will recover from a full restart. By default, ES_OPS_CLUSTER_SIZE."
-    name: ES_OPS_RECOVER_EXPECTED_NODES
-  -
-    description: "(Deprecated) Timeout for *expected* ops nodes to be present when cluster is recovering from a full restart."
-    name: ES_OPS_RECOVER_AFTER_TIME
-    value: "5m"
-  -
-    description: "(Deprecated) The nodeSelector used for the Fluentd DaemonSet."
-    name: FLUENTD_NODESELECTOR
-    value: "logging-infra-fluentd=true"
-  -
-    description: "(Deprecated) Node selector Elasticsearch cluster (label=value)."
-    name: ES_NODESELECTOR
-    value: ""
-  -
-    description: "(Deprecated) Node selector Elasticsearch operations cluster (label=value)."
-    name: ES_OPS_NODESELECTOR
-    value: ""
-  -
-    description: "(Deprecated) Node selector Kibana cluster (label=value)."
-    name: KIBANA_NODESELECTOR
-    value: ""
-  -
-    description: "(Deprecated) Node selector Kibana operations cluster (label=value)."
-    name: KIBANA_OPS_NODESELECTOR
-    value: ""
-  -
-    description: "(Deprecated) Node selector Curator (label=value)."
-    name: CURATOR_NODESELECTOR
-    value: ""
-  -
-    description: "(Deprecated) Node selector operations Curator (label=value)."
-    name: CURATOR_OPS_NODESELECTOR
-    value: ""
-`)
-
-func examplesLoggingLoggingDeployerYamlBytes() ([]byte, error) {
-	return _examplesLoggingLoggingDeployerYaml, nil
-}
-
-func examplesLoggingLoggingDeployerYaml() (*asset, error) {
-	bytes, err := examplesLoggingLoggingDeployerYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "examples/logging/logging-deployer.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _examplesHeapsterHeapsterStandaloneYaml = []byte(`kind: Template
 apiVersion: v1
 metadata:
@@ -16379,149 +16031,6 @@ func installTemplateservicebrokerApiserverTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
-var _installTemplateservicebrokerPreviousApiserverTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
-kind: Template
-metadata:
-  name: template-service-broker-apiserver
-parameters:
-- name: IMAGE
-  value: openshift/origin:latest
-- name: NAMESPACE
-  value: openshift-template-service-broker
-- name: LOGLEVEL
-  value: "0"
-- name: API_SERVER_CONFIG
-  value: |
-   kind: TemplateServiceBrokerConfig
-   apiVersion: config.templateservicebroker.openshift.io/v1
-   templateNamespaces:
-   - openshift
-- name: NODE_SELECTOR
-  value: "{}"
-objects:
-
-# to create the tsb server
-- apiVersion: extensions/v1beta1
-  kind: DaemonSet
-  metadata:
-    namespace: ${NAMESPACE}
-    name: apiserver
-    labels:
-      apiserver: "true"
-  spec:
-    template:
-      metadata:
-        name: apiserver
-        labels:
-          apiserver: "true"
-      spec:
-        serviceAccountName: apiserver
-        containers:
-        - name: c
-          image: ${IMAGE}
-          imagePullPolicy: IfNotPresent
-          command:
-          - "/usr/bin/openshift"
-          - "start"
-          - "template-service-broker"
-          - "--secure-port=8443"
-          - "--audit-log-path=-"
-          - "--tls-cert-file=/var/serving-cert/tls.crt"
-          - "--tls-private-key-file=/var/serving-cert/tls.key"
-          - "--loglevel=${LOGLEVEL}"
-          - "--config=/var/apiserver-config/apiserver-config.yaml"
-          ports:
-          - containerPort: 8443
-          volumeMounts:
-          - mountPath: /var/serving-cert
-            name: serving-cert
-          - mountPath: /var/apiserver-config
-            name: apiserver-config
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8443
-              scheme: HTTPS
-        nodeSelector: "${{NODE_SELECTOR}}"
-        volumes:
-        - name: serving-cert
-          secret:
-            defaultMode: 420
-            secretName: apiserver-serving-cert
-        - name: apiserver-config
-          configMap:
-            defaultMode: 420
-            name: apiserver-config
-
-# to create the config for the TSB
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    namespace: ${NAMESPACE}
-    name: apiserver-config
-  data:
-    apiserver-config.yaml: ${API_SERVER_CONFIG}
-
-# to be able to assign powers to the process
-- apiVersion: v1
-  kind: ServiceAccount
-  metadata:
-    namespace: ${NAMESPACE}
-    name: apiserver
-
-# to be able to expose TSB inside the cluster
-- apiVersion: v1
-  kind: Service
-  metadata:
-    namespace: ${NAMESPACE}
-    name: apiserver
-    annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
-  spec:
-    selector:
-      apiserver: "true"
-    ports:
-    - name: https
-      port: 443
-      targetPort: 8443
-
-# This service account will be granted permission to call the TSB.
-# The token for this SA will be provided to the service catalog for
-# use when calling the TSB.
-- apiVersion: v1
-  kind: ServiceAccount
-  metadata:
-    namespace: ${NAMESPACE}
-    name: templateservicebroker-client
-
-# This secret will be populated with a copy of the templateservicebroker-client SA's
-# auth token.  Since this secret has a static name, it can be referenced more
-# easily than the auto-generated secret for the service account.
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    namespace: ${NAMESPACE}
-    name: templateservicebroker-client
-    annotations:
-      kubernetes.io/service-account.name: templateservicebroker-client
-  type: kubernetes.io/service-account-token
-`)
-
-func installTemplateservicebrokerPreviousApiserverTemplateYamlBytes() ([]byte, error) {
-	return _installTemplateservicebrokerPreviousApiserverTemplateYaml, nil
-}
-
-func installTemplateservicebrokerPreviousApiserverTemplateYaml() (*asset, error) {
-	bytes, err := installTemplateservicebrokerPreviousApiserverTemplateYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "install/templateservicebroker/previous/apiserver-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _installTemplateservicebrokerRbacTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -16751,7 +16260,6 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/nodejs-mongodb.json": examplesQuickstartsNodejsMongodbJson,
 	"examples/quickstarts/rails-postgresql-persistent.json": examplesQuickstartsRailsPostgresqlPersistentJson,
 	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
-	"examples/logging/logging-deployer.yaml": examplesLoggingLoggingDeployerYaml,
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
@@ -16768,7 +16276,6 @@ var _bindata = map[string]func() (*asset, error){
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
-	"install/templateservicebroker/previous/apiserver-template.yaml": installTemplateservicebrokerPreviousApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
 	"pkg/image/admission/apis/imagepolicy/v1/default-policy.yaml": pkgImageAdmissionApisImagepolicyV1DefaultPolicyYaml,
 }
@@ -16845,9 +16352,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"samplepipeline.yaml": &bintree{examplesJenkinsPipelineSamplepipelineYaml, map[string]*bintree{}},
 			}},
 		}},
-		"logging": &bintree{nil, map[string]*bintree{
-			"logging-deployer.yaml": &bintree{examplesLoggingLoggingDeployerYaml, map[string]*bintree{}},
-		}},
 		"prometheus": &bintree{nil, map[string]*bintree{
 			"prometheus.yaml": &bintree{examplesPrometheusPrometheusYaml, map[string]*bintree{}},
 		}},
@@ -16904,9 +16408,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
 			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
 			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
-			"previous": &bintree{nil, map[string]*bintree{
-				"apiserver-template.yaml": &bintree{installTemplateservicebrokerPreviousApiserverTemplateYaml, map[string]*bintree{}},
-			}},
 			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
 		}},
 	}},

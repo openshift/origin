@@ -1,9 +1,7 @@
 package openshift
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
@@ -15,15 +13,11 @@ import (
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/homedir"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/apis/defaults"
 	clientconfig "github.com/openshift/origin/pkg/client/config"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -35,21 +29,8 @@ import (
 
 const (
 	defaultNodeName         = "localhost"
-	initialStatusCheckWait  = 4 * time.Second
-	serverUpTimeout         = 35
 	serverConfigPath        = "/var/lib/origin/openshift.local.config"
 	serverMasterConfig      = serverConfigPath + "/master/master-config.yaml"
-	serverNodeConfig        = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
-	aggregatorKey           = "aggregator-front-proxy.key"
-	aggregatorCert          = "aggregator-front-proxy.crt"
-	aggregatorCACert        = "front-proxy-ca.crt"
-	aggregatorCAKey         = "front-proxy-ca.key"
-	aggregatorCASerial      = "frontend-proxy-ca.serial.txt"
-	aggregatorKeyPath       = serverConfigPath + "/master/" + aggregatorKey
-	aggregatorCertPath      = serverConfigPath + "/master/" + aggregatorCert
-	aggregatorCACertPath    = serverConfigPath + "/master/" + aggregatorCACert
-	aggregatorCAKeyPath     = serverConfigPath + "/master/" + aggregatorCAKey
-	aggregatorCASerialPath  = serverConfigPath + "/master/" + aggregatorCASerial
 	DefaultDNSPort          = 53
 	AlternateDNSPort        = 8053
 	cmdDetermineNodeHost    = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
@@ -85,9 +66,6 @@ var (
 		"openshift.default.svc",
 		"openshift.default.svc.cluster.local",
 	}
-	version15 = semver.MustParse("1.5.0")
-	version35 = semver.MustParse("3.5.0")
-	version37 = semver.MustParse("3.7.0")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -96,8 +74,6 @@ type Helper struct {
 	dockerHelper      *dockerhelper.Helper
 	execHelper        *dockerexec.ExecHelper
 	runHelper         *run.RunHelper
-	client            dockerhelper.Interface
-	publicHost        string
 	image             string
 	containerName     string
 	routingSuffix     string
@@ -106,34 +82,8 @@ type Helper struct {
 	prereleaseVersion *semver.Version
 }
 
-// StartOptions represent the parameters sent to the start command
-type StartOptions struct {
-	ServerIP                 string
-	AdditionalIPs            []string
-	RoutingSuffix            string
-	DNSPort                  int
-	UseSharedVolume          bool
-	Images                   string
-	HostVolumesDir           string
-	HostConfigDir            string
-	HostDataDir              string
-	HostPersistentVolumesDir string
-	UseExistingConfig        bool
-	Environment              []string
-	LogLevel                 int
-	MetricsHost              string
-	LoggingHost              string
-	PortForwarding           bool
-	HTTPProxy                string
-	HTTPSProxy               string
-	NoProxy                  []string
-	KubeconfigContents       string
-	DockerRoot               string
-	ServiceCatalog           bool
-}
-
 // NewHelper creates a new OpenShift helper
-func NewHelper(dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, image, containerName, publicHostname, routingSuffix string) *Helper {
+func NewHelper(dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, image, containerName, routingSuffix string) *Helper {
 	return &Helper{
 		dockerHelper:  dockerHelper,
 		execHelper:    dockerexec.NewExecHelper(dockerHelper.Client(), containerName),
@@ -141,7 +91,6 @@ func NewHelper(dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, i
 		runHelper:     run.NewRunHelper(dockerHelper),
 		image:         image,
 		containerName: containerName,
-		publicHost:    publicHostname,
 		routingSuffix: routingSuffix,
 	}
 }
@@ -298,69 +247,6 @@ func (h *Helper) CheckNodes(kclient kclientset.Interface) error {
 	return nil
 }
 
-// StartNode starts the OpenShift node as a Docker container
-// and returns a directory in the local file system where
-// the OpenShift configuration has been copied
-func (h *Helper) StartNode(opt *StartOptions, out io.Writer) error {
-	binds := openShiftContainerBinds
-	env := []string{}
-	if opt.UseSharedVolume {
-		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s:shared", opt.HostVolumesDir))
-		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
-	} else {
-		binds = append(binds, "/:/rootfs:ro")
-		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s:rslave", opt.HostVolumesDir))
-	}
-	env = append(env, opt.Environment...)
-
-	kubeconfig := "/var/lib/origin/openshift.local.config/node/node-bootstrap.kubeconfig"
-
-	fmt.Fprintf(out, "Starting OpenShift Node using container '%s'\n", h.containerName)
-	startCmd := []string{
-		"start", "node", "--bootstrap",
-		fmt.Sprintf("--kubeconfig=%s", kubeconfig),
-	}
-	if opt.LogLevel > 0 {
-		startCmd = append(startCmd, fmt.Sprintf("--loglevel=%d", opt.LogLevel))
-	}
-
-	_, err := h.runHelper.New().Image(h.image).
-		Name(h.containerName).
-		Privileged().
-		HostNetwork().
-		HostPid().
-		Bind(binds...).
-		Env(env...).
-		Command(startCmd...).
-		Copy(map[string][]byte{
-			kubeconfig: []byte(opt.KubeconfigContents),
-		}).
-		Start()
-	if err != nil {
-		return errors.NewError("cannot start OpenShift Node daemon").WithCause(err)
-	}
-
-	// Wait a minimum amount of time and check whether we're still running. If not, we know the daemon didn't start
-	time.Sleep(initialStatusCheckWait)
-	_, running, err := h.dockerHelper.GetContainerState(h.containerName)
-	if err != nil {
-		return errors.NewError("cannot get state of OpenShift container %s", h.containerName).WithCause(err)
-	}
-	if !running {
-		return ErrOpenShiftFailedToStart(h.containerName).WithDetails(h.OriginLog())
-	}
-
-	// Wait until the API server is listening
-	fmt.Fprintf(out, "Waiting for server to start listening\n")
-	masterHost := fmt.Sprintf("%s:10250", opt.ServerIP)
-	if err = cmdutil.WaitForSuccessfulDial(true, "tcp", masterHost, 200*time.Millisecond, 1*time.Second, serverUpTimeout); err != nil {
-		return ErrTimedOutWaitingForStart(h.containerName).WithDetails(h.OriginLog())
-	}
-
-	fmt.Fprintf(out, "OpenShift server started\n")
-	return nil
-}
-
 func (h *Helper) OriginLog() string {
 	log := h.dockerHelper.ContainerLog(h.containerName, 10)
 	if len(log) > 0 {
@@ -468,208 +354,6 @@ func parseOpenshiftVersion(versionStr string) (semver.Version, error) {
 	return semver.Parse(versionStr)
 }
 
-func useDNSIP(version semver.Version) bool {
-	if version.Major == 1 {
-		return version.GTE(version15)
-	}
-	return version.GTE(version35)
-}
-
-func useAggregator(version semver.Version) bool {
-	return version.GTE(version37)
-}
-
-func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
-	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
-	if err != nil {
-		return err
-	}
-
-	// turn on admission webhooks by default.  They are no-ops until someone explicitly tries to configure one
-	if cfg.AdmissionConfig.PluginConfig == nil {
-		cfg.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}
-	}
-	cfg.AdmissionConfig.PluginConfig["GenericAdmissionWebhook"] = &configapi.AdmissionPluginConfig{
-		Configuration: &configapi.DefaultAdmissionConfig{},
-	}
-
-	if cfg.KubernetesMasterConfig.APIServerArguments == nil {
-		cfg.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
-	}
-	cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/admissionregistration.k8s.io/v1alpha1=true")
-
-	if len(opt.RoutingSuffix) > 0 {
-		cfg.RoutingConfig.Subdomain = opt.RoutingSuffix
-	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.nip.io", opt.ServerIP)
-	}
-
-	if len(opt.HTTPProxy) > 0 || len(opt.HTTPSProxy) > 0 || len(opt.NoProxy) > 0 {
-
-		var buildDefaults *defaultsapi.BuildDefaultsConfig
-		buildDefaultsConfig, ok := cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin]
-		if !ok {
-			buildDefaultsConfig = &configapi.AdmissionPluginConfig{}
-		}
-		if buildDefaultsConfig.Configuration != nil {
-			buildDefaults = buildDefaultsConfig.Configuration.(*defaultsapi.BuildDefaultsConfig)
-		}
-		if buildDefaults == nil {
-			buildDefaults = &defaultsapi.BuildDefaultsConfig{}
-			buildDefaultsConfig.Configuration = buildDefaults
-		}
-		buildDefaults.GitHTTPProxy = opt.HTTPProxy
-		buildDefaults.GitHTTPSProxy = opt.HTTPSProxy
-		buildDefaults.GitNoProxy = strings.Join(opt.NoProxy, ",")
-		varsToSet := map[string]string{
-			"HTTP_PROXY":  opt.HTTPProxy,
-			"http_proxy":  opt.HTTPProxy,
-			"HTTPS_PROXY": opt.HTTPSProxy,
-			"https_proxy": opt.HTTPSProxy,
-			"NO_PROXY":    strings.Join(opt.NoProxy, ","),
-			"no_proxy":    strings.Join(opt.NoProxy, ","),
-		}
-		for k, v := range varsToSet {
-			buildDefaults.Env = append(buildDefaults.Env, kapi.EnvVar{
-				Name:  k,
-				Value: v,
-			})
-		}
-		cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin] = buildDefaultsConfig
-	}
-
-	version, err := h.ServerVersion()
-	if err != nil {
-		return err
-	}
-	if useAggregator(version) || opt.ServiceCatalog {
-		// setup the api aggegrator
-		cfg.AggregatorConfig = configapi.AggregatorConfig{
-			ProxyClientInfo: configapi.CertInfo{
-				CertFile: aggregatorCert,
-				KeyFile:  aggregatorKey,
-			},
-		}
-		cfg.AuthConfig.RequestHeader = &configapi.RequestHeaderAuthenticationOptions{
-			ClientCA:            aggregatorCACert,
-			ClientCommonNames:   []string{"aggregator-front-proxy"},
-			UsernameHeaders:     []string{"X-Remote-User"},
-			GroupHeaders:        []string{"X-Remote-Group"},
-			ExtraHeaderPrefixes: []string{"X-Remote-Extra-"},
-		}
-
-		cacertPath := filepath.Join(configDir, aggregatorCACert)
-		cakeyPath := filepath.Join(configDir, aggregatorCAKey)
-		caserialPath := filepath.Join(configDir, aggregatorCASerial)
-		certPath := filepath.Join(configDir, aggregatorCert)
-		keyPath := filepath.Join(configDir, aggregatorKey)
-
-		cmdOutput := &bytes.Buffer{}
-		createSignerCertOptions := &admin.CreateSignerCertOptions{
-			CertFile:   cacertPath,
-			KeyFile:    cakeyPath,
-			SerialFile: caserialPath,
-			Output:     cmdOutput,
-		}
-		_, err = createSignerCertOptions.CreateSignerCert()
-		if err != nil {
-			return errors.NewError("cannot create signer cert").WithCause(err).WithDetails(cmdOutput.String())
-		}
-
-		cmdOutput = &bytes.Buffer{}
-		signerCertOptions := admin.NewDefaultSignerCertOptions()
-		signerCertOptions.CertFile = cacertPath
-		signerCertOptions.KeyFile = cakeyPath
-		signerCertOptions.SerialFile = caserialPath
-
-		createClientOptions := &admin.CreateClientOptions{
-			SignerCertOptions: signerCertOptions,
-			ClientDir:         configDir,
-			ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
-			User:              "aggregator-front-proxy",
-			Output:            cmdOutput,
-		}
-		err = createClientOptions.CreateClientFolder()
-		if err != nil {
-			return errors.NewError("cannot create client config").WithCause(err).WithDetails(cmdOutput.String())
-		}
-
-		err = h.hostHelper.UploadFileToContainer(cacertPath, aggregatorCACertPath)
-		if err != nil {
-			return err
-		}
-		err = h.hostHelper.UploadFileToContainer(certPath, aggregatorCertPath)
-		if err != nil {
-			return err
-		}
-		err = h.hostHelper.UploadFileToContainer(keyPath, aggregatorKeyPath)
-		if err != nil {
-			return err
-		}
-	}
-
-	if opt.ServiceCatalog {
-		// podpresets is a v1alpha1 api so we need to enable those apis explicitly.
-		cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/settings.k8s.io/v1alpha1=true")
-
-		if cfg.AdmissionConfig.PluginConfig == nil {
-			cfg.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{}
-		}
-
-		cfg.AdmissionConfig.PluginConfig["PodPreset"] = &configapi.AdmissionPluginConfig{
-			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
-		}
-	}
-
-	cfg.JenkinsPipelineConfig.TemplateName = "jenkins-persistent"
-
-	cfgBytes, err := configapilatest.WriteYAML(cfg)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(configPath, cfgBytes, 0644)
-	if err != nil {
-		return err
-	}
-	err = h.hostHelper.UploadFileToContainer(configPath, serverMasterConfig)
-	if err != nil {
-		return err
-	}
-	nodeCfg, nodeConfigPath, err := h.GetNodeConfigFromLocalDir(configDir)
-	if err != nil {
-		return err
-	}
-	if useDNSIP(version) {
-		nodeCfg.DNSIP = "172.30.0.1"
-	} else {
-		nodeCfg.DNSIP = ""
-	}
-	nodeCfg.DNSBindAddress = ""
-
-	if h.supportsCgroupDriver(version) {
-		// Set the cgroup driver from the current docker
-		cgroupDriver, err := h.dockerHelper.CgroupDriver()
-		if err != nil {
-			return err
-		}
-		glog.V(5).Infof("cgroup driver from Docker: %s", cgroupDriver)
-		if nodeCfg.KubeletArguments == nil {
-			nodeCfg.KubeletArguments = configapi.ExtendedArguments{}
-		}
-		nodeCfg.KubeletArguments["cgroup-driver"] = []string{cgroupDriver}
-	}
-
-	cfgBytes, err = configapilatest.WriteYAML(nodeCfg)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(nodeConfigPath, cfgBytes, 0644)
-	if err != nil {
-		return err
-	}
-	return h.hostHelper.UploadFileToContainer(nodeConfigPath, serverNodeConfig)
-}
-
 func checkPortsInUse(data string, ports []int) error {
 	used := getUsedPorts(data)
 	conflicts := []int{}
@@ -712,29 +396,4 @@ func getUsedPorts(data string) map[int]struct{} {
 	}
 	glog.V(2).Infof("Used ports in container: %#v", ports)
 	return ports
-}
-
-func (h *Helper) supportsCgroupDriver(version semver.Version) bool {
-	if version.GTE(version37) {
-		return true
-	}
-	script := `#!/bin/bash
-
-# Exit with an error
-set -e
-
-# Ensure we have a link to the openshift binary named kubelet
-if [[ ! -f /usr/bin/kubelet ]]; then
-   ln -s /usr/bin/openshift /usr/bin/kubelet
-fi
-
-kubelet --help | grep -- "--cgroup-driver"
-`
-	_, rc, err := h.runHelper.New().Image(h.image).
-		DiscardContainer().
-		Entrypoint("/bin/bash").
-		Command("-c", script).
-		Run()
-
-	return rc == 0 && err == nil
 }
