@@ -320,7 +320,7 @@ func TestCreateImageImport(t *testing.T) {
 					},
 				},
 			},
-			err: "tag \"mytag\" points to an imagestreamtag from another ImageStream",
+			err: "tag \"mytag\" points to existing ImageStreamTag \"otherimage:mytag\", it cannot be re-imported",
 		},
 		"import tag from alias of circular reference": {
 			name: "testis:mytag",

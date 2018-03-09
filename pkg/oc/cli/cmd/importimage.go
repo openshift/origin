@@ -416,8 +416,6 @@ func (o *ImportImageOptions) importTag(stream *imageapi.ImageStream) (*imageapi.
 	switch err {
 	case imageapi.ErrInvalidReference:
 		return nil, fmt.Errorf("tag %q points to an invalid imagestreamtag", tag)
-	case imageapi.ErrCrossImageStreamReference:
-		return nil, fmt.Errorf("tag %q points to an imagestreamtag from another ImageStream", tag)
 	case imageapi.ErrCircularReference:
 		return nil, fmt.Errorf("tag %q on the image stream is a reference to same tag", tag)
 	case imageapi.ErrNotFoundReference:
