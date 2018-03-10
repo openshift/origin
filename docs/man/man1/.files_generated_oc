@@ -264,6 +264,9 @@ oc-process.1
 oc-project.1
 oc-projects.1
 oc-proxy.1
+oc-registry-info.1
+oc-registry-login.1
+oc-registry.1
 oc-replace.1
 oc-rollback.1
 oc-rollout-cancel.1
