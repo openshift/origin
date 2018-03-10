@@ -272,6 +272,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		if len(fullCmdName) > 0 && kcmdutil.IsSiblingCommandExists(cmd, "describe") {
 			fmt.Fprintf(o.Attach.Err, "Defaulting container name to %s.\n", pod.Spec.Containers[0].Name)
 			fmt.Fprintf(o.Attach.Err, "Use '%s describe pod/%s -n %s' to see all of the containers in this pod.\n", fullCmdName, pod.Name, pod.Namespace)
+			fmt.Fprintf(o.Attach.Err, "\n")
 		}
 
 		glog.V(4).Infof("Defaulting container name to %s", pod.Spec.Containers[0].Name)
