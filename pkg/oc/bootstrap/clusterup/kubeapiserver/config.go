@@ -4,7 +4,10 @@ import (
 	"os"
 	"path"
 
+	"github.com/docker/docker/api/types"
 	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
@@ -29,21 +32,34 @@ func NewKubeAPIServerStartConfig() *KubeAPIServerStartConfig {
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
 func (opt KubeAPIServerStartConfig) MakeMasterConfig(dockerClient dockerhelper.Interface, basedir string) (string, error) {
+	componentName := "create-master-config"
 	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	glog.Infof("Running %q", componentName)
 
-	glog.Infof("Creating initial OpenShift master configuration")
 	createConfigCmd := []string{
 		"start", "master",
 	}
 	createConfigCmd = append(createConfigCmd, opt.Args...)
 
-	containerId, _, err := imageRunHelper.Image(opt.MasterImage).
+	containerId, stdout, stderr, rc, err := imageRunHelper.Image(opt.MasterImage).
 		Privileged().
 		HostNetwork().
 		HostPid().
-		Command(createConfigCmd...).Run()
+		Command(createConfigCmd...).Output()
+	defer func() {
+		if err = dockerClient.ContainerRemove(containerId, types.ContainerRemoveOptions{}); err != nil {
+			glog.Errorf("error removing %q: %v", containerId, err)
+		}
+	}()
+
+	if err := componentinstall.LogContainer(path.Join(basedir, "logs"), componentName, stdout, stderr); err != nil {
+		glog.Errorf("error logging %q: %v", componentName, err)
+	}
 	if err != nil {
-		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
+		return "", errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
+	}
+	if rc != 0 {
+		return "", errors.NewError("could not run %q: rc==%v", componentName, rc)
 	}
 
 	// TODO eliminate the linkage that other tasks have on this particular structure

@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -39,7 +41,11 @@ func NewKubeletRunConfig() *KubeletRunConfig {
 // Start starts the OpenShift master as a Docker container
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
-func (opt KubeletRunConfig) RunKubelet(imageRunHelper *run.Runner) (string, error) {
+func (opt KubeletRunConfig) StartKubelet(dockerClient dockerhelper.Interface, logdir string) (string, error) {
+	componentName := "start-kubelet"
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	glog.Infof("Running %q", componentName)
+
 	env := []string{}
 	if len(opt.HTTPProxy) > 0 {
 		env = append(env, fmt.Sprintf("HTTP_PROXY=%s", opt.HTTPProxy))
@@ -52,7 +58,6 @@ func (opt KubeletRunConfig) RunKubelet(imageRunHelper *run.Runner) (string, erro
 	}
 	env = append(env, opt.Environment...)
 
-	glog.Info("Running kubelet")
 	createConfigCmd := []string{
 		"kubelet",
 	}

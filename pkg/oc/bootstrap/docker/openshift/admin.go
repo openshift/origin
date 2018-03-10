@@ -8,17 +8,18 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/golang/glog"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	"github.com/golang/glog"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
@@ -35,7 +36,7 @@ const (
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(imageRunHelper *run.Runner, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, pvDir string, out, errout io.Writer) error {
+func (h *Helper) InstallRegistry(dockerClient dockerhelper.Interface, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, logdir, images, pvDir string, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -44,6 +45,10 @@ func (h *Helper) InstallRegistry(imageRunHelper *run.Runner, ocImage string, kub
 	if !apierrors.IsNotFound(err) {
 		return errors.NewError("error retrieving docker registry service").WithCause(err).WithDetails(h.OriginLog())
 	}
+
+	componentName := "install-registry"
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	glog.Infof("Running %q", componentName)
 
 	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
@@ -59,8 +64,6 @@ func (h *Helper) InstallRegistry(imageRunHelper *run.Runner, ocImage string, kub
 	// Obtain registry markup. The reason it is not created outright is because
 	// we need to modify the ClusterIP of the registry service. The command doesn't
 	// have an option to set it.
-	stdOut, stdErr, err := h.execHelper.Command().Output()
-
 	flags := []string{
 		"adm",
 		"registry",
@@ -69,18 +72,23 @@ func (h *Helper) InstallRegistry(imageRunHelper *run.Runner, ocImage string, kub
 		fmt.Sprintf("--images=%s", images),
 		fmt.Sprintf("--mount-host=%s", path.Join(pvDir, "registry")),
 	}
-	_, _, err = imageRunHelper.Image(ocImage).
+	_, stdout, stderr, rc, err := imageRunHelper.Image(ocImage).
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
 		HostPid().
 		Bind(masterDir + ":" + masterConfigDir).
 		Entrypoint("oc").
-		Command(flags...).Run()
+		Command(flags...).Output()
 
+	if err := componentinstall.LogContainer(logdir, componentName, stdout, stderr); err != nil {
+		glog.Errorf("error logging %q: %v", componentName, err)
+	}
 	if err != nil {
-		glog.Error(stdOut)
-		return errors.NewError("cannot generate registry resources").WithCause(err).WithDetails(stdErr)
+		return errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
+	}
+	if rc != 0 {
+		return errors.NewError("could not run %q: rc==%v", componentName, rc)
 	}
 
 	svc, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
@@ -99,7 +107,7 @@ func (h *Helper) InstallRegistry(imageRunHelper *run.Runner, ocImage string, kub
 }
 
 // InstallRouter installs a default router on the OpenShift server
-func (h *Helper) InstallRouter(imageRunHelper *run.Runner, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
+func (h *Helper) InstallRouter(dockerClient dockerhelper.Interface, ocImage string, kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, logdir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcRouter, metav1.GetOptions{})
 	if err == nil {
 		// Router service already exists, nothing to do
@@ -108,6 +116,10 @@ func (h *Helper) InstallRouter(imageRunHelper *run.Runner, ocImage string, kubeC
 	if !apierrors.IsNotFound(err) {
 		return errors.NewError("error retrieving router service").WithCause(err).WithDetails(h.OriginLog())
 	}
+
+	componentName := "install-router"
+	imageRunHelper := run.NewRunHelper(dockerhelper.NewHelper(dockerClient)).New()
+	glog.Infof("Running %q", componentName)
 
 	masterDir := filepath.Join(configDir, "master")
 
@@ -180,18 +192,24 @@ func (h *Helper) InstallRouter(imageRunHelper *run.Runner, ocImage string, kubeC
 		fmt.Sprintf("--images=%s", images),
 		fmt.Sprintf("--default-cert=%s", routerCertPath),
 	}
-	_, _, err = imageRunHelper.Image(ocImage).
+	_, stdout, stderr, rc, err := imageRunHelper.Image(ocImage).
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
 		HostPid().
 		Bind(masterDir + ":" + masterConfigDir).
 		Entrypoint("oc").
-		Command(flags...).Run()
-	if err != nil {
-		return errors.NewError("cannot generate router resources").WithCause(err)
-	}
+		Command(flags...).Output()
 
+	if err := componentinstall.LogContainer(logdir, componentName, stdout, stderr); err != nil {
+		glog.Errorf("error logging %q: %v", componentName, err)
+	}
+	if err != nil {
+		return errors.NewError("could not run %q: %v", componentName, err).WithCause(err)
+	}
+	if rc != 0 {
+		return errors.NewError("could not run %q: rc==%v", componentName, rc)
+	}
 	return nil
 }
 

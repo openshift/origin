@@ -1,7 +1,6 @@
 package kubeapiserver
 
 import (
-	"io"
 	"io/ioutil"
 	"path"
 
@@ -14,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 )
 
-func MakeOpenShiftAPIServerConfig(existingMasterConfig string, out io.Writer, basedir string) (string, error) {
+func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (string, error) {
 	openshiftAPIServerDir := path.Join(basedir, OpenShiftAPIServerDirName)
 	glog.V(1).Infof("Copying kube-apiserver config to local directory %s", openshiftAPIServerDir)
 	if err := tmpformac.CopyDirectory(existingMasterConfig, openshiftAPIServerDir); err != nil {

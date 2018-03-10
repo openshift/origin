@@ -1,7 +1,6 @@
 package kubelet
 
 import (
-	"io"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -15,7 +14,7 @@ import (
 // Start starts the OpenShift master as a Docker container
 // and returns a directory in the local file system where
 // the OpenShift configuration has been copied
-func MutateKubeDNSConfig(nodeConfigDir string, out io.Writer) (string, error) {
+func MutateKubeDNSConfig(nodeConfigDir string) (string, error) {
 	// update DNS resolution to point at the master (for now).  Do this by grabbing the local and prepending to it.
 	// this is probably broken somewhere for some reason and a bad idea of other reasons, but it gets us moving
 	if existingResolveConf, err := ioutil.ReadFile("/etc/resolv.conf"); err == nil {
