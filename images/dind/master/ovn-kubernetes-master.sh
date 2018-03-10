@@ -20,12 +20,12 @@ function ovn-kubernetes-master() {
 
   echo "Enabling and start ovn-kubernetes master services"
   /usr/local/bin/ovnkube \
-	--apiserver "${apiserver}" \
-	--ca-cert "${config_dir}/ca.crt" \
-	--token "${token}" \
+	--k8s-apiserver "${apiserver}" \
+	--k8s-cacert "${config_dir}/ca.crt" \
+	--k8s-token "${token}" \
 	--cluster-subnet "${cluster_cidr}" \
-	--ovn-north-db "tcp://${ovn_master_ip}:6641" \
-	--ovn-south-db "tcp://${ovn_master_ip}:6642" \
+	--nb-address "tcp://${ovn_master_ip}:6641" \
+	--sb-address "tcp://${ovn_master_ip}:6642" \
 	--init-master `hostname` \
 	--net-controller
 }
