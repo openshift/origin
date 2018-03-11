@@ -26,7 +26,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	kcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
@@ -43,7 +42,6 @@ import (
 
 const (
 	podInterfaceName = knetwork.DefaultInterfaceName
-	cniBinPath       = kcni.DefaultCNIDir
 )
 
 type podHandler interface {
@@ -69,10 +67,11 @@ type podManager struct {
 	runningPodsLock sync.Mutex
 
 	// Live pod setup/teardown stuff not used in testing code
-	kClient kclientset.Interface
-	policy  osdnPolicy
-	mtu     uint32
-	ovs     *ovsController
+	kClient    kclientset.Interface
+	policy     osdnPolicy
+	mtu        uint32
+	cniBinPath string
+	ovs        *ovsController
 
 	enableHostports bool
 	// true if hostports have been synced at least once
@@ -87,11 +86,12 @@ type podManager struct {
 }
 
 // Creates a new live podManager; used by node code0
-func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, ovs *ovsController, enableHostports bool) *podManager {
+func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, cniBinPath string, ovs *ovsController, enableHostports bool) *podManager {
 	pm := newDefaultPodManager()
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
+	pm.cniBinPath = cniBinPath
 	pm.podHandler = pm
 	pm.ovs = ovs
 	pm.enableHostports = enableHostports
@@ -408,7 +408,7 @@ func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
 	return nil
 }
 
-func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *invoke.Args {
+func createIPAMArgs(netnsPath, cniBinPath string, action cniserver.CNICommand, id string) *invoke.Args {
 	return &invoke.Args{
 		Command:     string(action),
 		ContainerID: id,
@@ -424,8 +424,8 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.I
 		return nil, nil, fmt.Errorf("netns required for CNI_ADD")
 	}
 
-	args := createIPAMArgs(netnsPath, cniserver.CNI_ADD, id)
-	r, err := invoke.ExecPluginWithResult(cniBinPath+"/host-local", m.ipamConfig, args)
+	args := createIPAMArgs(netnsPath, m.cniBinPath, cniserver.CNI_ADD, id)
+	r, err := invoke.ExecPluginWithResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
 	}
@@ -444,8 +444,8 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.I
 
 // Run CNI IPAM release for the container
 func (m *podManager) ipamDel(id string) error {
-	args := createIPAMArgs("", cniserver.CNI_DEL, id)
-	err := invoke.ExecPluginWithoutResult(cniBinPath+"/host-local", m.ipamConfig, args)
+	args := createIPAMArgs("", m.cniBinPath, cniserver.CNI_DEL, id)
+	err := invoke.ExecPluginWithoutResult(m.cniBinPath+"/host-local", m.ipamConfig, args)
 	if err != nil {
 		return fmt.Errorf("failed to run CNI IPAM DEL: %v", err)
 	}

@@ -75,6 +75,7 @@ type OsdnNodeConfig struct {
 	RuntimeEndpoint string
 	MTU             uint32
 	EnableHostports bool
+	CNIBinDir       string
 	CNIConfDir      string
 
 	NetworkClient networkclient.Interface
@@ -174,7 +175,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		networkClient:      c.NetworkClient,
 		recorder:           c.Recorder,
 		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, oc, c.EnableHostports),
+		podManager:         newPodManager(c.KClient, policy, c.MTU, c.CNIBinDir, oc, c.EnableHostports),
 		localIP:            c.SelfIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
