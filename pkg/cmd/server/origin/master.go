@@ -162,7 +162,7 @@ func (c *MasterConfig) newWebConsoleProxy() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	proxyHandler, err := NewServiceProxyHandler("webconsole", "openshift-web-console", aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()), caBundle)
+	proxyHandler, err := NewServiceProxyHandler("webconsole", "openshift-web-console", aggregatorapiserver.NewClusterIPServiceResolver(c.ClientGoKubeInformers.Core().V1().Services().Lister()), caBundle, "OpenShift web console")
 	if err != nil {
 		return nil, err
 	}
