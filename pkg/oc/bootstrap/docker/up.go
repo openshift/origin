@@ -95,9 +95,6 @@ var (
 	  # Start OpenShift and preserve data and config between restarts
 	  %[1]s --host-data-dir=/mydata --use-existing-config
 
-	  # Use a different set of images
-	  %[1]s --image="registry.example.com/origin" --version="v1.1"
-
 	  # Specify which set of image streams to use
 	  %[1]s --image-streams=centos7`)
 
@@ -174,8 +171,8 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 }
 
 type ClusterUpConfig struct {
-	ImageVersion                string
 	Image                       string
+	ImageTag                    string
 	ImageStreams                string
 	DockerMachine               string
 	SkipRegistryCheck           bool
@@ -233,8 +230,9 @@ type ClusterUpConfig struct {
 
 func (config *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
-	flags.StringVar(&config.ImageVersion, "version", "", "Specify the tag for OpenShift images")
 	flags.StringVar(&config.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
+	flags.StringVar(&config.ImageTag, "tag", "", "Specify the tag for OpenShift images")
+	flags.MarkHidden("tag")
 	flags.StringVar(&config.ImageStreams, "image-streams", defaultImageStreams, "Specify which image streams to use, centos7|rhel7")
 	flags.BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
 	flags.StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
@@ -264,9 +262,8 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 	c.command = cmd
 
 	// do some defaulting
-	if len(c.ImageVersion) == 0 {
-		c.ImageVersion = strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+")
-
+	if len(c.ImageTag) == 0 {
+		c.ImageTag = strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+")
 	}
 	if len(c.BaseTempDir) == 0 {
 		var err error
@@ -879,7 +876,7 @@ func (c *ClusterUpConfig) PostClusterStartupMutations(out io.Writer) error {
 }
 
 func (c *ClusterUpConfig) imageFormat() string {
-	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageVersion)
+	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
 }
 
 // InstallRegistry installs the OpenShift registry on the server
@@ -970,7 +967,7 @@ func (c *ClusterUpConfig) InstallLogging(out io.Writer) error {
 		publicMaster,
 		openshift.LoggingHost(c.RoutingSuffix, c.ServerIP),
 		c.Image,
-		c.ImageVersion,
+		c.ImageTag,
 		c.HostConfigDir,
 		c.ImageStreams)
 }
@@ -992,7 +989,7 @@ func (c *ClusterUpConfig) InstallMetrics(out io.Writer) error {
 		publicMaster,
 		openshift.MetricsHost(c.RoutingSuffix, c.ServerIP),
 		c.Image,
-		c.ImageVersion,
+		c.ImageTag,
 		c.HostConfigDir,
 		c.ImageStreams)
 }
@@ -1021,7 +1018,7 @@ func (c *ClusterUpConfig) InstallTemplateServiceBroker(out io.Writer) error {
 		publicMaster = c.ServerIP
 	}
 
-	imageTemplate := fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageVersion)
+	imageTemplate := fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
 
 	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
 	if err != nil {
@@ -1215,7 +1212,7 @@ func (c *ClusterUpConfig) makeObjectImportInstallationComponentsOrDie(out io.Wri
 }
 
 func (c *ClusterUpConfig) openshiftImage() string {
-	return fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
+	return fmt.Sprintf("%s:%s", c.Image, c.ImageTag)
 }
 
 func getDockerMachineClient(machine string, out io.Writer, canStart bool) (dockerhelper.Interface, error) {
