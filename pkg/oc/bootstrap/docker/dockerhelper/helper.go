@@ -174,7 +174,7 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
 	}
 
-	fmt.Fprintf(out, "Image pull complete\n")
+	fmt.Fprintln(out, "Image pull complete")
 	return nil
 }
 

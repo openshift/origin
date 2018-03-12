@@ -693,7 +693,7 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 // If one is already running, it throws an error.
 // If one exists, it removes it so a new one can be created.
 func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper, out io.Writer) error {
-	container, running, err := dockerHelper.GetContainerState(openshift.OpenShiftContainer)
+	container, running, err := dockerHelper.GetContainerState(openshift.ContainerName)
 	if err != nil {
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
@@ -701,7 +701,7 @@ func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper, out io.W
 		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", "oc cluster down")
 	}
 	if container != nil {
-		err = dockerHelper.RemoveContainer(openshift.OpenShiftContainer)
+		err = dockerHelper.RemoveContainer(openshift.ContainerName)
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
@@ -938,17 +938,17 @@ func (c *ClusterUpConfig) InstallWebConsole(out io.Writer) error {
 func (c *ClusterUpConfig) ImportInitialObjects(out io.Writer) error {
 	componentsToInstall := []componentinstall.Component{}
 	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftNamespace, map[string]string{
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.Namespace, map[string]string{
 			c.ImageStreams: imageStreams[c.ImageStreams],
 		})...)
 	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftNamespace, templateLocations)...)
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.Namespace, templateLocations)...)
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, "kube-system", adminTemplateLocations)...)
 	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, internalTemplateLocations)...)
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.InfraNamespace, internalTemplateLocations)...)
 	componentsToInstall = append(componentsToInstall,
-		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, internalCurrentTemplateLocations)...)
+		c.makeObjectImportInstallationComponentsOrDie(out, openshift.InfraNamespace, internalCurrentTemplateLocations)...)
 
 	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseTempDir, "logs"))
 }
@@ -1165,7 +1165,7 @@ func (c *ClusterUpConfig) Clients() (interface{}, kclientset.Interface, error) {
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *ClusterUpConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.HostHelper(), c.openshiftImage(), openshift.OpenShiftContainer, c.RoutingSuffix)
+		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.HostHelper(), c.openshiftImage(), openshift.ContainerName, c.RoutingSuffix)
 	}
 	return c.openshiftHelper
 }
