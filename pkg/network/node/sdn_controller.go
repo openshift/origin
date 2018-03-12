@@ -136,9 +136,9 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 
 	var changed bool
 	if err := plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs); err == nil {
-		glog.V(5).Infof("[SDN setup] no SDN setup required: %v", err)
+		glog.V(5).Infof("[SDN setup] no SDN setup required")
 	} else {
-		glog.Infof("[SDN setup] full SDN setup required")
+		glog.Infof("[SDN setup] full SDN setup required (%v)", err)
 		if err := plugin.setup(clusterNetworkCIDRs, localSubnetCIDR, localSubnetGateway, gwCIDR); err != nil {
 			return false, err
 		}
