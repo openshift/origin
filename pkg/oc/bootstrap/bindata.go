@@ -15545,7 +15545,7 @@ parameters:
   value: openshift-controller-manager
 - name: LOGLEVEL
   value: "0"
-- name: MASTER_CONFIG_HOST_PATH
+- name: OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH
 - name: NODE_SELECTOR
   value: "{}"
 objects:
@@ -15578,11 +15578,10 @@ objects:
         - name: c
           image: ${IMAGE}
           imagePullPolicy: IfNotPresent
-          command: ["openshift", "start", "master", "controllers"]
+          command: ["hypershift", "openshift-controller-manager"]
           args:
-          - "--listen=https://0.0.0.0:8444"
           - "--config=/etc/origin/master/master-config.yaml"
-          - "--loglevel=${LOGLEVEL}"
+          - "--v=${LOGLEVEL}"
           ports:
           - containerPort: 8444
           securityContext:
@@ -15602,7 +15601,7 @@ objects:
         volumes:
         - name: master-config
           hostPath:
-            path: ${MASTER_CONFIG_HOST_PATH}
+            path: ${OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH}
         - name: master-cloud-provider
           hostPath:
             path: /etc/origin/cloudprovider

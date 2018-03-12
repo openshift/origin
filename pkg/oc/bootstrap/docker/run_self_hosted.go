@@ -98,18 +98,20 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 	}
 
 	var (
-		masterConfigDir             string
-		openshiftAPIServerConfigDir string
-		nodeConfigDir               string
-		kubeDNSConfigDir            string
-		podManifestDir              string
-		err                         error
+		masterConfigDir              string
+		openshiftAPIServerConfigDir  string
+		openshiftControllerConfigDir string
+		nodeConfigDir                string
+		kubeDNSConfigDir             string
+		podManifestDir               string
+		err                          error
 	)
 
 	switch {
 	case len(c.HostConfigDir) > 0 && !c.WriteConfig:
 		masterConfigDir = filepath.Join(c.HostConfigDir, kubeapiserver.KubeAPIServerDirName, "master")
 		openshiftAPIServerConfigDir = filepath.Join(c.HostConfigDir, kubeapiserver.OpenShiftAPIServerDirName)
+		openshiftControllerConfigDir = filepath.Join(c.HostConfigDir, kubeapiserver.OpenShiftControllerManagerDirName)
 		nodeConfigDir = filepath.Join(c.HostConfigDir, kubelet.NodeConfigDirName)
 		kubeDNSConfigDir = filepath.Join(c.HostConfigDir, kubelet.KubeDNSDirName)
 		podManifestDir = filepath.Join(c.HostConfigDir, kubelet.PodManifestDirName)
@@ -124,6 +126,10 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 			return err
 		}
 		openshiftAPIServerConfigDir, err = c.makeOpenShiftAPIServerConfig(masterConfigDir)
+		if err != nil {
+			return err
+		}
+		openshiftControllerConfigDir, err = c.makeOpenShiftControllerConfig(masterConfigDir)
 		if err != nil {
 			return err
 		}
@@ -157,6 +163,9 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 			return err
 		}
 		if err := tmpformac.CopyDirectory(openshiftAPIServerConfigDir, path.Join(absHostDir, kubeapiserver.OpenShiftAPIServerDirName)); err != nil {
+			return err
+		}
+		if err := tmpformac.CopyDirectory(openshiftControllerConfigDir, path.Join(absHostDir, kubeapiserver.OpenShiftControllerManagerDirName)); err != nil {
 			return err
 		}
 		if err := tmpformac.CopyDirectory(nodeConfigDir, path.Join(absHostDir, kubelet.NodeConfigDirName)); err != nil {
@@ -195,11 +204,12 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
       path: ` + c.HostDataDir + "\n"
 	}
 	templateSubstitutionValues := map[string]string{
-		"MASTER_CONFIG_HOST_PATH":              masterConfigDir,
-		"OPENSHIFT_APISERVER_CONFIG_HOST_PATH": openshiftAPIServerConfigDir,
-		"NODE_CONFIG_HOST_PATH":                nodeConfigDir,
-		"KUBEDNS_CONFIG_HOST_PATH":             kubeDNSConfigDir,
-		"LOGLEVEL":                             fmt.Sprintf("%d", c.ServerLogLevel),
+		"MASTER_CONFIG_HOST_PATH":                       masterConfigDir,
+		"OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          openshiftAPIServerConfigDir,
+		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": openshiftControllerConfigDir,
+		"NODE_CONFIG_HOST_PATH":                         nodeConfigDir,
+		"KUBEDNS_CONFIG_HOST_PATH":                      kubeDNSConfigDir,
+		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
 	}
 
 	glog.V(1).Info("creating static pods")
@@ -361,10 +371,12 @@ func (c *ClientStartConfig) makeKubeDNSConfig(kubeDNSConfigDir string) (string, 
 	return kubelet.MutateKubeDNSConfig(kubeDNSConfigDir)
 }
 
-// makeKubeDNSConfig mutates some pieces of the kubedns dir.
-// TODO This should be building the whole thing eventually
 func (c *ClientStartConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
 	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.BaseTempDir)
+}
+
+func (c *ClientStartConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
+	return kubeapiserver.MakeOpenShiftControllerConfig(masterConfigDir, c.BaseTempDir)
 }
 
 // startKubelet returns the container id
