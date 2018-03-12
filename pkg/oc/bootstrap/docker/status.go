@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
@@ -65,6 +67,27 @@ type ClientStatusConfig struct {
 	DockerMachine string
 }
 
+func getConfigFromContainer(client dockerhelper.Interface) (*config.MasterConfig, error) {
+	serverConfigPath := "/var/lib/origin/openshift.local.config"
+	serverMasterConfig := serverConfigPath + "/master/master-config.yaml"
+	r, err := dockerhelper.StreamFileFromContainer(client, openshift.ContainerName, serverMasterConfig)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	masterConfig := &config.MasterConfig{}
+	err = configapilatest.ReadYAMLInto(data, masterConfig)
+	if err != nil {
+		return nil, err
+	}
+	return masterConfig, nil
+}
+
 // Status prints the OpenShift cluster status
 func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 	dockerClient, err := getDockerClient(out, c.DockerMachine, false)
@@ -90,7 +113,7 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 		return errors.NewError("OpenShift cluster health check failed")
 	}
 
-	masterConfig, err := openshift.GetConfigFromContainer(dockerClient)
+	masterConfig, err := getConfigFromContainer(dockerClient)
 	if err != nil {
 		return err
 	}

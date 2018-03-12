@@ -2,7 +2,6 @@ package openshift
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -11,8 +10,10 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/homedir"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	clientconfig "github.com/openshift/origin/pkg/client/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -24,13 +25,10 @@ import (
 	dockerexec "github.com/openshift/origin/pkg/oc/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 const (
 	defaultNodeName      = "localhost"
-	serverConfigPath     = "/var/lib/origin/openshift.local.config"
-	serverMasterConfig   = serverConfigPath + "/master/master-config.yaml"
 	DefaultDNSPort       = 8053
 	DefaultSvcCIDR       = "172.30.0.0/16"
 	cmdDetermineNodeHost = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
@@ -264,25 +262,6 @@ func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfi
 		return nil, "", err
 	}
 	return cfg, configPath, nil
-}
-
-func GetConfigFromContainer(client dockerhelper.Interface) (*configapi.MasterConfig, error) {
-	r, err := dockerhelper.StreamFileFromContainer(client, ContainerName, serverMasterConfig)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-	config := &configapi.MasterConfig{}
-	err = configapilatest.ReadYAMLInto(data, config)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 func (h *Helper) ServerVersion() (semver.Version, error) {
