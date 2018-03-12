@@ -63,15 +63,6 @@ function os::test::extended::clusterup::verify_persistent_volumes () {
     os::cmd::expect_success "oc login -u developer"
 }
 
-function os::test::extended::clusterup::skip_persistent_volumes () {
-    mkdir -p /tmp/pv
-    touch /tmp/pv/.skip_pv
-    arg=$@
-    os::cmd::expect_success_and_text "oc cluster up --host-pv-dir=/tmp/pv/ $arg" "Skip persistent volume creation"
-    os::cmd::expect_success "oc login -u system:admin"
-    os::cmd::expect_success_and_text "oc get pv | wc -l" "0"
-}
-
 function os::test::extended::clusterup::verify_console () {
     os::cmd::expect_success "oc login -u system:admin"
     os::cmd::expect_success_and_text "oc get svc -n openshift-web-console" "webconsole"
@@ -143,49 +134,39 @@ function os::test::extended::clusterup::standard_test () {
 
 # Test with host dirs specified
 function os::test::extended::clusterup::internal::hostdirs () {
-    local data_dir="${BASE_DIR}/data"
-    local config_dir="${BASE_DIR}/config"
-    local pv_dir="${BASE_DIR}/pv"
-    local volumes_dir="${BASE_DIR}/volumes"
-    os::cmd::expect_success "mkdir -p ${data_dir} ${pv_dir} ${volumes_dir}"
-    local volumes_arg=""
-    if [[ "$(uname)" == "Linux" ]]; then
-        volumes_arg="--host-volumes-dir=${volumes_dir}"
-    fi
+    local config_dir
+    config_dir=${ARTIFACT_DIR}/hostdirs/openshift.local.clusterup
+    mkdir -p ${config_dir}
+
     os::test::extended::clusterup::standard_test \
-        --host-data-dir="${data_dir}" \
-        --host-config-dir="${config_dir}" \
-        --host-pv-dir="${pv_dir}" \
-        ${volumes_arg} \
+        --base-dir="${config_dir}" \
         --version="$ORIGIN_COMMIT" \
         ${@}
 
 	local sudo="${USE_SUDO:+sudo}"
     os::cmd::expect_success "${sudo} ls ${config_dir}/oc-cluster-up-kube-apiserver/master/master-config.yaml"
-    os::cmd::expect_success "${sudo} ls ${pv_dir}/pv0100"
-    os::cmd::expect_success "${sudo} ls ${data_dir}/member"
+    os::cmd::expect_success "${sudo} ls ${ARTIFACT_DIR}/hostdirs/openshift.local.clusterup/openshift.local.pv/pv0100"
+    os::cmd::expect_success "${sudo} ls ${ARTIFACT_DIR}/hostdirs/openshift.local.clusterup/etcd/member"
 }
 
 # Tests the simplest case, no arguments specified
 function os::test::extended::clusterup::noargs () {
-    os::test::extended::clusterup::standard_test ${@}
+    local base_dir
+    base_dir=${ARTIFACT_DIR}/noargs/openshift.local.clusterup
+    mkdir -p ${base_dir}
+
+    os::test::extended::clusterup::standard_test --base-dir=${base_dir} ${@}
 }
 
 # Tests creating a cluster with specific host directories
 function os::test::extended::clusterup::hostdirs () {
     local base_dir
-    if [[ "$(uname)" == "Darwin" ]]; then
-        base_dir="$(mktemp -d /tmp/clusterup.XXXXXX)"
-    else
-        base_dir="$(mktemp -d)"
-    fi
+    base_dir=${ARTIFACT_DIR}/hostdirs/openshift.local.clusterup
+    mkdir -p ${base_dir}
 
     # need to set up the config dir with the proper content
     oc cluster up \
-        --host-data-dir="${base_dir}/data" \
-        --host-config-dir="${base_dir}/config" \
-        --host-pv-dir="${base_dir}/pv" \
-        --host-volumes-dir="${base_dir}/volumes" \
+        --base-dir="${base_dir}/config" \
         --version="$ORIGIN_COMMIT" \
         --write-config
 
@@ -194,8 +175,12 @@ function os::test::extended::clusterup::hostdirs () {
 
 # Tests bringing up the service catalog and provisioning a template
 function os::test::extended::clusterup::service_catalog() {
+    local base_dir
+    base_dir=${ARTIFACT_DIR}/service_catalog/openshift.local.clusterup
+    mkdir -p ${base_dir}
+
     arg=$@
-    os::cmd::expect_success "oc cluster up --service-catalog $arg"
+    os::cmd::expect_success "oc cluster up --base-dir="${base_dir}" --service-catalog $arg"
     os::test::extended::clusterup::verify_router_and_registry
     os::test::extended::clusterup::verify_image_streams
     os::cmd::expect_success "oc login -u system:admin"
@@ -214,75 +199,85 @@ function os::test::extended::clusterup::service_catalog() {
 # Tests creating a cluster with a public hostname
 function os::test::extended::clusterup::publichostname () {
     local base_dir
-    if [[ "$(uname)" == "Darwin" ]]; then
-        base_dir="$(mktemp -d /tmp/clusterup.XXXXXX)"
-    else
-        base_dir="$(mktemp -d)"
-    fi
+    base_dir=${ARTIFACT_DIR}/publichostname/openshift.local.clusterup
+    mkdir -p ${base_dir}
 
     # need to set up the config dir with the proper content
     oc cluster up \
         --public-hostname="myserver.127.0.0.1.nip.io" \
-        --host-config-dir="${base_dir}/config" \
+        --base-dir="${base_dir}" \
         --version="$ORIGIN_COMMIT" \
         --write-config
 
     BASE_DIR="${base_dir}" os::test::extended::clusterup::standard_test \
         --public-hostname="myserver.127.0.0.1.nip.io" \
-        --host-config-dir="${base_dir}/config" \
+        --base-dir="${base_dir}" \
         --version="$ORIGIN_COMMIT" \
         ${@}
-    os::cmd::expect_success_and_text "cat ${base_dir}/config/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*myserver\.127\.0\.0\.1\.nip\.io"
+    os::cmd::expect_success_and_text "cat ${base_dir}/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*myserver\.127\.0\.0\.1\.nip\.io"
 }
 
 # Tests creating a cluster with a numeric public hostname
 function os::test::extended::clusterup::numerichostname () {
     local base_dir
-    if [[ "$(uname)" == "Darwin" ]]; then
-        base_dir="$(mktemp -d /tmp/clusterup.XXXXXX)"
-    else
-        base_dir="$(mktemp -d)"
-    fi
+    base_dir=${ARTIFACT_DIR}/numerichostname/openshift.local.clusterup
+    mkdir -p ${base_dir}
 
     # need to set up the config dir with the proper content
     oc cluster up \
         --public-hostname="127.0.0.1" \
-        --host-config-dir="${base_dir}/config" \
+        --base-dir="${base_dir}/config" \
         --version="$ORIGIN_COMMIT" \
         --write-config
 
     os::test::extended::clusterup::standard_test \
         --public-hostname="127.0.0.1" \
-        --host-config-dir="${base_dir}/config" \
+        --base-dir="${base_dir}" \
         --version="$ORIGIN_COMMIT" \
         ${@}
-    os::cmd::expect_success_and_text "cat ${base_dir}/config/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
+    os::cmd::expect_success_and_text "cat ${base_dir}/oc-cluster-up-kube-apiserver/master/master-config.yaml" "masterPublicURL.*127\.0\.0\.1"
 }
 
 # Tests installation of console components
 function os::test::extended::clusterup::console () {
+    local base_dir
+    base_dir=${ARTIFACT_DIR}/console/openshift.local.clusterup
+    mkdir -p ${base_dir}
+
     arg=$@
-    os::cmd::expect_success "oc cluster up $arg"
+    os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
     os::test::extended::clusterup::verify_console
 }
 
 # Tests installation of metrics components
 function os::test::extended::clusterup::metrics () {
-    os::test::extended::clusterup::standard_test --metrics ${@}
+    local base_dir
+    base_dir=${ARTIFACT_DIR}/hostdirs/openshift.local.config/metrics
+    mkdir -p ${base_dir}
+
+    os::test::extended::clusterup::standard_test --base-dir=${base_dir} --metrics ${@}
     os::test::extended::clusterup::verify_metrics
 }
 
 # Tests installation of aggregated logging components
 function os::test::extended::clusterup::logging () {
-    os::test::extended::clusterup::standard_test --logging ${@}
+    local base_dir
+    base_dir=${ARTIFACT_DIR}/hostdirs/openshift.local.config/publichostname
+    mkdir -p ${base_dir}
+
+    os::test::extended::clusterup::standard_test --base-dir=${base_dir} --logging ${@}
     os::test::extended::clusterup::verify_logging
 }
 
 # Verifies that a service can be accessed by a peer pod
 # and by the pod running the service
 function os::test::extended::clusterup::svcaccess () {
+    local base_dir
+    base_dir=${ARTIFACT_DIR}/svcaccess/openshift.local.clusterup
+    mkdir -p ${base_dir}
+
     arg=$@
-    os::cmd::expect_success "oc cluster up $arg"
+    os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
     os::cmd::expect_success "oc create -f ${OS_ROOT}/examples/gitserver/gitserver-persistent.yaml"
 	os::cmd::try_until_text "oc get endpoints git -o jsonpath='{ .subsets[*].ports[?(@.port==8080)].port }'" "8080" $(( 10*minute )) 1
     # Test that a service can be accessed from a peer pod
@@ -297,10 +292,14 @@ function os::test::extended::clusterup::svcaccess () {
 # Verifies that cluster up can start when a process is bound
 # to the loopback interface with tcp port 53
 function os::test::extended::clusterup::portinuse () {
+    local base_dir
+    base_dir=${ARTIFACT_DIR}/portinuse/openshift.local.clusterup
+    mkdir -p ${base_dir}
+
     # Start listening on the host's 127.0.0.1 interface, port 53
     os::cmd::expect_success "docker run -d --name=port53 --entrypoint=/bin/bash --net=host openshift/origin-gitserver:latest -c \"socat TCP-LISTEN:53,bind=127.0.0.1,fork SYSTEM:'echo hello'\""
     arg=$@
-    os::cmd::expect_success "oc cluster up $arg"
+    os::cmd::expect_success "oc cluster up --base-dir=${base_dir} $arg"
 }
 
 function os::test::extended::clusterup::portinuse_cleanup () {
@@ -308,12 +307,6 @@ function os::test::extended::clusterup::portinuse_cleanup () {
     docker rm -f port53
 }
 
-
-# Verifies that clusterup handle different scenarios with persistent volumes setup
-function os::test::extended::clusterup::persistentvolumes () {
-    os::test::extended::clusterup::skip_persistent_volumes "$@"
-    rm -rf /tmp/pv
-}
 
 readonly default_tests=(
     "service_catalog"
@@ -323,7 +316,6 @@ readonly default_tests=(
     "numerichostname"
     "portinuse"
     "svcaccess"
-    "persistentvolumes"
     "console"
 
 # logging+metrics team needs to fix/enable these tests.
