@@ -133,11 +133,11 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		nodeConfigDir, kubeDNSConfigDir, err = c.makeNodeConfig(masterConfigDir)
+		nodeConfigDir, err = c.makeNodeConfig(masterConfigDir)
 		if err != nil {
 			return err
 		}
-		kubeDNSConfigDir, err = c.makeKubeDNSConfig(kubeDNSConfigDir)
+		kubeDNSConfigDir, err = c.makeKubeDNSConfig(nodeConfigDir)
 		if err != nil {
 			return err
 		}
@@ -174,7 +174,7 @@ func (c *ClientStartConfig) StartSelfHosted(out io.Writer) error {
 		if err := tmpformac.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.KubeDNSDirName)); err != nil {
 			return err
 		}
-		if err := tmpformac.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
+		if err := tmpformac.CopyDirectory(podManifestDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
 			return err
 		}
 
@@ -309,7 +309,7 @@ func (c *ClientStartConfig) makeMasterConfig(out io.Writer) (string, error) {
 }
 
 // makeNodeConfig returns the directory where a generated nodeconfig lives
-func (c *ClientStartConfig) makeNodeConfig(masterConfigDir string) (string, string, error) {
+func (c *ClientStartConfig) makeNodeConfig(masterConfigDir string) (string, error) {
 	defaultNodeName := "localhost"
 
 	container := kubelet.NewNodeStartConfig()
@@ -331,14 +331,10 @@ func (c *ClientStartConfig) makeNodeConfig(masterConfigDir string) (string, stri
 
 	nodeConfigDir, err := container.MakeNodeConfig(c.GetDockerClient(), c.BaseTempDir)
 	if err != nil {
-		return "", "", fmt.Errorf("error creating node config: %v", err)
-	}
-	kubeDNSConfigDir, err := container.MakeKubeDNSConfig(c.GetDockerClient(), c.BaseTempDir)
-	if err != nil {
-		return "", "", fmt.Errorf("error creating dns config: %v", err)
+		return "", fmt.Errorf("error creating node config: %v", err)
 	}
 
-	return nodeConfigDir, kubeDNSConfigDir, nil
+	return nodeConfigDir, nil
 }
 
 // makeKubeletFlags returns the kubelet flags
@@ -365,10 +361,8 @@ func (c *ClientStartConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string
 	return flags, nil
 }
 
-// makeKubeDNSConfig mutates some pieces of the kubedns dir.
-// TODO This should be building the whole thing eventually
-func (c *ClientStartConfig) makeKubeDNSConfig(kubeDNSConfigDir string) (string, error) {
-	return kubelet.MutateKubeDNSConfig(kubeDNSConfigDir)
+func (c *ClientStartConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
+	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseTempDir)
 }
 
 func (c *ClientStartConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
