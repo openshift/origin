@@ -1,11 +1,13 @@
 package integration
 
 import (
+	"strings"
 	"testing"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -14,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
@@ -123,6 +126,48 @@ func TestScopedImpersonation(t *testing.T) {
 	}
 	if user.Name != "harold" {
 		t.Fatalf("expected %v, got %v", "harold", user.Name)
+	}
+}
+
+func TestScopedSystemMasters(t *testing.T) {
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	isScopeErr := func(err error, scope string) bool {
+		errStr := err.Error()
+		return kapierrors.IsForbidden(err) && strings.Contains(errStr, "scope") && strings.Contains(errStr, scope)
+	}
+
+	if err := buildclient.NewForConfigOrDie(clusterAdminClientConfig).Build().RESTClient().Get().
+		SetHeader(authenticationv1.ImpersonateUserHeader, bootstrappolicy.SystemAdminUsername).
+		SetHeader(authenticationv1.ImpersonateGroupHeader, bootstrappolicy.MastersGroup).
+		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey, scope.UserInfo).
+		Namespace(projectName).Resource("builds").Name("name").Do().
+		Into(&buildapi.Build{}); !isScopeErr(err, scope.UserInfo) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	whoUser := &userapi.User{}
+	if err := userclient.NewForConfigOrDie(clusterAdminClientConfig).RESTClient().Get().
+		SetHeader(authenticationv1.ImpersonateUserHeader, bootstrappolicy.SystemAdminUsername).
+		SetHeader(authenticationv1.ImpersonateGroupHeader, bootstrappolicy.MastersGroup).
+		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey, scope.UserInfo).
+		Resource("users").Name("~").Do().Into(whoUser); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if whoUser.Name != bootstrappolicy.SystemAdminUsername {
+		t.Fatalf("expected %v, got %v", bootstrappolicy.SystemAdminUsername, whoUser.Name)
+	}
+	if !sets.NewString(whoUser.Groups...).Has(bootstrappolicy.MastersGroup) {
+		t.Fatalf("expected %v, got %v", bootstrappolicy.MastersGroup, whoUser.Groups)
 	}
 }
 

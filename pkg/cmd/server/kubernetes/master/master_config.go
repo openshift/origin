@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -47,6 +47,7 @@ import (
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	pluginwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
+	restclient "k8s.io/client-go/rest"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -300,7 +301,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	// Since not every generic apiserver has to support protobufs, we
 	// cannot default to it in generic apiserver and need to explicitly
 	// set it in kube-apiserver.
-	genericConfig.LoopbackClientConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf"
+	// genericConfig.LoopbackClientConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf"
 
 	return genericConfig, nil
 }
@@ -363,6 +364,7 @@ func buildKubeApiserverConfig(
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
+	privilegedLoopbackConfig *restclient.Config,
 ) (*master.Config, error) {
 	apiserverOptions, err := BuildKubeAPIserverOptions(masterConfig)
 	if err != nil {
@@ -400,6 +402,9 @@ func buildKubeApiserverConfig(
 	genericConfig.PublicAddress = publicAddress
 	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
 	genericConfig.Authorizer = kubeAuthorizer         // this is used to fulfill the kube SAR endpoints
+	// make sure we do not inherit a (randomly generated) privileged loopback token from k8s.io/apiserver/pkg/server/config_selfclient.go
+	// it will cause genericConfig.Authorizer to get wrapped with another privileged group authorizer, which makes it impossible for system:masters to use scopes
+	genericConfig.LoopbackClientConfig = privilegedLoopbackConfig
 	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
@@ -566,12 +571,14 @@ func BuildKubernetesMasterConfig(
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
+	privilegedLoopbackConfig *restclient.Config,
 ) (*master.Config, error) {
 	apiserverConfig, err := buildKubeApiserverConfig(
 		masterConfig,
 		admissionControl,
 		originAuthenticator,
 		kubeAuthorizer,
+		privilegedLoopbackConfig,
 	)
 	if err != nil {
 		return nil, err

@@ -12,6 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	"k8s.io/apiserver/pkg/audit"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kinformers "k8s.io/client-go/informers"
 	kubeclientgoinformers "k8s.io/client-go/informers"
@@ -90,6 +92,11 @@ type MasterConfig struct {
 	PrivilegedLoopbackKubernetesClientsetExternal kclientsetexternal.Interface
 
 	AuditBackend audit.Backend
+
+	// authenticator and authorizer are set once to the origin specific configuration
+	// they are used to confirm that no kube code modified or mutated their intended value
+	authenticator authenticator.Request
+	authorizer    authorizer.Authorizer
 
 	// TODO inspect uses to eliminate them
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
@@ -179,6 +186,7 @@ func BuildMasterConfig(
 		admission,
 		authenticator,
 		authorizer,
+		privilegedLoopbackConfig,
 	)
 	if err != nil {
 		return nil, err
@@ -218,6 +226,12 @@ func BuildMasterConfig(
 		PrivilegedLoopbackClientConfig:                *privilegedLoopbackConfig,
 		PrivilegedLoopbackKubernetesClientsetInternal: kubeInternalClient,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
+
+		// store the original values of the origin auth code for comparison later
+		// this allows use to validate that none of the config completion code
+		// altered the values for these components
+		authenticator: authenticator,
+		authorizer:    authorizer,
 
 		InternalKubeInformers:  informers.GetInternalKubeInformers(),
 		ClientGoKubeInformers:  informers.GetClientGoKubeInformers(),

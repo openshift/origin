@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -128,7 +129,17 @@ func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTa
 	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
 	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.ExtraConfig.SCCStorage)
 
-	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer)
+	openshiftAPIServerCompletedConfig := openshiftAPIServerConfig.Complete()
+
+	// make sure that none of the kube code we called wrapped or otherwise ignored our auth
+	if authenticator := openshiftAPIServerCompletedConfig.GenericConfig.Authenticator; !reflect.DeepEqual(c.authenticator, authenticator) {
+		return nil, fmt.Errorf("completed config has different authenticator:\nexpected: %#v\nactual: %#v", c.authenticator, authenticator)
+	}
+	if authorizer := openshiftAPIServerCompletedConfig.GenericConfig.Authorizer; !reflect.DeepEqual(c.authorizer, authorizer) {
+		return nil, fmt.Errorf("completed config has different authorizer:\nexpected: %#v\nactual: %#v", c.authorizer, authorizer)
+	}
+
+	openshiftAPIServer, err := openshiftAPIServerCompletedConfig.New(delegateAPIServer)
 	if err != nil {
 		return nil, err
 	}
