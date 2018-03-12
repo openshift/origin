@@ -1578,7 +1578,7 @@ func TestFollowTagReference(t *testing.T) {
 			expMultiple: true,
 			expErr:      ErrNotFoundReference,
 		},
-		"crosss image tag reference error": {
+		"crosss image tag reference": {
 			stream: &ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "testis",
@@ -1591,9 +1591,11 @@ func TestFollowTagReference(t *testing.T) {
 			},
 			tag:         "mytag",
 			expFinalTag: "mytag",
-			expRef:      nil,
+			expRef: &TagReference{
+				From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "another:sometag"},
+			},
 			expMultiple: false,
-			expErr:      ErrCrossImageStreamReference,
+			expErr:      nil,
 		},
 		"circular tag reference error": {
 			stream: &ImageStream{

@@ -52,9 +52,6 @@ var ErrCircularReference = errors.New("reference tag is circular")
 // ErrNotFoundReference is an error when reference tag is not found.
 var ErrNotFoundReference = errors.New("reference tag is not found")
 
-// ErrCircularReference is an error when reference tag points to another imagestream.
-var ErrCrossImageStreamReference = errors.New("reference tag points to another imagestream")
-
 // ErrInvalidReference is an error when reference tag is invalid.
 var ErrInvalidReference = errors.New("reference tag is invalid")
 
@@ -422,8 +419,8 @@ func FollowTagReference(stream *ImageStream, tag string) (finalTag string, ref *
 				return tag, nil, multiple, ErrInvalidReference
 			}
 			if name != stream.ObjectMeta.Name {
-				// anotheris:sometag - this should not happen.
-				return tag, nil, multiple, ErrCrossImageStreamReference
+				// anotheris:sometag
+				return tag, &tagRef, multiple, nil
 			}
 			// sameis:sometag - follow the reference as sometag
 			tag = tagref

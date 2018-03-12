@@ -197,7 +197,6 @@ func TestCreateImageImport(t *testing.T) {
 		"import all from .spec.tags no DockerImage tags": {
 			name: "testis",
 			all:  true,
-			err:  "does not have tags pointing to external docker images",
 			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
@@ -206,6 +205,10 @@ func TestCreateImageImport(t *testing.T) {
 					},
 				},
 			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "otheris:latest"},
+				To:   &kapi.LocalObjectReference{Name: "latest"},
+			}},
 		},
 		"empty image stream": {
 			name: "testis",
@@ -320,7 +323,10 @@ func TestCreateImageImport(t *testing.T) {
 					},
 				},
 			},
-			err: "tag \"mytag\" points to an imagestreamtag from another ImageStream",
+			expectedImages: []imageapi.ImageImportSpec{{
+				From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "otherimage:mytag"},
+				To:   &kapi.LocalObjectReference{Name: "mytag"},
+			}},
 		},
 		"import tag from alias of circular reference": {
 			name: "testis:mytag",
