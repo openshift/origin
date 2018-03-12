@@ -19,8 +19,6 @@ import (
 	starterrors "github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
-const openShiftInsecureCIDR = "172.30.0.0/16"
-
 // Helper provides utility functions to help with Docker
 type Helper struct {
 	client Interface
@@ -66,7 +64,7 @@ func (h *Helper) CgroupDriver() (string, error) {
 
 // InsecureRegistryIsConfigured checks to see if the Docker daemon has an appropriate insecure registry argument set so that our services can access the registry
 //hasEntries specifies if Docker daemon has entries at all
-func (h *Helper) InsecureRegistryIsConfigured() (configured bool, hasEntries bool, error error) {
+func (h *Helper) InsecureRegistryIsConfigured(insecureRegistryCIDR string) (configured bool, hasEntries bool, error error) {
 	info, err := h.dockerInfo()
 	if err != nil {
 		return false, false, err
@@ -75,7 +73,7 @@ func (h *Helper) InsecureRegistryIsConfigured() (configured bool, hasEntries boo
 	if !registryConfig.HasCustomInsecureRegistryCIDRs() {
 		return false, false, nil
 	}
-	containsRegistryCIDR, err := registryConfig.ContainsInsecureRegistryCIDR(openShiftInsecureCIDR)
+	containsRegistryCIDR, err := registryConfig.ContainsInsecureRegistryCIDR(insecureRegistryCIDR)
 	if err != nil {
 		return false, true, err
 	}

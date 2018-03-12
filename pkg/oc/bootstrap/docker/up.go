@@ -674,9 +674,9 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 			os.Setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
 		}
 	}
-	host := os.Getenv("DOCKER_HOST")
-	if len(host) == 0 {
-		host = dockerclient.DefaultDockerHost
+	dockerHost := os.Getenv("DOCKER_HOST")
+	if len(dockerHost) == 0 {
+		dockerHost = dockerclient.DefaultDockerHost
 	}
 	engineAPIClient, err := dockerclient.NewEnvClient()
 	if err != nil {
@@ -686,7 +686,7 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 	ctx, fn := context.WithTimeout(context.Background(), 10*time.Second)
 	defer fn()
 	engineAPIClient.NegotiateAPIVersion(ctx)
-	return dockerhelper.NewClient(host, engineAPIClient), nil
+	return dockerhelper.NewClient(dockerHost, engineAPIClient), nil
 }
 
 // checkExistingOpenShiftContainer checks the state of an OpenShift container.
@@ -705,7 +705,7 @@ func checkExistingOpenShiftContainer(dockerHelper *dockerhelper.Helper, out io.W
 		if err != nil {
 			return errors.NewError("cannot delete existing OpenShift container").WithCause(err)
 		}
-		fmt.Fprintf(out, "Deleted existing OpenShift container\n")
+		fmt.Fprintln(out, "Deleted existing OpenShift container")
 	}
 	return nil
 }
@@ -718,7 +718,7 @@ func (c *ClusterUpConfig) checkOpenShiftImage(out io.Writer) error {
 
 // checkDockerInsecureRegistry checks to see if the Docker daemon has an appropriate insecure registry argument set so that our services can access the registry
 func (c *ClusterUpConfig) checkDockerInsecureRegistry(out io.Writer) error {
-	configured, hasEntries, err := c.DockerHelper().InsecureRegistryIsConfigured()
+	configured, hasEntries, err := c.DockerHelper().InsecureRegistryIsConfigured(openshift.DefaultSvcCIDR)
 	if err != nil {
 		return err
 	}
@@ -737,8 +737,8 @@ func checkPortForwardingPrerequisites(out io.Writer) error {
 	err := localcmd.New("socat").Args("-V").Run()
 	if err != nil {
 		glog.V(2).Infof("Error from socat command execution: %v", err)
-		fmt.Fprintf(out, "WARNING: Port forwarding requires socat command line utility."+
-			"Cluster public ip may not be reachable. Please make sure socat installed in your operating system \n")
+		fmt.Fprintln(out, "WARNING: Port forwarding requires socat command line utility."+
+			"Cluster public ip may not be reachable. Please make sure socat installed in your operating system.")
 	}
 	return nil
 }
@@ -832,7 +832,7 @@ func (c *ClusterUpConfig) determineServerIP(out io.Writer) (string, []string, er
 
 // updateNoProxy will add some default values to the NO_PROXY setting if they are not present
 func (c *ClusterUpConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.RegistryServiceIP, openshift.ServiceCatalogServiceIP, "172.30.0.0/8"}
+	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.ServiceCatalogServiceIP, openshift.RegistryServiceClusterIP}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
 		values = append(values, ipFromServer)
@@ -1117,9 +1117,9 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 	if len(dockerHTTPProxy) > 0 || len(dockerHTTPSProxy) > 0 {
 		dockerNoProxyList := strings.Split(dockerNoProxy, ",")
 		dockerNoProxySet := sets.NewString(dockerNoProxyList...)
-		if !dockerNoProxySet.Has(openshift.RegistryServiceIP) {
+		if !dockerNoProxySet.Has(openshift.RegistryServiceClusterIP) {
 			warnings = append(warnings, fmt.Sprintf("A proxy is configured for Docker, however %[1]s is not included in its NO_PROXY list.\n"+
-				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", openshift.RegistryServiceIP))
+				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", openshift.RegistryServiceClusterIP))
 		}
 	}
 
@@ -1358,7 +1358,7 @@ func (c *ClusterUpConfig) ShouldInitializeData() bool {
 			return true
 		}
 
-		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry, metav1.GetOptions{}); err != nil {
+		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(openshift.RegistryServiceName, metav1.GetOptions{}); err != nil {
 			return true
 		}
 
