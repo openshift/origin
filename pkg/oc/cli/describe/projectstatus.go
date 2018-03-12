@@ -11,6 +11,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
@@ -164,6 +165,22 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 	return g, forbiddenResources, nil
 }
 
+// createSelector receives a map of strings and
+// converts it into a labels.Selector
+func createSelector(values map[string]string) labels.Selector {
+	selector := labels.NewSelector()
+	for k, v := range values {
+		req, err := labels.NewRequirement(k, "=", []string{v})
+		if err != nil {
+			continue
+		}
+
+		selector = selector.Add(*req)
+	}
+
+	return selector
+}
+
 // Describe returns the description of a project
 func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error) {
 	var f formatter = namespacedFormatter{}
@@ -195,8 +212,24 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 	coveredNodes := graphview.IntSet{}
 
-	services, coveredByServices := graphview.AllServiceGroups(g, coveredNodes)
+	allServices, coveredByServices := graphview.AllServiceGroups(g, coveredNodes)
 	coveredNodes.Insert(coveredByServices.List()...)
+
+	// services grouped by selector
+	servicesBySelector := map[string][]graphview.ServiceGroup{}
+	services := []graphview.ServiceGroup{}
+
+	// group services with identical selectors
+	for _, svc := range allServices {
+		selector := createSelector(svc.Service.Spec.Selector)
+		if _, seen := servicesBySelector[selector.String()]; seen {
+			servicesBySelector[selector.String()] = append(servicesBySelector[selector.String()], svc)
+			continue
+		}
+
+		services = append(services, svc)
+		servicesBySelector[selector.String()] = []graphview.ServiceGroup{}
+	}
 
 	standaloneDCs, coveredByDCs := graphview.AllDeploymentConfigPipelines(g, coveredNodes)
 	coveredNodes.Insert(coveredByDCs.List()...)
@@ -243,6 +276,26 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			sort.Sort(exposedRoutes(exposes))
 
 			fmt.Fprintln(out)
+
+			// print services that should be grouped with this service based on matching selectors
+			selector := createSelector(service.Service.Spec.Selector)
+			groupedServices := servicesBySelector[selector.String()]
+			for _, groupedSvc := range groupedServices {
+				if !groupedSvc.Service.Found() {
+					continue
+				}
+
+				grouppedLocal := namespacedFormatter{currentNamespace: service.Service.Namespace}
+
+				var grouppedExposes []string
+				for _, routeNode := range groupedSvc.ExposingRoutes {
+					grouppedExposes = append(grouppedExposes, describeRouteInServiceGroup(grouppedLocal, routeNode)...)
+				}
+				sort.Sort(exposedRoutes(grouppedExposes))
+
+				printLines(out, "", 0, describeServiceInServiceGroup(f, groupedSvc, grouppedExposes...)...)
+			}
+
 			printLines(out, "", 0, describeServiceInServiceGroup(f, service, exposes...)...)
 
 			for _, dcPipeline := range service.DeploymentConfigPipelines {
