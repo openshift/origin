@@ -26,13 +26,11 @@ import (
 	aggregatorapiv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubeapiserver"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/kubelet"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/staticpods"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 
 	// install our apis into the legacy scheme
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -89,106 +87,32 @@ var (
 )
 
 func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
-	var (
-		masterConfigDir              string
-		openshiftAPIServerConfigDir  string
-		openshiftControllerConfigDir string
-		nodeConfigDir                string
-		kubeDNSConfigDir             string
-		podManifestDir               string
-		err                          error
-	)
-
-	switch {
-	case len(c.HostConfigDir) > 0 && !c.WriteConfig:
-		masterConfigDir = filepath.Join(c.HostConfigDir, kubeapiserver.KubeAPIServerDirName, "master")
-		openshiftAPIServerConfigDir = filepath.Join(c.HostConfigDir, kubeapiserver.OpenShiftAPIServerDirName)
-		openshiftControllerConfigDir = filepath.Join(c.HostConfigDir, kubeapiserver.OpenShiftControllerManagerDirName)
-		nodeConfigDir = filepath.Join(c.HostConfigDir, kubelet.NodeConfigDirName)
-		kubeDNSConfigDir = filepath.Join(c.HostConfigDir, kubelet.KubeDNSDirName)
-		podManifestDir = filepath.Join(c.HostConfigDir, kubelet.PodManifestDirName)
-
-	case len(c.HostConfigDir) == 0 && c.WriteConfig:
-		return fmt.Errorf("cannot write a config without a hostconfigdir")
-
-	default:
-		// we need to generate the config
-		masterConfigDir, err = c.makeMasterConfig(out)
-		if err != nil {
-			return err
-		}
-		openshiftAPIServerConfigDir, err = c.makeOpenShiftAPIServerConfig(masterConfigDir)
-		if err != nil {
-			return err
-		}
-		openshiftControllerConfigDir, err = c.makeOpenShiftControllerConfig(masterConfigDir)
-		if err != nil {
-			return err
-		}
-		nodeConfigDir, err = c.makeNodeConfig(masterConfigDir)
-		if err != nil {
-			return err
-		}
-		kubeDNSConfigDir, err = c.makeKubeDNSConfig(nodeConfigDir)
-		if err != nil {
-			return err
-		}
-		podManifestDir = path.Join(c.BaseTempDir, kubelet.PodManifestDirName)
-		if err := os.MkdirAll(podManifestDir, 0755); err != nil {
-			return err
-		}
-
+	configDirs, err := c.BuildConfig()
+	if err != nil {
+		return err
 	}
-	glog.V(2).Infof("kube-apiserver-config at %q, openshift-apiserver-config at %q, node-config at %q, kube-dns-config: %q", masterConfigDir, openshiftAPIServerConfigDir, nodeConfigDir, kubeDNSConfigDir)
 
 	// if we're supposed to write the config, we'll do that and then exit
 	if c.WriteConfig {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		absHostDir, err := cmdutil.MakeAbs(c.HostConfigDir, cwd)
-		if err != nil {
-			return err
-		}
-		if err := tmpformac.CopyDirectory(masterConfigDir, path.Join(absHostDir, kubeapiserver.KubeAPIServerDirName, "master")); err != nil {
-			return err
-		}
-		if err := tmpformac.CopyDirectory(openshiftAPIServerConfigDir, path.Join(absHostDir, kubeapiserver.OpenShiftAPIServerDirName)); err != nil {
-			return err
-		}
-		if err := tmpformac.CopyDirectory(openshiftControllerConfigDir, path.Join(absHostDir, kubeapiserver.OpenShiftControllerManagerDirName)); err != nil {
-			return err
-		}
-		if err := tmpformac.CopyDirectory(nodeConfigDir, path.Join(absHostDir, kubelet.NodeConfigDirName)); err != nil {
-			return err
-		}
-		if err := tmpformac.CopyDirectory(kubeDNSConfigDir, path.Join(absHostDir, kubelet.KubeDNSDirName)); err != nil {
-			return err
-		}
-		if err := tmpformac.CopyDirectory(podManifestDir, path.Join(absHostDir, kubelet.PodManifestDirName)); err != nil {
-			return err
-		}
-
-		fmt.Printf("Wrote config to: %q\n", c.HostConfigDir)
+		fmt.Printf("Wrote config to: %q\n", c.BaseDir)
 		return nil
 	}
 
-	kubeletFlags, err := c.makeKubeletFlags(out, nodeConfigDir)
+	kubeletFlags, err := c.makeKubeletFlags(out, configDirs.nodeConfigDir)
 	if err != nil {
 		return err
 	}
 	glog.V(2).Infof("kubeletflags := %s\n", kubeletFlags)
 
-	kubeletContainerID, err := c.startKubelet(out, masterConfigDir, nodeConfigDir, podManifestDir, kubeletFlags)
+	kubeletContainerID, err := c.startKubelet(out, configDirs.masterConfigDir, configDirs.nodeConfigDir, configDirs.podManifestDir, kubeletFlags)
 	if err != nil {
 		return err
 	}
 	glog.V(2).Infof("started kubelet in container %q\n", kubeletContainerID)
 
 	substitutions := map[string]string{
-		"/path/to/master/config-dir":              masterConfigDir,
-		"/path/to/openshift-apiserver/config-dir": openshiftAPIServerConfigDir,
+		"/path/to/master/config-dir":              configDirs.masterConfigDir,
+		"/path/to/openshift-apiserver/config-dir": configDirs.openshiftAPIServerConfigDir,
 		"ETCD_VOLUME":                             "emptyDir:\n",
 	}
 	if len(c.HostDataDir) > 0 {
@@ -196,22 +120,22 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
       path: ` + c.HostDataDir + "\n"
 	}
 	templateSubstitutionValues := map[string]string{
-		"MASTER_CONFIG_HOST_PATH":                       masterConfigDir,
-		"OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          openshiftAPIServerConfigDir,
-		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": openshiftControllerConfigDir,
-		"NODE_CONFIG_HOST_PATH":                         nodeConfigDir,
-		"KUBEDNS_CONFIG_HOST_PATH":                      kubeDNSConfigDir,
+		"MASTER_CONFIG_HOST_PATH":                       configDirs.masterConfigDir,
+		"OPENSHIFT_APISERVER_CONFIG_HOST_PATH":          configDirs.openshiftAPIServerConfigDir,
+		"OPENSHIFT_CONTROLLER_MANAGER_CONFIG_HOST_PATH": configDirs.openshiftControllerConfigDir,
+		"NODE_CONFIG_HOST_PATH":                         configDirs.nodeConfigDir,
+		"KUBEDNS_CONFIG_HOST_PATH":                      configDirs.kubeDNSConfigDir,
 		"LOGLEVEL":                                      fmt.Sprintf("%d", c.ServerLogLevel),
 	}
 
 	glog.V(1).Info("creating static pods")
 	for _, staticPodLocation := range staticPodLocations {
-		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, podManifestDir); err != nil {
+		if err := staticpods.UpsertStaticPod(staticPodLocation, substitutions, configDirs.podManifestDir); err != nil {
 			return err
 		}
 	}
 
-	clientConfigBuilder, err := kclientcmd.LoadFromFile(filepath.Join(masterConfigDir, "admin.kubeconfig"))
+	clientConfigBuilder, err := kclientcmd.LoadFromFile(filepath.Join(configDirs.masterConfigDir, "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
@@ -228,7 +152,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		return err
 	}
 
-	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(masterConfigDir, "admin.kubeconfig"))
+	clusterAdminKubeConfig, err := ioutil.ReadFile(path.Join(configDirs.masterConfigDir, "admin.kubeconfig"))
 	if err != nil {
 		return err
 	}
@@ -239,7 +163,7 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
-		path.Join(c.BaseTempDir, "logs"),
+		path.Join(c.BaseDir, "logs"),
 	)
 	if err != nil {
 		return err
@@ -262,20 +186,81 @@ func (c *ClusterUpConfig) StartSelfHosted(out io.Writer) error {
 		clusterAdminKubeConfig,
 		templateSubstitutionValues,
 		c.GetDockerClient(),
-		path.Join(c.BaseTempDir, "logs"),
+		path.Join(c.BaseDir, "logs"),
 	)
 	if err != nil {
 		return err
 	}
 
 	// TODO remove this linkage.  State like this doesn't belong on the struct and should be passed through for each invocation
-	c.LocalConfigDir = path.Dir(masterConfigDir)
+	c.LocalConfigDir = path.Dir(configDirs.masterConfigDir)
 
 	return nil
 }
 
+type configDirs struct {
+	masterConfigDir              string
+	openshiftAPIServerConfigDir  string
+	openshiftControllerConfigDir string
+	nodeConfigDir                string
+	kubeDNSConfigDir             string
+	podManifestDir               string
+	err                          error
+}
+
+func (c *ClusterUpConfig) BuildConfig() (*configDirs, error) {
+	configLocations := &configDirs{
+		masterConfigDir:              filepath.Join(c.BaseDir, kubeapiserver.KubeAPIServerDirName, "master"),
+		openshiftAPIServerConfigDir:  filepath.Join(c.BaseDir, kubeapiserver.OpenShiftAPIServerDirName),
+		openshiftControllerConfigDir: filepath.Join(c.BaseDir, kubeapiserver.OpenShiftControllerManagerDirName),
+		nodeConfigDir:                filepath.Join(c.BaseDir, kubelet.NodeConfigDirName),
+		kubeDNSConfigDir:             filepath.Join(c.BaseDir, kubelet.KubeDNSDirName),
+		podManifestDir:               filepath.Join(c.BaseDir, kubelet.PodManifestDirName),
+	}
+
+	if _, err := os.Stat(configLocations.masterConfigDir); os.IsNotExist(err) {
+		_, err = c.makeMasterConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := os.Stat(configLocations.openshiftAPIServerConfigDir); os.IsNotExist(err) {
+		_, err = c.makeOpenShiftAPIServerConfig(configLocations.masterConfigDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := os.Stat(configLocations.openshiftControllerConfigDir); os.IsNotExist(err) {
+		_, err = c.makeOpenShiftControllerConfig(configLocations.masterConfigDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := os.Stat(configLocations.nodeConfigDir); os.IsNotExist(err) {
+		_, err = c.makeNodeConfig(configLocations.masterConfigDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := os.Stat(configLocations.kubeDNSConfigDir); os.IsNotExist(err) {
+		_, err = c.makeKubeDNSConfig(configLocations.nodeConfigDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := os.Stat(configLocations.podManifestDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(configLocations.podManifestDir, 0755); err != nil {
+			return nil, err
+		}
+	}
+
+	glog.V(2).Infof("configLocations = %#v", *configLocations)
+
+	return configLocations, nil
+}
+
 // makeMasterConfig returns the directory where a generated masterconfig lives
-func (c *ClusterUpConfig) makeMasterConfig(out io.Writer) (string, error) {
+func (c *ClusterUpConfig) makeMasterConfig() (string, error) {
 	publicHost := c.PublicHostname
 	if len(publicHost) == 0 {
 		publicHost = c.ServerIP
@@ -292,7 +277,7 @@ func (c *ClusterUpConfig) makeMasterConfig(out io.Writer) (string, error) {
 		"--etcd-dir=/var/lib/etcd",
 	}
 
-	masterConfigDir, err := container.MakeMasterConfig(c.GetDockerClient(), c.BaseTempDir)
+	masterConfigDir, err := container.MakeMasterConfig(c.GetDockerClient(), c.BaseDir)
 	if err != nil {
 		return "", fmt.Errorf("error creating master config: %v", err)
 	}
@@ -321,7 +306,7 @@ func (c *ClusterUpConfig) makeNodeConfig(masterConfigDir string) (string, error)
 		fmt.Sprintf("--volume-dir=%s", c.HostVolumesDir),
 	}
 
-	nodeConfigDir, err := container.MakeNodeConfig(c.GetDockerClient(), c.BaseTempDir)
+	nodeConfigDir, err := container.MakeNodeConfig(c.GetDockerClient(), c.BaseDir)
 	if err != nil {
 		return "", fmt.Errorf("error creating node config: %v", err)
 	}
@@ -338,7 +323,7 @@ func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) 
 	container.Environment = c.Environment
 	container.UseSharedVolume = !c.UseNsenterMount
 
-	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient(), c.BaseTempDir)
+	kubeletFlags, err := container.MakeKubeletFlags(c.GetDockerClient(), c.BaseDir)
 	if err != nil {
 		return nil, fmt.Errorf("error creating node config: %v", err)
 	}
@@ -354,15 +339,15 @@ func (c *ClusterUpConfig) makeKubeletFlags(out io.Writer, nodeConfigDir string) 
 }
 
 func (c *ClusterUpConfig) makeKubeDNSConfig(nodeConfig string) (string, error) {
-	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseTempDir)
+	return kubelet.MakeKubeDNSConfig(nodeConfig, c.BaseDir)
 }
 
 func (c *ClusterUpConfig) makeOpenShiftAPIServerConfig(masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.RoutingSuffix, c.BaseTempDir)
+	return kubeapiserver.MakeOpenShiftAPIServerConfig(masterConfigDir, c.RoutingSuffix, c.BaseDir)
 }
 
 func (c *ClusterUpConfig) makeOpenShiftControllerConfig(masterConfigDir string) (string, error) {
-	return kubeapiserver.MakeOpenShiftControllerConfig(masterConfigDir, c.BaseTempDir)
+	return kubeapiserver.MakeOpenShiftControllerConfig(masterConfigDir, c.BaseDir)
 }
 
 // startKubelet returns the container id
@@ -385,13 +370,9 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	container.ContainerBinds = append(container.ContainerBinds, nodeConfigDir+":/var/lib/origin/openshift.local.config/node:z")
 	container.ContainerBinds = append(container.ContainerBinds, masterConfigDir+":/var/lib/origin/openshift.local.config/master:z")
 	container.ContainerBinds = append(container.ContainerBinds, podManifestDir+":/var/lib/origin/pod-manifests:z")
-	if len(c.HostDataDir) > 0 {
-		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/var/lib/etcd:z", c.HostDataDir))
-	}
-	if len(c.HostPersistentVolumesDir) > 0 {
-		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s", c.HostPersistentVolumesDir))
-		container.Environment = append(container.Environment, fmt.Sprintf("OPENSHIFT_PV_DIR=%s", c.HostPersistentVolumesDir))
-	}
+	container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:/var/lib/etcd:z", c.HostDataDir))
+	container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s", c.HostPersistentVolumesDir))
+	container.Environment = append(container.Environment, fmt.Sprintf("OPENSHIFT_PV_DIR=%s", c.HostPersistentVolumesDir))
 	if !c.UseNsenterMount {
 		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s:shared", hostVolumeDir))
 		container.Environment = append(container.Environment, "OPENSHIFT_CONTAINERIZED=false")
@@ -423,7 +404,7 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	container.Args = append(container.Args, "--cluster-dns=172.30.0.2")
 	glog.V(1).Info(strings.Join(container.Args, " "))
 
-	kubeletContainerID, err := container.StartKubelet(c.DockerHelper().Client(), c.BaseTempDir)
+	kubeletContainerID, err := container.StartKubelet(c.DockerHelper().Client(), c.BaseDir)
 	if err != nil {
 		return "", fmt.Errorf("error creating node config: %v", err)
 	}
