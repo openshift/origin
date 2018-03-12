@@ -26162,10 +26162,10 @@ objects:
         - source_labels: [__name__]
           action: drop
           regex: 'node_cpu|node_(disk|scrape_collector)_.+'
-        # preserve a subset of the network, netstat, vmstat, and filesystem series
+        # preserve a subset of the network, netstat, vmstat, load and filesystem series
         - source_labels: [__name__]
           action: replace
-          regex: '(node_(netstat_Ip_.+|vmstat_(nr|thp)_.+|filesystem_(free|size|device_error)|network_(transmit|receive)_(drop|errs)))'
+          regex: '(node_(node_load.+|netstat_Ip_.+|vmstat_(nr|thp)_.+|filesystem_(free|size|device_error)|network_(transmit|receive)_(drop|errs)))'
           target_label: __name__
           replacement: renamed_$1
         - source_labels: [__name__]
