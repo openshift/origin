@@ -173,28 +173,6 @@ func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writ
 	return cmd
 }
 
-// taskFunc is a function that executes a start task
-type taskFunc func(io.Writer) error
-
-// conditionFunc determines whether a task should be run on start
-type conditionFunc func() bool
-
-// task is a named task for the start process
-type task struct {
-	name      string
-	fn        taskFunc
-	condition conditionFunc
-	stdOut    bool // true if task's output should go directly to stdout
-}
-
-func simpleTask(name string, fn taskFunc) task {
-	return task{name: name, fn: fn}
-}
-
-func conditionalTask(name string, fn taskFunc, condition conditionFunc) task {
-	return task{name: name, fn: fn, condition: condition}
-}
-
 type ClusterUpConfig struct {
 	ImageVersion                string
 	Image                       string
@@ -206,8 +184,7 @@ type ClusterUpConfig struct {
 	ShouldInstallServiceCatalog bool
 	PortForwarding              bool
 
-	Out   io.Writer
-	Tasks []task
+	Out io.Writer
 
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
@@ -252,10 +229,6 @@ type ClusterUpConfig struct {
 	shouldCreateUser     *bool
 
 	containerNetworkErr chan error
-}
-
-func (c *ClusterUpConfig) addTask(t task) {
-	c.Tasks = append(c.Tasks, t)
 }
 
 func (config *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
@@ -380,57 +353,6 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 		c.updateNoProxy()
 	}
 
-	// Add default redirect URIs to an OAuthClient to enable local web-console development.
-	c.addTask(conditionalTask("Adding default OAuthClient redirect URIs", c.ensureDefaultRedirectURIs, c.ShouldInitializeData))
-
-	// Install a registry
-	c.addTask(conditionalTask("Installing registry", c.InstallRegistry, c.ShouldInitializeData))
-
-	// Install a router
-	c.addTask(conditionalTask("Installing router", c.InstallRouter, c.ShouldInitializeData))
-
-	// Install metrics
-	c.addTask(conditionalTask("Installing metrics", c.InstallMetrics, func() bool {
-		return c.ShouldInstallMetrics && c.ShouldInitializeData()
-	}))
-
-	// Import default image streams
-	c.addTask(conditionalTask("Importing image streams", c.ImportInitialObjects, c.ShouldInitializeData))
-
-	// Install logging
-	c.addTask(conditionalTask("Installing logging", c.InstallLogging, func() bool {
-		return c.ShouldInstallLogging && c.ShouldInitializeData()
-	}))
-
-	// Install service catalog
-	c.addTask(conditionalTask("Installing service catalog", c.InstallServiceCatalog, func() bool {
-		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
-	}))
-
-	// Install template service broker if our version is high enough
-	c.addTask(conditionalTask("Installing template service broker", c.InstallTemplateServiceBroker, func() bool {
-		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
-	}))
-
-	// Register the TSB w/ the SC if requested.  This is done even when reusing a config because
-	// the TSB registration is not persisted.
-	c.addTask(conditionalTask("Registering template service broker with service catalog", c.RegisterTemplateServiceBroker, func() bool {
-		return c.ShouldInstallServiceCatalog
-	}))
-
-	// Install the web console. Do this after the template service broker is installed so that
-	// the console can discover that the broker is running on startup.
-	c.addTask(conditionalTask("Installing web console", c.InstallWebConsole, c.ShouldInitializeData))
-
-	// Login with an initial default user
-	c.addTask(conditionalTask("Login to server", c.Login, c.ShouldCreateUser))
-
-	// Create an initial project
-	c.addTask(conditionalTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject, c.ShouldCreateUser))
-
-	// Display server information
-	c.addTask(simpleTask("Server Information", c.ServerInfo))
-
 	return nil
 }
 
@@ -440,9 +362,6 @@ func (c *ClusterUpConfig) Validate(errout io.Writer) error {
 		return fmt.Errorf("missing dockerClient")
 	}
 	cmdutil.WarnAboutCommaSeparation(errout, c.Environment, "--env")
-	if len(c.Tasks) == 0 {
-		return fmt.Errorf("no startup tasks to execute")
-	}
 	return nil
 }
 
@@ -547,34 +466,115 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 
 	detailedOut := getDetailedOut(out)
 	taskPrinter := NewTaskPrinter(detailedOut)
-	startError := func() error {
-		for _, task := range c.Tasks {
-			if task.condition != nil && !task.condition() {
-				continue
-			}
-			taskPrinter.StartTask(task.name)
-			w := taskPrinter.TaskWriter()
-			if task.stdOut && !bool(glog.V(1)) {
-				w = io.MultiWriter(w, out)
-			}
-			err := task.fn(w)
-			if err != nil {
-				taskPrinter.Failure(err)
-				return err
-			}
-			taskPrinter.Success()
-		}
-		return nil
-	}()
-	if startError != nil {
-		if !bool(glog.V(1)) {
-			fmt.Fprintf(out, "%s", detailedOut.(*bytes.Buffer).String())
-		}
-		return startError
-	}
-	if !bool(glog.V(1)) {
+
+	if !c.ShouldInitializeData() {
+		taskPrinter.StartTask("Server Information")
 		c.ServerInfo(out)
+		taskPrinter.Success()
+		return nil
 	}
+
+	// Add default redirect URIs to an OAuthClient to enable local web-console development.
+	taskPrinter.StartTask("Adding default OAuthClient redirect URIs")
+	if err := c.ensureDefaultRedirectURIs(out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+	taskPrinter.Success()
+
+	// Install a registry
+	taskPrinter.StartTask("Installing registry")
+	if err := c.InstallRegistry(out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+	taskPrinter.Success()
+
+	// Install a router
+	taskPrinter.StartTask("Installing router")
+	if err := c.InstallRouter(out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+	taskPrinter.Success()
+
+	// Install metrics
+	if c.ShouldInstallMetrics {
+		taskPrinter.StartTask("Installing metrics")
+		if err := c.InstallRouter(out); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+	}
+
+	// Import default image streams
+	taskPrinter.StartTask("Importing default data router")
+	if err := c.ImportInitialObjects(out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+	taskPrinter.Success()
+
+	// Install logging
+	if c.ShouldInstallLogging {
+		taskPrinter.StartTask("Installing logging")
+		if err := c.InstallLogging(out); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+	}
+
+	// Install service catalog
+	if c.ShouldInstallServiceCatalog {
+		taskPrinter.StartTask("Installing service catalog")
+		if err := c.InstallServiceCatalog(out); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+	}
+
+	// Install template service broker if our version is high enough
+	if c.ShouldInstallServiceCatalog {
+		taskPrinter.StartTask("Installing template service broker")
+		if err := c.InstallTemplateServiceBroker(out); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+	}
+
+	// Register the TSB w/ the SC if requested.  This is done even when reusing a config because
+	// the TSB registration is not persisted.
+	if c.ShouldInstallServiceCatalog {
+		taskPrinter.StartTask("Registering template service broker with service catalog")
+		if err := c.RegisterTemplateServiceBroker(out); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+	}
+
+	// Install the web console. Do this after the template service broker is installed so that
+	// the console can discover that the broker is running on startup.
+	taskPrinter.StartTask("Installing web console")
+	if err := c.InstallWebConsole(out); err != nil {
+		return taskPrinter.ToError(err)
+	}
+
+	if c.ShouldCreateUser() {
+		// Login with an initial default user
+		taskPrinter.StartTask("Login to server")
+		if err := c.Login(out); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+
+		// Create an initial project
+		taskPrinter.StartTask(fmt.Sprintf("Creating initial project %q", initialProjectName))
+		if err := c.CreateProject(out); err != nil {
+			return taskPrinter.ToError(err)
+		}
+		taskPrinter.Success()
+	}
+
+	taskPrinter.StartTask("Server Information")
+	c.ServerInfo(out)
+	taskPrinter.Success()
+
 	return nil
 }
 
@@ -1056,7 +1056,7 @@ func (c *ClusterUpConfig) CreateProject(out io.Writer) error {
 }
 
 // ServerInfo displays server information after a successful start
-func (c *ClusterUpConfig) ServerInfo(out io.Writer) error {
+func (c *ClusterUpConfig) ServerInfo(out io.Writer) {
 	metricsInfo := ""
 	if c.ShouldInstallMetrics && c.ShouldInitializeData() {
 		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
@@ -1086,7 +1086,6 @@ func (c *ClusterUpConfig) ServerInfo(out io.Writer) error {
 	msg += c.checkProxySettings()
 
 	fmt.Fprintf(out, msg)
-	return nil
 }
 
 // checkProxySettings compares proxy settings specified for cluster up
