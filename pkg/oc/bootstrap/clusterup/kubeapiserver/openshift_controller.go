@@ -13,9 +13,9 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 )
 
-func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (string, error) {
-	configDir := path.Join(basedir, OpenShiftAPIServerDirName)
-	glog.V(1).Infof("Copying kube-apiserver config to local directory %s", configDir)
+func MakeOpenShiftControllerConfig(existingMasterConfig string, basedir string) (string, error) {
+	configDir := path.Join(basedir, OpenShiftControllerManagerDirName)
+	glog.V(1).Infof("Copying kube-apiserver config to local directory %s", OpenShiftControllerManagerDirName)
 	if err := tmpformac.CopyDirectory(existingMasterConfig, configDir); err != nil {
 		return "", err
 	}
@@ -31,7 +31,7 @@ func MakeOpenShiftAPIServerConfig(existingMasterConfig string, basedir string) (
 		return "", err
 	}
 	masterconfig := configObj.(*configapi.MasterConfig)
-	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8445"
+	masterconfig.ServingInfo.BindAddress = "0.0.0.0:8444"
 
 	configBytes, err := runtime.Encode(configapilatest.Codec, masterconfig)
 	if err != nil {
