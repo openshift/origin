@@ -8,11 +8,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/runtime"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,12 @@ import (
 	// install our apis into the legacy scheme
 	_ "github.com/openshift/origin/pkg/api/install"
 )
+
+// This is a special case for Docker for Mac where we need to have a directory inside the VM
+// that we can re-mount with --make-shared flag. We can't use the host directories mounts as
+// they are handled by the Docker for Mac directly (via fuse.osxfs).
+// TODO: Figure out how to remove this snowflake
+const NonLinuxHostVolumeDirPrefix = "/var/lib/origin/volumes"
 
 var (
 	// staticPodLocations should only include those pods that *must* be run statically because they
@@ -359,9 +366,13 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 
 	// here's a cool thing.  The kubelet flags specify a --root-dir which is the *real* HostVolumesDir
 	hostVolumeDir := c.HostVolumesDir
-	for _, flag := range kubeletFlags {
+	for i, flag := range kubeletFlags {
 		if strings.HasPrefix(flag, "--root-dir=") {
 			hostVolumeDir = strings.TrimLeft(flag, "--root-dir=")
+			// TODO: Figure out if we need this on Windows as well
+			if runtime.GOOS != "linux" {
+				kubeletFlags[i] = "--root-dir=" + c.HostVolumesDir
+			}
 		}
 	}
 
@@ -374,7 +385,12 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s", c.HostPersistentVolumesDir))
 	container.Environment = append(container.Environment, fmt.Sprintf("OPENSHIFT_PV_DIR=%s", c.HostPersistentVolumesDir))
 	if !c.UseNsenterMount {
-		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%[1]s:%[1]s:shared", hostVolumeDir))
+		hostVolumeDirSource := hostVolumeDir
+		// TODO: Figure out if we need this on Windows as well
+		if runtime.GOOS != "linux" {
+			hostVolumeDirSource = c.HostVolumesDir
+		}
+		container.ContainerBinds = append(container.ContainerBinds, fmt.Sprintf("%s:%s:shared", hostVolumeDirSource, hostVolumeDir))
 		container.Environment = append(container.Environment, "OPENSHIFT_CONTAINERIZED=false")
 	} else {
 		container.ContainerBinds = append(container.ContainerBinds, "/:/rootfs:ro")
@@ -402,6 +418,7 @@ func (c *ClusterUpConfig) startKubelet(out io.Writer, masterConfigDir, nodeConfi
 	}
 	container.Args = append(actualKubeletFlags, "--pod-manifest-path=/var/lib/origin/pod-manifests")
 	container.Args = append(container.Args, "--cluster-dns=172.30.0.2")
+	container.Args = append(container.Args, fmt.Sprintf("--v=%d", c.ServerLogLevel))
 	glog.V(1).Info(strings.Join(container.Args, " "))
 
 	kubeletContainerID, err := container.StartKubelet(c.DockerHelper().Client(), c.BaseDir)
@@ -471,7 +488,7 @@ func watchAPIServices(clientConfig *rest.Config) {
 				break
 			}
 			encoder := json.NewYAMLSerializer(json.DefaultMetaFactory, legacyscheme.Scheme, legacyscheme.Scheme)
-			output, err := runtime.Encode(encoder, watchEvent.Object)
+			output, err := kruntime.Encode(encoder, watchEvent.Object)
 			if err != nil {
 				utilruntime.HandleError(err)
 				continue
@@ -483,7 +500,7 @@ func watchAPIServices(clientConfig *rest.Config) {
 
 func newNamespaceBytes(namespace string, labels map[string]string) []byte {
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace, Labels: labels}}
-	output, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(corev1.SchemeGroupVersion), ns)
+	output, err := kruntime.Encode(legacyscheme.Codecs.LegacyCodec(corev1.SchemeGroupVersion), ns)
 	if err != nil {
 		// coding error
 		panic(err)

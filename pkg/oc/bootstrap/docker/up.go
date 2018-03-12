@@ -229,27 +229,27 @@ type ClusterUpConfig struct {
 	containerNetworkErr chan error
 }
 
-func (config *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
-	flags.StringVar(&config.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
-	flags.StringVar(&config.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
-	flags.StringVar(&config.ImageTag, "tag", "", "Specify the tag for OpenShift images")
+func (c *ClusterUpConfig) Bind(flags *pflag.FlagSet) {
+	flags.StringVar(&c.DockerMachine, "docker-machine", "", "Specify the Docker machine to use")
+	flags.StringVar(&c.ImageTag, "tag", "", "Specify the tag for OpenShift images")
 	flags.MarkHidden("tag")
-	flags.StringVar(&config.ImageStreams, "image-streams", defaultImageStreams, "Specify which image streams to use, centos7|rhel7")
-	flags.BoolVar(&config.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
-	flags.StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
-	flags.StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
-	flags.BoolVar(&config.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
-	flags.StringVar(&config.BaseDir, "base-dir", config.BaseDir, "Directory on Docker host for cluster up configuration")
-	flags.BoolVar(&config.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
-	flags.BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
-	flags.IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
-	flags.StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
-	flags.BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
-	flags.BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
-	flags.BoolVar(&config.ShouldInstallServiceCatalog, "service-catalog", false, "Install service catalog (experimental).")
-	flags.StringVar(&config.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
-	flags.StringVar(&config.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
-	flags.StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
+	flags.StringVar(&c.Image, "image", variable.DefaultImagePrefix, "Specify the images to use for OpenShift")
+	flags.StringVar(&c.ImageStreams, "image-streams", defaultImageStreams, "Specify which image streams to use, centos7|rhel7")
+	flags.BoolVar(&c.SkipRegistryCheck, "skip-registry-check", false, "Skip Docker daemon registry check")
+	flags.StringVar(&c.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
+	flags.StringVar(&c.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
+	flags.BoolVar(&c.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
+	flags.StringVar(&c.BaseDir, "base-dir", c.BaseDir, "Directory on Docker host for cluster up configuration")
+	flags.BoolVar(&c.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
+	flags.BoolVar(&c.PortForwarding, "forward-ports", c.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
+	flags.IntVar(&c.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
+	flags.StringArrayVarP(&c.Environment, "env", "e", c.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
+	flags.BoolVar(&c.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
+	flags.BoolVar(&c.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
+	flags.BoolVar(&c.ShouldInstallServiceCatalog, "service-catalog", false, "Install service catalog (experimental).")
+	flags.StringVar(&c.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
+	flags.StringVar(&c.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
+	flags.StringArrayVar(&c.NoProxy, "no-proxy", c.NoProxy, "List of hosts or subnets for which a proxy should not be used")
 }
 
 func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, out io.Writer) error {
@@ -278,25 +278,7 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 		}
 		c.BaseDir = absHostDir
 	}
-	if err := os.MkdirAll(c.BaseDir, 0755); err != nil {
-		return err
-	}
-
-	c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
-	if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
-		return err
-	}
-	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
-	if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
-		return err
-	}
-	c.HostDataDir = path.Join(c.BaseDir, "etcd")
-	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
-		return err
-	}
-
 	// do some struct initialization next
-
 	// used for some pretty printing
 	taskPrinter := NewTaskPrinter(getDetailedOut(out))
 
@@ -326,12 +308,31 @@ func (c *ClusterUpConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command, o
 		return err
 	}
 
+	if c.UseNsenterMount {
+		c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
+		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+			return err
+		}
+	} else {
+		c.HostVolumesDir = path.Join(NonLinuxHostVolumeDirPrefix, c.BaseDir, "openshift.local.volumes")
+	}
+	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
+	if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
+		return err
+	}
+	c.HostDataDir = path.Join(c.BaseDir, "etcd")
+	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
+		return err
+	}
+
 	// Ensure that host directories exist.
 	// If not using the nsenter mounter, create a volume share on the host machine to
 	// mount OpenShift volumes.
 	taskPrinter.StartTask("Creating host directories")
-	if err := c.ensureHostDirectories(out); err != nil {
-		return taskPrinter.ToError(err)
+	if !c.UseNsenterMount {
+		if err := c.HostHelper().EnsureVolumeUseShareMount(); err != nil {
+			return taskPrinter.ToError(err)
+		}
 	}
 	taskPrinter.Success()
 
@@ -520,7 +521,7 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
 	componentsToInstall = append(componentsToInstall, registryInstall)
 
-	err = componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseTempDir, "logs"))
+	err = componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseDir, "logs"))
 	if err != nil {
 		return err
 	}
@@ -773,10 +774,6 @@ func checkPortForwardingPrerequisites(out io.Writer) error {
 	return nil
 }
 
-func (c *ClusterUpConfig) ensureHostDirectories(io.Writer) error {
-	return c.HostHelper().EnsureHostDirectories(!c.UseNsenterMount)
-}
-
 // ensureDefaultRedirectURIs merges a default URL to an auth client's RedirectURIs array
 func (c *ClusterUpConfig) ensureDefaultRedirectURIs(out io.Writer) error {
 	factory, err := c.Factory()
@@ -912,19 +909,6 @@ func (c *ClusterUpConfig) imageFormat() string {
 	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageTag)
 }
 
-// InstallRegistry installs the OpenShift registry on the server
-func (c *ClusterUpConfig) InstallRegistry(out io.Writer) error {
-	_, kubeClient, err := c.Clients()
-	if err != nil {
-		return err
-	}
-	f, err := c.Factory()
-	if err != nil {
-		return err
-	}
-	return c.OpenShiftHelper().InstallRegistry(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, path.Join(c.BaseDir, "logs"), c.imageFormat(), c.HostPersistentVolumesDir, out, os.Stderr)
-}
-
 // InstallRouter installs a default router on the server
 func (c *ClusterUpConfig) InstallRouter(out io.Writer) error {
 	_, kubeClient, err := c.Clients()
@@ -981,7 +965,7 @@ func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []compon
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.InfraNamespace, internalCurrentTemplateLocations)...)
 
-	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseDir, "logs"))
+	return componentsToInstall
 }
 
 // InstallLogging will start the installation of logging components

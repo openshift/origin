@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
+	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/run"
 	"github.com/openshift/origin/pkg/oc/errors"
 )
@@ -64,7 +65,7 @@ func (opt KubeletRunConfig) StartKubelet(dockerClient dockerhelper.Interface, lo
 	createConfigCmd = append(createConfigCmd, opt.Args...)
 
 	containerID, err := imageRunHelper.Image(opt.NodeImage).
-		Name("origin"). // TODO figure out why the rest of cluster-up relies on this name
+		Name(openshift.ContainerName).
 		Privileged().
 		DiscardContainer().
 		HostNetwork().
