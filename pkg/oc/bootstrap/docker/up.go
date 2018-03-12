@@ -17,7 +17,6 @@ import (
 	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -37,6 +36,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/componentinstall"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/components/registry"
+	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/dockermachine"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
@@ -481,12 +482,35 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 	}
 	taskPrinter.Success()
 
-	// Install a registry
-	taskPrinter.StartTask("Installing registry")
-	if err := c.InstallRegistry(out); err != nil {
-		return taskPrinter.ToError(err)
+	clusterAdminKubeConfigBytes, err := ioutil.ReadFile(path.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
+	if err != nil {
+		return err
 	}
-	taskPrinter.Success()
+	clusterAdminKubeConfig, err := kclientcmd.RESTConfigFromKubeConfig(clusterAdminKubeConfigBytes)
+	if err != nil {
+		return err
+	}
+
+	// TODO, now we build up a set of things to install here.  We build the list so that we can install everything in
+	// TODO parallel to avoid anyone accidentally introducing dependencies.  We'll start with migrating what we have
+	// TODO and then we'll try to clean it up.
+	registryInstall := &registry.RegistryComponentOptions{
+		ClusterAdminKubeConfig: clusterAdminKubeConfig,
+
+		OCImage:         c.openshiftImage(),
+		MasterConfigDir: path.Join(c.LocalConfigDir, "master"),
+		Images:          c.imageFormat(),
+		PVDir:           c.HostPersistentVolumesDir,
+	}
+
+	componentsToInstall := []componentinstall.Component{}
+	componentsToInstall = append(componentsToInstall, c.ImportInitialObjectsComponents(c.Out)...)
+	componentsToInstall = append(componentsToInstall, registryInstall)
+
+	err = componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseTempDir, "logs"))
+	if err != nil {
+		return err
+	}
 
 	// Install a router
 	taskPrinter.StartTask("Installing router")
@@ -503,13 +527,6 @@ func (c *ClusterUpConfig) Start(out io.Writer) error {
 		}
 		taskPrinter.Success()
 	}
-
-	// Import default image streams
-	taskPrinter.StartTask("Importing default data router")
-	if err := c.ImportInitialObjects(out); err != nil {
-		return taskPrinter.ToError(err)
-	}
-	taskPrinter.Success()
 
 	// Install logging
 	if c.ShouldInstallLogging {
@@ -832,7 +849,7 @@ func (c *ClusterUpConfig) determineServerIP(out io.Writer) (string, []string, er
 
 // updateNoProxy will add some default values to the NO_PROXY setting if they are not present
 func (c *ClusterUpConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.ServiceCatalogServiceIP, openshift.RegistryServiceClusterIP}
+	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.ServiceCatalogServiceIP, registry.RegistryServiceClusterIP}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
 		values = append(values, ipFromServer)
@@ -882,19 +899,6 @@ func (c *ClusterUpConfig) imageFormat() string {
 	return fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageVersion)
 }
 
-// InstallRegistry installs the OpenShift registry on the server
-func (c *ClusterUpConfig) InstallRegistry(out io.Writer) error {
-	_, kubeClient, err := c.Clients()
-	if err != nil {
-		return err
-	}
-	f, err := c.Factory()
-	if err != nil {
-		return err
-	}
-	return c.OpenShiftHelper().InstallRegistry(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, path.Join(c.BaseTempDir, "logs"), c.imageFormat(), c.HostPersistentVolumesDir, out, os.Stderr)
-}
-
 // InstallRouter installs a default router on the server
 func (c *ClusterUpConfig) InstallRouter(out io.Writer) error {
 	_, kubeClient, err := c.Clients()
@@ -935,7 +939,8 @@ func (c *ClusterUpConfig) InstallWebConsole(out io.Writer) error {
 	return c.OpenShiftHelper().InstallWebConsole(f, c.imageFormat(), c.ServerLogLevel, publicURL, masterURL, loggingURL, metricsURL)
 }
 
-func (c *ClusterUpConfig) ImportInitialObjects(out io.Writer) error {
+// TODO this should become a separate thing we can install, like registry
+func (c *ClusterUpConfig) ImportInitialObjectsComponents(out io.Writer) []componentinstall.Component {
 	componentsToInstall := []componentinstall.Component{}
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.Namespace, map[string]string{
@@ -950,7 +955,7 @@ func (c *ClusterUpConfig) ImportInitialObjects(out io.Writer) error {
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.InfraNamespace, internalCurrentTemplateLocations)...)
 
-	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseTempDir, "logs"))
+	return componentsToInstall
 }
 
 // InstallLogging will start the installation of logging components
@@ -1117,9 +1122,9 @@ func (c *ClusterUpConfig) checkProxySettings() string {
 	if len(dockerHTTPProxy) > 0 || len(dockerHTTPSProxy) > 0 {
 		dockerNoProxyList := strings.Split(dockerNoProxy, ",")
 		dockerNoProxySet := sets.NewString(dockerNoProxyList...)
-		if !dockerNoProxySet.Has(openshift.RegistryServiceClusterIP) {
+		if !dockerNoProxySet.Has(registry.RegistryServiceClusterIP) {
 			warnings = append(warnings, fmt.Sprintf("A proxy is configured for Docker, however %[1]s is not included in its NO_PROXY list.\n"+
-				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", openshift.RegistryServiceClusterIP))
+				"   %[1]s needs to be included in the Docker daemon's NO_PROXY environment variable so pushes to the local OpenShift registry can succeed.", registry.RegistryServiceClusterIP))
 		}
 	}
 
@@ -1358,7 +1363,7 @@ func (c *ClusterUpConfig) ShouldInitializeData() bool {
 			return true
 		}
 
-		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(openshift.RegistryServiceName, metav1.GetOptions{}); err != nil {
+		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(registry.SvcDockerRegistry, metav1.GetOptions{}); err != nil {
 			return true
 		}
 
