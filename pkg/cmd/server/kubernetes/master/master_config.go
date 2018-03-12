@@ -598,23 +598,22 @@ func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			},
 		}
 	}
-	if config.OAuthConfig != nil {
-		baseUrl := config.OAuthConfig.MasterPublicURL
+	if _, oauthMetadata, _ := oauthutil.PrepOauthMetadata(config); oauthMetadata != nil {
 		securityDefinitions["Oauth2Implicit"] = &spec.SecurityScheme{
 			SecuritySchemeProps: spec.SecuritySchemeProps{
 				Type:             "oauth2",
 				Flow:             "implicit",
-				AuthorizationURL: oauthutil.OpenShiftOAuthAuthorizeURL(baseUrl),
-				Scopes:           scope.DefaultSupportedScopesMap(),
+				AuthorizationURL: oauthMetadata.AuthorizationEndpoint,
+				Scopes:           scope.DescribeScopes(oauthMetadata.ScopesSupported),
 			},
 		}
 		securityDefinitions["Oauth2AccessToken"] = &spec.SecurityScheme{
 			SecuritySchemeProps: spec.SecuritySchemeProps{
 				Type:             "oauth2",
 				Flow:             "accessCode",
-				AuthorizationURL: oauthutil.OpenShiftOAuthAuthorizeURL(baseUrl),
-				TokenURL:         oauthutil.OpenShiftOAuthTokenURL(baseUrl),
-				Scopes:           scope.DefaultSupportedScopesMap(),
+				AuthorizationURL: oauthMetadata.AuthorizationEndpoint,
+				TokenURL:         oauthMetadata.TokenEndpoint,
+				Scopes:           scope.DescribeScopes(oauthMetadata.ScopesSupported),
 			},
 		}
 	}

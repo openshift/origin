@@ -75,21 +75,20 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	return ret, ret.ExtraConfig.Validate()
 }
 
-func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config) *OpenshiftNonAPIConfig {
+func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftNonAPIConfig, error) {
+	var err error
 	ret := &OpenshiftNonAPIConfig{
 		GenericConfig: &apiserver.RecommendedConfig{
 			Config:                kubeAPIServerConfig,
 			SharedInformerFactory: c.ClientGoKubeInformers,
 		},
-		ExtraConfig: NonAPIExtraConfig{
-			EnableOAuth: c.Options.OAuthConfig != nil,
-		},
 	}
-	if c.Options.OAuthConfig != nil {
-		ret.ExtraConfig.MasterPublicURL = c.Options.OAuthConfig.MasterPublicURL
+	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(c.Options)
+	if err != nil {
+		return nil, err
 	}
 
-	return ret
+	return ret, nil
 }
 
 func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
@@ -110,7 +109,10 @@ func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationT
 }
 
 func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
-	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig)
+	openshiftNonAPIConfig, err := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig)
+	if err != nil {
+		return nil, err
+	}
 	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(delegateAPIServer)
 	if err != nil {
 		return nil, err

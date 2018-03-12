@@ -167,6 +167,9 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	for k := range config.AuthConfig.WebhookTokenAuthenticators {
 		refs = append(refs, &config.AuthConfig.WebhookTokenAuthenticators[k].ConfigFile)
 	}
+	if len(config.AuthConfig.OAuthMetadataFile) > 0 {
+		refs = append(refs, &config.AuthConfig.OAuthMetadataFile)
+	}
 
 	refs = append(refs, &config.AggregatorConfig.ProxyClientInfo.CertFile)
 	refs = append(refs, &config.AggregatorConfig.ProxyClientInfo.KeyFile)

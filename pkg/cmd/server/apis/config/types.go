@@ -381,6 +381,7 @@ type MasterConfig struct {
 	EtcdConfig *EtcdConfig
 	// OAuthConfig, if present start the /oauth endpoint in this process
 	OAuthConfig *OAuthConfig
+
 	// DNSConfig, if present start the DNS server in this process
 	DNSConfig *DNSConfig
 
@@ -430,6 +431,11 @@ type MasterAuthConfig struct {
 	RequestHeader *RequestHeaderAuthenticationOptions
 	// WebhookTokenAuthnConfig, if present configures remote token reviewers
 	WebhookTokenAuthenticators []WebhookTokenAuthenticator
+	// OAuthMetadataFile is a path to a file containing the discovery endpoint for OAuth 2.0 Authorization
+	// Server Metadata for an external OAuth server.
+	// See IETF Draft: // https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2
+	// This option is mutually exclusive with OAuthConfig
+	OAuthMetadataFile string
 }
 
 // RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire
