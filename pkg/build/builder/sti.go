@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/opencontainers/selinux/go-selinux/label"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
@@ -205,9 +205,7 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	if len(resolvConfHostPath) != 0 {
-		cmd := exec.Command("chcon", "system_u:object_r:svirt_sandbox_file_t:s0", "/etc/resolv.conf")
-		err := cmd.Run()
-		if err != nil {
+		if err := label.Relabel("/etc/resolv.conf", "system_u:object_r:svirt_sandbox_file_t:s0", true); err != nil {
 			return fmt.Errorf("unable to set permissions on /etc/resolv.conf: %v", err)
 		}
 		config.BuildVolumes = []string{fmt.Sprintf("%s:/etc/resolv.conf", resolvConfHostPath)}

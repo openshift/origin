@@ -18,6 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/opencontainers/selinux/go-selinux/label"
 	buildapiv1 "github.com/openshift/api/build/v1"
 	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -324,9 +325,7 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []buildapiv1
 	}
 	opts.NetworkMode = network
 	if len(resolvConfHostPath) != 0 {
-		cmd := exec.Command("chcon", "system_u:object_r:svirt_sandbox_file_t:s0", "/etc/resolv.conf")
-		err := cmd.Run()
-		if err != nil {
+		if err := label.Relabel("/etc/resolv.conf", "system_u:object_r:svirt_sandbox_file_t:s0", true); err != nil {
 			return fmt.Errorf("unable to set permissions on /etc/resolv.conf: %v", err)
 		}
 		opts.BuildBinds = fmt.Sprintf("[\"%s:/etc/resolv.conf\"]", resolvConfHostPath)
