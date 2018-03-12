@@ -97,24 +97,33 @@ func (h *Helper) DockerRoot() (string, error) {
 }
 
 // Version returns the Docker API version and whether it is a Red Hat distro version
-func (h *Helper) APIVersion() (string, bool, error) {
+func (h *Helper) APIVersion() (*types.Version, error) {
 	glog.V(5).Infof("Retrieving Docker version")
 	version, err := h.client.ServerVersion()
 	if err != nil {
 		glog.V(2).Infof("Error retrieving version: %v", err)
-		return "", false, err
+		return nil, err
 	}
 	glog.V(5).Infof("Docker version results: %#v", version)
 	if len(version.APIVersion) == 0 {
-		return "", false, errors.New("did not get an API version")
+		return nil, errors.New("did not get an API version")
 	}
-	glog.V(5).Infof("APIVersion: %s", version.APIVersion)
-	isRedHat := false
+	return version, nil
+}
+
+func (h *Helper) IsRedHat() (bool, error) {
+	version, err := h.APIVersion()
+	if err != nil {
+		return false, err
+	}
+	if len(version.APIVersion) == 0 {
+		return false, errors.New("did not get an API version")
+	}
 	kernelVersion := version.KernelVersion
-	if len(kernelVersion) > 0 {
-		isRedHat = fedoraPackage.MatchString(kernelVersion) || rhelPackage.MatchString(kernelVersion)
+	if len(kernelVersion) == 0 {
+		return false, nil
 	}
-	return version.APIVersion, isRedHat, nil
+	return fedoraPackage.MatchString(kernelVersion) || rhelPackage.MatchString(kernelVersion), nil
 }
 
 func (h *Helper) GetDockerProxySettings() (httpProxy, httpsProxy, noProxy string, err error) {

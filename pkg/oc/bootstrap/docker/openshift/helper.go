@@ -31,8 +31,18 @@ const (
 	defaultNodeName         = "localhost"
 	serverConfigPath        = "/var/lib/origin/openshift.local.config"
 	serverMasterConfig      = serverConfigPath + "/master/master-config.yaml"
-	DefaultDNSPort          = 53
-	AlternateDNSPort        = 8053
+	serverNodeConfig        = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
+	aggregatorKey           = "aggregator-front-proxy.key"
+	aggregatorCert          = "aggregator-front-proxy.crt"
+	aggregatorCACert        = "front-proxy-ca.crt"
+	aggregatorCAKey         = "front-proxy-ca.key"
+	aggregatorCASerial      = "frontend-proxy-ca.serial.txt"
+	aggregatorKeyPath       = serverConfigPath + "/master/" + aggregatorKey
+	aggregatorCertPath      = serverConfigPath + "/master/" + aggregatorCert
+	aggregatorCACertPath    = serverConfigPath + "/master/" + aggregatorCACert
+	aggregatorCAKeyPath     = serverConfigPath + "/master/" + aggregatorCAKey
+	aggregatorCASerialPath  = serverConfigPath + "/master/" + aggregatorCASerial
+	DefaultDNSPort          = 8053
 	cmdDetermineNodeHost    = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 	OpenShiftContainer      = "origin"
 	OpenshiftNamespace      = "openshift"
@@ -47,13 +57,11 @@ var (
 		"/sys/fs/cgroup:/sys/fs/cgroup:rw",
 		"/dev:/dev",
 	}
-	BasePorts             = []int{4001, 7001, 8443, 10250}
-	RouterPorts           = []int{80, 443}
-	DefaultPorts          = append(BasePorts, DefaultDNSPort)
-	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
-	AllPorts              = append(append(RouterPorts, DefaultPorts...), AlternateDNSPort)
-	SocatPidFile          = filepath.Join(homedir.HomeDir(), clientconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
-	defaultCertHosts      = []string{
+	BasePorts        = []int{4001, 7001, 8443, 10250, DefaultDNSPort}
+	RouterPorts      = []int{80, 443}
+	AllPorts         = append(RouterPorts, BasePorts...)
+	SocatPidFile     = filepath.Join(homedir.HomeDir(), clientconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
+	defaultCertHosts = []string{
 		"127.0.0.1",
 		"172.30.0.1",
 		"localhost",
@@ -200,6 +208,9 @@ func (h *Helper) OtherIPs(excludeIP string) ([]string, error) {
 	candidates := strings.Split(result, " ")
 	resultIPs := []string{}
 	for _, ip := range candidates {
+		if len(strings.TrimSpace(ip)) == 0 {
+			continue
+		}
 		if ip != excludeIP && !strings.Contains(ip, ":") { // for now, ignore IPv6
 			resultIPs = append(resultIPs, ip)
 		}

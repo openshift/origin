@@ -63,7 +63,7 @@ func (opt KubeletRunConfig) StartKubelet(dockerClient dockerhelper.Interface, lo
 	}
 	createConfigCmd = append(createConfigCmd, opt.Args...)
 
-	_, err := imageRunHelper.Image(opt.NodeImage).
+	containerID, err := imageRunHelper.Image(opt.NodeImage).
 		Name("origin"). // TODO figure out why the rest of cluster-up relies on this name
 		Privileged().
 		DiscardContainer().
@@ -77,5 +77,5 @@ func (opt KubeletRunConfig) StartKubelet(dockerClient dockerhelper.Interface, lo
 		return "", errors.NewError("could not create OpenShift configuration: %v", err).WithCause(err)
 	}
 
-	return "", nil
+	return containerID, nil
 }
