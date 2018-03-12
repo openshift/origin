@@ -274,3 +274,10 @@ func extractSysctls(scc *securityv1.SecurityContextConstraints, annotations map[
 		annotations[internalextensions.SysctlsPodSecurityPolicyAnnotationKey] = sysctls
 	}
 }
+
+// PSP doesn't have priority like SCC does. We hold the value of SCC.Priroty field in a custom annotation.
+func extractPriority(scc *securityapiv1.SecurityContextConstraints, annotations map[string]string) {
+	if scc.Priority != nil {
+		annotations[pspPriorityAnnotationKey] = fmt.Sprintf("%d", *scc.Priority)
+	}
+}

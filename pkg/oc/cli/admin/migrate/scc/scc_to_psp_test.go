@@ -1,6 +1,7 @@
 package scc
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -573,5 +574,25 @@ func TestExtractSysctls(t *testing.T) {
 		t.Errorf("extractSysctls() expected to set annotation %q but it is not set", sysctlsAnnotation)
 	} else if actual != expected {
 		t.Errorf("extractSysctls() expected annotation %q to be %q but it has value %q", sysctlsAnnotation, expected, actual)
+	}
+}
+
+func TestExtractPriority(t *testing.T) {
+	var priority int32 = 10
+	expected := fmt.Sprintf("%d", priority)
+	scc := &securityapi.SecurityContextConstraints{
+		Priority: &priority,
+	}
+
+	annotations := make(map[string]string)
+	extractPriority(scc, annotations)
+
+	value, hasAnnotation := annotations[pspPriorityAnnotationKey]
+	if !hasAnnotation {
+		t.Fatalf("expected to have annotation %q but it is not set", pspPriorityAnnotationKey)
+	}
+
+	if value != expected {
+		t.Errorf("expected annotation %q to have value \"%v\" but it has value \"%v\"", pspPriorityAnnotationKey, expected, value)
 	}
 }

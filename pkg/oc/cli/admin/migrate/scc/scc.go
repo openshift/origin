@@ -24,6 +24,11 @@ import (
 // It simplifies their identification.
 const clusterRoleAndBindingNamePrefix = "psp:"
 
+// pspPriorityAnnotationKey is a name of the annotation that could be present on PodSecurityPolicy and specifies its priority.
+// It should be a number. An empty value means 0 priority. Higher values means that the policy has higher priority.
+// This is an equivalent of the SCC.Priority field but applies to PSP and it's required for seamless transition.
+const pspPriorityAnnotationKey = "security.openshift.io/psp-priority"
+
 var (
 	internalMigrateSCCShort = "Converts SCCs to similar PSPs"
 	internalMigrateSCCLong  = templates.LongDesc(`
@@ -176,6 +181,7 @@ func convertSccToPsp(scc *securityv1.SecurityContextConstraints) (*policy.PodSec
 	annotations := make(map[string]string)
 	extractSeccompProfiles(scc, annotations)
 	extractSysctls(scc, annotations)
+	extractPriority(scc, annotations)
 
 	selinux, err := extractSELinux(scc)
 	if err != nil {
