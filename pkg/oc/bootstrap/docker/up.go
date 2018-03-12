@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	"github.com/openshift/origin/pkg/version"
 )
 
 const (
@@ -321,7 +322,8 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 
 	// do some defaulting
 	if len(c.ImageVersion) == 0 {
-		c.ImageVersion = defaultImageVersion()
+		c.ImageVersion = strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+")
+
 	}
 	if len(c.BaseTempDir) == 0 {
 		var err error
@@ -621,10 +623,6 @@ func (c *ClientStartConfig) Start(out io.Writer) error {
 func defaultPortForwarding() bool {
 	// Defaults to true if running on Mac, with no DOCKER_HOST defined
 	return runtime.GOOS == "darwin" && len(os.Getenv("DOCKER_HOST")) == 0
-}
-
-func defaultImageVersion() string {
-	return variable.OverrideVersion.LastSemanticVersion()
 }
 
 // checkOpenShiftClient ensures that the client can be configured
