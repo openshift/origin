@@ -508,12 +508,6 @@ func getNsCmdFlag(name string) string {
 	return fmt.Sprintf("--namespace=%v", name)
 }
 
-func writeJSONToDisk(result TestResult, path string) error {
-	resultJSON, _ := json.Marshal(result)
-	err := ioutil.WriteFile(path, resultJSON, 0644)
-	return err
-}
-
 func SetNamespaceLabels(c kclientset.Interface, name string, labels map[string]string) (*kapiv1.Namespace, error) {
 	if len(labels) == 0 {
 		return nil, nil
