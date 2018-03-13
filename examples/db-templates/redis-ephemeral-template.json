@@ -1,216 +1,221 @@
 {
-  "kind": "Template",
-  "apiVersion": "v1",
-  "metadata": {
-    "name": "redis-ephemeral",
-    "annotations": {
-      "openshift.io/display-name": "Redis (Ephemeral)",
-      "description": "Redis in-memory data structure store, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
-      "iconClass": "icon-redis",
-      "tags": "database,redis",
-      "openshift.io/long-description": "This template provides a standalone Redis server.  The data is not stored on persistent storage, so any restart of the service will result in all data being lost.",
-      "openshift.io/provider-display-name": "Red Hat, Inc.",
-      "openshift.io/documentation-url": "https://github.com/sclorg/redis-container/tree/master/3.2",
-      "openshift.io/support-url": "https://access.redhat.com"
-    }
-  },
-  "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Password: ${REDIS_PASSWORD}\n Connection URL: redis://${DATABASE_SERVICE_NAME}:6379/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.",
-  "labels": {
-    "template": "redis-ephemeral-template"
-  },
-  "objects": [
-    {
-      "kind": "Secret",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}",
-        "annotations": {
-          "template.openshift.io/expose-password": "{.data['database-password']}"
-        }
-      },
-      "stringData" : {
-        "database-password" : "${REDIS_PASSWORD}"
-      }
+    "apiVersion": "v1",
+    "kind": "Template",
+    "labels": {
+        "template": "redis-ephemeral-template"
     },
-    {
-      "kind": "Service",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}",
+    "message": "The following service(s) have been created in your project: ${DATABASE_SERVICE_NAME}.\n\n       Password: ${REDIS_PASSWORD}\n Connection URL: redis://${DATABASE_SERVICE_NAME}:6379/\n\nFor more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.",
+    "metadata": {
         "annotations": {
-          "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
-        }
-      },
-      "spec": {
-        "ports": [
-          {
-            "name": "redis",
-            "protocol": "TCP",
-            "port": 6379,
-            "targetPort": 6379,
-            "nodePort": 0
-          }
-        ],
-        "selector": {
-          "name": "${DATABASE_SERVICE_NAME}"
+            "description": "Redis in-memory data structure store, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+            "iconClass": "icon-redis",
+            "openshift.io/display-name": "Redis (Ephemeral)",
+            "openshift.io/documentation-url": "https://github.com/sclorg/redis-container/tree/master/3.2",
+            "openshift.io/long-description": "This template provides a standalone Redis server.  The data is not stored on persistent storage, so any restart of the service will result in all data being lost.",
+            "openshift.io/provider-display-name": "Red Hat, Inc.",
+            "openshift.io/support-url": "https://access.redhat.com",
+            "tags": "database,redis"
         },
-        "type": "ClusterIP",
-        "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
-      }
+        "name": "redis-ephemeral"
     },
-    {
-      "kind": "DeploymentConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}",
-        "annotations": {
-          "template.alpha.openshift.io/wait-for-ready": "true"
-        }
-      },
-      "spec": {
-        "strategy": {
-          "type": "Recreate"
-        },
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "redis"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "redis:${REDIS_VERSION}",
-                "namespace": "${NAMESPACE}"
-              },
-              "lastTriggeredImage": ""
+    "objects": [
+        {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {
+                "annotations": {
+                    "template.openshift.io/expose-password": "{.data['database-password']}"
+                },
+                "name": "${DATABASE_SERVICE_NAME}"
+            },
+            "stringData": {
+                "database-password": "${REDIS_PASSWORD}"
             }
-          },
-          {
-            "type": "ConfigChange"
-          }
-        ],
-        "replicas": 1,
-        "selector": {
-          "name": "${DATABASE_SERVICE_NAME}"
         },
-        "template": {
-          "metadata": {
-            "labels": {
-              "name": "${DATABASE_SERVICE_NAME}"
-            }
-          },
-          "spec": {
-            "containers": [
-              {
-                "name": "redis",
-                "image": " ",
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "annotations": {
+                    "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
+                },
+                "name": "${DATABASE_SERVICE_NAME}"
+            },
+            "spec": {
                 "ports": [
-                  {
-                    "containerPort": 6379,
-                    "protocol": "TCP"
-                  }
-                ],
-                "readinessProbe": {
-                  "timeoutSeconds": 1,
-                  "initialDelaySeconds": 5,
-                  "exec": {
-                    "command": [ "/bin/sh", "-i", "-c", "test \"$(redis-cli -h 127.0.0.1 -a $REDIS_PASSWORD ping)\" == \"PONG\""]
-                  }
-                },
-                "livenessProbe": {
-                  "timeoutSeconds": 1,
-                  "initialDelaySeconds": 30,
-                  "tcpSocket": {
-                    "port": 6379
-                  }
-                },
-                "env": [
-                  {
-                    "name": "REDIS_PASSWORD",
-                    "valueFrom": {
-                      "secretKeyRef" : {
-                        "name" : "${DATABASE_SERVICE_NAME}",
-                        "key" : "database-password"
-                      }
+                    {
+                        "name": "redis",
+                        "nodePort": 0,
+                        "port": 6379,
+                        "protocol": "TCP",
+                        "targetPort": 6379
                     }
-                  }
                 ],
-                "resources": {
-                  "limits": {
-                    "memory": "${MEMORY_LIMIT}"
-                  }
+                "selector": {
+                    "name": "${DATABASE_SERVICE_NAME}"
                 },
-                "volumeMounts": [
-                  {
-                    "name": "${DATABASE_SERVICE_NAME}-data",
-                    "mountPath": "/var/lib/redis/data"
-                  }
-                ],
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent",
-                "capabilities": {},
-                "securityContext": {
-                  "capabilities": {},
-                  "privileged": false
-                }
-              }
-            ],
-            "volumes": [
-              {
-                "name": "${DATABASE_SERVICE_NAME}-data",
-                "emptyDir": {
-                  "medium": ""
-                }
-              }
-            ],
-            "restartPolicy": "Always",
-            "dnsPolicy": "ClusterFirst"
-          }
+                "sessionAffinity": "None",
+                "type": "ClusterIP"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "annotations": {
+                    "template.alpha.openshift.io/wait-for-ready": "true"
+                },
+                "name": "${DATABASE_SERVICE_NAME}"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "name": "${DATABASE_SERVICE_NAME}"
+                },
+                "strategy": {
+                    "type": "Recreate"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "name": "${DATABASE_SERVICE_NAME}"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "capabilities": {},
+                                "env": [
+                                    {
+                                        "name": "REDIS_PASSWORD",
+                                        "valueFrom": {
+                                            "secretKeyRef": {
+                                                "key": "database-password",
+                                                "name": "${DATABASE_SERVICE_NAME}"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "image": " ",
+                                "imagePullPolicy": "IfNotPresent",
+                                "livenessProbe": {
+                                    "initialDelaySeconds": 30,
+                                    "tcpSocket": {
+                                        "port": 6379
+                                    },
+                                    "timeoutSeconds": 1
+                                },
+                                "name": "redis",
+                                "ports": [
+                                    {
+                                        "containerPort": 6379,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "readinessProbe": {
+                                    "exec": {
+                                        "command": [
+                                            "/bin/sh",
+                                            "-i",
+                                            "-c",
+                                            "test \"$(redis-cli -h 127.0.0.1 -a $REDIS_PASSWORD ping)\" == \"PONG\""
+                                        ]
+                                    },
+                                    "initialDelaySeconds": 5,
+                                    "timeoutSeconds": 1
+                                },
+                                "resources": {
+                                    "limits": {
+                                        "memory": "${MEMORY_LIMIT}"
+                                    }
+                                },
+                                "securityContext": {
+                                    "capabilities": {},
+                                    "privileged": false
+                                },
+                                "terminationMessagePath": "/dev/termination-log",
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/var/lib/redis/data",
+                                        "name": "${DATABASE_SERVICE_NAME}-data"
+                                    }
+                                ]
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "volumes": [
+                            {
+                                "emptyDir": {
+                                    "medium": ""
+                                },
+                                "name": "${DATABASE_SERVICE_NAME}-data"
+                            }
+                        ]
+                    }
+                },
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "redis"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "redis:${REDIS_VERSION}",
+                                "namespace": "${NAMESPACE}"
+                            },
+                            "lastTriggeredImage": ""
+                        },
+                        "type": "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
+                    }
+                ]
+            },
+            "status": {}
         }
-      },
-      "status": {}
-    }
-  ],
-  "parameters": [
-    {
-      "name": "MEMORY_LIMIT",
-      "displayName": "Memory Limit",
-      "description": "Maximum amount of memory the container can use.",
-      "value": "512Mi",
-      "required": true
-    },
-    {
-      "name": "NAMESPACE",
-      "displayName": "Namespace",
-      "description": "The OpenShift Namespace where the ImageStream resides.",
-      "value": "openshift"
-    },
-    {
-      "name": "DATABASE_SERVICE_NAME",
-      "displayName": "Database Service Name",
-      "description": "The name of the OpenShift Service exposed for the database.",
-      "value": "redis",
-      "required": true
-    },
-    {
-      "name": "REDIS_PASSWORD",
-      "displayName": "Redis Connection Password",
-      "description": "Password for the Redis connection user.",
-      "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}",
-      "required": true
-    },
-    {
-      "name": "REDIS_VERSION",
-      "displayName": "Version of Redis Image",
-      "description": "Version of Redis image to be used (3.2 or latest).",
-      "value": "3.2",
-      "required": true
-    }
-  ]
+    ],
+    "parameters": [
+        {
+            "description": "Maximum amount of memory the container can use.",
+            "displayName": "Memory Limit",
+            "name": "MEMORY_LIMIT",
+            "required": true,
+            "value": "512Mi"
+        },
+        {
+            "description": "The OpenShift Namespace where the ImageStream resides.",
+            "displayName": "Namespace",
+            "name": "NAMESPACE",
+            "value": "openshift"
+        },
+        {
+            "description": "The name of the OpenShift Service exposed for the database.",
+            "displayName": "Database Service Name",
+            "name": "DATABASE_SERVICE_NAME",
+            "required": true,
+            "value": "redis"
+        },
+        {
+            "description": "Password for the Redis connection user.",
+            "displayName": "Redis Connection Password",
+            "from": "[a-zA-Z0-9]{16}",
+            "generate": "expression",
+            "name": "REDIS_PASSWORD",
+            "required": true
+        },
+        {
+            "description": "Version of Redis image to be used (3.2 or latest).",
+            "displayName": "Version of Redis Image",
+            "name": "REDIS_VERSION",
+            "required": true,
+            "value": "3.2"
+        }
+    ]
 }

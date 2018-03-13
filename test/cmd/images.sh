@@ -72,7 +72,7 @@ os::cmd::expect_failure_and_text "oc run vulnerable --image=${repository}:new --
 # test image stream tag operations
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.generation}' '2'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'ImageStreamTag'
-os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' '10.1'
+os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' '12.0'
 os::cmd::expect_success 'oc annotate istag/wildfly:latest foo=bar'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.metadata.annotations.foo}' 'bar'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.annotations.foo}' 'bar'
@@ -85,7 +85,7 @@ os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.
 os::cmd::expect_success_and_not_text 'oc get istag/wildfly:latest -o jsonpath={.tag.generation}' '2'
 
 # create an image stream tag
-os::cmd::expect_success 'oc create imagestreamtag tag:1 --from=wildfly:10.1'
+os::cmd::expect_success 'oc create imagestreamtag tag:1 --from=wildfly:12.0'
 os::cmd::expect_success 'oc create imagestreamtag tag:2 --from-image=mysql:latest'
 os::cmd::try_until_success 'oc get imagestreamtags tag:2'
 os::cmd::expect_success 'oc create imagestreamtag tag:3 -A foo=bar'
@@ -97,14 +97,14 @@ os::cmd::expect_success 'oc create istag tag:8 --insecure --from-image=mysql:lat
 os::cmd::try_until_success 'oc get imagestreamtags tag:8'
 os::cmd::expect_success 'oc create imagestreamtag tag:9 --scheduled --reference-policy=Local --from-image=mysql:latest'
 os::cmd::expect_success 'oc create imagestream tag-b'
-os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from=wildfly:10.1'
+os::cmd::expect_success 'oc create imagestreamtag tag-b:1 --from=wildfly:12.0'
 
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c --from-image=mysql:latest' 'must be of the form <stream_name>:<tag>'
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:1 -A foo' 'annotations must be of the form key=value'
 os::cmd::expect_failure_and_text 'oc create imagestreamtag tag-c:2 --from=mysql --from-image=mysql:latest' '\--from and --from-image may not be used together'
 
 os::cmd::expect_success_and_text 'oc get istag/tag:1 -o jsonpath={.image.dockerImageReference}' 'wildfly.*@sha256:'
-tag1=$( oc get istag/wildfly:10.1 -o jsonpath={.image.metadata.name} )
+tag1=$( oc get istag/wildfly:12.0 -o jsonpath={.image.metadata.name} )
 os::cmd::expect_success_and_text 'oc get istag/tag-b:1 -o jsonpath={.image.metadata.name}' "${tag1}"
 os::cmd::expect_success_and_text 'oc get istag/tag:2 -o jsonpath={.image.dockerImageReference}' 'mysql@sha256:'
 tag2=$( oc get istag/tag:2 -o jsonpath={.image.metadata.name} )
