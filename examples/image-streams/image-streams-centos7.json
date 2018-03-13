@@ -149,7 +149,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/openshift/jenkins-2-centos7:v3.9"
+              "name": "docker.io/openshift/jenkins-2-centos7:v3.10"
             },
             "name": "2"
           }

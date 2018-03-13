@@ -15189,7 +15189,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "docker.io/openshift/jenkins-2-centos7:v3.9"
+              "name": "docker.io/openshift/jenkins-2-centos7:v3.10"
             },
             "name": "2"
           }
@@ -16369,7 +16369,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:v3.9"
+              "name": "registry.access.redhat.com/openshift3/jenkins-2-rhel7:v3.10"
             },
             "name": "2"
           }
@@ -22116,11 +22116,14 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
                                 ],
                                 "image": " ",
                                 "livenessProbe": {
-                                    "initialDelaySeconds": 30,
-                                    "tcpSocket": {
-                                        "port": 5432
+                                    "exec": {
+                                        "command": [
+                                            "/usr/libexec/check-container",
+                                            "--live"
+                                        ]
                                     },
-                                    "timeoutSeconds": 1
+                                    "initialDelaySeconds": 120,
+                                    "timeoutSeconds": 10
                                 },
                                 "name": "postgresql",
                                 "ports": [
@@ -22131,10 +22134,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
                                 "readinessProbe": {
                                     "exec": {
                                         "command": [
-                                            "/bin/sh",
-                                            "-i",
-                                            "-c",
-                                            "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"
+                                            "/usr/libexec/check-container"
                                         ]
                                     },
                                     "initialDelaySeconds": 5,
@@ -22661,11 +22661,14 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                                 ],
                                 "image": " ",
                                 "livenessProbe": {
-                                    "initialDelaySeconds": 30,
-                                    "tcpSocket": {
-                                        "port": 5432
+                                    "exec": {
+                                        "command": [
+                                            "/usr/libexec/check-container",
+                                            "--live"
+                                        ]
                                     },
-                                    "timeoutSeconds": 1
+                                    "initialDelaySeconds": 120,
+                                    "timeoutSeconds": 10
                                 },
                                 "name": "postgresql",
                                 "ports": [
@@ -22676,10 +22679,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
                                 "readinessProbe": {
                                     "exec": {
                                         "command": [
-                                            "/bin/sh",
-                                            "-i",
-                                            "-c",
-                                            "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"
+                                            "/usr/libexec/check-container"
                                         ]
                                     },
                                     "initialDelaySeconds": 5,
@@ -24946,11 +24946,14 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
                                 ],
                                 "image": " ",
                                 "livenessProbe": {
-                                    "initialDelaySeconds": 30,
-                                    "tcpSocket": {
-                                        "port": 5432
+                                    "exec": {
+                                        "command": [
+                                            "/usr/libexec/check-container",
+                                            "--live"
+                                        ]
                                     },
-                                    "timeoutSeconds": 1
+                                    "initialDelaySeconds": 120,
+                                    "timeoutSeconds": 10
                                 },
                                 "name": "postgresql",
                                 "ports": [
@@ -24961,10 +24964,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
                                 "readinessProbe": {
                                     "exec": {
                                         "command": [
-                                            "/bin/sh",
-                                            "-i",
-                                            "-c",
-                                            "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"
+                                            "/usr/libexec/check-container"
                                         ]
                                     },
                                     "initialDelaySeconds": 5,
@@ -25557,11 +25557,14 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                                 ],
                                 "image": " ",
                                 "livenessProbe": {
-                                    "initialDelaySeconds": 30,
-                                    "tcpSocket": {
-                                        "port": 5432
+                                    "exec": {
+                                        "command": [
+                                            "/usr/libexec/check-container",
+                                            "--live"
+                                        ]
                                     },
-                                    "timeoutSeconds": 1
+                                    "initialDelaySeconds": 120,
+                                    "timeoutSeconds": 10
                                 },
                                 "name": "postgresql",
                                 "ports": [
@@ -25572,10 +25575,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
                                 "readinessProbe": {
                                     "exec": {
                                         "command": [
-                                            "/bin/sh",
-                                            "-i",
-                                            "-c",
-                                            "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"
+                                            "/usr/libexec/check-container"
                                         ]
                                     },
                                     "initialDelaySeconds": 5,
