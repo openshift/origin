@@ -66,7 +66,7 @@ func (b *Broker) Unbind(u user.Info, instanceID, bindingID string) *api.Response
 	// templateinstances in this namespace.
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
-		Verb:      "update",
+		Verb:      "delete",
 		Group:     templateapi.GroupName,
 		Resource:  "templateinstances",
 		Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
