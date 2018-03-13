@@ -3904,6 +3904,49 @@ items:
       authorization.openshift.io/system-only: "true"
       openshift.io/reconcile-protect: "false"
     creationTimestamp: null
+    name: system:openshift:controller:default-rolebindings-controller
+  rules:
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - rolebindings
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - rolebindings
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:attachdetach-controller
@@ -7124,6 +7167,70 @@ items:
     namespace: openshift-infra
   userNames:
   - system:serviceaccount:openshift-infra:template-service-broker
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:image-puller
+  roleRef:
+    name: system:image-puller
+  subjects:
+  - kind: ServiceAccount
+    name: default-rolebindings-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:default-rolebindings-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:image-builder
+  roleRef:
+    name: system:image-builder
+  subjects:
+  - kind: ServiceAccount
+    name: default-rolebindings-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:default-rolebindings-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:deployer
+  roleRef:
+    name: system:deployer
+  subjects:
+  - kind: ServiceAccount
+    name: default-rolebindings-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:default-rolebindings-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:openshift:controller:default-rolebindings-controller
+  roleRef:
+    name: system:openshift:controller:default-rolebindings-controller
+  subjects:
+  - kind: ServiceAccount
+    name: default-rolebindings-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:default-rolebindings-controller
 - apiVersion: v1
   groupNames:
   - system:masters

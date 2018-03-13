@@ -258,9 +258,7 @@ func (c *MasterConfig) Run(stopCh <-chan struct{}) error {
 	}
 
 	// add post-start hooks
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", ensureDefaultNamespaceServiceAccountRoles)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	for name, fn := range c.additionalPostStartHooks {
@@ -314,7 +312,6 @@ func (c *MasterConfig) RunKubeAPIServer(stopCh <-chan struct{}) error {
 	}
 
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", ensureDefaultNamespaceServiceAccountRoles)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", ensureOpenShiftInfraNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	// add post-start hooks
@@ -355,7 +352,6 @@ func (c *MasterConfig) RunOpenShift(stopCh <-chan struct{}) error {
 	}
 
 	// add post-start hooks
-	openshiftAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	openshiftAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
 	for name, fn := range c.additionalPostStartHooks {
 		openshiftAPIServer.AddPostStartHookOrDie(name, fn)

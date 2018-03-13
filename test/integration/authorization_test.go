@@ -1510,7 +1510,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin", "system:serviceaccount:openshift-infra:default-rolebindings-controller"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1541,7 +1541,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:clusterrole-aggregation-controller", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin", "system:serviceaccount:openshift-infra:default-rolebindings-controller"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
