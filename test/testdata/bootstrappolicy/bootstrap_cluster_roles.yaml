@@ -4818,7 +4818,6 @@ items:
   - apiGroups:
     - apps
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -4833,6 +4832,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -4864,7 +4871,6 @@ items:
   - apiGroups:
     - extensions
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -4880,6 +4886,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - policy
@@ -4997,7 +5011,6 @@ items:
   - apiGroups:
     - apps
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5012,6 +5025,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - autoscaling
@@ -5043,7 +5064,6 @@ items:
   - apiGroups:
     - extensions
     resources:
-    - daemonsets
     - deployments
     - deployments/rollback
     - deployments/scale
@@ -5059,6 +5079,14 @@ items:
     - list
     - patch
     - update
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - list
     - watch
   - apiGroups:
     - policy
