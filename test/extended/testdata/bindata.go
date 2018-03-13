@@ -164,6 +164,7 @@
 // test/extended/testdata/ldap/ldapserver-service.json
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/multi-namespace-template.yaml
 // test/extended/testdata/openshift-secret-to-jenkins-credential.yaml
 // test/extended/testdata/reencrypt-serving-cert.yaml
 // test/extended/testdata/roles/empty-role.yaml
@@ -9069,6 +9070,212 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/long_names/fixture.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMultiNamespaceTemplateYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: template.openshift.io/v1
+  kind: Template
+  labels:
+    template: mongodb-ephemeral-template
+  metadata:
+    name: mongodb-ephemeral
+  objects:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      annotations:
+        template.openshift.io/expose-admin_password: '{.data[''database-admin-password'']}'
+        template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+        template.openshift.io/expose-password: '{.data[''database-password'']}'
+        template.openshift.io/expose-username: '{.data[''database-user'']}'
+      name: ${DATABASE_SERVICE_NAME}
+      namespace: ${NAMESPACE2}
+    stringData:
+      database-admin-password: ${MONGODB_ADMIN_PASSWORD}
+      database-name: ${MONGODB_DATABASE}
+      database-password: ${MONGODB_PASSWORD}
+      database-user: ${MONGODB_USER}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        template.openshift.io/expose-uri: mongodb://{.spec.clusterIP}:{.spec.ports[?(.name=="mongo")].port}
+      name: ${DATABASE_SERVICE_NAME}
+      namespace: ${NAMESPACE3}
+    spec:
+      ports:
+      - name: mongo
+        nodePort: 0
+        port: 27017
+        protocol: TCP
+        targetPort: 27017
+      selector:
+        name: ${DATABASE_SERVICE_NAME}
+      sessionAffinity: None
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      annotations:
+        template.alpha.openshift.io/wait-for-ready: "true"
+      name: ${DATABASE_SERVICE_NAME}
+      namespace: ${NAMESPACE2}
+    spec:
+      replicas: 1
+      selector:
+        name: ${DATABASE_SERVICE_NAME}
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            name: ${DATABASE_SERVICE_NAME}
+        spec:
+          containers:
+          - capabilities: {}
+            env:
+            - name: MONGODB_USER
+              valueFrom:
+                secretKeyRef:
+                  key: database-user
+                  name: ${DATABASE_SERVICE_NAME}
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: database-password
+                  name: ${DATABASE_SERVICE_NAME}
+            - name: MONGODB_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: database-admin-password
+                  name: ${DATABASE_SERVICE_NAME}
+            - name: MONGODB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  key: database-name
+                  name: ${DATABASE_SERVICE_NAME}
+            image: ' '
+            imagePullPolicy: IfNotPresent
+            livenessProbe:
+              initialDelaySeconds: 30
+              tcpSocket:
+                port: 27017
+              timeoutSeconds: 1
+            name: mongodb
+            ports:
+            - containerPort: 27017
+              protocol: TCP
+            readinessProbe:
+              exec:
+                command:
+                - /bin/sh
+                - -i
+                - -c
+                - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
+                  --eval="quit()"
+              initialDelaySeconds: 3
+              timeoutSeconds: 1
+            resources:
+              limits:
+                memory: ${MEMORY_LIMIT}
+            securityContext:
+              capabilities: {}
+              privileged: false
+            terminationMessagePath: /dev/termination-log
+            volumeMounts:
+            - mountPath: /var/lib/mongodb/data
+              name: ${DATABASE_SERVICE_NAME}-data
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          volumes:
+          - emptyDir:
+              medium: ""
+            name: ${DATABASE_SERVICE_NAME}-data
+      triggers:
+      - imageChangeParams:
+          automatic: true
+          containerNames:
+          - mongodb
+          from:
+            kind: ImageStreamTag
+            name: mongodb:${MONGODB_VERSION}
+            namespace: ${NAMESPACE}
+          lastTriggeredImage: ""
+        type: ImageChange
+      - type: ConfigChange
+    status: {}
+  parameters:
+  - description: Maximum amount of memory the container can use.
+    displayName: Memory Limit
+    name: MEMORY_LIMIT
+    required: true
+    value: 512Mi
+  - description: The OpenShift Namespace where the ImageStream resides.
+    displayName: Namespace
+    name: NAMESPACE
+    value: openshift
+  - description: The OpenShift Namespace where the ImageStream resides.
+    displayName: Namespace2
+    name: NAMESPACE2
+    value: ggm-namespace
+  - description: The OpenShift Namespace where the ImageStream resides.
+    displayName: Namespace3
+    name: NAMESPACE3
+    value: myproject
+  - description: The name of the OpenShift Service exposed for the database.
+    displayName: Database Service Name
+    name: DATABASE_SERVICE_NAME
+    required: true
+    value: mongodb
+  - description: Username for MongoDB user that will be used for accessing the database.
+    displayName: MongoDB Connection Username
+    from: user[A-Z0-9]{3}
+    generate: expression
+    name: MONGODB_USER
+    required: true
+  - description: Password for the MongoDB connection user.
+    displayName: MongoDB Connection Password
+    from: '[a-zA-Z0-9]{16}'
+    generate: expression
+    name: MONGODB_PASSWORD
+    required: true
+  - description: Name of the MongoDB database accessed.
+    displayName: MongoDB Database Name
+    name: MONGODB_DATABASE
+    required: true
+    value: sampledb
+  - description: Password for the database admin user.
+    displayName: MongoDB Admin Password
+    from: '[a-zA-Z0-9]{16}'
+    generate: expression
+    name: MONGODB_ADMIN_PASSWORD
+    required: true
+  - description: Version of MongoDB image to be used (2.4, 2.6, 3.2 or latest).
+    displayName: Version of MongoDB Image
+    name: MONGODB_VERSION
+    required: true
+    value: "3.2"
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""`)
+
+func testExtendedTestdataMultiNamespaceTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMultiNamespaceTemplateYaml, nil
+}
+
+func testExtendedTestdataMultiNamespaceTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMultiNamespaceTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/multi-namespace-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -30947,6 +31154,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/multi-namespace-template.yaml": testExtendedTestdataMultiNamespaceTemplateYaml,
 	"test/extended/testdata/openshift-secret-to-jenkins-credential.yaml": testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml,
 	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
@@ -31452,6 +31660,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
+				"multi-namespace-template.yaml": &bintree{testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
 				"openshift-secret-to-jenkins-credential.yaml": &bintree{testExtendedTestdataOpenshiftSecretToJenkinsCredentialYaml, map[string]*bintree{}},
 				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
 				"roles": &bintree{nil, map[string]*bintree{
