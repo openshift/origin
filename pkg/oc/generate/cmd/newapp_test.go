@@ -695,7 +695,7 @@ func TestDisallowedNonNumericExposedPorts(t *testing.T) {
 		config.Strategy = test.strategy
 		config.AllowNonNumericExposedPorts = test.allowNonNumericPorts
 
-		repo, err := app.NewSourceRepositoryForDockerfile("FROM centos\nARG PORT=80\nEXPOSE 8080 $PORT")
+		repo, err := app.NewSourceRepositoryForDockerfile("FROM centos\nEXPOSE 8080 NON_NUMERIC_PORT")
 		if err != nil {
 			t.Fatalf("Unexpected error during setup: %v", err)
 		}
@@ -725,6 +725,26 @@ func TestExposedPortsAreValid(t *testing.T) {
 			expectedError: "",
 		},
 		{
+			dockerfile:    "FROM centos\nARG PORT=8080\nEXPOSE $PORT",
+			expectedError: "",
+		},
+		{
+			dockerfile:    "FROM centos\nENV PORT 8080\nEXPOSE $PORT",
+			expectedError: "",
+		},
+		{
+			dockerfile:    "FROM centos\nENV PORT=8080\nEXPOSE $PORT",
+			expectedError: "",
+		},
+		{
+			dockerfile:    "FROM centos\nENV PORT2=8080\nENV PORT1=$PORT2\nENV PORT=$PORT1\nEXPOSE $PORT",
+			expectedError: "",
+		},
+		{
+			dockerfile:    "FROM centos\nENV PORT2=8080 PORT1=$PORT2 PORT=$PORT1\nEXPOSE $PORT",
+			expectedError: "",
+		},
+		{
 			dockerfile:    "FROM centos\nEXPOSE 808080",
 			expectedError: "port number must be in range 0 - 65535",
 		},
@@ -741,7 +761,7 @@ func TestExposedPortsAreValid(t *testing.T) {
 			expectedError: "port number must be in range 0 - 65535",
 		},
 		{
-			dockerfile:    "FROM centos\nARG PORT=8080\nEXPOSE $PORT",
+			dockerfile:    "FROM centos\nEXPOSE PORT",
 			expectedError: "port number must be in range 0 - 65535",
 		},
 		{
