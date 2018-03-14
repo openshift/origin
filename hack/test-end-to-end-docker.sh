@@ -65,10 +65,10 @@ mkdir "${CLUSTERUP_DIR}"
 oc cluster up --server-loglevel=4 --version="${TAG}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}" \
-        --host-config-dir="${CLUSTERUP_DIR}" \
+        --base-dir="${CLUSTERUP_DIR}" \
         --write-config
 oc cluster up --server-loglevel=4 --version="${TAG}" \
-        --host-config-dir="${CLUSTERUP_DIR}" \
+        --base-dir="${CLUSTERUP_DIR}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}"
 

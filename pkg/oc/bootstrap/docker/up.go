@@ -17,7 +17,6 @@ import (
 	cliconfig "github.com/docker/docker/cli/config"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/oc/bootstrap/clusterup/tmpformac"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
@@ -214,7 +213,8 @@ type CommonStartConfig struct {
 	// BaseTempDir is the directory to use as the root for temp directories
 	// This allows us to bundle all of the cluster-up directories in one spot for easier cleanup and ensures we aren't
 	// doing crazy thing like dirtying /var on the host (that does weird stuff)
-	BaseTempDir              string
+	BaseDir                  string
+	SpecifiedBaseDir         bool
 	HostName                 string
 	LocalConfigDir           string
 	UseExistingConfig        bool
@@ -269,11 +269,8 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&config.PublicHostname, "public-hostname", "", "Public hostname for OpenShift cluster")
 	flags.StringVar(&config.RoutingSuffix, "routing-suffix", "", "Default suffix for server routes")
 	flags.BoolVar(&config.UseExistingConfig, "use-existing-config", false, "Use existing configuration if present")
-	flags.StringVar(&config.HostConfigDir, "host-config-dir", config.HostConfigDir, "Directory on Docker host for OpenShift configuration")
+	flags.StringVar(&config.BaseDir, "base-dir", config.BaseDir, "Directory on Docker host for cluster up configuration")
 	flags.BoolVar(&config.WriteConfig, "write-config", false, "Write the configuration files into host config dir")
-	flags.StringVar(&config.HostVolumesDir, "host-volumes-dir", config.HostVolumesDir, "Directory on Docker host for OpenShift volumes")
-	flags.StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
-	flags.StringVar(&config.HostPersistentVolumesDir, "host-pv-dir", config.HostPersistentVolumesDir, "Directory on host for OpenShift persistent volumes")
 	flags.BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
 	flags.StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
@@ -325,24 +322,36 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command,
 		c.ImageVersion = strings.TrimRight("v"+version.Get().Major+"."+version.Get().Minor, "+")
 
 	}
-	if len(c.BaseTempDir) == 0 {
-		var err error
-		c.BaseTempDir, err = tmpformac.TempDir("", "oc-cluster-up-")
+	if len(c.BaseDir) == 0 {
+		c.SpecifiedBaseDir = false
+		c.BaseDir = "openshift.local.clusterup"
+	}
+	if !path.IsAbs(c.BaseDir) {
+		cwd, err := os.Getwd()
 		if err != nil {
 			return err
 		}
-	}
-	if len(c.HostVolumesDir) == 0 {
-		c.HostVolumesDir = path.Join(c.BaseTempDir, "openshift.local.volumes")
-		if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+		absHostDir, err := cmdutil.MakeAbs(c.BaseDir, cwd)
+		if err != nil {
 			return err
 		}
+		c.BaseDir = absHostDir
 	}
-	if len(c.HostPersistentVolumesDir) == 0 {
-		c.HostPersistentVolumesDir = path.Join(c.BaseTempDir, "openshift.local.pv")
-		if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
-			return err
-		}
+	if err := os.MkdirAll(c.BaseDir, 0755); err != nil {
+		return err
+	}
+
+	c.HostVolumesDir = path.Join(c.BaseDir, "openshift.local.volumes")
+	if err := os.MkdirAll(c.HostVolumesDir, 0755); err != nil {
+		return err
+	}
+	c.HostPersistentVolumesDir = path.Join(c.BaseDir, "openshift.local.pv")
+	if err := os.MkdirAll(c.HostPersistentVolumesDir, 0755); err != nil {
+		return err
+	}
+	c.HostDataDir = path.Join(c.BaseDir, "etcd")
+	if err := os.MkdirAll(c.HostDataDir, 0755); err != nil {
+		return err
 	}
 
 	// do some struct initialization next
@@ -934,7 +943,7 @@ func (c *ClientStartConfig) InstallRegistry(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRegistry(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, path.Join(c.BaseTempDir, "logs"), c.imageFormat(), c.HostPersistentVolumesDir, out, os.Stderr)
+	return c.OpenShiftHelper().InstallRegistry(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, path.Join(c.BaseDir, "logs"), c.imageFormat(), c.HostPersistentVolumesDir, out, os.Stderr)
 }
 
 // InstallRouter installs a default router on the server
@@ -947,7 +956,7 @@ func (c *ClientStartConfig) InstallRouter(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().InstallRouter(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, path.Join(c.BaseTempDir, "logs"), c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
+	return c.OpenShiftHelper().InstallRouter(c.GetDockerClient(), c.openshiftImage(), kubeClient, f, c.LocalConfigDir, path.Join(c.BaseDir, "logs"), c.imageFormat(), c.ServerIP, c.PortForwarding, out, os.Stderr)
 }
 
 // InstallWebConsole installs the OpenShift web console on the server
@@ -992,7 +1001,7 @@ func (c *ClientStartConfig) ImportInitialObjects(out io.Writer) error {
 	componentsToInstall = append(componentsToInstall,
 		c.makeObjectImportInstallationComponentsOrDie(out, openshift.OpenshiftInfraNamespace, internalCurrentTemplateLocations)...)
 
-	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseTempDir, "logs"))
+	return componentinstall.InstallComponents(componentsToInstall, c.GetDockerClient(), path.Join(c.BaseDir, "logs"))
 }
 
 // InstallLogging will start the installation of logging components
@@ -1070,7 +1079,7 @@ func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
 		return err
 	}
 
-	return c.OpenShiftHelper().InstallTemplateServiceBroker(clusterAdminKubeConfig, f, imageTemplate, c.ServerLogLevel, path.Join(c.BaseTempDir, "logs"))
+	return c.OpenShiftHelper().InstallTemplateServiceBroker(clusterAdminKubeConfig, f, imageTemplate, c.ServerLogLevel, path.Join(c.BaseDir, "logs"))
 }
 
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
@@ -1079,7 +1088,7 @@ func (c *ClientStartConfig) RegisterTemplateServiceBroker(out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return c.OpenShiftHelper().RegisterTemplateServiceBroker(clusterAdminKubeConfig, c.LocalConfigDir, path.Join(c.BaseTempDir, "logs"))
+	return c.OpenShiftHelper().RegisterTemplateServiceBroker(clusterAdminKubeConfig, c.LocalConfigDir, path.Join(c.BaseDir, "logs"))
 }
 
 // Login logs into the new server and sets up a default user and project
