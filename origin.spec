@@ -19,12 +19,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b0347d31433e08e88ede23dfd0d004451ab880e6
+%global commit 9111ce929c35494a27c98b55aa34449755a0a6bc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.4.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.8 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=22f159f OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
+%global os_git_vars OS_GIT_MINOR=10+ OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.10.0-0.5.0 OS_GIT_TREE_STATE=clean OS_GIT_PATCH=0 KUBE_GIT_VERSION=v1.9.1+a0ce1bc657 OS_GIT_CATALOG_VERSION=v0.1.9 KUBE_GIT_COMMIT=a0ce1bc OS_GIT_COMMIT=4890dad OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose ETCD_GIT_VERSION=v3.2.16 ETCD_GIT_COMMIT=121edf0
 }
 
 %if 0%{?skip_build}
@@ -67,7 +67,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.10.0
-Release:        0.5.0%{?dist}
+Release:        0.6.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -607,6 +607,71 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Mar 14 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.6.0
+- Update policy tests to reflect removal of write access on daemonsets
+  (mkhan@redhat.com)
+- UPSTREAM: <carry>: Remove write permissions on daemonsets from Kubernetes
+  bootstrap policy (mkhan@redhat.com)
+- Updating external examples (cdaley@redhat.com)
+- client plugin multinamespace test part 1: create template in repo that the
+  pipeline can use (gmontero@redhat.com)
+- switch kubedns to be copy of node config, not fresh creation
+  (deads@redhat.com)
+- update origin to pull all imagestream+template content from library
+  (bparees@redhat.com)
+- Fix SDN startup log messages (danw@redhat.com)
+- require templateinstance delete, not update, on unbind (bparees@redhat.com)
+- Allow a new OS_PUSH_BASE_REPO flag to push-release (ccoleman@redhat.com)
+- use pure openshift controllers (deads@redhat.com)
+- add controller to maintain default SA permissions (deads@redhat.com)
+- use the major.minor version as default for cluster up (deads@redhat.com)
+- bootstrap: fix mutation of global fields in checks (mfojtik@redhat.com)
+- bootstrap: return container id when starting container (mfojtik@redhat.com)
+- add better logging for oc cluster up component install (deads@redhat.com)
+- remove logging deployer templates (deads@redhat.com)
+- remove option from cluster up to create a docker machine (deads@redhat.com)
+- generated (deads@redhat.com)
+- remove oc cluster up cruft (deads@redhat.com)
+- UPSTREAM: 60978: Fix use of "-w" flag to iptables-restore (danw@redhat.com)
+- segfault with invalid template (cdaley@redhat.com)
+- create hypershift openshift-controller-manager (deads@redhat.com)
+- UPSTREAM: <carry>: controller-manager patches for recycler (deads@redhat.com)
+- Add OWNERS for cluster loader (sejug@redhat.com)
+- run openshift-apiserver and kube-apiserver separately in cluster up
+  (deads@redhat.com)
+- generated (deads@redhat.com)
+- UPSTREAM: <carry>: aggregator to proxy oapi to apps.openshift.io server
+  (deads@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from b758460ba7..c3e3071633 (jpeeler@redhat.com)
+- UPSTREAM: opencontainers/runc: 1754: Add timeout while waiting for
+  StartTransinetUnit completion signal (sjenning@redhat.com)
+- Log test duration with json format for cluster-loader
+  (hongkailiu@users.noreply.github.com)
+- Implement multi-stage Docker builds by leveraging imagebuilder
+  (ccoleman@redhat.com)
+- Add internal API fields for the `as` attribute (ccoleman@redhat.com)
+- bump(*): pick up openshift build api changes (ccoleman@redhat.com)
+- Remove no longer used scripts from `make update-api` (ccoleman@redhat.com)
+- Stop doing complicated things with parsing existing config
+  (ccoleman@redhat.com)
+- Fix DC selectors for autoscaling (tnozicka@gmail.com)
+- Allow configurable CNI bin dir in openshift SDN (rpenta@redhat.com)
+- apply build defaults to init containers (jminter@redhat.com)
+- dind: update for latest ovn-kubernetes config changes (dcbw@redhat.com)
+- use owner references instead of timestamps to determine build/build pod
+  ownership (jminter@redhat.com)
+- Add one empty line for separate oc debug info and yaml output
+  (xiaocwan@redhat.com)
+- NetworkCheck diagnostic: use admin kubeconfig (lmeyer@redhat.com)
+- diagnostics: reorg network diags under cluster/network (lmeyer@redhat.com)
+- diagnostics: reorg pod diags under client/pod (lmeyer@redhat.com)
+- diagnostics: extract commandRunFunc to util pkg (lmeyer@redhat.com)
+- diagnostics logs: use local IsTerminalWriter (lmeyer@redhat.com)
+- Bug 1538006 - Improve error page when console not installed
+  (spadgett@redhat.com)
+- Adds pod-concurrent-connections annotation. (jtudelag@redhat.com)
+
 * Thu Mar 08 2018 Justin Pierce <jupierce@redhat.com> 3.10.0-0.5.0
 - UPSTREAM: 60654: notify systemd on kubelet start (ccoleman@redhat.com)
 - UPSTREAM: docker/docker: 36517: ensure hijackedConn implements CloseWrite
