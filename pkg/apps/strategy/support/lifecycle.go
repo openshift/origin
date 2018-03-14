@@ -222,7 +222,7 @@ func (e *hookExecutor) executeExecNewPod(hook *appsapi.LifecycleHook, rc *kapi.R
 
 	stopChannel := make(chan struct{})
 	defer close(stopChannel)
-	nextPod := newPodWatch(e.pods.Pods(pod.Namespace), pod.Namespace, pod.Name, pod.ResourceVersion, stopChannel)
+	nextPod := newPodWatch(e.pods.Pods(pod.Namespace), pod.Name, stopChannel)
 
 	// Wait for the hook pod to reach a terminal phase. Start reading logs as
 	// soon as the pod enters a usable phase.
@@ -442,7 +442,7 @@ func canRetryReading(pod *kapi.Pod, restarts int32) (bool, int32) {
 // FIFO/reflector pair. This avoids managing watches directly.
 // A stop channel to close the watch's reflector is also returned.
 // It is the caller's responsibility to defer closing the stop channel to prevent leaking resources.
-func newPodWatch(client kcoreclient.PodInterface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
+func newPodWatch(client kcoreclient.PodInterface, name string, stopChannel chan struct{}) func() *kapi.Pod {
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
 	podLW := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {

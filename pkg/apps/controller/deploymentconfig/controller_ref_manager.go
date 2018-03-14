@@ -34,7 +34,7 @@ var _ RCControlInterface = &RealRCControl{}
 
 // PatchReplicationController executes a strategic merge patch contained in 'data' on RC specified by 'namespace' and 'name'
 func (r RealRCControl) PatchReplicationController(namespace, name string, data []byte) error {
-	_, err := r.KubeClient.Core().ReplicationControllers(namespace).Patch(name, types.StrategicMergePatchType, data)
+	_, err := r.KubeClient.CoreV1().ReplicationControllers(namespace).Patch(name, types.StrategicMergePatchType, data)
 	return err
 }
 

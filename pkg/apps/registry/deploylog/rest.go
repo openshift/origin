@@ -31,9 +31,9 @@ import (
 
 const (
 	// defaultTimeout is the default time to wait for the logs of a deployment.
-	defaultTimeout time.Duration = 60 * time.Second
+	defaultTimeout = 60 * time.Second
 	// defaultInterval is the default interval for polling a not found deployment.
-	defaultInterval time.Duration = 1 * time.Second
+	defaultInterval = 1 * time.Second
 )
 
 // podGetter implements the ResourceGetter interface. Used by LogLocation to
@@ -224,9 +224,9 @@ func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (str
 	selector := labels.SelectorFromValidatedSet(labels.Set(target.Spec.Selector))
 	sortBy := func(pods []*kapiv1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
-	pod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector.String(), r.timeout, sortBy)
+	firstPod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector.String(), r.timeout, sortBy)
 	if err != nil {
 		return "", errors.NewInternalError(err)
 	}
-	return pod.Name, nil
+	return firstPod.Name, nil
 }

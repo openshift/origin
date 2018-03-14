@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -87,7 +86,7 @@ type acceptingDeploymentStrategy interface {
 }
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags imageclient.ImageStreamTagsGetter, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags imageclient.ImageStreamTagsGetter, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}
@@ -134,7 +133,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		// Execute any pre-hook.
 		if params.Pre != nil {
 			if err := s.hookExecutor.Execute(params.Pre, to, appsapi.PreHookPodSuffix, "pre"); err != nil {
-				return fmt.Errorf("Pre hook failed: %s", err)
+				return fmt.Errorf("pre hook failed: %s", err)
 			}
 		}
 

@@ -222,14 +222,14 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 				}
 				updatedAnnotations[appsapi.DeploymentStatusReasonAnnotation] = appsapi.DeploymentFailedDeployerPodNoLongerExists
 				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "Failed", fmt.Sprintf("Deployer pod %q has gone missing", deployerPodName))
-				deployerErr = fmt.Errorf("Failing rollout for %q because its deployer pod %q disappeared", appsutil.LabelForDeploymentV1(deployment), deployerPodName)
+				deployerErr = fmt.Errorf("failing rollout for %q because its deployer pod %q disappeared", appsutil.LabelForDeploymentV1(deployment), deployerPodName)
 				utilruntime.HandleError(deployerErr)
 			}
 
 		// Most likely dead code since we never get an error different from 404 back from the cache.
 		case deployerErr != nil:
 			// We'll try again later on resync. Continue to process cancellations.
-			deployerErr = fmt.Errorf("Error getting deployer pod %q for %q: %v", deployerPodName, appsutil.LabelForDeploymentV1(deployment), deployerErr)
+			deployerErr = fmt.Errorf("error getting deployer pod %q for %q: %v", deployerPodName, appsutil.LabelForDeploymentV1(deployment), deployerErr)
 			utilruntime.HandleError(deployerErr)
 
 		default: /* err == nil */

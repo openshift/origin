@@ -39,8 +39,8 @@ func NewDeployerController(
 	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "deployer-controller"})
 
 	c := &DeploymentController{
-		rn: kubeClientset.Core(),
-		pn: kubeClientset.Core(),
+		rn: kubeClientset.CoreV1(),
+		pn: kubeClientset.CoreV1(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
@@ -132,12 +132,12 @@ func (c *DeploymentController) deletePod(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone: %+v", obj))
+			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone: %+v", obj))
 			return
 		}
 		pod, ok = tombstone.Obj.(*v1.Pod)
 		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a pod: %+v", obj))
+			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a pod: %+v", obj))
 			return
 		}
 	}
@@ -150,7 +150,7 @@ func (c *DeploymentController) deletePod(obj interface{}) {
 func (c *DeploymentController) enqueueReplicationController(rc *v1.ReplicationController) {
 	key, err := kcontroller.KeyFunc(rc)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", rc, err))
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", rc, err))
 		return
 	}
 	c.queue.Add(key)
