@@ -347,15 +347,29 @@ func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
 		return nil
 	}
 
-	privileged := false
+	netprivs := false
 	for _, container := range append(pod.Spec.Containers, pod.Spec.InitContainers...) {
-		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
-			privileged = true
+		if container.SecurityContext != nil {
+			if container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
+				netprivs = true
+				break
+			}
+			if !netprivs && container.SecurityContext.Capabilities != nil && container.SecurityContext.Capabilities.Add != nil &&
+				len(container.SecurityContext.Capabilities.Add) > 0 {
+				for _, capability := range container.SecurityContext.Capabilities.Add {
+					if capability == "NET_ADMIN" {
+						netprivs = true
+						break
+					}
+				}
+			}
+		}
+		if netprivs {
 			break
 		}
 	}
-	if !privileged {
-		return fmt.Errorf("pod has %q annotation but is not privileged", networkapi.AssignMacvlanAnnotation)
+	if !netprivs {
+		return fmt.Errorf("pod has %q annotation but is neither privileged nor has NET_ADMIN capability", networkapi.AssignMacvlanAnnotation)
 	}
 
 	var iface netlink.Link
