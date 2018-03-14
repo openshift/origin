@@ -139,6 +139,15 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 
 // scaleFromConfig builds a scale resource out of a deployment config.
 func scaleFromConfig(dc *appsapi.DeploymentConfig) *autoscaling.Scale {
+	// We need to make sure that the implicit selector won't have invalid value specified by user.
+	// Should be fixed globally in https://github.com/openshift/origin/pull/18640
+	selector := map[string]string{}
+	// Copy the map not to pollute the one on DC
+	for k, v := range dc.Spec.Selector {
+		selector[k] = v
+	}
+	selector[appsapi.DeploymentConfigLabel] = dc.Name
+
 	return &autoscaling.Scale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              dc.Name,
@@ -152,7 +161,7 @@ func scaleFromConfig(dc *appsapi.DeploymentConfig) *autoscaling.Scale {
 		},
 		Status: autoscaling.ScaleStatus{
 			Replicas: dc.Status.Replicas,
-			Selector: labels.Set(dc.Spec.Selector).String(),
+			Selector: labels.Set(selector).String(),
 		},
 	}
 }
